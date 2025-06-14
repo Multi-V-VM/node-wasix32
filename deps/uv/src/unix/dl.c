@@ -22,7 +22,9 @@
 #include "uv.h"
 #include "internal.h"
 
+#if !defined(__wasi__)
 #include <dlfcn.h>
+#endif
 #include <errno.h>
 #include <string.h>
 #include <locale.h>
@@ -31,14 +33,21 @@ static int uv__dlerror(uv_lib_t* lib);
 
 
 int uv_dlopen(const char* filename, uv_lib_t* lib) {
+#if defined(__wasi__)
+  return 0;
+#else
   dlerror(); /* Reset error status. */
   lib->errmsg = NULL;
   lib->handle = dlopen(filename, RTLD_LAZY);
   return lib->handle ? 0 : uv__dlerror(lib);
+#endif
 }
 
 
 void uv_dlclose(uv_lib_t* lib) {
+#if defined(__wasi__)
+  return;
+#else
   uv__free(lib->errmsg);
   lib->errmsg = NULL;
 
@@ -47,13 +56,18 @@ void uv_dlclose(uv_lib_t* lib) {
     dlclose(lib->handle);
     lib->handle = NULL;
   }
+#endif
 }
 
 
 int uv_dlsym(uv_lib_t* lib, const char* name, void** ptr) {
+#if defined(__wasi__)
+  return 0;
+#else
   dlerror(); /* Reset error status. */
   *ptr = dlsym(lib->handle, name);
   return *ptr ? 0 : uv__dlerror(lib);
+#endif
 }
 
 
@@ -63,6 +77,9 @@ const char* uv_dlerror(const uv_lib_t* lib) {
 
 
 static int uv__dlerror(uv_lib_t* lib) {
+#if defined(__wasi__)
+  return 0;
+#else
   const char* errmsg;
 
   uv__free(lib->errmsg);
@@ -77,4 +94,5 @@ static int uv__dlerror(uv_lib_t* lib) {
     lib->errmsg = NULL;
     return 0;
   }
+#endif
 }

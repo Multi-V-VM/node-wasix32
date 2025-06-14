@@ -26,7 +26,9 @@
 #include <string.h>
 #include <errno.h>
 
+#if !defined(__wasi__)
 #include <sys/sysctl.h>
+#endif
 #include <sys/types.h>
 #include <sys/event.h>
 #include <sys/time.h>
