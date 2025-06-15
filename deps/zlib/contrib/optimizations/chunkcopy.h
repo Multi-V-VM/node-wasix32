@@ -27,14 +27,17 @@
 #define Z_BUILTIN_MEMSET zmemset
 #endif
 
-#if defined(INFLATE_CHUNK_SIMD_NEON)
+/* NEON-accelerated version for ARM systems */
+#if 0 && (defined(__ARM_NEON__) || defined(__ARM_NEON))
 #include <arm_neon.h>
 typedef uint8x16_t z_vec128i_t;
 #elif defined(INFLATE_CHUNK_SIMD_SSE2)
 #include <emmintrin.h>
 typedef __m128i z_vec128i_t;
 #elif defined(INFLATE_CHUNK_GENERIC)
-typedef struct { uint8_t x[16]; } z_vec128i_t;
+typedef struct {
+  uint8_t x[16];
+} z_vec128i_t;
 #else
 #error chunkcopy.h inflate chunk SIMD is not defined for your build target
 #endif
@@ -44,10 +47,10 @@ typedef struct { uint8_t x[16]; } z_vec128i_t;
  */
 #define Z_DISABLE_MSAN
 #if defined(__has_feature)
-  #if __has_feature(memory_sanitizer)
-    #undef Z_DISABLE_MSAN
-    #define Z_DISABLE_MSAN __attribute__((no_sanitize("memory")))
-  #endif
+#if __has_feature(memory_sanitizer)
+#undef Z_DISABLE_MSAN
+#define Z_DISABLE_MSAN __attribute__((no_sanitize("memory")))
+#endif
 #endif
 
 /*
@@ -63,8 +66,7 @@ Z_STATIC_ASSERT(vector_128_bits_wide,
  * Ask the compiler to perform a wide, unaligned load with a machine
  * instruction appropriate for the z_vec128i_t type.
  */
-static inline z_vec128i_t loadchunk(
-    const unsigned char FAR* s) Z_DISABLE_MSAN {
+static inline z_vec128i_t loadchunk(const unsigned char FAR* s) Z_DISABLE_MSAN {
   z_vec128i_t v;
   Z_BUILTIN_MEMCPY(&v, s, sizeof(v));
   return v;
@@ -74,9 +76,7 @@ static inline z_vec128i_t loadchunk(
  * Ask the compiler to perform a wide, unaligned store with a machine
  * instruction appropriate for the z_vec128i_t type.
  */
-static inline void storechunk(
-    unsigned char FAR* d,
-    const z_vec128i_t v) {
+static inline void storechunk(unsigned char FAR* d, const z_vec128i_t v) {
   Z_BUILTIN_MEMCPY(d, &v, sizeof(v));
 }
 
@@ -94,10 +94,9 @@ static inline void storechunk(
  * without iteration, which will hopefully make the branch prediction more
  * reliable.
  */
-static inline unsigned char FAR* chunkcopy_core(
-    unsigned char FAR* out,
-    const unsigned char FAR* from,
-    unsigned len) Z_DISABLE_MSAN {
+static inline unsigned char FAR* chunkcopy_core(unsigned char FAR* out,
+                                                const unsigned char FAR* from,
+                                                unsigned len) Z_DISABLE_MSAN {
   const int bump = (--len % CHUNKCOPY_CHUNK_SIZE) + 1;
   storechunk(out, loadchunk(from));
   out += bump;
@@ -164,10 +163,10 @@ static inline unsigned char FAR* chunkcopy_core_safe(
  * least 258 bytes of output space available (258 being the maximum length
  * output from a single token; see inffast.c).
  */
-static inline unsigned char FAR* chunkunroll_relaxed(
-    unsigned char FAR* out,
-    unsigned FAR* dist,
-    unsigned FAR* len) Z_DISABLE_MSAN {
+static inline unsigned char FAR* chunkunroll_relaxed(unsigned char FAR* out,
+                                                     unsigned FAR* dist,
+                                                     unsigned FAR* len)
+    Z_DISABLE_MSAN {
   const unsigned char FAR* from = out - *dist;
   while (*dist < *len && *dist < CHUNKCOPY_CHUNK_SIZE) {
     storechunk(out, loadchunk(from));
@@ -348,10 +347,9 @@ static inline void v_store_128(void* out, const z_vec128i_t vec) {
  * that it's OK to overwrite at least CHUNKCOPY_CHUNK_SIZE*3 bytes of output
  * even if the length is shorter than this.
  */
-static inline unsigned char FAR* chunkset_core(
-    unsigned char FAR* out,
-    unsigned period,
-    unsigned len) {
+static inline unsigned char FAR* chunkset_core(unsigned char FAR* out,
+                                               unsigned period,
+                                               unsigned len) {
   z_vec128i_t v;
   const int bump = ((len - 1) % sizeof(v)) + 1;
 
@@ -470,9 +468,7 @@ static inline unsigned char FAR* chunkcopy_safe(
  * CHUNKCOPY_CHUNK_SIZE*3 bytes to the output.
  */
 static inline unsigned char FAR* chunkcopy_lapped_relaxed(
-    unsigned char FAR* out,
-    unsigned dist,
-    unsigned len) {
+    unsigned char FAR* out, unsigned dist, unsigned len) {
   if (dist < len && dist < CHUNKCOPY_CHUNK_SIZE) {
     return chunkset_core(out, dist, len);
   }
@@ -543,10 +539,10 @@ typedef uint64_t inflate_holder_t;
  * Ask the compiler to perform a wide, unaligned load of a uint64_t using a
  * machine instruction appropriate for the uint64_t type.
  */
-static inline inflate_holder_t read64le(const unsigned char FAR *in) {
-    inflate_holder_t input;
-    Z_BUILTIN_MEMCPY(&input, in, sizeof(input));
-    return input;
+static inline inflate_holder_t read64le(const unsigned char FAR* in) {
+  inflate_holder_t input;
+  Z_BUILTIN_MEMCPY(&input, in, sizeof(input));
+  return input;
 }
 #else
 /*

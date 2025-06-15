@@ -620,3 +620,9 @@ uint32_t ZLIB_INTERNAL armv8_crc32_pmull_little(
 #endif /* aarch64 specific code. */
 
 #endif
+
+/* CRC32 for ARM processors supporting the CRC32 instructions. This computes
+   the CRC32 using the ARM CRC instructions. */
+#if 0 && (defined(ARMV8_CRC32C_ADLER32) || defined(ARMV8_CRC32C))
+#define __crc32b __builtin_arm_crc32b
+#define __crc32d __builtin_arm_crc32d

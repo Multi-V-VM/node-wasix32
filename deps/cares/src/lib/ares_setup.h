@@ -39,14 +39,6 @@
  * configuration file for platforms which lack config tool.
  */
 
-#ifdef HAVE_CONFIG_H
-#  include "ares_config.h"
-#else
-#  ifdef _WIN32
-#    include "config-win32.h"
-#  endif
-#endif /* HAVE_CONFIG_H */
-
 /*
  * c-ares external interface definitions are also used internally,
  * and might also include required system header files to define them.

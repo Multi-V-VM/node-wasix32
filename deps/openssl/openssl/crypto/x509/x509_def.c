@@ -7,10 +7,13 @@
  * https://www.openssl.org/source/license.html
  */
 
+#include <openssl/opensslconf.h>
 #include <stdio.h>
-#include "internal/cryptlib.h"
+/* Use WASI specific header for WebAssembly targets */
+#include "../../crypto/wasi_crypto.h"
 #include <openssl/crypto.h>
 #include <openssl/x509.h>
+#include "crypto/x509_def.h"
 
 const char *X509_get_default_private_dir(void)
 {

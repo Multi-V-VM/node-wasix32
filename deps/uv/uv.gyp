@@ -120,6 +120,7 @@
       'src/unix/thread.c',
       'src/unix/tty.c',
       'src/unix/udp.c',
+      'src/unix/aix.c',
     ],
     'uv_sources_apple': [
       'src/unix/darwin.c',

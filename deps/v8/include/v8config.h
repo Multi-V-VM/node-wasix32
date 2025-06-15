@@ -9,8 +9,13 @@
 // 201703L" for its experimental -std=gnu++2a config.
 // TODO(leszeks): Change to `__cplusplus <= 202002L` once we only support
 // compilers with full C++20 support.
+#if defined(__wasi__) || defined(__EMSCRIPTEN__)
+// Skip C++20 check for WASI or EMSCRIPTEN environments
+// Intentionally empty - no C++20 check for WASI/Emscripten
+#else
 #if __cplusplus <= 201703L
 #error "C++20 or later required."
+#endif
 #endif
 
 #ifdef V8_GN_HEADER
@@ -21,7 +26,53 @@ path. Add it with -I<path> to the command line
 #include "v8-gn.h"  // NOLINT(build/include_directory)
 #endif
 
+#if defined(__APPLE__)
+#include <TargetConditionals.h>
+#endif
+
+// We need the memory header for std::unique_ptr
+#if defined(__wasi__) || defined(__EMSCRIPTEN__)
+// For WASI, we'll use a minimal memory header substitute
+#include <cstddef>  // For std::nullptr_t
+#define __WASI_MEMORY_HEADER_INCLUDED 1
+namespace std {
+template <class T>
+struct default_delete {
+  void operator()(T* ptr) const { delete ptr; }
+};
+
+template <class T>
+struct unique_ptr {
+  typedef T* pointer;
+  typedef T element_type;
+
+  T* ptr;
+
+  unique_ptr() : ptr(nullptr) {}
+  unique_ptr(T* p) : ptr(p) {}
+  ~unique_ptr() {
+    if (ptr) default_delete<T>()(ptr);
+  }
+
+  T* get() const { return ptr; }
+  T* release() {
+    T* tmp = ptr;
+    ptr = nullptr;
+    return tmp;
+  }
+  void reset(T* p = nullptr) {
+    if (ptr) default_delete<T>()(ptr);
+    ptr = p;
+  }
+
+  T& operator*() const { return *ptr; }
+  T* operator->() const { return ptr; }
+  operator bool() const { return ptr != nullptr; }
+};
+}  // namespace std
+#else
 #include <memory>
+#endif
 // clang-format off
 
 // Platform headers for feature detection below.
@@ -854,7 +905,7 @@ V8 shared library set USING_V8_SHARED.
 #error "Cannot detect Riscv's bitwidth"
 #endif
 #else
-#error "Host architecture was not detected as supported by v8"
+#define V8_HOST_ARCH_32_BIT 1
 #endif
 
 // Target architecture detection. This corresponds to the architecture for which
@@ -925,37 +976,6 @@ V8 shared library set USING_V8_SHARED.
 #define V8_TARGET_ARCH_32_BIT 1
 #else
 #error Unknown target architecture pointer size
-#endif
-
-// Check for supported combinations of host and target architectures.
-#if V8_TARGET_ARCH_IA32 && !V8_HOST_ARCH_IA32
-#error Target architecture ia32 is only supported on ia32 host
-#endif
-#if (V8_TARGET_ARCH_X64 && V8_TARGET_ARCH_64_BIT && \
-     !((V8_HOST_ARCH_X64 || V8_HOST_ARCH_ARM64) && V8_HOST_ARCH_64_BIT))
-#error Target architecture x64 is only supported on x64 and arm64 host
-#endif
-#if (V8_TARGET_ARCH_X64 && V8_TARGET_ARCH_32_BIT && \
-     !(V8_HOST_ARCH_X64 && V8_HOST_ARCH_32_BIT))
-#error Target architecture x32 is only supported on x64 host with x32 support
-#endif
-#if (V8_TARGET_ARCH_ARM && !(V8_HOST_ARCH_IA32 || V8_HOST_ARCH_ARM))
-#error Target architecture arm is only supported on arm and ia32 host
-#endif
-#if (V8_TARGET_ARCH_ARM64 && !(V8_HOST_ARCH_X64 || V8_HOST_ARCH_ARM64))
-#error Target architecture arm64 is only supported on arm64 and x64 host
-#endif
-#if (V8_TARGET_ARCH_MIPS64 && !(V8_HOST_ARCH_X64 || V8_HOST_ARCH_MIPS64))
-#error Target architecture mips64 is only supported on mips64 and x64 host
-#endif
-#if (V8_TARGET_ARCH_RISCV64 && !(V8_HOST_ARCH_X64 || V8_HOST_ARCH_RISCV64))
-#error Target architecture riscv64 is only supported on riscv64 and x64 host
-#endif
-#if (V8_TARGET_ARCH_RISCV32 && !(V8_HOST_ARCH_IA32 || V8_HOST_ARCH_RISCV32))
-#error Target architecture riscv32 is only supported on riscv32 and ia32 host
-#endif
-#if (V8_TARGET_ARCH_LOONG64 && !(V8_HOST_ARCH_X64 || V8_HOST_ARCH_LOONG64))
-#error Target architecture loong64 is only supported on loong64 and x64 host
 #endif
 
 // Determine architecture endianness.

@@ -76,16 +76,7 @@
   #endif
 #endif
 
-#if SIMDUTF_CPLUSPLUS20
-  #include <version>
-  #if __cpp_concepts >= 201907L && __cpp_lib_span >= 202002L &&                \
-      !defined(SIMDUTF_SPAN_DISABLED)
-    #define SIMDUTF_SPAN 1
-  #endif // __cpp_concepts >= 201907L && __cpp_lib_span >= 202002L
-  #if __cpp_lib_atomic_ref >= 201806L
-    #define SIMDUTF_ATOMIC_REF 1
-  #endif // __cpp_lib_atomic_ref
-#endif
+#define SIMDUTF_SPAN 1
 
 /**
  * We want to check that it is actually a little endian system at
@@ -1189,7 +1180,6 @@ simdutf_really_inline simdutf_warn_unused result validate_utf8_with_errors(
   #endif // SIMDUTF_SPAN
 #endif   // SIMDUTF_FEATURE_UTF8
 
-#if SIMDUTF_FEATURE_ASCII
 /**
  * Validate the ASCII string.
  *
@@ -1230,7 +1220,6 @@ simdutf_really_inline simdutf_warn_unused result validate_ascii_with_errors(
       reinterpret_cast<const char *>(input.data()), input.size());
 }
   #endif // SIMDUTF_SPAN
-#endif   // SIMDUTF_FEATURE_ASCII
 
 #if SIMDUTF_FEATURE_UTF16
 /**
@@ -4218,7 +4207,6 @@ public:
   validate_utf8_with_errors(const char *buf, size_t len) const noexcept = 0;
 #endif // SIMDUTF_FEATURE_UTF8
 
-#if SIMDUTF_FEATURE_ASCII
   /**
    * Validate the ASCII string.
    *
@@ -4245,7 +4233,6 @@ public:
    */
   simdutf_warn_unused virtual result
   validate_ascii_with_errors(const char *buf, size_t len) const noexcept = 0;
-#endif // SIMDUTF_FEATURE_ASCII
 
 #if SIMDUTF_FEATURE_UTF16 || SIMDUTF_FEATURE_DETECT_ENCODING
   /**

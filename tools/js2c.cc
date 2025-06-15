@@ -23,6 +23,17 @@
 #define S_IWUSR _S_IWRITE
 #endif  // S_IWUSR
 #endif
+extern "C" {
+   void *__cxa_allocate_exception(size_t size) throw() {
+      abort();
+   }
+
+   void __cxa_throw(void *exception, std::type_info *tinfo, void (*dest)(void *)) throw() {
+      abort();
+   }
+
+   void uv__process_title_cleanup(void){};
+}
 namespace node {
 namespace js2c {
 int Main(int argc, char* argv[]);
