@@ -1,5 +1,5 @@
 /*
- * Copyright 1999-2024 The OpenSSL Project Authors. All Rights Reserved.
+ * Copyright 1999-2021 The OpenSSL Project Authors. All Rights Reserved.
  *
  * Licensed under the Apache License 2.0 (the "License").  You may not use
  * this file except in compliance with the License.  You can obtain a copy
@@ -98,11 +98,6 @@ static int pkcs12_gen_mac(PKCS12 *p12, const char *pass, int passlen,
         return 0;
     }
 
-    if (p12->authsafes->d.data == NULL) {
-        ERR_raise(ERR_LIB_PKCS12, PKCS12_R_DECODE_ERROR);
-        return 0;
-    }
-
     salt = p12->mac->salt->data;
     saltlen = p12->mac->salt->length;
     if (p12->mac->iter == NULL)
@@ -113,20 +108,15 @@ static int pkcs12_gen_mac(PKCS12 *p12, const char *pass, int passlen,
     X509_ALGOR_get0(&macoid, NULL, NULL, macalg);
     if (OBJ_obj2txt(md_name, sizeof(md_name), macoid, 0) < 0)
         return 0;
-
-    (void)ERR_set_mark();
     md = md_fetch = EVP_MD_fetch(p12->authsafes->ctx.libctx, md_name,
                                  p12->authsafes->ctx.propq);
     if (md == NULL)
         md = EVP_get_digestbynid(OBJ_obj2nid(macoid));
 
     if (md == NULL) {
-        (void)ERR_clear_last_mark();
         ERR_raise(ERR_LIB_PKCS12, PKCS12_R_UNKNOWN_DIGEST_ALGORITHM);
         return 0;
     }
-    (void)ERR_pop_to_mark();
-
     md_size = EVP_MD_get_size(md);
     md_nid = EVP_MD_get_type(md);
     if (md_size < 0)
@@ -251,11 +241,11 @@ int PKCS12_setup_mac(PKCS12 *p12, int iter, unsigned char *salt, int saltlen,
         return PKCS12_ERROR;
     if (iter > 1) {
         if ((p12->mac->iter = ASN1_INTEGER_new()) == NULL) {
-            ERR_raise(ERR_LIB_PKCS12, ERR_R_MALLOC_FAILURE);
+            ERR_raise(ERR_LIB_PKCS12, ERR_R_ASN1_LIB);
             return 0;
         }
         if (!ASN1_INTEGER_set(p12->mac->iter, iter)) {
-            ERR_raise(ERR_LIB_PKCS12, ERR_R_MALLOC_FAILURE);
+            ERR_raise(ERR_LIB_PKCS12, ERR_R_ASN1_LIB);
             return 0;
         }
     }
@@ -263,10 +253,8 @@ int PKCS12_setup_mac(PKCS12 *p12, int iter, unsigned char *salt, int saltlen,
         saltlen = PKCS12_SALT_LEN;
     else if (saltlen < 0)
         return 0;
-    if ((p12->mac->salt->data = OPENSSL_malloc(saltlen)) == NULL) {
-        ERR_raise(ERR_LIB_PKCS12, ERR_R_MALLOC_FAILURE);
+    if ((p12->mac->salt->data = OPENSSL_malloc(saltlen)) == NULL)
         return 0;
-    }
     p12->mac->salt->length = saltlen;
     if (salt == NULL) {
         if (RAND_bytes_ex(p12->authsafes->ctx.libctx, p12->mac->salt->data,
@@ -278,7 +266,7 @@ int PKCS12_setup_mac(PKCS12 *p12, int iter, unsigned char *salt, int saltlen,
     X509_SIG_getm(p12->mac->dinfo, &macalg, NULL);
     if (!X509_ALGOR_set0(macalg, OBJ_nid2obj(EVP_MD_get_type(md_type)),
                          V_ASN1_NULL, NULL)) {
-        ERR_raise(ERR_LIB_PKCS12, ERR_R_MALLOC_FAILURE);
+        ERR_raise(ERR_LIB_PKCS12, ERR_R_ASN1_LIB);
         return 0;
     }
 

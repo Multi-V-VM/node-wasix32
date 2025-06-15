@@ -10,7 +10,7 @@
 /* We need to use some deprecated APIs */
 #define OPENSSL_SUPPRESS_DEPRECATED
 
-#include "../e_os.h"
+#include "internal/e_os.h"
 #include <string.h>
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -25,6 +25,7 @@
 #include <openssl/engine.h>
 #include <openssl/objects.h>
 #include "crypto/cryptodev.h"
+#include "internal/nelem.h"
 
 /* #define ENGINE_DEVCRYPTO_DEBUG */
 
@@ -633,7 +634,7 @@ static void dump_cipher_info(void)
         fprintf (stderr, "Cipher %s, NID=%d, /dev/crypto info: id=%d, ",
                  name ? name : "unknown", cipher_data[i].nid,
                  cipher_data[i].devcryptoid);
-        if (cipher_driver_info[i].status == DEVCRYPTO_STATUS_NO_CIOCGSESSION ) {
+        if (cipher_driver_info[i].status == DEVCRYPTO_STATUS_NO_CIOCGSESSION) {
             fprintf (stderr, "CIOCGSESSION (session open call) failed\n");
             continue;
         }
@@ -1227,7 +1228,7 @@ static int open_devcrypto(void)
 
     if ((fd = open("/dev/crypto", O_RDWR, 0)) < 0) {
 #ifndef ENGINE_DEVCRYPTO_DEBUG
-        if (errno != ENOENT)
+        if (errno != ENOENT && errno != ENXIO)
 #endif
             fprintf(stderr, "Could not open /dev/crypto: %s\n", strerror(errno));
         return 0;

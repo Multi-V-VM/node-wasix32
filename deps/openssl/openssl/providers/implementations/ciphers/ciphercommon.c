@@ -128,10 +128,7 @@ int ossl_cipher_var_keylen_set_ctx_params(void *vctx, const OSSL_PARAM params[])
             ERR_raise(ERR_LIB_PROV, PROV_R_FAILED_TO_GET_PARAMETER);
             return 0;
         }
-        if (ctx->keylen != keylen) {
-            ctx->keylen = keylen;
-            ctx->key_set = 0;
-        }
+        ctx->keylen = keylen;
     }
     return 1;
 }
@@ -220,7 +217,6 @@ static int cipher_generic_init_internal(PROV_CIPHER_CTX *ctx,
         }
         if (!ctx->hw->init(ctx, key, ctx->keylen))
             return 0;
-        ctx->key_set = 1;
     }
     return ossl_cipher_generic_set_ctx_params(ctx, params);
 }
@@ -252,11 +248,6 @@ int ossl_cipher_generic_block_update(void *vctx, unsigned char *out,
     PROV_CIPHER_CTX *ctx = (PROV_CIPHER_CTX *)vctx;
     size_t blksz = ctx->blocksize;
     size_t nextblocks;
-
-    if (!ctx->key_set) {
-        ERR_raise(ERR_LIB_PROV, PROV_R_NO_KEY_SET);
-        return 0;
-    }
 
     if (ctx->tlsversion > 0) {
         /*
@@ -399,11 +390,6 @@ int ossl_cipher_generic_block_final(void *vctx, unsigned char *out,
     if (!ossl_prov_is_running())
         return 0;
 
-    if (!ctx->key_set) {
-        ERR_raise(ERR_LIB_PROV, PROV_R_NO_KEY_SET);
-        return 0;
-    }
-
     if (ctx->tlsversion > 0) {
         /* We never finalize TLS, so this is an error */
         ERR_raise(ERR_LIB_PROV, PROV_R_CIPHER_OPERATION_FAILED);
@@ -470,11 +456,6 @@ int ossl_cipher_generic_stream_update(void *vctx, unsigned char *out,
 {
     PROV_CIPHER_CTX *ctx = (PROV_CIPHER_CTX *)vctx;
 
-    if (!ctx->key_set) {
-        ERR_raise(ERR_LIB_PROV, PROV_R_NO_KEY_SET);
-        return 0;
-    }
-
     if (inl == 0) {
         *outl = 0;
         return 1;
@@ -529,15 +510,8 @@ int ossl_cipher_generic_stream_update(void *vctx, unsigned char *out,
 int ossl_cipher_generic_stream_final(void *vctx, unsigned char *out,
                                      size_t *outl, size_t outsize)
 {
-    PROV_CIPHER_CTX *ctx = (PROV_CIPHER_CTX *)vctx;
-
     if (!ossl_prov_is_running())
         return 0;
-
-    if (!ctx->key_set) {
-        ERR_raise(ERR_LIB_PROV, PROV_R_NO_KEY_SET);
-        return 0;
-    }
 
     *outl = 0;
     return 1;
@@ -551,11 +525,6 @@ int ossl_cipher_generic_cipher(void *vctx, unsigned char *out, size_t *outl,
 
     if (!ossl_prov_is_running())
         return 0;
-
-    if (!ctx->key_set) {
-        ERR_raise(ERR_LIB_PROV, PROV_R_NO_KEY_SET);
-        return 0;
-    }
 
     if (outsize < inl) {
         ERR_raise(ERR_LIB_PROV, PROV_R_OUTPUT_BUFFER_TOO_SMALL);

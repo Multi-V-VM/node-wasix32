@@ -47,10 +47,8 @@ static void *rc5_dupctx(void *ctx)
         return NULL;
 
     ret = OPENSSL_malloc(sizeof(*ret));
-    if (ret == NULL) {
-        ERR_raise(ERR_LIB_PROV, ERR_R_MALLOC_FAILURE);
+    if (ret == NULL)
         return NULL;
-    }
     *ret = *in;
 
     return ret;
@@ -175,7 +173,7 @@ const OSSL_DISPATCH ossl_##alg##kbits##lcmode##_functions[] = {                \
       (void (*)(void))rc5_set_ctx_params },                                    \
     { OSSL_FUNC_CIPHER_SETTABLE_CTX_PARAMS,                                    \
      (void (*)(void))rc5_settable_ctx_params },                                \
-    { 0, NULL }                                                                \
+    OSSL_DISPATCH_END                                                          \
 };
 
 /* ossl_rc5128ecb_functions */

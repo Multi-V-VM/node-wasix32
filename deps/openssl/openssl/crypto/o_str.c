@@ -1,5 +1,5 @@
 /*
- * Copyright 2003-2024 The OpenSSL Project Authors. All Rights Reserved.
+ * Copyright 2003-2022 The OpenSSL Project Authors. All Rights Reserved.
  *
  * Licensed under the Apache License 2.0 (the "License").  You may not use
  * this file except in compliance with the License.  You can obtain a copy
@@ -7,7 +7,7 @@
  * https://www.openssl.org/source/license.html
  */
 
-#include "e_os.h"
+#include "internal/e_os.h"
 #include <string.h>
 #include <limits.h>
 #include <openssl/crypto.h>
@@ -56,10 +56,8 @@ void *CRYPTO_memdup(const void *data, size_t siz, const char* file, int line)
         return NULL;
 
     ret = CRYPTO_malloc(siz, file, line);
-    if (ret == NULL) {
-        ERR_raise(ERR_LIB_CRYPTO, ERR_R_MALLOC_FAILURE);
+    if (ret == NULL)
         return NULL;
-    }
     return memcpy(ret, data, siz);
 }
 
@@ -196,10 +194,8 @@ unsigned char *ossl_hexstr2buf_sep(const char *str, long *buflen,
         return NULL;
     }
     buf_n /= 2;
-    if ((buf = OPENSSL_malloc(buf_n)) == NULL) {
-        ERR_raise(ERR_LIB_CRYPTO, ERR_R_MALLOC_FAILURE);
+    if ((buf = OPENSSL_malloc(buf_n)) == NULL)
         return NULL;
-    }
 
     if (buflen != NULL)
         *buflen = 0;
@@ -229,14 +225,12 @@ static int buf2hexstr_sep(char *str, size_t str_n, size_t *strlength,
     int has_sep = (sep != CH_ZERO);
     size_t len = has_sep ? buflen * 3 : 1 + buflen * 2;
 
-    if (len == 0)
-        ++len;
     if (strlength != NULL)
         *strlength = len;
     if (str == NULL)
         return 1;
 
-    if (str_n < len) {
+    if (str_n < (unsigned long)len) {
         ERR_raise(ERR_LIB_CRYPTO, CRYPTO_R_TOO_SMALL_BUFFER);
         return 0;
     }
@@ -248,12 +242,12 @@ static int buf2hexstr_sep(char *str, size_t str_n, size_t *strlength,
         if (has_sep)
             *q++ = sep;
     }
-    if (has_sep && buflen > 0)
+    if (has_sep)
         --q;
     *q = CH_ZERO;
 
 #ifdef CHARSET_EBCDIC
-    ebcdic2ascii(str, str, q - str);
+    ebcdic2ascii(str, str, q - str - 1);
 #endif
     return 1;
 }
@@ -274,10 +268,8 @@ char *ossl_buf2hexstr_sep(const unsigned char *buf, long buflen, char sep)
         return OPENSSL_zalloc(1);
 
     tmp_n = (sep != CH_ZERO) ? buflen * 3 : 1 + buflen * 2;
-    if ((tmp = OPENSSL_malloc(tmp_n)) == NULL) {
-        ERR_raise(ERR_LIB_CRYPTO, ERR_R_MALLOC_FAILURE);
+    if ((tmp = OPENSSL_malloc(tmp_n)) == NULL)
         return NULL;
-    }
 
     if (buf2hexstr_sep(tmp, tmp_n, NULL, buf, buflen, sep))
         return tmp;

@@ -1,5 +1,5 @@
 /*
- * Copyright 2019-2024 The OpenSSL Project Authors. All Rights Reserved.
+ * Copyright 2019-2022 The OpenSSL Project Authors. All Rights Reserved.
  *
  * Licensed under the Apache License 2.0 (the "License").  You may not use
  * this file except in compliance with the License.  You can obtain a copy
@@ -56,11 +56,6 @@ int OSSL_ENCODER_to_bio(OSSL_ENCODER_CTX *ctx, BIO *out)
                        "No encoders were found. For standard encoders you need "
                        "at least one of the default or base providers "
                        "available. Did you forget to load them?");
-        return 0;
-    }
-
-    if (ctx->cleanup == NULL || ctx->construct == NULL) {
-        ERR_raise(ERR_LIB_OSSL_ENCODER, ERR_R_INIT_FAIL);
         return 0;
     }
 
@@ -198,10 +193,8 @@ static OSSL_ENCODER_INSTANCE *ossl_encoder_instance_new(OSSL_ENCODER *encoder,
         return 0;
     }
 
-    if ((encoder_inst = OPENSSL_zalloc(sizeof(*encoder_inst))) == NULL) {
-        ERR_raise(ERR_LIB_OSSL_ENCODER, ERR_R_MALLOC_FAILURE);
+    if ((encoder_inst = OPENSSL_zalloc(sizeof(*encoder_inst))) == NULL)
         return 0;
-    }
 
     if (!OSSL_ENCODER_up_ref(encoder)) {
         ERR_raise(ERR_LIB_OSSL_ENCODER, ERR_R_INTERNAL_ERROR);
@@ -264,7 +257,7 @@ static int ossl_encoder_ctx_add_encoder_inst(OSSL_ENCODER_CTX *ctx,
     if (ctx->encoder_insts == NULL
         && (ctx->encoder_insts =
             sk_OSSL_ENCODER_INSTANCE_new_null()) == NULL) {
-        ERR_raise(ERR_LIB_OSSL_ENCODER, ERR_R_MALLOC_FAILURE);
+        ERR_raise(ERR_LIB_OSSL_ENCODER, ERR_R_CRYPTO_LIB);
         return 0;
     }
 
@@ -527,7 +520,7 @@ static int encoder_process(struct encoder_process_data_st *data)
 
         OSSL_TRACE_BEGIN(ENCODER) {
             BIO_printf(trc_out,
-                       "[%d]    Skipping because recusion level %d failed\n",
+                       "[%d]    Skipping because recursion level %d failed\n",
                        data->level, new_data.level);
         } OSSL_TRACE_END(ENCODER);
     }

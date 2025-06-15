@@ -135,25 +135,6 @@
 #  endif
 # endif
 
-# if OPENSSL_API_LEVEL > OPENSSL_CONFIGURED_API
-#  error "The requested API level higher than the configured API compatibility level"
-# endif
-
-/*
- * Check of sane values.
- */
-/* Can't go higher than the current version. */
-# if OPENSSL_API_LEVEL > (OPENSSL_VERSION_MAJOR * 10000 + OPENSSL_VERSION_MINOR * 100)
-#  error "OPENSSL_API_COMPAT expresses an impossible API compatibility level"
-# endif
-/* OpenSSL will have no version 2.y.z */
-# if OPENSSL_API_LEVEL < 30000 && OPENSSL_API_LEVEL >= 20000
-#  error "OPENSSL_API_COMPAT expresses an impossible API compatibility level"
-# endif
-/* Below 0.9.8 is unacceptably low */
-# if OPENSSL_API_LEVEL < 908
-#  error "OPENSSL_API_COMPAT expresses an impossible API compatibility level"
-# endif
 
 /*
  * Define macros for deprecation and simulated removal purposes.
@@ -169,6 +150,7 @@
  * 'no-deprecated'.
  */
 
+# undef OPENSSL_NO_DEPRECATED_3_2
 # undef OPENSSL_NO_DEPRECATED_3_0
 # undef OPENSSL_NO_DEPRECATED_1_1_1
 # undef OPENSSL_NO_DEPRECATED_1_1_0
@@ -177,6 +159,17 @@
 # undef OPENSSL_NO_DEPRECATED_1_0_0
 # undef OPENSSL_NO_DEPRECATED_0_9_8
 
+# if OPENSSL_API_LEVEL >= 30200
+#  ifndef OPENSSL_NO_DEPRECATED
+#   define OSSL_DEPRECATEDIN_3_2                OSSL_DEPRECATED(3.2)
+#   define OSSL_DEPRECATEDIN_3_2_FOR(msg)       OSSL_DEPRECATED_FOR(3.2, msg)
+#  else
+#   define OPENSSL_NO_DEPRECATED_3_2
+#  endif
+# else
+#  define OSSL_DEPRECATEDIN_3_2
+#  define OSSL_DEPRECATEDIN_3_2_FOR(msg)
+# endif
 # if OPENSSL_API_LEVEL >= 30000
 #  ifndef OPENSSL_NO_DEPRECATED
 #   define OSSL_DEPRECATEDIN_3_0                OSSL_DEPRECATED(3.0)
@@ -298,6 +291,16 @@
  */
 #  ifndef OPENSSL_FUNC
 #   define OPENSSL_FUNC "(unknown function)"
+#  endif
+# endif
+
+# ifndef OSSL_CRYPTO_ALLOC
+#  if defined(__GNUC__)
+#   define OSSL_CRYPTO_ALLOC __attribute__((__malloc__))
+#  elif defined(_MSC_VER)
+#   define OSSL_CRYPTO_ALLOC __declspec(restrict)
+#  else
+#   define OSSL_CRYPTO_ALLOC
 #  endif
 # endif
 

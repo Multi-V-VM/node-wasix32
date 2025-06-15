@@ -88,6 +88,9 @@ typedef enum {
 
 const char *OSSL_EC_curve_nid2name(int nid);
 
+# ifndef OPENSSL_NO_STDIO
+#  include <stdio.h>
+# endif
 # ifndef OPENSSL_NO_EC
 #  include <openssl/asn1.h>
 #  include <openssl/symhacks.h>
@@ -456,6 +459,22 @@ EC_GROUP *EC_GROUP_new_curve_GF2m(const BIGNUM *p, const BIGNUM *a,
  */
 EC_GROUP *EC_GROUP_new_from_params(const OSSL_PARAM params[],
                                    OSSL_LIB_CTX *libctx, const char *propq);
+
+/**
+ * Creates an OSSL_PARAM array with the parameters describing the given
+ * EC_GROUP.
+ * The resulting parameters may contain an explicit or a named curve depending
+ * on the EC_GROUP.
+ *  \param  group  pointer to the EC_GROUP object
+ *  \param  libctx The associated library context or NULL for the default
+ *                 context
+ *  \param  propq  A property query string
+ *  \param  bnctx  BN_CTX object (optional)
+ *  \return newly created OSSL_PARAM array with the parameters
+ *          describing the given EC_GROUP or NULL if an error occurred
+ */
+OSSL_PARAM *EC_GROUP_to_params(const EC_GROUP *group, OSSL_LIB_CTX *libctx,
+                               const char *propq, BN_CTX *bnctx);
 
 /**
  * Creates a EC_GROUP object with a curve specified by a NID

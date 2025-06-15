@@ -1,5 +1,5 @@
 /*
- * Copyright 2001-2024 The OpenSSL Project Authors. All Rights Reserved.
+ * Copyright 2001-2021 The OpenSSL Project Authors. All Rights Reserved.
  *
  * Licensed under the Apache License 2.0 (the "License").  You may not use
  * this file except in compliance with the License.  You can obtain a copy
@@ -58,6 +58,7 @@ static int s390x_aes_ofb128_initkey(PROV_CIPHER_CTX *dat,
 
     memcpy(adat->plat.s390x.param.kmo_kmf.k, key, keylen);
     adat->plat.s390x.fc = S390X_AES_FC(keylen);
+    adat->plat.s390x.res = 0;
     return 1;
 }
 
@@ -65,7 +66,7 @@ static int s390x_aes_ofb128_cipher_hw(PROV_CIPHER_CTX *dat, unsigned char *out,
                                       const unsigned char *in, size_t len)
 {
     PROV_AES_CTX *adat = (PROV_AES_CTX *)dat;
-    int n = dat->num;
+    int n = adat->plat.s390x.res;
     int rem;
 
     memcpy(adat->plat.s390x.param.kmo_kmf.cv, dat->iv, dat->ivlen);
@@ -101,7 +102,7 @@ static int s390x_aes_ofb128_cipher_hw(PROV_CIPHER_CTX *dat, unsigned char *out,
     }
 
     memcpy(dat->iv, adat->plat.s390x.param.kmo_kmf.cv, dat->ivlen);
-    dat->num = n;
+    adat->plat.s390x.res = n;
     return 1;
 }
 
@@ -112,6 +113,7 @@ static int s390x_aes_cfb128_initkey(PROV_CIPHER_CTX *dat,
 
     adat->plat.s390x.fc = S390X_AES_FC(keylen);
     adat->plat.s390x.fc |= 16 << 24;   /* 16 bytes cipher feedback */
+    adat->plat.s390x.res = 0;
     memcpy(adat->plat.s390x.param.kmo_kmf.k, key, keylen);
     return 1;
 }
@@ -121,7 +123,7 @@ static int s390x_aes_cfb128_cipher_hw(PROV_CIPHER_CTX *dat, unsigned char *out,
 {
     PROV_AES_CTX *adat = (PROV_AES_CTX *)dat;
     unsigned int modifier = adat->base.enc ? 0 : S390X_DECRYPT;
-    int n = dat->num;
+    int n = adat->plat.s390x.res;
     int rem;
     unsigned char tmp;
 
@@ -162,7 +164,7 @@ static int s390x_aes_cfb128_cipher_hw(PROV_CIPHER_CTX *dat, unsigned char *out,
     }
 
     memcpy(dat->iv, adat->plat.s390x.param.kmo_kmf.cv, dat->ivlen);
-    dat->num = n;
+    adat->plat.s390x.res = n;
     return 1;
 }
 

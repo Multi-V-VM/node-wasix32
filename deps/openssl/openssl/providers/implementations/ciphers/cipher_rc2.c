@@ -50,10 +50,8 @@ static void *rc2_dupctx(void *ctx)
         return NULL;
 
     ret = OPENSSL_malloc(sizeof(*ret));
-    if (ret == NULL) {
-        ERR_raise(ERR_LIB_PROV, ERR_R_MALLOC_FAILURE);
+    if (ret == NULL)
         return NULL;
-    }
     *ret = *in;
 
     return ret;
@@ -130,7 +128,7 @@ static int rc2_get_ctx_params(void *vctx, OSSL_PARAM params[])
             return 0;
         }
         if ((type = ASN1_TYPE_new()) == NULL) {
-            ERR_raise(ERR_LIB_PROV, ERR_R_MALLOC_FAILURE);
+            ERR_raise(ERR_LIB_PROV, ERR_R_ASN1_LIB);
             return 0;
         }
 
@@ -139,7 +137,7 @@ static int rc2_get_ctx_params(void *vctx, OSSL_PARAM params[])
         if (!ASN1_TYPE_set_int_octetstring(type, num,
                                            ctx->base.iv, ctx->base.ivlen)) {
             ASN1_TYPE_free(type);
-            ERR_raise(ERR_LIB_PROV, ERR_R_MALLOC_FAILURE);
+            ERR_raise(ERR_LIB_PROV, ERR_R_ASN1_LIB);
             return 0;
         }
         /*
@@ -265,7 +263,7 @@ const OSSL_DISPATCH ossl_##alg##kbits##lcmode##_functions[] = {                \
       (void (*)(void))rc2_set_ctx_params },                                    \
     { OSSL_FUNC_CIPHER_SETTABLE_CTX_PARAMS,                                    \
      (void (*)(void))rc2_settable_ctx_params },                                \
-    { 0, NULL }                                                                \
+    OSSL_DISPATCH_END                                                          \
 };
 
 /* ossl_rc2128ecb_functions */

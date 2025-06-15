@@ -1,5 +1,5 @@
 /*
- * Copyright 2016-2023 The OpenSSL Project Authors. All Rights Reserved.
+ * Copyright 2016-2021 The OpenSSL Project Authors. All Rights Reserved.
  *
  * Licensed under the Apache License 2.0 (the "License").  You may not use
  * this file except in compliance with the License.  You can obtain a copy
@@ -53,6 +53,13 @@ static inline int CRYPTO_DOWN_REF(_Atomic int *val, int *ret,
     return 1;
 }
 
+static inline int CRYPTO_GET_REF(_Atomic int *val, int *ret,
+                                 ossl_unused void *lock)
+{
+    *ret = atomic_load_explicit(val, memory_order_relaxed);
+    return 1;
+}
+
 #  elif defined(__GNUC__) && defined(__ATOMIC_RELAXED) && __GCC_ATOMIC_INT_LOCK_FREE > 0
 
 #   define HAVE_ATOMICS 1
@@ -73,6 +80,13 @@ static __inline__ int CRYPTO_DOWN_REF(int *val, int *ret,
         __atomic_thread_fence(__ATOMIC_ACQUIRE);
     return 1;
 }
+
+static __inline__ int CRYPTO_GET_REF(int *val, int *ret, ossl_unused void *lock)
+{
+    *ret = __atomic_load_n(val, __ATOMIC_RELAXED);
+    return 1;
+}
+
 #  elif defined(__ICL) && defined(_WIN32)
 #   define HAVE_ATOMICS 1
 typedef volatile int CRYPTO_REF_COUNT;
@@ -88,6 +102,13 @@ static __inline int CRYPTO_DOWN_REF(volatile int *val, int *ret,
                                     ossl_unused void *lock)
 {
     *ret = _InterlockedExchangeAdd((void *)val, -1) - 1;
+    return 1;
+}
+
+static __inline int CRYPTO_GET_REF(volatile int *val, int *ret,
+                                   ossl_unused void *lock)
+{
+    *ret = _InterlockedOr((void *)val, 0);
     return 1;
 }
 
@@ -118,6 +139,14 @@ static __inline int CRYPTO_DOWN_REF(volatile int *val, int *ret,
         __dmb(_ARM_BARRIER_ISH);
     return 1;
 }
+
+static __inline int CRYPTO_GET_REF(volatile int *val, int *ret,
+                                   ossl_unused void *lock)
+{
+    *ret = _InterlockedOr_nf((void *)val, 0);
+    return 1;
+}
+
 #   else
 #    if !defined(_WIN32_WCE)
 #     pragma intrinsic(_InterlockedExchangeAdd)
@@ -134,16 +163,24 @@ static __inline int CRYPTO_DOWN_REF(volatile int *val, int *ret,
 static __inline int CRYPTO_UP_REF(volatile int *val, int *ret,
                                   ossl_unused void *lock)
 {
-    *ret = _InterlockedExchangeAdd((long volatile *)val, 1) + 1;
+    *ret = _InterlockedExchangeAdd(val, 1) + 1;
     return 1;
 }
 
 static __inline int CRYPTO_DOWN_REF(volatile int *val, int *ret,
                                     ossl_unused void *lock)
 {
-    *ret = _InterlockedExchangeAdd((long volatile *)val, -1) - 1;
+    *ret = _InterlockedExchangeAdd(val, -1) - 1;
     return 1;
 }
+
+static __inline int CRYPTO_GET_REF(volatile int *val, int *ret,
+                                   ossl_unused void *lock)
+{
+    *ret = _InterlockedExchangeAdd(val, 0);
+    return 1;
+}
+
 #   endif
 
 #  endif
@@ -160,6 +197,7 @@ typedef int CRYPTO_REF_COUNT;
 
 # define CRYPTO_UP_REF(val, ret, lock) CRYPTO_atomic_add(val, 1, ret, lock)
 # define CRYPTO_DOWN_REF(val, ret, lock) CRYPTO_atomic_add(val, -1, ret, lock)
+# define CRYPTO_GET_REF(val, ret, lock) CRYPTO_atomic_load_int(val, ret, lock)
 
 # endif
 

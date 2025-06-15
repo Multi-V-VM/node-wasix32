@@ -97,7 +97,7 @@ static const felem_bytearray nistp256_curve_params[5] = {
  * values, or four 64-bit values. The field element represented is:
  *   v[0]*2^0 + v[1]*2^64 + v[2]*2^128 + v[3]*2^192  (mod p)
  * or:
- *   v[0]*2^0 + v[1]*2^64 + v[2]*2^128 + ... + v[8]*2^512  (mod p)
+ *   v[0]*2^0 + v[1]*2^64 + v[2]*2^128 + ... + v[7]*2^448  (mod p)
  *
  * 128-bit values are called 'limbs'. Since the limbs are spaced only 64 bits
  * apart, but are 128-bits wide, the most significant bits of each limb overlap
@@ -1849,16 +1849,14 @@ static NISTP256_PRE_COMP *nistp256_pre_comp_new(void)
 {
     NISTP256_PRE_COMP *ret = OPENSSL_zalloc(sizeof(*ret));
 
-    if (ret == NULL) {
-        ERR_raise(ERR_LIB_EC, ERR_R_MALLOC_FAILURE);
+    if (ret == NULL)
         return ret;
-    }
 
     ret->references = 1;
 
     ret->lock = CRYPTO_THREAD_lock_new();
     if (ret->lock == NULL) {
-        ERR_raise(ERR_LIB_EC, ERR_R_MALLOC_FAILURE);
+        ERR_raise(ERR_LIB_EC, ERR_R_CRYPTO_LIB);
         OPENSSL_free(ret);
         return NULL;
     }
@@ -2099,10 +2097,8 @@ int ossl_ec_GFp_nistp256_points_mul(const EC_GROUP *group, EC_POINT *r,
             tmp_smallfelems =
               OPENSSL_malloc(sizeof(*tmp_smallfelems) * (num_points * 17 + 1));
         if ((secrets == NULL) || (pre_comp == NULL)
-            || (mixed && (tmp_smallfelems == NULL))) {
-            ERR_raise(ERR_LIB_EC, ERR_R_MALLOC_FAILURE);
+            || (mixed && (tmp_smallfelems == NULL)))
             goto err;
-        }
 
         /*
          * we treat NULL scalars as 0, and NULL points as points at infinity,

@@ -109,10 +109,7 @@ int ossl_ccm_set_ctx_params(void *vctx, const OSSL_PARAM params[])
             ERR_raise(ERR_LIB_PROV, PROV_R_INVALID_IV_LENGTH);
             return 0;
         }
-        if (ctx->l != ivlen) {
-            ctx->l = ivlen;
-            ctx->iv_set = 0;
-        }
+        ctx->l = ivlen;
     }
 
     p = OSSL_PARAM_locate_const(params, OSSL_CIPHER_PARAM_AEAD_TLS1_AAD);

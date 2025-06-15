@@ -1,5 +1,5 @@
 /*
- * Copyright 2016-2023 The OpenSSL Project Authors. All Rights Reserved.
+ * Copyright 2016-2021 The OpenSSL Project Authors. All Rights Reserved.
  *
  * Licensed under the Apache License 2.0 (the "License").  You may not use
  * this file except in compliance with the License.  You can obtain a copy
@@ -43,16 +43,16 @@ CRYPTO_RWLOCK *CRYPTO_THREAD_lock_new(void)
 # ifdef USE_RWLOCK
     CRYPTO_win_rwlock *rwlock;
 
-    if ((lock = OPENSSL_zalloc(sizeof(CRYPTO_win_rwlock))) == NULL)
+    if ((lock = CRYPTO_zalloc(sizeof(CRYPTO_win_rwlock), NULL, 0)) == NULL)
+        /* Don't set error, to avoid recursion blowup. */
         return NULL;
     rwlock = lock;
     InitializeSRWLock(&rwlock->lock);
 # else
 
-    if ((lock = OPENSSL_zalloc(sizeof(CRITICAL_SECTION))) == NULL) {
+    if ((lock = CRYPTO_zalloc(sizeof(CRITICAL_SECTION), NULL, 0)) == NULL)
         /* Don't set error, to avoid recursion blowup. */
         return NULL;
-    }
 
 #  if !defined(_WIN32_WCE)
     /* 0x400 is the spin count value suggested in the documentation */
@@ -212,8 +212,7 @@ int CRYPTO_THREAD_compare_id(CRYPTO_THREAD_ID a, CRYPTO_THREAD_ID b)
 
 int CRYPTO_atomic_add(int *val, int amount, int *ret, CRYPTO_RWLOCK *lock)
 {
-    *ret = (int)InterlockedExchangeAdd((LONG volatile *)val, (LONG)amount)
-        + amount;
+    *ret = (int)InterlockedExchangeAdd((long volatile *)val, (long)amount) + amount;
     return 1;
 }
 
@@ -248,6 +247,23 @@ int CRYPTO_atomic_load(uint64_t *val, uint64_t *ret, CRYPTO_RWLOCK *lock)
     return 1;
 #else
     *ret = (uint64_t)InterlockedOr64((LONG64 volatile *)val, 0);
+    return 1;
+#endif
+}
+
+int CRYPTO_atomic_load_int(int *val, int *ret, CRYPTO_RWLOCK *lock)
+{
+#if (defined(NO_INTERLOCKEDOR64))
+    if (lock == NULL || !CRYPTO_THREAD_read_lock(lock))
+        return 0;
+    *ret = *val;
+    if (!CRYPTO_THREAD_unlock(lock))
+        return 0;
+
+    return 1;
+#else
+    /* On Windows, LONG is always the same size as int. */
+    *ret = (int)InterlockedOr((LONG volatile *)val, 0);
     return 1;
 #endif
 }

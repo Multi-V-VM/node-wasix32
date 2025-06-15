@@ -1,5 +1,5 @@
 /*
- * Copyright 2016-2024 The OpenSSL Project Authors. All Rights Reserved.
+ * Copyright 2016-2022 The OpenSSL Project Authors. All Rights Reserved.
  *
  * Licensed under the Apache License 2.0 (the "License").  You may not use
  * this file except in compliance with the License.  You can obtain a copy
@@ -10,7 +10,7 @@
 /* We need to use some engine deprecated APIs */
 #define OPENSSL_SUPPRESS_DEPRECATED
 
-#include "e_os.h"
+#include "internal/e_os.h"
 #include "crypto/cryptlib.h"
 #include <openssl/err.h>
 #include "crypto/rand.h"
@@ -97,19 +97,17 @@ static int win32atexit(void)
 
 DEFINE_RUN_ONCE_STATIC(ossl_init_register_atexit)
 {
-#ifndef OPENSSL_NO_ATEXIT
-# ifdef OPENSSL_INIT_DEBUG
+#ifdef OPENSSL_INIT_DEBUG
     fprintf(stderr, "OPENSSL_INIT: ossl_init_register_atexit()\n");
-# endif
-# ifndef OPENSSL_SYS_UEFI
-#  if defined(_WIN32) && !defined(__BORLANDC__)
+#endif
+#ifndef OPENSSL_SYS_UEFI
+# if defined(_WIN32) && !defined(__BORLANDC__)
     /* We use _onexit() in preference because it gets called on DLL unload */
     if (_onexit(win32atexit) == NULL)
         return 0;
-#  else
+# else
     if (atexit(OPENSSL_cleanup) != 0)
         return 0;
-#  endif
 # endif
 #endif
 
@@ -391,6 +389,10 @@ void OPENSSL_cleanup(void)
 #ifndef OPENSSL_NO_COMP
     OSSL_TRACE(INIT, "OPENSSL_cleanup: ossl_comp_zlib_cleanup()\n");
     ossl_comp_zlib_cleanup();
+    OSSL_TRACE(INIT, "OPENSSL_cleanup: ossl_comp_brotli_cleanup()\n");
+    ossl_comp_brotli_cleanup();
+    OSSL_TRACE(INIT, "OPENSSL_cleanup: ossl_comp_zstd_cleanup()\n");
+    ossl_comp_zstd_cleanup();
 #endif
 
     if (async_inited) {
@@ -708,10 +710,8 @@ int OPENSSL_atexit(void (*handler)(void))
     }
 #endif
 
-    if ((newhand = OPENSSL_malloc(sizeof(*newhand))) == NULL) {
-        ERR_raise(ERR_LIB_CRYPTO, ERR_R_MALLOC_FAILURE);
+    if ((newhand = OPENSSL_malloc(sizeof(*newhand))) == NULL)
         return 0;
-    }
 
     newhand->handler = handler;
     newhand->next = stop_handlers;

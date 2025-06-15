@@ -1,5 +1,5 @@
 /*
- * Copyright 2001-2021 The OpenSSL Project Authors. All Rights Reserved.
+ * Copyright 2001-2022 The OpenSSL Project Authors. All Rights Reserved.
  *
  * Licensed under the Apache License 2.0 (the "License").  You may not use
  * this file except in compliance with the License.  You can obtain a copy
@@ -10,11 +10,11 @@
 /* We need to use some engine deprecated APIs */
 #define OPENSSL_SUPPRESS_DEPRECATED
 
-#include "e_os.h"
+#include "internal/e_os.h"
 #include "eng_local.h"
 
 /*
- * Initialise a engine type for use (or up its functional reference count if
+ * Initialise an engine type for use (or up its functional reference count if
  * it's already in use). This version is only used internally.
  */
 int engine_unlocked_init(ENGINE *e)
@@ -41,7 +41,7 @@ int engine_unlocked_init(ENGINE *e)
 }
 
 /*
- * Free a functional reference to a engine type. This version is only used
+ * Free a functional reference to an engine type. This version is only used
  * internally.
  */
 int engine_unlocked_finish(ENGINE *e, int unlock_for_handlers)
@@ -86,7 +86,8 @@ int ENGINE_init(ENGINE *e)
         return 0;
     }
     if (!RUN_ONCE(&engine_lock_init, do_engine_lock_init)) {
-        ERR_raise(ERR_LIB_ENGINE, ERR_R_MALLOC_FAILURE);
+        /* Maybe this should be raised in do_engine_lock_init() */
+        ERR_raise(ERR_LIB_ENGINE, ERR_R_CRYPTO_LIB);
         return 0;
     }
     if (!CRYPTO_THREAD_write_lock(global_engine_lock))

@@ -1,5 +1,5 @@
 /*
- * Copyright 2020-2023 The OpenSSL Project Authors. All Rights Reserved.
+ * Copyright 2020-2022 The OpenSSL Project Authors. All Rights Reserved.
  *
  * Licensed under the Apache License 2.0 (the "License").  You may not use
  * this file except in compliance with the License.  You can obtain a copy
@@ -158,11 +158,11 @@ DSA *ossl_dsa_key_from_pkcs8(const PKCS8_PRIV_KEY_INFO *p8inf,
     }
     /* Calculate public key */
     if ((dsa_pubkey = BN_new()) == NULL) {
-        ERR_raise(ERR_LIB_DSA, ERR_R_MALLOC_FAILURE);
+        ERR_raise(ERR_LIB_DSA, ERR_R_BN_LIB);
         goto dsaerr;
     }
     if ((ctx = BN_CTX_new()) == NULL) {
-        ERR_raise(ERR_LIB_DSA, ERR_R_MALLOC_FAILURE);
+        ERR_raise(ERR_LIB_DSA, ERR_R_BN_LIB);
         goto dsaerr;
     }
 

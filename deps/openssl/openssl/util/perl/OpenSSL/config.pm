@@ -1,5 +1,5 @@
 #! /usr/bin/env perl
-# Copyright 1998-2023 The OpenSSL Project Authors. All Rights Reserved.
+# Copyright 1998-2022 The OpenSSL Project Authors. All Rights Reserved.
 #
 # Licensed under the Apache License 2.0 (the "License").  You may not use
 # this file except in compliance with the License.  You can obtain a copy
@@ -82,7 +82,7 @@ my $guess_patterns = [
     [ 'HP-UX:.*',
       sub {
           my $HPUXVER = $RELEASE;
-          $HPUXVER =~ s/[^.]*.[0B]*//;
+          $HPUXVER = s/[^.]*.[0B]*//;
           # HPUX 10 and 11 targets are unified
           return "${MACHINE}-hp-hpux1x" if $HPUXVER =~ m@1[0-9]@;
           return "${MACHINE}-hp-hpux";
@@ -321,7 +321,6 @@ sub determine_compiler_settings {
 
             # If we got a version number, process it
             if ($v) {
-                $v =~ s/[^.]*.0*// if $SYSTEM eq 'HP-UX';
                 $CCVENDOR = $k;
 
                 # The returned version is expected to be one of
@@ -359,15 +358,8 @@ sub determine_compiler_settings {
                 # However, other letters have been seen as well (for example X),
                 # and it's documented that HP (now VSI) reserve the letter W, X,
                 # Y and Z for their own uses.
-                my ($vendor, $arch, $version, $extra) =
-                    ( $v =~ m/^
-                              ([A-Z]+)                  # Usually VSI
-                              \s+ C
-                              (?:\s+(.*?))?             # Possible build arch
-                              \s+ [VWXYZ]([0-9\.-]+)    # Version
-                              (?:\s+\((.*?)\))?         # Possible extra data
-                              \s+ on
-                             /x );
+                my ($vendor, $version) =
+                    ( $v =~ m/^([A-Z]+) C [VWXYZ]([0-9\.-]+)(:? +\(.*?\))? on / );
                 my ($major, $minor, $patch) =
                     ( $version =~ m/^([0-9]+)\.([0-9]+)-0*?(0|[1-9][0-9]*)$/ );
                 $CC = 'CC';
@@ -513,7 +505,7 @@ EOF
             if ( $ISA64 == 1 && $KERNEL_BITS eq '' ) {
                 print <<EOF;
 WARNING! To build 64-bit package, do this:
-         KERNEL_BITS=64 $WHERE/Configure \[\[ options \]\]
+         KERNEL_BITS=64 $WHERE/Configure [options...]
 EOF
                 maybe_abort();
             }
@@ -537,7 +529,7 @@ EOF
 
             print <<EOF;
 WARNING! To build 32-bit package, do this:
-         KERNEL_BITS=32 $WHERE/Configure \[\[ options \]\]
+         KERNEL_BITS=32 $WHERE/Configure [options...]
 EOF
             maybe_abort();
             return { target => "darwin64-x86_64" };
@@ -787,14 +779,19 @@ EOF
                                     disable => [ 'sse2' ] } ],
       [ 'alpha.*-.*-.*bsd.*',     { target => "BSD-generic64",
                                     defines => [ 'L_ENDIAN' ] } ],
-      [ 'powerpc64-.*-.*bsd.*',   { target => "BSD-generic64",
-                                    defines => [ 'B_ENDIAN' ] } ],
+      [ 'powerpc-.*-.*bsd.*',     { target => "BSD-ppc" } ],
+      [ 'powerpc64-.*-.*bsd.*',   { target => "BSD-ppc64" } ],
+      [ 'powerpc64le-.*-.*bsd.*', { target => "BSD-ppc64le" } ],
       [ 'riscv64-.*-.*bsd.*',     { target => "BSD-riscv64" } ],
       [ 'sparc64-.*-.*bsd.*',     { target => "BSD-sparc64" } ],
+      [ 'ia64-.*-openbsd.*',      { target => "BSD-nodef-ia64" } ],
       [ 'ia64-.*-.*bsd.*',        { target => "BSD-ia64" } ],
       [ 'x86_64-.*-dragonfly.*',  { target => "BSD-x86_64" } ],
+      [ 'amd64-.*-openbsd.*',     { target => "BSD-nodef-x86_64" } ],
       [ 'amd64-.*-.*bsd.*',       { target => "BSD-x86_64" } ],
       [ 'arm64-.*-.*bsd.*',       { target => "BSD-aarch64" } ],
+      [ 'armv6-.*-.*bsd.*',       { target => "BSD-armv4" } ],
+      [ 'armv7-.*-.*bsd.*',       { target => "BSD-armv4" } ],
       [ '.*86.*-.*-.*bsd.*',
         sub {
             # mimic ld behaviour when it's looking for libc...
@@ -812,6 +809,7 @@ EOF
                      disable => [ 'sse2' ] };
         }
       ],
+      [ '.*-.*-openbsd.*',        { target => "BSD-nodef-generic32" } ],
       [ '.*-.*-.*bsd.*',          { target => "BSD-generic32" } ],
       [ 'x86_64-.*-haiku',        { target => "haiku-x86_64" } ],
       [ '.*-.*-haiku',            { target => "haiku-x86" } ],

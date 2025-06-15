@@ -10,6 +10,8 @@ pick the appropriate release branch.
 OpenSSL Releases
 ----------------
 
+ - [OpenSSL 3.2](#openssl-32)
+ - [OpenSSL 3.1](#openssl-31)
  - [OpenSSL 3.0](#openssl-30)
  - [OpenSSL 1.1.1](#openssl-111)
  - [OpenSSL 1.1.0](#openssl-110)
@@ -18,353 +20,17 @@ OpenSSL Releases
  - [OpenSSL 1.0.0](#openssl-100)
  - [OpenSSL 0.9.x](#openssl-09x)
 
-OpenSSL 3.0
+OpenSSL 3.2
 -----------
 
-For OpenSSL 3.0 a [Migration guide][] has been added, so the CHANGES entries
-listed here are only a brief description.
-The migration guide contains more detailed information related to new features,
-breaking changes, and mappings for the large list of deprecated functions.
+### Changes between 3.1 and 3.2 [xx XXX xxxx]
 
-[Migration guide]: https://github.com/openssl/openssl/tree/master/doc/man7/migration_guide.pod
-
-### Changes between 3.0.15 and 3.0.16 [11 Feb 2025]
-
- * Fixed timing side-channel in ECDSA signature computation.
-
-   There is a timing signal of around 300 nanoseconds when the top word of
-   the inverted ECDSA nonce value is zero. This can happen with significant
-   probability only for some of the supported elliptic curves. In particular
-   the NIST P-521 curve is affected. To be able to measure this leak, the
-   attacker process must either be located in the same physical computer or
-   must have a very fast network connection with low latency.
-
-   ([CVE-2024-13176])
-
-   *Tomáš Mráz*
-
- * Fixed possible OOB memory access with invalid low-level GF(2^m) elliptic
-   curve parameters.
-
-   Use of the low-level GF(2^m) elliptic curve APIs with untrusted
-   explicit values for the field polynomial can lead to out-of-bounds memory
-   reads or writes.
-   Applications working with "exotic" explicit binary (GF(2^m)) curve
-   parameters, that make it possible to represent invalid field polynomials
-   with a zero constant term, via the above or similar APIs, may terminate
-   abruptly as a result of reading or writing outside of array bounds. Remote
-   code execution cannot easily be ruled out.
-
-   ([CVE-2024-9143])
-
-   *Viktor Dukhovni*
-
-### Changes between 3.0.14 and 3.0.15 [3 Sep 2024]
-
- * Fixed possible denial of service in X.509 name checks.
-
-   Applications performing certificate name checks (e.g., TLS clients checking
-   server certificates) may attempt to read an invalid memory address when
-   comparing the expected name with an `otherName` subject alternative name of
-   an X.509 certificate. This may result in an exception that terminates the
-   application program.
-
-   ([CVE-2024-6119])
-
-   *Viktor Dukhovni*
-
- * Fixed possible buffer overread in SSL_select_next_proto().
-
-   Calling the OpenSSL API function SSL_select_next_proto with an empty
-   supported client protocols buffer may cause a crash or memory contents
-   to be sent to the peer.
-
-   ([CVE-2024-5535])
+ * Added the "-quic" option to s_client to enable connectivity to QUIC servers.
+   QUIC requires the use of ALPN, so this must be specified via the "-alpn"
+   option. Use of the "advanced" s_client command command via the "-adv" option
+   is recommended.
 
    *Matt Caswell*
-
-### Changes between 3.0.13 and 3.0.14 [4 Jun 2024]
-
- * Fixed potential use after free after SSL_free_buffers() is called.
-
-   The SSL_free_buffers function is used to free the internal OpenSSL
-   buffer used when processing an incoming record from the network.
-   The call is only expected to succeed if the buffer is not currently
-   in use. However, two scenarios have been identified where the buffer
-   is freed even when still in use.
-
-   The first scenario occurs where a record header has been received
-   from the network and processed by OpenSSL, but the full record body
-   has not yet arrived. In this case calling SSL_free_buffers will succeed
-   even though a record has only been partially processed and the buffer
-   is still in use.
-
-   The second scenario occurs where a full record containing application
-   data has been received and processed by OpenSSL but the application has
-   only read part of this data. Again a call to SSL_free_buffers will
-   succeed even though the buffer is still in use.
-
-   ([CVE-2024-4741])
-
-   *Matt Caswell*
-
- * Fixed an issue where checking excessively long DSA keys or parameters may
-   be very slow.
-
-   Applications that use the functions EVP_PKEY_param_check() or
-   EVP_PKEY_public_check() to check a DSA public key or DSA parameters may
-   experience long delays. Where the key or parameters that are being checked
-   have been obtained from an untrusted source this may lead to a Denial of
-   Service.
-
-   To resolve this issue DSA keys larger than OPENSSL_DSA_MAX_MODULUS_BITS
-   will now fail the check immediately with a DSA_R_MODULUS_TOO_LARGE error
-   reason.
-
-   ([CVE-2024-4603])
-
-   *Tomáš Mráz*
-
- * Improved EC/DSA nonce generation routines to avoid bias and timing
-   side channel leaks.
-
-   Thanks to Florian Sieck from Universität zu Lübeck and George Pantelakis
-   and Hubert Kario from Red Hat for reporting the issues.
-
-   *Tomáš Mráz and Paul Dale*
-
- * Fixed an issue where some non-default TLS server configurations can cause
-   unbounded memory growth when processing TLSv1.3 sessions. An attacker may
-   exploit certain server configurations to trigger unbounded memory growth that
-   would lead to a Denial of Service
-
-   This problem can occur in TLSv1.3 if the non-default SSL_OP_NO_TICKET option
-   is being used (but not if early_data is also configured and the default
-   anti-replay protection is in use). In this case, under certain conditions,
-   the session cache can get into an incorrect state and it will fail to flush
-   properly as it fills. The session cache will continue to grow in an unbounded
-   manner. A malicious client could deliberately create the scenario for this
-   failure to force a Denial of Service. It may also happen by accident in
-   normal operation.
-
-   ([CVE-2024-2511])
-
-   *Matt Caswell*
-
- * New atexit configuration switch, which controls whether the OPENSSL_cleanup
-   is registered when libcrypto is unloaded. This can be used on platforms
-   where using atexit() from shared libraries causes crashes on exit.
-
-   *Randall S. Becker*
-
-### Changes between 3.0.12 and 3.0.13 [30 Jan 2024]
-
- * A file in PKCS12 format can contain certificates and keys and may come from
-   an untrusted source. The PKCS12 specification allows certain fields to be
-   NULL, but OpenSSL did not correctly check for this case. A fix has been
-   applied to prevent a NULL pointer dereference that results in OpenSSL
-   crashing. If an application processes PKCS12 files from an untrusted source
-   using the OpenSSL APIs then that application will be vulnerable to this
-   issue prior to this fix.
-
-   OpenSSL APIs that were vulnerable to this are: PKCS12_parse(),
-   PKCS12_unpack_p7data(), PKCS12_unpack_p7encdata(), PKCS12_unpack_authsafes()
-   and PKCS12_newpass().
-
-   We have also fixed a similar issue in SMIME_write_PKCS7(). However since this
-   function is related to writing data we do not consider it security
-   significant.
-
-   ([CVE-2024-0727])
-
-   *Matt Caswell*
-
- * When function EVP_PKEY_public_check() is called on RSA public keys,
-   a computation is done to confirm that the RSA modulus, n, is composite.
-   For valid RSA keys, n is a product of two or more large primes and this
-   computation completes quickly. However, if n is an overly large prime,
-   then this computation would take a long time.
-
-   An application that calls EVP_PKEY_public_check() and supplies an RSA key
-   obtained from an untrusted source could be vulnerable to a Denial of Service
-   attack.
-
-   The function EVP_PKEY_public_check() is not called from other OpenSSL
-   functions however it is called from the OpenSSL pkey command line
-   application. For that reason that application is also vulnerable if used
-   with the "-pubin" and "-check" options on untrusted data.
-
-   To resolve this issue RSA keys larger than OPENSSL_RSA_MAX_MODULUS_BITS will
-   now fail the check immediately with an RSA_R_MODULUS_TOO_LARGE error reason.
-
-   ([CVE-2023-6237])
-
-   *Tomáš Mráz*
-
- * Restore the encoding of SM2 PrivateKeyInfo and SubjectPublicKeyInfo to
-   have the contained AlgorithmIdentifier.algorithm set to id-ecPublicKey
-   rather than SM2.
-
-   *Richard Levitte*
-
- * The POLY1305 MAC (message authentication code) implementation in OpenSSL
-   for PowerPC CPUs saves the contents of vector registers in different
-   order than they are restored. Thus the contents of some of these vector
-   registers is corrupted when returning to the caller. The vulnerable code is
-   used only on newer PowerPC processors supporting the PowerISA 2.07
-   instructions.
-
-   The consequences of this kind of internal application state corruption can
-   be various - from no consequences, if the calling application does not
-   depend on the contents of non-volatile XMM registers at all, to the worst
-   consequences, where the attacker could get complete control of the
-   application process. However unless the compiler uses the vector registers
-   for storing pointers, the most likely consequence, if any, would be an
-   incorrect result of some application dependent calculations or a crash
-   leading to a denial of service.
-
-   ([CVE-2023-6129])
-
-   *Rohan McLure*
-
- * Fix excessive time spent in DH check / generation with large Q parameter
-   value.
-
-   Applications that use the functions DH_generate_key() to generate an
-   X9.42 DH key may experience long delays. Likewise, applications that use
-   DH_check_pub_key(), DH_check_pub_key_ex() or EVP_PKEY_public_check()
-   to check an X9.42 DH key or X9.42 DH parameters may experience long delays.
-   Where the key or parameters that are being checked have been obtained from
-   an untrusted source this may lead to a Denial of Service.
-
-   ([CVE-2023-5678])
-
-   *Richard Levitte*
-
-### Changes between 3.0.11 and 3.0.12 [24 Oct 2023]
-
- * Fix incorrect key and IV resizing issues when calling EVP_EncryptInit_ex2(),
-   EVP_DecryptInit_ex2() or EVP_CipherInit_ex2() with OSSL_PARAM parameters
-   that alter the key or IV length ([CVE-2023-5363]).
-
-   *Paul Dale*
-
-### Changes between 3.0.10 and 3.0.11 [19 Sep 2023]
-
- * Fix POLY1305 MAC implementation corrupting XMM registers on Windows.
-
-   The POLY1305 MAC (message authentication code) implementation in OpenSSL
-   does not save the contents of non-volatile XMM registers on Windows 64
-   platform when calculating the MAC of data larger than 64 bytes. Before
-   returning to the caller all the XMM registers are set to zero rather than
-   restoring their previous content. The vulnerable code is used only on newer
-   x86_64 processors supporting the AVX512-IFMA instructions.
-
-   The consequences of this kind of internal application state corruption can
-   be various - from no consequences, if the calling application does not
-   depend on the contents of non-volatile XMM registers at all, to the worst
-   consequences, where the attacker could get complete control of the
-   application process. However given the contents of the registers are just
-   zeroized so the attacker cannot put arbitrary values inside, the most likely
-   consequence, if any, would be an incorrect result of some application
-   dependent calculations or a crash leading to a denial of service.
-
-   ([CVE-2023-4807])
-
-   *Bernd Edlinger*
-
-### Changes between 3.0.9 and 3.0.10 [1 Aug 2023]
-
- * Fix excessive time spent checking DH q parameter value.
-
-   The function DH_check() performs various checks on DH parameters. After
-   fixing CVE-2023-3446 it was discovered that a large q parameter value can
-   also trigger an overly long computation during some of these checks.
-   A correct q value, if present, cannot be larger than the modulus p
-   parameter, thus it is unnecessary to perform these checks if q is larger
-   than p.
-
-   If DH_check() is called with such q parameter value,
-   DH_CHECK_INVALID_Q_VALUE return flag is set and the computationally
-   intensive checks are skipped.
-
-   ([CVE-2023-3817])
-
-   *Tomáš Mráz*
-
- * Fix DH_check() excessive time with over sized modulus.
-
-   The function DH_check() performs various checks on DH parameters. One of
-   those checks confirms that the modulus ("p" parameter) is not too large.
-   Trying to use a very large modulus is slow and OpenSSL will not normally use
-   a modulus which is over 10,000 bits in length.
-
-   However the DH_check() function checks numerous aspects of the key or
-   parameters that have been supplied. Some of those checks use the supplied
-   modulus value even if it has already been found to be too large.
-
-   A new limit has been added to DH_check of 32,768 bits. Supplying a
-   key/parameters with a modulus over this size will simply cause DH_check() to
-   fail.
-
-   ([CVE-2023-3446])
-
-   *Matt Caswell*
-
- * Do not ignore empty associated data entries with AES-SIV.
-
-   The AES-SIV algorithm allows for authentication of multiple associated
-   data entries along with the encryption. To authenticate empty data the
-   application has to call `EVP_EncryptUpdate()` (or `EVP_CipherUpdate()`)
-   with NULL pointer as the output buffer and 0 as the input buffer length.
-   The AES-SIV implementation in OpenSSL just returns success for such call
-   instead of performing the associated data authentication operation.
-   The empty data thus will not be authenticated. ([CVE-2023-2975])
-
-   Thanks to Juerg Wullschleger (Google) for discovering the issue.
-
-   The fix changes the authentication tag value and the ciphertext for
-   applications that use empty associated data entries with AES-SIV.
-   To decrypt data encrypted with previous versions of OpenSSL the application
-   has to skip calls to `EVP_DecryptUpdate()` for empty associated data
-   entries.
-
-   *Tomáš Mráz*
-
-### Changes between 3.0.8 and 3.0.9 [30 May 2023]
-
- * Mitigate for the time it takes for `OBJ_obj2txt` to translate gigantic
-   OBJECT IDENTIFIER sub-identifiers to canonical numeric text form.
-
-   OBJ_obj2txt() would translate any size OBJECT IDENTIFIER to canonical
-   numeric text form.  For gigantic sub-identifiers, this would take a very
-   long time, the time complexity being O(n^2) where n is the size of that
-   sub-identifier.  ([CVE-2023-2650])
-
-   To mitigitate this, `OBJ_obj2txt()` will only translate an OBJECT
-   IDENTIFIER to canonical numeric text form if the size of that OBJECT
-   IDENTIFIER is 586 bytes or less, and fail otherwise.
-
-   The basis for this restriction is [RFC 2578 (STD 58), section 3.5]. OBJECT
-   IDENTIFIER values, which stipulates that OBJECT IDENTIFIERS may have at
-   most 128 sub-identifiers, and that the maximum value that each sub-
-   identifier may have is 2^32-1 (4294967295 decimal).
-
-   For each byte of every sub-identifier, only the 7 lower bits are part of
-   the value, so the maximum amount of bytes that an OBJECT IDENTIFIER with
-   these restrictions may occupy is 32 * 128 / 7, which is approximately 586
-   bytes.
-
-   *Richard Levitte*
-
- * Fixed buffer overread in AES-XTS decryption on ARM 64 bit platforms which
-   happens if the buffer size is 4 mod 5 in 16 byte AES blocks. This can
-   trigger a crash of an application using AES-XTS decryption if the memory
-   just after the buffer being decrypted is not mapped.
-   Thanks to Anton Romanov (Amazon) for discovering the issue.
-   ([CVE-2023-1255])
-
-   *Nevine Ebeid*
 
  * Reworked the Fix for the Timing Oracle in RSA Decryption ([CVE-2022-4304]).
    The previous fix for this timing side channel turned out to cause
@@ -376,6 +42,266 @@ breaking changes, and mappings for the large list of deprecated functions.
    by Hubert Kario.
 
    *Bernd Edlinger*
+
+ * Added an "advanced" command mode to s_client. Use this with the "-adv"
+   option. The old "basic" command mode recognises certain letters that must
+   always appear at the start of a line and cannot be escaped. The advanced
+   command mode enables commands to be entered anywhere and there is an
+   escaping mechanism. After starting s_client with "-adv" type "{help}"
+   to show a list of available commands.
+
+   *Matt Caswell*
+
+ * Add Raw Public Key (RFC7250) support. Authentication is supported
+   by matching keys against either local policy (TLSA records synthesised
+   from the expected keys) or DANE (TLSA records obtained by the
+   application from DNS). TLSA records will also match the same key in
+   the server certificate, should RPK use not happen to be negotiated.
+
+   *Todd Short*
+
+ * Added EC_GROUP_to_params which creates an OSSL_PARAM array
+   from a given EC_GROUP.
+
+   *Oliver Mihatsch*
+
+ * Added support for pluggable (provider-based) TLS signature algorithms.
+   This enables TLS 1.3 authentication operations with algorithms embedded
+   in providers not included by default in OpenSSL. In combination with
+   the already available pluggable KEM and X.509 support, this enables
+   for example suitable providers to deliver post-quantum or quantum-safe
+   cryptography to OpenSSL users.
+
+   *Michael Baentsch*
+
+ * Added support for Hybrid Public Key Encryption (HPKE) as defined
+   in RFC9180. HPKE is required for TLS Encrypted ClientHello (ECH),
+   Message Layer Security (MLS) and other IETF specifications.
+   HPKE can also be used by other applications that require
+   encrypting "to" an ECDH public key. External APIs are defined in
+   include/openssl/hpke.h and documented in doc/man3/OSSL_HPKE_CTX_new.pod
+
+   *Stephen Farrell*
+
+ * Add support for certificate compression (RFC8879), including
+   library support for Brotli and Zstandard compression.
+
+   *Todd Short*
+
+ * Add the ability to add custom attributes to PKCS12 files. Add a new API
+   PKCS12_create_ex2, identical to the existing PKCS12_create_ex but allows
+   for a user specified callback and optional argument.
+   Added a new PKCS12_SAFEBAG_set0_attr, which allows for a new attr to be
+   added to the existing STACK_OF attrs.
+
+   *Graham Woodward*
+
+ * Major refactor of the libssl record layer
+
+   *Matt Caswell*
+
+ * Added a new BIO_s_dgram_mem() to read/write datagrams to memory
+
+   *Matt Caswell*
+
+ * Add a mac salt length option for the pkcs12 command.
+
+   *Xinping Chen*
+
+ * Add more SRTP protection profiles from RFC8723 and RFC8269.
+
+   *Kijin Kim*
+
+ * Extended Kernel TLS (KTLS) to support TLS 1.3 receive offload.
+
+   *Daiki Ueno, John Baldwin and Dmitry Podgorny*
+
+ * Add support for TCP Fast Open (RFC7413) to macOS, Linux, and FreeBSD where
+   supported and enabled.
+
+   *Todd Short*
+
+ * Add ciphersuites based on DHE_PSK (RFC 4279) and ECDHE_PSK (RFC 5489)
+   to the list of ciphersuites providing Perfect Forward Secrecy as
+   required by SECLEVEL >= 3.
+
+   *Dmitry Belyavskiy, Nicola Tuveri*
+
+ * Add new SSL APIs to aid in efficiently implementing TLS/SSL fingerprinting.
+   The SSL_CTRL_GET_IANA_GROUPS control code, exposed as the
+   SSL_get0_iana_groups() function-like macro, retrieves the list of
+   supported groups sent by the peer.
+   The function SSL_client_hello_get_extension_order() populates
+   a caller-supplied array with the list of extension types present in the
+   ClientHello, in order of appearance.
+
+   *Phus Lu*
+
+ * Fixed PEM_write_bio_PKCS8PrivateKey() and PEM_write_bio_PKCS8PrivateKey_nid()
+   to make it possible to use empty passphrase strings.
+
+   *Darshan Sen*
+
+ * The default SSL/TLS security level has been changed from 1 to 2. RSA,
+   DSA and DH keys of 1024 bits and above and less than 2048 bits and ECC keys
+   of 160 bits and above and less than 224 bits were previously accepted by
+   default but are now no longer allowed. By default TLS compression was
+   already disabled in previous OpenSSL versions. At security level 2 it cannot
+   be enabled.
+
+   *Matt Caswell*
+
+ * The SSL_CTX_set_cipher_list family functions now accept ciphers using their
+   IANA standard names.
+
+   *Erik Lax*
+
+ * The PVK key derivation function has been moved from b2i_PVK_bio_ex() into
+   the legacy crypto provider as an EVP_KDF. Applications requiring this KDF
+   will need to load the legacy crypto provider.
+
+   *Paul Dale*
+ * CCM8 cipher suites in TLS have been downgraded to security level zero
+   because they use a short authentication tag which lowers their strength.
+
+   *Paul Dale*
+
+ * Subject or issuer names in X.509 objects are now displayed as UTF-8 strings
+   by default.
+
+   *Dmitry Belyavskiy*
+
+ * Add X.509 certificate codeSigning purpose and related checks on key usage and
+   extended key usage of the leaf certificate according to the CA/Browser Forum.
+
+   * Lutz Jänicke*
+
+ * The `x509`, `ca`, and `req` apps now produce X.509 v3 certificates.
+   The `-x509v1` option of `req` prefers generation of X.509 v1 certificates.
+   `X509_sign()` and `X509_sign_ctx()` make sure that the certificate has
+   X.509 version 3 if the certificate information includes X.509 extensions.
+
+   *David von Oheimb*
+
+ * Fix and extend certificate handling and the apps `x509`, `verify` etc.
+   such as adding a trace facility for debugging certificate chain building.
+
+   *David von Oheimb*
+
+ * Various fixes and extensions to the CMP+CRMF implementation and the `cmp` app
+   in particular supporting requests for central key generation, generalized
+   polling, and various types of genm/genp exchanges defined in CMP Updates.
+
+   *David von Oheimb*
+
+ * Fixes and extensions to the HTTP client and to the HTTP server in `apps/`
+   like correcting the TLS and proxy support and adding tracing for debugging.
+
+   *David von Oheimb*
+
+ * Extended the CMS API for handling `CMS_SignedData` and `CMS_EnvelopedData`.
+
+   *David von Oheimb*
+
+ * `CMS_add0_cert()` and `CMS_add1_cert()` no more throw an error
+   if a certificate to be added is already present.
+ * `CMS_sign_ex()` and `CMS_sign()` now ignore any duplicate certificates
+   in their `certs` argument and no longer throw an error for them.
+
+   *David von Oheimb*
+
+ * Fixed and extended `util/check-format.pl` for checking adherence to the
+   coding style <https://www.openssl.org/policies/technical/coding-style.html>.
+   The checks are meanwhile more complete and yield fewer false positives.
+
+   *David von Oheimb*
+
+ * Add new BIO_sendmmsg() and BIO_recvmmsg() BIO methods which allow
+   sending and receiving multiple messages in a single call. An implementation
+   is provided for BIO_dgram. For further details, see BIO_sendmmsg(3).
+
+   *Hugo Landau*
+
+ * The `SSL_CERT_PATH` and `SSL_CERT_URI` environment variables are introduced.
+   `SSL_CERT_URI` can be used to specify a URI for a root certificate store. The
+   `SSL_CERT_PATH` environment variable specifies a delimiter-separated list of
+   paths which are searched for root certificates.
+
+   The existing `SSL_CERT_DIR` environment variable is deprecated.
+   `SSL_CERT_DIR` was previously used to specify either a delimiter-separated
+   list of paths or an URI, which is ambiguous. Setting `SSL_CERT_PATH` causes
+   `SSL_CERT_DIR` to be ignored for the purposes of determining root certificate
+   directories, and setting `SSL_CERT_URI` causes `SSL_CERT_DIR` to be ignored
+   for the purposes of determining root certificate stores.
+
+   *Hugo Landau*
+
+ * Support for loading root certificates from the Windows certificate store
+   has been added. The support is in the form of a store which recognises the
+   URI string of `org.openssl.winstore://`. This store is enabled by default and
+   can be disabled using the new compile-time option `no-winstore`.
+
+   *Hugo Landau*
+
+ * Enable KTLS with the TLS 1.3 CCM mode ciphersuites. Note that some linux
+   kernel versions that support KTLS have a known bug in CCM processing. That
+   has been fixed in stable releases starting from 5.4.164, 5.10.84, 5.15.7,
+   and all releases since 5.16. KTLS with CCM ciphersuites should be only used
+   on these releases.
+
+   *Tianjia Zhang*
+
+ * Zerocopy KTLS sendfile() support on Linux.
+
+   *Maxim Mikityanskiy*
+
+ * Added and enabled by default implicit rejection in RSA PKCS#1 v1.5
+   decryption as a protection against Bleichenbacher-like attacks.
+   The RSA decryption API will now return a randomly generated deterministic
+   message instead of an error in case it detects an error when checking
+   padding during PKCS#1 v1.5 decryption. This is a general protection against
+   issues like CVE-2020-25659 and CVE-2020-25657. This protection can be
+   disabled by calling
+   `EVP_PKEY_CTX_ctrl_str(ctx, "rsa_pkcs1_implicit_rejection". "0")`
+   on the RSA decryption context.
+
+   *Hubert Kario*
+
+ * Support for Argon2d, Argon2i, Argon2id KDFs has been added along with
+   basic thread pool implementation for select platforms.
+
+   *Čestmír Kalina*
+
+OpenSSL 3.1
+-----------
+
+### Changes between 3.1.0 and 3.1.1 [xx XXX xxxx]
+
+ * Multiple algorithm implementation fixes for ARM BE platforms.
+
+   *Liu-ErMeng*
+
+ * Added a -pedantic option to fipsinstall that adjusts the various
+   settings to ensure strict FIPS compliance rather than backwards
+   compatibility.
+
+   *Paul Dale*
+
+ * Fixed buffer overread in AES-XTS decryption on ARM 64 bit platforms which
+   happens if the buffer size is 4 mod 5 in 16 byte AES blocks. This can
+   trigger a crash of an application using AES-XTS decryption if the memory
+   just after the buffer being decrypted is not mapped.
+   Thanks to Anton Romanov (Amazon) for discovering the issue.
+   ([CVE-2023-1255])
+
+   *Nevine Ebeid*
+
+ * Add FIPS provider configuration option to disallow the use of
+   truncated digests with Hash and HMAC DRBGs (q.v. FIPS 140-3 IG D.R.).
+   The option '-no_drbg_truncated_digests' can optionally be
+   supplied to 'openssl fipsinstall'.
+
+   *Paul Dale*
 
  * Corrected documentation of X509_VERIFY_PARAM_add0_policy() to mention
    that it does not enable policy checking. Thanks to David Benjamin for
@@ -402,6 +328,94 @@ breaking changes, and mappings for the large list of deprecated functions.
    ([CVE-2023-0464])
 
    *Paul Dale*
+
+### Changes between 3.0 and 3.1.0 [14 Mar 2023]
+
+ * Add FIPS provider configuration option to enforce the
+   Extended Master Secret (EMS) check during the TLS1_PRF KDF.
+   The option '-ems-check' can optionally be supplied to
+   'openssl fipsinstall'.
+
+   *Shane Lontis*
+
+ * The FIPS provider includes a few non-approved algorithms for
+   backward compatibility purposes and the "fips=yes" property query
+   must be used for all algorithm fetches to ensure FIPS compliance.
+
+   The algorithms that are included but not approved are Triple DES ECB,
+   Triple DES CBC and EdDSA.
+
+   *Paul Dale*
+
+ * Added support for KMAC in KBKDF.
+
+   *Shane Lontis*
+
+ * RNDR and RNDRRS support in provider functions to provide
+   random number generation for Arm CPUs (aarch64).
+
+   *Orr Toledano*
+
+ * s_client and s_server apps now explicitly say when the TLS version
+   does not include the renegotiation mechanism. This avoids confusion
+   between that scenario versus when the TLS version includes secure
+   renegotiation but the peer lacks support for it.
+
+   *Felipe Gasper*
+
+ * AES-GCM enabled with AVX512 vAES and vPCLMULQDQ.
+
+   *Tomasz Kantecki, Andrey Matyukov*
+
+ * The various OBJ_* functions have been made thread safe.
+
+   *Paul Dale*
+
+ * Parallel dual-prime 1536/2048-bit modular exponentiation for
+   AVX512_IFMA capable processors.
+
+   *Sergey Kirillov, Andrey Matyukov (Intel Corp)*
+
+ * The functions `OPENSSL_LH_stats`, `OPENSSL_LH_node_stats`,
+   `OPENSSL_LH_node_usage_stats`, `OPENSSL_LH_stats_bio`,
+   `OPENSSL_LH_node_stats_bio` and `OPENSSL_LH_node_usage_stats_bio` are now
+   marked deprecated from OpenSSL 3.1 onwards and can be disabled by defining
+   `OPENSSL_NO_DEPRECATED_3_1`.
+
+   The macro `DEFINE_LHASH_OF` is now deprecated in favour of the macro
+   `DEFINE_LHASH_OF_EX`, which omits the corresponding type-specific function
+   definitions for these functions regardless of whether
+   `OPENSSL_NO_DEPRECATED_3_1` is defined.
+
+   Users of `DEFINE_LHASH_OF` may start receiving deprecation warnings for these
+   functions regardless of whether they are using them. It is recommended that
+   users transition to the new macro, `DEFINE_LHASH_OF_EX`.
+
+   *Hugo Landau*
+
+ * When generating safe-prime DH parameters set the recommended private key
+   length equivalent to minimum key lengths as in RFC 7919.
+
+   *Tomáš Mráz*
+
+ * Change the default salt length for PKCS#1 RSASSA-PSS signatures to the
+   maximum size that is smaller or equal to the digest length to comply with
+   FIPS 186-4 section 5. This is implemented by a new option
+   `OSSL_PKEY_RSA_PSS_SALT_LEN_AUTO_DIGEST_MAX` ("auto-digestmax") for the
+   `rsa_pss_saltlen` parameter, which is now the default. Signature
+   verification is not affected by this change and continues to work as before.
+
+   *Clemens Lang*
+
+OpenSSL 3.0
+-----------
+
+For OpenSSL 3.0 a [Migration guide][] has been added, so the CHANGES entries
+listed here are only a brief description.
+The migration guide contains more detailed information related to new features,
+breaking changes, and mappings for the large list of deprecated functions.
+
+[Migration guide]: https://github.com/openssl/openssl/tree/master/doc/man7/migration_guide.pod
 
 ### Changes between 3.0.7 and 3.0.8 [7 Feb 2023]
 
@@ -872,7 +886,7 @@ breaking changes, and mappings for the large list of deprecated functions.
    *Matt Caswell*
 
  * Fix a bug in the OPENSSL_LH_flush() function that breaks reuse of the memory
-   occuppied by the removed hash table entries.
+   occupied by the removed hash table entries.
 
    This function is used when decoding certificates or keys. If a long lived
    process periodically decodes certificates or keys its memory usage will
@@ -1023,7 +1037,7 @@ breaking changes, and mappings for the large list of deprecated functions.
 
    *Richard Levitte*
 
-### Changes between 1.1.1 and 3.0.0 [7 sep 2021]
+### Changes between 1.1.1 and 3.0.0 [7 Sep 2021]
 
  * TLS_MAX_VERSION, DTLS_MAX_VERSION and DTLS_MIN_VERSION constants are now
    deprecated.
@@ -1069,7 +1083,7 @@ breaking changes, and mappings for the large list of deprecated functions.
 
  * The EVP_get_cipherbyname() function will return NULL for algorithms such as
    "AES-128-SIV", "AES-128-CBC-CTS" and "CAMELLIA-128-CBC-CTS" which were
-   previously only accessible via low level interfaces. Use EVP_CIPHER_fetch()
+   previously only accessible via low-level interfaces. Use EVP_CIPHER_fetch()
    instead to retrieve these algorithms from a provider.
 
    *Shane Lontis*
@@ -1416,7 +1430,7 @@ breaking changes, and mappings for the large list of deprecated functions.
 
    *David von Oheimb*
 
- * All of the low level EC_KEY functions have been deprecated.
+ * All of the low-level EC_KEY functions have been deprecated.
 
    *Shane Lontis, Paul Dale, Richard Levitte, and Tomáš Mráz*
 
@@ -1697,7 +1711,7 @@ breaking changes, and mappings for the large list of deprecated functions.
 
    *David von Oheimb*
 
- * All of the low level RSA functions have been deprecated.
+ * All of the low-level RSA functions have been deprecated.
 
    *Paul Dale*
 
@@ -1722,11 +1736,11 @@ breaking changes, and mappings for the large list of deprecated functions.
 
    *Paul Dale*
 
- * All of the low level DH functions have been deprecated.
+ * All of the low-level DH functions have been deprecated.
 
    *Paul Dale and Matt Caswell*
 
- * All of the low level DSA functions have been deprecated.
+ * All of the low-level DSA functions have been deprecated.
 
    *Paul Dale*
 
@@ -1735,7 +1749,7 @@ breaking changes, and mappings for the large list of deprecated functions.
 
    *Richard Levitte*
 
- * Deprecated low level ECDH and ECDSA functions.
+ * Deprecated low-level ECDH and ECDSA functions.
 
    *Paul Dale*
 
@@ -1754,7 +1768,7 @@ breaking changes, and mappings for the large list of deprecated functions.
 
    *Paul Dale*
 
- * All of the low level HMAC functions have been deprecated.
+ * All of the low-level HMAC functions have been deprecated.
 
    *Paul Dale and David von Oheimb*
 
@@ -1770,7 +1784,7 @@ breaking changes, and mappings for the large list of deprecated functions.
 
    *Rich Salz*
 
- * All of the low level CMAC functions have been deprecated.
+ * All of the low-level CMAC functions have been deprecated.
 
    *Paul Dale*
 
@@ -1789,7 +1803,7 @@ breaking changes, and mappings for the large list of deprecated functions.
 
    *Richard Levitte*
 
- * All of the low level cipher functions have been deprecated.
+ * All of the low-level cipher functions have been deprecated.
 
    *Matt Caswell and Paul Dale*
 
@@ -2059,7 +2073,7 @@ breaking changes, and mappings for the large list of deprecated functions.
    used and the recipient will not notice the attack.
    As a work around for this potential attack the length of the decrypted
    key must be equal to the cipher default key length, in case the
-   certifiate is not given and all recipientInfo are tried out.
+   certificate is not given and all recipientInfo are tried out.
    The old behaviour can be re-enabled in the CMS code by setting the
    CMS_DEBUG_DECRYPT flag.
 
@@ -2079,7 +2093,7 @@ breaking changes, and mappings for the large list of deprecated functions.
    when primes for RSA keys are computed.
    Since we previously always generated primes == 2 (mod 3) for RSA keys,
    the 2-prime and 3-prime RSA modules were easy to distinguish, since
-   `N = p*q = 1 (mod 3)`, but `N = p*q*r = 2 (mod 3)`. Therefore fingerprinting
+   `N = p*q = 1 (mod 3)`, but `N = p*q*r = 2 (mod 3)`. Therefore, fingerprinting
    2-prime vs. 3-prime RSA keys was possible by computing N mod 3.
    This avoids possible fingerprinting of newly generated RSA modules.
 
@@ -2448,7 +2462,9 @@ breaking changes, and mappings for the large list of deprecated functions.
 OpenSSL 1.1.1
 -------------
 
-### Changes between 1.1.1l and 1.1.1m [xx XXX xxxx]
+### Changes between 1.1.1m and 1.1.1n [xx XXX xxxx]
+
+### Changes between 1.1.1l and 1.1.1m [14 Dec 2021]
 
  * Avoid loading of a dynamic engine twice.
 
@@ -2498,7 +2514,7 @@ OpenSSL 1.1.1
    ASN.1 strings are represented internally within OpenSSL as an ASN1_STRING
    structure which contains a buffer holding the string data and a field
    holding the buffer length. This contrasts with normal C strings which
-   are repesented as a buffer for the string data which is terminated
+   are represented as a buffer for the string data which is terminated
    with a NUL (0) byte.
 
    Although not a strict requirement, ASN.1 strings that are parsed using
@@ -2586,7 +2602,7 @@ OpenSSL 1.1.1
 
  * Fixed the X509_issuer_and_serial_hash() function. It attempts to
    create a unique hash value based on the issuer and serial number data
-   contained within an X509 certificate. However it was failing to correctly
+   contained within an X509 certificate. However, it was failing to correctly
    handle any errors that may occur while parsing the issuer field (which might
    occur if the issuer field is maliciously constructed). This may subsequently
    result in a NULL pointer deref and a crash leading to a potential denial of
@@ -2604,7 +2620,7 @@ OpenSSL 1.1.1
 
    Fixed the EVP_CipherUpdate, EVP_EncryptUpdate and EVP_DecryptUpdate
    functions. Previously they could overflow the output length argument in some
-   cases where the input length is close to the maximum permissable length for
+   cases where the input length is close to the maximum permissible length for
    an integer on the platform. In such cases the return value from the function
    call would be 1 (indicating success), but the output length value would be
    negative. This could cause applications to behave incorrectly or crash.
@@ -2706,7 +2722,7 @@ OpenSSL 1.1.1
    when primes for RSA keys are computed.
    Since we previously always generated primes == 2 (mod 3) for RSA keys,
    the 2-prime and 3-prime RSA modules were easy to distinguish, since
-   N = p*q = 1 (mod 3), but N = p*q*r = 2 (mod 3). Therefore fingerprinting
+   N = p*q = 1 (mod 3), but N = p*q*r = 2 (mod 3). Therefore, fingerprinting
    2-prime vs. 3-prime RSA keys was possible by computing N mod 3.
    This avoids possible fingerprinting of newly generated RSA modules.
 
@@ -2765,7 +2781,7 @@ OpenSSL 1.1.1
  * Fixed a fork protection issue. OpenSSL 1.1.1 introduced a rewritten random
    number generator (RNG). This was intended to include protection in the
    event of a fork() system call in order to ensure that the parent and child
-   processes did not share the same RNG state. However this protection was not
+   processes did not share the same RNG state. However, this protection was not
    being used in the default case.
 
    A partial mitigation for this issue is that the output from a high
@@ -2807,7 +2823,7 @@ OpenSSL 1.1.1
    used and the recipient will not notice the attack.
    As a work around for this potential attack the length of the decrypted
    key must be equal to the cipher default key length, in case the
-   certifiate is not given and all recipientInfo are tried out.
+   certificate is not given and all recipientInfo are tried out.
    The old behaviour can be re-enabled in the CMS code by setting the
    CMS_DEBUG_DECRYPT flag.
    ([CVE-2019-1563])
@@ -3577,7 +3593,7 @@ OpenSSL 1.1.0
    used and the recipient will not notice the attack.
    As a work around for this potential attack the length of the decrypted
    key must be equal to the cipher default key length, in case the
-   certifiate is not given and all recipientInfo are tried out.
+   certificate is not given and all recipientInfo are tried out.
    The old behaviour can be re-enabled in the CMS code by setting the
    CMS_DEBUG_DECRYPT flag.
    ([CVE-2019-1563])
@@ -3812,7 +3828,7 @@ OpenSSL 1.1.0
 
    OpenSSL 1.0.2 and below had the ability to disable renegotiation using the
    (undocumented) SSL3_FLAGS_NO_RENEGOTIATE_CIPHERS flag. Due to the opacity
-   changes this is no longer possible in 1.1.0. Therefore the new
+   changes this is no longer possible in 1.1.0. Therefore, the new
    SSL_OP_NO_RENEGOTIATION option from 1.1.1-dev has been backported to
    1.1.0 to provide equivalent functionality.
 
@@ -3903,7 +3919,7 @@ OpenSSL 1.1.0
 
    During a renegotiation handshake if the Encrypt-Then-Mac extension is
    negotiated where it was not in the original handshake (or vice-versa) then
-   this can cause OpenSSL to crash (dependant on ciphersuite). Both clients
+   this can cause OpenSSL to crash (dependent on ciphersuite). Both clients
    and servers are affected.
 
    This issue was reported to OpenSSL by Joe Orton (Red Hat).
@@ -4075,7 +4091,7 @@ OpenSSL 1.1.0
    place, and this would cause the connection to immediately fail. Assuming
    that the application calls SSL_free() on the failed connection in a timely
    manner then the 21Mb of allocated memory will then be immediately freed
-   again. Therefore the excessive memory allocation will be transitory in
+   again. Therefore, the excessive memory allocation will be transitory in
    nature. This then means that there is only a security impact if:
 
    1) The application does not call SSL_free() in a timely manner in the event
@@ -4842,7 +4858,7 @@ OpenSSL 1.1.0
  * Given the pervasive nature of TLS extensions it is inadvisable to run
    OpenSSL without support for them. It also means that maintaining
    the OPENSSL_NO_TLSEXT option within the code is very invasive (and probably
-   not well tested). Therefore the OPENSSL_NO_TLSEXT option has been removed.
+   not well tested). Therefore, the OPENSSL_NO_TLSEXT option has been removed.
 
    *Matt Caswell*
 
@@ -4920,7 +4936,7 @@ OpenSSL 1.1.0
 
    *Matt Caswell*
 
- * SSLv2 support has been removed.  It still supports receiving a SSLv2
+ * SSLv2 support has been removed.  It still supports receiving an SSLv2
    compatible client hello.
 
    *Kurt Roeckx*
@@ -5374,7 +5390,7 @@ OpenSSL 1.0.2
    used and the recipient will not notice the attack.
    As a work around for this potential attack the length of the decrypted
    key must be equal to the cipher default key length, in case the
-   certifiate is not given and all recipientInfo are tried out.
+   certificate is not given and all recipientInfo are tried out.
    The old behaviour can be re-enabled in the CMS code by setting the
    CMS_DEBUG_DECRYPT flag.
    ([CVE-2019-1563])
@@ -5850,8 +5866,8 @@ OpenSSL 1.0.2
    has been completed. An attacker could force up to approx. 15 messages to
    remain in the buffer when they are no longer required. These messages will
    be cleared when the DTLS connection is closed. The default maximum size for
-   a message is 100k. Therefore the attacker could force an additional 1500k
-   to be consumed per connection. By opening many simulataneous connections an
+   a message is 100k. Therefore, the attacker could force an additional 1500k
+   to be consumed per connection. By opening many simultaneous connections an
    attacker could cause a DoS attack through memory exhaustion.
 
    This issue was reported to OpenSSL by Quan Luo.
@@ -7015,7 +7031,7 @@ OpenSSL 1.0.1
    message).
 
    The rules of C pointer arithmetic are such that "p + len" is only well
-   defined where len <= SIZE. Therefore the above idiom is actually
+   defined where len <= SIZE. Therefore, the above idiom is actually
    undefined behaviour.
 
    For example this could cause problems if some malloc implementation
@@ -7051,8 +7067,8 @@ OpenSSL 1.0.1
    has been completed. An attacker could force up to approx. 15 messages to
    remain in the buffer when they are no longer required. These messages will
    be cleared when the DTLS connection is closed. The default maximum size for
-   a message is 100k. Therefore the attacker could force an additional 1500k
-   to be consumed per connection. By opening many simulataneous connections an
+   a message is 100k. Therefore, the attacker could force an additional 1500k
+   to be consumed per connection. By opening many simultaneous connections an
    attacker could cause a DoS attack through memory exhaustion.
 
    This issue was reported to OpenSSL by Quan Luo.
@@ -7118,7 +7134,7 @@ OpenSSL 1.0.1
    amounts of input data then a length check can overflow resulting in a heap
    corruption.
 
-   Internally to OpenSSL the EVP_EncodeUpdate() function is primarly used by
+   Internally to OpenSSL the EVP_EncodeUpdate() function is primarily used by
    the `PEM_write_bio*` family of functions. These are mainly used within the
    OpenSSL command line applications, so any application which processes data
    from an untrusted source and outputs it as a PEM file should be considered
@@ -7784,7 +7800,7 @@ OpenSSL 1.0.1
  * Build option no-ssl3 is incomplete.
 
    When OpenSSL is configured with "no-ssl3" as a build option, servers
-   could accept and complete a SSL 3.0 handshake, and clients could be
+   could accept and complete an SSL 3.0 handshake, and clients could be
    configured to send them.
    ([CVE-2014-3568])
 
@@ -8801,7 +8817,7 @@ OpenSSL 1.0.0
  * Build option no-ssl3 is incomplete.
 
    When OpenSSL is configured with "no-ssl3" as a build option, servers
-   could accept and complete a SSL 3.0 handshake, and clients could be
+   could accept and complete an SSL 3.0 handshake, and clients could be
    configured to send them.
    ([CVE-2014-3568])
 
@@ -10050,7 +10066,7 @@ OpenSSL 1.0.1.]
 
  * Add initial support for TLS extensions, specifically for the server_name
    extension so far.  The SSL_SESSION, SSL_CTX, and SSL data structures now
-   have new members for a host name.  The SSL data structure has an
+   have new members for a hostname.  The SSL data structure has an
    additional member `SSL_CTX *initial_ctx` so that new sessions can be
    stored in that context to allow for session resumption, even after the
    SSL has been switched to a new SSL_CTX in reaction to a client's
@@ -10074,7 +10090,7 @@ OpenSSL 1.0.1.]
 
    openssl s_server has new options '-servername_host ...', '-cert2 ...',
    '-key2 ...', '-servername_fatal' (subject to change).  This allows
-   testing the HostName extension for a specific single host name ('-cert'
+   testing the HostName extension for a specific single hostname ('-cert'
    and '-key' remain fallbacks for handshakes without HostName
    negotiation).  If the unrecognized_name alert has to be sent, this by
    default is a warning; it becomes fatal with the '-servername_fatal'
@@ -10577,7 +10593,7 @@ OpenSSL 0.9.x
 
    The OpenSSL project does not recommend any specific CA and does not
    have any policy with respect to including or excluding any CA.
-   Therefore it does not make any sense to ship an arbitrary selection
+   Therefore, it does not make any sense to ship an arbitrary selection
    of root CA certificates with the OpenSSL software.
 
    *Lutz Jaenicke*
@@ -10757,7 +10773,7 @@ OpenSSL 0.9.x
 
  * Add initial support for TLS extensions, specifically for the server_name
    extension so far.  The SSL_SESSION, SSL_CTX, and SSL data structures now
-   have new members for a host name.  The SSL data structure has an
+   have new members for a hostname.  The SSL data structure has an
    additional member `SSL_CTX *initial_ctx` so that new sessions can be
    stored in that context to allow for session resumption, even after the
    SSL has been switched to a new SSL_CTX in reaction to a client's
@@ -10781,7 +10797,7 @@ OpenSSL 0.9.x
 
    openssl s_server has new options '-servername_host ...', '-cert2 ...',
    '-key2 ...', '-servername_fatal' (subject to change).  This allows
-   testing the HostName extension for a specific single host name ('-cert'
+   testing the HostName extension for a specific single hostname ('-cert'
    and '-key' remain fallbacks for handshakes without HostName
    negotiation).  If the unrecognized_name alert has to be sent, this by
    default is a warning; it becomes fatal with the '-servername_fatal'
@@ -19953,24 +19969,6 @@ ndif
 
 <!-- Links -->
 
-[CVE-2024-13176]: https://www.openssl.org/news/vulnerabilities.html#CVE-2024-13176
-[CVE-2024-9143]: https://www.openssl.org/news/vulnerabilities.html#CVE-2024-9143
-[CVE-2024-6119]: https://www.openssl.org/news/vulnerabilities.html#CVE-2024-6119
-[CVE-2024-5535]: https://www.openssl.org/news/vulnerabilities.html#CVE-2024-5535
-[CVE-2024-4741]: https://www.openssl.org/news/vulnerabilities.html#CVE-2024-4741
-[CVE-2024-4603]: https://www.openssl.org/news/vulnerabilities.html#CVE-2024-4603
-[CVE-2024-2511]: https://www.openssl.org/news/vulnerabilities.html#CVE-2024-2511
-[CVE-2024-0727]: https://www.openssl.org/news/vulnerabilities.html#CVE-2024-0727
-[CVE-2023-6237]: https://www.openssl.org/news/vulnerabilities.html#CVE-2023-6237
-[CVE-2023-6129]: https://www.openssl.org/news/vulnerabilities.html#CVE-2023-6129
-[CVE-2023-5678]: https://www.openssl.org/news/vulnerabilities.html#CVE-2023-5678
-[CVE-2023-5363]: https://www.openssl.org/news/vulnerabilities.html#CVE-2023-5363
-[CVE-2023-4807]: https://www.openssl.org/news/vulnerabilities.html#CVE-2023-4807
-[CVE-2023-3817]: https://www.openssl.org/news/vulnerabilities.html#CVE-2023-3817
-[CVE-2023-3446]: https://www.openssl.org/news/vulnerabilities.html#CVE-2023-3446
-[CVE-2023-2975]: https://www.openssl.org/news/vulnerabilities.html#CVE-2023-2975
-[RFC 2578 (STD 58), section 3.5]: https://datatracker.ietf.org/doc/html/rfc2578#section-3.5
-[CVE-2023-2650]: https://www.openssl.org/news/vulnerabilities.html#CVE-2023-2650
 [CVE-2023-1255]: https://www.openssl.org/news/vulnerabilities.html#CVE-2023-1255
 [CVE-2023-0466]: https://www.openssl.org/news/vulnerabilities.html#CVE-2023-0466
 [CVE-2023-0465]: https://www.openssl.org/news/vulnerabilities.html#CVE-2023-0465

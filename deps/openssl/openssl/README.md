@@ -59,12 +59,12 @@ For Production Use
 ------------------
 
 Source code tarballs of the official releases can be downloaded from
-[openssl-library.org/source/](https://openssl-library.org/source/).
+[www.openssl.org/source](https://www.openssl.org/source).
 The OpenSSL project does not distribute the toolkit in binary form.
 
 However, for a large variety of operating systems precompiled versions
-of the OpenSSL toolkit are available. In particular on Linux and other
-Unix operating systems it is normally recommended to link against the
+of the OpenSSL toolkit are available. In particular, on Linux and other
+Unix operating systems, it is normally recommended to link against the
 precompiled shared libraries provided by the distributor or vendor.
 
 For Testing and Development
@@ -75,22 +75,26 @@ the source tarballs, having a local copy of the git repository with
 the entire project history gives you much more insight into the
 code base.
 
-The main OpenSSL Git repository is private.
-There is a public GitHub mirror of it at [github.com/openssl/openssl],
+The official OpenSSL Git Repository is located at [git.openssl.org].
+There is a GitHub mirror of the repository at [github.com/openssl/openssl],
 which is updated automatically from the former on every commit.
 
-A local copy of the Git repository can be obtained by cloning it from
-the GitHub mirror using
+A local copy of the Git Repository can be obtained by cloning it from
+the original OpenSSL repository using
+
+    git clone git://git.openssl.org/openssl.git
+
+or from the GitHub mirror using
 
     git clone https://github.com/openssl/openssl.git
 
 If you intend to contribute to OpenSSL, either to fix bugs or contribute
-new features, you need to fork the GitHub mirror and clone your public fork
-instead.
+new features, you need to fork the OpenSSL repository openssl/openssl on
+GitHub and clone your public fork instead.
 
     git clone https://github.com/yourname/openssl.git
 
-This is necessary, because all development of OpenSSL nowadays is done via
+This is necessary because all development of OpenSSL nowadays is done via
 GitHub pull requests. For more details, see [Contributing](#contributing).
 
 Build and Install
@@ -101,6 +105,7 @@ detailed instructions about building and installing OpenSSL. For some
 platforms, the installation instructions are amended by a platform specific
 document.
 
+ * [Notes for WASIX platforms](NOTES-WASIX.md)
  * [Notes for UNIX-like platforms](NOTES-UNIX.md)
  * [Notes for Android platforms](NOTES-ANDROID.md)
  * [Notes for Windows platforms](NOTES-WINDOWS.md)
@@ -129,7 +134,7 @@ Wiki
 ----
 
 There is a Wiki at [wiki.openssl.org] which is currently not very active.
-It contains a lot of useful information, not all of which is up to date.
+It contains a lot of useful information, not all of which is up-to-date.
 
 License
 =======
@@ -144,7 +149,7 @@ Support
 =======
 
 There are various ways to get in touch. The correct channel depends on
-your requirement. see the [SUPPORT](SUPPORT.md) file for more details.
+your requirement. See the [SUPPORT](SUPPORT.md) file for more details.
 
 Contributing
 ============
@@ -156,13 +161,13 @@ Legalities
 ==========
 
 A number of nations restrict the use or export of cryptography. If you are
-potentially subject to such restrictions you should seek legal advice before
+potentially subject to such restrictions, you should seek legal advice before
 attempting to develop or distribute cryptographic code.
 
 Copyright
 =========
 
-Copyright (c) 1998-2025 The OpenSSL Project
+Copyright (c) 1998-2022 The OpenSSL Project
 
 Copyright (c) 1995-1998 Eric A. Young, Tim J. Hudson
 
@@ -174,6 +179,14 @@ All rights reserved.
     <https://www.openssl.org>
     "OpenSSL Homepage"
 
+[git.openssl.org]:
+    <https://git.openssl.org>
+    "OpenSSL Git Repository"
+
+[git.openssl.org]:
+    <https://git.openssl.org>
+    "OpenSSL Git Repository"
+
 [github.com/openssl/openssl]:
     <https://github.com/openssl/openssl>
     "OpenSSL GitHub Mirror"
@@ -183,7 +196,7 @@ All rights reserved.
     "OpenSSL Wiki"
 
 [migration_guide(7ossl)]:
-    <https://www.openssl.org/docs/man3.0/man7/migration_guide.html>
+    <https://www.openssl.org/docs/manmaster/man7/migration_guide.html>
     "OpenSSL Migration Guide"
 
 [RFC 8446]:

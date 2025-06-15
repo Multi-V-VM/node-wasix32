@@ -1,5 +1,5 @@
 /*
- * Copyright 2001-2023 The OpenSSL Project Authors. All Rights Reserved.
+ * Copyright 2001-2022 The OpenSSL Project Authors. All Rights Reserved.
  *
  * Licensed under the Apache License 2.0 (the "License").  You may not use
  * this file except in compliance with the License.  You can obtain a copy
@@ -7,7 +7,7 @@
  * https://www.openssl.org/source/license.html
  */
 
-#include "e_os.h"
+#include "internal/e_os.h"
 #include "eng_local.h"
 #include <openssl/rand.h>
 #include "internal/refcount.h"
@@ -28,11 +28,13 @@ ENGINE *ENGINE_new(void)
 {
     ENGINE *ret;
 
-    if (!RUN_ONCE(&engine_lock_init, do_engine_lock_init)
-        || (ret = OPENSSL_zalloc(sizeof(*ret))) == NULL) {
-        ERR_raise(ERR_LIB_ENGINE, ERR_R_MALLOC_FAILURE);
-        return NULL;
+    if (!RUN_ONCE(&engine_lock_init, do_engine_lock_init)) {
+        /* Maybe this should be raised in do_engine_lock_init() */
+        ERR_raise(ERR_LIB_ENGINE, ERR_R_CRYPTO_LIB);
+        return 0;
     }
+    if ((ret = OPENSSL_zalloc(sizeof(*ret))) == NULL)
+        return NULL;
     ret->struct_ref = 1;
     ENGINE_REF_PRINT(ret, 0, 1);
     if (!CRYPTO_new_ex_data(CRYPTO_EX_INDEX_ENGINE, ret, &ret->ex_data)) {
@@ -125,42 +127,34 @@ static ENGINE_CLEANUP_ITEM *int_cleanup_item(ENGINE_CLEANUP_CB *cb)
 {
     ENGINE_CLEANUP_ITEM *item;
 
-    if ((item = OPENSSL_malloc(sizeof(*item))) == NULL) {
-        ERR_raise(ERR_LIB_ENGINE, ERR_R_MALLOC_FAILURE);
+    if ((item = OPENSSL_malloc(sizeof(*item))) == NULL)
         return NULL;
-    }
     item->cb = cb;
     return item;
 }
 
-int engine_cleanup_add_first(ENGINE_CLEANUP_CB *cb)
+void engine_cleanup_add_first(ENGINE_CLEANUP_CB *cb)
 {
     ENGINE_CLEANUP_ITEM *item;
 
     if (!int_cleanup_check(1))
-        return 0;
+        return;
     item = int_cleanup_item(cb);
-    if (item != NULL) {
-        if (sk_ENGINE_CLEANUP_ITEM_insert(cleanup_stack, item, 0))
-            return 1;
-        OPENSSL_free(item);
-    }
-    return 0;
+    if (item != NULL)
+        if (sk_ENGINE_CLEANUP_ITEM_insert(cleanup_stack, item, 0) <= 0)
+            OPENSSL_free(item);
 }
 
-int engine_cleanup_add_last(ENGINE_CLEANUP_CB *cb)
+void engine_cleanup_add_last(ENGINE_CLEANUP_CB *cb)
 {
     ENGINE_CLEANUP_ITEM *item;
-
     if (!int_cleanup_check(1))
-        return 0;
+        return;
     item = int_cleanup_item(cb);
     if (item != NULL) {
-        if (sk_ENGINE_CLEANUP_ITEM_push(cleanup_stack, item) > 0)
-            return 1;
-        OPENSSL_free(item);
+        if (sk_ENGINE_CLEANUP_ITEM_push(cleanup_stack, item) <= 0)
+            OPENSSL_free(item);
     }
-    return 0;
 }
 
 /* The API function that performs all cleanup */

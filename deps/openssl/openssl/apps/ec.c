@@ -80,6 +80,7 @@ int ec_main(int argc, char **argv)
     char *point_format = NULL;
     int no_public = 0;
 
+    opt_set_unknown_name("cipher");
     prog = opt_init(argc, argv, ec_options);
     while ((o = opt_next()) != OPT_EOF) {
         switch (o) {
@@ -157,17 +158,12 @@ int ec_main(int argc, char **argv)
     }
 
     /* No extra arguments. */
-    argc = opt_num_rest();
-    if (argc != 0)
+    if (!opt_check_rest_arg(NULL))
         goto opthelp;
 
-    if (ciphername != NULL) {
-        if (!opt_cipher(ciphername, &enc))
-            goto opthelp;
-    }
-    private = param_out || pubin || pubout ? 0 : 1;
-    if (text && !pubin)
-        private = 1;
+    if (!opt_cipher(ciphername, &enc))
+        goto opthelp;
+    private = !pubin && (text || (!param_out && !pubout));
 
     if (!app_passwd(passinarg, passoutarg, &passin, &passout)) {
         BIO_printf(bio_err, "Error getting passwords\n");

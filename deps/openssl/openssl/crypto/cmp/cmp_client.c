@@ -1,5 +1,5 @@
 /*
- * Copyright 2007-2023 The OpenSSL Project Authors. All Rights Reserved.
+ * Copyright 2007-2022 The OpenSSL Project Authors. All Rights Reserved.
  * Copyright Nokia 2007-2019
  * Copyright Siemens AG 2015-2019
  *
@@ -11,7 +11,6 @@
 
 #include "cmp_local.h"
 #include "internal/cryptlib.h"
-#include "e_os.h" /* ossl_sleep() */
 
 /* explicit #includes not strictly needed since implied by the above: */
 #include <openssl/bio.h>
@@ -107,12 +106,9 @@ static int save_statusInfo(OSSL_CMP_CTX *ctx, OSSL_CMP_PKISI *si)
     ss = si->statusString; /* may be NULL */
     for (i = 0; i < sk_ASN1_UTF8STRING_num(ss); i++) {
         ASN1_UTF8STRING *str = sk_ASN1_UTF8STRING_value(ss, i);
-        ASN1_UTF8STRING *dup = ASN1_STRING_dup(str);
 
-        if (dup == NULL || !sk_ASN1_UTF8STRING_push(ctx->statusString, dup)) {
-            ASN1_UTF8STRING_free(dup);
+        if (!sk_ASN1_UTF8STRING_push(ctx->statusString, ASN1_STRING_dup(str)))
             return 0;
-        }
     }
     return 1;
 }
@@ -331,7 +327,7 @@ static int poll_for_response(OSSL_CMP_CTX *ctx, int sleep, int rid,
             OSSL_CMP_MSG_free(prep);
             prep = NULL;
             if (sleep) {
-                ossl_sleep((unsigned long)(1000 * check_after));
+                OSSL_sleep((unsigned long)(1000 * check_after));
             } else {
                 if (checkAfter != NULL)
                     *checkAfter = (int)check_after;
@@ -490,6 +486,7 @@ int OSSL_CMP_certConf_cb(OSSL_CMP_CTX *ctx, X509 *cert, int fail_info,
 {
     X509_STORE *out_trusted = OSSL_CMP_CTX_get_certConf_cb_arg(ctx);
     STACK_OF(X509) *chain = NULL;
+
     (void)text; /* make (artificial) use of var to prevent compiler warning */
 
     if (fail_info != 0) /* accept any error flagged by CMP core library */
@@ -544,7 +541,7 @@ int OSSL_CMP_certConf_cb(OSSL_CMP_CTX *ctx, X509 *cert, int fail_info,
                        "success building approximate chain for newly enrolled cert");
     }
     (void)ossl_cmp_ctx_set1_newChain(ctx, chain);
-    sk_X509_pop_free(chain, X509_free);
+    OSSL_STACK_OF_X509_free(chain);
 
     return fail_info;
 }
@@ -587,7 +584,7 @@ static int cert_response(OSSL_CMP_CTX *ctx, int sleep, int rid,
         return 0;
     if (rid == OSSL_CMP_CERTREQID_NONE) { /* used for OSSL_CMP_PKIBODY_P10CR */
         rid = ossl_cmp_asn1_get_int(crep->certReqId);
-        if (rid < OSSL_CMP_CERTREQID_NONE) {
+        if (rid != OSSL_CMP_CERTREQID_NONE) {
             ERR_raise(ERR_LIB_CMP, CMP_R_BAD_REQUEST_ID);
             return 0;
         }
@@ -732,7 +729,6 @@ int OSSL_CMP_try_certreq(OSSL_CMP_CTX *ctx, int req_type,
 X509 *OSSL_CMP_exec_certreq(OSSL_CMP_CTX *ctx, int req_type,
                             const OSSL_CRMF_MSG *crm)
 {
-
     OSSL_CMP_MSG *rep = NULL;
     int is_p10 = req_type == OSSL_CMP_PKIBODY_P10CR;
     int rid = is_p10 ? OSSL_CMP_CERTREQID_NONE : OSSL_CMP_CERTREQID;
@@ -840,7 +836,8 @@ int OSSL_CMP_exec_RR_ses(OSSL_CMP_CTX *ctx)
         OSSL_CRMF_CERTTEMPLATE *tmpl =
             sk_OSSL_CMP_REVDETAILS_value(rr->body->value.rr, rsid)->certDetails;
         const X509_NAME *issuer = OSSL_CRMF_CERTTEMPLATE_get0_issuer(tmpl);
-        const ASN1_INTEGER *serial = OSSL_CRMF_CERTTEMPLATE_get0_serialNumber(tmpl);
+        const ASN1_INTEGER *serial =
+            OSSL_CRMF_CERTTEMPLATE_get0_serialNumber(tmpl);
 
         if (sk_OSSL_CRMF_CERTID_num(rrep->revCerts) != num_RevDetails) {
             ERR_raise(ERR_LIB_CMP, CMP_R_WRONG_RP_COMPONENT_COUNT);

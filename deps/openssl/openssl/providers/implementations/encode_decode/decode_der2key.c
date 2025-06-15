@@ -1,5 +1,5 @@
 /*
- * Copyright 2020-2024 The OpenSSL Project Authors. All Rights Reserved.
+ * Copyright 2020-2022 The OpenSSL Project Authors. All Rights Reserved.
  *
  * Licensed under the Apache License 2.0 (the "License").  You may not use
  * this file except in compliance with the License.  You can obtain a copy
@@ -32,10 +32,10 @@
 #include "crypto/ecx.h"
 #include "crypto/rsa.h"
 #include "crypto/x509.h"
-#include "openssl/obj_mac.h"
 #include "prov/bio.h"
 #include "prov/implementations.h"
 #include "endecoder_local.h"
+#include "internal/nelem.h"
 
 struct der2key_ctx_st;           /* Forward declaration */
 typedef int check_key_fn(void *, struct der2key_ctx_st *ctx);
@@ -108,10 +108,7 @@ static void *der2key_decode_p8(const unsigned char **input_der,
 
     if ((p8inf = d2i_PKCS8_PRIV_KEY_INFO(NULL, input_der, input_der_len)) != NULL
         && PKCS8_pkey_get0(NULL, NULL, NULL, &alg, p8inf)
-        && (OBJ_obj2nid(alg->algorithm) == ctx->desc->evp_type
-            /* Allow decoding sm2 private key with id_ecPublicKey */
-            || (OBJ_obj2nid(alg->algorithm) == NID_X9_62_id_ecPublicKey
-                && ctx->desc->evp_type == NID_sm2)))
+        && OBJ_obj2nid(alg->algorithm) == ctx->desc->evp_type)
         key = key_from_pkcs8(p8inf, PROV_LIBCTX_OF(ctx->provctx), NULL);
     PKCS8_PRIV_KEY_INFO_free(p8inf);
 
@@ -290,19 +287,10 @@ static int der2key_decode(void *vctx, OSSL_CORE_BIO *cin, int selection,
 
         params[0] =
             OSSL_PARAM_construct_int(OSSL_OBJECT_PARAM_TYPE, &object_type);
-
-#ifndef OPENSSL_NO_SM2
-        if (strcmp(ctx->desc->keytype_name, "EC") == 0
-            && (EC_KEY_get_flags(key) & EC_FLAG_SM2_RANGE) != 0)
-            params[1] =
-                OSSL_PARAM_construct_utf8_string(OSSL_OBJECT_PARAM_DATA_TYPE,
-                                                 "SM2", 0);
-        else
-#endif
-            params[1] =
-                OSSL_PARAM_construct_utf8_string(OSSL_OBJECT_PARAM_DATA_TYPE,
-                                                 (char *)ctx->desc->keytype_name,
-                                                 0);
+        params[1] =
+            OSSL_PARAM_construct_utf8_string(OSSL_OBJECT_PARAM_DATA_TYPE,
+                                             (char *)ctx->desc->keytype_name,
+                                             0);
         /* The address of the key becomes the octet string */
         params[2] =
             OSSL_PARAM_construct_octet_string(OSSL_OBJECT_PARAM_REFERENCE,
@@ -329,14 +317,10 @@ static int der2key_export_object(void *vctx,
     void *keydata;
 
     if (reference_sz == sizeof(keydata) && export != NULL) {
-        int selection = ctx->selection;
-
-        if (selection == 0)
-            selection = OSSL_KEYMGMT_SELECT_ALL;
         /* The contents of the reference is the address to our object */
         keydata = *(void **)reference;
 
-        return export(keydata, selection, export_cb, export_cbarg);
+        return export(keydata, ctx->selection, export_cb, export_cbarg);
     }
     return 0;
 }
@@ -422,16 +406,10 @@ static void *ec_d2i_PKCS8(void **key, const unsigned char **der, long der_len,
 static int ec_check(void *key, struct der2key_ctx_st *ctx)
 {
     /* We're trying to be clever by comparing two truths */
-    int ret = 0;
+
     int sm2 = (EC_KEY_get_flags(key) & EC_FLAG_SM2_RANGE) != 0;
 
-    if (sm2)
-        ret = ctx->desc->evp_type == EVP_PKEY_SM2
-            || ctx->desc->evp_type == NID_X9_62_id_ecPublicKey;
-    else
-        ret = ctx->desc->evp_type != EVP_PKEY_SM2;
-
-    return ret;
+    return sm2 == (ctx->desc->evp_type == EVP_PKEY_SM2);
 }
 
 static void ec_adjust(void *key, struct der2key_ctx_st *ctx)
@@ -771,7 +749,7 @@ static void rsa_adjust(void *key, struct der2key_ctx_st *ctx)
           (void (*)(void))der2key_decode },                             \
         { OSSL_FUNC_DECODER_EXPORT_OBJECT,                              \
           (void (*)(void))der2key_export_object },                      \
-        { 0, NULL }                                                     \
+        OSSL_DISPATCH_END                                               \
     }
 
 #ifndef OPENSSL_NO_DH
@@ -806,6 +784,7 @@ MAKE_DECODER("ED448", ed448, ecx, SubjectPublicKeyInfo);
 # ifndef OPENSSL_NO_SM2
 MAKE_DECODER("SM2", sm2, ec, PrivateKeyInfo);
 MAKE_DECODER("SM2", sm2, ec, SubjectPublicKeyInfo);
+MAKE_DECODER("SM2", sm2, sm2, type_specific_no_pub);
 # endif
 #endif
 MAKE_DECODER("RSA", rsa, rsa, PrivateKeyInfo);

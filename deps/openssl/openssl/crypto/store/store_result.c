@@ -1,5 +1,5 @@
 /*
- * Copyright 2020-2023 The OpenSSL Project Authors. All Rights Reserved.
+ * Copyright 2020-2022 The OpenSSL Project Authors. All Rights Reserved.
  *
  * Licensed under the Apache License 2.0 (the "License").  You may not use
  * this file except in compliance with the License.  You can obtain a copy
@@ -7,7 +7,7 @@
  * https://www.openssl.org/source/license.html
  */
 
-#include "e_os.h"
+#include "internal/e_os.h"
 #include <string.h>
 
 #include <openssl/core.h>
@@ -553,10 +553,8 @@ static int try_pkcs12(struct extracted_param_data_st *data, OSSL_STORE_INFO **v,
 
             ok = 0;              /* Assume decryption or parse error */
 
-            if (!PKCS12_mac_present(p12)
+            if (PKCS12_verify_mac(p12, "", 0)
                 || PKCS12_verify_mac(p12, NULL, 0)) {
-                pass = NULL;
-            } else if (PKCS12_verify_mac(p12, "", 0)) {
                 pass = "";
             } else {
                 static char prompt_info[] = "PKCS12 import pass phrase";
@@ -629,7 +627,7 @@ static int try_pkcs12(struct extracted_param_data_st *data, OSSL_STORE_INFO **v,
                 }
                 EVP_PKEY_free(pkey);
                 X509_free(cert);
-                sk_X509_pop_free(chain, X509_free);
+                OSSL_STACK_OF_X509_free(chain);
                 OSSL_STORE_INFO_free(osi_pkey);
                 OSSL_STORE_INFO_free(osi_cert);
                 OSSL_STORE_INFO_free(osi_ca);

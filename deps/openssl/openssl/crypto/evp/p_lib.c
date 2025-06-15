@@ -1,5 +1,5 @@
 /*
- * Copyright 1995-2024 The OpenSSL Project Authors. All Rights Reserved.
+ * Copyright 1995-2022 The OpenSSL Project Authors. All Rights Reserved.
  *
  * Licensed under the Apache License 2.0 (the "License").  You may not use
  * this file except in compliance with the License.  You can obtain a copy
@@ -442,12 +442,12 @@ static EVP_PKEY *new_raw_key_int(OSSL_LIB_CTX *libctx,
 
     pkey = EVP_PKEY_new();
     if (pkey == NULL) {
-        ERR_raise(ERR_LIB_EVP, ERR_R_MALLOC_FAILURE);
+        ERR_raise(ERR_LIB_EVP, ERR_R_EVP_LIB);
         goto err;
     }
 
     if (!pkey_set_type(pkey, e, nidtype, strtype, -1, NULL)) {
-        /* EVPerr already called */
+        /* ERR_raise(ERR_LIB_EVP, ...) already called */
         goto err;
     }
 
@@ -717,13 +717,11 @@ static void detect_foreign_key(EVP_PKEY *pkey)
 {
     switch (pkey->type) {
     case EVP_PKEY_RSA:
-    case EVP_PKEY_RSA_PSS:
         pkey->foreign = pkey->pkey.rsa != NULL
                         && ossl_rsa_is_foreign(pkey->pkey.rsa);
         break;
 #  ifndef OPENSSL_NO_EC
     case EVP_PKEY_SM2:
-        break;
     case EVP_PKEY_EC:
         pkey->foreign = pkey->pkey.ec != NULL
                         && ossl_ec_key_is_foreign(pkey->pkey.ec);
@@ -1076,7 +1074,6 @@ int EVP_PKEY_can_sign(const EVP_PKEY *pkey)
     if (pkey->keymgmt == NULL) {
         switch (EVP_PKEY_get_base_id(pkey)) {
         case EVP_PKEY_RSA:
-        case EVP_PKEY_RSA_PSS:
             return 1;
 # ifndef OPENSSL_NO_DSA
         case EVP_PKEY_DSA:
@@ -1201,7 +1198,7 @@ int EVP_PKEY_print_public(BIO *out, const EVP_PKEY *pkey,
 int EVP_PKEY_print_private(BIO *out, const EVP_PKEY *pkey,
                            int indent, ASN1_PCTX *pctx)
 {
-    return print_pkey(pkey, out, indent, EVP_PKEY_PRIVATE_KEY, NULL,
+    return print_pkey(pkey, out, indent, EVP_PKEY_KEYPAIR, NULL,
                       (pkey->ameth != NULL ? pkey->ameth->priv_print : NULL),
                       pctx);
 }
@@ -1446,10 +1443,8 @@ EVP_PKEY *EVP_PKEY_new(void)
 {
     EVP_PKEY *ret = OPENSSL_zalloc(sizeof(*ret));
 
-    if (ret == NULL) {
-        ERR_raise(ERR_LIB_EVP, ERR_R_MALLOC_FAILURE);
+    if (ret == NULL)
         return NULL;
-    }
 
     ret->type = EVP_PKEY_NONE;
     ret->save_type = EVP_PKEY_NONE;
@@ -1457,14 +1452,14 @@ EVP_PKEY *EVP_PKEY_new(void)
 
     ret->lock = CRYPTO_THREAD_lock_new();
     if (ret->lock == NULL) {
-        EVPerr(ERR_LIB_EVP, ERR_R_MALLOC_FAILURE);
+        ERR_raise(ERR_LIB_EVP, ERR_R_CRYPTO_LIB);
         goto err;
     }
 
 #ifndef FIPS_MODULE
     ret->save_parameters = 1;
     if (!CRYPTO_new_ex_data(CRYPTO_EX_INDEX_EVP_PKEY, ret, &ret->ex_data)) {
-        ERR_raise(ERR_LIB_EVP, ERR_R_MALLOC_FAILURE);
+        ERR_raise(ERR_LIB_EVP, ERR_R_CRYPTO_LIB);
         goto err;
     }
 #endif
@@ -1762,7 +1757,7 @@ void evp_pkey_free_legacy(EVP_PKEY *x)
 static void evp_pkey_free_it(EVP_PKEY *x)
 {
     /* internal function; x is never NULL */
-    evp_keymgmt_util_clear_operation_cache(x, 1);
+    evp_keymgmt_util_clear_operation_cache(x);
 #ifndef FIPS_MODULE
     evp_pkey_free_legacy(x);
 #endif
@@ -1902,15 +1897,7 @@ void *evp_pkey_export_to_provider(EVP_PKEY *pk, OSSL_LIB_CTX *libctx,
              * If |tmp_keymgmt| is present in the operation cache, it means
              * that export doesn't need to be redone.  In that case, we take
              * token copies of the cached pointers, to have token success
-             * values to return. It is possible (e.g. in a no-cached-fetch
-             * build), for op->keymgmt to be a different pointer to tmp_keymgmt
-             * even though the name/provider must be the same. In other words
-             * the keymgmt instance may be different but still equivalent, i.e.
-             * same algorithm/provider instance - but we make the simplifying
-             * assumption that the keydata can be used with either keymgmt
-             * instance. Not doing so introduces significant complexity and
-             * probably requires refactoring - since we would have to ripple
-             * the change in keymgmt instance up the call chain.
+             * values to return.
              */
             if (op != NULL && op->keymgmt != NULL) {
                 keydata = op->keydata;
@@ -1949,7 +1936,7 @@ void *evp_pkey_export_to_provider(EVP_PKEY *pk, OSSL_LIB_CTX *libctx,
         if (!CRYPTO_THREAD_write_lock(pk->lock))
             goto end;
         if (pk->ameth->dirty_cnt(pk) != pk->dirty_cnt_copy
-                && !evp_keymgmt_util_clear_operation_cache(pk, 0)) {
+                && !evp_keymgmt_util_clear_operation_cache(pk)) {
             CRYPTO_THREAD_unlock(pk->lock);
             evp_keymgmt_freedata(tmp_keymgmt, keydata);
             keydata = NULL;
@@ -2043,7 +2030,7 @@ int evp_pkey_copy_downgraded(EVP_PKEY **dest, const EVP_PKEY *src)
         if (*dest == NULL) {
             allocpkey = *dest = EVP_PKEY_new();
             if (*dest == NULL) {
-                ERR_raise(ERR_LIB_EVP, ERR_R_MALLOC_FAILURE);
+                ERR_raise(ERR_LIB_EVP, ERR_R_EVP_LIB);
                 return 0;
             }
         } else {
@@ -2069,7 +2056,7 @@ int evp_pkey_copy_downgraded(EVP_PKEY **dest, const EVP_PKEY *src)
                     EVP_PKEY_CTX_new_from_pkey(libctx, *dest, NULL);
 
                 if (pctx == NULL)
-                    ERR_raise(ERR_LIB_EVP, ERR_R_MALLOC_FAILURE);
+                    ERR_raise(ERR_LIB_EVP, ERR_R_EVP_LIB);
 
                 if (pctx != NULL
                     && evp_keymgmt_export(keymgmt, keydata,

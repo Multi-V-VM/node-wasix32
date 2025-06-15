@@ -1,5 +1,5 @@
 /*
- * Copyright 1995-2023 The OpenSSL Project Authors. All Rights Reserved.
+ * Copyright 1995-2021 The OpenSSL Project Authors. All Rights Reserved.
  *
  * Licensed under the Apache License 2.0 (the "License").  You may not use
  * this file except in compliance with the License.  You can obtain a copy
@@ -75,15 +75,13 @@ static DH *dh_new_intern(ENGINE *engine, OSSL_LIB_CTX *libctx)
 {
     DH *ret = OPENSSL_zalloc(sizeof(*ret));
 
-    if (ret == NULL) {
-        ERR_raise(ERR_LIB_DH, ERR_R_MALLOC_FAILURE);
+    if (ret == NULL)
         return NULL;
-    }
 
     ret->references = 1;
     ret->lock = CRYPTO_THREAD_lock_new();
     if (ret->lock == NULL) {
-        ERR_raise(ERR_LIB_DH, ERR_R_MALLOC_FAILURE);
+        ERR_raise(ERR_LIB_DH, ERR_R_CRYPTO_LIB);
         OPENSSL_free(ret);
         return NULL;
     }
@@ -115,8 +113,6 @@ static DH *dh_new_intern(ENGINE *engine, OSSL_LIB_CTX *libctx)
     if (!CRYPTO_new_ex_data(CRYPTO_EX_INDEX_DH, ret, &ret->ex_data))
         goto err;
 #endif /* FIPS_MODULE */
-
-    ossl_ffc_params_init(&ret->params);
 
     if ((ret->meth->init != NULL) && !ret->meth->init(ret)) {
         ERR_raise(ERR_LIB_DH, ERR_R_INIT_FAIL);

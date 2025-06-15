@@ -1,5 +1,5 @@
 /*
- * Copyright 2011-2024 The OpenSSL Project Authors. All Rights Reserved.
+ * Copyright 2011-2022 The OpenSSL Project Authors. All Rights Reserved.
  *
  * Licensed under the Apache License 2.0 (the "License").  You may not use
  * this file except in compliance with the License.  You can obtain a copy
@@ -538,7 +538,7 @@ static int drbg_ctr_init(PROV_DRBG *drbg)
     if (ctr->ctx_ctr == NULL)
         ctr->ctx_ctr = EVP_CIPHER_CTX_new();
     if (ctr->ctx_ecb == NULL || ctr->ctx_ctr == NULL) {
-        ERR_raise(ERR_LIB_PROV, ERR_R_MALLOC_FAILURE);
+        ERR_raise(ERR_LIB_PROV, ERR_R_EVP_LIB);
         goto err;
     }
 
@@ -565,7 +565,7 @@ static int drbg_ctr_init(PROV_DRBG *drbg)
         if (ctr->ctx_df == NULL)
             ctr->ctx_df = EVP_CIPHER_CTX_new();
         if (ctr->ctx_df == NULL) {
-            ERR_raise(ERR_LIB_PROV, ERR_R_MALLOC_FAILURE);
+            ERR_raise(ERR_LIB_PROV, ERR_R_EVP_LIB);
             goto err;
         }
         /* Set key schedule for df_key */
@@ -581,7 +581,7 @@ err:
     EVP_CIPHER_CTX_free(ctr->ctx_ecb);
     EVP_CIPHER_CTX_free(ctr->ctx_ctr);
     ctr->ctx_ecb = ctr->ctx_ctr = NULL;
-    return 0;
+    return 0;    
 }
 
 static int drbg_ctr_new(PROV_DRBG *drbg)
@@ -589,10 +589,8 @@ static int drbg_ctr_new(PROV_DRBG *drbg)
     PROV_DRBG_CTR *ctr;
 
     ctr = OPENSSL_secure_zalloc(sizeof(*ctr));
-    if (ctr == NULL) {
-        ERR_raise(ERR_LIB_PROV, ERR_R_MALLOC_FAILURE);
+    if (ctr == NULL)
         return 0;
-    }
 
     ctr->use_df = 1;
     drbg->data = ctr;
@@ -602,8 +600,7 @@ static int drbg_ctr_new(PROV_DRBG *drbg)
 static void *drbg_ctr_new_wrapper(void *provctx, void *parent,
                                    const OSSL_DISPATCH *parent_dispatch)
 {
-    return ossl_rand_drbg_new(provctx, parent, parent_dispatch,
-                              &drbg_ctr_new, &drbg_ctr_free,
+    return ossl_rand_drbg_new(provctx, parent, parent_dispatch, &drbg_ctr_new,
                               &drbg_ctr_instantiate, &drbg_ctr_uninstantiate,
                               &drbg_ctr_reseed, &drbg_ctr_generate);
 }
@@ -694,10 +691,8 @@ static int drbg_ctr_set_ctx_params(void *vctx, const OSSL_PARAM params[])
             ERR_raise(ERR_LIB_PROV, PROV_R_REQUIRE_CTR_MODE_CIPHER);
             return 0;
         }
-        if ((ecb = OPENSSL_strndup(base, p->data_size)) == NULL) {
-            ERR_raise(ERR_LIB_PROV, ERR_R_MALLOC_FAILURE);
+        if ((ecb = OPENSSL_strndup(base, p->data_size)) == NULL)
             return 0;
-        }
         strcpy(ecb + p->data_size - ecb_str_len, "ECB");
         EVP_CIPHER_free(ctr->cipher_ecb);
         EVP_CIPHER_free(ctr->cipher_ctr);
@@ -752,5 +747,5 @@ const OSSL_DISPATCH ossl_drbg_ctr_functions[] = {
       (void(*)(void))drbg_ctr_verify_zeroization },
     { OSSL_FUNC_RAND_GET_SEED, (void(*)(void))ossl_drbg_get_seed },
     { OSSL_FUNC_RAND_CLEAR_SEED, (void(*)(void))ossl_drbg_clear_seed },
-    { 0, NULL }
+    OSSL_DISPATCH_END
 };

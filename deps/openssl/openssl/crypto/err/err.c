@@ -23,7 +23,7 @@
 #include "internal/thread_once.h"
 #include "crypto/ctype.h"
 #include "internal/constant_time.h"
-#include "e_os.h"
+#include "internal/e_os.h"
 #include "err_local.h"
 
 /* Forward declaration in case it's not published because of configuration */
@@ -199,16 +199,16 @@ static ERR_STRING_DATA *int_err_get_item(const ERR_STRING_DATA *d)
 }
 #endif
 
-static void ERR_STATE_free(ERR_STATE *s)
+static void ERR_STATE_free(ERR_STATE *state)
 {
     int i;
 
-    if (s == NULL)
+    if (state == NULL)
         return;
     for (i = 0; i < ERR_NUM_ERRORS; i++) {
-        err_clear(s, i, 1);
+        err_clear(state, i, 1);
     }
-    OPENSSL_free(s);
+    CRYPTO_free(state, OPENSSL_FILE, OPENSSL_LINE);
 }
 
 DEFINE_RUN_ONCE_STATIC(do_err_strings_init)
@@ -552,7 +552,8 @@ void ossl_err_string_int(unsigned long e, const char *func,
     }
 #endif
     if (rs == NULL) {
-        BIO_snprintf(rsbuf, sizeof(rsbuf), "reason(%lu)", r);
+        BIO_snprintf(rsbuf, sizeof(rsbuf), "reason(%lu)",
+                     r & ~(ERR_RFLAGS_MASK << ERR_RFLAGS_OFFSET));
         rs = rsbuf;
     }
 
@@ -688,7 +689,9 @@ ERR_STATE *ossl_err_get_state_int(void)
         if (!CRYPTO_THREAD_set_local(&err_thread_local, (ERR_STATE*)-1))
             return NULL;
 
-        if ((state = OPENSSL_zalloc(sizeof(*state))) == NULL) {
+        /* calling CRYPTO_zalloc(.., NULL, 0) prevents mem alloc error loop */
+        state = CRYPTO_zalloc(sizeof(*state), NULL, 0);
+        if (state == NULL) {
             CRYPTO_THREAD_set_local(&err_thread_local, NULL);
             return NULL;
         }
@@ -873,61 +876,6 @@ void ERR_add_error_vdata(int num, va_list args)
     }
     if (!err_set_error_data_int(str, size, flags, 0))
         OPENSSL_free(str);
-}
-
-int ERR_set_mark(void)
-{
-    ERR_STATE *es;
-
-    es = ossl_err_get_state_int();
-    if (es == NULL)
-        return 0;
-
-    if (es->bottom == es->top)
-        return 0;
-    es->err_marks[es->top]++;
-    return 1;
-}
-
-int ERR_pop_to_mark(void)
-{
-    ERR_STATE *es;
-
-    es = ossl_err_get_state_int();
-    if (es == NULL)
-        return 0;
-
-    while (es->bottom != es->top
-           && es->err_marks[es->top] == 0) {
-        err_clear(es, es->top, 0);
-        es->top = es->top > 0 ? es->top - 1 : ERR_NUM_ERRORS - 1;
-    }
-
-    if (es->bottom == es->top)
-        return 0;
-    es->err_marks[es->top]--;
-    return 1;
-}
-
-int ERR_clear_last_mark(void)
-{
-    ERR_STATE *es;
-    int top;
-
-    es = ossl_err_get_state_int();
-    if (es == NULL)
-        return 0;
-
-    top = es->top;
-    while (es->bottom != top
-           && es->err_marks[top] == 0) {
-        top = top > 0 ? top - 1 : ERR_NUM_ERRORS - 1;
-    }
-
-    if (es->bottom == top)
-        return 0;
-    es->err_marks[top]--;
-    return 1;
 }
 
 void err_clear_last_constant_time(int clear)

@@ -128,8 +128,10 @@ struct evp_keymgmt_st {
     /* Import and export routines */
     OSSL_FUNC_keymgmt_import_fn *import;
     OSSL_FUNC_keymgmt_import_types_fn *import_types;
+    OSSL_FUNC_keymgmt_import_types_ex_fn *import_types_ex;
     OSSL_FUNC_keymgmt_export_fn *export;
     OSSL_FUNC_keymgmt_export_types_fn *export_types;
+    OSSL_FUNC_keymgmt_export_types_ex_fn *export_types_ex;
     OSSL_FUNC_keymgmt_dup_fn *dup;
 } /* EVP_KEYMGMT */ ;
 
@@ -228,6 +230,8 @@ struct evp_kem_st {
     OSSL_FUNC_kem_gettable_ctx_params_fn *gettable_ctx_params;
     OSSL_FUNC_kem_set_ctx_params_fn *set_ctx_params;
     OSSL_FUNC_kem_settable_ctx_params_fn *settable_ctx_params;
+    OSSL_FUNC_kem_auth_encapsulate_init_fn *auth_encapsulate_init;
+    OSSL_FUNC_kem_auth_decapsulate_init_fn *auth_decapsulate_init;
 } /* EVP_KEM */;
 
 int PKCS5_v2_PBKDF2_keyivgen(EVP_CIPHER_CTX *ctx, const char *pass,
@@ -270,13 +274,6 @@ void *evp_generic_fetch(OSSL_LIB_CTX *ctx, int operation_id,
                                             OSSL_PROVIDER *prov),
                         int (*up_ref_method)(void *),
                         void (*free_method)(void *));
-void *evp_generic_fetch_by_number(OSSL_LIB_CTX *ctx, int operation_id,
-                                  int name_id, const char *properties,
-                                  void *(*new_method)(int name_id,
-                                                      const OSSL_ALGORITHM *algodef,
-                                                      OSSL_PROVIDER *prov),
-                                  int (*up_ref_method)(void *),
-                                  void (*free_method)(void *));
 void *evp_generic_fetch_from_prov(OSSL_PROVIDER *prov, int operation_id,
                                   const char *name, const char *properties,
                                   void *(*new_method)(int name_id,

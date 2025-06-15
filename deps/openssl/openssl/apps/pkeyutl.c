@@ -1,5 +1,5 @@
 /*
- * Copyright 2006-2023 The OpenSSL Project Authors. All Rights Reserved.
+ * Copyright 2006-2022 The OpenSSL Project Authors. All Rights Reserved.
  *
  * Licensed under the Apache License 2.0 (the "License").  You may not use
  * this file except in compliance with the License.  You can obtain a copy
@@ -69,8 +69,8 @@ const OPTIONS pkeyutl_options[] = {
     OPT_SECTION("Input"),
     {"in", OPT_IN, '<', "Input file - default stdin"},
     {"rawin", OPT_RAWIN, '-', "Indicate the input data is in raw form"},
-    {"pubin", OPT_PUBIN, '-', "Input is a public key"},
-    {"inkey", OPT_INKEY, 's', "Input private key file"},
+    {"inkey", OPT_INKEY, 's', "Input key, by default private key"},
+    {"pubin", OPT_PUBIN, '-', "Input key is a public key"},
     {"passin", OPT_PASSIN, 's', "Input file pass phrase source"},
     {"peerkey", OPT_PEERKEY, 's', "Peer key file used in key derivation"},
     {"peerform", OPT_PEERFORM, 'E', "Peer key format (DER/PEM/P12/ENGINE)"},
@@ -81,11 +81,10 @@ const OPTIONS pkeyutl_options[] = {
 
     OPT_SECTION("Output"),
     {"out", OPT_OUT, '>', "Output file - default stdout"},
-    {"asn1parse", OPT_ASN1PARSE, '-',
-     "parse the output as ASN.1 data to check its DER encoding and print errors"},
+    {"asn1parse", OPT_ASN1PARSE, '-', "asn1parse the output data"},
     {"hexdump", OPT_HEXDUMP, '-', "Hex dump output"},
     {"verifyrecover", OPT_VERIFYRECOVER, '-',
-     "Verify RSA signature, recovering original signature input data"},
+     "Verify with public key, recover original data"},
 
     OPT_SECTION("Signing/Derivation"),
     {"digest", OPT_DIGEST, 's',
@@ -254,8 +253,7 @@ int pkeyutl_main(int argc, char **argv)
     }
 
     /* No extra arguments. */
-    argc = opt_num_rest();
-    if (argc != 0)
+    if (!opt_check_rest_arg(NULL))
         goto opthelp;
 
     if (!app_RAND_load())
@@ -422,7 +420,7 @@ int pkeyutl_main(int argc, char **argv)
     /* Raw input data is handled elsewhere */
     if (in != NULL && !rawin) {
         /* Read the input data */
-        buf_inlen = bio_to_mem(&buf_in, -1, in);
+        buf_inlen = bio_to_mem(&buf_in, keysize * 10, in);
         if (buf_inlen < 0) {
             BIO_printf(bio_err, "Error reading input Data\n");
             goto end;
@@ -730,7 +728,7 @@ static int do_raw_keyop(int pkey_op, EVP_MD_CTX *mctx,
             goto end;
         }
         mbuf = app_malloc(filesize, "oneshot sign/verify buffer");
-        switch(pkey_op) {
+        switch (pkey_op) {
         case EVP_PKEY_OP_VERIFY:
             buf_len = BIO_read(in, mbuf, filesize);
             if (buf_len != filesize) {
@@ -755,7 +753,7 @@ static int do_raw_keyop(int pkey_op, EVP_MD_CTX *mctx,
         goto end;
     }
 
-    switch(pkey_op) {
+    switch (pkey_op) {
     case EVP_PKEY_OP_VERIFY:
         for (;;) {
             buf_len = BIO_read(in, tbuf, TBUF_MAXSIZE);

@@ -1,5 +1,5 @@
 /*
- * Copyright 2019-2021 The OpenSSL Project Authors. All Rights Reserved.
+ * Copyright 2019-2022 The OpenSSL Project Authors. All Rights Reserved.
  *
  * Licensed under the Apache License 2.0 (the "License").  You may not use
  * this file except in compliance with the License.  You can obtain a copy
@@ -511,7 +511,7 @@ OSSL_CORE_MAKE_FUNC(void,rand_clear_seed,
  * and key material, etc, essentially everything that manipulates the keys
  * themselves and their parameters.
  *
- * The key objects are commonly refered to as |keydata|, and it MUST be able
+ * The key objects are commonly referred to as |keydata|, and it MUST be able
  * to contain parameters if the key has any, the public key and the private
  * key.  All parts are optional, but their presence determines what can be
  * done with the key object in terms of encryption, signature, and so on.
@@ -643,6 +643,14 @@ OSSL_CORE_MAKE_FUNC(const OSSL_PARAM *, keymgmt_export_types,
 # define OSSL_FUNC_KEYMGMT_DUP                        44
 OSSL_CORE_MAKE_FUNC(void *, keymgmt_dup,
                     (const void *keydata_from, int selection))
+
+/* Extended import and export functions */
+# define OSSL_FUNC_KEYMGMT_IMPORT_TYPES_EX            45
+# define OSSL_FUNC_KEYMGMT_EXPORT_TYPES_EX            46
+OSSL_CORE_MAKE_FUNC(const OSSL_PARAM *, keymgmt_import_types_ex,
+                    (void *provctx, int selection))
+OSSL_CORE_MAKE_FUNC(const OSSL_PARAM *, keymgmt_export_types_ex,
+                    (void *provctx, int selection))
 
 /* Key Exchange */
 
@@ -815,16 +823,24 @@ OSSL_CORE_MAKE_FUNC(const OSSL_PARAM *, asym_cipher_settable_ctx_params,
 # define OSSL_FUNC_KEM_GETTABLE_CTX_PARAMS     9
 # define OSSL_FUNC_KEM_SET_CTX_PARAMS         10
 # define OSSL_FUNC_KEM_SETTABLE_CTX_PARAMS    11
+# define OSSL_FUNC_KEM_AUTH_ENCAPSULATE_INIT  12
+# define OSSL_FUNC_KEM_AUTH_DECAPSULATE_INIT  13
 
 OSSL_CORE_MAKE_FUNC(void *, kem_newctx, (void *provctx))
 OSSL_CORE_MAKE_FUNC(int, kem_encapsulate_init, (void *ctx, void *provkey,
                                                 const OSSL_PARAM params[]))
+OSSL_CORE_MAKE_FUNC(int, kem_auth_encapsulate_init, (void *ctx, void *provkey,
+                                                     void *authprivkey,
+                                                     const OSSL_PARAM params[]))
 OSSL_CORE_MAKE_FUNC(int, kem_encapsulate, (void *ctx,
                                            unsigned char *out, size_t *outlen,
                                            unsigned char *secret,
                                            size_t *secretlen))
 OSSL_CORE_MAKE_FUNC(int, kem_decapsulate_init, (void *ctx, void *provkey,
                                                 const OSSL_PARAM params[]))
+OSSL_CORE_MAKE_FUNC(int, kem_auth_decapsulate_init, (void *ctx, void *provkey,
+                                                     void *authpubkey,
+                                                     const OSSL_PARAM params[]))
 OSSL_CORE_MAKE_FUNC(int, kem_decapsulate, (void *ctx,
                                            unsigned char *out, size_t *outlen,
                                            const unsigned char *in, size_t inlen))

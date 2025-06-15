@@ -1,5 +1,5 @@
 /*
- * Copyright 2019-2021 The OpenSSL Project Authors. All Rights Reserved.
+ * Copyright 2019-2022 The OpenSSL Project Authors. All Rights Reserved.
  *
  * Licensed under the Apache License 2.0 (the "License").  You may not use
  * this file except in compliance with the License.  You can obtain a copy
@@ -177,16 +177,62 @@ static int s390x_shake_final(unsigned char *md, void *vctx)
     return 1;
 }
 
+static int s390x_keccakc_final(unsigned char *md, void *vctx, int padding)
+{
+    KECCAK1600_CTX *ctx = vctx;
+    size_t bsz = ctx->block_size;
+    size_t num = ctx->bufsz;
+    size_t needed = ctx->md_size;
+
+    if (!ossl_prov_is_running())
+        return 0;
+    if (ctx->md_size == 0)
+        return 1;
+    memset(ctx->buf + num, 0, bsz - num);
+    ctx->buf[num] = padding;
+    ctx->buf[bsz - 1] |= 0x80;
+    s390x_kimd(ctx->buf, bsz, ctx->pad, ctx->A);
+    num = needed > bsz ? bsz : needed;
+    memcpy(md, ctx->A, num);
+    needed -= num;
+    if (needed > 0)
+        s390x_klmd(NULL, 0, md + bsz, needed, ctx->pad | S390X_KLMD_PS, ctx->A);
+
+    return 1;
+}
+
+static int s390x_keccak_final(unsigned char *md, void *vctx)
+{
+    return s390x_keccakc_final(md, vctx, 0x01);
+}
+
+static int s390x_kmac_final(unsigned char *md, void *vctx)
+{
+    return s390x_keccakc_final(md, vctx, 0x04);
+}
+
 static PROV_SHA3_METHOD sha3_s390x_md =
 {
     s390x_sha3_absorb,
     s390x_sha3_final
 };
 
+static PROV_SHA3_METHOD keccak_s390x_md =
+{
+    s390x_sha3_absorb,
+    s390x_keccak_final
+};
+
 static PROV_SHA3_METHOD shake_s390x_md =
 {
     s390x_sha3_absorb,
     s390x_shake_final
+};
+
+static PROV_SHA3_METHOD kmac_s390x_md =
+{
+    s390x_sha3_absorb,
+    s390x_kmac_final
 };
 
 # define SHA3_SET_MD(uname, typ)                                               \
@@ -196,8 +242,16 @@ static PROV_SHA3_METHOD shake_s390x_md =
     } else {                                                                   \
         ctx->meth = sha3_generic_md;                                           \
     }
+# define KMAC_SET_MD(bitlen)                                                   \
+    if (S390_SHA3_CAPABLE(SHAKE_##bitlen)) {                                   \
+        ctx->pad = S390X_SHAKE_##bitlen;                                       \
+        ctx->meth = kmac_s390x_md;                                             \
+    } else {                                                                   \
+        ctx->meth = sha3_generic_md;                                           \
+    }
 #else
 # define SHA3_SET_MD(uname, typ) ctx->meth = sha3_generic_md;
+# define KMAC_SET_MD(bitlen) ctx->meth = sha3_generic_md;
 #endif /* S390_SHA3 */
 
 #define SHA3_newctx(typ, uname, name, bitlen, pad)                             \
@@ -224,7 +278,7 @@ static void *uname##_newctx(void *provctx)                                     \
     if (ctx == NULL)                                                           \
         return NULL;                                                           \
     ossl_keccak_kmac_init(ctx, pad, bitlen);                                   \
-    ctx->meth = sha3_generic_md;                                               \
+    KMAC_SET_MD(bitlen)                                                        \
     return ctx;                                                                \
 }
 
@@ -262,7 +316,7 @@ static void *keccak_dupctx(void *ctx)
 {
     KECCAK1600_CTX *in = (KECCAK1600_CTX *)ctx;
     KECCAK1600_CTX *ret = ossl_prov_is_running() ? OPENSSL_malloc(sizeof(*ret))
-                                                : NULL;
+                                                 : NULL;
 
     if (ret != NULL)
         *ret = *in;
@@ -303,6 +357,12 @@ static int shake_set_ctx_params(void *vctx, const OSSL_PARAM params[])
                           SHA3_BLOCKSIZE(bitlen), SHA3_MDSIZE(bitlen),         \
                           SHA3_FLAGS)
 
+#define IMPLEMENT_KECCAK_functions(bitlen)                                     \
+    SHA3_newctx(keccak, KECCAK_##bitlen, keccak_##bitlen, bitlen, '\x01')      \
+    PROV_FUNC_SHA3_DIGEST(keccak_##bitlen, bitlen,                             \
+                          SHA3_BLOCKSIZE(bitlen), SHA3_MDSIZE(bitlen),         \
+                          SHA3_FLAGS)
+
 #define IMPLEMENT_SHAKE_functions(bitlen)                                      \
     SHA3_newctx(shake, SHAKE_##bitlen, shake_##bitlen, bitlen, '\x1f')         \
     PROV_FUNC_SHAKE_DIGEST(shake_##bitlen, bitlen,                             \
@@ -322,6 +382,14 @@ IMPLEMENT_SHA3_functions(256)
 IMPLEMENT_SHA3_functions(384)
 /* ossl_sha3_512_functions */
 IMPLEMENT_SHA3_functions(512)
+/* ossl_keccak_224_functions */
+IMPLEMENT_KECCAK_functions(224)
+/* ossl_keccak_256_functions */
+IMPLEMENT_KECCAK_functions(256)
+/* ossl_keccak_384_functions */
+IMPLEMENT_KECCAK_functions(384)
+/* ossl_keccak_512_functions */
+IMPLEMENT_KECCAK_functions(512)
 /* ossl_shake_128_functions */
 IMPLEMENT_SHAKE_functions(128)
 /* ossl_shake_256_functions */

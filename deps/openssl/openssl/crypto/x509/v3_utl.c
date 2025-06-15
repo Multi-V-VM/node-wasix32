@@ -1,5 +1,5 @@
 /*
- * Copyright 1999-2024 The OpenSSL Project Authors. All Rights Reserved.
+ * Copyright 1999-2022 The OpenSSL Project Authors. All Rights Reserved.
  *
  * Licensed under the Apache License 2.0 (the "License").  You may not use
  * this file except in compliance with the License.  You can obtain a copy
@@ -9,7 +9,7 @@
 
 /* X509 v3 extension utilities */
 
-#include "e_os.h"
+#include "internal/e_os.h"
 #include "internal/cryptlib.h"
 #include <stdio.h>
 #include <string.h>
@@ -47,7 +47,7 @@ static int x509v3_add_len_value(const char *name, const char *value,
     if (name != NULL && (tname = OPENSSL_strdup(name)) == NULL)
         goto err;
     if (value != NULL) {
-        /* We don't allow embeded NUL characters */
+        /* We don't allow embedded NUL characters */
         if (memchr(value, 0, vallen) != NULL)
             goto err;
         tvalue = OPENSSL_strndup(value, vallen);
@@ -56,8 +56,10 @@ static int x509v3_add_len_value(const char *name, const char *value,
     }
     if ((vtmp = OPENSSL_malloc(sizeof(*vtmp))) == NULL)
         goto err;
-    if (sk_allocated && (*extlist = sk_CONF_VALUE_new_null()) == NULL)
+    if (sk_allocated && (*extlist = sk_CONF_VALUE_new_null()) == NULL) {
+        ERR_raise(ERR_LIB_X509V3, ERR_R_CRYPTO_LIB);
         goto err;
+    }
     vtmp->section = NULL;
     vtmp->name = tname;
     vtmp->value = tvalue;
@@ -65,7 +67,6 @@ static int x509v3_add_len_value(const char *name, const char *value,
         goto err;
     return 1;
  err:
-    ERR_raise(ERR_LIB_X509V3, ERR_R_MALLOC_FAILURE);
     if (sk_allocated) {
         sk_CONF_VALUE_free(*extlist);
         *extlist = NULL;
@@ -146,7 +147,6 @@ static char *bignum_to_string(const BIGNUM *bn)
     len = strlen(tmp) + 3;
     ret = OPENSSL_malloc(len);
     if (ret == NULL) {
-        ERR_raise(ERR_LIB_X509V3, ERR_R_MALLOC_FAILURE);
         OPENSSL_free(tmp);
         return NULL;
     }
@@ -170,9 +170,10 @@ char *i2s_ASN1_ENUMERATED(X509V3_EXT_METHOD *method, const ASN1_ENUMERATED *a)
 
     if (!a)
         return NULL;
-    if ((bntmp = ASN1_ENUMERATED_to_BN(a, NULL)) == NULL
-        || (strtmp = bignum_to_string(bntmp)) == NULL)
-        ERR_raise(ERR_LIB_X509V3, ERR_R_MALLOC_FAILURE);
+    if ((bntmp = ASN1_ENUMERATED_to_BN(a, NULL)) == NULL)
+        ERR_raise(ERR_LIB_X509V3, ERR_R_ASN1_LIB);
+    else if ((strtmp = bignum_to_string(bntmp)) == NULL)
+        ERR_raise(ERR_LIB_X509V3, ERR_R_X509V3_LIB);
     BN_free(bntmp);
     return strtmp;
 }
@@ -184,9 +185,10 @@ char *i2s_ASN1_INTEGER(X509V3_EXT_METHOD *method, const ASN1_INTEGER *a)
 
     if (!a)
         return NULL;
-    if ((bntmp = ASN1_INTEGER_to_BN(a, NULL)) == NULL
-        || (strtmp = bignum_to_string(bntmp)) == NULL)
-        ERR_raise(ERR_LIB_X509V3, ERR_R_MALLOC_FAILURE);
+    if ((bntmp = ASN1_INTEGER_to_BN(a, NULL)) == NULL)
+        ERR_raise(ERR_LIB_X509V3, ERR_R_ASN1_LIB);
+    else if ((strtmp = bignum_to_string(bntmp)) == NULL)
+        ERR_raise(ERR_LIB_X509V3, ERR_R_X509V3_LIB);
     BN_free(bntmp);
     return strtmp;
 }
@@ -204,7 +206,7 @@ ASN1_INTEGER *s2i_ASN1_INTEGER(X509V3_EXT_METHOD *method, const char *value)
     }
     bn = BN_new();
     if (bn == NULL) {
-        ERR_raise(ERR_LIB_X509V3, ERR_R_MALLOC_FAILURE);
+        ERR_raise(ERR_LIB_X509V3, ERR_R_BN_LIB);
         return NULL;
     }
     if (value[0] == '-') {
@@ -320,10 +322,8 @@ STACK_OF(CONF_VALUE) *X509V3_parse_list(const char *line)
 
     /* We are going to modify the line so copy it first */
     linebuf = OPENSSL_strdup(line);
-    if (linebuf == NULL) {
-        ERR_raise(ERR_LIB_X509V3, ERR_R_MALLOC_FAILURE);
+    if (linebuf == NULL)
         goto err;
-    }
     state = HDR_NAME;
     ntmp = NULL;
     /* Go through all characters */
@@ -715,7 +715,7 @@ static int wildcard_match(const unsigned char *prefix, size_t prefix_len,
     }
     /* IDNA labels cannot match partial wildcards */
     if (!allow_idna &&
-        subject_len >= 4 && OPENSSL_strncasecmp((char *)subject, "xn--", 4) == 0)
+        subject_len >= 4 && HAS_CASE_PREFIX((const char *)subject, "xn--"))
         return 0;
     /* The wildcard may match a literal '*' */
     if (wildcard_end == wildcard_start + 1 && *wildcard_start == '*')
@@ -775,7 +775,7 @@ static const unsigned char *valid_star(const unsigned char *p, size_t len,
                    || ('A' <= p[i] && p[i] <= 'Z')
                    || ('0' <= p[i] && p[i] <= '9')) {
             if ((state & LABEL_START) != 0
-                && len - i >= 4 && OPENSSL_strncasecmp((char *)&p[i], "xn--", 4) == 0)
+                && len - i >= 4 && HAS_CASE_PREFIX((const char *)&p[i], "xn--"))
                 state |= LABEL_IDNA;
             state &= ~(LABEL_HYPHEN | LABEL_START);
         } else if (p[i] == '.') {
@@ -916,64 +916,36 @@ static int do_x509_check(X509 *x, const char *chk, size_t chklen,
             ASN1_STRING *cstr;
 
             gen = sk_GENERAL_NAME_value(gens, i);
-            switch (gen->type) {
-            default:
-                continue;
-            case GEN_OTHERNAME:
-		switch (OBJ_obj2nid(gen->d.otherName->type_id)) {
-                default:
-                    continue;
-                case NID_id_on_SmtpUTF8Mailbox:
-                    /*-
-                     * https://datatracker.ietf.org/doc/html/rfc8398#section-3
-                     *
-                     *   Due to name constraint compatibility reasons described
-                     *   in Section 6, SmtpUTF8Mailbox subjectAltName MUST NOT
-                     *   be used unless the local-part of the email address
-                     *   contains non-ASCII characters. When the local-part is
-                     *   ASCII, rfc822Name subjectAltName MUST be used instead
-                     *   of SmtpUTF8Mailbox. This is compatible with legacy
-                     *   software that supports only rfc822Name (and not
-                     *   SmtpUTF8Mailbox). [...]
-                     *
-                     *   SmtpUTF8Mailbox is encoded as UTF8String.
-                     *
-                     * If it is not a UTF8String then that is unexpected, and
-                     * we ignore the invalid SAN (neither set san_present nor
-                     * consider it a candidate for equality).  This does mean
-                     * that the subject CN may be considered, as would be the
-                     * case when the malformed SmtpUtf8Mailbox SAN is instead
-                     * simply absent.
-                     *
-                     * When CN-ID matching is not desirable, applications can
-                     * choose to turn it off, doing so is at this time a best
-                     * practice.
+            if ((gen->type == GEN_OTHERNAME) && (check_type == GEN_EMAIL)) {
+                if (OBJ_obj2nid(gen->d.otherName->type_id) ==
+                    NID_id_on_SmtpUTF8Mailbox) {
+                    san_present = 1;
+
+                    /*
+                     * If it is not a UTF8String then that is unexpected and we
+                     * treat it as no match
                      */
-                    if (check_type != GEN_EMAIL
-                        || gen->d.otherName->value->type != V_ASN1_UTF8STRING)
-                        continue;
-                    alt_type = 0;
-                    cstr = gen->d.otherName->value->value.utf8string;
-                    break;
-                }
-                break;
-            case GEN_EMAIL:
-                if (check_type != GEN_EMAIL)
+                    if (gen->d.otherName->value->type == V_ASN1_UTF8STRING) {
+                        cstr = gen->d.otherName->value->value.utf8string;
+
+                        /* Positive on success, negative on error! */
+                        if ((rv = do_check_string(cstr, 0, equal, flags,
+                                                chk, chklen, peername)) != 0)
+                            break;
+                    }
+                } else
                     continue;
-                cstr = gen->d.rfc822Name;
-                break;
-            case GEN_DNS:
-                if (check_type != GEN_DNS)
+            } else {
+                if ((gen->type != check_type) && (gen->type != GEN_OTHERNAME))
                     continue;
-                cstr = gen->d.dNSName;
-                break;
-            case GEN_IPADD:
-                if (check_type != GEN_IPADD)
-                    continue;
-                cstr = gen->d.iPAddress;
-                break;
             }
             san_present = 1;
+            if (check_type == GEN_EMAIL)
+                cstr = gen->d.rfc822Name;
+            else if (check_type == GEN_DNS)
+                cstr = gen->d.dNSName;
+            else
+                cstr = gen->d.iPAddress;
             /* Positive on success, negative on error! */
             if ((rv = do_check_string(cstr, alt_type, equal, flags,
                                       chk, chklen, peername)) != 0)

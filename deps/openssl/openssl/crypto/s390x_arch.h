@@ -12,6 +12,8 @@
 
 # ifndef __ASSEMBLER__
 
+#include "crypto/bn.h"
+
 void s390x_kimd(const unsigned char *in, size_t len, unsigned int fc,
                 void *param);
 void s390x_klmd(const unsigned char *in, size_t inlen, unsigned char *out,
@@ -77,6 +79,13 @@ __attribute__ ((visibility("hidden")))
 #endif
 extern struct OPENSSL_s390xcap_st OPENSSL_s390xcap_P;
 
+#ifdef S390X_MOD_EXP
+# if defined(__GNUC__) && defined(__linux)
+__attribute__ ((visibility("hidden")))
+# endif
+extern int OPENSSL_s390xcex;
+#endif
+
 /* Max number of 64-bit words currently returned by STFLE */
 #  define S390X_STFLE_MAX       3
 
@@ -125,6 +134,10 @@ extern struct OPENSSL_s390xcap_st OPENSSL_s390xcap_P;
 # define S390X_SHA3_256         33
 # define S390X_SHA3_384         34
 # define S390X_SHA3_512         35
+# define S390X_KECCAK_224       32
+# define S390X_KECCAK_256       33
+# define S390X_KECCAK_384       34
+# define S390X_KECCAK_512       35
 # define S390X_SHAKE_128        36
 # define S390X_SHAKE_256        37
 # define S390X_GHASH            65
@@ -169,5 +182,6 @@ extern struct OPENSSL_s390xcap_st OPENSSL_s390xcap_P;
 # define S390X_KMA_LAAD         0x200
 # define S390X_KMA_HS           0x400
 # define S390X_KDSA_D           0x80
+# define S390X_KLMD_PS          0x100
 
 #endif

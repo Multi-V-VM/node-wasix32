@@ -19,7 +19,6 @@
 #include "prov/providercommon.h"
 #include "prov/implementations.h"
 #include "prov/provider_util.h"
-#include "internal/nelem.h"
 
 /*
  * Forward declarations to ensure that interface functions are correctly
@@ -119,7 +118,7 @@ static const OSSL_DISPATCH base_dispatch_table[] = {
       (void (*)(void))base_gettable_params },
     { OSSL_FUNC_PROVIDER_GET_PARAMS, (void (*)(void))base_get_params },
     { OSSL_FUNC_PROVIDER_QUERY_OPERATION, (void (*)(void))base_query },
-    { 0, NULL }
+    OSSL_DISPATCH_END
 };
 
 OSSL_provider_init_fn ossl_base_provider_init;

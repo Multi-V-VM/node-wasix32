@@ -1,5 +1,5 @@
 /*
- * Copyright 2020-2025 The OpenSSL Project Authors. All Rights Reserved.
+ * Copyright 2020-2022 The OpenSSL Project Authors. All Rights Reserved.
  *
  * Licensed under the Apache License 2.0 (the "License").  You may not use
  * this file except in compliance with the License.  You can obtain a copy
@@ -108,7 +108,7 @@ int ossl_mac_key_up_ref(MAC_KEY *mackey)
 
     /* This is effectively doing a new operation on the MAC_KEY and should be
      * adequately guarded again modules' error states.  However, both current
-     * calls here are guarded propery in signature/mac_legacy.c.  Thus, it
+     * calls here are guarded properly in signature/mac_legacy.c.  Thus, it
      * could be removed here.  The concern is that something in the future
      * might call this function without adequate guards.  It's a cheap call,
      * it seems best to leave it even though it is currently redundant.
@@ -194,10 +194,8 @@ static int mac_key_fromdata(MAC_KEY *key, const OSSL_PARAM params[])
         OPENSSL_secure_clear_free(key->priv_key, key->priv_key_len);
         /* allocate at least one byte to distinguish empty key from no key set */
         key->priv_key = OPENSSL_secure_malloc(p->data_size > 0 ? p->data_size : 1);
-        if (key->priv_key == NULL) {
-            ERR_raise(ERR_LIB_PROV, ERR_R_MALLOC_FAILURE);
+        if (key->priv_key == NULL)
             return 0;
-        }
         memcpy(key->priv_key, p->data, p->data_size);
         key->priv_key_len = p->data_size;
     }
@@ -210,10 +208,8 @@ static int mac_key_fromdata(MAC_KEY *key, const OSSL_PARAM params[])
         }
         OPENSSL_free(key->properties);
         key->properties = OPENSSL_strdup(p->data);
-        if (key->properties == NULL) {
-            ERR_raise(ERR_LIB_PROV, ERR_R_MALLOC_FAILURE);
+        if (key->properties == NULL)
             return 0;
-        }
     }
 
     if (key->cmac && !ossl_prov_cipher_load_from_params(&key->cipher, params,
@@ -279,9 +275,6 @@ static int mac_export(void *keydata, int selection, OSSL_CALLBACK *param_cb,
     int ret = 0;
 
     if (!ossl_prov_is_running() || key == NULL)
-        return 0;
-
-    if ((selection & OSSL_KEYMGMT_SELECT_PRIVATE_KEY) == 0)
         return 0;
 
     tmpl = OSSL_PARAM_BLD_new();
@@ -399,7 +392,7 @@ static void *mac_gen_init(void *provctx, int selection,
     struct mac_gen_ctx *gctx = mac_gen_init_common(provctx, selection);
 
     if (gctx != NULL && !mac_gen_set_params(gctx, params)) {
-        mac_gen_cleanup(gctx);
+        OPENSSL_free(gctx);
         gctx = NULL;
     }
     return gctx;
@@ -411,7 +404,7 @@ static void *cmac_gen_init(void *provctx, int selection,
     struct mac_gen_ctx *gctx = mac_gen_init_common(provctx, selection);
 
     if (gctx != NULL && !cmac_gen_set_params(gctx, params)) {
-        mac_gen_cleanup(gctx);
+        OPENSSL_free(gctx);
         gctx = NULL;
     }
     return gctx;
@@ -432,10 +425,8 @@ static int mac_gen_set_params(void *genctx, const OSSL_PARAM params[])
             return 0;
         }
         gctx->priv_key = OPENSSL_secure_malloc(p->data_size);
-        if (gctx->priv_key == NULL) {
-            ERR_raise(ERR_LIB_PROV, ERR_R_MALLOC_FAILURE);
+        if (gctx->priv_key == NULL)
             return 0;
-        }
         memcpy(gctx->priv_key, p->data, p->data_size);
         gctx->priv_key_len = p->data_size;
     }
@@ -489,7 +480,7 @@ static void *mac_gen(void *genctx, OSSL_CALLBACK *cb, void *cbarg)
         return NULL;
 
     if ((key = ossl_mac_key_new(gctx->libctx, 0)) == NULL) {
-        ERR_raise(ERR_LIB_PROV, ERR_R_MALLOC_FAILURE);
+        ERR_raise(ERR_LIB_PROV, ERR_R_PROV_LIB);
         return NULL;
     }
 
@@ -551,7 +542,7 @@ const OSSL_DISPATCH ossl_mac_legacy_keymgmt_functions[] = {
         (void (*)(void))mac_gen_settable_params },
     { OSSL_FUNC_KEYMGMT_GEN, (void (*)(void))mac_gen },
     { OSSL_FUNC_KEYMGMT_GEN_CLEANUP, (void (*)(void))mac_gen_cleanup },
-    { 0, NULL }
+    OSSL_DISPATCH_END
 };
 
 const OSSL_DISPATCH ossl_cmac_legacy_keymgmt_functions[] = {
@@ -573,6 +564,6 @@ const OSSL_DISPATCH ossl_cmac_legacy_keymgmt_functions[] = {
         (void (*)(void))cmac_gen_settable_params },
     { OSSL_FUNC_KEYMGMT_GEN, (void (*)(void))mac_gen },
     { OSSL_FUNC_KEYMGMT_GEN_CLEANUP, (void (*)(void))mac_gen_cleanup },
-    { 0, NULL }
+    OSSL_DISPATCH_END
 };
 

@@ -1,5 +1,5 @@
 /*
- * Copyright 2016-2022 The OpenSSL Project Authors. All Rights Reserved.
+ * Copyright 2016-2021 The OpenSSL Project Authors. All Rights Reserved.
  *
  * Licensed under the Apache License 2.0 (the "License").  You may not use
  * this file except in compliance with the License.  You can obtain a copy
@@ -125,5 +125,4 @@ void ossl_rand_cleanup_nonce(ossl_unused const OSSL_CORE_HANDLE *handle,
 size_t ossl_pool_acquire_entropy(RAND_POOL *pool);
 int ossl_pool_add_nonce_data(RAND_POOL *pool);
 
-void ossl_rand_ctx_free(void *vdgbl);
 #endif

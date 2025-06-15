@@ -9,7 +9,7 @@
 
 /*
  * ECDSA low level APIs are deprecated for public use, but still ok for
- * internal use - SM2 implemetation uses ECDSA_size() function.
+ * internal use - SM2 implementation uses ECDSA_size() function.
  */
 #include "internal/deprecated.h"
 
@@ -66,9 +66,9 @@ typedef struct {
     EC_KEY *ec;
 
     /*
-     * Flag to termine if the 'z' digest needs to be computed and fed to the
+     * Flag to determine if the 'z' digest needs to be computed and fed to the
      * hash function.
-     * This flag should be set on initialization and the compuation should
+     * This flag should be set on initialization and the computation should
      * be performed only once, on first update.
      */
     unsigned int flag_compute_z_digest : 1;
@@ -122,7 +122,6 @@ static void *sm2sig_newctx(void *provctx, const char *propq)
     ctx->libctx = PROV_LIBCTX_OF(provctx);
     if (propq != NULL && (ctx->propq = OPENSSL_strdup(propq)) == NULL) {
         OPENSSL_free(ctx);
-        ERR_raise(ERR_LIB_PROV, ERR_R_MALLOC_FAILURE);
         return NULL;
     }
     ctx->mdsize = SM3_DIGEST_LENGTH;
@@ -330,7 +329,6 @@ static void sm2sig_freectx(void *vpsm2ctx)
 
     free_md(ctx);
     EC_KEY_free(ctx->ec);
-    OPENSSL_free(ctx->propq);
     OPENSSL_free(ctx->id);
     OPENSSL_free(ctx);
 }
@@ -346,20 +344,12 @@ static void *sm2sig_dupctx(void *vpsm2ctx)
 
     *dstctx = *srcctx;
     dstctx->ec = NULL;
-    dstctx->propq = NULL;
     dstctx->md = NULL;
     dstctx->mdctx = NULL;
-    dstctx->id = NULL;
 
     if (srcctx->ec != NULL && !EC_KEY_up_ref(srcctx->ec))
         goto err;
     dstctx->ec = srcctx->ec;
-
-    if (srcctx->propq != NULL) {
-        dstctx->propq = OPENSSL_strdup(srcctx->propq);
-        if (dstctx->propq == NULL)
-            goto err;
-    }
 
     if (srcctx->md != NULL && !EVP_MD_up_ref(srcctx->md))
         goto err;
@@ -569,5 +559,5 @@ const OSSL_DISPATCH ossl_sm2_signature_functions[] = {
       (void (*)(void))sm2sig_set_ctx_md_params },
     { OSSL_FUNC_SIGNATURE_SETTABLE_CTX_MD_PARAMS,
       (void (*)(void))sm2sig_settable_ctx_md_params },
-    { 0, NULL }
+    OSSL_DISPATCH_END
 };

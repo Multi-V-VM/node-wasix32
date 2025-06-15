@@ -41,7 +41,7 @@ int ASN1_buf_print(BIO *bp, const unsigned char *buf, size_t buflen, int indent)
         return 0;
     return 1;
 }
-
+#define BN_BYTES 32
 int ASN1_bn_print(BIO *bp, const char *number, const BIGNUM *num,
                   unsigned char *ign, int indent)
 {

@@ -21,6 +21,7 @@
  * values in evp.h
  */
 #define EVP_MD_CTX_FLAG_KEEP_PKEY_CTX   0x0400
+#define EVP_MD_CTX_FLAG_FINALISED       0x0800
 
 #define evp_pkey_ctx_is_legacy(ctx)                             \
     ((ctx)->keymgmt == NULL)
@@ -784,7 +785,7 @@ void *evp_keymgmt_util_export_to_provider(EVP_PKEY *pk, EVP_KEYMGMT *keymgmt,
 OP_CACHE_ELEM *evp_keymgmt_util_find_operation_cache(EVP_PKEY *pk,
                                                      EVP_KEYMGMT *keymgmt,
                                                      int selection);
-int evp_keymgmt_util_clear_operation_cache(EVP_PKEY *pk, int locking);
+int evp_keymgmt_util_clear_operation_cache(EVP_PKEY *pk);
 int evp_keymgmt_util_cache_keydata(EVP_PKEY *pk, EVP_KEYMGMT *keymgmt,
                                    void *keydata, int selection);
 void evp_keymgmt_util_cache_keyinfo(EVP_PKEY *pk);
@@ -909,6 +910,8 @@ int evp_set_default_properties_int(OSSL_LIB_CTX *libctx, const char *propq,
 char *evp_get_global_properties_str(OSSL_LIB_CTX *libctx, int loadconfig);
 
 void evp_md_ctx_clear_digest(EVP_MD_CTX *ctx, int force, int keep_digest);
+/* just free the algctx if set, returns 0 on inconsistent state of ctx */
+int evp_md_ctx_free_algctx(EVP_MD_CTX *ctx);
 
 /* Three possible states: */
 # define EVP_PKEY_STATE_UNKNOWN         0
@@ -948,5 +951,9 @@ int evp_mac_get_number(const EVP_MAC *mac);
 int evp_md_get_number(const EVP_MD *md);
 int evp_rand_get_number(const EVP_RAND *rand);
 int evp_signature_get_number(const EVP_SIGNATURE *signature);
+
+int evp_pkey_decrypt_alloc(EVP_PKEY_CTX *ctx, unsigned char **outp,
+                           size_t *outlenp, size_t expected_outlen,
+                           const unsigned char *in, size_t inlen);
 
 #endif /* OSSL_CRYPTO_EVP_H */

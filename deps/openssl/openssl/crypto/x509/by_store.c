@@ -1,5 +1,5 @@
 /*
- * Copyright 2018-2022 The OpenSSL Project Authors. All Rights Reserved.
+ * Copyright 2018-2021 The OpenSSL Project Authors. All Rights Reserved.
  *
  * Licensed under the Apache License 2.0 (the "License").  You may not use
  * this file except in compliance with the License.  You can obtain a copy
@@ -27,7 +27,7 @@ static int cache_objects(X509_LOOKUP *lctx, const char *uri,
 
     /*
      * We try to set the criterion, but don't care if it was valid or not.
-     * For a OSSL_STORE, it merely serves as an optimization, the expectation
+     * For an OSSL_STORE, it merely serves as an optimization, the expectation
      * being that if the criterion couldn't be used, we will get *everything*
      * from the container that the URI represents rather than the subset that
      * the criterion indicates, so the biggest harm is that we cache more
@@ -111,11 +111,21 @@ static int by_store_ctrl_ex(X509_LOOKUP *ctx, int cmd, const char *argp,
 {
     switch (cmd) {
     case X509_L_ADD_STORE:
-        /* If no URI is given, use the default cert dir as default URI */
+        /* First try the newer default cert URI envvar. */
+        if (argp == NULL)
+            argp = ossl_safe_getenv(X509_get_default_cert_uri_env());
+
+        /* If not set, see if we have a URI in the older cert dir envvar. */
         if (argp == NULL)
             argp = ossl_safe_getenv(X509_get_default_cert_dir_env());
+
+        /* Fallback to default store URI. */
         if (argp == NULL)
-            argp = X509_get_default_cert_dir();
+            argp = X509_get_default_cert_uri();
+
+        /* No point adding an empty URI. */
+        if (!*argp)
+            return 1;
 
         {
             STACK_OF(OPENSSL_STRING) *uris = X509_LOOKUP_get_method_data(ctx);

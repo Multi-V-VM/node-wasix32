@@ -1,5 +1,5 @@
 /*
- * Copyright 2019-2022 The OpenSSL Project Authors. All Rights Reserved.
+ * Copyright 2019-2021 The OpenSSL Project Authors. All Rights Reserved.
  *
  * Licensed under the Apache License 2.0 (the "License").  You may not use
  * this file except in compliance with the License.  You can obtain a copy
@@ -22,6 +22,10 @@ extern const OSSL_DISPATCH ossl_sha3_224_functions[];
 extern const OSSL_DISPATCH ossl_sha3_256_functions[];
 extern const OSSL_DISPATCH ossl_sha3_384_functions[];
 extern const OSSL_DISPATCH ossl_sha3_512_functions[];
+extern const OSSL_DISPATCH ossl_keccak_224_functions[];
+extern const OSSL_DISPATCH ossl_keccak_256_functions[];
+extern const OSSL_DISPATCH ossl_keccak_384_functions[];
+extern const OSSL_DISPATCH ossl_keccak_512_functions[];
 extern const OSSL_DISPATCH ossl_keccak_kmac_128_functions[];
 extern const OSSL_DISPATCH ossl_keccak_kmac_256_functions[];
 extern const OSSL_DISPATCH ossl_shake_128_functions[];
@@ -174,11 +178,14 @@ extern const OSSL_DISPATCH ossl_seed128ofb128_functions[];
 extern const OSSL_DISPATCH ossl_seed128cfb128_functions[];
 #endif /* OPENSSL_NO_SEED */
 #ifndef OPENSSL_NO_SM4
+extern const OSSL_DISPATCH ossl_sm4128gcm_functions[];
+extern const OSSL_DISPATCH ossl_sm4128ccm_functions[];
 extern const OSSL_DISPATCH ossl_sm4128ecb_functions[];
 extern const OSSL_DISPATCH ossl_sm4128cbc_functions[];
 extern const OSSL_DISPATCH ossl_sm4128ctr_functions[];
 extern const OSSL_DISPATCH ossl_sm4128ofb128_functions[];
 extern const OSSL_DISPATCH ossl_sm4128cfb128_functions[];
+extern const OSSL_DISPATCH ossl_sm4128xts_functions[];
 #endif /* OPENSSL_NO_SM4 */
 #ifndef OPENSSL_NO_RC5
 extern const OSSL_DISPATCH ossl_rc5128ecb_functions[];
@@ -239,6 +246,9 @@ extern const OSSL_DISPATCH ossl_chacha20_ossl_poly1305_functions[];
 extern const OSSL_DISPATCH ossl_aes128siv_functions[];
 extern const OSSL_DISPATCH ossl_aes192siv_functions[];
 extern const OSSL_DISPATCH ossl_aes256siv_functions[];
+extern const OSSL_DISPATCH ossl_aes128gcm_siv_functions[];
+extern const OSSL_DISPATCH ossl_aes192gcm_siv_functions[];
+extern const OSSL_DISPATCH ossl_aes256gcm_siv_functions[];
 #endif /* OPENSSL_NO_SIV */
 
 /* MACs */
@@ -255,6 +265,7 @@ extern const OSSL_DISPATCH ossl_poly1305_functions[];
 /* KDFs / PRFs */
 extern const OSSL_DISPATCH ossl_kdf_pbkdf1_functions[];
 extern const OSSL_DISPATCH ossl_kdf_pbkdf2_functions[];
+extern const OSSL_DISPATCH ossl_kdf_pvk_functions[];
 extern const OSSL_DISPATCH ossl_kdf_pkcs12_functions[];
 #ifndef OPENSSL_NO_SCRYPT
 extern const OSSL_DISPATCH ossl_kdf_scrypt_functions[];
@@ -268,6 +279,12 @@ extern const OSSL_DISPATCH ossl_kdf_x963_kdf_functions[];
 extern const OSSL_DISPATCH ossl_kdf_kbkdf_functions[];
 extern const OSSL_DISPATCH ossl_kdf_x942_kdf_functions[];
 extern const OSSL_DISPATCH ossl_kdf_krb5kdf_functions[];
+extern const OSSL_DISPATCH ossl_kdf_hmac_drbg_functions[];
+#ifndef OPENSSL_NO_ARGON2
+extern const OSSL_DISPATCH ossl_kdf_argon2i_functions[];
+extern const OSSL_DISPATCH ossl_kdf_argon2d_functions[];
+extern const OSSL_DISPATCH ossl_kdf_argon2id_functions[];
+#endif
 
 /* RNGs */
 extern const OSSL_DISPATCH ossl_test_rng_functions[];
@@ -324,6 +341,8 @@ extern const OSSL_DISPATCH ossl_sm2_asym_cipher_functions[];
 
 /* Asym Key encapsulation  */
 extern const OSSL_DISPATCH ossl_rsa_asym_kem_functions[];
+extern const OSSL_DISPATCH ossl_ecx_asym_kem_functions[];
+extern const OSSL_DISPATCH ossl_ec_asym_kem_functions[];
 
 /* Encoders */
 extern const OSSL_DISPATCH ossl_rsa_to_PKCS1_der_encoder_functions[];
@@ -498,6 +517,7 @@ extern const OSSL_DISPATCH ossl_SubjectPublicKeyInfo_der_to_ed448_decoder_functi
 #ifndef OPENSSL_NO_SM2
 extern const OSSL_DISPATCH ossl_PrivateKeyInfo_der_to_sm2_decoder_functions[];
 extern const OSSL_DISPATCH ossl_SubjectPublicKeyInfo_der_to_sm2_decoder_functions[];
+extern const OSSL_DISPATCH ossl_type_specific_no_pub_der_to_sm2_decoder_functions[];
 #endif
 
 extern const OSSL_DISPATCH ossl_PrivateKeyInfo_der_to_rsa_decoder_functions[];
@@ -515,3 +535,4 @@ extern const OSSL_DISPATCH ossl_SubjectPublicKeyInfo_der_to_der_decoder_function
 extern const OSSL_DISPATCH ossl_pem_to_der_decoder_functions[];
 
 extern const OSSL_DISPATCH ossl_file_store_functions[];
+extern const OSSL_DISPATCH ossl_winstore_store_functions[];

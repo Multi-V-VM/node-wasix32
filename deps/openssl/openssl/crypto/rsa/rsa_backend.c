@@ -1,5 +1,5 @@
 /*
- * Copyright 2020-2023 The OpenSSL Project Authors. All Rights Reserved.
+ * Copyright 2020-2022 The OpenSSL Project Authors. All Rights Reserved.
  *
  * Licensed under the Apache License 2.0 (the "License").  You may not use
  * this file except in compliance with the License.  You can obtain a copy
@@ -44,7 +44,7 @@ static int collect_numbers(STACK_OF(BIGNUM) *numbers,
     if (numbers == NULL)
         return 0;
 
-    for (i = 0; names[i] != NULL; i++){
+    for (i = 0; names[i] != NULL; i++) {
         p = OSSL_PARAM_locate_const(params, names[i]);
         if (p != NULL) {
             BIGNUM *tmp = NULL;
@@ -141,6 +141,18 @@ int ossl_rsa_todata(RSA *rsa, OSSL_PARAM_BLD *bld, OSSL_PARAM params[],
 
     /* Check private key data integrity */
     if (include_private && rsa_d != NULL) {
+        int numprimes = sk_BIGNUM_const_num(factors);
+        int numexps = sk_BIGNUM_const_num(exps);
+        int numcoeffs = sk_BIGNUM_const_num(coeffs);
+
+        /*
+         * It's permissible to have zero primes, i.e. no CRT params.
+         * Otherwise, there must be at least two, as many exponents,
+         * and one coefficient less.
+         */
+        if (numprimes != 0
+            && (numprimes < 2 || numexps < 2 || numcoeffs < 1))
+            goto err;
 
         if (!ossl_param_build_set_bn(bld, params, OSSL_PKEY_PARAM_RSA_D,
                                      rsa_d)
@@ -389,10 +401,8 @@ RSA *ossl_rsa_dup(const RSA *rsa, int selection)
             const RSA_PRIME_INFO *pinfo = NULL;
             RSA_PRIME_INFO *duppinfo = NULL;
 
-            if ((duppinfo = OPENSSL_zalloc(sizeof(*duppinfo))) == NULL) {
-                ERR_raise(ERR_LIB_RSA, ERR_R_MALLOC_FAILURE);
+            if ((duppinfo = OPENSSL_zalloc(sizeof(*duppinfo))) == NULL)
                 goto err;
-            }
             /* push first so cleanup in error case works */
             (void)sk_RSA_PRIME_INFO_push(dupkey->prime_infos, duppinfo);
 
@@ -514,7 +524,7 @@ int ossl_rsa_pss_get_param_unverified(const RSA_PSS_PARAMS *pss,
     if (pss->trailerField)
         *ptrailerField = ASN1_INTEGER_get(pss->trailerField);
     else
-        *ptrailerField = ossl_rsa_pss_params_30_trailerfield(&pss_params);;
+        *ptrailerField = ossl_rsa_pss_params_30_trailerfield(&pss_params);
 
     return 1;
 }

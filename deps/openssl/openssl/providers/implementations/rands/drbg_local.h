@@ -1,5 +1,5 @@
 /*
- * Copyright 1995-2024 The OpenSSL Project Authors. All Rights Reserved.
+ * Copyright 1995-2021 The OpenSSL Project Authors. All Rights Reserved.
  *
  * Licensed under the Apache License 2.0 (the "License").  You may not use
  * this file except in compliance with the License.  You can obtain a copy
@@ -50,13 +50,8 @@
 # define DRBG_MAX_LENGTH                         INT32_MAX
 
 /* The default nonce */
-#ifdef CHARSET_EBCDIC
-# define DRBG_DEFAULT_PERS_STRING      { 0x4f, 0x70, 0x65, 0x6e, 0x53, 0x53, \
-     0x4c, 0x20, 0x4e, 0x49, 0x53, 0x54, 0x20, 0x53, 0x50, 0x20, 0x38, 0x30, \
-     0x30, 0x2d, 0x39, 0x30, 0x41, 0x20, 0x44, 0x52, 0x42, 0x47, 0x00};
-#else
-# define DRBG_DEFAULT_PERS_STRING                "OpenSSL NIST SP 800-90A DRBG"
-#endif
+/* ASCII: "OpenSSL NIST SP 800-90A DRBG", in hex for EBCDIC compatibility */
+#define DRBG_DEFAULT_PERS_STRING "\x4f\x70\x65\x6e\x53\x53\x4c\x20\x4e\x49\x53\x54\x20\x53\x50\x20\x38\x30\x30\x2d\x39\x30\x41\x20\x44\x52\x42\x47"
 
 typedef struct prov_drbg_st PROV_DRBG;
 
@@ -181,7 +176,6 @@ struct prov_drbg_st {
 PROV_DRBG *ossl_rand_drbg_new
     (void *provctx, void *parent, const OSSL_DISPATCH *parent_dispatch,
      int (*dnew)(PROV_DRBG *ctx),
-     void (*dfree)(void *vctx),
      int (*instantiate)(PROV_DRBG *drbg,
                         const unsigned char *entropy, size_t entropylen,
                         const unsigned char *nonce, size_t noncelen,
@@ -230,7 +224,7 @@ OSSL_FUNC_rand_unlock_fn ossl_drbg_unlock;
 int ossl_drbg_get_ctx_params(PROV_DRBG *drbg, OSSL_PARAM params[]);
 int ossl_drbg_set_ctx_params(PROV_DRBG *drbg, const OSSL_PARAM params[]);
 
-#define OSSL_PARAM_DRBG_SETTABLE_CTX_COMMON                                      \
+#define OSSL_PARAM_DRBG_SETTABLE_CTX_COMMON                             \
     OSSL_PARAM_uint(OSSL_DRBG_PARAM_RESEED_REQUESTS, NULL),             \
     OSSL_PARAM_uint64(OSSL_DRBG_PARAM_RESEED_TIME_INTERVAL, NULL)
 
@@ -256,5 +250,8 @@ size_t ossl_crngt_get_entropy(PROV_DRBG *drbg,
                               int prediction_resistance);
 void ossl_crngt_cleanup_entropy(PROV_DRBG *drbg,
                                 unsigned char *out, size_t outlen);
+
+/* Confirm digest is allowed to be used with a DRBG */
+int ossl_drbg_verify_digest(ossl_unused OSSL_LIB_CTX *libctx, const EVP_MD *md);
 
 #endif
