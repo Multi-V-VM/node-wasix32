@@ -49,6 +49,13 @@
 /* NMAX is the largest n such that 255n(n+1)/2 + (n+1)(BASE-1) <= 2^32-1 */
 #define NMAX 5552
 
+/* Disable SIMD for WASI target */
+#ifdef __wasi__
+#undef ADLER32_SIMD_SSSE3
+#undef ADLER32_SIMD_NEON
+#undef ADLER32_SIMD_RVV
+#endif
+
 #if defined(ADLER32_SIMD_SSSE3)
 
 #include <tmmintrin.h>
@@ -352,4 +359,18 @@ uint32_t ZLIB_INTERNAL adler32_simd_(  /* NEON */
      * Return the recombined sums.
      */
     return s1 | (s2 << 16);
+}
 #endif  /* ADLER32_SIMD_SSSE3 */
+
+/* Provide empty implementation for WASI */
+#ifdef __wasi__
+uint32_t ZLIB_INTERNAL adler32_simd_(
+    uint32_t adler,
+    const unsigned char *buf,
+    z_size_t len)
+{
+    /* WASI doesn't support SIMD, so return the original adler value
+     * The main adler32 function will handle the computation */
+    return adler;
+}
+#endif

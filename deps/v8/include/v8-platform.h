@@ -100,6 +100,112 @@ class TaskRunner {
   virtual bool NonNestableDelayedTasksEnabled() const { return false; }
 };
 
+/**
+ * The interface represents complex arguments to trace events.
+ */
+class ConvertableToTraceFormat {
+ public:
+  virtual ~ConvertableToTraceFormat() = default;
+
+#ifndef __wasi__
+  /**
+   * Append the class info to the provided |out| string. The appended
+   * data must be a valid JSON object. Strings must be properly quoted, and
+   * escaped. There is no processing applied to the content after it is
+   * appended.
+   */
+  virtual void AppendAsTraceFormat(std::string* out) const = 0;
+#else
+  // WASI version with simplified interface
+  virtual void AppendAsTraceFormat(char* out, size_t size) const {}
+#endif
+};
+
+/**
+ * V8 Tracing controller.
+ *
+ * Can be implemented by an embedder to record trace events from V8.
+ */
+class TracingController {
+ public:
+  virtual ~TracingController() = default;
+
+  // Observer for trace state changes
+  class TraceStateObserver {
+   public:
+    virtual ~TraceStateObserver() = default;
+    virtual void OnTraceEnabled() {}
+    virtual void OnTraceDisabled() {}
+  };
+
+  /**
+   * Called by TRACE_EVENT* macros, don't call this directly.
+   * The name parameter is a category group for example:
+   * TRACE_EVENT0("v8,parse", "V8.Parse")
+   * The pointer returned points to a value with zero or more of the bits
+   * defined in CategoryGroupEnabledFlags.
+   **/
+  virtual const uint8_t* GetCategoryGroupEnabled(const char* name) {
+    static uint8_t no = 0;
+    return &no;
+  }
+
+#ifdef __wasi__
+  /**
+   * Simplified trace event API for WASI
+   */
+  virtual uint64_t AddTraceEvent(
+      char phase, const uint8_t* category_enabled_flag, const char* name,
+      const char* scope, uint64_t id, uint64_t bind_id, int32_t num_args,
+      const char** arg_names, const uint8_t* arg_types,
+      const uint64_t* arg_values,
+      ConvertableToTraceFormat** arg_convertables,
+      unsigned int flags) {
+    return 0;
+  }
+  virtual uint64_t AddTraceEventWithTimestamp(
+      char phase, const uint8_t* category_enabled_flag, const char* name,
+      const char* scope, uint64_t id, uint64_t bind_id, int32_t num_args,
+      const char** arg_names, const uint8_t* arg_types,
+      const uint64_t* arg_values,
+      ConvertableToTraceFormat** arg_convertables,
+      unsigned int flags, int64_t timestamp) {
+    return 0;
+  }
+#else
+  /**
+   * Standard trace event API
+   */
+  virtual uint64_t AddTraceEvent(
+      char phase, const uint8_t* category_enabled_flag, const char* name,
+      const char* scope, uint64_t id, uint64_t bind_id, int32_t num_args,
+      const char** arg_names, const uint8_t* arg_types,
+      const uint64_t* arg_values,
+      std::unique_ptr<ConvertableToTraceFormat>* arg_convertables,
+      unsigned int flags) {
+    return 0;
+  }
+  virtual uint64_t AddTraceEventWithTimestamp(
+      char phase, const uint8_t* category_enabled_flag, const char* name,
+      const char* scope, uint64_t id, uint64_t bind_id, int32_t num_args,
+      const char** arg_names, const uint8_t* arg_types,
+      const uint64_t* arg_values,
+      std::unique_ptr<ConvertableToTraceFormat>* arg_convertables,
+      unsigned int flags, int64_t timestamp) {
+    return 0;
+  }
+#endif
+
+  /**
+   * Sets the duration field of a COMPLETE trace event.
+   */
+  virtual void UpdateTraceEventDuration(const uint8_t* category_enabled_flag,
+                                        const char* name, uint64_t handle) {}
+
+  virtual void AddTraceStateObserver(TraceStateObserver* observer) {}
+  virtual void RemoveTraceStateObserver(TraceStateObserver* observer) {}
+};
+
 }  // namespace v8
 
 #endif  // V8_V8_PLATFORM_H_

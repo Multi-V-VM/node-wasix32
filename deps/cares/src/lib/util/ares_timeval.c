@@ -26,6 +26,10 @@
 
 #include "ares_private.h"
 
+#ifdef __wasi__
+#include <wasi/api.h>
+#endif
+
 #if defined(_WIN32) && !defined(MSDOS)
 
 void ares_tvnow(ares_timeval_t *now)
@@ -86,6 +90,23 @@ void ares_tvnow(ares_timeval_t *now)
   (void)gettimeofday(&tv, NULL);
   now->sec  = (ares_int64_t)tv.tv_sec;
   now->usec = (unsigned int)tv.tv_usec;
+}
+
+#elif defined(__wasi__)
+
+void ares_tvnow(ares_timeval_t *now)
+{
+  /* For WASI, use clock_time_get with realtime clock */
+  struct timespec ts;
+  __wasi_errno_t err = __wasi_clock_time_get(__WASI_CLOCKID_REALTIME, 1000, &ts);
+  if (err == 0) {
+    now->sec  = (ares_int64_t)ts.tv_sec;
+    now->usec = (unsigned int)(ts.tv_nsec / 1000);
+  } else {
+    /* Fallback to zero if clock fails */
+    now->sec  = 0;
+    now->usec = 0;
+  }
 }
 
 #else

@@ -1,0 +1,15 @@
+# Minimal OpenSSL configuration for Node.js WASI build
+# This is a placeholder configuration file
+
+# Default settings
+HOME = .
+openssl_conf = openssl_init
+
+[openssl_init]
+providers = provider_sect
+
+[provider_sect]
+default = default_sect
+
+[default_sect]
+# activate = 1

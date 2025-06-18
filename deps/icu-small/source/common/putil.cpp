@@ -642,7 +642,7 @@ U_CAPI int32_t U_EXPORT2
 uprv_timezone()
 {
 #ifdef U_TIMEZONE
-    return U_TIMEZONE;
+    return 0;
 #else
     time_t t, t1, t2;
     struct tm tmrec;
@@ -1226,46 +1226,7 @@ uprv_tzname(int n)
 #endif
 #endif
 
-#ifdef U_TZNAME
-#if U_PLATFORM_USES_ONLY_WIN32_API
-    /* The return value is free'd in timezone.cpp on Windows because
-     * the other code path returns a pointer to a heap location. */
-    return uprv_strdup(U_TZNAME[n]);
-#else
-    /*
-    U_TZNAME is usually a non-unique abbreviation, which isn't normally usable.
-    So we remap the abbreviation to an olson ID.
-
-    Since Windows exposes a little more timezone information,
-    we normally don't use this code on Windows because
-    uprv_detectWindowsTimeZone should have already given the correct answer.
-    */
-    {
-        struct tm juneSol, decemberSol;
-        int daylightType;
-        static const time_t juneSolstice=1182478260; /*2007-06-21 18:11 UT*/
-        static const time_t decemberSolstice=1198332540; /*2007-12-22 06:09 UT*/
-
-        /* This probing will tell us when daylight savings occurs.  */
-        localtime_r(&juneSolstice, &juneSol);
-        localtime_r(&decemberSolstice, &decemberSol);
-        if(decemberSol.tm_isdst > 0) {
-          daylightType = U_DAYLIGHT_DECEMBER;
-        } else if(juneSol.tm_isdst > 0) {
-          daylightType = U_DAYLIGHT_JUNE;
-        } else {
-          daylightType = U_DAYLIGHT_NONE;
-        }
-        tzid = remapShortTimeZone(U_TZNAME[0], U_TZNAME[1], daylightType, uprv_timezone());
-        if (tzid != nullptr) {
-            return tzid;
-        }
-    }
-    return U_TZNAME[n];
-#endif
-#else
     return "";
-#endif
 }
 
 /* Get and set the ICU data directory --------------------------------------- */

@@ -43,7 +43,7 @@
 #ifndef HAVE_PF_INET6
 #  define PF_INET6 AF_INET6
 #endif
-
+#define HAVE_STRUCT_SOCKADDR_IN6 1
 #ifndef HAVE_STRUCT_SOCKADDR_IN6
 struct sockaddr_in6 {
   unsigned short       sin6_family;

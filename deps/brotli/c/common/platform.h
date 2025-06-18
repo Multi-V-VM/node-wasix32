@@ -29,17 +29,7 @@
 #include <brotli/port.h>
 #include <brotli/types.h>
 
-#if defined(OS_LINUX) || defined(OS_CYGWIN) || defined(__EMSCRIPTEN__)
 #include <endian.h>
-#elif defined(OS_FREEBSD)
-#include <machine/endian.h>
-#elif defined(OS_MACOSX)
-#include <machine/endian.h>
-/* Let's try and follow the Linux convention */
-#define BROTLI_X_BYTE_ORDER BYTE_ORDER
-#define BROTLI_X_LITTLE_ENDIAN LITTLE_ENDIAN
-#define BROTLI_X_BIG_ENDIAN BIG_ENDIAN
-#endif
 
 #if BROTLI_MSVC_VERSION_CHECK(18, 0, 0)
 #include <intrin.h>

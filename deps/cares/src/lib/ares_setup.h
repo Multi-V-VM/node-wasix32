@@ -96,6 +96,19 @@
 #  include <errno.h>
 #endif
 
+/* For WASI, ensure errno definitions are available */
+#ifdef __wasi__
+#  ifndef ENOENT
+#    define ENOENT 2
+#  endif
+#  ifndef EMSGSIZE
+#    define EMSGSIZE 90
+#  endif
+#  ifndef EAFNOSUPPORT
+#    define EAFNOSUPPORT 97
+#  endif
+#endif
+
 #ifdef HAVE_SYS_TYPES_H
 #  include <sys/types.h>
 #endif
@@ -191,13 +204,25 @@
 #endif
 
 
+/* Define ares_int64_t for platforms that need it */
+#ifndef ares_int64_t
+#  if defined(_MSC_VER) || defined(__WATCOMC__)
+typedef __int64 ares_int64_t;
+#  else
+typedef long long ares_int64_t;
+#  endif
+#endif
+
 /* Definition of timeval struct for platforms that don't have it. */
 
 #ifndef HAVE_STRUCT_TIMEVAL
+/* For WASI, struct timeval is already defined in system headers */
+#  if !defined(__wasi__)
 struct timeval {
   ares_int64_t tv_sec;
   long         tv_usec;
 };
+#  endif
 #endif
 
 

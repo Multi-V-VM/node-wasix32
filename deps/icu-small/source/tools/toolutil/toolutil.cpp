@@ -29,7 +29,6 @@
 #endif
 
 #include "unicode/utypes.h"
-#include <fstream>
 #include <stdio.h>
 #include <sys/stat.h>
 #include <time.h>
@@ -282,28 +281,37 @@ U_CAPI int32_t U_EXPORT2 uprv_compareGoldenFiles(const char *buffer, int32_t buf
                                                  const char *goldenFilePath, bool overwrite) {
 
     if (overwrite) {
-        std::ofstream ofs;
-        ofs.open(goldenFilePath);
-        ofs.write(buffer, bufferLen);
-        ofs.close();
+        FILE *file = fopen(goldenFilePath, "wb");
+        if (file == nullptr) {
+            return -1; // Error opening file
+        }
+
+        fwrite(buffer, 1, bufferLen, file);
+        fclose(file);
         return -1;
     }
 
-    std::ifstream ifs(goldenFilePath, std::ifstream::in);
+    FILE *file = fopen(goldenFilePath, "rb");
+    if (file == nullptr) {
+        return 0; // File doesn't exist, differs at position 0
+    }
+
     int32_t pos = 0;
-    char c;
-    while (ifs.get(c) && pos < bufferLen) {
-        if (c != buffer[pos]) {
+    int c;
+    while ((c = fgetc(file)) != EOF && pos < bufferLen) {
+        if (c != (unsigned char)buffer[pos]) {
             // Files differ at this position
             break;
         }
         pos++;
     }
-    if (pos == bufferLen && ifs.eof()) {
+
+    if (pos == bufferLen && fgetc(file) == EOF) {
         // Files are same lengths
         pos = -1;
     }
-    ifs.close();
+
+    fclose(file);
     return pos;
 }
 

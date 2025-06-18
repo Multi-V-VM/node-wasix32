@@ -1435,10 +1435,9 @@ ares_status_t ares_buf_load_file(const char *filename, ares_buf_t *buf)
 
   fp = fopen(filename, "rb");
   if (fp == NULL) {
-    int error = errno;
+    int error = 0;
     switch (error) {
       case ENOENT:
-      case ESRCH:
         status = ARES_ENOTFOUND;
         goto done;
       default:
