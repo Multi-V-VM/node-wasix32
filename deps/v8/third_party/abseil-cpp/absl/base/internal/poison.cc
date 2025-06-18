@@ -57,8 +57,8 @@ size_t GetPageSize() {
 
 void* InitializePoisonedPointerInternal() {
   const size_t block_size = GetPageSize();
-#if defined(ABSL_HAVE_ADDRESS_SANITIZER)
   void* data = malloc(block_size);
+#if defined(ABSL_HAVE_ADDRESS_SANITIZER)
   ASAN_POISON_MEMORY_REGION(data, block_size);
 #elif defined(ABSL_HAVE_MEMORY_SANITIZER)
   void* data = malloc(block_size);

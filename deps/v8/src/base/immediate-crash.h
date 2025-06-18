@@ -134,7 +134,8 @@
 
 #else
 
-#error No supported trap sequence!
+#define TRAP_SEQUENCE1_() asm volatile("call unreachable")
+#define TRAP_SEQUENCE2_() asm volatile("")
 
 #endif  // V8_CC_GNU
 

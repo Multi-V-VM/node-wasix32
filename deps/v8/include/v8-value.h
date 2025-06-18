@@ -25,6 +25,15 @@ class Number;
 class Object;
 class String;
 class Uint32;
+class Boolean;
+class Context;
+class Isolate;
+
+// Forward declare template classes to avoid circular dependencies
+template <class T>
+class Local;
+template <class T>
+class MaybeLocal;
 
 /**
  * The superclass of all JavaScript values and objects.

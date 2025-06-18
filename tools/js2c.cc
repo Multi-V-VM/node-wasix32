@@ -32,7 +32,7 @@ extern "C" {
       abort();
    }
 
-   void uv__process_title_cleanup(void){};
+   void uv__process_title_cleanup(void){}
 }
 namespace node {
 namespace js2c {

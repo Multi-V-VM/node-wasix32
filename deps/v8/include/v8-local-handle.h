@@ -12,8 +12,14 @@
 
 #include "v8-handle-base.h"  // NOLINT(build/include_directory)
 #include "v8-internal.h"     // NOLINT(build/include_directory)
+#include "v8-value.h"        // NOLINT(build/include_directory)
 
 namespace v8 {
+
+// 定义 V8_NODISCARD 为空宏，避免编译错误
+#ifndef V8_NODISCARD
+#define V8_NODISCARD
+#endif
 
 template <class T>
 class LocalBase;
@@ -94,7 +100,7 @@ V8_EXPORT void ToLocalEmpty();
  * handle and may deallocate it.  The behavior of accessing a handle
  * for which the handle scope has been deleted is undefined.
  */
-class V8_EXPORT V8_NODISCARD HandleScope {
+class V8_EXPORT HandleScope {
  public:
   explicit HandleScope(Isolate* isolate);
 
@@ -712,7 +718,7 @@ class MaybeLocal {
  * A HandleScope which first allocates a handle in the current scope
  * which will be later filled with the escape value.
  */
-class V8_EXPORT V8_NODISCARD EscapableHandleScopeBase : public HandleScope {
+class V8_EXPORT EscapableHandleScopeBase : public HandleScope {
  public:
   explicit EscapableHandleScopeBase(Isolate* isolate);
   V8_INLINE ~EscapableHandleScopeBase() = default;

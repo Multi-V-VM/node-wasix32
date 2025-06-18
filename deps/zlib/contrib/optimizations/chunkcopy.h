@@ -26,7 +26,8 @@
 #define Z_BUILTIN_MEMCPY zmemcpy
 #define Z_BUILTIN_MEMSET zmemset
 #endif
-
+#undef INFLATE_CHUNK_SIMD_SSE2
+#define INFLATE_CHUNK_GENERIC
 /* NEON-accelerated version for ARM systems */
 #if 0 && (defined(__ARM_NEON__) || defined(__ARM_NEON))
 #include <arm_neon.h>

@@ -27,9 +27,6 @@
 
 #include <ifaddrs.h>
 #include <net/if.h>
-#if !defined(__CYGWIN__) && !defined(__MSYS__) && !defined(__GNU__)
-#include <net/if_dl.h>
-#endif
 
 #if defined(__HAIKU__)
 #define IFF_RUNNING IFF_LINK
