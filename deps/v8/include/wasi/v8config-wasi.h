@@ -27,4 +27,3 @@
 #endif  // __cplusplus
 
 #endif  // V8_INCLUDE_WASI_V8CONFIG_WASI_H_
-#include "wasi/v8-wasi-helpers.h"

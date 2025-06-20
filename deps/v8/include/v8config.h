@@ -16,22 +16,27 @@
 #define V8_EXPORT
 #define V8_NOINLINE __attribute__((noinline))
 #define V8_BASE_EXPORT
+#define V8_EXPORT_PRIVATE
+#define V8_NODISCARD [[nodiscard]]
+
+// Branch prediction macros
+#define V8_LIKELY(condition) __builtin_expect(!!(condition), 1)
+#define V8_UNLIKELY(condition) __builtin_expect(!!(condition), 0)
+
+// Platform-specific types for WASI
+#ifdef __wasi__
+typedef int PlatformSharedMemoryHandle;
+#endif
+
+// Additional macros for WASI compatibility
+#define V8_ASSUME(condition) __builtin_assume(condition)
+#define V8_TRIVIAL_ABI
+#define V8_DEPRECATED_SOON(message)
+
+// Add basic macro definitions to prevent redefinition conflicts
+#ifndef EXPORT_CONTEXTUAL_VARIABLE
+#define EXPORT_CONTEXTUAL_VARIABLE(TYPE, NAME) \
+  using NAME = ContextualVariable<TYPE, TYPE>
+#endif
 
 #endif  // V8CONFIG_H_
-#ifndef V8_TRIVIAL_ABI
-#define V8_TRIVIAL_ABI
-#endif  // V8_TRIVIAL_ABI
-
-// WASI 编译所需的额外宏定义
-#ifndef V8_TRIVIAL_ABI
-#define V8_TRIVIAL_ABI
-#endif
-
-#ifndef V8_NODISCARD
-#define V8_NODISCARD
-#endif
-
-// 禁用某些 WASI 环境不支持的功能
-#define V8_DISABLE_WRITE_BARRIERS 1
-#define V8_ENABLE_SANDBOX 0
-#define V8_ENABLE_WEBASSEMBLY 1

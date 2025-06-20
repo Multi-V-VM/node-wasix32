@@ -3,7 +3,7 @@
 
 #if defined(NODE_WANT_INTERNALS) && NODE_WANT_INTERNALS
 
-#if defined(__POSIX__)
+#if defined(__POSIX__) && !defined(__WASM__)
 #include <dlfcn.h>
 #endif
 

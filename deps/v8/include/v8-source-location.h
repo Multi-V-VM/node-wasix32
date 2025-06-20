@@ -14,9 +14,6 @@
 
 namespace v8 {
 
-// 确保 V8_NODISCARD 被定义
-#define V8_NODISCARD
-
 /**
  * Simplified source location class for WASI
  */

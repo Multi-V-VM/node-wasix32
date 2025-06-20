@@ -117,9 +117,9 @@ void JSONTraceWriter::AppendArgValue(uint8_t type,
 }
 
 void JSONTraceWriter::AppendArgValue(ConvertableToTraceFormat* value) {
-  std::string arg_stringified;
-  value->AppendAsTraceFormat(&arg_stringified);
-  stream_ << arg_stringified;
+  char buffer[1024];
+  value->AppendAsTraceFormat(buffer, sizeof(buffer));
+  stream_ << buffer;
 }
 
 JSONTraceWriter::JSONTraceWriter(std::ostream& stream)

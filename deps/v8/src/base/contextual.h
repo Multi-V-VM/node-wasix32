@@ -11,7 +11,8 @@
 #include "src/base/macros.h"
 #include "src/base/platform/platform.h"
 
-namespace v8::base {
+namespace v8 {
+namespace base {
 
 // {ContextualVariable} provides a clean alternative to a global variable.
 // The contextual variable is mutable, and supports managing the value of
@@ -92,12 +93,14 @@ class V8_EXPORT_PRIVATE ContextualVariable {
 // exported. For this, place the following macro in the global namespace inside
 // of a .cc file.
 #define EXPORT_CONTEXTUAL_VARIABLE(VarName)                            \
-  namespace v8::base {                                                 \
+  namespace v8 {
+namespace base {                                                 \
   template <>                                                          \
   V8_EXPORT_PRIVATE typename VarName::Scope*&                          \
   ContextualVariable<VarName, typename VarName::VarT>::ExportedTop() { \
     return top_;                                                       \
   }                                                                    \
+  }  \
   }
 
 // By inheriting from {ContextualClass} a class can become a contextual variable
@@ -126,6 +129,7 @@ class V8_EXPORT_PRIVATE ContextualVariableWithDefault
   struct VarName                                               \
       : ::v8::base::ContextualVariableWithDefault<VarName, __VA_ARGS__> {}
 
-}  // namespace v8::base
+}  // namespace base
+}  // namespace v8
 
 #endif  // V8_BASE_CONTEXTUAL_H_

@@ -26,6 +26,7 @@
 #include "ares_private.h"
 #include "ares_llist.h"
 #include "ares_htable.h"
+#include <time.h>
 
 #define ARES__HTABLE_MAX_BUCKETS    (1U << 24)
 #define ARES__HTABLE_MIN_BUCKETS    (1U << 4)

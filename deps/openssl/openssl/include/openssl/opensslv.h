@@ -27,12 +27,9 @@ extern "C" {
  *
  * These macros express version number MAJOR.MINOR.PATCH exactly
  */
-#define OPENSSL_VERSION_MAJOR                                                  \
-  { -$config{major} - }
-#define OPENSSL_VERSION_MINOR                                                  \
-  { -$config{minor} - }
-#define OPENSSL_VERSION_PATCH                                                  \
-  { -$config{patch} - }
+#define OPENSSL_VERSION_MAJOR 3
+#define OPENSSL_VERSION_MINOR 2
+#define OPENSSL_VERSION_PATCH 0
 
 /*
  * Additional version information
@@ -60,8 +57,7 @@ extern "C" {
  * be related to the API version expressed with the macros above.
  * This is defined in free form.
  */
-#define OPENSSL_SHLIB_VERSION                                                  \
-  { -$config{shlib_version} - }
+#define OPENSSL_SHLIB_VERSION 3
 
 /*
  * SECTION 2: USEFUL MACROS

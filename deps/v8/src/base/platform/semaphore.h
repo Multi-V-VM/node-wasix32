@@ -65,6 +65,12 @@ class V8_BASE_EXPORT Semaphore {
   using NativeHandle = HANDLE;
 #elif V8_OS_STARBOARD
   using NativeHandle = starboard::Semaphore;
+#elif V8_TARGET_OS_WASI
+  // For WASI, we'll use a simple placeholder type
+  using NativeHandle = void*;
+#else
+  // Fallback for unknown platforms
+  using NativeHandle = void*;
 #endif
 
   NativeHandle& native_handle() {

@@ -18,7 +18,8 @@
 #include "src/base/bits.h"
 #include "src/base/macros.h"
 
-namespace v8::base {
+namespace v8 {
+namespace base {
 
 // base::hash is an implementation of the hash function object specified by
 // C++11. It was designed to be compatible with std::hash (in C++11) and
@@ -119,7 +120,7 @@ class Hasher {
   // Hash a value {t} and combine its hash into this hasher's hash.
   template <typename T>
   Hasher& Add(const T& t) {
-    return AddHash(base::hash<T>{}(t));
+    return AddHash(hash<T>{}(t));
   }
 
   // Hash a range of values and combine the hashes into this hasher's hash.
@@ -216,7 +217,7 @@ V8_INLINE size_t hash_value(unsigned long long v) {  // NOLINT(runtime/int)
 
 #define V8_BASE_HASH_VALUE_SIGNED(type)                  \
   V8_INLINE size_t hash_value(signed type v) {           \
-    return hash_value(base::bit_cast<unsigned type>(v)); \
+    return hash_value(bit_cast<unsigned type>(v)); \
   }
 V8_BASE_HASH_VALUE_SIGNED(char)
 V8_BASE_HASH_VALUE_SIGNED(short)      // NOLINT(runtime/int)
@@ -227,12 +228,12 @@ V8_BASE_HASH_VALUE_SIGNED(long long)  // NOLINT(runtime/int)
 
 V8_INLINE size_t hash_value(float v) {
   // 0 and -0 both hash to zero.
-  return v != 0.0f ? hash_value(base::bit_cast<uint32_t>(v)) : 0;
+  return v != 0.0f ? hash_value(bit_cast<uint32_t>(v)) : 0;
 }
 
 V8_INLINE size_t hash_value(double v) {
   // 0 and -0 both hash to zero.
-  return v != 0.0 ? hash_value(base::bit_cast<uint64_t>(v)) : 0;
+  return v != 0.0 ? hash_value(bit_cast<uint64_t>(v)) : 0;
 }
 
 template <typename T, size_t N>
@@ -358,7 +359,8 @@ V8_BASE_BIT_SPECIALIZE_BIT_CAST(float, uint32_t)
 V8_BASE_BIT_SPECIALIZE_BIT_CAST(double, uint64_t)
 #undef V8_BASE_BIT_SPECIALIZE_BIT_CAST
 
-}  // namespace v8::base
+}  // namespace base
+}  // namespace v8
 
 // Also define std::hash for all classes that can be hashed via v8::base::hash.
 namespace std {

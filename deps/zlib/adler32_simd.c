@@ -56,7 +56,7 @@
 #undef ADLER32_SIMD_RVV
 #endif
 
-#if defined(ADLER32_SIMD_SSSE3)
+#if defined(ADLER32_SIMD_SSSE3) && !defined(__wasi__)
 
 #include <tmmintrin.h>
 
@@ -203,7 +203,7 @@ uint32_t ZLIB_INTERNAL adler32_simd_(  /* SSSE3 */
     return s1 | (s2 << 16);
 }
 
-#elif defined(ADLER32_SIMD_NEON)
+#elif defined(ADLER32_SIMD_NEON) && !defined(__wasi__)
 
 #include <arm_neon.h>
 
@@ -360,7 +360,7 @@ uint32_t ZLIB_INTERNAL adler32_simd_(  /* NEON */
      */
     return s1 | (s2 << 16);
 }
-#endif  /* ADLER32_SIMD_SSSE3 */
+#endif  /* ADLER32_SIMD_SSSE3 || ADLER32_SIMD_NEON */
 
 /* Provide empty implementation for WASI */
 #ifdef __wasi__
