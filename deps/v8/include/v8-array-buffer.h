@@ -334,9 +334,6 @@ class V8_EXPORT ArrayBuffer : public Object {
    * preventing JavaScript from ever accessing underlying backing store.
    * ArrayBuffer should have been externalized and must be detachable.
    */
-  V8_DEPRECATED(
-      "Use the version which takes a key parameter (passing a null handle is "
-      "ok).")
   void Detach();
 
   /**

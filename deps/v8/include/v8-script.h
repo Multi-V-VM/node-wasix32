@@ -155,7 +155,6 @@ class V8_EXPORT ModuleRequest : public Data {
    */
   Local<FixedArray> GetImportAttributes() const;
 
-  V8_DEPRECATED("Use GetImportAttributes instead")
   Local<FixedArray> GetImportAssertions() const {
     return GetImportAttributes();
   }
@@ -383,7 +382,6 @@ class V8_EXPORT Script : public Data {
    * If the script was compiled, returns the positions of lazy functions which
    * were eventually compiled and executed.
    */
-  V8_DEPRECATE_SOON("Use GetCompileHintsCollector instead")
   std::vector<int> GetProducedCompileHints() const;
 
   /**

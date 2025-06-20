@@ -167,12 +167,6 @@ using AccessorNameSetterCallback =
  * the kind of cross-context access that should be allowed.
  *
  */
-enum V8_DEPRECATE_SOON(
-    "This enum is no longer used and will be removed in V8 12.9.")
-    AccessControl {
-      DEFAULT V8_ENUM_DEPRECATE_SOON("not used") = 0,
-    };
-
 /**
  * Property filter bits. They can be or'ed to build a composite filter.
  */
@@ -704,7 +698,6 @@ class V8_EXPORT Object : public Value {
    * Prefer using version with Isolate parameter.
    */
   MaybeLocal<Context> GetCreationContext(v8::Isolate* isolate);
-  V8_DEPRECATE_SOON("Use the version with the isolate argument.")
   MaybeLocal<Context> GetCreationContext();
 
   /**
@@ -713,7 +706,6 @@ class V8_EXPORT Object : public Value {
    * Prefer using version with Isolate parameter.
    **/
   Local<Context> GetCreationContextChecked(v8::Isolate* isolate);
-  V8_DEPRECATE_SOON("Use the version with the isolate argument.")
   Local<Context> GetCreationContextChecked();
 
   /** Same as above, but works for Persistents */
@@ -721,7 +713,6 @@ class V8_EXPORT Object : public Value {
       v8::Isolate* isolate, const PersistentBase<Object>& object) {
     return object.template value<Object>()->GetCreationContext(isolate);
   }
-  V8_DEPRECATE_SOON("Use the version with the isolate argument.")
   V8_INLINE static MaybeLocal<Context> GetCreationContext(
       const PersistentBase<Object>& object);
 

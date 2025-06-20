@@ -244,7 +244,7 @@ using LogEventCallback = void (*)(const char* name,
 enum class CrashKeyId {
   kIsolateAddress,
   kReadonlySpaceFirstPageAddress,
-  kMapSpaceFirstPageAddress V8_ENUM_DEPRECATE_SOON("Map space got removed"),
+  kMapSpaceFirstPageAddress,
   kOldSpaceFirstPageAddress,
   kCodeRangeBaseAddress,
   kCodeSpaceFirstPageAddress,

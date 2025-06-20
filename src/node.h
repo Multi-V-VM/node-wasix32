@@ -379,7 +379,7 @@ class NODE_EXTERN IsolatePlatformDelegate {
 
 class NODE_EXTERN MultiIsolatePlatform : public v8::Platform {
  public:
-  ~MultiIsolatePlatform() override = default;
+  ~MultiIsolatePlatform() = default;
   // Returns true if work was dispatched or executed. New tasks that are
   // posted during flushing of the queue are postponed until the next
   // flushing.

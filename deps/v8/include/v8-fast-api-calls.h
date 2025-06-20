@@ -235,7 +235,6 @@ namespace v8 {
 
 class Isolate;
 
-START_ALLOW_USE_DEPRECATED()
 class CTypeInfo {
  public:
   enum class Type : uint8_t {
@@ -305,7 +304,6 @@ class CTypeInfo {
   }
 
   constexpr Type GetType() const { return type_; }
-  V8_DEPRECATE_SOON("Use the constant SequenceType::kScalar instead")
   constexpr SequenceType GetSequenceType() const { return sequence_type_; }
   constexpr Flags GetFlags() const { return flags_; }
 
@@ -329,7 +327,6 @@ class CTypeInfo {
   SequenceType sequence_type_;
   Flags flags_;
 };
-END_ALLOW_USE_DEPRECATED()
 
 struct FastOneByteString {
   const char* data;

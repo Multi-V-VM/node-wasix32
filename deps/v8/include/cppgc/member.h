@@ -260,7 +260,7 @@ class V8_TRIVIAL_ABI BasicMember final : private MemberBase<StorageType>,
   // CFI cast exemption to allow passing SentinelPointer through T* and support
   // heterogeneous assignments between different Member and Persistent handles
   // based on their actual types.
-  V8_INLINE V8_CLANG_NO_SANITIZE("cfi-unrelated-cast") T* Get() const {
+  V8_INLINE T* Get() const {
     // Executed by the mutator, hence non atomic load.
     //
     // The const_cast below removes the constness from MemberBase storage. The

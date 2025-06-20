@@ -120,7 +120,7 @@ class Hasher {
   // Hash a value {t} and combine its hash into this hasher's hash.
   template <typename T>
   Hasher& Add(const T& t) {
-    return AddHash(hash<T>{}(t));
+    return AddHash(base::hash<T>{}(t));
   }
 
   // Hash a range of values and combine the hashes into this hasher's hash.

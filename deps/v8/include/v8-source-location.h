@@ -14,6 +14,8 @@
 
 namespace v8 {
 
+#ifndef V8_SOURCE_LOCATION_DEFINED
+#define V8_SOURCE_LOCATION_DEFINED
 /**
  * Simplified source location class for WASI
  */
@@ -40,6 +42,8 @@ class SourceLocation final {
   const char* file_ = nullptr;
   size_t line_ = 0u;
 };
+
+#endif  // V8_SOURCE_LOCATION_DEFINED
 
 }  // namespace v8
 

@@ -52,6 +52,8 @@ class IdleTask {
   virtual void Run(double deadline_in_seconds) = 0;
 };
 
+#ifndef V8_SOURCE_LOCATION_DEFINED
+#define V8_SOURCE_LOCATION_DEFINED
 /**
  * A simple source location class for v8.
  */
@@ -69,6 +71,8 @@ class SourceLocation {
   std::string ToString() const { return {}; }
 #endif
 };
+
+#endif  // V8_SOURCE_LOCATION_DEFINED
 
 // Minimal TaskRunner implementation for WASI
 class TaskRunner {

@@ -125,7 +125,7 @@ class V8_EXPORT Platform {
    */
   virtual std::unique_ptr<JobHandle> PostJob(
       TaskPriority priority, std::unique_ptr<JobTask> job_task) {
-    return nullptr;
+    return std::make_unique<JobHandle>();
   }
 
   /**

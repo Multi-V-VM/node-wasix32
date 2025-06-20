@@ -3,14 +3,13 @@
 
 #if defined(NODE_WANT_INTERNALS) && NODE_WANT_INTERNALS
 
-#if defined(__POSIX__) && !defined(__WASM__)
-#include <dlfcn.h>
-#endif
-
 #include "node.h"
 #define NAPI_EXPERIMENTAL
 #include "node_api.h"
 #include "uv.h"
+#ifdef __POSIX__
+#include <dlfcn.h>
+#endif
 
 enum {
   NM_F_BUILTIN = 1 << 0,  // Unused.
