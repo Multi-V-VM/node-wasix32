@@ -17,7 +17,7 @@
 
 namespace v8::internal::torque {
 
-class TypeOracle : public base::ContextualClass<TypeOracle> {
+class TypeOracle : public ContextualClass<TypeOracle> {
  public:
   static const AbstractType* GetAbstractType(
       const Type* parent, std::string name, AbstractTypeFlags flags,

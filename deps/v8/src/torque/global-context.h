@@ -18,7 +18,7 @@ namespace v8 {
 namespace internal {
 namespace torque {
 
-class GlobalContext : public base::ContextualClass<GlobalContext> {
+class GlobalContext : public ContextualClass<GlobalContext> {
  public:
   GlobalContext(GlobalContext&&) V8_NOEXCEPT = default;
   GlobalContext& operator=(GlobalContext&&) V8_NOEXCEPT = default;
@@ -155,7 +155,7 @@ T* RegisterDeclarable(std::unique_ptr<T> d) {
   return GlobalContext::Get().RegisterDeclarable(std::move(d));
 }
 
-class TargetArchitecture : public base::ContextualClass<TargetArchitecture> {
+class TargetArchitecture : public ContextualClass<TargetArchitecture> {
  public:
   explicit TargetArchitecture(bool force_32bit);
 

@@ -1,3 +1,6 @@
+#ifdef __wasi__
+#include "wasi/concepts-fix.h"
+#endif
 // Copyright 2021 the V8 project authors. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
@@ -26,6 +29,26 @@
 #define V8_HAVE_SPACESHIP_OPERATOR 0
 #endif
 
+#ifdef __wasi__
+// WASI compatibility - provide missing types and disable ranges
+namespace std {
+using contiguous_iterator_tag = output_iterator_tag;
+namespace ranges {
+template <typename T>
+inline constexpr bool enable_view = false;
+template <typename T>
+inline constexpr bool enable_borrowed_range = false;
+}  // namespace ranges
+}  // namespace std
+
+namespace v8 {
+
+template <typename T>
+class V8_EXPORT MemorySpan;
+
+}  // namespace v8
+
+#else
 // TODO(pkasting): Make this block unconditional after dropping support for old
 // libstdc++ versions.
 #if __has_include(<ranges>)
@@ -47,6 +70,7 @@ template <typename T>
 inline constexpr bool std::ranges::enable_borrowed_range<v8::MemorySpan<T>> =
     true;
 #endif
+#endif  // __wasi__
 
 namespace v8 {
 
@@ -164,7 +188,7 @@ class V8_EXPORT MemorySpan {
     // standard as part of the Ranges papers.
     // TODO(pkasting): Add this unconditionally after dropping support for old
     // libstdc++ versions.
-#if __has_include(<ranges>)
+#if __has_include(<ranges>) || defined(__wasi__)
     using iterator_concept = std::contiguous_iterator_tag;
 #endif
 

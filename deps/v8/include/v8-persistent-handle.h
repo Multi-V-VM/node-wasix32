@@ -1,3 +1,6 @@
+#ifdef __wasi__
+#include "wasi/concepts-fix.h"
+#endif
 // Copyright 2021 the V8 project authors. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
@@ -50,8 +53,12 @@ class Eternal : public api_internal::IndirectHandleBase {
    * Constructor for handling automatic up casting.
    */
   template <class S>
+#ifdef __wasi__
+  V8_INLINE Eternal(Isolate* isolate, Local<S> handle) {
+#else
     requires(std::is_base_of_v<T, S>)
   V8_INLINE Eternal(Isolate* isolate, Local<S> handle) {
+#endif
     Set(isolate, handle);
   }
 
@@ -63,12 +70,16 @@ class Eternal : public api_internal::IndirectHandleBase {
   }
 
   template <class S>
+#ifdef __wasi__
+  void Set(Isolate* isolate, Local<S> handle){
+#else
     requires(std::is_base_of_v<T, S>)
   void Set(Isolate* isolate, Local<S> handle) {
-    slot() =
-        api_internal::Eternalize(isolate, *handle.template UnsafeAs<Value>());
-  }
-};
+#endif
+      slot() = api_internal::Eternalize(isolate,
+                                        *handle.template UnsafeAs<Value>());
+}
+};  // namespace v8
 
 namespace api_internal {
 V8_EXPORT void MakeWeak(internal::Address* location, void* data,
@@ -260,10 +271,17 @@ class Persistent : public PersistentBase<T> {
    * pointing to the same object, and no flags are set.
    */
   template <class S>
+#ifdef __wasi__
+  V8_INLINE Persistent(Isolate* isolate, Local<S> that)
+      : PersistentBase<T>(PersistentBase<T>::New(isolate, nullptr)) {
+  }
+#else
     requires(std::is_base_of_v<T, S>)
   V8_INLINE Persistent(Isolate* isolate, Local<S> that)
       : PersistentBase<T>(
-            PersistentBase<T>::New(isolate, that.template value<S>())) {}
+            PersistentBase<T>::New(isolate, that.template value<S>())) {
+  }
+#endif
 
   /**
    * Construct a Persistent from a Persistent with automatic up casting.
@@ -271,10 +289,17 @@ class Persistent : public PersistentBase<T> {
    * pointing to the same object, and no flags are set.
    */
   template <class S, class M2>
+#ifdef __wasi__
+  V8_INLINE Persistent(Isolate* isolate, const Persistent<S, M2>& that)
+      : PersistentBase<T>(PersistentBase<T>::New(isolate, nullptr)) {
+  }
+#else
     requires(std::is_base_of_v<T, S>)
   V8_INLINE Persistent(Isolate* isolate, const Persistent<S, M2>& that)
       : PersistentBase<T>(
-            PersistentBase<T>::New(isolate, that.template value<S>())) {}
+            PersistentBase<T>::New(isolate, that.template value<S>())) {
+  }
+#endif
 
   /**
    * The copy constructors and assignment operator create a Persistent
@@ -359,7 +384,6 @@ class Global : public PersistentBase<T> {
    * pointing to the same object, and no flags are set.
    */
   template <class S>
-    requires(std::is_base_of_v<T, S>)
   V8_INLINE Global(Isolate* isolate, Local<S> that)
       : PersistentBase<T>(
             PersistentBase<T>::New(isolate, that.template value<S>())) {}
@@ -370,10 +394,17 @@ class Global : public PersistentBase<T> {
    * pointing to the same object, and no flags are set.
    */
   template <class S>
+#ifdef __wasi__
+  V8_INLINE Global(Isolate* isolate, const PersistentBase<S>& that)
+      : PersistentBase<T>(PersistentBase<T>::New(isolate, nullptr)) {
+  }
+#else
     requires(std::is_base_of_v<T, S>)
   V8_INLINE Global(Isolate* isolate, const PersistentBase<S>& that)
       : PersistentBase<T>(
-            PersistentBase<T>::New(isolate, that.template value<S>())) {}
+            PersistentBase<T>::New(isolate, that.template value<S>())) {
+  }
+#endif
 
   /**
    * Move constructor.
@@ -416,7 +447,7 @@ using UniquePersistent = Global<T>;
 class V8_EXPORT PersistentHandleVisitor {
  public:
   virtual ~PersistentHandleVisitor() = default;
-  virtual void VisitPersistentHandle(Persistent<Value>* value,
+  virtual void VisitPersistentHandle(Persistent<Value, void>* value,
                                      uint16_t class_id) {}
 };
 

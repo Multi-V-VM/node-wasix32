@@ -120,7 +120,7 @@ class Hasher {
   // Hash a value {t} and combine its hash into this hasher's hash.
   template <typename T>
   Hasher& Add(const T& t) {
-    return AddHash(base::hash<T>{}(t));
+    return AddHash(hash<T>{}(t));
   }
 
   // Hash a range of values and combine the hashes into this hasher's hash.
@@ -215,8 +215,8 @@ V8_INLINE size_t hash_value(unsigned long long v) {  // NOLINT(runtime/int)
   return hash_value_unsigned_impl(v);
 }
 
-#define V8_BASE_HASH_VALUE_SIGNED(type)                  \
-  V8_INLINE size_t hash_value(signed type v) {           \
+#define V8_BASE_HASH_VALUE_SIGNED(type)            \
+  V8_INLINE size_t hash_value(signed type v) {     \
     return hash_value(bit_cast<unsigned type>(v)); \
   }
 V8_BASE_HASH_VALUE_SIGNED(char)
@@ -341,19 +341,19 @@ V8_BASE_BIT_SPECIALIZE_TRIVIAL(long long)           // NOLINT(runtime/int)
 V8_BASE_BIT_SPECIALIZE_TRIVIAL(unsigned long long)  // NOLINT(runtime/int)
 #undef V8_BASE_BIT_SPECIALIZE_TRIVIAL
 
-#define V8_BASE_BIT_SPECIALIZE_BIT_CAST(type, btype)                   \
-  template <>                                                          \
-  struct bit_equal_to<type> {                                          \
-    V8_INLINE bool operator()(type lhs, type rhs) const {              \
-      return base::bit_cast<btype>(lhs) == base::bit_cast<btype>(rhs); \
-    }                                                                  \
-  };                                                                   \
-  template <>                                                          \
-  struct bit_hash<type> {                                              \
-    V8_INLINE size_t operator()(type v) const {                        \
-      hash<btype> h;                                                   \
-      return h(base::bit_cast<btype>(v));                              \
-    }                                                                  \
+#define V8_BASE_BIT_SPECIALIZE_BIT_CAST(type, btype)       \
+  template <>                                              \
+  struct bit_equal_to<type> {                              \
+    V8_INLINE bool operator()(type lhs, type rhs) const {  \
+      return bit_cast<btype>(lhs) == bit_cast<btype>(rhs); \
+    }                                                      \
+  };                                                       \
+  template <>                                              \
+  struct bit_hash<type> {                                  \
+    V8_INLINE size_t operator()(type v) const {            \
+      hash<btype> h;                                       \
+      return h(bit_cast<btype>(v));                        \
+    }                                                      \
   };
 V8_BASE_BIT_SPECIALIZE_BIT_CAST(float, uint32_t)
 V8_BASE_BIT_SPECIALIZE_BIT_CAST(double, uint64_t)

@@ -31,7 +31,11 @@
 #include <netinet/in.h>
 #include <netinet/tcp.h>
 #include <arpa/inet.h>
-#include <netdb.h>  /* MAXHOSTNAMELEN on Solaris */
+#ifdef __wasi__
+#include "wasi/netdb.h"
+#else
+#include <netdb.h>
+#endif  /* MAXHOSTNAMELEN on Solaris */
 
 #include <termios.h>
 #include <pwd.h>

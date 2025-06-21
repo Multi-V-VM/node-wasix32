@@ -1,3 +1,6 @@
+#ifdef __wasi__
+#include "wasi/concepts-fix.h"
+#endif
 // Copyright 2021 the V8 project authors. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
@@ -669,9 +672,6 @@ class V8_EXPORT String : public Name {
    */
   class V8_EXPORT Value {
    public:
-    V8_DEPRECATED_SOON(
-        "Prefer using String::ValueView if you can, or string->Write to a "
-        "buffer if you cannot.")
     Value(Isolate* isolate, Local<v8::Value> obj);
     ~Value();
     uint16_t* operator*() { return str_; }
@@ -731,9 +731,7 @@ class V8_EXPORT String : public Name {
     uint32_t length_;
     bool is_one_byte_;
     // Avoid exposing the internal DisallowGarbageCollection scope.
-    alignas(internal::Internals::
-                kDisallowGarbageCollectionAlign) char no_gc_debug_scope_
-        [internal::Internals::kDisallowGarbageCollectionSize];
+    char no_gc_debug_scope_[1];
   };
 
  private:

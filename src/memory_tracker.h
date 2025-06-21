@@ -1,3 +1,14 @@
+#ifdef __wasi__
+// WASI stub for memory_tracker.h
+#include <cstddef>
+namespace node {
+class MemoryTracker {
+public:
+  template<typename T> void TrackField(const char* name, const T& value) {}
+  template<typename T> void TrackFieldWithSize(const char* name, const T& value, size_t size = 0) {}
+};
+}
+#else
 #pragma once
 
 #if defined(NODE_WANT_INTERNALS) && NODE_WANT_INTERNALS
@@ -331,3 +342,4 @@ class MemoryTracker {
 }  // namespace node
 
 #endif  // defined(NODE_WANT_INTERNALS) && NODE_WANT_INTERNALS
+#endif // __wasi__

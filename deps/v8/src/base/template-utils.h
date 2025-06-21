@@ -5,6 +5,10 @@
 #ifndef V8_BASE_TEMPLATE_UTILS_H_
 #define V8_BASE_TEMPLATE_UTILS_H_
 
+#ifdef __wasi__
+#include "../../include/wasi/concepts-fix.h"
+#endif
+
 #include <stddef.h>
 
 #include <array>

@@ -93,14 +93,14 @@ class V8_EXPORT_PRIVATE ContextualVariable {
 // exported. For this, place the following macro in the global namespace inside
 // of a .cc file.
 #define EXPORT_CONTEXTUAL_VARIABLE(VarName)                            \
-  namespace v8 {
-namespace base {                                                 \
+  namespace v8 {                                                       \
+  namespace base {                                                     \
   template <>                                                          \
   V8_EXPORT_PRIVATE typename VarName::Scope*&                          \
   ContextualVariable<VarName, typename VarName::VarT>::ExportedTop() { \
     return top_;                                                       \
   }                                                                    \
-  }  \
+  }                                                                    \
   }
 
 // By inheriting from {ContextualClass} a class can become a contextual variable

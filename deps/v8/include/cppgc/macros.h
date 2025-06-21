@@ -1,3 +1,6 @@
+#ifdef __wasi__
+#include "wasi/concepts-fix.h"
+#endif
 // Copyright 2020 the V8 project authors. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
@@ -47,9 +50,14 @@ namespace cppgc {
 
 #endif  // !defined(__clang__)
 
+#ifdef __wasi__
 template <typename T>
-concept IsStackAllocatedType =
+constexpr bool IsStackAllocatedType = false;
+#else
+template <typename T>
+bool IsStackAllocatedType =
     requires { typename T::IsStackAllocatedTypeMarker; };
+#endif
 
 }  // namespace cppgc
 

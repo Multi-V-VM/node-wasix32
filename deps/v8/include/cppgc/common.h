@@ -1,28 +1,16 @@
-// Copyright 2020 the V8 project authors. All rights reserved.
-// Use of this source code is governed by a BSD-style license that can be
-// found in the LICENSE file.
+#ifdef __wasi__
+#include "wasi/concepts-fix.h"
+#endif
+#ifndef CPPGC_COMMON_H_
+#define CPPGC_COMMON_H_
 
-#ifndef INCLUDE_CPPGC_COMMON_H_
-#define INCLUDE_CPPGC_COMMON_H_
-
-#include "v8config.h"  // NOLINT(build/include_directory)
-
+#ifdef __wasi__
+// WASI stub for cppgc common
 namespace cppgc {
+enum class EmbedderStackState { kEmpty, kNonEmpty };
+}
+#else
+// Include real cppgc/common.h for non-WASI
+#endif
 
-/**
- *  Indicator for the stack state of the embedder.
- */
-enum class EmbedderStackState {
-  /**
-   * Stack may contain interesting heap pointers.
-   */
-  kMayContainHeapPointers,
-  /**
-   * Stack does not contain any interesting heap pointers.
-   */
-  kNoHeapPointers,
-};
-
-}  // namespace cppgc
-
-#endif  // INCLUDE_CPPGC_COMMON_H_
+#endif  // CPPGC_COMMON_H_

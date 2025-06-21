@@ -14,6 +14,28 @@
 #include "simdutf.h"
 #include "uv.h"
 
+#ifdef __wasi__
+// WASI compatibility - provide missing C++20 string methods
+inline bool wasi_ends_with(const std::string& str, const std::string& suffix) {
+  if (suffix.length() > str.length()) return false;
+  return str.compare(str.length() - suffix.length(), suffix.length(), suffix) ==
+         0;
+}
+
+inline bool wasi_ends_with(const std::string_view& str,
+                           const std::string_view& suffix) {
+  if (suffix.length() > str.length()) return false;
+  return str.compare(str.length() - suffix.length(), suffix.length(), suffix) ==
+         0;
+}
+
+inline bool wasi_starts_with(const std::string& str,
+                             const std::string& prefix) {
+  if (prefix.length() > str.length()) return false;
+  return str.compare(0, prefix.length(), prefix) == 0;
+}
+#endif
+
 #if defined(_WIN32)
 #include <io.h>  // _S_IREAD _S_IWRITE
 #ifndef S_IRUSR
@@ -24,15 +46,17 @@
 #endif  // S_IWUSR
 #endif
 extern "C" {
-   void *__cxa_allocate_exception(size_t size) throw() {
-      abort();
-   }
+void* __cxa_allocate_exception(size_t size) throw() {
+  abort();
+}
 
-   void __cxa_throw(void *exception, std::type_info *tinfo, void (*dest)(void *)) throw() {
-      abort();
-   }
+void __cxa_throw(void* exception,
+                 std::type_info* tinfo,
+                 void (*dest)(void*)) throw() {
+  abort();
+}
 
-   void uv__process_title_cleanup(void){}
+void uv__process_title_cleanup(void) {}
 }
 namespace node {
 namespace js2c {
@@ -82,7 +106,11 @@ size_t GetFileSize(const std::string& filename, int* error) {
 }
 
 constexpr bool FilenameIsConfigGypi(const std::string_view path) {
+#ifdef __wasi__
+  return path == "config.gypi" || wasi_ends_with(path, "/config.gypi");
+#else
   return path == "config.gypi" || path.ends_with("/config.gypi");
+#endif
 }
 
 typedef std::vector<std::string> FileList;
@@ -115,7 +143,11 @@ bool SearchFiles(const std::string& dir,
       }
 
       std::string path = dir + '/' + dent.name;
+#ifdef __wasi__
+      if (wasi_ends_with(path, std::string(extension))) {
+#else
       if (path.ends_with(extension)) {
+#endif
         files.emplace_back(path);
         continue;
       }
@@ -148,7 +180,11 @@ constexpr std::string_view libPrefix = "lib/";
 constexpr std::string_view HasAllowedExtensions(
     const std::string_view filename) {
   for (const auto& ext : {kGypiSuffix, kJsSuffix, kMjsSuffix}) {
+#ifdef __wasi__
+    if (wasi_ends_with(filename, ext)) {
+#else
     if (filename.ends_with(ext)) {
+#endif
       return ext;
     }
   }
@@ -340,6 +376,23 @@ std::string GetFileId(const std::string& filename) {
   size_t start = 0;
   std::string prefix;
   // Strip .mjs and .js suffix
+#ifdef __wasi__
+  if (wasi_ends_with(std::string(filename), std::string(kMjsSuffix))) {
+    end -= kMjsSuffix.size();
+  } else if (wasi_ends_with(std::string(filename), std::string(kJsSuffix))) {
+    end -= kJsSuffix.size();
+  }
+
+  // deps/acorn/acorn/dist/acorn.js -> internal/deps/acorn/acorn/dist/acorn
+  if (wasi_starts_with(std::string(filename), std::string(depsPrefix))) {
+    start = depsPrefix.size();
+    prefix = "internal/deps/";
+  } else if (wasi_starts_with(std::string(filename), std::string(libPrefix))) {
+    // lib/internal/url.js -> internal/url
+    start = libPrefix.size();
+    prefix = "";
+  }
+#else
   if (filename.ends_with(kMjsSuffix)) {
     end -= kMjsSuffix.size();
   } else if (filename.ends_with(kJsSuffix)) {
@@ -355,6 +408,7 @@ std::string GetFileId(const std::string& filename) {
     start = libPrefix.size();
     prefix = "";
   }
+#endif
 
   return prefix + std::string(filename.begin() + start, filename.begin() + end);
 }

@@ -1,3 +1,6 @@
+#ifdef __wasi__
+#include "wasi/concepts-fix.h"
+#endif
 // Copyright 2020 the V8 project authors. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
@@ -268,5 +271,9 @@ template <typename T>
 constexpr bool IsAnyMemberTypeV = internal::IsAnyMemberTypeV<std::decay_t<T>>;
 
 }  // namespace cppgc
+
+#else
+// Non-WASI: Original type traits would go here
+#endif  // __wasi__
 
 #endif  // INCLUDE_CPPGC_TYPE_TRAITS_H_

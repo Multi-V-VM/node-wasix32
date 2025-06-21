@@ -1,3 +1,6 @@
+#ifdef __wasi__
+#include "wasi/concepts-fix.h"
+#endif
 /* WebAssembly/WASI config for V8 */
 #ifndef V8_INCLUDE_WASI_V8CONFIG_WASI_H_
 #define V8_INCLUDE_WASI_V8CONFIG_WASI_H_

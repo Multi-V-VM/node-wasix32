@@ -1,3 +1,6 @@
+#ifdef __wasi__
+#include "wasi/concepts-fix.h"
+#endif
 // WASI 环境的辅助定义
 #ifndef V8_INCLUDE_WASI_HELPERS_H_
 #define V8_INCLUDE_WASI_HELPERS_H_

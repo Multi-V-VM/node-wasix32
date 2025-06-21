@@ -400,24 +400,6 @@ DEFINE_CMP_IMPL(GT, >)
   V8_INLINE constexpr bool Cmp##NAME##Impl(Lhs lhs, Rhs rhs) { \
     return IMPL;                                               \
   }
-DEFINE_SIGNED_MISMATCH_COMP(is_signed_vs_unsigned, EQ,
-                            lhs >= 0 && MAKE_UNSIGNED(Lhs, lhs) ==
-                                            MAKE_UNDERLYING(Rhs, rhs))
-DEFINE_SIGNED_MISMATCH_COMP(is_signed_vs_unsigned, LT,
-                            lhs < 0 || MAKE_UNSIGNED(Lhs, lhs) <
-                                           MAKE_UNDERLYING(Rhs, rhs))
-DEFINE_SIGNED_MISMATCH_COMP(is_signed_vs_unsigned, LE,
-                            lhs <= 0 || MAKE_UNSIGNED(Lhs, lhs) <=
-                                            MAKE_UNDERLYING(Rhs, rhs))
-DEFINE_SIGNED_MISMATCH_COMP(is_signed_vs_unsigned, NE, !CmpEQImpl(lhs, rhs))
-DEFINE_SIGNED_MISMATCH_COMP(is_signed_vs_unsigned, GT, !CmpLEImpl(lhs, rhs))
-DEFINE_SIGNED_MISMATCH_COMP(is_signed_vs_unsigned, GE, !CmpLTImpl(lhs, rhs))
-DEFINE_SIGNED_MISMATCH_COMP(is_unsigned_vs_signed, EQ, CmpEQImpl(rhs, lhs))
-DEFINE_SIGNED_MISMATCH_COMP(is_unsigned_vs_signed, NE, CmpNEImpl(rhs, lhs))
-DEFINE_SIGNED_MISMATCH_COMP(is_unsigned_vs_signed, LT, CmpGTImpl(rhs, lhs))
-DEFINE_SIGNED_MISMATCH_COMP(is_unsigned_vs_signed, LE, CmpGEImpl(rhs, lhs))
-DEFINE_SIGNED_MISMATCH_COMP(is_unsigned_vs_signed, GT, CmpLTImpl(rhs, lhs))
-DEFINE_SIGNED_MISMATCH_COMP(is_unsigned_vs_signed, GE, CmpLEImpl(rhs, lhs))
 #undef MAKE_UNSIGNED
 #undef DEFINE_SIGNED_MISMATCH_COMP
 
