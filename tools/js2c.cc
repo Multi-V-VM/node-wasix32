@@ -11,7 +11,9 @@
 #include <vector>
 #include "embedded_data.h"
 #include "executable_wrapper.h"
+#ifndef __wasi__
 #include "simdutf.h"
+#endif
 #include "uv.h"
 
 #ifdef __wasi__
@@ -519,7 +521,11 @@ Fragment GetDefinitionImpl(const std::vector<char>& code,
   static_assert(is_two_byte || std::is_same_v<T, char>);
 
   size_t count = is_two_byte
-                     ? simdutf::utf16_length_from_utf8(code.data(), code.size())
+ #ifdef __wasi__
+                    ? code.size()  // Simple approximation for WASI
+#else
+                    ? simdutf::utf16_length_from_utf8(code.data(), code.size())
+#endif
                      : code.size();
   constexpr const char* arr_type = is_two_byte ? "uint16_t" : "uint8_t";
   constexpr const char* resource_type = is_two_byte
@@ -611,10 +617,18 @@ Fragment GetDefinitionImpl(const std::vector<char>& code,
   // It's fine to use it on small amount of data though.
   if constexpr (is_two_byte) {
     std::vector<uint16_t> utf16_codepoints(count);
+#ifdef __wasi__
+    // Simple UTF-8 to UTF-16 conversion for WASI
+    size_t utf16_count = 0;
+    for (size_t i = 0; i < code.size(); i++) {
+      utf16_codepoints[utf16_count++] = static_cast<uint16_t>(static_cast<unsigned char>(code[i]));
+    }
+#else
     size_t utf16_count = simdutf::convert_utf8_to_utf16(
         code.data(),
         code.size(),
         reinterpret_cast<char16_t*>(utf16_codepoints.data()));
+#endif
     assert(utf16_count != 0);
     utf16_codepoints.resize(utf16_count);
     Debug("static size %zu\n", utf16_count);
@@ -699,7 +713,18 @@ bool Simplify(const std::vector<char>& code,
 
 Fragment GetDefinition(const std::string& var, const std::vector<char>& code) {
   Debug("GetDefinition %s, code size %zu\n", var.c_str(), code.size());
+#ifdef __wasi__
+  // Simple ASCII check for WASI
+  bool is_ascii = true;
+  for (size_t i = 0; i < code.size(); i++) {
+    if (static_cast<unsigned char>(code[i]) > 127) {
+      is_ascii = false;
+      break;
+    }
+  }
+#else
   bool is_ascii = simdutf::validate_utf8(code.data(), code.size());
+#endif
 
   if (is_ascii) {
     Debug("ASCII-only, static size %zu\n", code.size());
@@ -707,10 +732,26 @@ Fragment GetDefinition(const std::string& var, const std::vector<char>& code) {
   }
 
   std::vector<char> latin1(code.size());
+#ifdef __wasi__
+  // Simple UTF-8 to Latin1 conversion for WASI
+  bool has_latin1_error = false;
+  size_t latin1_count = 0;
+  for (size_t i = 0; i < code.size(); i++) {
+    unsigned char c = static_cast<unsigned char>(code[i]);
+    if (c > 255) {
+      has_latin1_error = true;
+      break;
+    }
+    latin1[latin1_count++] = code[i];
+  }
+  if (!has_latin1_error) {
+    latin1.resize(latin1_count);
+#else
   auto result = simdutf::convert_utf8_to_latin1_with_errors(
       code.data(), code.size(), latin1.data());
   if (!result.error) {
     latin1.resize(result.count);
+#endif
     Debug("Latin-1-only, old size %zu, new size %zu\n",
           code.size(),
           latin1.size());

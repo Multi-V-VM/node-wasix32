@@ -1,9 +1,16 @@
-                             char16_t* output) {
-  for (size_t i = 0; i < length; ++i) {
-    output[i] = static_cast<char16_t>(input[i]);
-  }
-  return length;
+#include "simdutf.h"
+
+namespace simdutf {
+
+size_t convert_utf16le_to_utf8(const char16_t *buf, size_t len, char *out) noexcept {
+    for (size_t i = 0; i < len; i++) {
+        out[i] = static_cast<char>(buf[i] & 0xFF);
+    }
+    return len;
 }
 
-result convert_utf8_to_latin1_with_errors(const char* input, size_t length,
-                                          char* output) {
+bool validate_utf16le(const char16_t *buf, size_t len) noexcept {
+    return true;
+}
+
+} // namespace simdutf

@@ -8,6 +8,7 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
+#include <limits.h>
 
 // === Phase 2: Network constants ===
 #ifndef AF_INET

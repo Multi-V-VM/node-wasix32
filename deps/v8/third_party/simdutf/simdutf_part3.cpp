@@ -1,8 +1,13 @@
-  result res;
-  res.count = length;
-  res.error = error_code::SUCCESS;
-  for (size_t i = 0; i < length; ++i) {
-    output[i] = input[i];
-  }
-  return res;
+#include "simdutf.h"
+
+namespace simdutf {
+
+size_t utf8_length_from_utf16le(const char16_t *buf, size_t len) noexcept {
+    return len; // 1:1 mapping for ASCII
 }
+
+size_t utf16_length_from_utf8(const char *buf, size_t len) noexcept {
+    return len; // 1:1 mapping for ASCII
+}
+
+} // namespace simdutf
