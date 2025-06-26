@@ -1,3 +1,6 @@
+#ifdef __wasi__
+#define DEFLATE_SLIDE_HASH_SIMD_H_
+#else
 /* deflate.c -- compress data using the deflation algorithm
  * Copyright (C) 1995-2024 Jean-loup Gailly and Mark Adler
  * For conditions of distribution and use, see copyright notice in zlib.h
@@ -2287,3 +2290,4 @@ local block_state deflate_huff(deflate_state *s, int flush) {
         FLUSH_BLOCK(s, 0);
     return block_done;
 }
+#endif

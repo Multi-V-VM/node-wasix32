@@ -16,7 +16,6 @@
 // Disable problematic features
 #define V8_ENABLE_SANDBOX 0
 #define V8_ENABLE_MAGLEV 0
-#define V8_ENABLE_TURBOFAN 0
 #define V8_COMPRESS_POINTERS 0
 #define V8_31BIT_SMIS_ON_64BIT_ARCH 0
 #define V8_ENABLE_POINTER_COMPRESSION 0

@@ -1,3 +1,7 @@
+#ifdef __wasi__
+// Disable CPU features detection for WASI
+void cpu_check_features(void) { /* no-op */ }
+#else
 /* cpu_features.c -- Processor features detection.
  *
  * Copyright 2018 The Chromium Authors
@@ -211,3 +215,4 @@ static void _cpu_check_features(void)
 }
 #endif // ARM | x86 | RISCV
 #endif // NO SIMD CPU
+#endif

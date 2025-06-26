@@ -1,83 +1,60 @@
-#ifndef SIMDUTF_H
-#define SIMDUTF_H
+// WASI-compatible simdutf header
+#ifndef SIMDUTF_H_WASI
+#define SIMDUTF_H_WASI
 
-// WASI-compatible simdutf implementation
+#include <cstddef>
+#include <cstdint>
+
 #ifdef __wasi__
-#include "../../include/wasi/concepts-fix.h"
-#endif
 
-#include <stddef.h>
-#include <stdint.h>
-
-// Macro definitions
-#define simdutf_really_inline inline
+// Define the macro if not already defined
+#ifndef simdutf_warn_unused
 #define simdutf_warn_unused
+#endif
 
 namespace simdutf {
 
-// Basic result structure
 struct result {
-  size_t count;
-  bool error;
-  result() : count(0), error(false) {}
-  result(size_t c, bool e) : count(c), error(e) {}
+    size_t count;
+    int error;
 };
 
-// Encoding types
-enum encoding { UTF8 = 1, UTF16_LE = 2, UTF16_BE = 3, UTF32_LE = 4, UTF32_BE = 5 };
-
-// Basic validation functions
-inline bool validate_utf8(const char* buf, size_t len) { return true; }
-inline bool validate_utf16le(const char16_t* buf, size_t len) { return true; }
-inline bool validate_utf16be(const char16_t* buf, size_t len) { return true; }
-inline bool validate_utf32(const char32_t* buf, size_t len) { return true; }
-inline bool validate_ascii(const char* buf, size_t len) { return true; }
-
-// Basic conversion functions
-inline size_t convert_utf8_to_utf16le(const char* input, size_t length, char16_t* output) { return 0; }
-inline size_t convert_utf8_to_utf16be(const char* input, size_t length, char16_t* output) { return 0; }
-inline size_t convert_utf16le_to_utf8(const char16_t* input, size_t length, char* output) { return 0; }
-inline size_t convert_utf16be_to_utf8(const char16_t* input, size_t length, char* output) { return 0; }
-
-// Additional functions needed by js2c
-inline size_t utf16_length_from_utf8(const char* input, size_t length) { return length; }
-inline size_t convert_utf8_to_utf16(const char* input, size_t length, char16_t* output) { return 0; }
-
-// Error handling types for conversion
-struct error_code {
-  enum type { INVALID_UTF8, SUCCESS };
-};
-
-inline result convert_utf8_to_latin1_with_errors(const char* input, size_t length, char* output) {
-  return result(0, false);
+namespace error_code {
+    constexpr int SUCCESS = 0;
+    constexpr int INVALID_UTF8 = 1;
 }
 
-// Simplified span support for WASI
-namespace detail {
-  template<typename T> using input_span_of_byte_like = T;
-  template<typename T> using output_span_of_byte_like = T;
+// Function declarations (these are implemented in simdutf_wasi.cpp)
+simdutf_warn_unused bool validate_utf8(const char* buf, size_t len) noexcept;
+simdutf_warn_unused bool validate_utf16le(const char16_t* buf, size_t len) noexcept;
+simdutf_warn_unused bool validate_utf16be(const char16_t* buf, size_t len) noexcept;
+simdutf_warn_unused bool validate_utf32(const char32_t* buf, size_t len) noexcept;
+
+simdutf_warn_unused size_t utf8_length_from_utf16le(const char16_t* input, size_t length) noexcept;
+simdutf_warn_unused size_t utf8_length_from_utf16be(const char16_t* input, size_t length) noexcept;
+simdutf_warn_unused size_t utf16_length_from_utf8(const char* input, size_t length) noexcept;
+
+simdutf_warn_unused size_t convert_utf8_to_utf16le(const char* input, size_t length, char16_t* output) noexcept;
+simdutf_warn_unused size_t convert_utf8_to_utf16be(const char* input, size_t length, char16_t* output) noexcept;
+simdutf_warn_unused size_t convert_utf16le_to_utf8(const char16_t* input, size_t length, char* output) noexcept;
+simdutf_warn_unused size_t convert_utf16be_to_utf8(const char16_t* input, size_t length, char* output) noexcept;
+
+// Aliases for compatibility
+inline size_t convert_utf8_to_utf16(const char* input, size_t length, char16_t* output) noexcept {
+    return convert_utf8_to_utf16le(input, length, output);
 }
 
-// Template functions (simplified for WASI)
-template<typename T> inline bool validate_utf8(const T& input) { return true; }
-template<typename T> inline bool validate_utf16le(const T& input) { return true; }
-template<typename T> inline bool validate_utf16be(const T& input) { return true; }
+inline result convert_utf8_to_latin1_with_errors(const char* input, size_t length, char* output) noexcept {
+    result res;
+    res.count = length;
+    res.error = error_code::SUCCESS;
+    for (size_t i = 0; i < length; ++i) {
+        output[i] = input[i];
+    }
+    return res;
+}
 
-template<typename T, typename U> 
-inline result convert_latin1_to_utf8(const T& input, U&& output) { return result(0, false); }
+}  // namespace simdutf
 
-template<typename T, typename U>
-inline result convert_latin1_to_utf16le(const T& input, U&& output) { return result(0, false); }
-
-template<typename T, typename U>
-inline result convert_latin1_to_utf16be(const T& input, U&& output) { return result(0, false); }
-
-template<typename T, typename U>
-inline result convert_utf8_to_utf16le(const T& input, U&& output) { return result(0, false); }
-
-template<typename T, typename U>
-inline result convert_utf8_to_utf16be(const T& input, U&& output) { return result(0, false); }
-
-} // namespace simdutf
-
-#endif // SIMDUTF_H
+#endif // __wasi__
+#endif // SIMDUTF_H_WASI

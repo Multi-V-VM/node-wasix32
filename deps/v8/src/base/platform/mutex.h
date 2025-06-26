@@ -58,7 +58,11 @@ class V8_BASE_EXPORT Mutex final {
   V8_INLINE void AssertHeld() const {
     // If this access results in a race condition being detected by TSan, this
     // means that you in fact did *not* hold the mutex.
+    #ifdef __wasi__
+    // Skip level check for WASI
+#else
     DCHECK_EQ(1, level_);
+#endif
   }
 
  private:
@@ -72,7 +76,11 @@ class V8_BASE_EXPORT Mutex final {
 #ifdef DEBUG
     // If this access results in a race condition being detected by TSan, this
     // means that you in fact did *not* hold the mutex.
+    #ifdef __wasi__
+    // Skip level check for WASI
+#else
     DCHECK_EQ(1, level_);
+#endif
     level_--;
 #endif
   }

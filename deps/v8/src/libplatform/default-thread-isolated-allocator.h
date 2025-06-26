@@ -18,15 +18,15 @@ class V8_PLATFORM_EXPORT DefaultThreadIsolatedAllocator
  public:
   DefaultThreadIsolatedAllocator();
 
-  ~DefaultThreadIsolatedAllocator() override;
+  ~DefaultThreadIsolatedAllocator();
 
-  void* Allocate(size_t size) override;
+  void* Allocate(size_t size);
 
-  void Free(void* object) override;
+  void Free(void* object);
 
-  enum Type Type() const override;
+  enum Type Type() const;
 
-  int Pkey() const override;
+  int Pkey() const;
 
   bool Valid() const;
 

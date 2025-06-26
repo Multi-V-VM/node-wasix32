@@ -35,6 +35,11 @@
 /* EAI_* constants. */
 #include <netdb.h>
 
+#ifdef __wasi__
+/* Additional WASI networking includes */
+#include <sys/socket.h>
+#endif
+
 
 int uv__getaddrinfo_translate_error(int sys_err) {
   switch (sys_err) {

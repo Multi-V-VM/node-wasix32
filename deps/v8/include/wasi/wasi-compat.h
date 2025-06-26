@@ -87,7 +87,7 @@ enum class byte : unsigned char {};
 // C++20 concepts fallback - always define these as they're newer
 #ifndef __cpp_concepts
 #define concept bool
-#define requires(...) true ||
+#define requires(...) true
 #endif
 
 // Function attributes for WASI

@@ -1,6 +1,9 @@
 #ifdef __wasi__
 #include "wasi/concepts-fix.h"
 #endif
+#ifdef __wasi__
+#include "wasi-clean/clean-wasi-fix.h"
+#endif
 // Copyright 2012 the V8 project authors. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
@@ -84,7 +87,6 @@ class Platform;
 /**
  * \example process.cc
  */
-
 
 }  // namespace v8
 

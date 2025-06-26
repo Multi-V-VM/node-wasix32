@@ -177,7 +177,7 @@ static inline unsigned char FAR* chunkunroll_relaxed(unsigned char FAR* out,
   }
   return out;
 }
-
+#undef INFLATE_CHUNK_SIMD_NEON
 #if defined(INFLATE_CHUNK_SIMD_NEON)
 /*
  * v_load64_dup(): load *src as an unaligned 64-bit int and duplicate it in

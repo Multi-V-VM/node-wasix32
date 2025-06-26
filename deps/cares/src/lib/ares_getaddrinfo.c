@@ -1,3 +1,6 @@
+#ifdef __wasi__
+#include "wasi/cares-wasi-comprehensive-fix.h"
+#endif
 /* MIT License
  *
  * Copyright (c) 1998, 2011, 2013 Massachusetts Institute of Technology

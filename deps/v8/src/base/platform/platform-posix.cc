@@ -1,3 +1,10 @@
+#ifdef __wasi__
+#define kInvalidSharedMemoryHandle -1
+static int FileDescriptorFromSharedMemoryHandle(int handle) { return handle; }
+const char* GetGCFakeMMapFile() { return nullptr; }
+#define DISABLE_CFI_ICALL
+#endif
+
 // Copyright 2012 the V8 project authors. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.

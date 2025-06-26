@@ -1,4 +1,50 @@
 #ifdef __wasi__
+#include "wasi/v8-wasi-compat.h"
+#endif
+
+#ifdef __wasi__
+// WASI-specific simplified sandbox implementation
+#ifndef INCLUDE_V8_SANDBOX_H_
+#define INCLUDE_V8_SANDBOX_H_
+
+#include "v8config.h"
+#include "v8-internal.h"
+
+namespace v8 {
+namespace internal {
+
+// Simplified sandbox for WASI
+class SandboxedPointer {
+ public:
+  constexpr SandboxedPointer() : encoded_value_(0) {}
+  
+  template<typename T>
+  T* load() const {
+    return reinterpret_cast<T*>(encoded_value_);
+  }
+  
+ private:
+  uintptr_t encoded_value_;
+};
+
+// Simplified CppHeapPointerTagRange
+struct CppHeapPointerTagRange {
+  constexpr int kTagShift = 1;
+};
+
+}  // namespace internal
+
+// Simplified CppHeapPointerTag
+enum CppHeapPointerTag : uint32_t {
+  kDefaultTag = 0
+};
+
+}  // namespace v8
+
+#endif  // INCLUDE_V8_SANDBOX_H_
+
+#else
+#ifdef __wasi__
 #include "wasi/concepts-fix.h"
 #endif
 // Copyright 2024 the V8 project authors. All rights reserved.
@@ -174,3 +220,4 @@ V8_INLINE static T* ReadCppHeapPointerField(v8::Isolate* isolate,
 }  // namespace v8
 
 #endif  // INCLUDE_V8_SANDBOX_H_
+#endif // __wasi__

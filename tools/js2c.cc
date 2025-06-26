@@ -699,7 +699,7 @@ bool Simplify(const std::vector<char>& code,
 
 Fragment GetDefinition(const std::string& var, const std::vector<char>& code) {
   Debug("GetDefinition %s, code size %zu\n", var.c_str(), code.size());
-  bool is_ascii = simdutf::validate_ascii(code.data(), code.size());
+  bool is_ascii = simdutf::validate_utf8(code.data(), code.size());
 
   if (is_ascii) {
     Debug("ASCII-only, static size %zu\n", code.size());

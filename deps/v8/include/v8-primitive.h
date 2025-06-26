@@ -1,4 +1,8 @@
 #ifdef __wasi__
+#include "wasi/v8-wasi-compat.h"
+#endif
+
+#ifdef __wasi__
 #include "wasi/concepts-fix.h"
 #endif
 // Copyright 2021 the V8 project authors. All rights reserved.
@@ -11,6 +15,7 @@
 #include "v8-data.h"          // NOLINT(build/include_directory)
 #include "v8-internal.h"      // NOLINT(build/include_directory)
 #include "v8-local-handle.h"  // NOLINT(build/include_directory)
+#include "v8-maybe-local.h"   // NOLINT(build/include_directory)
 #include "v8-value.h"         // NOLINT(build/include_directory)
 #include "v8config.h"         // NOLINT(build/include_directory)
 
@@ -42,7 +47,11 @@ class V8_EXPORT Boolean : public Primitive {
 #ifdef V8_ENABLE_CHECKS
     CheckCast(data);
 #endif
+#ifdef __wasi__
+    return reinterpret_cast<Boolean*>(data);
+#else
     return static_cast<Boolean*>(data);
+#endif
   }
 
   V8_INLINE static Local<Boolean> New(Isolate* isolate, bool value);
@@ -94,7 +103,11 @@ class V8_EXPORT Name : public Primitive {
 #ifdef V8_ENABLE_CHECKS
     CheckCast(data);
 #endif
+#ifdef __wasi__
+    return reinterpret_cast<Name*>(data);
+#else
     return static_cast<Name*>(data);
+#endif
   }
 
  private:
@@ -509,7 +522,11 @@ class V8_EXPORT String : public Name {
 #ifdef V8_ENABLE_CHECKS
     CheckCast(data);
 #endif
+    #ifdef __wasi__
+    return reinterpret_cast<String*>(data);
+#else
     return static_cast<String*>(data);
+#endif
   }
 
   /**
@@ -818,7 +835,11 @@ class V8_EXPORT Symbol : public Name {
 #ifdef V8_ENABLE_CHECKS
     CheckCast(data);
 #endif
+    #ifdef __wasi__
+    return reinterpret_cast<Symbol*>(data);
+#else
     return static_cast<Symbol*>(data);
+#endif
   }
 
  private:
@@ -847,7 +868,11 @@ class V8_EXPORT Number : public Numeric {
 #ifdef V8_ENABLE_CHECKS
     CheckCast(data);
 #endif
+    #ifdef __wasi__
+    return reinterpret_cast<Number*>(data);
+#else
     return static_cast<Number*>(data);
+#endif
   }
 
  private:
@@ -867,7 +892,11 @@ class V8_EXPORT Integer : public Number {
 #ifdef V8_ENABLE_CHECKS
     CheckCast(data);
 #endif
+    #ifdef __wasi__
+    return reinterpret_cast<Integer*>(data);
+#else
     return static_cast<Integer*>(data);
+#endif
   }
 
  private:
@@ -885,7 +914,11 @@ class V8_EXPORT Int32 : public Integer {
 #ifdef V8_ENABLE_CHECKS
     CheckCast(data);
 #endif
+    #ifdef __wasi__
+    return reinterpret_cast<Int32*>(data);
+#else
     return static_cast<Int32*>(data);
+#endif
   }
 
  private:
@@ -903,7 +936,11 @@ class V8_EXPORT Uint32 : public Integer {
 #ifdef V8_ENABLE_CHECKS
     CheckCast(data);
 #endif
+    #ifdef __wasi__
+    return reinterpret_cast<Uint32*>(data);
+#else
     return static_cast<Uint32*>(data);
+#endif
   }
 
  private:
@@ -963,7 +1000,11 @@ class V8_EXPORT BigInt : public Numeric {
 #ifdef V8_ENABLE_CHECKS
     CheckCast(data);
 #endif
+    #ifdef __wasi__
+    return reinterpret_cast<BigInt*>(data);
+#else
     return static_cast<BigInt*>(data);
+#endif
   }
 
  private:
@@ -986,7 +1027,11 @@ String::ExternalStringResource* String::GetExternalStringResource() const {
 
   ExternalStringResource* result;
   if (I::IsExternalTwoByteString(I::GetInstanceType(obj))) {
+    #ifdef __wasi__
+    Isolate* isolate = reinterpret_cast<Isolate*>(I::GetIsolateForSandbox(obj));
+#else
     Isolate* isolate = I::GetIsolateForSandbox(obj);
+#endif
     A value = I::ReadExternalPointerField<internal::kExternalStringResourceTag>(
         isolate, obj, I::kStringResourceOffset);
     result = reinterpret_cast<String::ExternalStringResource*>(value);
@@ -1031,7 +1076,11 @@ String::ExternalStringResourceBase* String::GetExternalStringResourceBase(
   ExternalStringResourceBase* resource;
   if (type == I::kExternalOneByteRepresentationTag ||
       type == I::kExternalTwoByteRepresentationTag) {
+    #ifdef __wasi__
+    Isolate* isolate = reinterpret_cast<Isolate*>(I::GetIsolateForSandbox(obj));
+#else
     Isolate* isolate = I::GetIsolateForSandbox(obj);
+#endif
     A value = I::ReadExternalPointerField<internal::kExternalStringResourceTag>(
         isolate, obj, I::kStringResourceOffset);
     resource = reinterpret_cast<ExternalStringResourceBase*>(value);

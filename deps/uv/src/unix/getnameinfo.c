@@ -24,8 +24,14 @@
 #include <stdio.h>
 #include <string.h>
 
+#ifdef __wasi__
+#include <netdb.h>
+#include <sys/socket.h>
+#endif
+
 #include "uv.h"
 #include "internal.h"
+#include <netdb.h>
 
 
 static void uv__getnameinfo_work(struct uv__work* w) {

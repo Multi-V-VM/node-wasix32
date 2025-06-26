@@ -26,21 +26,8 @@
 
 #include "ares_private.h"
 
-#ifdef HAVE_NETINET_IN_H
 #  include <netinet/in.h>
-#endif
-#ifdef HAVE_NETDB_H
 #  include <netdb.h>
-#else
-/* Minimal struct hostent definition for WASI */
-struct hostent {
-  char  *h_name;       /* official name of host */
-  char **h_aliases;    /* alias list */
-  int    h_addrtype;   /* host address type */
-  int    h_length;     /* length of address */
-  char **h_addr_list;  /* list of addresses */
-};
-#endif
 
 
 ares_status_t ares_parse_ptr_reply_dnsrec(const ares_dns_record_t *dnsrec,

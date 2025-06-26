@@ -1,3 +1,7 @@
+#ifdef __wasi__
+#include "wasi/macro-fixes.h"
+#endif
+
 // Copyright 2014 the V8 project authors. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
@@ -120,7 +124,11 @@ class Hasher {
   // Hash a value {t} and combine its hash into this hasher's hash.
   template <typename T>
   Hasher& Add(const T& t) {
+    #ifdef __wasi__
+    return AddHash(std::hash<T>{}(t));
+#else
     return AddHash(hash<T>{}(t));
+#endif
   }
 
   // Hash a range of values and combine the hashes into this hasher's hash.

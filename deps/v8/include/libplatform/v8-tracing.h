@@ -1,4 +1,14 @@
 #ifdef __wasi__
+namespace v8 {
+namespace platform {
+namespace tracing {
+using TracingController = ::v8::TracingController;
+}
+}
+}
+#define V8_PLATFORM_NON_EXPORTED_BASE(x) public x
+#else
+#ifdef __wasi__
 #include "wasi/concepts-fix.h"
 #endif
 // Copyright 2016 the V8 project authors. All rights reserved.
@@ -21,7 +31,7 @@ namespace trace_processor {
 class TraceProcessorStorage;
 }
 class TracingSession;
-}
+}  // namespace perfetto
 
 namespace v8 {
 
@@ -333,3 +343,4 @@ class V8_PLATFORM_EXPORT TracingController
 }  // namespace v8
 
 #endif  // V8_LIBPLATFORM_V8_TRACING_H_
+#endif // __wasi__

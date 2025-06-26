@@ -39,13 +39,13 @@ class V8_PLATFORM_EXPORT DefaultWorkerThreadsTaskRunner
  private:
   // v8::TaskRunner implementation.
   void PostTaskImpl(std::unique_ptr<Task> task,
-                    const SourceLocation& location) override;
+                    const SourceLocation& location);
 
   void PostDelayedTaskImpl(std::unique_ptr<Task> task, double delay_in_seconds,
-                           const SourceLocation& location) override;
+                           const SourceLocation& location);
 
   void PostIdleTaskImpl(std::unique_ptr<IdleTask> task,
-                        const SourceLocation& location) override;
+                        const SourceLocation& location);
 
   class WorkerThread : public base::Thread {
    public:

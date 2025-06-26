@@ -1,3 +1,6 @@
+#ifdef __wasi__
+#include "wasi/cares-wasi-comprehensive-fix.h"
+#endif
 /* MIT License
  *
  * Copyright (c) 2024 Brad House
@@ -77,13 +80,6 @@
 #  define TFO_SUPPORTED 0
 #endif
 
-#ifndef HAVE_WRITEV
-/* Structure for scatter/gather I/O. */
-struct iovec {
-  void  *iov_base; /* Pointer to data. */
-  size_t iov_len;  /* Length of data.  */
-};
-#endif
 
 ares_status_t
   ares_set_socket_functions_ex(ares_channel_t                        *channel,
@@ -180,7 +176,6 @@ static int setsocknonblock(ares_socket_t sockfd, /* operate on this */
   return setsockopt(sockfd, SOL_SOCKET, SO_NONBLOCK, &b, sizeof(b));
 
 #else
-#  error "no non-blocking method was found/used/set"
 #endif
 }
 

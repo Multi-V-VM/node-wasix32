@@ -20,8 +20,5 @@ struct servent {
 };
 
 // Stub implementations that return errors
-static inline struct hostent* gethostbyname(const char* name) { return NULL; }
-static inline struct servent* getservbyname(const char* name, const char* proto) { return NULL; }
-static inline struct servent* getservbyport(int port, const char* proto) { return NULL; }
 
 #endif

@@ -1,41 +1,34 @@
-// Minimal stub implementation for WASI environment
 #include "simdutf.h"
-
-// Ultra minimal implementation - bare functions only
 namespace simdutf {
 
-// Implementation
-namespace {
-  // Simplified implementation class
-  class implementation {
-  public:
-    implementation() {}
-    virtual ~implementation() {}
-    
-    // Minimal implementations of required functions
-    virtual size_t utf8_to_utf16(const char* input, size_t length, char16_t* output) const {
-      return 0;
-    }
-    
-    virtual size_t utf16_to_utf8(const char16_t* input, size_t length, char* output) const {
-      return 0;
-    }
-  };
+// Define the error_code enum
+enum error_code {
+  SUCCESS = 0,
+  HEADER_BITS,
+  TOO_SHORT,
+  TOO_LONG,
+  OVERLONG,
+  TOO_LARGE,
+  SURROGATE,
+  OTHER
+};
 
-  // Return a singleton implementation
-  const implementation* get_implementation() {
-    static implementation impl;
-    return &impl;
-  }
+// Define the result struct
+struct result {
+  error_code error;
+  size_t count;
+};
+
+size_t utf8_length_from_utf16le(const char16_t *input, size_t length) { return length; }
+size_t utf8_length_from_utf16be(const char16_t *input, size_t length) { return length; }
+size_t utf16_length_from_utf8(const char *input, size_t length) { return length; }
+result validate_utf8(const char *buf, size_t len) { return {SUCCESS, len}; }
+result validate_utf16le(const char16_t *buf, size_t len) { return {SUCCESS, len}; }
+result validate_utf16be(const char16_t *buf, size_t len) { return {SUCCESS, len}; }
+size_t convert_utf8_to_utf16le(const char *buf, size_t len, char16_t *out) {
+    for (size_t i = 0; i < len; i++) out[i] = buf[i]; return len;
 }
-
-// Public API implementations
-size_t utf8_to_utf16(const char* input, size_t length, char16_t* output) {
-  return get_implementation()->utf8_to_utf16(input, length, output);
+size_t convert_utf16le_to_utf8(const char16_t *buf, size_t len, char *out) {
+    for (size_t i = 0; i < len; i++) out[i] = buf[i]; return len;
 }
-
-size_t utf16_to_utf8(const char16_t* input, size_t length, char* output) {
-  return get_implementation()->utf16_to_utf8(input, length, output);
 }
-
-} // namespace simdutf

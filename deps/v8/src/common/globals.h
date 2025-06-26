@@ -12,7 +12,63 @@
 #include <ostream>
 
 #include "include/v8-internal.h"
-#include "src/base/atomic-utils.h"
+
+// WASI 兼容性修复
+#ifdef __wasi__
+#include "wasi/concepts-fix.h"
+#endif
+
+namespace v8 {
+
+namespace base {
+class Mutex;
+}
+
+namespace internal {
+
+// 使用 v8-internal.h 中的定义
+using v8::internal::kSmiTagSize;
+using v8::internal::kSmiShiftSize;
+using v8::internal::kSmiValueSize;
+using v8::internal::kSystemPointerSize;
+using v8::internal::kTaggedSize;
+using v8::internal::ExternalPointer_t;
+using v8::internal::CppHeapPointer_t;
+using v8::internal::IndirectPointerHandle;
+
+#define GB (1024 * MB)
+#endif
+
+#ifndef V8_ONCE_INIT
+#define V8_ONCE_INIT 0
+#define ONCE_STATE_UNINITIALIZED 0
+#define ONCE_STATE_DONE 1
+#endif
+
+// WASI 兼容性修复 - 关键修复必须在最前面
+#ifdef __wasi__
+#include "include/wasi/critical-fixes.h"
+#include "wasi/concepts-fix.h"
+#endif
+
+namespace v8 {
+
+namespace base {
+class Mutex;
+}
+
+namespace internal {
+
+// 使用 v8-internal.h 中的定义
+using v8::internal::CppHeapPointer_t;
+using v8::internal::ExternalPointer_t;
+using v8::internal::IndirectPointerHandle;
+using v8::internal::kSmiShiftSize;
+using v8::internal::kSmiTagSize;
+using v8::internal::kSmiValueSize;
+using v8::internal::kSystemPointerSize;
+using v8::internal::kTaggedSize;
+
 #include "src/base/build_config.h"
 #include "src/base/enum-set.h"
 #include "src/base/flags.h"
@@ -669,7 +725,7 @@ constexpr int kEmbedderDataSlotSizeInTaggedSlots =
 static_assert(kEmbedderDataSlotSize >= kSystemPointerSize);
 
 constexpr size_t kExternalAllocationSoftLimit =
-    internal::Internals::kExternalAllocationSoftLimit;
+    Internals::kExternalAllocationSoftLimit;
 
 // Maximum object size that gets allocated into regular pages. Objects larger
 // than that size are allocated in large object space and are never moved in
@@ -1688,9 +1744,7 @@ enum class InlineCacheState {
   GENERIC,
 };
 
-inline size_t hash_value(InlineCacheState mode) {
-  return base::bit_cast<int>(mode);
-}
+inline size_t hash_value(InlineCacheState mode) { return bit_cast<int>(mode); }
 
 // Printing support.
 inline const char* InlineCacheState2String(InlineCacheState state) {
@@ -1844,7 +1898,7 @@ enum class ConvertReceiverMode : unsigned {
 };
 
 inline size_t hash_value(ConvertReceiverMode mode) {
-  return base::bit_cast<unsigned>(mode);
+  return bit_cast<unsigned>(mode);
 }
 
 inline std::ostream& operator<<(std::ostream& os, ConvertReceiverMode mode) {

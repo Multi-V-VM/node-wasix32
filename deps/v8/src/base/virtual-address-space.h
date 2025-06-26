@@ -1,3 +1,11 @@
+#ifdef __wasi__
+#include "v8-platform.h"
+using PagePermissions = v8::PagePermissions;
+namespace v8 {
+using VirtualAddressSpace = ::v8::VirtualAddressSpace;
+}
+#define NON_EXPORTED_BASE(x) public x
+#else
 // Copyright 2021 the V8 project authors. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
@@ -170,3 +178,4 @@ class V8_BASE_EXPORT VirtualAddressSubspace : public VirtualAddressSpaceBase {
 }  // namespace base
 }  // namespace v8
 #endif  // V8_BASE_VIRTUAL_ADDRESS_SPACE_H_
+#endif // __wasi__

@@ -7,10 +7,10 @@
 #ifdef __wasi__
 // WASI stub for cppgc common
 namespace cppgc {
-enum class EmbedderStackState { kEmpty, kNonEmpty };
+  enum class EmbedderStackState { kEmpty, kNonEmpty };
 }
 #else
 // Include real cppgc/common.h for non-WASI
 #endif
 
-#endif  // CPPGC_COMMON_H_
+#endif // CPPGC_COMMON_H_
