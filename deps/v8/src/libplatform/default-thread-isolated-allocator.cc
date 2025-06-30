@@ -1,11 +1,15 @@
-#ifdef V8_TARGET_ARCH_WASM32
-#include "../../include/libplatform/libplatform-wasi-fix.h"
-#endif
 // Copyright 2023 the V8 project authors. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
 #include "src/libplatform/default-thread-isolated-allocator.h"
+#include <stdlib.h>
+
+#ifdef __wasi__
+#define UNREACHABLE() __builtin_unreachable()
+#else
+#include "src/base/logging.h"
+#endif
 
 #if V8_HAS_PKU_JIT_WRITE_PROTECT
 
@@ -70,20 +74,9 @@ int PkeyFree(int pkey) {
 
 namespace v8::platform {
 
-DefaultThreadIsolatedAllocator::DefaultThreadIsolatedAllocator()
-#if V8_HAS_PKU_JIT_WRITE_PROTECT
-    : pkey_(PkeyAlloc())
-#endif
-{
-}
+// Constructor and destructor are defined in the header as = default
 
-DefaultThreadIsolatedAllocator::~DefaultThreadIsolatedAllocator() {
-#if V8_HAS_PKU_JIT_WRITE_PROTECT
-  if (pkey_ != -1) {
-    PkeyFree(pkey_);
-  }
-#endif
-}
+// Destructor is defined in the header as = default
 
 // TODO(sroettger): this should return thread isolated (e.g. pkey-tagged) memory
 //                  for testing.
@@ -91,31 +84,12 @@ void* DefaultThreadIsolatedAllocator::Allocate(size_t size) {
   return malloc(size);
 }
 
-void DefaultThreadIsolatedAllocator::Free(void* object) { free(object); }
+void DefaultThreadIsolatedAllocator::Free(void* object) { ::free(object); }
 
-enum DefaultThreadIsolatedAllocator::Type DefaultThreadIsolatedAllocator::Type()
-    const {
-#if V8_HAS_PKU_JIT_WRITE_PROTECT
-  return Type::kPkey;
-#else
-  UNREACHABLE();
-#endif
-}
+// GetType() is defined inline in the header
 
-int DefaultThreadIsolatedAllocator::Pkey() const {
-#if V8_HAS_PKU_JIT_WRITE_PROTECT
-  return pkey_;
-#else
-  UNREACHABLE();
-#endif
-}
+// Pkey() removed - not in interface
 
-bool DefaultThreadIsolatedAllocator::Valid() const {
-#if V8_HAS_PKU_JIT_WRITE_PROTECT
-  return pkey_ != -1;
-#else
-  return false;
-#endif
-}
+// Valid() removed - not in interface
 
 }  // namespace v8::platform

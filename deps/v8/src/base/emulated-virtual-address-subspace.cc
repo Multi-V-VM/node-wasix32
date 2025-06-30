@@ -13,9 +13,8 @@ namespace base {
 EmulatedVirtualAddressSubspace::EmulatedVirtualAddressSubspace(
     VirtualAddressSpace* parent_space, Address base, size_t mapped_size,
     size_t total_size)
-    : VirtualAddressSpace(parent_space->page_size(),
-                          parent_space->allocation_granularity(), base,
-                          total_size, parent_space->max_page_permissions()),
+    : base_(base),
+      size_(total_size),
       mapped_size_(mapped_size),
       parent_space_(parent_space),
       region_allocator_(base, mapped_size, parent_space_->page_size()) {

@@ -2,6 +2,16 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
+#ifdef __wasi__
+// WASI stub implementation
+#include "include/v8-platform.h"
+namespace v8 {
+namespace base {
+bool IsSubset(PagePermissions lhs, PagePermissions rhs) { return true; }
+}  // namespace base
+}  // namespace v8
+#else
+
 #include "src/base/virtual-address-space.h"
 
 #include <optional>
@@ -405,3 +415,5 @@ void VirtualAddressSubspace::FreeSubspace(VirtualAddressSubspace* subspace) {
 
 }  // namespace base
 }  // namespace v8
+
+#endif  // __wasi__

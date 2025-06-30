@@ -38,24 +38,27 @@ class V8_BASE_EXPORT LsanPageAllocator : public v8::PageAllocator {
   }
 
   void* AllocatePages(void* address, size_t size, size_t alignment,
-                      PageAllocator::Permission access) override;
+                      v8::PagePermissions access) override;
 
+  // Remove methods not in base interface
+#ifndef __wasi__
   std::unique_ptr<SharedMemory> AllocateSharedPages(
-      size_t size, const void* original_address) override;
+      size_t size, const void* original_address);
 
-  bool CanAllocateSharedPages() override;
+  bool CanAllocateSharedPages();
+#endif
 
   bool FreePages(void* address, size_t size) override;
 
-  bool ReleasePages(void* address, size_t size, size_t new_size) override;
+  bool ReleasePages(void* address, size_t size) override;
 
   bool SetPermissions(void* address, size_t size,
-                      PageAllocator::Permission access) override {
+                      v8::PagePermissions access) override {
     return page_allocator_->SetPermissions(address, size, access);
   }
 
   bool RecommitPages(void* address, size_t size,
-                     PageAllocator::Permission access) override {
+                     v8::PagePermissions access) override {
     return page_allocator_->RecommitPages(address, size, access);
   }
 
@@ -65,6 +68,10 @@ class V8_BASE_EXPORT LsanPageAllocator : public v8::PageAllocator {
 
   bool DecommitPages(void* address, size_t size) override {
     return page_allocator_->DecommitPages(address, size);
+  }
+  
+  bool SealPages(void* address, size_t size) override {
+    return page_allocator_->SealPages(address, size);
   }
 
  private:

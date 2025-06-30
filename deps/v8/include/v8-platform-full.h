@@ -65,6 +65,21 @@ class PageAllocator {
   virtual bool RecommitPages(void* address, size_t length,
                            PagePermissions permissions) = 0;
   virtual bool DecommitPages(void* address, size_t length) = 0;
+  virtual bool DiscardSystemPages(void* address, size_t size) = 0;
+  virtual bool SealPages(void* address, size_t size) = 0;
+  
+  // Shared memory support
+  class SharedMemory {
+   public:
+    virtual ~SharedMemory() = default;
+  };
+  
+  class SharedMemoryMapping {
+   public:
+    virtual ~SharedMemoryMapping() = default;
+    virtual void* GetMemory() const = 0;
+    virtual void Remap(void* new_address) = 0;
+  };
 };
 
 // Platform interface
@@ -102,6 +117,20 @@ using TimeFunction = double (*)();
 
 // Nestability
 enum class Nestability { kNestable, kNonNestable };
+
+// Platform shared memory handle
+#ifndef __wasi__
+using PlatformSharedMemoryHandle = void*;
+#else
+using PlatformSharedMemoryHandle = int;  // WASI uses file descriptors
+#endif
+
+// Stack trace printer
+using StackTracePrinter = void (*)(void);
+
+// Forward declarations to avoid redefinition
+class TracingController;
+class ConvertableToTraceFormat;
 
 }  // namespace v8
 

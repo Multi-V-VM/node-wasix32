@@ -45,6 +45,11 @@ class TracingController {
       
   virtual void AddTraceStateObserver(TraceStateObserver* observer) = 0;
   virtual void RemoveTraceStateObserver(TraceStateObserver* observer) = 0;
+  
+  // Static helper method
+  static const char* GetCategoryGroupName(const uint8_t* category_enabled_flag) {
+    return "v8";
+  }
 };
 
 }  // namespace v8

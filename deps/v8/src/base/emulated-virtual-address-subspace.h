@@ -29,7 +29,7 @@ namespace base {
  * provide the same security gurarantees.
  */
 class V8_BASE_EXPORT EmulatedVirtualAddressSubspace final
-    : public NON_EXPORTED_BASE(::v8::VirtualAddressSpace) {
+    : public v8::VirtualAddressSpace {
  public:
   // Construct an emulated virtual address subspace of the specified total size,
   // potentially backed by a page allocation from the parent space. The newly
@@ -76,6 +76,13 @@ class V8_BASE_EXPORT EmulatedVirtualAddressSubspace final
   bool DiscardSystemPages(Address address, size_t size) override;
 
   bool DecommitPages(Address address, size_t size) override;
+  
+  // VirtualAddressSpace interface implementation
+  Address base() const override { return base_; }
+  size_t size() const override { return size_; }
+  size_t page_size() const override { return parent_space_->page_size(); }
+  size_t allocation_granularity() const override { return parent_space_->allocation_granularity(); }
+  PagePermissions max_page_permissions() const override { return parent_space_->max_page_permissions(); }
 
  private:
   size_t mapped_size() const { return mapped_size_; }
@@ -109,8 +116,14 @@ class V8_BASE_EXPORT EmulatedVirtualAddressSubspace final
     return size <= (unmapped_size() / 2);
   }
 
+  // Base address of this virtual address space
+  Address base_;
+  
+  // Total size of this virtual address space
+  size_t size_;
+  
   // Size of the mapped region located at the beginning of this address space.
-  const size_t mapped_size_;
+  size_t mapped_size_;
 
   // Pointer to the parent space from which the backing pages were allocated.
   // Must be kept alive by the owner of this instance.

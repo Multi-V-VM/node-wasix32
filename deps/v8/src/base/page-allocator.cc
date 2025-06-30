@@ -13,10 +13,35 @@
 namespace v8 {
 namespace base {
 
+#ifdef __wasi__
+// Map v8::PagePermissions to base::OS::MemoryPermission for WASI
+inline base::OS::MemoryPermission ToOSPermission(v8::PagePermissions perm) {
+  switch (perm) {
+    case v8::PagePermissions::kNoAccess:
+    case v8::PagePermissions::kNoAccessWillJitLater:
+      return base::OS::MemoryPermission::kNoAccess;
+    case v8::PagePermissions::kRead:
+      return base::OS::MemoryPermission::kRead;
+    case v8::PagePermissions::kReadWrite:
+      return base::OS::MemoryPermission::kReadWrite;
+    case v8::PagePermissions::kReadExecute:
+      return base::OS::MemoryPermission::kReadExecute;
+    case v8::PagePermissions::kReadWriteExecute:
+      return base::OS::MemoryPermission::kReadWriteExecute;
+    default:
+      return base::OS::MemoryPermission::kNoAccess;
+  }
+}
+#endif
+
 #define STATIC_ASSERT_ENUM(a, b)                            \
   static_assert(static_cast<int>(a) == static_cast<int>(b), \
                 "mismatching enum: " #a)
 
+// For WASI, we map PagePermissions to OS permissions
+#ifdef __wasi__
+// Skip static asserts for WASI as we handle permissions differently
+#else
 STATIC_ASSERT_ENUM(PageAllocator::kNoAccess,
                    base::OS::MemoryPermission::kNoAccess);
 STATIC_ASSERT_ENUM(PageAllocator::kReadWrite,
@@ -27,6 +52,7 @@ STATIC_ASSERT_ENUM(PageAllocator::kReadExecute,
                    base::OS::MemoryPermission::kReadExecute);
 STATIC_ASSERT_ENUM(PageAllocator::kNoAccessWillJitLater,
                    base::OS::MemoryPermission::kNoAccessWillJitLater);
+#endif
 
 #undef STATIC_ASSERT_ENUM
 
@@ -43,19 +69,24 @@ void* PageAllocator::GetRandomMmapAddr() {
 }
 
 void* PageAllocator::AllocatePages(void* hint, size_t size, size_t alignment,
-                                   PageAllocator::Permission access) {
+                                   v8::PagePermissions access) {
 #if !V8_HAS_PTHREAD_JIT_WRITE_PROTECT && !V8_HAS_BECORE_JIT_WRITE_PROTECT
   // kNoAccessWillJitLater is only used on Apple Silicon. Map it to regular
   // kNoAccess on other platforms, so code doesn't have to handle both enum
   // values.
-  if (access == PageAllocator::kNoAccessWillJitLater) {
-    access = PageAllocator::kNoAccess;
+  if (access == v8::PagePermissions::kNoAccessWillJitLater) {
+    access = v8::PagePermissions::kNoAccess;
   }
 #endif
+#ifdef __wasi__
+  return base::OS::Allocate(hint, size, alignment, ToOSPermission(access));
+#else
   return base::OS::Allocate(hint, size, alignment,
                             static_cast<base::OS::MemoryPermission>(access));
+#endif
 }
 
+#ifndef __wasi__
 class SharedMemoryMapping : public ::v8::PageAllocator::SharedMemoryMapping {
  public:
   explicit SharedMemoryMapping(PageAllocator* page_allocator, void* ptr,
@@ -129,29 +160,36 @@ void* PageAllocator::RemapShared(void* old_address, void* new_address,
   return nullptr;
 #endif
 }
+#endif // __wasi__
 
 bool PageAllocator::FreePages(void* address, size_t size) {
   base::OS::Free(address, size);
   return true;
 }
 
-bool PageAllocator::ReleasePages(void* address, size_t size, size_t new_size) {
-  DCHECK_LT(new_size, size);
-  base::OS::Release(reinterpret_cast<uint8_t*>(address) + new_size,
-                    size - new_size);
+bool PageAllocator::ReleasePages(void* address, size_t size) {
+  base::OS::Release(address, size);
   return true;
 }
 
 bool PageAllocator::SetPermissions(void* address, size_t size,
-                                   PageAllocator::Permission access) {
+                                   v8::PagePermissions access) {
+#ifdef __wasi__
+  return base::OS::SetPermissions(address, size, ToOSPermission(access));
+#else
   return base::OS::SetPermissions(
       address, size, static_cast<base::OS::MemoryPermission>(access));
+#endif
 }
 
 bool PageAllocator::RecommitPages(void* address, size_t size,
-                                  PageAllocator::Permission access) {
+                                  v8::PagePermissions access) {
+#ifdef __wasi__
+  return base::OS::RecommitPages(address, size, ToOSPermission(access));
+#else
   return base::OS::RecommitPages(
       address, size, static_cast<base::OS::MemoryPermission>(access));
+#endif
 }
 
 bool PageAllocator::DiscardSystemPages(void* address, size_t size) {

@@ -16,8 +16,9 @@ class V8_PLATFORM_EXPORT DefaultThreadIsolatedAllocator
   void* Allocate(size_t size) override;
   void Free(void* ptr) override;
   
-  enum Type { kPkey };
-  Type GetType() const override { return kPkey; }
+  v8::ThreadIsolatedAllocator::Type GetType() const override { 
+    return v8::ThreadIsolatedAllocator::Type::kPkey; 
+  }
 };
 
 }  // namespace platform

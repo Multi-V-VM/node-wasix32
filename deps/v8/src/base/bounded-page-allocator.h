@@ -101,17 +101,17 @@ class V8_BASE_EXPORT BoundedPageAllocator : public v8::PageAllocator {
   void* AllocatePages(void* hint, size_t size, size_t alignment,
                       PagePermissions access) override;
 
-  bool ReserveForSharedMemoryMapping(void* address, size_t size) override;
+  bool ReserveForSharedMemoryMapping(void* address, size_t size);
 
   // Allocates pages at given address, returns true on success.
   bool AllocatePagesAt(Address address, size_t size, PagePermissions access);
 
   bool ResizeAllocationAt(void* address, size_t old_size, size_t new_size,
-                          PagePermissions access) override;
+                          PagePermissions access);
 
   bool FreePages(void* address, size_t size) override;
 
-  bool ReleasePages(void* address, size_t size, size_t new_size) override;
+  bool ReleasePages(void* address, size_t size) override;
 
   bool SetPermissions(void* address, size_t size, PagePermissions access) override;
 

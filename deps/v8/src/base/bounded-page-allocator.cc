@@ -3,6 +3,7 @@
 // found in the LICENSE file.
 
 #include "src/base/bounded-page-allocator.h"
+#include "src/base/logging.h"
 
 namespace v8 {
 namespace base {
@@ -30,7 +31,7 @@ size_t BoundedPageAllocator::size() const { return region_allocator_.size(); }
 
 void* BoundedPageAllocator::AllocatePages(void* hint, size_t size,
                                           size_t alignment,
-                                          PageAllocator::Permission access) {
+                                          v8::PagePermissions access) {
   MutexGuard guard(&mutex_);
   DCHECK(IsAligned(alignment, region_allocator_.page_size()));
   DCHECK(IsAligned(alignment, allocate_page_size_));
@@ -62,8 +63,8 @@ void* BoundedPageAllocator::AllocatePages(void* hint, size_t size,
   void* ptr = reinterpret_cast<void*>(address);
   // It's assumed that free regions are in kNoAccess/kNoAccessWillJitLater
   // state.
-  if (access == PageAllocator::kNoAccess ||
-      access == PageAllocator::kNoAccessWillJitLater) {
+  if (access == v8::PagePermissions::kNoAccess ||
+      access == v8::PagePermissions::kNoAccessWillJitLater) {
     allocation_status_ = AllocationStatus::kSuccess;
     return ptr;
   }
@@ -87,7 +88,7 @@ void* BoundedPageAllocator::AllocatePages(void* hint, size_t size,
 }
 
 bool BoundedPageAllocator::AllocatePagesAt(Address address, size_t size,
-                                           PageAllocator::Permission access) {
+                                           v8::PagePermissions access) {
   MutexGuard guard(&mutex_);
 
   DCHECK(IsAligned(address, allocate_page_size_));
@@ -114,7 +115,7 @@ bool BoundedPageAllocator::AllocatePagesAt(Address address, size_t size,
 
 bool BoundedPageAllocator::ResizeAllocationAt(
     void* address, size_t old_size, size_t new_size,
-    PageAllocator::Permission access) {
+    v8::PagePermissions access) {
   MutexGuard guard(&mutex_);
 
   const Address address_at = reinterpret_cast<Address>(address);
@@ -178,7 +179,7 @@ bool BoundedPageAllocator::ReserveForSharedMemoryMapping(void* ptr,
   }
 
   const bool success = page_allocator_->SetPermissions(
-      ptr, size, PageAllocator::Permission::kNoAccess);
+      ptr, size, v8::PagePermissions::kNoAccess);
   if (success) {
     allocation_status_ = AllocationStatus::kSuccess;
   } else {
@@ -208,7 +209,7 @@ bool BoundedPageAllocator::FreePages(void* raw_address, size_t size) {
         DCHECK_EQ(page_initialization_mode_,
                   PageInitializationMode::kAllocatedPagesCanBeUninitialized);
         success = page_allocator_->SetPermissions(raw_address, size,
-                                                  PageAllocator::kNoAccess);
+                                                  v8::PagePermissions::kNoAccess);
         break;
 
       case PageFreeingMode::kDiscard:
@@ -223,20 +224,16 @@ bool BoundedPageAllocator::FreePages(void* raw_address, size_t size) {
   return success;
 }
 
-bool BoundedPageAllocator::ReleasePages(void* raw_address, size_t size,
-                                        size_t new_size) {
+bool BoundedPageAllocator::ReleasePages(void* raw_address, size_t size) {
   Address address = reinterpret_cast<Address>(raw_address);
   DCHECK(IsAligned(address, allocate_page_size_));
-
-  DCHECK_LT(new_size, size);
-  DCHECK(IsAligned(size - new_size, commit_page_size_));
+  DCHECK(IsAligned(size, commit_page_size_));
 
   // This must be held until the page permissions are updated.
   MutexGuard guard(&mutex_);
 
-  // Check if we freed any allocatable pages by this release.
+  // Release all pages - simplified implementation for WASI
   size_t allocated_size = RoundUp(size, allocate_page_size_);
-  size_t new_allocated_size = RoundUp(new_size, allocate_page_size_);
 
 #ifdef DEBUG
   {
@@ -246,13 +243,8 @@ bool BoundedPageAllocator::ReleasePages(void* raw_address, size_t size,
   }
 #endif
 
-  if (new_allocated_size < allocated_size) {
-    region_allocator_.TrimRegion(address, new_allocated_size);
-  }
-
-  // Keep the region in "used" state just uncommit some pages.
-  void* free_address = reinterpret_cast<void*>(address + new_size);
-  size_t free_size = size - new_size;
+  void* free_address = raw_address;
+  size_t free_size = size;
   if (page_initialization_mode_ ==
       PageInitializationMode::kAllocatedPagesMustBeZeroInitialized) {
     DCHECK_NE(page_freeing_mode_, PageFreeingMode::kDiscard);
@@ -263,14 +255,14 @@ bool BoundedPageAllocator::ReleasePages(void* raw_address, size_t size,
     DCHECK_EQ(page_initialization_mode_,
               PageInitializationMode::kAllocatedPagesCanBeUninitialized);
     return page_allocator_->SetPermissions(free_address, free_size,
-                                           PageAllocator::kNoAccess);
+                                           v8::PagePermissions::kNoAccess);
   }
   CHECK_EQ(page_freeing_mode_, PageFreeingMode::kDiscard);
   return page_allocator_->DiscardSystemPages(free_address, free_size);
 }
 
 bool BoundedPageAllocator::SetPermissions(void* address, size_t size,
-                                          PageAllocator::Permission access) {
+                                          v8::PagePermissions access) {
   DCHECK(IsAligned(reinterpret_cast<Address>(address), commit_page_size_));
   DCHECK(IsAligned(size, commit_page_size_));
   DCHECK(region_allocator_.contains(reinterpret_cast<Address>(address), size));
@@ -282,7 +274,7 @@ bool BoundedPageAllocator::SetPermissions(void* address, size_t size,
 }
 
 bool BoundedPageAllocator::RecommitPages(void* address, size_t size,
-                                         PageAllocator::Permission access) {
+                                         v8::PagePermissions access) {
   DCHECK(IsAligned(reinterpret_cast<Address>(address), commit_page_size_));
   DCHECK(IsAligned(size, commit_page_size_));
   DCHECK(region_allocator_.contains(reinterpret_cast<Address>(address), size));

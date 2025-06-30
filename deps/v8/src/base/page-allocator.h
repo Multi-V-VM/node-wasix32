@@ -1,7 +1,3 @@
-#ifdef __wasi__
-#include "wasi/page-allocator-base.h"
-#endif
-
 // Copyright 2017 the V8 project authors. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
@@ -35,22 +31,25 @@ class V8_BASE_EXPORT PageAllocator
   void* GetRandomMmapAddr() override;
 
   void* AllocatePages(void* hint, size_t size, size_t alignment,
-                      PageAllocator::Permission access) override;
+                      v8::PagePermissions access) override;
 
-  bool CanAllocateSharedPages() override;
+  // Remove methods not in base interface for WASI
+#ifndef __wasi__
+  bool CanAllocateSharedPages();
 
   std::unique_ptr<v8::PageAllocator::SharedMemory> AllocateSharedPages(
-      size_t size, const void* original_address) override;
+      size_t size, const void* original_address);
+#endif
 
   bool FreePages(void* address, size_t size) override;
 
-  bool ReleasePages(void* address, size_t size, size_t new_size) override;
+  bool ReleasePages(void* address, size_t size) override;
 
   bool SetPermissions(void* address, size_t size,
-                      PageAllocator::Permission access) override;
+                      v8::PagePermissions access) override;
 
   bool RecommitPages(void* address, size_t size,
-                     PageAllocator::Permission access) override;
+                     v8::PagePermissions access) override;
 
   bool DiscardSystemPages(void* address, size_t size) override;
 
@@ -70,7 +69,4 @@ class V8_BASE_EXPORT PageAllocator
 }  // namespace base
 }  // namespace v8
 #endif  // V8_BASE_PAGE_ALLOCATOR_H_
-
-// Use v8::PageAllocator from platform
-using v8::PageAllocator;
 

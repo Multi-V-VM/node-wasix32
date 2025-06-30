@@ -5,6 +5,8 @@
 #ifndef V8_LIBPLATFORM_DEFAULT_PLATFORM_H_
 #define V8_LIBPLATFORM_DEFAULT_PLATFORM_H_
 
+#include "src/base/platform/platform-thread.h"
+
 #include <map>
 #include <memory>
 #include "default-platform-namespace-fix.h"

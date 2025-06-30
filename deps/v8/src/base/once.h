@@ -6,7 +6,11 @@
 namespace v8 {
 namespace base {
 
+#ifdef __wasi__
+// Already defined in nuclear-fix.h
+#else
 using OnceType = int;
+#endif
 
 #define V8_ONCE_INIT 0
 #define ONCE_STATE_UNINITIALIZED 0

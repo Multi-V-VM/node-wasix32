@@ -81,6 +81,10 @@ class V8_BASE_EXPORT LsanVirtualAddressSpace final
     return vas_->DecommitPages(address, size);
   }
 
+  // Required VirtualAddressSpace interface methods
+  Address base() const override { return vas_->base(); }
+  size_t size() const override { return vas_->size(); }
+
  private:
   std::unique_ptr<v8::VirtualAddressSpace> vas_;
 };

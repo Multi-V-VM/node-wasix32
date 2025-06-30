@@ -1,6 +1,8 @@
 #ifndef V8_WASI_NUCLEAR_FIX_CLEAN_H_
 #define V8_WASI_NUCLEAR_FIX_CLEAN_H_
 
+#include <memory>
+
 #include <sstream>
 #include <limits>
 #include <cstdint>
@@ -77,6 +79,18 @@ class SourceLocation {
 #define CHECK(condition) ((void)0)
 #endif
 
+#ifndef CHECK_EQ
+#define CHECK_EQ(a, b) CHECK((a) == (b))
+#endif
+
+#ifndef CHECK_GT
+#define CHECK_GT(a, b) CHECK((a) > (b))
+#endif
+
+#ifndef CHECK_LE
+#define CHECK_LE(a, b) CHECK((a) <= (b))
+#endif
+
 #ifndef UNREACHABLE
 #define UNREACHABLE() __builtin_unreachable()
 #endif
@@ -137,7 +151,18 @@ namespace bits {
   inline unsigned CountPopulation(uint32_t value) {
     return __builtin_popcount(value);
   }
+  
+  template<typename T>
+  inline bool IsPowerOfTwo(T value) {
+    return value && !(value & (value - 1));
+  }
 }  // namespace bits
+
+// Helper functions
+template <typename T>
+inline T RoundDown(T value, T alignment) {
+  return value & ~(alignment - 1);
+}
 
 using AtomicWord = intptr_t;
 
@@ -146,6 +171,22 @@ class AsAtomicPointerImpl {
  public:
   using type = std::atomic<T>;
 };
+
+// CallOnce implementation
+typedef std::atomic<int> OnceType;
+
+template<typename Function, typename Arg>
+inline void CallOnce(OnceType* once, Function function, Arg* arg) {
+  int expected = 0;
+  if (once->compare_exchange_strong(expected, 1, std::memory_order_acquire)) {
+    function(arg);
+    once->store(2, std::memory_order_release);
+  } else {
+    while (once->load(std::memory_order_acquire) != 2) {
+      // Spin wait
+    }
+  }
+}
 
 }  // namespace base
 
@@ -212,17 +253,58 @@ namespace base {
 }  // namespace internal
 }  // namespace v8
 
-// Platform definitions
+namespace v8 {
+
+// Platform definitions - matches OS::MemoryPermission values
 enum class PagePermissions {
   kNoAccess = 0,
   kRead = 1,
-  kReadWrite = 3,
-  kReadExecute = 5
+  kReadWrite = 2,
+  kReadWriteExecute = 3,
+  kReadExecute = 4,
+  kNoAccessWillJitLater = 5
 };
+
+// Forward declaration
+using PlatformSharedMemoryHandle = int;  // WASI uses int for file descriptors
+using Address = uintptr_t;
+
+// Constants
+constexpr Address kNoHint = 0;
 
 class VirtualAddressSpace {
  public:
   virtual ~VirtualAddressSpace() = default;
+  
+  virtual void SetRandomSeed(int64_t seed) = 0;
+  virtual Address RandomPageAddress() = 0;
+  virtual Address AllocatePages(Address hint, size_t size, size_t alignment,
+                               PagePermissions permissions) = 0;
+  virtual void FreePages(Address address, size_t size) = 0;
+  virtual bool SetPagePermissions(Address address, size_t size,
+                                  PagePermissions permissions) = 0;
+  virtual bool AllocateGuardRegion(Address address, size_t size) = 0;
+  virtual void FreeGuardRegion(Address address, size_t size) = 0;
+  virtual Address AllocateSharedPages(Address hint, size_t size,
+                                     PagePermissions permissions,
+                                     PlatformSharedMemoryHandle handle,
+                                     uint64_t offset) = 0;
+  virtual void FreeSharedPages(Address address, size_t size) = 0;
+  virtual bool CanAllocateSubspaces() = 0;
+  virtual std::unique_ptr<VirtualAddressSpace> AllocateSubspace(
+      Address hint, size_t size, size_t alignment,
+      PagePermissions max_page_permissions) = 0;
+  virtual bool RecommitPages(Address address, size_t size,
+                            PagePermissions permissions) = 0;
+  virtual bool DiscardSystemPages(Address address, size_t size) = 0;
+  virtual bool DecommitPages(Address address, size_t size) = 0;
+  
+  // Helper methods
+  virtual Address base() const = 0;
+  virtual size_t size() const = 0;
+  virtual size_t page_size() const = 0;
+  virtual size_t allocation_granularity() const = 0;
+  virtual PagePermissions max_page_permissions() const = 0;
 };
 
 class SharedMemory {
@@ -230,9 +312,11 @@ class SharedMemory {
   virtual ~SharedMemory() = default;
 };
 
-// V8_BASE_EXPORT macro
+}  // namespace v8
+
+// V8_BASE_EXPORT macro - don't define if already defined
 #ifndef V8_BASE_EXPORT
-#define V8_BASE_EXPORT
+#define V8_BASE_EXPORT __attribute__((visibility("default")))
 #endif
 
 #endif  // V8_WASI_NUCLEAR_FIX_CLEAN_H_

@@ -88,7 +88,7 @@ V8_INLINE int64_t GetFuchsiaThreadTicks() {
   CHECK_EQ(status, ZX_OK);
   return info.total_runtime / v8::base::Time::kNanosecondsPerMicrosecond;
 }
-#elif V8_OS_POSIX
+#elif defined(__wasi__) || V8_OS_POSIX
 // Helper function to get results from clock_gettime() and convert to a
 // microsecond timebase. Minimum requirement is MONOTONIC_CLOCK to be supported
 // on the system. FreeBSD 6 has CLOCK_MONOTONIC but defines
@@ -752,6 +752,11 @@ TimeTicks TimeTicks::Now() {
   ticks = ClockNow(CLOCK_MONOTONIC);
 #elif V8_OS_STARBOARD
   ticks = starboard::CurrentMonotonicTime();
+#elif defined(__wasi__)
+  // WASI implementation
+  struct timespec ts;
+  clock_gettime(CLOCK_MONOTONIC, &ts);
+  ticks = static_cast<int64_t>(ts.tv_sec) * 1000000 + ts.tv_nsec / 1000;
 #else
 #error platform does not implement TimeTicks::Now.
 #endif  // V8_OS_DARWIN
@@ -811,6 +816,9 @@ ThreadTicks ThreadTicks::Now() {
   return ThreadTicks(gethrvtime() / Time::kNanosecondsPerMicrosecond);
 #elif V8_OS_WIN
   return ThreadTicks::GetForThread(::GetCurrentThread());
+#elif defined(__wasi__)
+  // WASI doesn't have thread-specific CPU time, use monotonic time
+  return ThreadTicks(ClockNow(CLOCK_MONOTONIC));
 #else
   UNREACHABLE();
 #endif

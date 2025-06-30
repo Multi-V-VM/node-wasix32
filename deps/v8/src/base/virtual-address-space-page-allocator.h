@@ -41,16 +41,16 @@ class V8_BASE_EXPORT VirtualAddressSpacePageAllocator
   }
 
   void* AllocatePages(void* hint, size_t size, size_t alignment,
-                      Permission access) override;
+                      PagePermissions access) override;
 
   bool FreePages(void* address, size_t size) override;
 
-  bool ReleasePages(void* address, size_t size, size_t new_size) override;
+  bool ReleasePages(void* address, size_t size) override;
 
-  bool SetPermissions(void* address, size_t size, Permission access) override;
+  bool SetPermissions(void* address, size_t size, PagePermissions access) override;
 
   bool RecommitPages(void* address, size_t size,
-                     PageAllocator::Permission access) override;
+                     PagePermissions access) override;
 
   bool DiscardSystemPages(void* address, size_t size) override;
 

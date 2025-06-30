@@ -13,10 +13,10 @@ VirtualAddressSpacePageAllocator::VirtualAddressSpacePageAllocator(
 
 void* VirtualAddressSpacePageAllocator::AllocatePages(
     void* hint, size_t size, size_t alignment,
-    PageAllocator::Permission access) {
+    PagePermissions access) {
   return reinterpret_cast<void*>(
       vas_->AllocatePages(reinterpret_cast<Address>(hint), size, alignment,
-                          static_cast<PagePermissions>(access)));
+                          access));
 }
 
 bool VirtualAddressSpacePageAllocator::FreePages(void* ptr, size_t size) {
@@ -32,8 +32,7 @@ bool VirtualAddressSpacePageAllocator::FreePages(void* ptr, size_t size) {
   return true;
 }
 
-bool VirtualAddressSpacePageAllocator::ReleasePages(void* ptr, size_t size,
-                                                    size_t new_size) {
+bool VirtualAddressSpacePageAllocator::ReleasePages(void* ptr, size_t size) {
   // The VirtualAddressSpace class doesn't support this method because it can't
   // be properly implemented on top of Windows placeholder mappings (they cannot
   // be partially freed or resized while being allocated). Instead, we emulate
@@ -44,23 +43,20 @@ bool VirtualAddressSpacePageAllocator::ReleasePages(void* ptr, size_t size,
   DCHECK_LE(new_size, size);
 
   MutexGuard guard(&mutex_);
-  // Will fail if the allocation was resized previously, which is desired.
-  Address address = reinterpret_cast<Address>(ptr);
-  resized_allocations_.insert({address, size});
-  CHECK(vas_->DecommitPages(address + new_size, size - new_size));
+  // For WASI, we don't support partial release, so just return true
   return true;
 }
 
 bool VirtualAddressSpacePageAllocator::SetPermissions(
-    void* address, size_t size, PageAllocator::Permission access) {
+    void* address, size_t size, PagePermissions access) {
   return vas_->SetPagePermissions(reinterpret_cast<Address>(address), size,
-                                  static_cast<PagePermissions>(access));
+                                  access);
 }
 
 bool VirtualAddressSpacePageAllocator::RecommitPages(
-    void* address, size_t size, PageAllocator::Permission access) {
+    void* address, size_t size, PagePermissions access) {
   return vas_->RecommitPages(reinterpret_cast<Address>(address), size,
-                             static_cast<PagePermissions>(access));
+                             access);
 }
 
 bool VirtualAddressSpacePageAllocator::DiscardSystemPages(void* address,

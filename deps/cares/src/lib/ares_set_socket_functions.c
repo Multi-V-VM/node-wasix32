@@ -27,6 +27,7 @@
  * SPDX-License-Identifier: MIT
  */
 #include "ares_private.h"
+#include <unistd.h>
 #ifdef HAVE_SYS_UIO_H
 #  include <sys/uio.h>
 #endif

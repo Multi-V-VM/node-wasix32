@@ -113,3 +113,4 @@ extern "C" {
 #endif /* __wasi__ */
 
 #endif /* CARES_WASI_COMPREHENSIVE_FIX_H */
+#include "cares-service-fix.h"
