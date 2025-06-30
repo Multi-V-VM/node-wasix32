@@ -7,6 +7,7 @@
 #include <memory>
 
 #include "v8config.h"
+#include "libplatform/libplatform-export.h"
 
 #ifdef __wasi__
 

@@ -1,8 +1,17 @@
 #include "src/base/platform/wasi-platform-fix.h"
 #ifdef __wasi__
+#include "src/base/platform/platform.h"
+
+namespace v8 {
+namespace base {
+
 #define kInvalidSharedMemoryHandle -1
 static int FileDescriptorFromSharedMemoryHandle(int handle) { return handle; }
-const char* GetGCFakeMMapFile() { return nullptr; }
+const char* OS::GetGCFakeMMapFile() { return nullptr; }
+
+}  // namespace base
+}  // namespace v8
+
 #define DISABLE_CFI_ICALL
 #endif
 
@@ -674,7 +683,6 @@ void OS::FreeAddressSpaceReservation(AddressSpaceReservation reservation) {
 #if !defined(V8_OS_DARWIN)
 // static
 // Need to disable CFI_ICALL due to the indirect call to memfd_create.
-DISABLE_CFI_ICALL
 PlatformSharedMemoryHandle OS::CreateSharedMemoryHandleForTesting(size_t size) {
 #if V8_OS_LINUX && !V8_OS_ANDROID
   // Use memfd_create if available, otherwise mkstemp.
@@ -720,7 +728,11 @@ bool OS::HasLazyCommits() {
 #endif  // !V8_OS_CYGWIN && !V8_OS_FUCHSIA
 
 const char* OS::GetGCFakeMMapFile() {
+#ifdef __wasi__
+  return nullptr;
+#else
   return g_gc_fake_mmap;
+#endif
 }
 
 
@@ -771,6 +783,9 @@ void OS::DebugBreak() {
   asm("ebreak");
 #elif V8_HOST_ARCH_RISCV32
   asm("ebreak");
+#elif defined(__wasi__)
+  // WASI doesn't have a debug break mechanism
+  abort();
 #else
 #error Unsupported host architecture.
 #endif
@@ -867,6 +882,9 @@ int OS::GetCurrentThreadIdInternal() {
   return static_cast<int>(pthread_self());
 #elif V8_OS_ZOS
   return gettid();
+#elif defined(__wasi__)
+  // WASI doesn't have thread IDs, return a dummy value
+  return 1;
 #else
   return static_cast<int>(reinterpret_cast<intptr_t>(pthread_self()));
 #endif

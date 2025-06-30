@@ -5,6 +5,36 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
+#ifdef __wasi__
+// WASI stub implementation
+#include "include/libplatform/libplatform.h"
+#include "include/v8-platform.h"
+
+namespace v8 {
+namespace platform {
+
+std::unique_ptr<v8::Platform> NewDefaultPlatform(
+    int thread_pool_size, IdleTaskSupport idle_task_support,
+    InProcessStackDumping in_process_stack_dumping,
+    std::unique_ptr<v8::TracingController> tracing_controller,
+    PriorityMode priority_mode) {
+  return nullptr;
+}
+
+bool PumpMessageLoop(v8::Platform* platform, v8::Isolate* isolate,
+                     MessageLoopBehavior behavior) {
+  return false;
+}
+
+void RunIdleTasks(v8::Platform* platform, v8::Isolate* isolate,
+                  double idle_time_in_seconds) {}
+
+void NotifyIsolateShutdown(v8::Platform* platform, v8::Isolate* isolate) {}
+
+}  // namespace platform
+}  // namespace v8
+#else
+
 #include "src/libplatform/default-platform.h"
 
 #include <algorithm>
@@ -307,3 +337,4 @@ void DefaultPlatform::NotifyIsolateShutdown(Isolate* isolate) {
 
 }  // namespace platform
 }  // namespace v8
+#endif // __wasi__

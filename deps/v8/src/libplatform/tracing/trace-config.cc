@@ -5,6 +5,34 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
+#ifdef __wasi__
+// WASI stub implementation
+#include <vector>
+#include <string>
+
+namespace v8 {
+
+class Isolate;
+
+namespace platform {
+namespace tracing {
+
+class TraceConfig {
+ public:
+  TraceConfig() {}
+  static TraceConfig* CreateDefaultTraceConfig() { return new TraceConfig(); }
+  bool IsCategoryGroupEnabled(const char*) const { return false; }
+  void AddIncludedCategory(const char*) {}
+ private:
+  std::vector<std::string> included_categories_;
+};
+
+}  // namespace tracing
+}  // namespace platform
+}  // namespace v8
+
+#else
+
 #include <string.h>
 
 #include "include/libplatform/v8-tracing.h"
@@ -43,3 +71,5 @@ void TraceConfig::AddIncludedCategory(const char* included_category) {
 }  // namespace tracing
 }  // namespace platform
 }  // namespace v8
+
+#endif // __wasi__

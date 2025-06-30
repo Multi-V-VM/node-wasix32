@@ -5,6 +5,23 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
+#ifdef __wasi__
+// WASI stub implementation
+#include <cstddef>
+namespace v8 {
+namespace platform {
+namespace tracing {
+class TraceWriter;
+class TraceBuffer {
+ public:
+  static TraceBuffer* CreateTraceBufferRingBuffer(size_t, TraceWriter*);
+};
+TraceBuffer* TraceBuffer::CreateTraceBufferRingBuffer(size_t, TraceWriter*) { return nullptr; }
+}  // namespace tracing
+}  // namespace platform
+}  // namespace v8
+#else
+
 #include "src/libplatform/tracing/trace-buffer.h"
 #include "v8-tracing-definitions.h"
 
@@ -109,3 +126,4 @@ TraceBuffer* TraceBuffer::CreateTraceBufferRingBuffer(
 }  // namespace tracing
 }  // namespace platform
 }  // namespace v8
+#endif // __wasi__

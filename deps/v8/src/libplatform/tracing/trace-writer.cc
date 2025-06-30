@@ -5,6 +5,25 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
+#ifdef __wasi__
+// WASI stub implementation
+#include <ostream>
+#include <string>
+namespace v8 {
+namespace platform {
+namespace tracing {
+class TraceWriter {
+ public:
+  static TraceWriter* CreateJSONTraceWriter(std::ostream&);
+  static TraceWriter* CreateJSONTraceWriter(std::ostream&, const std::string&);
+};
+TraceWriter* TraceWriter::CreateJSONTraceWriter(std::ostream&) { return nullptr; }
+TraceWriter* TraceWriter::CreateJSONTraceWriter(std::ostream&, const std::string&) { return nullptr; }
+}  // namespace tracing
+}  // namespace platform
+}  // namespace v8
+#else
+
 #include "src/libplatform/tracing/trace-writer.h"
 
 #include <cmath>
@@ -223,3 +242,4 @@ TraceWriter* TraceWriter::CreateSystemInstrumentationTraceWriter() {
 }  // namespace tracing
 }  // namespace platform
 }  // namespace v8
+#endif // __wasi__

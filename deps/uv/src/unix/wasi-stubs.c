@@ -46,7 +46,7 @@ void uv__fs_event_close(uv_fs_event_t* handle) {
   // No-op for WASI
 }
 
-int uv__io_poll(uv_loop_t* loop, int timeout) {
+void uv__io_poll(uv_loop_t* loop, int timeout) {
   // Basic implementation - just sleep if timeout is positive
   if (timeout > 0) {
     struct timespec ts;
@@ -54,7 +54,6 @@ int uv__io_poll(uv_loop_t* loop, int timeout) {
     ts.tv_nsec = (timeout % 1000) * 1000000;
     nanosleep(&ts, NULL);
   }
-  return 0;
 }
 
 void uv__platform_invalidate_fd(uv_loop_t* loop, int fd) {
@@ -90,7 +89,9 @@ int uv__udp_bind(uv_udp_t* handle, const struct sockaddr* addr, unsigned int add
   return UV_ENOSYS;
 }
 
-int uv__udp_connect(uv_udp_t* handle, const struct sockaddr* addr) {
+int uv__udp_connect(uv_udp_t* handle,
+                    const struct sockaddr* addr,
+                    unsigned int addrlen) {
   return UV_ENOSYS;
 }
 
@@ -98,7 +99,7 @@ int uv__udp_disconnect(uv_udp_t* handle) {
   return UV_ENOSYS;
 }
 
-int uv__udp_is_connected(const uv_udp_t* handle) {
+int uv__udp_is_connected(uv_udp_t* handle) {
   return 0;
 }
 

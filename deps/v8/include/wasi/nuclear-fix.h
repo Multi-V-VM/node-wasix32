@@ -10,6 +10,8 @@
 #include <algorithm>
 #include <memory>
 #include <atomic>
+#include <cstdio>
+#include <cstdlib>
 
 // SourcePosition/SourceLocation definitions
 struct SourcePosition {
@@ -97,6 +99,14 @@ class SourceLocation {
 
 #ifndef UNIMPLEMENTED
 #define UNIMPLEMENTED() UNREACHABLE()
+#endif
+
+#ifndef FATAL
+#define FATAL(...) do { fprintf(stderr, __VA_ARGS__); abort(); } while(0)
+#endif
+
+#ifndef IMMEDIATE_CRASH
+#define IMMEDIATE_CRASH() abort()
 #endif
 
 #ifndef V8_GLIBC_PREREQ

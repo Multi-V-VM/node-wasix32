@@ -16,6 +16,7 @@ using OnceType = int;
 #define ONCE_STATE_UNINITIALIZED 0
 #define ONCE_STATE_DONE 1
 
+#ifndef __wasi__
 template <typename T>
 void CallOnce(OnceType* once, T init_func) {
   if (*once == ONCE_STATE_UNINITIALIZED) {
@@ -23,6 +24,7 @@ void CallOnce(OnceType* once, T init_func) {
     *once = ONCE_STATE_DONE;
   }
 }
+#endif
 
 }  // namespace base
 }  // namespace v8

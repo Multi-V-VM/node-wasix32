@@ -5,6 +5,14 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
+#ifdef __wasi__
+// WASI stub implementation
+namespace v8 {
+namespace platform {
+}  // namespace platform
+}  // namespace v8
+#else
+
 #include "src/libplatform/default-foreground-task-runner.h"
 
 #include "src/base/platform/mutex.h"
@@ -219,3 +227,4 @@ void v8::platform::DefaultForegroundTaskRunner::WaitForTaskLocked() {
 
 }  // namespace platform
 }  // namespace v8
+#endif // __wasi__

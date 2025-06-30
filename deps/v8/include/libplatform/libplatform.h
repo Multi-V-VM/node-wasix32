@@ -18,7 +18,11 @@ enum class InProcessStackDumping { kDisabled, kEnabled };
 namespace platform {
 
 // Use the existing TracingController from v8-tracing.h
+#ifdef __wasi__
+// WASI doesn't have tracing namespace, use v8::TracingController directly
+#else
 using tracing::TracingController;
+#endif
 
 // Factory function
 std::unique_ptr<Platform> NewDefaultPlatform(
