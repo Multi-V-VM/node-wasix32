@@ -12,6 +12,7 @@
 #include "include/libplatform/libplatform-export.h"
 #include "src/base/platform/condition-variable.h"
 #include "src/base/platform/time.h"
+#include "v8-task-full.h"
 
 namespace v8 {
 

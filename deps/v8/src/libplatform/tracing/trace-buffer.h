@@ -10,6 +10,7 @@
 
 #include "include/libplatform/v8-tracing.h"
 #include "src/base/platform/mutex.h"
+#include "v8-tracing-definitions.h"
 
 namespace v8 {
 namespace platform {
@@ -30,7 +31,7 @@ class TraceBufferRingBuffer : public TraceBuffer {
                       size_t event_index) const;
   void ExtractHandle(uint64_t handle, size_t* chunk_index, uint32_t* chunk_seq,
                      size_t* event_index) const;
-  size_t Capacity() const { return max_chunks_ * TraceBufferChunk::kChunkSize; }
+  size_t Capacity() const { return max_chunks_ * TraceBufferChunk::kTraceBufferChunkSize; }
   size_t NextChunkIndex(size_t index) const;
 
   mutable base::Mutex mutex_;

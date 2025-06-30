@@ -11,6 +11,7 @@
 #include <queue>
 #include <streambuf>
 #include <string>
+#include <sstream>
 #include <unordered_set>
 
 #include "src/base/contextual.h"

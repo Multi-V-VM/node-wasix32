@@ -7,6 +7,7 @@
 
 #include <map>
 #include <memory>
+#include "default-platform-namespace-fix.h"
 
 #include "include/libplatform/libplatform-export.h"
 #include "include/libplatform/libplatform.h"

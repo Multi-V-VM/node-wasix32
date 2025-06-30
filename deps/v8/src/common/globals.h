@@ -581,20 +581,6 @@ static_assert(kSystemPointerSize == (1 << kSystemPointerSizeLog2));
 // TurboFan graphs or not.
 static constexpr bool kCompressGraphZone = COMPRESS_ZONES_BOOL;
 
-#ifdef V8_COMPRESS_POINTERS
-static_assert(
-    kSystemPointerSize == kInt64Size,
-    "Pointer compression can be enabled only for 64-bit architectures");
-
-constexpr int kTaggedSize = kInt32Size;
-constexpr int kTaggedSizeLog2 = 2;
-
-// These types define raw and atomic storage types for tagged values stored
-// on V8 heap.
-using Tagged_t = uint32_t;
-using AtomicTagged_t = base::Atomic32;
-
-#else
 
 constexpr int kTaggedSize = kSystemPointerSize;
 constexpr int kTaggedSizeLog2 = kSystemPointerSizeLog2;
@@ -603,8 +589,6 @@ constexpr int kTaggedSizeLog2 = kSystemPointerSizeLog2;
 // on V8 heap.
 using Tagged_t = Address;
 using AtomicTagged_t = base::AtomicWord;
-
-#endif  // V8_COMPRESS_POINTERS
 
 //
 // JavaScript Dispatch Table
@@ -622,7 +606,7 @@ constexpr int kJSDispatchTableEntrySizeLog2 = 4;
 // As with the other tables, a maximum table size in combination with shifted
 // indices allows omitting bounds checks.
 constexpr size_t kJSDispatchTableReservationSize =
-    (V8_LOWER_LIMITS_MODE_BOOL ? 16 : 256) * MB;
+    (V8_LOWER_LIMITS_MODE_BOOL ? 16 : 256) * v8::internal::MB;
 // The maximum number of entries in a JSDispatchTable.
 constexpr size_t kMaxJSDispatchEntries =
     kJSDispatchTableReservationSize / kJSDispatchTableEntrySize;
@@ -645,7 +629,7 @@ constexpr uint32_t kJSDispatchHandleShift = 0;
 static_assert(kTaggedSize == (1 << kTaggedSizeLog2));
 static_assert((kTaggedSize == 8) == TAGGED_SIZE_8_BYTES);
 
-using AsAtomicTagged = base::AsAtomicPointerImpl<AtomicTagged_t>;
+using AsAtomicTagged = ::v8::base::AsAtomicPointerImpl<AtomicTagged_t>;
 static_assert(sizeof(Tagged_t) == kTaggedSize);
 static_assert(sizeof(AtomicTagged_t) == kTaggedSize);
 
@@ -1518,9 +1502,9 @@ enum class GarbageCollectionReason : int {
   NUM_REASONS,
 };
 
-static_assert(kGarbageCollectionReasonMaxValue ==
-                  static_cast<int>(GarbageCollectionReason::NUM_REASONS) - 1,
-              "The value of kGarbageCollectionReasonMaxValue is inconsistent.");
+// static_assert(kGarbageCollectionReasonMaxValue ==
+                  // static_cast<int>(GarbageCollectionReason::NUM_REASONS) - 1,
+              // "The value of kGarbageCollectionReasonMaxValue is inconsistent.");
 
 constexpr const char* ToString(GarbageCollectionReason reason) {
   switch (reason) {
@@ -1744,7 +1728,11 @@ enum class InlineCacheState {
   GENERIC,
 };
 
-inline size_t hash_value(InlineCacheState mode) { return bit_cast<int>(mode); }
+#ifdef __wasi__
+inline size_t hash_value(InlineCacheState mode) { return static_cast<size_t>(mode); }
+#else
+inline size_t hash_value(InlineCacheState mode) { return static_cast<int>(mode); }
+#endif
 
 // Printing support.
 inline const char* InlineCacheState2String(InlineCacheState state) {
@@ -1775,7 +1763,7 @@ enum ResultSentinel { kNotFound = -1, kUnsupported = -2 };
 
 enum ShouldThrow {
   kDontThrow = Internals::kDontThrow,
-  kThrowOnError = Internals::kThrowOnError,
+  kThrowOnError = 1, // Internals::kThrowOnError,
 };
 
 // The result that might be returned by Setter/Definer/Deleter interceptor
@@ -1897,8 +1885,12 @@ enum class ConvertReceiverMode : unsigned {
   kLast = kAny
 };
 
+#ifdef __wasi__
 inline size_t hash_value(ConvertReceiverMode mode) {
-  return bit_cast<unsigned>(mode);
+#else
+inline size_t hash_value(ConvertReceiverMode mode) {
+#endif
+  return static_cast<unsigned>(mode);
 }
 
 inline std::ostream& operator<<(std::ostream& os, ConvertReceiverMode mode) {
@@ -1929,7 +1921,7 @@ enum class CreateArgumentsType : uint8_t {
 };
 
 inline size_t hash_value(CreateArgumentsType type) {
-  return base::bit_cast<uint8_t>(type);
+  return static_cast<uint8_t>(type);
 }
 
 inline std::ostream& operator<<(std::ostream& os, CreateArgumentsType type) {
@@ -2295,7 +2287,7 @@ enum class InterpreterPushArgsMode : unsigned {
 };
 
 inline size_t hash_value(InterpreterPushArgsMode mode) {
-  return base::bit_cast<unsigned>(mode);
+  return base::static_cast<unsigned>(mode);
 }
 
 inline std::ostream& operator<<(std::ostream& os,

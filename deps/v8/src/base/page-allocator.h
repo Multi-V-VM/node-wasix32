@@ -70,3 +70,7 @@ class V8_BASE_EXPORT PageAllocator
 }  // namespace base
 }  // namespace v8
 #endif  // V8_BASE_PAGE_ALLOCATOR_H_
+
+// Use v8::PageAllocator from platform
+using v8::PageAllocator;
+

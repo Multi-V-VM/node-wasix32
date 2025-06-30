@@ -2326,19 +2326,11 @@
         ],
       },
       'include_dirs': ['.'],
-      'conditions': [
-        ['target_arch=="wasm32"', {
-          'sources': [
+      'sources': [
             '<(V8_ROOT)/third_party/simdutf/simdutf_part1.cpp',
             '<(V8_ROOT)/third_party/simdutf/simdutf_part2.cpp',
             '<(V8_ROOT)/third_party/simdutf/simdutf_part3.cpp',
             '<(V8_ROOT)/third_party/simdutf/simdutf_part4.cpp',
-          ],
-        }, {
-          'sources': [
-            '<(V8_ROOT)/third_party/simdutf/simdutf.cpp',
-          ],
-        }],
       ],
     },  # simdutf
   ],

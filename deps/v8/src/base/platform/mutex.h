@@ -9,6 +9,7 @@
 
 #include "absl/synchronization/mutex.h"
 #include "include/v8config.h"
+#include "../../include/wasi/nuclear-fix.h"
 
 #include "src/base/base-export.h"
 #include "src/base/lazy-instance.h"

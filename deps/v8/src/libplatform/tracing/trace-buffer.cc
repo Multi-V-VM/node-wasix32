@@ -1,8 +1,12 @@
+#ifdef V8_TARGET_ARCH_WASM32
+#include "../../include/libplatform/libplatform-wasi-fix.h"
+#endif
 // Copyright 2016 the V8 project authors. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
 #include "src/libplatform/tracing/trace-buffer.h"
+#include "v8-tracing-definitions.h"
 
 namespace v8 {
 namespace platform {
@@ -68,7 +72,7 @@ uint64_t TraceBufferRingBuffer::MakeHandle(size_t chunk_index,
                                            uint32_t chunk_seq,
                                            size_t event_index) const {
   return static_cast<uint64_t>(chunk_seq) * Capacity() +
-         chunk_index * TraceBufferChunk::kChunkSize + event_index;
+         chunk_index * TraceBufferChunk::kTraceBufferChunkSize + event_index;
 }
 
 void TraceBufferRingBuffer::ExtractHandle(uint64_t handle, size_t* chunk_index,
@@ -76,8 +80,8 @@ void TraceBufferRingBuffer::ExtractHandle(uint64_t handle, size_t* chunk_index,
                                           size_t* event_index) const {
   *chunk_seq = static_cast<uint32_t>(handle / Capacity());
   size_t indices = handle % Capacity();
-  *chunk_index = indices / TraceBufferChunk::kChunkSize;
-  *event_index = indices % TraceBufferChunk::kChunkSize;
+  *chunk_index = indices / TraceBufferChunk::kTraceBufferChunkSize;
+  *event_index = indices % TraceBufferChunk::kTraceBufferChunkSize;
 }
 
 size_t TraceBufferRingBuffer::NextChunkIndex(size_t index) const {

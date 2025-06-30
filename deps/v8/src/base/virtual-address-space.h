@@ -1,9 +1,11 @@
 #ifdef __wasi__
-#include "v8-platform.h"
-using PagePermissions = v8::PagePermissions;
+#include "../../include/v8-platform-full.h"
 namespace v8 {
-using VirtualAddressSpace = ::v8::VirtualAddressSpace;
-}
+namespace base {
+using Address = uintptr_t;
+constexpr Address kNullAddress = 0;
+}  // namespace base
+}  // namespace v8
 #define NON_EXPORTED_BASE(x) public x
 #else
 // Copyright 2021 the V8 project authors. All rights reserved.

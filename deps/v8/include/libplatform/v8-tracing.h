@@ -1,11 +1,5 @@
 #ifdef __wasi__
-namespace v8 {
-namespace platform {
-namespace tracing {
-using TracingController = ::v8::TracingController;
-}
-}
-}
+#include "v8-tracing-base.h"
 #define V8_PLATFORM_NON_EXPORTED_BASE(x) public x
 #else
 #ifdef __wasi__
@@ -149,18 +143,18 @@ class V8_PLATFORM_EXPORT TraceBufferChunk {
   explicit TraceBufferChunk(uint32_t seq);
 
   void Reset(uint32_t new_seq);
-  bool IsFull() const { return next_free_ == kChunkSize; }
+  bool IsFull() const { return next_free_ == kTraceBufferChunkSize; }
   TraceObject* AddTraceEvent(size_t* event_index);
   TraceObject* GetEventAt(size_t index) { return &chunk_[index]; }
 
   uint32_t seq() const { return seq_; }
   size_t size() const { return next_free_; }
 
-  static const size_t kChunkSize = 64;
+  static const size_t kTraceBufferChunkSize = 64;
 
  private:
   size_t next_free_ = 0;
-  TraceObject chunk_[kChunkSize];
+  TraceObject chunk_[kTraceBufferChunkSize];
   uint32_t seq_;
 
   // Disallow copy and assign
@@ -179,7 +173,7 @@ class V8_PLATFORM_EXPORT TraceBuffer {
 
   static const size_t kRingBufferChunks = 1024;
 
-  static TraceBuffer* CreateTraceBufferRingBuffer(size_t max_chunks,
+  static v8::platform::tracing::TraceBuffer* CreateTraceBufferRingBuffer(size_t max_chunks,
                                                   TraceWriter* trace_writer);
 
  private:

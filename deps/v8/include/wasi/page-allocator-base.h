@@ -11,10 +11,47 @@ namespace v8 {
 using PlatformSharedMemoryHandle = void*;
 
 // Base PageAllocator interface
+// class PageAllocator {
+//  public:
+//   virtual ~PageAllocator() = default;
+//   
+//   enum Permission {
+//     kNoAccess,
+//     kRead,
+//     kReadWrite,
+//     kReadWriteExecute,
+//     kReadExecute
+//   };
+//   
+//   using Address = uintptr_t;
+//   using PagePermissions = Permission;
+//   
+//   virtual void* AllocatePages(void* hint, size_t size, size_t alignment,
+//                               Permission access) = 0;
+//   virtual void FreePages(void* address, size_t size) = 0;
+//   virtual void ReleasePages(void* address, size_t size, size_t free_size) = 0;
+//   virtual void SetPermissions(void* address, size_t size, Permission access) = 0;
+//   virtual void DiscardSystemPages(void* address, size_t size) {}
+//   virtual void DecommitPages(void* address, size_t size) = 0;
+//   virtual void RecommitPages(void* address, size_t size, Permission access) = 0;
+//   
+//   // SharedMemory support
+//   virtual Address AllocateSharedPages(Address hint, size_t size, PagePermissions permissions, 
+//                                      PlatformSharedMemoryHandle handle, uint64_t offset) = 0;
+//   
+//   // Additional methods
+//   virtual bool CanAllocateSharedPages() { return false; }
+// };
+
+}  // namespace v8
+
+#endif // WASI_PAGE_ALLOCATOR_BASE_H
+
+namespace v8 {
+namespace base {
+
 class PageAllocator {
  public:
-  virtual ~PageAllocator() = default;
-  
   enum Permission {
     kNoAccess,
     kRead,
@@ -23,26 +60,14 @@ class PageAllocator {
     kReadExecute
   };
   
-  using Address = uintptr_t;
-  using PagePermissions = Permission;
-  
-  virtual void* AllocatePages(void* hint, size_t size, size_t alignment,
-                              Permission access) = 0;
-  virtual void FreePages(void* address, size_t size) = 0;
-  virtual void ReleasePages(void* address, size_t size, size_t free_size) = 0;
-  virtual void SetPermissions(void* address, size_t size, Permission access) = 0;
-  virtual void DiscardSystemPages(void* address, size_t size) {}
-  virtual void DecommitPages(void* address, size_t size) = 0;
-  virtual void RecommitPages(void* address, size_t size, Permission access) = 0;
-  
-  // SharedMemory support
-  virtual Address AllocateSharedPages(Address hint, size_t size, PagePermissions permissions, 
-                                     PlatformSharedMemoryHandle handle, uint64_t offset) = 0;
-  
-  // Additional methods
-  virtual bool CanAllocateSharedPages() { return false; }
+  virtual ~PageAllocator() = default;
+  virtual size_t AllocatePageSize() = 0;
+  virtual size_t CommitPageSize() = 0;
+  virtual void* AllocatePages(void* address, size_t size, size_t alignment, Permission access) = 0;
+  virtual bool FreePages(void* address, size_t size) = 0;
+  virtual bool SetPermissions(void* address, size_t size, Permission access) = 0;
 };
 
+}  // namespace base
 }  // namespace v8
 
-#endif // WASI_PAGE_ALLOCATOR_BASE_H

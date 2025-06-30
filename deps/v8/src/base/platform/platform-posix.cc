@@ -1,3 +1,4 @@
+#include "src/base/platform/wasi-platform-fix.h"
 #ifdef __wasi__
 #define kInvalidSharedMemoryHandle -1
 static int FileDescriptorFromSharedMemoryHandle(int handle) { return handle; }

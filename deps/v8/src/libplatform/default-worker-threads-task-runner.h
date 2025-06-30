@@ -10,6 +10,7 @@
 
 #include "include/libplatform/libplatform-export.h"
 #include "include/v8-platform.h"
+#include "v8-task-full.h"
 #include "src/base/platform/condition-variable.h"
 #include "src/base/platform/mutex.h"
 #include "src/base/platform/platform.h"
