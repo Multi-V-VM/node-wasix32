@@ -222,7 +222,7 @@ static_assert(String::kMaxArrayIndexSize == String::kMaxIntegerIndexSize);
 template <typename char_t>
 uint32_t StringHasher::HashSequentialString(const char_t* chars_raw,
                                             uint32_t length, uint64_t seed) {
-  static_assert(std::is_integral_v<char_t>);
+  static_assert(std::is_integral<char_t>::value);
   static_assert(sizeof(char_t) <= 2);
   using uchar = std::make_unsigned_t<char_t>;
   const uchar* chars = reinterpret_cast<const uchar*>(chars_raw);

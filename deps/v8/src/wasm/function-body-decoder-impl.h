@@ -7032,7 +7032,7 @@ class WasmFullDecoder : public WasmDecoder<ValidationTag, decoding_mode> {
   // value itself if a single type is passed.
   template <typename... ValueTypes>
   // Pop is only allowed to be called with ValueType parameters.
-    requires((std::is_same_v<ValueType, ValueTypes> ||
+    requires((std::is_same<ValueType, ValueTypes>::value ||
               std::is_base_of_v<IndependentValueType, ValueTypes>) &&
              ...)
   V8_INLINE std::conditional_t<sizeof...(ValueTypes) == 1, Value,

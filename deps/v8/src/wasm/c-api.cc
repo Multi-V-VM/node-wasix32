@@ -114,8 +114,8 @@ auto ReadLebU64(const byte_t** pos) -> uint64_t {
 
 template <typename T>
 ValKind V8ValueTypeToWasm(T v8_valtype)
-  requires(std::is_same_v<T, i::wasm::ValueType> ||
-           std::is_same_v<T, i::wasm::CanonicalValueType>)
+  requires(std::is_same<T, i::wasm::ValueType>::value ||
+           std::is_same<T, i::wasm::CanonicalValueType>::value)
 {
   switch (v8_valtype.kind()) {
     case i::wasm::kI32:

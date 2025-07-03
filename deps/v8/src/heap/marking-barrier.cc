@@ -215,27 +215,27 @@ void MarkingBarrier::RecordRelocSlot(Tagged<InstructionStream> host,
 namespace {
 template <typename Space>
 void SetGenerationPageFlags(Space* space, MarkingMode marking_mode) {
-  if constexpr (std::is_same_v<Space, OldSpace> ||
-                std::is_same_v<Space, SharedSpace> ||
-                std::is_same_v<Space, TrustedSpace> ||
-                std::is_same_v<Space, CodeSpace>) {
+  if constexpr (std::is_same<Space, OldSpace>::value ||
+                std::is_same<Space, SharedSpace>::value ||
+                std::is_same<Space, TrustedSpace>::value ||
+                std::is_same<Space, CodeSpace>::value) {
     for (auto* p : *space) {
       p->SetOldGenerationPageFlags(marking_mode);
     }
-  } else if constexpr (std::is_same_v<Space, OldLargeObjectSpace> ||
-                       std::is_same_v<Space, SharedLargeObjectSpace> ||
-                       std::is_same_v<Space, TrustedLargeObjectSpace> ||
-                       std::is_same_v<Space, CodeLargeObjectSpace>) {
+  } else if constexpr (std::is_same<Space, OldLargeObjectSpace>::value ||
+                       std::is_same<Space, SharedLargeObjectSpace>::value ||
+                       std::is_same<Space, TrustedLargeObjectSpace>::value ||
+                       std::is_same<Space, CodeLargeObjectSpace>::value) {
     for (auto* p : *space) {
       DCHECK(p->Chunk()->IsLargePage());
       p->SetOldGenerationPageFlags(marking_mode);
     }
-  } else if constexpr (std::is_same_v<Space, NewSpace>) {
+  } else if constexpr (std::is_same<Space, NewSpace>::value) {
     for (auto* p : *space) {
       p->SetYoungGenerationPageFlags(marking_mode);
     }
   } else {
-    static_assert(std::is_same_v<Space, NewLargeObjectSpace>);
+    static_assert(std::is_same<Space, NewLargeObjectSpace>::value);
     for (auto* p : *space) {
       DCHECK(p->Chunk()->IsLargePage());
       p->SetYoungGenerationPageFlags(marking_mode);

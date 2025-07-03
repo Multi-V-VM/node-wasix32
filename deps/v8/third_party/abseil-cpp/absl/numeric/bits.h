@@ -238,7 +238,7 @@ using std::byteswap;
 
 template <class T>
 [[nodiscard]] constexpr T byteswap(T x) noexcept {
-  static_assert(std::is_integral_v<T>,
+  static_assert(std::is_integral<T>::value,
                 "byteswap requires an integral argument");
   static_assert(
       sizeof(T) == 1 || sizeof(T) == 2 || sizeof(T) == 4 || sizeof(T) == 8,

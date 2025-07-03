@@ -5,20 +5,12 @@
 
 #ifdef __wasi__
 // Service function stubs for WASI
-struct servent {
-  char *s_name;
-  char **s_aliases;
-  int s_port;
-  char *s_proto;
-};
+// servent struct already defined in cares-wasi-comprehensive-fix.h
 
-static inline struct servent* getservbyname(const char *name, const char *proto) {
-  return NULL;
-}
+// Just provide stub implementations as replacements
+#define getservbyname(name, proto) ((struct servent*)NULL)
+#define getservbyport(port, proto) ((struct servent*)NULL)
 
-static inline struct servent* getservbyport(int port, const char *proto) {
-  return NULL;
-}
 #endif
 
 #endif /* CARES_SERVICE_FIX_H */

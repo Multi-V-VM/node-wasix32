@@ -2857,9 +2857,9 @@ TNode<TValue> CodeStubAssembler::LoadArrayElement(TNode<Array> array,
                                                   int additional_offset) {
   // TODO(v8:9708): Do we want to keep both IntPtrT and UintPtrT variants?
   static_assert(
-      std::is_same_v<TIndex, Smi> || std::is_same_v<TIndex, UintPtrT> ||
-          std::is_same_v<TIndex, IntPtrT> ||
-          std::is_same_v<TIndex, TaggedIndex>,
+      std::is_same<TIndex, Smi>::value || std::is_same<TIndex, UintPtrT>::value ||
+          std::is_same<TIndex, IntPtrT>::value ||
+          std::is_same<TIndex, TaggedIndex>::value,
       "Only Smi, UintPtrT, IntPtrT or TaggedIndex indices are allowed");
   CSA_DCHECK(this, IntPtrGreaterThanOrEqual(ParameterToIntPtr(index_node),
                                             IntPtrConstant(0)));
@@ -2894,9 +2894,9 @@ TNode<Object> CodeStubAssembler::LoadFixedArrayElement(
     CheckBounds check_bounds) {
   // TODO(v8:9708): Do we want to keep both IntPtrT and UintPtrT variants?
   static_assert(
-      std::is_same_v<TIndex, Smi> || std::is_same_v<TIndex, UintPtrT> ||
-          std::is_same_v<TIndex, IntPtrT> ||
-          std::is_same_v<TIndex, TaggedIndex>,
+      std::is_same<TIndex, Smi>::value || std::is_same<TIndex, UintPtrT>::value ||
+          std::is_same<TIndex, IntPtrT>::value ||
+          std::is_same<TIndex, TaggedIndex>::value,
       "Only Smi, UintPtrT, IntPtrT or TaggedIndex indexes are allowed");
   CSA_DCHECK(this, IsFixedArraySubclass(object));
   CSA_DCHECK(this, IsNotWeakFixedArraySubclass(object));
@@ -3993,9 +3993,9 @@ void CodeStubAssembler::StoreFixedArrayOrPropertyArrayElement(
     TNode<UnionOf<FixedArray, PropertyArray>> object, TNode<TIndex> index_node,
     TNode<Object> value, WriteBarrierMode barrier_mode, int additional_offset) {
   // TODO(v8:9708): Do we want to keep both IntPtrT and UintPtrT variants?
-  static_assert(std::is_same_v<TIndex, Smi> ||
-                    std::is_same_v<TIndex, UintPtrT> ||
-                    std::is_same_v<TIndex, IntPtrT>,
+  static_assert(std::is_same<TIndex, Smi>::value ||
+                    std::is_same<TIndex, UintPtrT>::value ||
+                    std::is_same<TIndex, IntPtrT>::value,
                 "Only Smi, UintPtrT or IntPtrT index is allowed");
   DCHECK(barrier_mode == SKIP_WRITE_BARRIER ||
          barrier_mode == UNSAFE_SKIP_WRITE_BARRIER ||
@@ -4065,9 +4065,9 @@ void CodeStubAssembler::StoreFixedDoubleArrayElement(
     TNode<FixedDoubleArray> object, TNode<TIndex> index, TNode<Float64T> value,
     CheckBounds check_bounds) {
   // TODO(v8:9708): Do we want to keep both IntPtrT and UintPtrT variants?
-  static_assert(std::is_same_v<TIndex, Smi> ||
-                    std::is_same_v<TIndex, UintPtrT> ||
-                    std::is_same_v<TIndex, IntPtrT>,
+  static_assert(std::is_same<TIndex, Smi>::value ||
+                    std::is_same<TIndex, UintPtrT>::value ||
+                    std::is_same<TIndex, IntPtrT>::value,
                 "Only Smi, UintPtrT or IntPtrT index is allowed");
   if (NeedsBoundsCheck(check_bounds)) {
     FixedArrayBoundsCheck(object, index, 0);
@@ -5324,7 +5324,7 @@ template <typename TIndex>
 TNode<FixedArrayBase> CodeStubAssembler::AllocateFixedArray(
     ElementsKind kind, TNode<TIndex> capacity, AllocationFlags flags,
     std::optional<TNode<Map>> fixed_array_map) {
-  static_assert(std::is_same_v<TIndex, Smi> || std::is_same_v<TIndex, IntPtrT>,
+  static_assert(std::is_same<TIndex, Smi>::value || std::is_same<TIndex, IntPtrT>::value,
                 "Only Smi or IntPtrT capacity is allowed");
   Comment("AllocateFixedArray");
   CSA_DCHECK(this,
@@ -5392,7 +5392,7 @@ TNode<FixedArray> CodeStubAssembler::ExtractToFixedArray(
     AllocationFlags allocation_flags, ExtractFixedArrayFlags extract_flags,
     HoleConversionMode convert_holes, TVariable<BoolT>* var_holes_converted,
     std::optional<TNode<Int32T>> source_elements_kind) {
-  static_assert(std::is_same_v<TIndex, Smi> || std::is_same_v<TIndex, IntPtrT>,
+  static_assert(std::is_same<TIndex, Smi>::value || std::is_same<TIndex, IntPtrT>::value,
                 "Only Smi or IntPtrT first, count, and capacity are allowed");
 
   DCHECK(extract_flags & ExtractFixedArrayFlag::kFixedArrays);
@@ -5490,7 +5490,7 @@ TNode<FixedArrayBase> CodeStubAssembler::ExtractFixedDoubleArrayFillingHoles(
     TNode<TIndex> capacity, TNode<Map> fixed_array_map,
     TVariable<BoolT>* var_holes_converted, AllocationFlags allocation_flags,
     ExtractFixedArrayFlags extract_flags) {
-  static_assert(std::is_same_v<TIndex, Smi> || std::is_same_v<TIndex, IntPtrT>,
+  static_assert(std::is_same<TIndex, Smi>::value || std::is_same<TIndex, IntPtrT>::value,
                 "Only Smi or IntPtrT first, count, and capacity are allowed");
 
   DCHECK_NE(var_holes_converted, nullptr);
@@ -5577,7 +5577,7 @@ TNode<FixedArrayBase> CodeStubAssembler::ExtractFixedArray(
     std::optional<TNode<TIndex>> count, std::optional<TNode<TIndex>> capacity,
     ExtractFixedArrayFlags extract_flags, TVariable<BoolT>* var_holes_converted,
     std::optional<TNode<Int32T>> source_elements_kind) {
-  static_assert(std::is_same_v<TIndex, Smi> || std::is_same_v<TIndex, IntPtrT>,
+  static_assert(std::is_same<TIndex, Smi>::value || std::is_same<TIndex, IntPtrT>::value,
                 "Only Smi or IntPtrT first, count, and capacity are allowed");
   DCHECK(extract_flags & ExtractFixedArrayFlag::kFixedArrays ||
          extract_flags & ExtractFixedArrayFlag::kFixedDoubleArrays);
@@ -5724,7 +5724,7 @@ void CodeStubAssembler::FillFixedArrayWithValue(ElementsKind kind,
                                                 TNode<TIndex> from_index,
                                                 TNode<TIndex> to_index,
                                                 RootIndex value_root_index) {
-  static_assert(std::is_same_v<TIndex, Smi> || std::is_same_v<TIndex, IntPtrT>,
+  static_assert(std::is_same<TIndex, Smi>::value || std::is_same<TIndex, IntPtrT>::value,
                 "Only Smi or IntPtrT from and to are allowed");
   CSA_SLOW_DCHECK(this, IsFixedArrayWithKind(array, kind));
   DCHECK(value_root_index == RootIndex::kTheHoleValue ||
@@ -6105,7 +6105,7 @@ void CodeStubAssembler::CopyFixedArrayElements(
   CSA_SLOW_DCHECK(this, IsFixedArrayWithKindOrEmpty(to_array, to_kind));
   static_assert(OFFSET_OF_DATA_START(FixedArray) ==
                 OFFSET_OF_DATA_START(FixedDoubleArray));
-  static_assert(std::is_same_v<TIndex, Smi> || std::is_same_v<TIndex, IntPtrT>,
+  static_assert(std::is_same<TIndex, Smi>::value || std::is_same<TIndex, IntPtrT>::value,
                 "Only Smi or IntPtrT indices are allowed");
 
   const int first_element_offset =
@@ -6408,7 +6408,7 @@ TNode<Float64T> CodeStubAssembler::LoadElementAndPrepareForStore(
 template <typename TIndex>
 TNode<TIndex> CodeStubAssembler::CalculateNewElementsCapacity(
     TNode<TIndex> old_capacity) {
-  static_assert(std::is_same_v<TIndex, Smi> || std::is_same_v<TIndex, IntPtrT>,
+  static_assert(std::is_same<TIndex, Smi>::value || std::is_same<TIndex, IntPtrT>::value,
                 "Only Smi or IntPtrT old_capacity is allowed");
   Comment("TryGrowElementsCapacity");
   TNode<TIndex> half_old_capacity = WordOrSmiShr(old_capacity, 1);
@@ -6438,7 +6438,7 @@ template <typename TIndex>
 TNode<FixedArrayBase> CodeStubAssembler::TryGrowElementsCapacity(
     TNode<HeapObject> object, TNode<FixedArrayBase> elements, ElementsKind kind,
     TNode<TIndex> key, TNode<TIndex> capacity, Label* bailout) {
-  static_assert(std::is_same_v<TIndex, Smi> || std::is_same_v<TIndex, IntPtrT>,
+  static_assert(std::is_same<TIndex, Smi>::value || std::is_same<TIndex, IntPtrT>::value,
                 "Only Smi or IntPtrT key and capacity nodes are allowed");
   Comment("TryGrowElementsCapacity");
   CSA_SLOW_DCHECK(this, IsFixedArrayWithKindOrEmpty(elements, kind));
@@ -6461,7 +6461,7 @@ TNode<FixedArrayBase> CodeStubAssembler::GrowElementsCapacity(
     TNode<HeapObject> object, TNode<FixedArrayBase> elements,
     ElementsKind from_kind, ElementsKind to_kind, TNode<TIndex> capacity,
     TNode<TIndex> new_capacity, Label* bailout) {
-  static_assert(std::is_same_v<TIndex, Smi> || std::is_same_v<TIndex, IntPtrT>,
+  static_assert(std::is_same<TIndex, Smi>::value || std::is_same<TIndex, IntPtrT>::value,
                 "Only Smi or IntPtrT capacities are allowed");
   Comment("[ GrowElementsCapacity");
   CSA_SLOW_DCHECK(this, IsFixedArrayWithKindOrEmpty(elements, from_kind));
@@ -8695,7 +8695,7 @@ TNode<IntPtrT> CodeStubAssembler::LoadMemoryChunkFlags(
 template <typename TIndex>
 TNode<BoolT> CodeStubAssembler::FixedArraySizeDoesntFitInNewSpace(
     TNode<TIndex> element_count, int base_size) {
-  static_assert(std::is_same_v<TIndex, Smi> || std::is_same_v<TIndex, IntPtrT>,
+  static_assert(std::is_same<TIndex, Smi>::value || std::is_same<TIndex, IntPtrT>::value,
                 "Only Smi or IntPtrT element_count is allowed");
   int max_newspace_elements =
       (kMaxRegularHeapObjectSize - base_size) / kTaggedSize;
@@ -10191,7 +10191,7 @@ TNode<MaybeObject> CodeStubAssembler::LoadFieldTypeByDescriptorEntry(
 template <class ContainerType>
 TNode<Object> CodeStubAssembler::LoadValueByKeyIndex(
     TNode<ContainerType> container, TNode<IntPtrT> key_index) {
-  static_assert(!std::is_same_v<ContainerType, DescriptorArray>,
+  static_assert(!std::is_same<ContainerType, DescriptorArray>::value,
                 "Use the non-templatized version for DescriptorArray");
   const int kKeyToValueOffset =
       (ContainerType::kEntryValueIndex - ContainerType::kEntryKeyIndex) *
@@ -10211,7 +10211,7 @@ V8_EXPORT_PRIVATE TNode<Object> CodeStubAssembler::LoadValueByKeyIndex(
 template <class ContainerType>
 TNode<Uint32T> CodeStubAssembler::LoadDetailsByKeyIndex(
     TNode<ContainerType> container, TNode<IntPtrT> key_index) {
-  static_assert(!std::is_same_v<ContainerType, DescriptorArray>,
+  static_assert(!std::is_same<ContainerType, DescriptorArray>::value,
                 "Use the non-templatized version for DescriptorArray");
   const int kKeyToDetailsOffset =
       (ContainerType::kEntryDetailsIndex - ContainerType::kEntryKeyIndex) *
@@ -10401,10 +10401,10 @@ template <typename Dictionary>
 void CodeStubAssembler::NameDictionaryLookup(
     TNode<Dictionary> dictionary, TNode<Name> unique_name, Label* if_found,
     TVariable<IntPtrT>* var_name_index, Label* if_not_found, LookupMode mode) {
-  static_assert(std::is_same_v<Dictionary, NameDictionary> ||
-                    std::is_same_v<Dictionary, GlobalDictionary> ||
-                    std::is_same_v<Dictionary, NameToIndexHashTable> ||
-                    std::is_same_v<Dictionary, SimpleNameDictionary>,
+  static_assert(std::is_same<Dictionary, NameDictionary>::value ||
+                    std::is_same<Dictionary, GlobalDictionary>::value ||
+                    std::is_same<Dictionary, NameToIndexHashTable>::value ||
+                    std::is_same<Dictionary, SimpleNameDictionary>::value,
                 "Unexpected NameDictionary");
   DCHECK_IMPLIES(var_name_index != nullptr,
                  MachineType::PointerRepresentation() == var_name_index->rep());
@@ -10500,11 +10500,11 @@ void CodeStubAssembler::NameDictionaryLookupWithForwardIndex(
     TVariable<IntPtrT>* var_name_index, Label* if_not_found, LookupMode mode) {
   using ER = ExternalReference;  // To avoid super long lines below.
   ER func_ref;
-  if constexpr (std::is_same_v<Dictionary, NameDictionary>) {
+  if constexpr (std::is_same<Dictionary, NameDictionary>::value) {
     func_ref = mode == kFindInsertionIndex
                    ? ER::name_dictionary_find_insertion_entry_forwarded_string()
                    : ER::name_dictionary_lookup_forwarded_string();
-  } else if constexpr (std::is_same_v<Dictionary, GlobalDictionary>) {
+  } else if constexpr (std::is_same<Dictionary, GlobalDictionary>::value) {
     func_ref =
         mode == kFindInsertionIndex
             ? ER::global_dictionary_find_insertion_entry_forwarded_string()
@@ -12621,15 +12621,15 @@ TNode<IntPtrT> CodeStubAssembler::ElementOffsetFromIndex(
     TNode<TIndex> index_node, ElementsKind kind, int base_size) {
   // TODO(v8:9708): Remove IntPtrT variant in favor of UintPtrT.
   static_assert(
-      std::is_same_v<TIndex, Smi> || std::is_same_v<TIndex, TaggedIndex> ||
-          std::is_same_v<TIndex, IntPtrT> || std::is_same_v<TIndex, UintPtrT>,
+      std::is_same<TIndex, Smi>::value || std::is_same<TIndex, TaggedIndex>::value ||
+          std::is_same<TIndex, IntPtrT>::value || std::is_same<TIndex, UintPtrT>::value,
       "Only Smi, UintPtrT or IntPtrT index nodes are allowed");
   int element_size_shift = ElementsKindToShiftSize(kind);
   int element_size = 1 << element_size_shift;
   intptr_t index = 0;
   TNode<IntPtrT> intptr_index_node;
   bool constant_index = false;
-  if (std::is_same_v<TIndex, Smi>) {
+  if (std::is_same<TIndex, Smi>::value) {
     TNode<Smi> smi_index_node = ReinterpretCast<Smi>(index_node);
     int const kSmiShiftBits = kSmiShiftSize + kSmiTagSize;
     element_size_shift -= kSmiShiftBits;
@@ -12643,7 +12643,7 @@ TNode<IntPtrT> CodeStubAssembler::ElementOffsetFromIndex(
       }
     }
     intptr_index_node = BitcastTaggedToWordForTagAndSmiBits(smi_index_node);
-  } else if (std::is_same_v<TIndex, TaggedIndex>) {
+  } else if (std::is_same<TIndex, TaggedIndex>::value) {
     TNode<TaggedIndex> tagged_index_node =
         ReinterpretCast<TaggedIndex>(index_node);
     element_size_shift -= kSmiTagSize;
@@ -13005,7 +13005,7 @@ void CodeStubAssembler::StoreElementTypedArrayBigInt(TNode<RawPtrT> elements,
                                                      TNode<TIndex> index,
                                                      TNode<BigInt> value) {
   static_assert(
-      std::is_same_v<TIndex, UintPtrT> || std::is_same_v<TIndex, IntPtrT>,
+      std::is_same<TIndex, UintPtrT>::value || std::is_same<TIndex, IntPtrT>::value,
       "Only UintPtrT or IntPtrT indices is allowed");
   DCHECK(kind == BIGINT64_ELEMENTS || kind == BIGUINT64_ELEMENTS);
   TNode<IntPtrT> offset = ElementOffsetFromIndex(index, kind, 0);
@@ -13056,7 +13056,7 @@ void CodeStubAssembler::StoreElementTypedArrayWord32(TNode<RawPtrT> elements,
                                                      TNode<TIndex> index,
                                                      TNode<Word32T> value) {
   static_assert(
-      std::is_same_v<TIndex, UintPtrT> || std::is_same_v<TIndex, IntPtrT>,
+      std::is_same<TIndex, UintPtrT>::value || std::is_same<TIndex, IntPtrT>::value,
       "Only UintPtrT or IntPtrT indices is allowed");
   DCHECK(IsTypedArrayElementsKind(kind));
   if (kind == UINT8_CLAMPED_ELEMENTS) {
@@ -13090,17 +13090,17 @@ void CodeStubAssembler::StoreElementTypedArray(TNode<TArray> elements,
                                                TNode<TIndex> index,
                                                TNode<TValue> value) {
   // TODO(v8:9708): Do we want to keep both IntPtrT and UintPtrT variants?
-  static_assert(std::is_same_v<TIndex, Smi> ||
-                    std::is_same_v<TIndex, UintPtrT> ||
-                    std::is_same_v<TIndex, IntPtrT>,
+  static_assert(std::is_same<TIndex, Smi>::value ||
+                    std::is_same<TIndex, UintPtrT>::value ||
+                    std::is_same<TIndex, IntPtrT>::value,
                 "Only Smi, UintPtrT or IntPtrT indices is allowed");
   static_assert(
-      std::is_same_v<TArray, RawPtrT> || std::is_same_v<TArray, FixedArrayBase>,
+      std::is_same<TArray, RawPtrT>::value || std::is_same<TArray, FixedArrayBase>::value,
       "Only RawPtrT or FixedArrayBase elements are allowed");
   static_assert(
-      std::is_same_v<TValue, Float16RawBitsT> ||
-          std::is_same_v<TValue, Int32T> || std::is_same_v<TValue, Float32T> ||
-          std::is_same_v<TValue, Float64T> || std::is_same_v<TValue, Object>,
+      std::is_same<TValue, Float16RawBitsT>::value ||
+          std::is_same<TValue, Int32T>::value || std::is_same<TValue, Float32T>::value ||
+          std::is_same<TValue, Float64T>::value || std::is_same<TValue, Object>::value,
       "Only Int32T, Float32T, Float64T or object value "
       "types are allowed");
   DCHECK(IsTypedArrayElementsKind(kind));
@@ -13114,7 +13114,7 @@ template <typename TIndex>
 void CodeStubAssembler::StoreElement(TNode<FixedArrayBase> elements,
                                      ElementsKind kind, TNode<TIndex> index,
                                      TNode<Object> value) {
-  static_assert(std::is_same_v<TIndex, Smi> || std::is_same_v<TIndex, IntPtrT>,
+  static_assert(std::is_same<TIndex, Smi>::value || std::is_same<TIndex, IntPtrT>::value,
                 "Only Smi or IntPtrT indices are allowed");
   DCHECK(!IsDoubleElementsKind(kind));
   if (IsTypedArrayElementsKind(kind)) {
@@ -13131,7 +13131,7 @@ template <typename TIndex>
 void CodeStubAssembler::StoreElement(TNode<FixedArrayBase> elements,
                                      ElementsKind kind, TNode<TIndex> index,
                                      TNode<Float64T> value) {
-  static_assert(std::is_same_v<TIndex, Smi> || std::is_same_v<TIndex, IntPtrT>,
+  static_assert(std::is_same<TIndex, Smi>::value || std::is_same<TIndex, IntPtrT>::value,
                 "Only Smi or IntPtrT indices are allowed");
   DCHECK(IsDoubleElementsKind(kind));
   StoreFixedDoubleArrayElement(CAST(elements), index, value);
@@ -13140,15 +13140,15 @@ void CodeStubAssembler::StoreElement(TNode<FixedArrayBase> elements,
 template <typename TIndex, typename TValue>
 void CodeStubAssembler::StoreElement(TNode<RawPtrT> elements, ElementsKind kind,
                                      TNode<TIndex> index, TNode<TValue> value) {
-  static_assert(std::is_same_v<TIndex, Smi> ||
-                    std::is_same_v<TIndex, IntPtrT> ||
-                    std::is_same_v<TIndex, UintPtrT>,
+  static_assert(std::is_same<TIndex, Smi>::value ||
+                    std::is_same<TIndex, IntPtrT>::value ||
+                    std::is_same<TIndex, UintPtrT>::value,
                 "Only Smi, IntPtrT or UintPtrT indices are allowed");
   static_assert(
-      std::is_same_v<TValue, Float16RawBitsT> ||
-          std::is_same_v<TValue, Int32T> || std::is_same_v<TValue, Word32T> ||
-          std::is_same_v<TValue, Float32T> ||
-          std::is_same_v<TValue, Float64T> || std::is_same_v<TValue, BigInt>,
+      std::is_same<TValue, Float16RawBitsT>::value ||
+          std::is_same<TValue, Int32T>::value || std::is_same<TValue, Word32T>::value ||
+          std::is_same<TValue, Float32T>::value ||
+          std::is_same<TValue, Float64T>::value || std::is_same<TValue, BigInt>::value,
       "Only Int32T, Word32T, Float32T, Float64T or BigInt value types "
       "are allowed");
 
@@ -14151,7 +14151,7 @@ void CodeStubAssembler::BuildFastLoop(
   // Update the index comparisons below in case we'd ever want to use Smi
   // indexes.
   static_assert(
-      !std::is_same_v<TIndex, Smi>,
+      !std::is_same<TIndex, Smi>::value,
       "Smi indices are currently not supported because it's not clear whether "
       "the use case allows unsigned comparisons or not");
   var_index = start_index;

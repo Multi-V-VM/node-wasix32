@@ -18,7 +18,7 @@ namespace v8::base {
 namespace internal {
 
 template <typename T>
-  requires std::is_arithmetic_v<T>
+  requires std::is_arithmetic<T>::value
 class ClampedNumeric {
  public:
   using type = T;
@@ -155,7 +155,7 @@ class ClampedNumeric {
   }
 
   template <typename Dst>
-    requires std::is_arithmetic_v<ArithmeticOrUnderlyingEnum<Dst>>
+    requires std::is_arithmetic<ArithmeticOrUnderlyingEnum<Dst>::value>
   constexpr operator Dst() const {  // NOLINT(runtime/explicit)
     return saturated_cast<ArithmeticOrUnderlyingEnum<Dst>>(value_);
   }
@@ -167,7 +167,7 @@ class ClampedNumeric {
 
  private:
   template <typename U>
-    requires std::is_arithmetic_v<U>
+    requires std::is_arithmetic<U>::value
   friend class ClampedNumeric;
 
   T value_ = 0;

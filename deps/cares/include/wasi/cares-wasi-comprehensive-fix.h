@@ -23,6 +23,10 @@
 #define AF_UNSPEC 0
 #endif
 
+#ifndef AF_MAX
+#define AF_MAX 42
+#endif
+
 #ifndef SOCK_STREAM
 #define SOCK_STREAM 1
 #endif

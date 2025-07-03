@@ -74,7 +74,7 @@ struct BuiltinCallDescriptor {
    private:
     template <typename T>
     static bool AllowsRepresentation(RegisterRepresentation rep) {
-      if constexpr (std::is_same_v<T, OpIndex>) {
+      if constexpr (std::is_same<T, OpIndex>::value) {
         return true;
       } else {
         // T is V<...>

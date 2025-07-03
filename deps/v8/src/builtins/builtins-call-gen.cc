@@ -481,7 +481,7 @@ template <class Descriptor>
 void CallOrConstructBuiltinsAssembler::CallReceiver(
     Builtin id, std::optional<TNode<JSAny>> receiver) {
   static_assert(
-      std::is_same_v<Descriptor, CallTrampoline_Baseline_CompactDescriptor>,
+      std::is_same<Descriptor, CallTrampoline_Baseline_CompactDescriptor>::value,
       "Incompatible Descriptor");
   auto bitfield = UncheckedParameter<Word32T>(Descriptor::kBitField);
   TNode<Int32T> argc =

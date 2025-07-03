@@ -26,7 +26,7 @@ namespace v8::base {
 // Returns a value with all bytes in |x| swapped, i.e. reverses the endianness.
 // TODO(pkasting): Once C++23 is available, replace with std::byteswap.
 template <class T>
-  requires(std::is_integral_v<T>)
+  requires(std::is_integral<T>::value)
 inline constexpr T ByteSwap(T value) {
   return internal::SwapBytes(value);
 }

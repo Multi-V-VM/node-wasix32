@@ -14,8 +14,8 @@ namespace base {
 // Checks if value is in range [lower_limit, higher_limit] using a single
 // branch.
 template <typename T, typename U>
-  requires((std::is_integral_v<T> || std::is_enum_v<T>) &&
-           (std::is_integral_v<U> || std::is_enum_v<U>)) &&
+  requires((std::is_integral<T>::value || std::is_enum_v<T>) &&
+           (std::is_integral<U>::value || std::is_enum_v<U>)) &&
           (sizeof(U) <= sizeof(T))
 inline constexpr bool IsInRange(T value, U lower_limit, U higher_limit) {
   DCHECK_LE(lower_limit, higher_limit);
@@ -29,8 +29,8 @@ inline constexpr bool IsInRange(T value, U lower_limit, U higher_limit) {
 
 // Like IsInRange but for the half-open range [lower_limit, higher_limit).
 template <typename T, typename U>
-  requires((std::is_integral_v<T> || std::is_enum_v<T>) &&
-           (std::is_integral_v<U> || std::is_enum_v<U>)) &&
+  requires((std::is_integral<T>::value || std::is_enum_v<T>) &&
+           (std::is_integral<U>::value || std::is_enum_v<U>)) &&
           (sizeof(U) <= sizeof(T))
 inline constexpr bool IsInHalfOpenRange(T value, U lower_limit,
                                         U higher_limit) {

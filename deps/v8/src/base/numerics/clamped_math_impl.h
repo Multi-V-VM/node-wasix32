@@ -254,7 +254,7 @@ template <typename T, typename U>
 struct ClampedMaxOp {};
 
 template <typename T, typename U>
-  requires(std::is_arithmetic_v<T> && std::is_arithmetic_v<U>)
+  requires(std::is_arithmetic<T>::value && std::is_arithmetic<U>::value)
 struct ClampedMaxOp<T, U> {
   using result_type = MaxExponentPromotion<T, U>;
   template <typename V = result_type>
@@ -268,7 +268,7 @@ template <typename T, typename U>
 struct ClampedMinOp {};
 
 template <typename T, typename U>
-  requires(std::is_arithmetic_v<T> && std::is_arithmetic_v<U>)
+  requires(std::is_arithmetic<T>::value && std::is_arithmetic<U>::value)
 struct ClampedMinOp<T, U> {
   using result_type = LowestValuePromotion<T, U>;
   template <typename V = result_type>

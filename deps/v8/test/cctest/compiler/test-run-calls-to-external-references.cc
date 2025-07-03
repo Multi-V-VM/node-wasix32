@@ -77,9 +77,9 @@ template <typename InType, typename OutType, typename Iterable>
 void TestExternalReference_ConvertOpWithReturn(ExternalReference ref,
                                                OutType (*wrapper)(InType),
                                                Iterable inputs) {
-  static_assert(std::is_same_v<uint32_t, InType> ||
-                std::is_same_v<uint64_t, InType>);
-  MachineType input_type = std::is_same_v<uint32_t, InType>
+  static_assert(std::is_same<uint32_t, InType>::value ||
+                std::is_same<uint64_t, InType>::value);
+  MachineType input_type = std::is_same<uint32_t, InType>::value
                                ? MachineType::Uint32()
                                : MachineType::Uint64();
   BufferedRawMachineAssemblerTester<uint32_t> m(input_type);

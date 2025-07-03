@@ -21,10 +21,10 @@ namespace std {
   
   // Concepts emulation - use template variables instead of concepts
   template<typename T, typename U>
-  inline constexpr bool same_as_v = std::is_same<T, U>::value && std::is_same<U, T>::value;
+  static constexpr bool same_as_v = std::is_same<T, U>::value && std::is_same<U, T>::value;
   
   template<typename T, typename... Args>
-  inline constexpr bool constructible_from_v = std::is_constructible<T, Args...>::value;
+  static constexpr bool constructible_from_v = std::is_constructible<T, Args...>::value;
 }
 
 #endif // WASI_CONCEPTS_FIX_H

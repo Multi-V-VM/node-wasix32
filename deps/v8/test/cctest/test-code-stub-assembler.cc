@@ -2109,9 +2109,9 @@ namespace {
 
 template <typename T>
 TNode<T> MakeConstantNode(CodeStubAssembler& m, Handle<T> value) {
-  if constexpr (std::is_same_v<T, Smi>) {
+  if constexpr (std::is_same<T, Smi>::value) {
     return m.SmiConstant(Smi::ToInt(*value));
-  } else if constexpr (std::is_same_v<T, Object>) {
+  } else if constexpr (std::is_same<T, Object>::value) {
     if (Is<Smi>(value)) {
       return m.SmiConstant(Smi::ToInt(*value));
     }

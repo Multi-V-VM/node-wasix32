@@ -35,7 +35,7 @@ constexpr bool CheckedAddImpl(T x, T y, T* result) {
   const UnsignedDst uresult = static_cast<UnsignedDst>(ux + uy);
   // Addition is valid if the sign of (x + y) is equal to either that of x or
   // that of y.
-  if (std::is_signed_v<T>
+  if (std::is_signed<T>::value
           ? static_cast<SignedDst>((uresult ^ ux) & (uresult ^ uy)) < 0
           : uresult < uy) {  // Unsigned is either valid or underflow.
     return false;
@@ -98,7 +98,7 @@ constexpr bool CheckedSubImpl(T x, T y, T* result) {
   const UnsignedDst uresult = static_cast<UnsignedDst>(ux - uy);
   // Subtraction is valid if either x and y have same sign, or (x-y) and x have
   // the same sign.
-  if (std::is_signed_v<T>
+  if (std::is_signed<T>::value
           ? static_cast<SignedDst>((uresult ^ ux) & (ux ^ uy)) < 0
           : x < y) {
     return false;
@@ -160,11 +160,11 @@ constexpr bool CheckedMulImpl(T x, T y, T* result) {
   const UnsignedDst uy = SafeUnsignedAbs(y);
   const UnsignedDst uresult = static_cast<UnsignedDst>(ux * uy);
   const bool is_negative =
-      std::is_signed_v<T> && static_cast<SignedDst>(x ^ y) < 0;
+      std::is_signed<T>::value && static_cast<SignedDst>(x ^ y) < 0;
   // We have a fast out for unsigned identity or zero on the second operand.
   // After that it's an unsigned overflow check on the absolute value, with
   // a +1 bound for a negative result.
-  if (uy > UnsignedDst(!std::is_signed_v<T> || is_negative) &&
+  if (uy > UnsignedDst(!std::is_signed<T>::value || is_negative) &&
       ux > (std::numeric_limits<T>::max() + UnsignedDst(is_negative)) / uy) {
     return false;
   }
@@ -233,7 +233,7 @@ struct CheckedDivOp<T, U> {
     // The overflow check can be compiled away if we don't have the exact
     // combination of types needed to trigger this case.
     using Promotion = BigEnoughPromotion<T, U>;
-    if (std::is_signed_v<T> && std::is_signed_v<U> &&
+    if (std::is_signed<T>::value && std::is_signed<U>::value &&
         kIsTypeInRangeForNumericType<T, Promotion> &&
         static_cast<Promotion>(x) == std::numeric_limits<Promotion>::lowest() &&
         y == static_cast<U>(-1)) [[unlikely]] {
@@ -270,7 +270,7 @@ struct CheckedModOp<T, U> {
     }
 
     using Promotion = BigEnoughPromotion<T, U>;
-    if (std::is_signed_v<T> && std::is_signed_v<U> &&
+    if (std::is_signed<T>::value && std::is_signed<U>::value &&
         kIsTypeInRangeForNumericType<T, Promotion> &&
         static_cast<Promotion>(x) == std::numeric_limits<Promotion>::lowest() &&
         y == static_cast<U>(-1)) [[unlikely]] {
@@ -311,7 +311,7 @@ struct CheckedLshOp<T, U> {
     }
 
     // Handle the legal corner-case of a full-width signed shift of zero.
-    if (!std::is_signed_v<T> || x ||
+    if (!std::is_signed<T>::value || x ||
         as_unsigned(shift) != as_unsigned(std::numeric_limits<T>::digits)) {
       return false;
     }
@@ -412,7 +412,7 @@ template <typename T, typename U>
 struct CheckedMaxOp {};
 
 template <typename T, typename U>
-  requires(std::is_arithmetic_v<T> && std::is_arithmetic_v<U>)
+  requires(std::is_arithmetic<T>::value && std::is_arithmetic<U>::value)
 struct CheckedMaxOp<T, U> {
   using result_type = MaxExponentPromotion<T, U>;
   template <typename V>
@@ -434,7 +434,7 @@ template <typename T, typename U>
 struct CheckedMinOp {};
 
 template <typename T, typename U>
-  requires(std::is_arithmetic_v<T> && std::is_arithmetic_v<U>)
+  requires(std::is_arithmetic<T>::value && std::is_arithmetic<U>::value)
 struct CheckedMinOp<T, U> {
   using result_type = LowestValuePromotion<T, U>;
   template <typename V>
@@ -503,7 +503,7 @@ class CheckedNumericState<T, NUMERIC_INTEGER> {
   constexpr explicit CheckedNumericState(Src value = 0, bool is_valid = true)
       : is_valid_(is_valid && IsValueInRangeForNumericType<T>(value)),
         value_(WellDefinedConversionOrZero(value, is_valid_)) {
-    static_assert(std::is_arithmetic_v<Src>, "Argument must be numeric.");
+    static_assert(std::is_arithmetic<Src>::value, "Argument must be numeric.");
   }
 
   template <typename Src>

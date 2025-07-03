@@ -1,3 +1,4 @@
+#include <algorithm>
 /* auto-generated on 2025-04-28 12:16:36 -0400. Do not edit! */
 /* begin file include/ada.h */
 /**
@@ -1008,7 +1009,7 @@ namespace ada::checkers {
 
 constexpr bool has_hex_prefix_unsafe(std::string_view input) {
   // This is actually efficient code, see has_hex_prefix for the assembly.
-  constexpr bool is_little_endian = std::endian::native == std::endian::little;
+  constexpr bool is_little_endian = __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__;
   constexpr uint16_t word0x = 0x7830;
   uint16_t two_first_bytes =
       static_cast<uint16_t>(input[0]) |
@@ -4133,34 +4134,31 @@ void swap(expected<T, E> &lhs,
 #if ADA_INCLUDE_URL_PATTERN
 namespace ada::url_pattern_regex {
 
+// C++20 concept commented out for C++14 compatibility
+// template <typename T>
+// concept regex_concept = requires(T t, std::string_view pattern,
+//                                  bool ignore_case, std::string_view input) {
+//   typename T::regex_type;
+//   { T::create_instance(pattern, ignore_case) } -> std::same_as<std::optional<typename T::regex_type>>;
+//   { T::regex_search(input, std::declval<typename T::regex_type&>()) } -> std::same_as<std::optional<std::vector<std::optional<std::string>>>>;
+//   { T::regex_match(input, std::declval<typename T::regex_type&>()) } -> std::same_as<bool>;
+//   { T(std::declval<const T&>()) } -> std::same_as<T>;
+//   { T(std::declval<T&&>()) } -> std::same_as<T>;
+// };
+
+// C++14 compatible trait to replace concept
+template <typename T, typename = void>
+struct is_regex_concept : std::false_type {};
+
 template <typename T>
-concept regex_concept = requires(T t, std::string_view pattern,
-                                 bool ignore_case, std::string_view input) {
-  // Ensure the class has a type alias 'regex_type'
-  typename T::regex_type;
-
-  // Function to create a regex instance
-  {
-    T::create_instance(pattern, ignore_case)
-  } -> std::same_as<std::optional<typename T::regex_type>>;
-
-  // Function to perform regex search
-  {
-    T::regex_search(input, std::declval<typename T::regex_type&>())
-  } -> std::same_as<std::optional<std::vector<std::optional<std::string>>>>;
-
-  // Function to match regex pattern
-  {
-    T::regex_match(input, std::declval<typename T::regex_type&>())
-  } -> std::same_as<bool>;
-
-  // Copy constructor
-  { T(std::declval<const T&>()) } -> std::same_as<T>;
-
-  // Move constructor
-  { T(std::declval<T&&>()) } -> std::same_as<T>;
-};
-
+struct is_regex_concept<T, std::void_t<
+    typename T::regex_type,
+    decltype(T::create_instance(std::declval<std::string_view>(), std::declval<bool>())),
+    decltype(T::regex_search(std::declval<std::string_view>(), std::declval<typename T::regex_type&>())),
+    decltype(T::regex_match(std::declval<std::string_view>(), std::declval<typename T::regex_type&>())),
+    decltype(T(std::declval<const T&>())),
+    decltype(T(std::declval<T&&>()))
+>> : std::true_type {};
 #ifdef ADA_USE_UNSAFE_STD_REGEX_PROVIDER
 class std_regex_provider final {
  public:
@@ -4215,11 +4213,20 @@ namespace ada {
 // Important: C++20 allows us to use concept rather than `using` or `typedef
 // and allows functions with second argument, which is optional (using either
 // std::nullopt or a parameter with default value)
-template <typename F>
-concept url_pattern_encoding_callback = requires(F f, std::string_view sv) {
-  { f(sv) } -> std::same_as<tl::expected<std::string, errors>>;
-};
+// C++20 concept commented out for C++14 compatibility
+// template <typename F>
+// concept url_pattern_encoding_callback = requires(F f, std::string_view sv) {
+//   { f(sv) } -> std::same_as<tl::expected<std::string, errors>>;
+// };
 
+// C++14 compatible trait
+template <typename F, typename = void>
+struct is_url_pattern_encoding_callback : std::false_type {};
+
+template <typename F>
+struct is_url_pattern_encoding_callback<F, std::void_t<
+    decltype(std::declval<F>()(std::declval<std::string_view>()))
+>> : std::true_type {};
 // A structure providing matching patterns for individual components
 // of a URL. When a URLPattern is created, or when a URLPattern is
 // used to match or test against a URL, the input can be given as
@@ -4324,7 +4331,7 @@ namespace ada {
 struct url_aggregator;
 struct url;
 #if ADA_INCLUDE_URL_PATTERN
-template <url_pattern_regex::regex_concept regex_provider>
+template <typename regex_provider>
 class url_pattern;
 struct url_pattern_options;
 #endif  // ADA_INCLUDE_URL_PATTERN
@@ -4361,7 +4368,7 @@ extern template url parse_url_impl<url>(std::string_view user_input,
                                         const url* base_url);
 
 #if ADA_INCLUDE_URL_PATTERN
-template <url_pattern_regex::regex_concept regex_provider>
+template <typename regex_provider>
 tl::expected<url_pattern<regex_provider>, errors> parse_url_pattern_impl(
     std::variant<std::string_view, url_pattern_init>&& input,
     const std::string_view* base_url, const url_pattern_options* options);
@@ -4880,9 +4887,9 @@ struct url : url_base {
   [[nodiscard]] ada_really_inline ada::url_components get_components()
       const noexcept;
   /** @return true if the URL has a hash component */
-  [[nodiscard]] constexpr bool has_hash() const noexcept override;
+  [[nodiscard]] bool has_hash() const noexcept override;
   /** @return true if the URL has a search component */
-  [[nodiscard]] constexpr bool has_search() const noexcept override;
+  [[nodiscard]] bool has_search() const noexcept override;
 
  private:
   friend ada::url ada::parser::parse_url<ada::url>(std::string_view,
@@ -4970,8 +4977,8 @@ struct url : url_base {
   template <bool has_state_override = false>
   [[nodiscard]] ada_really_inline bool parse_scheme(std::string_view input);
 
-  constexpr void clear_pathname() override;
-  constexpr void clear_search() override;
+  void clear_pathname() override;
+  void clear_search() override;
   constexpr void set_protocol_as_file();
 
   /**
@@ -5055,7 +5062,7 @@ bool can_parse(std::string_view input,
  * @param options an optional url_pattern_options struct
  * @return url_pattern instance
  */
-template <url_pattern_regex::regex_concept regex_provider>
+template <typename regex_provider>
 ada_warn_unused tl::expected<url_pattern<regex_provider>, errors>
 parse_url_pattern(std::variant<std::string_view, url_pattern_init>&& input,
                   const std::string_view* base_url = nullptr,
@@ -5210,7 +5217,7 @@ struct url_pattern_component_result {
 #endif  // ADA_TESTING
 };
 
-template <url_pattern_regex::regex_concept regex_provider>
+template <typename regex_provider>
 class url_pattern_component {
  public:
   url_pattern_component() = default;
@@ -5227,7 +5234,7 @@ class url_pattern_component {
         has_regexp_groups(new_has_regexp_groups) {}
 
   // @see https://urlpattern.spec.whatwg.org/#compile-a-component
-  template <url_pattern_encoding_callback F>
+  template <typename F>
   static tl::expected<url_pattern_component, errors> compile(
       std::string_view input, F& encoding_callback,
       url_pattern_compile_component_options& options);
@@ -5292,7 +5299,7 @@ struct url_pattern_options {
 //
 // We require all strings to be valid UTF-8: it is the user's responsibility
 // to ensure that the provided strings are valid UTF-8.
-template <url_pattern_regex::regex_concept regex_provider>
+template <typename regex_provider>
 class url_pattern {
  public:
   url_pattern() = default;
@@ -5357,7 +5364,7 @@ class url_pattern {
   }
 #endif  // ADA_TESTING
 
-  template <url_pattern_regex::regex_concept P>
+  template <typename P>
   friend tl::expected<url_pattern<P>, errors> parser::parse_url_pattern_impl(
       std::variant<std::string_view, url_pattern_init>&& input,
       const std::string_view* base_url, const url_pattern_options* options);
@@ -5484,7 +5491,7 @@ class token {
 };
 
 // @see https://urlpattern.spec.whatwg.org/#pattern-parser
-template <url_pattern_encoding_callback F>
+template <typename F>
 class url_pattern_parser {
  public:
   url_pattern_parser(F& encoding_callback_,
@@ -5572,7 +5579,7 @@ class Tokenizer {
 };
 
 // @see https://urlpattern.spec.whatwg.org/#constructor-string-parser
-template <url_pattern_regex::regex_concept regex_provider>
+template <typename regex_provider>
 struct constructor_string_parser {
   explicit constructor_string_parser(std::string_view new_input,
                                      std::vector<token>&& new_token_list)
@@ -5732,7 +5739,7 @@ constexpr bool is_absolute_pathname(
     std::string_view input, url_pattern_init::process_type type) noexcept;
 
 // @see https://urlpattern.spec.whatwg.org/#parse-a-pattern-string
-template <url_pattern_encoding_callback F>
+template <typename F>
 tl::expected<std::vector<url_pattern_part>, errors> parse_pattern_string(
     std::string_view input, url_pattern_compile_component_options& options,
     F& encoding_callback);
@@ -5754,7 +5761,7 @@ bool is_ipv6_address(std::string_view input) noexcept;
 
 // @see
 // https://urlpattern.spec.whatwg.org/#protocol-component-matches-a-special-scheme
-template <url_pattern_regex::regex_concept regex_provider>
+template <typename regex_provider>
 bool protocol_component_matches_special_scheme(
     ada::url_pattern_component<regex_provider>& input);
 
@@ -5776,7 +5783,7 @@ std::string generate_segment_wildcard_regexp(
 
 namespace ada::parser {
 #if ADA_INCLUDE_URL_PATTERN
-template <url_pattern_regex::regex_concept regex_provider>
+template <typename regex_provider>
 tl::expected<url_pattern<regex_provider>, errors> parse_url_pattern_impl(
     std::variant<std::string_view, url_pattern_init>&& input,
     const std::string_view* base_url, const url_pattern_options* options) {
@@ -6655,7 +6662,7 @@ inline std::ostream &operator<<(std::ostream &out, const ada::url &u) {
     out.host_start = out.protocol_end;
     out.host_end = out.host_start;
 
-    if (!has_opaque_path && path.starts_with("//")) {
+    if (!has_opaque_path && path.compare(0, 2, "//") == 0) {
       // If url's host is null, url does not have an opaque path, url's path's
       // size is greater than 1, and url's path[0] is the empty string, then
       // append U+002F (/) followed by U+002E (.) to output.
@@ -6722,15 +6729,15 @@ inline void url::update_base_port(std::optional<uint16_t> input) {
   port = input;
 }
 
-constexpr void url::clear_pathname() { path.clear(); }
+inline void url::clear_pathname() { path.clear(); }
 
-constexpr void url::clear_search() { query = std::nullopt; }
+inline void url::clear_search() { query = std::nullopt; }
 
-[[nodiscard]] constexpr bool url::has_hash() const noexcept {
+[[nodiscard]] inline bool url::has_hash() const noexcept {
   return hash.has_value();
 }
 
-[[nodiscard]] constexpr bool url::has_search() const noexcept {
+[[nodiscard]] inline bool url::has_search() const noexcept {
   return query.has_value();
 }
 
@@ -6770,7 +6777,7 @@ constexpr void url::copy_scheme(const ada::url &u) {
     if (port.has_value()) {
       output += ":" + get_port();
     }
-  } else if (!has_opaque_path && path.starts_with("//")) {
+  } else if (!has_opaque_path && path.compare(0, 2, "//") == 0) {
     // If url's host is null, url does not have an opaque path, url's path's
     // size is greater than 1, and url's path[0] is the empty string, then
     // append U+002F (/) followed by U+002E (.) to output.
@@ -7113,9 +7120,9 @@ struct url_aggregator : url_base {
   /** @return true if the URL has a password */
   [[nodiscard]] constexpr bool has_password() const noexcept;
   /** @return true if the URL has a hash component */
-  [[nodiscard]] constexpr bool has_hash() const noexcept override;
+  [[nodiscard]] bool has_hash() const noexcept override;
   /** @return true if the URL has a search component */
-  [[nodiscard]] constexpr bool has_search() const noexcept override;
+  [[nodiscard]] bool has_search() const noexcept override;
 
   inline void clear_port();
   inline void clear_hash();
@@ -7136,7 +7143,7 @@ struct url_aggregator : url_base {
 
 #if ADA_INCLUDE_URL_PATTERN
   // url_pattern methods
-  template <url_pattern_regex::regex_concept regex_provider>
+  template <typename regex_provider>
   friend tl::expected<url_pattern<regex_provider>, errors>
   parse_url_pattern_impl(
       std::variant<std::string_view, url_pattern_init> &&input,
@@ -7218,7 +7225,7 @@ struct url_aggregator : url_base {
   [[nodiscard]] inline uint32_t retrieve_base_port() const;
   constexpr void clear_hostname();
   constexpr void clear_password();
-  constexpr void clear_pathname() override;
+  void clear_pathname() override;
   [[nodiscard]] constexpr bool has_dash_dot() const noexcept;
   void delete_dash_dot();
   inline void consume_prepared_path(std::string_view input);
@@ -7318,7 +7325,7 @@ inline void url_aggregator::update_base_authority(
       base.protocol_end, base.host_start - base.protocol_end);
   ada_log("url_aggregator::update_base_authority ", input);
 
-  bool input_starts_with_dash = input.starts_with("//");
+  bool input_starts_with_dash = input.compare(0, 2, "//") == 0;
   uint32_t diff = components.host_start - components.protocol_end;
 
   buffer.erase(components.protocol_end,
@@ -7558,7 +7565,7 @@ inline void url_aggregator::update_base_pathname(const std::string_view input) {
   ADA_ASSERT_TRUE(!helpers::overlaps(input, buffer));
   ADA_ASSERT_TRUE(validate());
 
-  const bool begins_with_dashdash = input.starts_with("//");
+  const bool begins_with_dashdash = input.compare(0, 2, "//") == 0;
   if (!begins_with_dashdash && has_dash_dot()) {
     // We must delete the ./
     delete_dash_dot();
@@ -7922,7 +7929,7 @@ inline void url_aggregator::clear_hash() {
   ADA_ASSERT_TRUE(validate());
 }
 
-constexpr void url_aggregator::clear_pathname() {
+inline void url_aggregator::clear_pathname() {
   ada_log("url_aggregator::clear_pathname");
   ADA_ASSERT_TRUE(validate());
   uint32_t ending_index = uint32_t(buffer.size());
@@ -7994,12 +8001,12 @@ constexpr void url_aggregator::clear_hostname() {
   ADA_ASSERT_TRUE(validate());
 }
 
-[[nodiscard]] constexpr bool url_aggregator::has_hash() const noexcept {
+[[nodiscard]] inline bool url_aggregator::has_hash() const noexcept {
   ada_log("url_aggregator::has_hash");
   return components.hash_start != url_components::omitted;
 }
 
-[[nodiscard]] constexpr bool url_aggregator::has_search() const noexcept {
+[[nodiscard]] inline bool url_aggregator::has_search() const noexcept {
   ada_log("url_aggregator::has_search");
   return components.search_start != url_components::omitted;
 }
@@ -8657,14 +8664,14 @@ inline void url_search_params::initialize(std::string_view input) {
 
     if (equal == std::string_view::npos) {
       std::string name(current);
-      std::ranges::replace(name, '+', ' ');
+      std::replace(name.begin(), name.end(), '+', ' ');
       params.emplace_back(unicode::percent_decode(name, name.find('%')), "");
     } else {
       std::string name(current.substr(0, equal));
       std::string value(current.substr(equal + 1));
 
-      std::ranges::replace(name, '+', ' ');
-      std::ranges::replace(value, '+', ' ');
+      std::replace(name.begin(), name.end(), '+', ' ');
+      std::replace(value.begin(), value.end(), '+', ' ');
 
       params.emplace_back(unicode::percent_decode(name, name.find('%')),
                           unicode::percent_decode(value, value.find('%')));
@@ -8741,8 +8748,8 @@ inline std::string url_search_params::to_string() const {
     auto value = ada::unicode::percent_encode(params[i].second, character_set);
 
     // Performance optimization: Move this inside percent_encode.
-    std::ranges::replace(key, ' ', '+');
-    std::ranges::replace(value, ' ', '+');
+    std::replace(key.begin(), key.end(), ' ', '+');
+    std::replace(value.begin(), value.end(), ' ', '+');
 
     if (i != 0) {
       out += "&";
@@ -8939,7 +8946,7 @@ inline bool url_pattern_component_result::operator==(
   return input == other.input && groups == other.groups;
 }
 
-template <url_pattern_regex::regex_concept regex_provider>
+template <typename regex_provider>
 url_pattern_component_result
 url_pattern_component<regex_provider>::create_component_match_result(
     std::string&& input,
@@ -8965,59 +8972,59 @@ url_pattern_component<regex_provider>::create_component_match_result(
   return result;
 }
 
-template <url_pattern_regex::regex_concept regex_provider>
+template <typename regex_provider>
 std::string_view url_pattern<regex_provider>::get_protocol() const
     ada_lifetime_bound {
   // Return this's associated URL pattern's protocol component's pattern string.
   return protocol_component.pattern;
 }
-template <url_pattern_regex::regex_concept regex_provider>
+template <typename regex_provider>
 std::string_view url_pattern<regex_provider>::get_username() const
     ada_lifetime_bound {
   // Return this's associated URL pattern's username component's pattern string.
   return username_component.pattern;
 }
-template <url_pattern_regex::regex_concept regex_provider>
+template <typename regex_provider>
 std::string_view url_pattern<regex_provider>::get_password() const
     ada_lifetime_bound {
   // Return this's associated URL pattern's password component's pattern string.
   return password_component.pattern;
 }
-template <url_pattern_regex::regex_concept regex_provider>
+template <typename regex_provider>
 std::string_view url_pattern<regex_provider>::get_hostname() const
     ada_lifetime_bound {
   // Return this's associated URL pattern's hostname component's pattern string.
   return hostname_component.pattern;
 }
-template <url_pattern_regex::regex_concept regex_provider>
+template <typename regex_provider>
 std::string_view url_pattern<regex_provider>::get_port() const
     ada_lifetime_bound {
   // Return this's associated URL pattern's port component's pattern string.
   return port_component.pattern;
 }
-template <url_pattern_regex::regex_concept regex_provider>
+template <typename regex_provider>
 std::string_view url_pattern<regex_provider>::get_pathname() const
     ada_lifetime_bound {
   // Return this's associated URL pattern's pathname component's pattern string.
   return pathname_component.pattern;
 }
-template <url_pattern_regex::regex_concept regex_provider>
+template <typename regex_provider>
 std::string_view url_pattern<regex_provider>::get_search() const
     ada_lifetime_bound {
   // Return this's associated URL pattern's search component's pattern string.
   return search_component.pattern;
 }
-template <url_pattern_regex::regex_concept regex_provider>
+template <typename regex_provider>
 std::string_view url_pattern<regex_provider>::get_hash() const
     ada_lifetime_bound {
   // Return this's associated URL pattern's hash component's pattern string.
   return hash_component.pattern;
 }
-template <url_pattern_regex::regex_concept regex_provider>
+template <typename regex_provider>
 bool url_pattern<regex_provider>::ignore_case() const {
   return ignore_case_;
 }
-template <url_pattern_regex::regex_concept regex_provider>
+template <typename regex_provider>
 bool url_pattern<regex_provider>::has_regexp_groups() const {
   // If this's associated URL pattern's has regexp groups, then return true.
   return protocol_component.has_regexp_groups ||
@@ -9049,8 +9056,8 @@ inline std::string_view url_pattern_compile_component_options::get_prefix()
   return {};
 }
 
-template <url_pattern_regex::regex_concept regex_provider>
-template <url_pattern_encoding_callback F>
+template <typename regex_provider>
+template <typename F>
 tl::expected<url_pattern_component<regex_provider>, errors>
 url_pattern_component<regex_provider>::compile(
     std::string_view input, F& encoding_callback,
@@ -9105,7 +9112,7 @@ url_pattern_component<regex_provider>::compile(
       std::move(name_list), has_regexp_groups);
 }
 
-template <url_pattern_regex::regex_concept regex_provider>
+template <typename regex_provider>
 result<std::optional<url_pattern_result>> url_pattern<regex_provider>::exec(
     const url_pattern_input& input, const std::string_view* base_url) {
   // Return the result of match given this's associated URL pattern, input, and
@@ -9113,7 +9120,7 @@ result<std::optional<url_pattern_result>> url_pattern<regex_provider>::exec(
   return match(input, base_url);
 }
 
-template <url_pattern_regex::regex_concept regex_provider>
+template <typename regex_provider>
 result<bool> url_pattern<regex_provider>::test(
     const url_pattern_input& input, const std::string_view* base_url) {
   // TODO: Optimization opportunity. Rather than returning `url_pattern_result`
@@ -9127,7 +9134,7 @@ result<bool> url_pattern<regex_provider>::test(
   return tl::unexpected(errors::type_error);
 }
 
-template <url_pattern_regex::regex_concept regex_provider>
+template <typename regex_provider>
 result<std::optional<url_pattern_result>> url_pattern<regex_provider>::match(
     const url_pattern_input& input, const std::string_view* base_url_string) {
   std::string protocol{};
@@ -9439,7 +9446,7 @@ inline std::string to_string(token_type type) {
 }
 #endif  // ADA_TESTING
 
-template <url_pattern_regex::regex_concept regex_provider>
+template <typename regex_provider>
 constexpr void constructor_string_parser<regex_provider>::rewind() {
   // Set parser's token index to parser's component start.
   token_index = component_start;
@@ -9447,14 +9454,14 @@ constexpr void constructor_string_parser<regex_provider>::rewind() {
   token_increment = 0;
 }
 
-template <url_pattern_regex::regex_concept regex_provider>
+template <typename regex_provider>
 constexpr bool constructor_string_parser<regex_provider>::is_hash_prefix() {
   // Return the result of running is a non-special pattern char given parser,
   // parser's token index and "#".
   return is_non_special_pattern_char(token_index, '#');
 }
 
-template <url_pattern_regex::regex_concept regex_provider>
+template <typename regex_provider>
 constexpr bool constructor_string_parser<regex_provider>::is_search_prefix() {
   // If result of running is a non-special pattern char given parser, parser's
   // token index and "?" is true, then return true.
@@ -9487,7 +9494,7 @@ constexpr bool constructor_string_parser<regex_provider>::is_search_prefix() {
            previous_token->type == token_type::ASTERISK);
 }
 
-template <url_pattern_regex::regex_concept regex_provider>
+template <typename regex_provider>
 constexpr bool
 constructor_string_parser<regex_provider>::is_non_special_pattern_char(
     size_t index, uint32_t value) const {
@@ -9513,7 +9520,7 @@ constructor_string_parser<regex_provider>::is_non_special_pattern_char(
          token->type == token_type::INVALID_CHAR;
 }
 
-template <url_pattern_regex::regex_concept regex_provider>
+template <typename regex_provider>
 constexpr const token*
 constructor_string_parser<regex_provider>::get_safe_token(size_t index) const {
   // If index is less than parser's token list's size, then return parser's
@@ -9533,7 +9540,7 @@ constructor_string_parser<regex_provider>::get_safe_token(size_t index) const {
   return &token_list.back();
 }
 
-template <url_pattern_regex::regex_concept regex_provider>
+template <typename regex_provider>
 constexpr bool constructor_string_parser<regex_provider>::is_group_open()
     const {
   // If parser's token list[parser's token index]'s type is "open", then return
@@ -9541,7 +9548,7 @@ constexpr bool constructor_string_parser<regex_provider>::is_group_open()
   return token_list[token_index].type == token_type::OPEN;
 }
 
-template <url_pattern_regex::regex_concept regex_provider>
+template <typename regex_provider>
 constexpr bool constructor_string_parser<regex_provider>::is_group_close()
     const {
   // If parser's token list[parser's token index]'s type is "close", then return
@@ -9549,7 +9556,7 @@ constexpr bool constructor_string_parser<regex_provider>::is_group_close()
   return token_list[token_index].type == token_type::CLOSE;
 }
 
-template <url_pattern_regex::regex_concept regex_provider>
+template <typename regex_provider>
 constexpr bool
 constructor_string_parser<regex_provider>::next_is_authority_slashes() const {
   // If the result of running is a non-special pattern char given parser,
@@ -9565,7 +9572,7 @@ constructor_string_parser<regex_provider>::next_is_authority_slashes() const {
   return true;
 }
 
-template <url_pattern_regex::regex_concept regex_provider>
+template <typename regex_provider>
 constexpr bool constructor_string_parser<regex_provider>::is_protocol_suffix()
     const {
   // Return the result of running is a non-special pattern char given parser,
@@ -9573,7 +9580,7 @@ constexpr bool constructor_string_parser<regex_provider>::is_protocol_suffix()
   return is_non_special_pattern_char(token_index, ':');
 }
 
-template <url_pattern_regex::regex_concept regex_provider>
+template <typename regex_provider>
 void constructor_string_parser<regex_provider>::change_state(State new_state,
                                                              size_t skip) {
   // If parser's state is not "init", not "authority", and not "done", then set
@@ -9673,7 +9680,7 @@ void constructor_string_parser<regex_provider>::change_state(State new_state,
   token_increment = 0;
 }
 
-template <url_pattern_regex::regex_concept regex_provider>
+template <typename regex_provider>
 std::string constructor_string_parser<regex_provider>::make_component_string() {
   // Assert: parser's token index is less than parser's token list's size.
   ADA_ASSERT_TRUE(token_index < token_list.size());
@@ -9693,7 +9700,7 @@ std::string constructor_string_parser<regex_provider>::make_component_string() {
                       end_index - component_start_input_index);
 }
 
-template <url_pattern_regex::regex_concept regex_provider>
+template <typename regex_provider>
 constexpr bool
 constructor_string_parser<regex_provider>::is_an_identity_terminator() const {
   // Return the result of running is a non-special pattern char given parser,
@@ -9701,7 +9708,7 @@ constructor_string_parser<regex_provider>::is_an_identity_terminator() const {
   return is_non_special_pattern_char(token_index, '@');
 }
 
-template <url_pattern_regex::regex_concept regex_provider>
+template <typename regex_provider>
 constexpr bool constructor_string_parser<regex_provider>::is_pathname_start()
     const {
   // Return the result of running is a non-special pattern char given parser,
@@ -9709,7 +9716,7 @@ constexpr bool constructor_string_parser<regex_provider>::is_pathname_start()
   return is_non_special_pattern_char(token_index, '/');
 }
 
-template <url_pattern_regex::regex_concept regex_provider>
+template <typename regex_provider>
 constexpr bool constructor_string_parser<regex_provider>::is_password_prefix()
     const {
   // Return the result of running is a non-special pattern char given parser,
@@ -9717,7 +9724,7 @@ constexpr bool constructor_string_parser<regex_provider>::is_password_prefix()
   return is_non_special_pattern_char(token_index, ':');
 }
 
-template <url_pattern_regex::regex_concept regex_provider>
+template <typename regex_provider>
 constexpr bool constructor_string_parser<regex_provider>::is_an_ipv6_open()
     const {
   // Return the result of running is a non-special pattern char given parser,
@@ -9725,7 +9732,7 @@ constexpr bool constructor_string_parser<regex_provider>::is_an_ipv6_open()
   return is_non_special_pattern_char(token_index, '[');
 }
 
-template <url_pattern_regex::regex_concept regex_provider>
+template <typename regex_provider>
 constexpr bool constructor_string_parser<regex_provider>::is_an_ipv6_close()
     const {
   // Return the result of running is a non-special pattern char given parser,
@@ -9733,7 +9740,7 @@ constexpr bool constructor_string_parser<regex_provider>::is_an_ipv6_close()
   return is_non_special_pattern_char(token_index, ']');
 }
 
-template <url_pattern_regex::regex_concept regex_provider>
+template <typename regex_provider>
 constexpr bool constructor_string_parser<regex_provider>::is_port_prefix()
     const {
   // Return the result of running is a non-special pattern char given parser,
@@ -9851,7 +9858,7 @@ Tokenizer::process_tokenizing_error(size_t next_position,
   return std::nullopt;
 }
 
-template <url_pattern_encoding_callback F>
+template <typename F>
 token* url_pattern_parser<F>::try_consume_modifier_token() {
   // Let token be the result of running try to consume a token given parser and
   // "other-modifier".
@@ -9864,7 +9871,7 @@ token* url_pattern_parser<F>::try_consume_modifier_token() {
   return try_consume_token(token_type::ASTERISK);
 }
 
-template <url_pattern_encoding_callback F>
+template <typename F>
 token* url_pattern_parser<F>::try_consume_regexp_or_wildcard_token(
     const token* name_token) {
   // Let token be the result of running try to consume a token given parser and
@@ -9879,7 +9886,7 @@ token* url_pattern_parser<F>::try_consume_regexp_or_wildcard_token(
   return token;
 }
 
-template <url_pattern_encoding_callback F>
+template <typename F>
 token* url_pattern_parser<F>::try_consume_token(token_type type) {
   ada_log("url_pattern_parser::try_consume_token called with type=",
           to_string(type));
@@ -9895,7 +9902,7 @@ token* url_pattern_parser<F>::try_consume_token(token_type type) {
   return &next_token;
 }
 
-template <url_pattern_encoding_callback F>
+template <typename F>
 std::string url_pattern_parser<F>::consume_text() {
   // Let result be the empty string.
   std::string result{};
@@ -9916,7 +9923,7 @@ std::string url_pattern_parser<F>::consume_text() {
   return result;
 }
 
-template <url_pattern_encoding_callback F>
+template <typename F>
 bool url_pattern_parser<F>::consume_required_token(token_type type) {
   ada_log("url_pattern_parser::consume_required_token called with type=",
           to_string(type));
@@ -9925,7 +9932,7 @@ bool url_pattern_parser<F>::consume_required_token(token_type type) {
   return try_consume_token(type) != nullptr;
 }
 
-template <url_pattern_encoding_callback F>
+template <typename F>
 std::optional<errors>
 url_pattern_parser<F>::maybe_add_part_from_the_pending_fixed_value() {
   // If parser's pending fixed value is the empty string, then return.
@@ -9951,7 +9958,7 @@ url_pattern_parser<F>::maybe_add_part_from_the_pending_fixed_value() {
   return std::nullopt;
 }
 
-template <url_pattern_encoding_callback F>
+template <typename F>
 std::optional<errors> url_pattern_parser<F>::add_part(
     std::string_view prefix, token* name_token, token* regexp_or_wildcard_token,
     std::string_view suffix, token* modifier_token) {
@@ -10067,7 +10074,7 @@ std::optional<errors> url_pattern_parser<F>::add_part(
   return std::nullopt;
 }
 
-template <url_pattern_encoding_callback F>
+template <typename F>
 tl::expected<std::vector<url_pattern_part>, errors> parse_pattern_string(
     std::string_view input, url_pattern_compile_component_options& options,
     F& encoding_callback) {
@@ -10193,7 +10200,7 @@ tl::expected<std::vector<url_pattern_part>, errors> parse_pattern_string(
   return parser.parts;
 }
 
-template <url_pattern_regex::regex_concept regex_provider>
+template <typename regex_provider>
 bool protocol_component_matches_special_scheme(
     url_pattern_component<regex_provider>& component) {
   // let's avoid unnecessary copy here.
@@ -10205,7 +10212,7 @@ bool protocol_component_matches_special_scheme(
          regex_provider::regex_match("ftp", regex);
 }
 
-template <url_pattern_regex::regex_concept regex_provider>
+template <typename regex_provider>
 inline std::optional<errors> constructor_string_parser<
     regex_provider>::compute_protocol_matches_special_scheme_flag() {
   ada_log(
@@ -10233,7 +10240,7 @@ inline std::optional<errors> constructor_string_parser<
   return std::nullopt;
 }
 
-template <url_pattern_regex::regex_concept regex_provider>
+template <typename regex_provider>
 tl::expected<url_pattern_init, errors>
 constructor_string_parser<regex_provider>::parse(std::string_view input) {
   ada_log("constructor_string_parser::parse input=", input);
@@ -10527,7 +10534,7 @@ enum {
 namespace ada {
 
 #if ADA_INCLUDE_URL_PATTERN
-template <url_pattern_regex::regex_concept regex_provider>
+template <typename regex_provider>
 ada_warn_unused tl::expected<url_pattern<regex_provider>, errors>
 parse_url_pattern(std::variant<std::string_view, url_pattern_init>&& input,
                   const std::string_view* base_url,

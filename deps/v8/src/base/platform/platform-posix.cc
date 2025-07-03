@@ -7,12 +7,11 @@ namespace base {
 
 #define kInvalidSharedMemoryHandle -1
 static int FileDescriptorFromSharedMemoryHandle(int handle) { return handle; }
-const char* OS::GetGCFakeMMapFile() { return nullptr; }
+// GetGCFakeMMapFile removed - not declared in OS class
 
 }  // namespace base
 }  // namespace v8
 
-#define DISABLE_CFI_ICALL
 #endif
 
 // Copyright 2012 the V8 project authors. All rights reserved.
@@ -727,6 +726,7 @@ bool OS::HasLazyCommits() {
 #endif  // !V8_OS_ZOS
 #endif  // !V8_OS_CYGWIN && !V8_OS_FUCHSIA
 
+#if V8_OS_POSIX
 const char* OS::GetGCFakeMMapFile() {
 #ifdef __wasi__
   return nullptr;
@@ -734,6 +734,7 @@ const char* OS::GetGCFakeMMapFile() {
   return g_gc_fake_mmap;
 #endif
 }
+#endif  // V8_OS_POSIX
 
 
 void OS::Sleep(TimeDelta interval) {

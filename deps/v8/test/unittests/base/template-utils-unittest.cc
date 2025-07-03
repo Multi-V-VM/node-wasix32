@@ -47,7 +47,7 @@ TEST(TemplateUtilsTest, MakeArrayConstexpr) {
 // Wrap into this helper struct, such that the type is printed on errors.
 template <typename T1, typename T2>
 struct CheckIsSame {
-  static_assert(std::is_same_v<T1, T2>, "test failure");
+  static_assert(std::is_same<T1, T2>::value, "test failure");
 };
 
 #define TEST_PASS_VALUE_OR_REF0(remove_extend, expected, given)               \

@@ -42,8 +42,8 @@ class TypeParser {
     auto to = ReadValue<typename T::value_type>();
     if (!to) return std::nullopt;
     if (!ConsumeIf("]")) return std::nullopt;
-    if constexpr (!std::is_same_v<T, Word32Type> &&
-                  !std::is_same_v<T, Word64Type>) {
+    if constexpr (!std::is_same<T, Word32Type>::value &&
+                  !std::is_same<T, Word64Type>::value) {
       CHECK_LE(*from, *to);
     }
     return T::Range(*from, *to, zone_);
@@ -102,13 +102,13 @@ class TypeParser {
     // TODO(nicohartmann@): Ideally we want to avoid this string construction
     // (e.g. using std::from_chars).
     std::string s(str_.cbegin() + pos_, str_.cend());
-    if constexpr (std::is_same_v<T, uint32_t>) {
+    if constexpr (std::is_same<T, uint32_t>::value) {
       result = static_cast<uint32_t>(std::stoul(s, &read));
-    } else if constexpr (std::is_same_v<T, uint64_t>) {
+    } else if constexpr (std::is_same<T, uint64_t>::value) {
       result = std::stoull(s, &read);
-    } else if constexpr (std::is_same_v<T, float>) {
+    } else if constexpr (std::is_same<T, float>::value) {
       result = std::stof(s, &read);
-    } else if constexpr (std::is_same_v<T, double>) {
+    } else if constexpr (std::is_same<T, double>::value) {
       result = std::stod(s, &read);
     }
     if (read == 0) return std::nullopt;

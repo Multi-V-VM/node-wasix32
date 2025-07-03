@@ -26,7 +26,7 @@
 #include <stdint.h>
 #include <time.h>
 
-// Stub implementations for WASI
+// Stub implementations for WASI - Only implement missing functions
 
 char** uv_setup_args(int argc, char** argv) {
   return argv;
@@ -76,31 +76,81 @@ int uv__io_check_fd(uv_loop_t* loop, int fd) {
   return 0;
 }
 
-// Additional stubs that might be needed
-int uv__tcp_bind(uv_tcp_t* handle, const struct sockaddr* addr, unsigned int addrlen, unsigned int flags) {
-  return UV_ENOSYS;
-}
+// Remove duplicate functions that are already implemented elsewhere
+// TCP and UDP functions are implemented in tcp.c and udp.c
 
-int uv__tcp_connect(uv_connect_t* req, uv_tcp_t* handle, const struct sockaddr* addr, unsigned int addrlen, uv_connect_cb cb) {
-  return UV_ENOSYS;
-}
+// Signal stubs - use weak symbols to avoid conflicts
+__attribute__((weak)) void uv__signal_global_once_init(void) {}
+__attribute__((weak)) void uv__signal_cleanup(void) {}
+__attribute__((weak)) void uv__signal_close(uv_signal_t* handle) {}
 
-int uv__udp_bind(uv_udp_t* handle, const struct sockaddr* addr, unsigned int addrlen, unsigned int flags) {
-  return UV_ENOSYS;
-}
-
-int uv__udp_connect(uv_udp_t* handle,
-                    const struct sockaddr* addr,
-                    unsigned int addrlen) {
-  return UV_ENOSYS;
-}
-
-int uv__udp_disconnect(uv_udp_t* handle) {
-  return UV_ENOSYS;
-}
-
-int uv__udp_is_connected(uv_udp_t* handle) {
+// Process stubs - use weak symbols to avoid conflicts
+__attribute__((weak)) int uv__process_init(uv_loop_t* loop) {
   return 0;
+}
+
+__attribute__((weak)) void uv__process_close(uv_process_t* handle) {
+  // No-op for WASI
+}
+
+// Thread stubs - use weak symbols to avoid conflicts
+__attribute__((weak)) int uv_thread_create(uv_thread_t* tid, void (*entry)(void *arg), void* arg) {
+  return UV_ENOSYS;
+}
+
+__attribute__((weak)) int uv_thread_join(uv_thread_t* tid) {
+  return UV_ENOSYS;
+}
+
+// Misc stubs - use weak symbols to avoid conflicts
+__attribute__((weak)) int uv_cpu_info(uv_cpu_info_t** cpu_infos, int* count) {
+  *cpu_infos = NULL;
+  *count = 0;
+  return 0;
+}
+
+__attribute__((weak)) void uv_free_cpu_info(uv_cpu_info_t* cpu_infos, int count) {
+  // No-op for WASI
+}
+
+int uv_interface_addresses(uv_interface_address_t** addresses, int* count) {
+  *addresses = NULL;
+  *count = 0;
+  return 0;
+}
+
+void uv_free_interface_addresses(uv_interface_address_t* addresses, int count) {
+  // No-op for WASI
+}
+
+int uv_uptime(double* uptime) {
+  *uptime = 0.0;
+  return 0;
+}
+
+void uv_loadavg(double avg[3]) {
+  avg[0] = avg[1] = avg[2] = 0.0;
+}
+
+// Network interface stubs for WASI
+struct ifaddrs {
+  struct ifaddrs *ifa_next;
+  char *ifa_name;
+  unsigned int ifa_flags;
+  struct sockaddr *ifa_addr;
+  struct sockaddr *ifa_netmask;
+  struct sockaddr *ifa_dstaddr;
+  void *ifa_data;
+};
+
+int getifaddrs(struct ifaddrs **ifap) {
+  // WASI doesn't support network interface enumeration
+  *ifap = NULL;
+  return 0;
+}
+
+void freeifaddrs(struct ifaddrs *ifa) {
+  // No-op since we don't allocate anything
 }
 
 #endif /* __wasi__ */

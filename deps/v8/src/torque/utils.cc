@@ -5,7 +5,12 @@
 #include "src/torque/utils.h"
 
 #include <algorithm>
+#ifdef __wasi__
+// WASI doesn't have full fstream support, use basic I/O
+#include <cstdio>
+#else
 #include <fstream>
+#endif
 #include <iostream>
 #include <optional>
 #include <string>
@@ -326,6 +331,33 @@ bool StartsWithSingleUnderscore(const std::string& str) {
 
 void ReplaceFileContentsIfDifferent(const std::string& file_path,
                                     const std::string& contents) {
+#ifdef __wasi__
+  // WASI implementation using C file I/O
+  FILE* file = fopen(file_path.c_str(), "r");
+  std::string old_contents;
+  bool file_exists = false;
+  
+  if (file) {
+    file_exists = true;
+    fseek(file, 0, SEEK_END);
+    long file_size = ftell(file);
+    fseek(file, 0, SEEK_SET);
+    
+    if (file_size > 0) {
+      old_contents.resize(file_size);
+      fread(&old_contents[0], 1, file_size, file);
+    }
+    fclose(file);
+  }
+  
+  if (!file_exists || old_contents != contents) {
+    file = fopen(file_path.c_str(), "w");
+    if (file) {
+      fwrite(contents.c_str(), 1, contents.size(), file);
+      fclose(file);
+    }
+  }
+#else
   std::ifstream old_contents_stream(file_path.c_str());
   std::string old_contents;
   bool file_exists = false;
@@ -342,6 +374,7 @@ void ReplaceFileContentsIfDifferent(const std::string& file_path,
     new_contents_stream << contents;
     new_contents_stream.close();
   }
+#endif
 }
 
 IfDefScope::IfDefScope(std::ostream& os, std::string d)
@@ -382,7 +415,8 @@ IncludeObjectMacrosScope::~IncludeObjectMacrosScope() {
 
 size_t ResidueClass::AlignmentLog2() const {
   if (value_ == 0) return modulus_log_2_;
-  return base::bits::CountTrailingZeros(value_);
+  // Use the correct namespace for WASI
+  return v8::base::bits::CountTrailingZerosNonZero(value_);
 }
 
 const size_t ResidueClass::kMaxModulusLog2;

@@ -2,13 +2,14 @@
 #define V8_BASE_ONCE_H_
 
 #include "src/base/base-export.h"
+#ifdef __wasi__
+#include "include/v8-internal.h"
+#endif
 
 namespace v8 {
 namespace base {
 
-#ifdef __wasi__
-// Already defined in nuclear-fix.h
-#else
+#ifndef __wasi__
 using OnceType = int;
 #endif
 

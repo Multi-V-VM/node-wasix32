@@ -15,7 +15,6 @@ namespace v8 {
 namespace base {
 
 template <typename T>
-  requires std::unsigned_integral<T>
 MagicNumbersForDivision<T> SignedDivisionByConstant(T d) {
   DCHECK(d != static_cast<T>(-1) && d != 0 && d != 1);
   const unsigned bits = static_cast<unsigned>(sizeof(T)) * 8;
@@ -53,7 +52,7 @@ MagicNumbersForDivision<T> SignedDivisionByConstant(T d) {
 template <class T>
 MagicNumbersForDivision<T> UnsignedDivisionByConstant(T d,
                                                       unsigned leading_zeros) {
-  static_assert(std::is_unsigned_v<T>);
+  static_assert(std::is_unsigned<T>::value);
   DCHECK_NE(d, 0);
   const unsigned bits = static_cast<unsigned>(sizeof(T)) * 8;
   const T ones = ~static_cast<T>(0) >> leading_zeros;

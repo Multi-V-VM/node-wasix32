@@ -5994,7 +5994,7 @@ DirectHandle<FixedArray> BaseNameDictionary<Derived, Shape>::IterationIndices(
 
     // The global dictionary doesn't track its deletion count, so we may iterate
     // fewer entries than the count of elements claimed by the dictionary.
-    if (std::is_same_v<Derived, GlobalDictionary>) {
+    if (std::is_same<Derived, GlobalDictionary>::value) {
       DCHECK_LE(array_size, dictionary->NumberOfElements());
     } else {
       DCHECK_EQ(array_size, dictionary->NumberOfElements());

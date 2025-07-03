@@ -703,7 +703,7 @@ double InternalStringToDouble(const Char* current, const Char* end,
   double value;
   // fast_float takes a char/char16_t instead of a uint8_t/uint16_t. Cast the
   // pointers to match.
-  using UC = std::conditional_t<std::is_same_v<Char, uint8_t>, char, char16_t>;
+  using UC = std::conditional_t<std::is_same<Char, uint8_t>::value, char, char16_t>;
   static_assert(sizeof(UC) == sizeof(Char));
   const UC* current_uc = reinterpret_cast<const UC*>(current);
   const UC* end_uc = reinterpret_cast<const UC*>(end);

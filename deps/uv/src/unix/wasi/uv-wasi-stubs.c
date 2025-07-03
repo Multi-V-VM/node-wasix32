@@ -6,16 +6,6 @@
 #include <time.h>
 #include <errno.h>
 
-/* High-resolution time stub */
-uint64_t uv__hrtime(uv_clocktype_t type) {
-  struct timespec ts;
-  /* For WASI, we ignore the clock type and always use CLOCK_MONOTONIC */
-  (void)type;
-  if (clock_gettime(CLOCK_MONOTONIC, &ts) != 0) {
-    return 0;
-  }
-  return (uint64_t)ts.tv_sec * 1000000000 + ts.tv_nsec;
-}
 
 /* Platform-specific loop initialization */
 int uv__platform_loop_init(uv_loop_t* loop) {
@@ -66,32 +56,6 @@ void uv__fs_event_close(uv_fs_event_t* handle) {
 unsigned int if_nametoindex(const char *ifname) {
   /* WASI doesn't have network interfaces */
   return 0;
-}
-
-/* Network interface address functions - stubs for WASI */
-struct ifaddrs {
-  struct ifaddrs *ifa_next;
-  char *ifa_name;
-  unsigned int ifa_flags;
-  struct sockaddr *ifa_addr;
-  struct sockaddr *ifa_netmask;
-  union {
-    struct sockaddr *ifu_broadaddr;
-    struct sockaddr *ifu_dstaddr;
-  } ifa_ifu;
-  void *ifa_data;
-};
-
-int getifaddrs(struct ifaddrs **ifap) {
-  /* WASI doesn't support network interfaces */
-  *ifap = NULL;
-  errno = ENOSYS;
-  return -1;
-}
-
-void freeifaddrs(struct ifaddrs *ifa) {
-  /* No-op for WASI */
-  (void)ifa;
 }
 
 /* Setup args - simplified for WASI */

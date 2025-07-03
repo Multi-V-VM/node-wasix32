@@ -174,9 +174,9 @@ template <typename T>
 inline uintptr_t fast_search_noavx(T* array, uintptr_t array_len,
                                    uintptr_t index, T search_element) {
   static constexpr bool is_uint32 =
-      sizeof(T) == sizeof(uint32_t) && std::is_integral_v<T>;
+      sizeof(T) == sizeof(uint32_t) && std::is_integral<T>::value;
   static constexpr bool is_uint64 =
-      sizeof(T) == sizeof(uint64_t) && std::is_integral_v<T>;
+      sizeof(T) == sizeof(uint64_t) && std::is_integral<T>::value;
   static constexpr bool is_double =
       sizeof(T) == sizeof(double) && std::is_floating_point_v<T>;
 
@@ -276,9 +276,9 @@ TARGET_AVX2 inline uintptr_t fast_search_avx(T* array, uintptr_t array_len,
                                              uintptr_t index,
                                              T search_element) {
   static constexpr bool is_uint32 =
-      sizeof(T) == sizeof(uint32_t) && std::is_integral_v<T>;
+      sizeof(T) == sizeof(uint32_t) && std::is_integral<T>::value;
   static constexpr bool is_uint64 =
-      sizeof(T) == sizeof(uint64_t) && std::is_integral_v<T>;
+      sizeof(T) == sizeof(uint64_t) && std::is_integral<T>::value;
   static constexpr bool is_double =
       sizeof(T) == sizeof(double) && std::is_floating_point_v<T>;
 
@@ -736,7 +736,7 @@ bool Uint8ArrayFromHexWithSSE(const base::Vector<T>& input_vector,
     __m128i first_batch =
         _mm_loadu_si128(reinterpret_cast<const __m128i*>(&input_vector[i]));
     // Handle TwoByteStrings
-    if constexpr (std::is_same_v<T, const base::uc16>) {
+    if constexpr (std::is_same<T, const base::uc16>::value) {
       __m128i second_part_first_batch = _mm_loadu_si128(
           reinterpret_cast<const __m128i*>(&input_vector[i + 8]));
 
@@ -748,7 +748,7 @@ bool Uint8ArrayFromHexWithSSE(const base::Vector<T>& input_vector,
     // 0x36, 0x31, 0x66, 0x66}
     __m128i second_batch = _mm_loadu_si128(
         reinterpret_cast<const __m128i*>(&input_vector[i + 16]));
-    if constexpr (std::is_same_v<T, const base::uc16>) {
+    if constexpr (std::is_same<T, const base::uc16>::value) {
       __m128i second_part_second_batch = _mm_loadu_si128(
           reinterpret_cast<const __m128i*>(&input_vector[i + 24]));
 
@@ -920,7 +920,7 @@ bool Uint8ArrayFromHexWithNeon(const base::Vector<T>& input_vector,
         vld1q_u8(reinterpret_cast<const uint8_t*>(&input_vector[i]));
 
     // Handle TwoByteStrings
-    if constexpr (std::is_same_v<T, const base::uc16>) {
+    if constexpr (std::is_same<T, const base::uc16>::value) {
       uint8x16_t second_part_first_batch =
           vld1q_u8(reinterpret_cast<const uint8_t*>(&input_vector[i + 8]));
       first_batch =
@@ -933,7 +933,7 @@ bool Uint8ArrayFromHexWithNeon(const base::Vector<T>& input_vector,
     uint8x16_t second_batch =
         vld1q_u8(reinterpret_cast<const uint8_t*>(&input_vector[i + 16]));
 
-    if constexpr (std::is_same_v<T, const base::uc16>) {
+    if constexpr (std::is_same<T, const base::uc16>::value) {
       uint8x16_t second_part_second_batch =
           vld1q_u8(reinterpret_cast<const uint8_t*>(&input_vector[i + 24]));
       second_batch =

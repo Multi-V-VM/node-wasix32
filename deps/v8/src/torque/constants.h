@@ -162,7 +162,7 @@ enum class AbstractTypeFlag {
   kConstexpr = 1 << 1,
   kUseParentTypeChecker = 1 << 2,
 };
-using AbstractTypeFlags = base::Flags<AbstractTypeFlag>;
+using AbstractTypeFlags = v8::base::Flags<AbstractTypeFlag>;
 
 enum class ClassFlag {
   kNone = 0,
@@ -183,10 +183,10 @@ enum class ClassFlag {
   kCppObjectDefinition = 1 << 14,
   kCppObjectLayoutDefinition = 1 << 15,
 };
-using ClassFlags = base::Flags<ClassFlag>;
+using ClassFlags = v8::base::Flags<ClassFlag>;
 
 enum class StructFlag { kNone = 0, kExport = 1 << 0 };
-using StructFlags = base::Flags<StructFlag>;
+using StructFlags = v8::base::Flags<StructFlag>;
 
 enum class FieldSynchronization {
   kNone,

@@ -144,14 +144,14 @@ class DataRange {
 
   template <typename T, size_t max_bytes = sizeof(T)>
   T getPseudoRandom() {
-    static_assert(!std::is_same_v<T, bool>, "bool needs special handling");
+    static_assert(!std::is_same<T, bool>::value, "bool needs special handling");
     static_assert(max_bytes <= sizeof(T));
     // Special handling for signed integers: Calling getPseudoRandom<int32_t, 1>
     // () should be equal to getPseudoRandom<int8_t>(). (The NextBytes() below
     // does not achieve that due to depending on endianness and either never
     // generating negative values or filling in the highest significant bits
     // which would be unexpected).
-    if constexpr (std::is_integral_v<T> && std::is_signed_v<T>) {
+    if constexpr (std::is_integral<T>::value && std::is_signed<T>::value) {
       switch (max_bytes) {
         case 1:
           return static_cast<int8_t>(getPseudoRandom<uint8_t>());
@@ -173,7 +173,7 @@ class DataRange {
   template <typename T>
   T get() {
     // Bool needs special handling (see template specialization below).
-    static_assert(!std::is_same_v<T, bool>, "bool needs special handling");
+    static_assert(!std::is_same<T, bool>::value, "bool needs special handling");
 
     // We want to support the case where we have less than sizeof(T) bytes
     // remaining in the slice. We'll just use what we have, so we get a bit of

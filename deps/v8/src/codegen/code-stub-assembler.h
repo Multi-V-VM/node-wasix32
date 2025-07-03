@@ -1285,9 +1285,9 @@ class V8_EXPORT_PRIVATE CodeStubAssembler
     }
     MachineRepresentation rep = MachineRepresentationOf<T>::value;
     StoreToObjectWriteBarrier write_barrier = StoreToObjectWriteBarrier::kFull;
-    if (std::is_same_v<T, Smi>) {
+    if (std::is_same<T, Smi>::value) {
       write_barrier = StoreToObjectWriteBarrier::kNone;
-    } else if (std::is_same_v<T, Map>) {
+    } else if (std::is_same<T, Map>::value) {
       write_barrier = StoreToObjectWriteBarrier::kMap;
     }
     TNode<IntPtrT> offset =

@@ -29647,7 +29647,7 @@ struct SeqOneByteStringChecker {
     CHECK(!try_catch.HasCaught());
     CHECK(checker.DidCallSlow());
 
-    if constexpr (std::is_same_v<Ret, void*>) {
+    if constexpr (std::is_same<Ret, void*>::value) {
       CompileRun(
           "if (typeof slowr !== 'object') { throw new Error(`${slowr} is not "
           "object`) }");
@@ -29676,20 +29676,20 @@ struct SeqOneByteStringChecker {
     CHECK(info[0]->IsString());
     if constexpr (std::is_void<Ret>::value) {
       // do nothing
-    } else if constexpr (std::is_same_v<Ret, void*>) {
+    } else if constexpr (std::is_same<Ret, void*>::value) {
       info.GetReturnValue().Set(
           v8::External::New(info.GetIsolate(), receiver_ptr->func_()));
     } else if constexpr (sizeof(Ret) == 8 &&
                          Int64Repr ==
                              v8::CFunctionInfo::Int64Representation::kBigInt) {
-      if constexpr (std::is_same_v<Ret, int64_t>) {
+      if constexpr (std::is_same<Ret, int64_t>::value) {
         info.GetReturnValue().Set(
             v8::BigInt::New(info.GetIsolate(), receiver_ptr->func_()));
       } else {
         info.GetReturnValue().Set(v8::BigInt::NewFromUnsigned(
             info.GetIsolate(), receiver_ptr->func_()));
       }
-    } else if constexpr (std::is_same_v<Ret, uint64_t>) {
+    } else if constexpr (std::is_same<Ret, uint64_t>::value) {
       info.GetReturnValue().Set(v8::Number::New(
           info.GetIsolate(), static_cast<double>(receiver_ptr->func_())));
     } else {

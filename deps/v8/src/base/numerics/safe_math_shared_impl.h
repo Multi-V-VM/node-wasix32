@@ -194,7 +194,7 @@ struct MathWrapper {
   }                                                                            \
   /* Assignment arithmetic operator implementation from CLASS##Numeric. */     \
   template <typename L>                                                        \
-    requires std::is_arithmetic_v<L>                                           \
+    requires std::is_arithmetic<L>::value                                           \
   template <typename R>                                                        \
   constexpr CLASS##Numeric<L>& CLASS##Numeric<L>::operator CMP_OP(R rhs) {     \
     return MathOp<CLASS##OP_NAME##Op>(rhs);                                    \

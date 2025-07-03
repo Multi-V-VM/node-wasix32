@@ -123,23 +123,23 @@ template <typename... Ts>
 using UnionOf = typename detail::FlattenUnionHelper<Union<>, Ts...>::type;
 
 // Unions of unions are flattened.
-static_assert(std::is_same_v<Union<Smi, HeapObject>,
+static_assert(std::is_same<Union<Smi, HeapObject>::value,
                              UnionOf<UnionOf<Smi>, UnionOf<HeapObject>>>);
 // Unions with duplicates are deduplicated.
-static_assert(std::is_same_v<Union<Smi, HeapObject>,
+static_assert(std::is_same<Union<Smi, HeapObject>::value,
                              UnionOf<HeapObject, Smi, Smi, HeapObject>>);
 // Unions with Smis are normalized to have the Smi be the first element.
-static_assert(std::is_same_v<Union<Smi, HeapObject>, UnionOf<HeapObject, Smi>>);
+static_assert(std::is_same<Union<Smi, HeapObject>::value, UnionOf<HeapObject, Smi>>);
 
 // Union::Without matches expectations.
 static_assert(
-    std::is_same_v<Union<Smi, HeapObject>::Without<Smi>, Union<HeapObject>>);
+    std::is_same<Union<Smi, HeapObject>::value::Without<Smi>, Union<HeapObject>>);
 static_assert(std::is_same_v<JSAny::Without<Smi>, JSAnyNotSmi>);
 static_assert(
     std::is_same_v<JSAny::Without<Smi>::Without<HeapNumber>, JSAnyNotNumber>);
 
 // Union::Without that doesn't have a match is a no-op
-static_assert(std::is_same_v<Union<Smi, HeapObject>::Without<HeapNumber>,
+static_assert(std::is_same<Union<Smi, HeapObject>::value::Without<HeapNumber>,
                              Union<Smi, HeapObject>>);
 
 }  // namespace v8::internal

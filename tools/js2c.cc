@@ -470,7 +470,9 @@ precompute_string() {
 const std::string_view GetCode(uint16_t index) {
   // We use about 644254 bytes of memory. An array of 65536 strings might use
   // 2097152 bytes so we save 3x the memory.
-  static auto [backing_string, offsets] = precompute_string();
+  static const auto& pair = precompute_string();
+  const auto& backing_string = pair.first;
+  const auto& offsets = pair.second;
   return std::string_view(&backing_string[offsets[index]],
                           offsets[index + 1] - offsets[index]);
 }

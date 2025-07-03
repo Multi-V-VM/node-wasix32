@@ -1299,7 +1299,13 @@ size_t AbstractType::AlignmentLog2() const {
     return Type::AlignmentLog2();
   }
   alignment = std::min(alignment, TargetArchitecture::TaggedSize());
-  return base::bits::WhichPowerOfTwo(alignment);
+  // WhichPowerOfTwo returns the index of the set bit for powers of 2
+  // This is equivalent to log2(alignment)
+  unsigned result = 0;
+  while ((alignment >> result) > 1) {
+    result++;
+  }
+  return result;
 }
 
 size_t StructType::AlignmentLog2() const {

@@ -40,7 +40,7 @@ struct RuntimeCallDescriptor {
     static void Verify(const CallDescriptor* desc) {
       using result_t = typename Derived::result_t;
       using arguments_t = typename Derived::arguments_t;
-      if constexpr (std::is_same_v<result_t, void>) {
+      if constexpr (std::is_same<result_t, void>::value) {
         DCHECK_EQ(desc->ReturnCount(), 0);
       } else {
         DCHECK_EQ(desc->ReturnCount(), 1);

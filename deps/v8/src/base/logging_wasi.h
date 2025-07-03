@@ -22,11 +22,7 @@ class CheckMessageStream {
 };
 
 // Simple template for operator<< support
-template <typename T>
-inline CheckMessageStream& operator<<(CheckMessageStream& stream, const T& value) {
-  stream << value;
-  return stream;
-}
+// Removed to avoid ambiguity - use the member function instead
 
 }  // namespace base
 }  // namespace v8

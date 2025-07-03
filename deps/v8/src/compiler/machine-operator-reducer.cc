@@ -2987,12 +2987,12 @@ MachineOperatorReducer::ReduceWordEqualForConstantRhs(Node* lhs, uintN_t rhs) {
         // data ends up in the lower 32 bits for 64-bit mode.
         if (shift_bits <= base::bits::CountLeadingZeros(mask) &&
             shift_bits <= base::bits::CountLeadingZeros(rhs) &&
-            (std::is_same_v<uintN_t, uint64_t> ||
+            (std::is_same<uintN_t, uint64_t>::value ||
              mask << shift_bits <= std::numeric_limits<uintN_t>::max())) {
           Node* new_input = mshift.left().node();
           uintN_t new_mask = static_cast<uintN_t>(mask << shift_bits);
           uintN_t new_rhs = rhs << shift_bits;
-          if (std::is_same_v<uintN_t, uint32_t> &&
+          if (std::is_same<uintN_t, uint32_t>::value &&
               WordNAdapter::WORD_SIZE == 64) {
             // We can truncate before performing the And.
             new_input = TruncateInt64ToInt32(new_input);
@@ -3008,7 +3008,7 @@ MachineOperatorReducer::ReduceWordEqualForConstantRhs(Node* lhs, uintN_t rhs) {
   }
   // Replaces (x >> n) == k with x == k << n, with "k << n" being computed
   // here at compile time.
-  if (std::is_same_v<intN_t, typename WordNAdapter::intN_t> &&
+  if (std::is_same<intN_t, typename WordNAdapter::intN_t>::value &&
       WordNAdapter::IsWordNSarShiftOutZeros(lhs->op()) &&
       lhs->UseCount() == 1) {
     typename WordNAdapter::UintNBinopMatcher mshift(lhs);

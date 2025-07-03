@@ -43,7 +43,7 @@ struct EnumEntry {
   std::optional<std::string> alias_entry;
 };
 
-class BuildFlags : public base::ContextualClass<BuildFlags> {
+class BuildFlags : public v8::base::ContextualClass<BuildFlags> {
  public:
   BuildFlags() {
     build_flags_["V8_EXTERNAL_CODE_SPACE"] = V8_EXTERNAL_CODE_SPACE_BOOL;

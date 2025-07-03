@@ -559,12 +559,12 @@ OpIndex GraphBuilder::Process(
             return __ TaggedEqual(V<Object>::Cast(left),
                                   V<Object>::Cast(right));
           } else if (left_is_tagged) {
-            DCHECK((std::is_same_v<WordPtr, Word64>));
+            DCHECK((std::is_same<WordPtr, Word64>::value));
             return __ Word64Equal(V<Word64>::Cast(__ BitcastTaggedToWordPtr(
                                       V<Object>::Cast(left))),
                                   V<Word64>::Cast(right));
           } else if (right_is_tagged) {
-            DCHECK((std::is_same_v<WordPtr, Word64>));
+            DCHECK((std::is_same<WordPtr, Word64>::value));
             return __ Word64Equal(V<Word64>::Cast(left),
                                   V<Word64>::Cast(__ BitcastTaggedToWordPtr(
                                       V<Object>::Cast(right))));

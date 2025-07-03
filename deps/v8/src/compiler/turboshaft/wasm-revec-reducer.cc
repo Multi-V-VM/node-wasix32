@@ -58,14 +58,14 @@ std::string GetSimdOpcodeName(Operation const& op) {
 //  the relative offset between two StoreOp/LoadOp.
 template <typename Op,
           typename = std::enable_if_t<
-              std::is_same_v<Op, StoreOp> || std::is_same_v<Op, LoadOp> ||
-              std::is_same_v<Op, Simd128LoadTransformOp>>>
+              std::is_same<Op, StoreOp>::value || std::is_same<Op, LoadOp>::value ||
+              std::is_same<Op, Simd128LoadTransformOp>::value>>
 class StoreLoadInfo {
  public:
   StoreLoadInfo(const Graph* graph, const Op* op)
       : op_(op), offset_(op->offset) {
     base_ = &graph->Get(op->base());
-    if constexpr (std::is_same_v<Op, Simd128LoadTransformOp>) {
+    if constexpr (std::is_same<Op, Simd128LoadTransformOp>::value) {
       DCHECK_EQ(offset_, 0);
       const WordBinopOp* add_op = base_->TryCast<WordBinopOp>();
       if (!add_op || add_op->kind != WordBinopOp::Kind::kAdd ||
@@ -121,14 +121,14 @@ class StoreLoadInfo {
     DCHECK(IsValid() && rhs.IsValid());
     bool calculatable = base_ == rhs.base_ && index_ == rhs.index_;
 
-    if constexpr (std::is_same_v<Op, Simd128LoadTransformOp>) {
+    if constexpr (std::is_same<Op, Simd128LoadTransformOp>::value) {
       calculatable &= (op_->load_kind == rhs.op_->load_kind &&
                        op_->transform_kind == rhs.op_->transform_kind);
     } else {
       calculatable &= (op_->kind == rhs.op_->kind);
     }
 
-    if constexpr (std::is_same_v<Op, StoreOp>) {
+    if constexpr (std::is_same<Op, StoreOp>::value) {
       // TODO(v8:12716) If one store has a full write barrier and the other has
       // no write barrier, consider combine them with a full write barrier.
       calculatable &= (op_->write_barrier == rhs.op_->write_barrier);

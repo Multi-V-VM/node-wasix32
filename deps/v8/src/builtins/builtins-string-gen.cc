@@ -1937,7 +1937,7 @@ TNode<String> StringBuiltinsAssembler::AllocAndCopyStringCharacters(
 
     TVARIABLE(IntPtrT, var_cursor, start_offset);
     TNode<RawPtrT> raw_from;
-    if constexpr (std::is_same_v<T, RawPtrT>) {
+    if constexpr (std::is_same<T, RawPtrT>::value) {
       raw_from = from;
     } else {
       raw_from = ReinterpretCast<RawPtrT>(BitcastTaggedToWord(from));

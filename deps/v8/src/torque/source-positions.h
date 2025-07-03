@@ -88,7 +88,7 @@ DECLARE_CONTEXTUAL_VARIABLE(CurrentSourceFile, SourceId);
 DECLARE_CONTEXTUAL_VARIABLE(CurrentSourcePosition, SourcePosition);
 
 class V8_EXPORT_PRIVATE SourceFileMap
-    : public base::ContextualClass<SourceFileMap> {
+    : public v8::base::ContextualClass<SourceFileMap> {
  public:
   explicit SourceFileMap(std::string v8_root) : v8_root_(std::move(v8_root)) {}
   static const std::string& PathFromV8Root(SourceId file);

@@ -69,9 +69,9 @@ namespace {
 [[maybe_unused]] struct
     Do_not_use_kScratchDoubleRegister_in_arch_independent_code {
 } kScratchDoubleRegister;
-static_assert(!std::is_same_v<decltype(kScratchRegister), Register>);
+static_assert(!std::is_same<decltype(kScratchRegister), Register>::value);
 static_assert(
-    !std::is_same_v<decltype(kScratchDoubleRegister), DoubleRegister>);
+    !std::is_same<decltype(kScratchDoubleRegister), DoubleRegister>::value);
 
 }  // namespace
 
@@ -6771,7 +6771,7 @@ void GenerateTypedArrayLoadFromDataPointer(MaglevAssembler* masm,
   int element_size = ElementsKindToByteSize(kind);
   MemOperand operand =
       __ TypedArrayElementOperand(data_pointer, index, element_size);
-  if constexpr (std::is_same_v<ResultReg, Register>) {
+  if constexpr (std::is_same<ResultReg, Register>::value) {
     if (IsSignedIntTypedArrayElementsKind(kind)) {
       __ LoadSignedField(result_reg, operand, element_size);
     } else {
@@ -6780,7 +6780,7 @@ void GenerateTypedArrayLoadFromDataPointer(MaglevAssembler* masm,
     }
   } else {
 #ifdef DEBUG
-    bool result_reg_is_double = std::is_same_v<ResultReg, DoubleRegister>;
+    bool result_reg_is_double = std::is_same<ResultReg, DoubleRegister>::value;
     DCHECK(result_reg_is_double);
     DCHECK(IsFloatTypedArrayElementsKind(kind));
 #endif
@@ -6839,11 +6839,11 @@ void GenerateTypedArrayStoreToDataPointer(MaglevAssembler* masm,
   int element_size = ElementsKindToByteSize(kind);
   MemOperand operand =
       __ TypedArrayElementOperand(data_pointer, index, element_size);
-  if constexpr (std::is_same_v<ValueReg, Register>) {
+  if constexpr (std::is_same<ValueReg, Register>::value) {
     __ StoreField(operand, value, element_size);
   } else {
 #ifdef DEBUG
-    bool value_is_double = std::is_same_v<ValueReg, DoubleRegister>;
+    bool value_is_double = std::is_same<ValueReg, DoubleRegister>::value;
     DCHECK(value_is_double);
     DCHECK(IsFloatTypedArrayElementsKind(kind));
 #endif

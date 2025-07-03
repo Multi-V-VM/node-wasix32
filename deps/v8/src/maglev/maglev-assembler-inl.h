@@ -699,7 +699,7 @@ void MoveArgumentsForBuiltin(MaglevAssembler* masm, Args&&... args) {
         IsFloatingPoint(Descriptor::GetParameterType(index).representation());
     if constexpr (use_double_register) {
       DoubleRegister target = Descriptor::GetDoubleRegisterParameter(index);
-      if constexpr (std::is_same_v<Input, std::decay_t<Arg>>) {
+      if constexpr (std::is_same<Input, std::decay_t<Arg>::value>) {
         DCHECK_EQ(target, arg.AssignedDoubleRegister());
         USE(target);
       } else {
@@ -710,7 +710,7 @@ void MoveArgumentsForBuiltin(MaglevAssembler* masm, Args&&... args) {
 #endif  // DEBUG
     } else {
       Register target = Descriptor::GetRegisterParameter(index);
-      if constexpr (std::is_same_v<Input, std::decay_t<Arg>>) {
+      if constexpr (std::is_same<Input, std::decay_t<Arg>::value>) {
         DCHECK_EQ(target, arg.AssignedGeneralRegister());
         USE(target);
       } else {
@@ -731,7 +731,7 @@ void MoveArgumentsForBuiltin(MaglevAssembler* masm, Args&&... args) {
     DCHECK(!ClobberedBy(written_double_registers, context));
     DCHECK(MachineTypeMatches(MachineType::AnyTagged(), context));
 
-    if constexpr (std::is_same_v<Input, std::decay_t<decltype(context)>>) {
+    if constexpr (std::is_same<Input, std::decay_t<decltype(context)>::value>) {
       DCHECK_EQ(Descriptor::ContextRegister(),
                 context.AssignedGeneralRegister());
     } else {
@@ -739,7 +739,7 @@ void MoveArgumentsForBuiltin(MaglevAssembler* masm, Args&&... args) {
       // This is because setting parameters could have clobbered the register.
       // TODO(leszeks): Include the context register in the parallel moves
       // described above.
-      static_assert(!std::is_same_v<Register, std::decay_t<decltype(context)>>);
+      static_assert(!std::is_same<Register, std::decay_t<decltype(context)>::value>);
       masm->Move(Descriptor::ContextRegister(), context);
     }
   }

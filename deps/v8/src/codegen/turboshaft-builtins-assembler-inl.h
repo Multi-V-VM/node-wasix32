@@ -65,15 +65,15 @@ class BuiltinArgumentsTS {
   BuiltinArgumentsTS(Assembler* assembler, V<T> argc,
                      OptionalV<WordPtr> fp = {})
       : assembler_(assembler) {
-    if constexpr (std::is_same_v<T, WordPtr>) {
+    if constexpr (std::is_same<T, WordPtr>::value) {
       argc_ = argc;
     } else {
-      if constexpr (std::is_same_v<T, Word32>) {
-        DCHECK((std::is_same_v<WordPtr, Word64>));
+      if constexpr (std::is_same<T, Word32>::value) {
+        DCHECK((std::is_same<WordPtr, Word64>::value));
         argc_ = assembler_->ChangeInt32ToInt64(argc);
       } else {
-        static_assert(std::is_same_v<T, Word64>);
-        DCHECK((std::is_same_v<WordPtr, Word32>));
+        static_assert(std::is_same<T, Word64>::value);
+        DCHECK((std::is_same<WordPtr, Word32>::value));
         argc_ = assembler_->TruncateWord64ToWord32(argc);
       }
     }

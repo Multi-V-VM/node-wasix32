@@ -754,7 +754,7 @@ class Graph {
       OperationBuffer::ReplaceScope replace_scope(&operations_, replaced);
       new_op = &Op::New(this, args...);
     }
-    if (!std::is_same_v<Op, DeadOp>) {
+    if (!std::is_same<Op, DeadOp>::value) {
       new_op->saturated_use_count = old_uses;
     }
     IncrementInputUses(*new_op);

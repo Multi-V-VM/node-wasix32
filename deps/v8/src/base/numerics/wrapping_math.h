@@ -16,7 +16,7 @@ namespace v8::base {
 // is the bit width of `T`.
 template <typename T>
 inline constexpr T WrappingAdd(T a, T b) {
-  static_assert(std::is_integral_v<T>);
+  static_assert(std::is_integral<T>::value);
   // Unsigned arithmetic wraps, so convert to the corresponding unsigned type.
   // Note that, if `T` is smaller than `int`, e.g. `int16_t`, the values are
   // promoted to `int`, which brings us back to undefined overflow. This is fine
@@ -30,7 +30,7 @@ inline constexpr T WrappingAdd(T a, T b) {
 // is the bit width of `T`.
 template <typename T>
 inline constexpr T WrappingSub(T a, T b) {
-  static_assert(std::is_integral_v<T>);
+  static_assert(std::is_integral<T>::value);
   // Unsigned arithmetic wraps, so convert to the corresponding unsigned type.
   // Note that, if `T` is smaller than `int`, e.g. `int16_t`, the values are
   // promoted to `int`, which brings us back to undefined overflow. This is fine

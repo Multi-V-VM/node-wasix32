@@ -147,8 +147,10 @@ class Vector {
   // - U and T have the same size.
   // Note that this conversion is only safe for `*const* U`; writes would
   // violate covariance.
-  template <typename U>
-    requires std::is_convertible_v<T*, const U*> && (sizeof(U) == sizeof(T))
+  template <typename U, 
+            typename = typename std::enable_if<
+                std::is_convertible<T*, const U*>::value && 
+                (sizeof(U) == sizeof(T))>::type>
   operator Vector<const U>() const {
     return {start_, length_};
   }
@@ -169,8 +171,8 @@ class Vector {
     return std::equal(begin(), end(), other.begin(), other.end());
   }
 
-  template <typename TT = T>
-    requires(!std::is_const_v<TT>)
+  template <typename TT = T,
+            typename = typename std::enable_if<!std::is_const<TT>::value>::type>
   bool operator==(const Vector<const T>& other) const {
     return std::equal(begin(), end(), other.begin(), other.end());
   }
@@ -215,14 +217,14 @@ class OwnedVector {
   // {OwnedVector<const T>}.
   // These also function as the standard move construction/assignment operator.
   // {other} is left as an empty vector.
-  template <typename U>
-    requires std::is_convertible_v<std::unique_ptr<U>, std::unique_ptr<T>>
+  template <typename U,
+            typename = typename std::enable_if<std::is_convertible<std::unique_ptr<U>, std::unique_ptr<T>>::value>::type>
   OwnedVector(OwnedVector<U>&& other) V8_NOEXCEPT {
     *this = std::move(other);
   }
 
-  template <typename U>
-    requires std::is_convertible_v<std::unique_ptr<U>, std::unique_ptr<T>>
+  template <typename U,
+            typename = typename std::enable_if<std::is_convertible<std::unique_ptr<U>, std::unique_ptr<T>>::value>::type>
   OwnedVector& operator=(OwnedVector<U>&& other) V8_NOEXCEPT {
     static_assert(sizeof(U) == sizeof(T));
     data_ = std::move(other.data_);

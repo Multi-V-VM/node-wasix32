@@ -1219,7 +1219,7 @@ const Type* ImplementationVisitor::Visit(DebugStatement* stmt) {
   switch (stmt->kind) {
     case DebugStatement::Kind::kUnreachable:
       // Use the same string as in C++ to simplify fuzzer pattern-matching.
-      reason = base::kUnreachableCodeMessage;
+      reason = v8::base::kUnreachableCodeMessage;
       return_type = TypeOracle::GetNeverType();
       kind = AbortInstruction::Kind::kUnreachable;
       break;
@@ -3756,7 +3756,7 @@ bool IsPointerSection(FieldSectionType type) {
          type == FieldSectionType::kStrongSection;
 }
 
-using FieldSections = base::Flags<FieldSectionType>;
+using FieldSections = v8::base::Flags<FieldSectionType>;
 
 std::string ToString(FieldSectionType type) {
   switch (type) {

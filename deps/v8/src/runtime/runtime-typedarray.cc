@@ -93,7 +93,7 @@ bool CompareNum(T x, T y) {
     return true;
   } else if (x > y) {
     return false;
-  } else if (!std::is_integral_v<T>) {
+  } else if (!std::is_integral<T>::value) {
     double _x = x, _y = y;
     if (x == 0 && x == y) {
       /* -0.0 is less than +0.0 */

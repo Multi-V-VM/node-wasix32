@@ -1144,7 +1144,7 @@ int Simulator::CodeFromName(const char* name) {
 template <typename T>
 T Simulator::AddWithCarry(bool set_flags, T left, T right, int carry_in) {
   // Use unsigned types to avoid implementation-defined overflow behaviour.
-  static_assert(std::is_unsigned_v<T>, "operands must be unsigned");
+  static_assert(std::is_unsigned<T>::value, "operands must be unsigned");
   static_assert((sizeof(T) == kWRegSize) || (sizeof(T) == kXRegSize),
                 "Only W- or X-sized operands are tested");
 
@@ -1175,7 +1175,7 @@ T Simulator::AddWithCarry(bool set_flags, T left, T right, int carry_in) {
 template <typename T>
 void Simulator::AddSubWithCarry(Instruction* instr) {
   // Use unsigned types to avoid implementation-defined overflow behaviour.
-  static_assert(std::is_unsigned_v<T>, "operands must be unsigned");
+  static_assert(std::is_unsigned<T>::value, "operands must be unsigned");
 
   T op2 = reg<T>(instr->Rm());
   T new_val;
@@ -1921,7 +1921,7 @@ void Simulator::VisitCompareBranch(Instruction* instr) {
 template <typename T>
 void Simulator::AddSubHelper(Instruction* instr, T op2) {
   // Use unsigned types to avoid implementation-defined overflow behaviour.
-  static_assert(std::is_unsigned_v<T>, "operands must be unsigned");
+  static_assert(std::is_unsigned<T>::value, "operands must be unsigned");
 
   bool set_flags = instr->FlagsUpdate();
   T new_val = 0;
@@ -2067,7 +2067,7 @@ void Simulator::VisitConditionalCompareImmediate(Instruction* instr) {
 template <typename T>
 void Simulator::ConditionalCompareHelper(Instruction* instr, T op2) {
   // Use unsigned types to avoid implementation-defined overflow behaviour.
-  static_assert(std::is_unsigned_v<T>, "operands must be unsigned");
+  static_assert(std::is_unsigned<T>::value, "operands must be unsigned");
 
   T op1 = reg<T>(instr->Rn());
 

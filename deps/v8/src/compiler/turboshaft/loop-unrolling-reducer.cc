@@ -364,12 +364,12 @@ bool Cmp(Int val, Int max, CmpOp cmp_op) {
 
 template <class Int>
 bool SubWillOverflow(Int lhs, Int rhs) {
-  if constexpr (std::is_same_v<Int, int32_t> || std::is_same_v<Int, uint32_t>) {
+  if constexpr (std::is_same<Int, int32_t>::value || std::is_same<Int, uint32_t>::value) {
     int32_t unused;
     return base::bits::SignedSubOverflow32(lhs, rhs, &unused);
   } else {
-    static_assert(std::is_same_v<Int, int64_t> ||
-                  std::is_same_v<Int, uint64_t>);
+    static_assert(std::is_same<Int, int64_t>::value ||
+                  std::is_same<Int, uint64_t>::value);
     int64_t unused;
     return base::bits::SignedSubOverflow64(lhs, rhs, &unused);
   }
@@ -377,7 +377,7 @@ bool SubWillOverflow(Int lhs, Int rhs) {
 
 template <class Int>
 bool DivWillOverflow(Int dividend, Int divisor) {
-  if constexpr (std::is_unsigned_v<Int>) {
+  if constexpr (std::is_unsigned<Int>::value) {
     return false;
   } else {
     return dividend == std::numeric_limits<Int>::min() && divisor == -1;
@@ -393,8 +393,8 @@ template <class Int>
 IterationCount StaticCanonicalForLoopMatcher::CountIterationsImpl(
     Int init, Int max, CmpOp cmp_op, Int binop_cst, BinOp binop_op,
     WordRepresentation binop_rep, bool loop_if_cond_is) const {
-  static_assert(std::is_integral_v<Int>);
-  DCHECK_EQ(std::is_unsigned_v<Int>,
+  static_assert(std::is_integral<Int>::value);
+  DCHECK_EQ(std::is_unsigned<Int>::value,
             (cmp_op == CmpOp::kUnsignedLessThan ||
              cmp_op == CmpOp::kUnsignedLessThanOrEqual ||
              cmp_op == CmpOp::kUnsignedGreaterThan ||

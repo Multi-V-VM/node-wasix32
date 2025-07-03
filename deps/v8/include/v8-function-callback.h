@@ -516,12 +516,12 @@ void ReturnValue<T>::Set(bool value) {
 template <typename T>
 void ReturnValue<T>::SetDefaultValue() {
   using I = internal::Internals;
-  if constexpr (std::is_same_v<void, T> || std::is_same_v<v8::Boolean, T>) {
+  if constexpr (std::is_same<void, T>::value || std::is_same<v8::Boolean, T>::value) {
     Set(true);
-  } else if constexpr (std::is_same_v<v8::Integer, T>) {
+  } else if constexpr (std::is_same<v8::Integer, T>::value) {
     SetInternal(I::IntegralToSmi(0));
   } else {
-    static_assert(std::is_same_v<v8::Value, T> || std::is_same_v<v8::Array, T>);
+    static_assert(std::is_same<v8::Value, T>::value || std::is_same<v8::Array, T>::value);
 #if V8_STATIC_ROOTS_BOOL
     SetInternal(I::StaticReadOnlyRoot::kUndefinedValue);
 #else

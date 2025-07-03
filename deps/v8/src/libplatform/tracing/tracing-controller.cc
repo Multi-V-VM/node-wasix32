@@ -7,6 +7,25 @@ namespace v8 {
 namespace platform {
 namespace tracing {
 
+// Define empty classes for WASI
+class TraceBuffer {
+ public:
+  TraceBuffer() = default;
+  ~TraceBuffer() = default;
+};
+
+class TraceConfig {
+ public:
+  TraceConfig() = default;
+  ~TraceConfig() = default;
+};
+
+class TraceStateObserver {
+ public:
+  TraceStateObserver() = default;
+  virtual ~TraceStateObserver() = default;
+};
+
 TracingController::TracingController() {
   // Stub implementation for WASI
 }

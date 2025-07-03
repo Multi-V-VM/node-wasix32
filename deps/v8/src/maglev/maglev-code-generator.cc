@@ -98,7 +98,7 @@ template <typename RegisterT, bool DecompressIfNeeded>
 class ParallelMoveResolver {
   static constexpr auto kAllocatableRegistersT =
       RegisterTHelper<RegisterT>::kAllocatableRegisters;
-  static_assert(!DecompressIfNeeded || std::is_same_v<Register, RegisterT>);
+  static_assert(!DecompressIfNeeded || std::is_same<Register, RegisterT>::value);
   static_assert(!DecompressIfNeeded || COMPRESS_POINTERS_BOOL);
 
  public:
@@ -376,13 +376,13 @@ class ParallelMoveResolver {
 
   template <typename ChainStartT, typename SourceT>
   bool ContinueEmitMoveChain(ChainStartT chain_start, SourceT source) {
-    if constexpr (std::is_same_v<ChainStartT, SourceT>) {
+    if constexpr (std::is_same<ChainStartT, SourceT>::value) {
       // If the recursion has returned to the start of the chain, then this must
       // be a cycle.
       if (chain_start == source) {
         __ RecordComment("--   * Cycle");
         DCHECK(!scratch_has_cycle_start_);
-        if constexpr (std::is_same_v<ChainStartT, int32_t>) {
+        if constexpr (std::is_same<ChainStartT, int32_t>::value) {
           __ Move(scratch_, StackSlot{chain_start});
         } else {
           __ Move(scratch_, chain_start);
@@ -813,7 +813,7 @@ class MaglevCodeGeneratingNodeProcessor {
                            state);
     }
 
-    if (v8_flags.slow_debug_code && !std::is_same_v<NodeT, Phi>) {
+    if (v8_flags.slow_debug_code && !std::is_same<NodeT, Phi>::value) {
       // Check that all int32/uint32 inputs are zero extended.
       // Note that we don't do this for Phis, since they are virtual operations
       // whose inputs aren't actual inputs but are injected on incoming

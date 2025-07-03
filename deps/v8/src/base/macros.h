@@ -7,6 +7,7 @@
 
 #include <limits>
 #include <type_traits>
+#include <cstring>
 
 #include "include/v8config.h"
 #include "src/base/compiler-specific.h"
@@ -191,9 +192,13 @@ V8_INLINE Dest bit_cast(Source const& source) {
   V8_CLANG_NO_SANITIZE("function")  \
   __declspec(guard(nocf))
 #else
+#ifdef __wasi__
+#define DISABLE_CFI_ICALL
+#else
 #define DISABLE_CFI_ICALL           \
   V8_CLANG_NO_SANITIZE("cfi-icall") \
   V8_CLANG_NO_SANITIZE("function")
+#endif
 #endif
 
 // V8_PRETTY_FUNCTION_VALUE_OR(ELSE) emits a pretty function value, if

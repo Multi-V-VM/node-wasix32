@@ -9249,7 +9249,7 @@ constexpr size_t input_count() { return 0; }
 // "input_count" of the operations.
 template <typename T>
 constexpr size_t input_count(T)
-  requires(std::is_enum_v<T> || std::is_integral_v<T> ||
+  requires(std::is_enum_v<T> || std::is_integral<T>::value ||
            std::is_floating_point_v<T>)
 {
   return 0;
@@ -9347,7 +9347,7 @@ struct TupleHasType;
 
 template <typename T, typename... Ts>
 struct TupleHasType<T, std::tuple<Ts...>> {
-  static constexpr bool value = (std::is_same_v<T, Ts> || ...);
+  static constexpr bool value = (std::is_same<T, Ts>::value || ...);
 };
 
 template <typename Op, typename = void>

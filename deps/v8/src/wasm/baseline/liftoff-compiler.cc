@@ -2062,7 +2062,7 @@ class LiftoffCompiler {
   // Convert {LiftoffRegister} to {AssemblerRegisterConverter}, other types stay
   // unchanged.
   template <typename T>
-  std::conditional_t<std::is_same_v<LiftoffRegister, T>,
+  std::conditional_t<std::is_same<LiftoffRegister, T>::value,
                      AssemblerRegisterConverter, T>
   ConvertAssemblerArg(T t) {
     return {t};

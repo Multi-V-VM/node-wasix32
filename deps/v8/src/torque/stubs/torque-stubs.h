@@ -8,10 +8,27 @@ namespace v8 {
 namespace internal {
 namespace torque {
 
-// Forward declarations
-class SourcePosition;
-class SourceId; 
-class LineAndColumn;
+// Type definitions for torque
+struct SourcePosition {
+  int line;
+  int column;
+  SourcePosition() : line(0), column(0) {}
+  SourcePosition(int l, int c) : line(l), column(c) {}
+};
+
+struct SourceId {
+  int id;
+  SourceId() : id(0) {}
+  explicit SourceId(int i) : id(i) {}
+};
+
+struct LineAndColumn {
+  int line;
+  int column;
+  LineAndColumn() : line(0), column(0) {}
+  LineAndColumn(int l, int c) : line(l), column(c) {}
+};
+
 class Declarable;
 
 // Minimal LanguageServerData stub

@@ -12,6 +12,12 @@
 #include <ostream>
 
 #include "include/v8-internal.h"
+#include "src/base/build_config.h"
+#include "src/base/enum-set.h"
+#include "src/base/flags.h"
+#include "src/base/logging.h"
+#include "src/base/macros.h"
+#include "src/base/strong-alias.h"
 
 // WASI 兼容性修复
 #ifdef __wasi__
@@ -26,55 +32,8 @@ class Mutex;
 
 namespace internal {
 
-// 使用 v8-internal.h 中的定义
-using v8::internal::kSmiTagSize;
-using v8::internal::kSmiShiftSize;
-using v8::internal::kSmiValueSize;
-using v8::internal::kSystemPointerSize;
-using v8::internal::kTaggedSize;
-using v8::internal::ExternalPointer_t;
-using v8::internal::CppHeapPointer_t;
-using v8::internal::IndirectPointerHandle;
-
-#define GB (1024 * MB)
-#endif
-
-#ifndef V8_ONCE_INIT
-#define V8_ONCE_INIT 0
-#define ONCE_STATE_UNINITIALIZED 0
-#define ONCE_STATE_DONE 1
-#endif
-
-// WASI 兼容性修复 - 关键修复必须在最前面
-#ifdef __wasi__
-#include "include/wasi/critical-fixes.h"
-#include "wasi/concepts-fix.h"
-#endif
-
-namespace v8 {
-
-namespace base {
-class Mutex;
-}
-
-namespace internal {
-
-// 使用 v8-internal.h 中的定义
-using v8::internal::CppHeapPointer_t;
-using v8::internal::ExternalPointer_t;
-using v8::internal::IndirectPointerHandle;
-using v8::internal::kSmiShiftSize;
-using v8::internal::kSmiTagSize;
-using v8::internal::kSmiValueSize;
-using v8::internal::kSystemPointerSize;
-using v8::internal::kTaggedSize;
-
-#include "src/base/build_config.h"
-#include "src/base/enum-set.h"
-#include "src/base/flags.h"
-#include "src/base/logging.h"
-#include "src/base/macros.h"
-#include "src/base/strong-alias.h"
+// Constants are already defined in v8::internal namespace from v8-internal.h
+// No need to re-import them
 
 #define V8_INFINITY std::numeric_limits<double>::infinity()
 
@@ -83,11 +42,6 @@ using v8::internal::kTaggedSize;
 #if defined(V8_OS_AIX) && defined(jmpbuf)
 #undef jmpbuf
 #endif
-
-namespace v8 {
-
-namespace base {
-class Mutex;
 class RecursiveMutex;
 }  // namespace base
 
@@ -455,8 +409,7 @@ constexpr int kShortSize = sizeof(short);  // NOLINT
 constexpr int kInt16Size = sizeof(int16_t);
 constexpr int kUInt16Size = sizeof(uint16_t);
 constexpr int kIntSize = sizeof(int);
-constexpr int kInt32Size = sizeof(int32_t);
-constexpr int kInt64Size = sizeof(int64_t);
+// kInt32Size and kInt64Size already defined in v8-internal.h
 constexpr int kUInt32Size = sizeof(uint32_t);
 constexpr int kSizetSize = sizeof(size_t);
 constexpr int kFloat16Size = sizeof(uint16_t);
@@ -464,7 +417,7 @@ constexpr int kFloatSize = sizeof(float);
 constexpr int kDoubleSize = sizeof(double);
 constexpr int kIntptrSize = sizeof(intptr_t);
 constexpr int kUIntptrSize = sizeof(uintptr_t);
-constexpr int kSystemPointerSize = sizeof(void*);
+// kSystemPointerSize already defined in v8-internal.h
 constexpr int kSystemPointerHexDigits = kSystemPointerSize == 4 ? 8 : 12;
 constexpr int kPCOnStackSize = kSystemPointerSize;
 constexpr int kFPOnStackSize = kSystemPointerSize;
@@ -548,7 +501,7 @@ constexpr size_t kMinimumTrustedRangeSize = 32 * MB;
 
 #else  // V8_HOST_ARCH_64_BIT
 
-constexpr int kSystemPointerSizeLog2 = 2;
+// kSystemPointerSizeLog2 already defined in v8-internal.h
 constexpr intptr_t kIntptrSignBit = 0x80000000;
 #if V8_HOST_ARCH_PPC64 && V8_TARGET_ARCH_PPC64 && V8_OS_LINUX
 constexpr bool kPlatformRequiresCodeRange = false;
@@ -582,20 +535,23 @@ static_assert(kSystemPointerSize == (1 << kSystemPointerSizeLog2));
 static constexpr bool kCompressGraphZone = COMPRESS_ZONES_BOOL;
 
 
-constexpr int kTaggedSize = kSystemPointerSize;
-constexpr int kTaggedSizeLog2 = kSystemPointerSizeLog2;
+// kTaggedSize and kTaggedSizeLog2 already defined in v8-internal.h
 
 // These types define raw and atomic storage types for tagged values stored
 // on V8 heap.
 using Tagged_t = Address;
-using AtomicTagged_t = base::AtomicWord;
+#ifdef __wasi__
+// AtomicTagged_t is already defined in nuclear-fix.h for WASI
+#else
+using AtomicTagged_t = v8::base::AtomicWord;
+#endif
 
 //
 // JavaScript Dispatch Table
 //
 // A JSDispatchHandle represents a 32-bit index into a JSDispatchTable.
 struct JSDispatchHandleAliasTag {};
-using JSDispatchHandle = base::StrongAlias<JSDispatchHandleAliasTag, uint32_t>;
+using JSDispatchHandle = v8::base::StrongAlias<JSDispatchHandleAliasTag, uint32_t>;
 
 constexpr JSDispatchHandle kNullJSDispatchHandle(0);
 
@@ -606,7 +562,7 @@ constexpr int kJSDispatchTableEntrySizeLog2 = 4;
 // As with the other tables, a maximum table size in combination with shifted
 // indices allows omitting bounds checks.
 constexpr size_t kJSDispatchTableReservationSize =
-    (V8_LOWER_LIMITS_MODE_BOOL ? 16 : 256) * v8::internal::MB;
+    (V8_LOWER_LIMITS_MODE_BOOL ? 16 : 256) * MB;
 // The maximum number of entries in a JSDispatchTable.
 constexpr size_t kMaxJSDispatchEntries =
     kJSDispatchTableReservationSize / kJSDispatchTableEntrySize;
@@ -685,7 +641,9 @@ constexpr int kCodePointerSize = kTrustedPointerSize;
 // pointers. Either way, they are always kTaggedSize fields.
 constexpr int kProtectedPointerSize = kTaggedSize;
 
+#ifndef kJSDispatchHandleSize
 constexpr int kJSDispatchHandleSize = sizeof(JSDispatchHandle);
+#endif
 
 // Dispatch handle constant used as a placeholder. This is currently used by
 // compilers when generating JS calls. In that case, the actual dispatch handle
@@ -708,8 +666,10 @@ constexpr int kEmbedderDataSlotSizeInTaggedSlots =
     kEmbedderDataSlotSize / kTaggedSize;
 static_assert(kEmbedderDataSlotSize >= kSystemPointerSize);
 
+#ifndef kExternalAllocationSoftLimit
 constexpr size_t kExternalAllocationSoftLimit =
     Internals::kExternalAllocationSoftLimit;
+#endif
 
 // Maximum object size that gets allocated into regular pages. Objects larger
 // than that size are allocated in large object space and are never moved in
@@ -951,10 +911,14 @@ static_assert(kSmiValueSize <= 32, "Unsupported Smi tagging scheme");
 static_assert((kSmiValueSize + kSmiShiftSize + kSmiTagSize) % 32 == 0,
               "Unsupported Smi tagging scheme");
 
+#ifndef kIsSmiValueInUpper32Bits
 constexpr bool kIsSmiValueInUpper32Bits =
     (kSmiValueSize + kSmiShiftSize + kSmiTagSize) == 64;
+#endif
+#ifndef kIsSmiValueInLower32Bits
 constexpr bool kIsSmiValueInLower32Bits =
     (kSmiValueSize + kSmiShiftSize + kSmiTagSize) == 32;
+#endif
 static_assert(!SmiValuesAre32Bits() == SmiValuesAre31Bits(),
               "Unsupported Smi tagging scheme");
 static_assert(SmiValuesAre32Bits() == kIsSmiValueInUpper32Bits,
@@ -1657,19 +1621,19 @@ enum class NewJSObjectType : uint8_t {
   kAPIWrapper,
 };
 
-bool inline IsBaselineCodeFlushingEnabled(base::EnumSet<CodeFlushMode> mode) {
+bool inline IsBaselineCodeFlushingEnabled(::v8::base::EnumSet<CodeFlushMode> mode) {
   return mode.contains(CodeFlushMode::kFlushBaselineCode);
 }
 
-bool inline IsByteCodeFlushingEnabled(base::EnumSet<CodeFlushMode> mode) {
+bool inline IsByteCodeFlushingEnabled(::v8::base::EnumSet<CodeFlushMode> mode) {
   return mode.contains(CodeFlushMode::kFlushBytecode);
 }
 
-bool inline IsForceFlushingEnabled(base::EnumSet<CodeFlushMode> mode) {
+bool inline IsForceFlushingEnabled(::v8::base::EnumSet<CodeFlushMode> mode) {
   return mode.contains(CodeFlushMode::kForceFlush);
 }
 
-bool inline IsFlushingDisabled(base::EnumSet<CodeFlushMode> mode) {
+bool inline IsFlushingDisabled(::v8::base::EnumSet<CodeFlushMode> mode) {
   return mode.empty();
 }
 
@@ -1761,10 +1725,15 @@ enum WhereToStart { kStartAtReceiver, kStartAtPrototype };
 
 enum ResultSentinel { kNotFound = -1, kUnsupported = -2 };
 
+#ifdef __wasi__
+// kDontThrow and kThrowOnError are already defined in v8-internal.h
+using ShouldThrow = int;
+#else
 enum ShouldThrow {
   kDontThrow = Internals::kDontThrow,
   kThrowOnError = 1, // Internals::kThrowOnError,
 };
+#endif
 
 // The result that might be returned by Setter/Definer/Deleter interceptor
 // callback when it doesn't throw an exception.
@@ -2287,7 +2256,7 @@ enum class InterpreterPushArgsMode : unsigned {
 };
 
 inline size_t hash_value(InterpreterPushArgsMode mode) {
-  return base::static_cast<unsigned>(mode);
+  return static_cast<unsigned>(mode);
 }
 
 inline std::ostream& operator<<(std::ostream& os,
@@ -2489,14 +2458,14 @@ enum class DefineKeyedOwnPropertyInLiteralFlag {
   kSetFunctionName = 1 << 0
 };
 using DefineKeyedOwnPropertyInLiteralFlags =
-    base::Flags<DefineKeyedOwnPropertyInLiteralFlag>;
+    ::v8::base::Flags<DefineKeyedOwnPropertyInLiteralFlag>;
 DEFINE_OPERATORS_FOR_FLAGS(DefineKeyedOwnPropertyInLiteralFlags)
 
 enum class DefineKeyedOwnPropertyFlag {
   kNoFlags = 0,
   kSetFunctionName = 1 << 0
 };
-using DefineKeyedOwnPropertyFlags = base::Flags<DefineKeyedOwnPropertyFlag>;
+using DefineKeyedOwnPropertyFlags = ::v8::base::Flags<DefineKeyedOwnPropertyFlag>;
 DEFINE_OPERATORS_FOR_FLAGS(DefineKeyedOwnPropertyFlags)
 
 enum ExternalArrayType {

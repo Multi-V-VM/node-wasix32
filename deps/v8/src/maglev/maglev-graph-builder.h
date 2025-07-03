@@ -1982,7 +1982,7 @@ class MaglevGraphBuilder {
     // path, and will lead to a maximum of one additional Tagging operation in
     // the worst case. This allows loop accumulator to be untagged even if they
     // are later returned.
-    if constexpr (std::is_same_v<NodeT, Return>) {
+    if constexpr (std::is_same<NodeT, Return>::value) {
       return UseReprHintRecording::kDoNotRecord;
     } else {
       return UseReprHintRecording::kRecord;

@@ -25,10 +25,10 @@ class V8_PLATFORM_EXPORT DefaultJobState
         : outer_(outer), is_joining_thread_(is_joining_thread) {}
     ~JobDelegate();
 
-    void NotifyConcurrencyIncrease() override {
+    void NotifyConcurrencyIncrease()  {
       outer_->NotifyConcurrencyIncrease();
     }
-    bool ShouldYield() override {
+    bool ShouldYield()  {
       // After {ShouldYield} returned true, the job is expected to return and
       // not call {ShouldYield} again. This resembles a similar DCHECK in the
       // gin platform.
@@ -38,8 +38,8 @@ class V8_PLATFORM_EXPORT DefaultJobState
           outer_->is_canceled_.load(std::memory_order_relaxed);
       return was_told_to_yield_;
     }
-    uint8_t GetTaskId() override;
-    bool IsJoiningThread() const override { return is_joining_thread_; }
+    uint8_t GetTaskId() ;
+    bool IsJoiningThread() const  { return is_joining_thread_; }
 
    private:
     static constexpr uint8_t kInvalidTaskId =
@@ -104,24 +104,24 @@ class V8_PLATFORM_EXPORT DefaultJobState
 class V8_PLATFORM_EXPORT DefaultJobHandle : public JobHandle {
  public:
   explicit DefaultJobHandle(std::shared_ptr<DefaultJobState> state);
-  ~DefaultJobHandle() override;
+  ~DefaultJobHandle() ;
 
   DefaultJobHandle(const DefaultJobHandle&) = delete;
   DefaultJobHandle& operator=(const DefaultJobHandle&) = delete;
 
-  void NotifyConcurrencyIncrease() override {
+  void NotifyConcurrencyIncrease()  {
     state_->NotifyConcurrencyIncrease();
   }
 
-  void Join() override;
-  void Cancel() override;
-  void CancelAndDetach() override;
-  bool IsActive() override;
-  bool IsValid() override { return state_ != nullptr; }
+  void Join() ;
+  void Cancel() ;
+  void CancelAndDetach() ;
+  bool IsActive() ;
+  bool IsValid()  { return state_ != nullptr; }
 
-  bool UpdatePriorityEnabled() const override { return true; }
+  bool UpdatePriorityEnabled() const  { return true; }
 
-  void UpdatePriority(TaskPriority) override;
+  void UpdatePriority(TaskPriority) ;
 
  private:
   std::shared_ptr<DefaultJobState> state_;
@@ -131,12 +131,12 @@ class DefaultJobWorker : public Task {
  public:
   DefaultJobWorker(std::weak_ptr<DefaultJobState> state, JobTask* job_task)
       : state_(std::move(state)), job_task_(job_task) {}
-  ~DefaultJobWorker() override = default;
+  ~DefaultJobWorker()  = default;
 
   DefaultJobWorker(const DefaultJobWorker&) = delete;
   DefaultJobWorker& operator=(const DefaultJobWorker&) = delete;
 
-  void Run() override {
+  void Run()  {
     auto shared_state = state_.lock();
     if (!shared_state) return;
     if (!shared_state->CanRunFirstTask()) return;

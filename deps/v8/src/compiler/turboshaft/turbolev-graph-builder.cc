@@ -5475,7 +5475,7 @@ class GraphBuildingNodeProcessor {
   V<Word32> ConvertCompare(maglev::Input left_input, maglev::Input right_input,
                            ::Operation operation, Sign sign) {
     DCHECK_IMPLIES(
-        (std::is_same_v<rep, Float64> || std::is_same_v<rep, Float32>),
+        (std::is_same<rep, Float64>::value || std::is_same<rep, Float32>::value),
         sign == Sign::kSigned);
     ComparisonOp::Kind kind;
     bool swap_inputs = false;

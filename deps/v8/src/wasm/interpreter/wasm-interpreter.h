@@ -1778,7 +1778,7 @@ class WasmBytecodeGenerator {
     // A gcc bug causes "error: explicit specialization in non-namespace scope"
     // with explicit specializations here:
     // https://gcc.gnu.org/bugzilla/show_bug.cgi?id=85282
-    if constexpr (std::is_same_v<T, WasmRef>) {
+    if constexpr (std::is_same<T, WasmRef>::value) {
       return CreateWasmRefSlot(value_type);
     }
     uint32_t slot_index = static_cast<uint32_t>(slots_.size());
@@ -1796,19 +1796,19 @@ class WasmBytecodeGenerator {
 
   template <typename T>
   inline uint32_t GetConstSlot(T value) {
-    if constexpr (std::is_same_v<T, int32_t>) {
+    if constexpr (std::is_same<T, int32_t>::value) {
       return GetI32ConstSlot(value);
     }
-    if constexpr (std::is_same_v<T, int64_t>) {
+    if constexpr (std::is_same<T, int64_t>::value) {
       return GetI64ConstSlot(value);
     }
-    if constexpr (std::is_same_v<T, float>) {
+    if constexpr (std::is_same<T, float>::value) {
       return GetF32ConstSlot(value);
     }
-    if constexpr (std::is_same_v<T, double>) {
+    if constexpr (std::is_same<T, double>::value) {
       return GetF64ConstSlot(value);
     }
-    if constexpr (std::is_same_v<T, Simd128>) {
+    if constexpr (std::is_same<T, Simd128>::value) {
       return GetS128ConstSlot(value);
     }
     UNREACHABLE();
@@ -1851,7 +1851,7 @@ class WasmBytecodeGenerator {
 
   template <typename T>
   inline uint32_t CreateConstSlot(T value) {
-    if constexpr (std::is_same_v<T, WasmRef>) {
+    if constexpr (std::is_same<T, WasmRef>::value) {
       UNREACHABLE();
     }
     uint32_t slot_index = GetConstSlot(value);

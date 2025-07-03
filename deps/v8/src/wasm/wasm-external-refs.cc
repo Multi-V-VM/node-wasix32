@@ -785,7 +785,7 @@ int32_t memory_copy_wrapper(Address trusted_data_addr, uint32_t dst_mem_index,
 
   size_t dst_mem_size = trusted_data->memory_size(dst_mem_index);
   size_t src_mem_size = trusted_data->memory_size(src_mem_index);
-  static_assert(std::is_same_v<size_t, uintptr_t>);
+  static_assert(std::is_same<size_t, uintptr_t>::value);
   if (!base::IsInBounds<size_t>(dst, size, dst_mem_size)) return kOutOfBounds;
   if (!base::IsInBounds<size_t>(src, size, src_mem_size)) return kOutOfBounds;
 

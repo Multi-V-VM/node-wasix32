@@ -1160,7 +1160,7 @@ template <typename RegisterT>
 void StraightForwardRegisterAllocator::SetLoopPhiRegisterHint(Phi* phi,
                                                               RegisterT reg) {
   compiler::UnallocatedOperand hint(
-      std::is_same_v<RegisterT, Register>
+      std::is_same<RegisterT, Register>::value
           ? compiler::UnallocatedOperand::FIXED_REGISTER
           : compiler::UnallocatedOperand::FIXED_FP_REGISTER,
       reg.code(), kNoVreg);
@@ -1960,7 +1960,7 @@ void StraightForwardRegisterAllocator::AssignFixedTemporaries(
   }
 
   if (v8_flags.trace_maglev_regalloc && !fixed_temporaries.is_empty()) {
-    if constexpr (std::is_same_v<RegisterT, Register>) {
+    if constexpr (std::is_same<RegisterT, Register>::value) {
       printing_visitor_->os()
           << "Fixed Temporaries: " << fixed_temporaries << "\n";
     } else {
@@ -1992,13 +1992,13 @@ RegListBase<RegisterT> GetReservedRegisters(NodeBase* node_base) {
     DCHECK(node->Is<InitialValue>());
     return reserved;
   }
-  if constexpr (std::is_same_v<RegisterT, Register>) {
+  if constexpr (std::is_same<RegisterT, Register>::value) {
     if (operand.extended_policy() ==
         compiler::UnallocatedOperand::FIXED_REGISTER) {
       reserved.set(Register::from_code(operand.fixed_register_index()));
     }
   } else {
-    static_assert(std::is_same_v<RegisterT, DoubleRegister>);
+    static_assert(std::is_same<RegisterT, DoubleRegister>::value);
     if (operand.extended_policy() ==
         compiler::UnallocatedOperand::FIXED_FP_REGISTER) {
       reserved.set(DoubleRegister::from_code(operand.fixed_register_index()));
@@ -2042,7 +2042,7 @@ void StraightForwardRegisterAllocator::AssignArbitraryTemporaries(
 
   node->assign_temporaries(temporaries);
   if (v8_flags.trace_maglev_regalloc) {
-    if constexpr (std::is_same_v<RegisterT, Register>) {
+    if constexpr (std::is_same<RegisterT, Register>::value) {
       printing_visitor_->os() << "Temporaries: " << temporaries << "\n";
     } else {
       printing_visitor_->os() << "Double Temporaries: " << temporaries << "\n";
@@ -2179,9 +2179,9 @@ void StraightForwardRegisterAllocator::HoistLoopReloads(
     if (node->has_register()) continue;
     // The value is in a liveness hole, don't try to reload it.
     if (!node->is_loadable()) continue;
-    if ((node->use_double_register() && std::is_same_v<RegisterT, Register>) ||
+    if ((node->use_double_register() && std::is_same<RegisterT, Register>::value) ||
         (!node->use_double_register() &&
-         std::is_same_v<RegisterT, DoubleRegister>)) {
+         std::is_same<RegisterT, DoubleRegister>::value)) {
       continue;
     }
     RegisterT target_reg = node->GetRegisterHint<RegisterT>();
@@ -2286,7 +2286,7 @@ void StraightForwardRegisterAllocator::MergeRegisterValues(ControlNode* control,
     // This isn't quite the right machine representation for Int32 nodes, but
     // those are stored in the same registers as Tagged nodes so in this case it
     // doesn't matter.
-    MachineRepresentation mach_repr = std::is_same_v<decltype(reg), Register>
+    MachineRepresentation mach_repr = std::is_same<decltype(reg), Register>::value
                                           ? MachineRepresentation::kTagged
                                           : MachineRepresentation::kFloat64;
     compiler::AllocatedOperand register_info = {

@@ -659,7 +659,7 @@ H AbslHashValue(H hash_state, std::basic_string_view<Char> str) {
 // types are implicitly convertible to std::filesystem::path.
 template <typename Path, typename H,
           typename = absl::enable_if_t<
-              std::is_same_v<Path, std::filesystem::path>>>
+              std::is_same<Path, std::filesystem::path>::value>>
 H AbslHashValue(H hash_state, const Path& path) {
   // This is implemented by deferring to the standard library to compute the
   // hash.  The standard library requires that for two paths, `p1 == p2`, then

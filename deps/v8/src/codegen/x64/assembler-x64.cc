@@ -3922,7 +3922,7 @@ void Assembler::vinstr(uint8_t op, Reg1 dst, Reg2 src1, Op src2, SIMDPrefix pp,
   DCHECK(feature == AVX || feature == AVX2 || feature == AVX_VNNI ||
          feature == AVX_VNNI_INT8);
   DCHECK(
-      (std::is_same_v<Reg1, YMMRegister> || std::is_same_v<Reg2, YMMRegister>));
+      (std::is_same<Reg1, YMMRegister>::value || std::is_same<Reg2, YMMRegister>::value));
   EnsureSpace ensure_space(this);
   emit_vex_prefix(dst, src1, src2, kL256, pp, m, w);
   emit(op);

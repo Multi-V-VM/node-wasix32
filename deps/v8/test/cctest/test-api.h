@@ -20,11 +20,11 @@ static void CheckReturnValueImpl(v8::Isolate* v8_isolate,
                                  v8::ReturnValue<T> return_value,
                                  i::Address callback) {
   using namespace v8::internal;
-  constexpr bool is_int = std::is_same_v<T, v8::Integer>;
+  constexpr bool is_int = std::is_same<T, v8::Integer>::value;
   constexpr bool is_bool =
-      std::is_same_v<T, v8::Boolean> || std::is_same_v<T, void>;
-  constexpr bool is_array = std::is_same_v<T, v8::Array>;
-  constexpr bool is_value = std::is_same_v<T, v8::Value>;
+      std::is_same<T, v8::Boolean>::value || std::is_same<T, void>::value;
+  constexpr bool is_array = std::is_same<T, v8::Array>::value;
+  constexpr bool is_value = std::is_same<T, v8::Value>::value;
   static_assert(is_int || is_bool || is_array || is_value);
 
   CHECK_EQ(CcTest::isolate(), v8_isolate);

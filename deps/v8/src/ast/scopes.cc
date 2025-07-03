@@ -2892,7 +2892,7 @@ void DeclarationScope::AllocateScopeInfos(ParseInfo* parse_info,
             Isolate* main_thread_isolate =
                 isolate->GetMainThreadIsolateUnsafe();
             StackTraceFailureMessage::StackTraceMode mode =
-                std::is_same_v<IsolateT, Isolate>
+                std::is_same<IsolateT, Isolate>::value
                     ? StackTraceFailureMessage::kIncludeStackTrace
                     : StackTraceFailureMessage::kDontIncludeStackTrace;
             StackTraceFailureMessage message(main_thread_isolate, mode,

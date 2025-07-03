@@ -359,14 +359,14 @@ size_t BignumPointer::EncodePaddedInto(const BIGNUM* bn,
   return BN_bn2binpad(bn, out, size);
 }
 
-int BignumPointer::operator<=>(const BignumPointer& other) const noexcept {
+int BignumPointer::operator_spaceship(const BignumPointer& other) const noexcept {
   if (bn_ == nullptr && other.bn_ != nullptr) return -1;
   if (bn_ != nullptr && other.bn_ == nullptr) return 1;
   if (bn_ == nullptr && other.bn_ == nullptr) return 0;
   return BN_cmp(bn_.get(), other.bn_.get());
 }
 
-int BignumPointer::operator<=>(const BIGNUM* other) const noexcept {
+int BignumPointer::operator_spaceship(const BIGNUM* other) const noexcept {
   if (bn_ == nullptr && other != nullptr) return -1;
   if (bn_ != nullptr && other == nullptr) return 1;
   if (bn_ == nullptr && other == nullptr) return 0;

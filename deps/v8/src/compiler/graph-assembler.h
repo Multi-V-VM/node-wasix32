@@ -1295,10 +1295,10 @@ class V8_EXPORT_PRIVATE JSGraphAssembler : public GraphAssembler {
       auto if_false = (hint_ == BranchHint::kTrue) ? gasm_->MakeDeferredLabel()
                                                    : gasm_->MakeLabel();
       auto merge = gasm_->MakeLabel();
-      if constexpr (std::is_same_v<Cond, Word32T>) {
+      if constexpr (std::is_same<Cond, Word32T>::value) {
         gasm_->MachineBranch(cond_, &if_true, &if_false, hint_);
       } else {
-        static_assert(std::is_same_v<Cond, Boolean>);
+        static_assert(std::is_same<Cond, Boolean>::value);
         if (hint_ != BranchHint::kNone) {
           gasm_->BranchWithHint(cond_, &if_true, &if_false, hint_);
         } else {
@@ -1378,10 +1378,10 @@ class V8_EXPORT_PRIVATE JSGraphAssembler : public GraphAssembler {
       auto if_false = (hint_ == BranchHint::kTrue) ? gasm_->MakeDeferredLabel()
                                                    : gasm_->MakeLabel();
       auto merge = gasm_->MakeLabel(PhiMachineRepresentationOf<T>);
-      if constexpr (std::is_same_v<Cond, Word32T>) {
+      if constexpr (std::is_same<Cond, Word32T>::value) {
         gasm_->MachineBranch(cond_, &if_true, &if_false, hint_);
       } else {
-        static_assert(std::is_same_v<Cond, Boolean>);
+        static_assert(std::is_same<Cond, Boolean>::value);
         if (hint_ != BranchHint::kNone) {
           gasm_->BranchWithHint(cond_, &if_true, &if_false, hint_);
         } else {

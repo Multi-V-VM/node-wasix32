@@ -142,11 +142,11 @@ class Range {
 
   template <typename A>
   OptionalV<Word32> IsEnd(A& assembler, iterator_type current_iterator) const {
-    if constexpr (std::is_same_v<T, Word32>) {
+    if constexpr (std::is_same<T, Word32>::value) {
       return assembler.Uint32LessThanOrEqual(assembler.resolve(end_),
                                              current_iterator);
     } else {
-      static_assert(std::is_same_v<T, Word64>);
+      static_assert(std::is_same<T, Word64>::value);
       return assembler.Uint64LessThanOrEqual(assembler.resolve(end_),
                                              current_iterator);
     }
@@ -154,10 +154,10 @@ class Range {
 
   template <typename A>
   iterator_type Advance(A& assembler, iterator_type current_iterator) const {
-    if constexpr (std::is_same_v<T, Word32>) {
+    if constexpr (std::is_same<T, Word32>::value) {
       return assembler.Word32Add(current_iterator, assembler.resolve(stride_));
     } else {
-      static_assert(std::is_same_v<T, Word64>);
+      static_assert(std::is_same<T, Word64>::value);
       return assembler.Word64Add(current_iterator, assembler.resolve(stride_));
     }
   }
@@ -340,7 +340,7 @@ class ConditionWithHint final {
   ConditionWithHint(
       T condition,
       BranchHint hint = BranchHint::kNone)  // NOLINT(runtime/explicit)
-    requires(std::is_same_v<T, OpIndex>)
+    requires(std::is_same<T, OpIndex>::value)
       : ConditionWithHint(V<Word32>{condition}, hint) {}
 
   V<Word32> condition() const { return condition_; }
@@ -3031,7 +3031,7 @@ class TurboshaftAssemblerOpInterface
     if constexpr (is_taggable_v<Base>) {
       DCHECK_EQ(access.base_is_tagged, BaseTaggedness::kTaggedBase);
     } else {
-      static_assert(std::is_same_v<Base, WordPtr>);
+      static_assert(std::is_same<Base, WordPtr>::value);
       DCHECK_EQ(access.base_is_tagged, BaseTaggedness::kUntaggedBase);
     }
     // External pointer must never be stored by optimized code.
@@ -3865,7 +3865,7 @@ class TurboshaftAssemblerOpInterface
     inputs.push_back(Word32Constant(static_cast<int>(argc)));
     inputs.push_back(context);
 
-    if constexpr (std::is_same_v<Ret, void>) {
+    if constexpr (std::is_same<Ret, void>::value) {
       Call(CEntryStubConstant(isolate, result_size), frame_state,
            base::VectorOf(inputs), desc);
     } else {
@@ -5216,7 +5216,7 @@ class TurboshaftAssemblerOpInterface
     if constexpr (is_taggable_v<Base>) {
       DCHECK_EQ(access.base_is_tagged, BaseTaggedness::kTaggedBase);
     } else {
-      static_assert(std::is_same_v<Base, WordPtr>);
+      static_assert(std::is_same<Base, WordPtr>::value);
       DCHECK_EQ(access.base_is_tagged, BaseTaggedness::kUntaggedBase);
     }
     LoadOp::Kind kind = LoadOp::Kind::Aligned(access.base_is_tagged);
@@ -5236,7 +5236,7 @@ class TurboshaftAssemblerOpInterface
     if constexpr (is_taggable_v<Base>) {
       DCHECK_EQ(access.base_is_tagged, BaseTaggedness::kTaggedBase);
     } else {
-      static_assert(std::is_same_v<Base, WordPtr>);
+      static_assert(std::is_same<Base, WordPtr>::value);
       DCHECK_EQ(access.base_is_tagged, BaseTaggedness::kUntaggedBase);
     }
     LoadOp::Kind kind = LoadOp::Kind::Aligned(access.base_is_tagged);

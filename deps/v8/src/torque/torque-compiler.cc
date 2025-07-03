@@ -4,7 +4,11 @@
 
 #include "src/torque/torque-compiler.h"
 
+#ifdef __wasi__
+#include <cstdio>
+#else
 #include <fstream>
+#endif
 #include <optional>
 
 #include "src/torque/declarable.h"
@@ -19,11 +23,36 @@ namespace v8::internal::torque {
 namespace {
 
 std::optional<std::string> ReadFile(const std::string& path) {
+#ifdef __wasi__
+  FILE* file = fopen(path.c_str(), "r");
+  if (!file) return std::nullopt;
+  
+  fseek(file, 0, SEEK_END);
+  long file_size = ftell(file);
+  fseek(file, 0, SEEK_SET);
+  
+  if (file_size <= 0) {
+    fclose(file);
+    return std::nullopt;
+  }
+  
+  std::string contents;
+  contents.resize(file_size);
+  size_t read_size = fread(&contents[0], 1, file_size, file);
+  fclose(file);
+  
+  if (read_size != static_cast<size_t>(file_size)) {
+    return std::nullopt;
+  }
+  
+  return contents;
+#else
   std::ifstream file_stream(path);
   if (!file_stream.good()) return std::nullopt;
 
   return std::string{std::istreambuf_iterator<char>(file_stream),
                      std::istreambuf_iterator<char>()};
+#endif
 }
 
 void ReadAndParseTorqueFile(const std::string& path) {

@@ -340,7 +340,7 @@ class Item {
   }
 
   friend size_t hash_value(const Item& i) {
-    return base::hash_combine(i.rule_, i.mark_, i.start_, i.pos_);
+    return v8::base::hash_combine(i.rule_, i.mark_, i.start_, i.pos_);
   }
 
   const Rule* rule() const { return rule_; }
@@ -368,11 +368,11 @@ inline std::optional<ParseResult> Symbol::RunAction(const Item* item,
 
 V8_EXPORT_PRIVATE const Item* RunEarleyAlgorithm(
     Symbol* start, const LexerResult& tokens,
-    std::unordered_set<Item, base::hash<Item>>* processed);
+    std::unordered_set<Item, v8::base::hash<Item>>* processed);
 
 inline std::optional<ParseResult> ParseTokens(Symbol* start,
                                               const LexerResult& tokens) {
-  std::unordered_set<Item, base::hash<Item>> table;
+  std::unordered_set<Item, v8::base::hash<Item>> table;
   const Item* final_item = RunEarleyAlgorithm(start, tokens, &table);
   return start->RunAction(final_item, tokens);
 }

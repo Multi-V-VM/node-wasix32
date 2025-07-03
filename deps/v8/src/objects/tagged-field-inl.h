@@ -20,7 +20,7 @@ template <typename T, typename CompressionScheme>
 Address TaggedMember<T, CompressionScheme>::tagged_to_full(
     Tagged_t tagged_value) {
 #ifdef V8_COMPRESS_POINTERS
-  if constexpr (std::is_same_v<Smi, T>) {
+  if constexpr (std::is_same<Smi, T>::value) {
     DCHECK(HAS_SMI_TAG(tagged_value));
     return CompressionScheme::DecompressTaggedSigned(tagged_value);
   } else {
@@ -154,7 +154,7 @@ void TaggedMember<T, CompressionScheme>::WriteBarrier(HeapObjectLayout* host,
                                                       Tagged<T> value,
                                                       WriteBarrierMode mode) {
 #ifndef V8_DISABLE_WRITE_BARRIERS
-  if constexpr (!std::is_same_v<Smi, T>) {
+  if constexpr (!std::is_same<Smi, T>::value) {
 #if V8_ENABLE_UNCONDITIONAL_WRITE_BARRIERS
     mode = UPDATE_WRITE_BARRIER;
 #endif

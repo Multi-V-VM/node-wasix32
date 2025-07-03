@@ -204,7 +204,7 @@ class AnyUseMarkingProcessor {
   ProcessResult Process(NodeT* node, const ProcessingState& state) {
     if constexpr (IsValueNode(Node::opcode_of<NodeT>) &&
                   (!NodeT::kProperties.is_required_when_unused() ||
-                   std::is_same_v<ArgumentsElements, NodeT>)) {
+                   std::is_same<ArgumentsElements, NodeT>::value)) {
       if (!node->is_used()) {
         if (!node->unused_inputs_were_visited()) {
           DropInputUses(node);
@@ -369,7 +369,7 @@ class DeadNodeSweepingProcessor {
   ProcessResult Process(NodeT* node, const ProcessingState& state) {
     if constexpr (IsValueNode(Node::opcode_of<NodeT>) &&
                   (!NodeT::kProperties.is_required_when_unused() ||
-                   std::is_same_v<ArgumentsElements, NodeT>)) {
+                   std::is_same<ArgumentsElements, NodeT>::value)) {
       if (!node->is_used()) {
         return ProcessResult::kRemove;
       }

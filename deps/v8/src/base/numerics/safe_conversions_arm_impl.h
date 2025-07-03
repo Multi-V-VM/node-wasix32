@@ -32,7 +32,7 @@ struct SaturateFastAsmOp {
 
   __attribute__((always_inline)) static Dst Do(Src value) {
     int32_t src = value;
-    if constexpr (std::is_signed_v<Dst>) {
+    if constexpr (std::is_signed<Dst>::value) {
       int32_t result;
       asm("ssat %[dst], %[shift], %[src]"
           : [dst] "=r"(result)

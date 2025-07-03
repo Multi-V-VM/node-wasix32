@@ -284,7 +284,7 @@ struct v_traits<None> {
 
   template <typename U>
   struct implicitly_constructible_from
-      : std::bool_constant<std::is_same_v<U, None>> {};
+      : std::bool_constant<std::is_same<U, None>::value> {};
 };
 
 template <>
@@ -507,7 +507,7 @@ struct v_traits<T, std::enable_if_t<std::is_base_of_v<InternalTag, T>>> {
 
   template <typename U>
   struct implicitly_constructible_from
-      : std::bool_constant<std::is_same_v<T, U>> {};
+      : std::bool_constant<std::is_same<T, U>::value> {};
 };
 
 template <typename... Ts>
@@ -550,11 +550,11 @@ using Word32Pair = Tuple<Word32, Word32>;
 
 template <typename T>
 concept IsUntagged =
-    !std::is_same_v<T, Any> &&
+    !std::is_same<T, Any>::value &&
     v_traits<Untagged>::implicitly_constructible_from<T>::value;
 
 template <typename T>
-concept IsTagged = !std::is_same_v<T, Any> &&
+concept IsTagged = !std::is_same<T, Any>::value &&
                    v_traits<Object>::implicitly_constructible_from<T>::value;
 
 #if V8_ENABLE_WEBASSEMBLY
@@ -567,35 +567,35 @@ using WasmStringRefNullable = Union<String, WasmNull>;
 
 template <typename T>
 constexpr bool IsWord() {
-  return std::is_same_v<T, Word32> || std::is_same_v<T, Word64> ||
-         std::is_same_v<T, Word>;
+  return std::is_same<T, Word32>::value || std::is_same<T, Word64>::value ||
+         std::is_same<T, Word>::value;
 }
 
 template <typename T>
 constexpr bool IsValidTypeFor(RegisterRepresentation repr) {
-  if (std::is_same_v<T, Any>) return true;
+  if (std::is_same<T, Any>::value) return true;
 
   switch (repr.value()) {
     case RegisterRepresentation::Enum::kWord32:
-      return std::is_same_v<T, Word> || std::is_same_v<T, Word32> ||
-             std::is_same_v<T, Untagged>;
+      return std::is_same<T, Word>::value || std::is_same<T, Word32>::value ||
+             std::is_same<T, Untagged>::value;
     case RegisterRepresentation::Enum::kWord64:
-      return std::is_same_v<T, Word> || std::is_same_v<T, Word64> ||
-             std::is_same_v<T, Untagged>;
+      return std::is_same<T, Word>::value || std::is_same<T, Word64>::value ||
+             std::is_same<T, Untagged>::value;
     case RegisterRepresentation::Enum::kFloat32:
-      return std::is_same_v<T, Float> || std::is_same_v<T, Float32> ||
-             std::is_same_v<T, Untagged>;
+      return std::is_same<T, Float>::value || std::is_same<T, Float32>::value ||
+             std::is_same<T, Untagged>::value;
     case RegisterRepresentation::Enum::kFloat64:
-      return std::is_same_v<T, Float> || std::is_same_v<T, Float64> ||
-             std::is_same_v<T, Untagged>;
+      return std::is_same<T, Float>::value || std::is_same<T, Float64>::value ||
+             std::is_same<T, Untagged>::value;
     case RegisterRepresentation::Enum::kTagged:
       return is_subtype_v<T, Object>;
     case RegisterRepresentation::Enum::kCompressed:
       return is_subtype_v<T, Object>;
     case RegisterRepresentation::Enum::kSimd128:
-      return std::is_same_v<T, Simd128>;
+      return std::is_same<T, Simd128>::value;
     case RegisterRepresentation::Enum::kSimd256:
-      return std::is_same_v<T, Simd256>;
+      return std::is_same<T, Simd256>::value;
   }
 }
 
@@ -645,7 +645,7 @@ class V : public OpIndex {
 #endif
   // V<T> is implicitly constructible from plain OpIndex.
   template <typename U>
-    requires(std::is_same_v<U, OpIndex>)
+    requires(std::is_same<U, OpIndex>::value)
   V(U index) : OpIndex(index) {}  // NOLINT(runtime/explicit)
 };
 
@@ -696,7 +696,7 @@ class OptionalV : public OptionalOpIndex {
 #endif
   // OptionalV<T> is implicitly constructible from plain OptionalOpIndex.
   template <typename U>
-    requires(std::is_same_v<U, OptionalOpIndex> || std::is_same_v<U, OpIndex>)
+    requires(std::is_same<U, OptionalOpIndex>::value || std::is_same<U, OpIndex>::value)
   OptionalV(U index) : OptionalOpIndex(index) {}  // NOLINT(runtime/explicit)
 };
 
@@ -753,7 +753,7 @@ class ConstOrV {
   // ConstOrV<T> is implicitly constructible from plain OpIndex.
   template <typename U>
   ConstOrV(U index)  // NOLINT(runtime/explicit)
-    requires(std::is_same_v<U, OpIndex>)
+    requires(std::is_same<U, OpIndex>::value)
       : constant_value_(), value_(index) {}
 
  private:

@@ -107,7 +107,7 @@ struct TurboshaftAdapter : public turboshaft::OperationMatcher {
     }
     int32_t displacement() const {
       static_assert(
-          std::is_same_v<decltype(turboshaft::StoreOp::offset), int32_t>);
+          std::is_same<decltype(turboshaft::StoreOp::offset), int32_t>::value);
       if (load_) {
         int32_t offset = load_->offset;
         if (load_->kind.tagged_base) {
@@ -203,7 +203,7 @@ struct TurboshaftAdapter : public turboshaft::OperationMatcher {
     }
     int32_t displacement() const {
       static_assert(
-          std::is_same_v<decltype(turboshaft::StoreOp::offset), int32_t>);
+          std::is_same<decltype(turboshaft::StoreOp::offset), int32_t>::value);
       int32_t offset = op_->offset;
       if (op_->kind.tagged_base) {
         CHECK_GE(offset, std::numeric_limits<int32_t>::min() + kHeapObjectTag);

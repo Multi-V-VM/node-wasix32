@@ -427,7 +427,7 @@ class TNode {
 
 template <class T>
 class TNode<Tagged<T>> {
-  static_assert(!std::is_same_v<T, T>,
+  static_assert(!std::is_same<T, T>::value,
                 "Don't write TNode<Tagged<T>>, just write TNode<T> directly.");
 };
 

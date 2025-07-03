@@ -106,7 +106,7 @@ class Function {
       flags_ = flags_.without(flag);
     }
   }
-  void SetFlags(base::Flags<FunctionFlag> flags, bool value = true) {
+  void SetFlags(v8::base::Flags<FunctionFlag> flags, bool value = true) {
     if (value) {
       flags_ |= flags;
     } else {
@@ -171,10 +171,10 @@ class Function {
   std::string name_;
   std::string return_type_;
   std::vector<Parameter> parameters_;
-  base::Flags<FunctionFlag> flags_;
+  v8::base::Flags<FunctionFlag> flags_;
 };
 
-DEFINE_OPERATORS_FOR_FLAGS(base::Flags<Function::FunctionFlag>)
+DEFINE_OPERATORS_FOR_FLAGS(v8::base::Flags<Function::FunctionFlag>)
 #undef FUNCTION_FLAG_LIST
 
 class File {

@@ -404,7 +404,7 @@ int AtomExecRawImpl(Isolate* isolate, base::Vector<const SChar> subject,
 
   StringSearch<PChar, SChar> search(isolate, pattern);
   for (int i = 0; i < output_size; i += JSRegExp::kAtomRegisterCount) {
-    if constexpr (std::is_same_v<SChar, uint16_t>) {
+    if constexpr (std::is_same<SChar, uint16_t>::value) {
       if (index > 0 && index < subject_length &&
           ShouldOptionallyStepBackToLeadSurrogate(flags)) {
         // See https://github.com/tc39/ecma262/issues/128 and

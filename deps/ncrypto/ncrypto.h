@@ -624,8 +624,8 @@ class BignumPointer final {
   NCRYPTO_DISALLOW_COPY(BignumPointer)
   ~BignumPointer();
 
-  int operator<=>(const BignumPointer& other) const noexcept;
-  int operator<=>(const BIGNUM* other) const noexcept;
+  int operator_spaceship(const BignumPointer& other) const noexcept;
+  int operator_spaceship(const BIGNUM* other) const noexcept;
   inline operator bool() const { return bn_ != nullptr; }
   inline BIGNUM* get() const noexcept { return bn_.get(); }
   void reset(BIGNUM* bn = nullptr);
@@ -1035,7 +1035,7 @@ class SSLCtxPointer final {
   SSL_CTX* release();
 
   bool setGroups(const char* groups);
-  void setStatusCallback(auto callback) {
+  void setStatusCallback(void* callback) {
     if (!ctx_) return;
     SSL_CTX_set_tlsext_status_cb(get(), callback);
     SSL_CTX_set_tlsext_status_arg(get(), nullptr);

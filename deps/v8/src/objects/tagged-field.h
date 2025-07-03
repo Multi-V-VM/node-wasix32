@@ -184,13 +184,13 @@ class TaggedField : public AllStatic {
   // if it contains forwarding pointer but still requires tagged pointer
   // decompression.
   static constexpr bool kIsHeapObject =
-      is_subtype<T, HeapObject>::value || std::is_same_v<MapWord, T>;
+      is_subtype<T, HeapObject>::value || std::is_same<MapWord, T>::value;
 
   // Types should be wrapped in Tagged<>, except for MapWord which is used
   // directly.
   // TODO(leszeks): Clean this up to be more uniform.
   using PtrType =
-      std::conditional_t<std::is_same_v<MapWord, T>, MapWord, Tagged<T>>;
+      std::conditional_t<std::is_same<MapWord, T>::value, MapWord, Tagged<T>>;
 
   static inline Address address(Tagged<HeapObject> host, int offset = 0);
 

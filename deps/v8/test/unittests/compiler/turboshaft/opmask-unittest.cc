@@ -60,7 +60,7 @@ template <typename Head, typename... Tail>
 struct MaskList<Head, Tail...> {
   template <typename Expected>
   static void Check(const MyFakeOp& op) {
-    ASSERT_EQ(op.template Is<Head>(), (std::is_same_v<Expected, Head>));
+    ASSERT_EQ(op.template Is<Head>(), (std::is_same<Expected, Head>::value));
     MaskList<Tail...>::template Check<Expected>(op);
   }
 };

@@ -7,6 +7,7 @@
 
 #include <stdint.h>
 
+#include "src/base/base-export.h"
 #include "src/base/logging.h"
 
 namespace v8 {

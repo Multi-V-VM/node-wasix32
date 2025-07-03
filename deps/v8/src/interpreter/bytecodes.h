@@ -891,7 +891,12 @@ class V8_EXPORT_PRIVATE Bytecodes final : public AllStatic {
   static int NumberOfOperands(Bytecode bytecode) {
     // Using V8_ASSUME instead of DCHECK here works around a spurious GCC
     // warning -- somehow GCC thinks that bytecode == kLast+1 can happen here.
+#ifdef __wasi__
+    // V8_ASSUME is not available in WASI, use DCHECK instead
+    DCHECK(bytecode <= Bytecode::kLast);
+#else
     V8_ASSUME(bytecode <= Bytecode::kLast);
+#endif
     return kOperandCount[static_cast<uint8_t>(bytecode)];
   }
 

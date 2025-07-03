@@ -160,7 +160,7 @@ inline DoubleRegister ToDoubleRegister(
 
 template <typename RegisterT>
 inline auto ToRegisterT(const compiler::InstructionOperand& operand) {
-  if constexpr (std::is_same_v<RegisterT, Register>) {
+  if constexpr (std::is_same<RegisterT, Register>::value) {
     return ToRegister(operand);
   } else {
     return ToDoubleRegister(operand);

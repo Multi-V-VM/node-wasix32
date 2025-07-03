@@ -27,8 +27,8 @@ struct has_output_operator : std::false_type {};
 template <typename T>
 struct has_output_operator<T, std::ostream>
     : std::integral_constant<bool,
-                             std::is_arithmetic_v<T> || 
-                             std::is_same_v<T, std::string> ||
+                             std::is_arithmetic<T>::value || 
+                             std::is_same<T, std::string>::value ||
                              std::is_convertible_v<T, const char*>> {};
 
 #else

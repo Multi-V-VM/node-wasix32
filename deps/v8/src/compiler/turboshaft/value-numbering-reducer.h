@@ -197,9 +197,9 @@ class ValueNumberingReducer : public Next {
     if (is_disabled()) return op_idx;
 
     const Op& op = Asm().output_graph().Get(op_idx).template Cast<Op>();
-    if (std::is_same_v<Op, PendingLoopPhiOp> || op.IsBlockTerminator() ||
+    if (std::is_same<Op, PendingLoopPhiOp>::value || op.IsBlockTerminator() ||
         (!op.Effects().repetition_is_eliminatable() &&
-         !std::is_same_v<Op, DeoptimizeIfOp>)) {
+         !std::is_same<Op, DeoptimizeIfOp>::value)) {
       // GVNing DeoptimizeIf is safe, despite its lack of
       // repetition_is_eliminatable.
       return op_idx;

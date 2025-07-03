@@ -65,7 +65,7 @@ class Smi : public AllStatic {
   // Returns whether value can be represented in a Smi.
   template <typename T>
   static inline bool constexpr IsValid(T value)
-    requires(std::is_integral_v<T> && std::is_signed_v<T>)
+    requires(std::is_integral<T>::value && std::is_signed<T>::value)
   {
     DCHECK_EQ(Internals::IsValidSmi(value),
               value >= kMinValue && value <= kMaxValue);
@@ -73,7 +73,7 @@ class Smi : public AllStatic {
   }
   template <typename T>
   static inline bool constexpr IsValid(T value)
-    requires(std::is_integral_v<T> && std::is_unsigned_v<T>)
+    requires(std::is_integral<T>::value && std::is_unsigned<T>::value)
   {
     DCHECK_EQ(Internals::IsValidSmi(value), value <= kMaxValue);
     return Internals::IsValidSmi(value);

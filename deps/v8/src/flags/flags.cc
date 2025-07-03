@@ -1015,7 +1015,7 @@ class ImplicationProcessor {
     }
     if (V8_UNLIKELY(num_iterations_ >= kMaxNumIterations)) {
       cycle_ << "\n" << FlagName{premise_name} << " -> ";
-      if constexpr (std::is_same_v<T, bool>) {
+      if constexpr (std::is_same<T, bool>::value) {
         cycle_ << FlagName{conclusion_flag->name(), !value};
       } else {
         cycle_ << FlagName{conclusion_flag->name()} << " = " << value;

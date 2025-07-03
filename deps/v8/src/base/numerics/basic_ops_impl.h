@@ -26,14 +26,14 @@ namespace v8::base::internal {
 // may be a larger type than `T` to avoid promotion to `int` which involves sign
 // conversion!
 template <class T>
-  requires(std::is_integral_v<T>)
+  requires(std::is_integral<T>::value)
 using MathType = std::conditional_t<
     sizeof(T) >= sizeof(int), T,
-    std::conditional_t<std::is_signed_v<T>, int, unsigned int>>;
+    std::conditional_t<std::is_signed<T>::value, int, unsigned int>>;
 
 // Reverses the byte order of the integer.
 template <class T>
-  requires(std::is_unsigned_v<T> && std::is_integral_v<T>)
+  requires(std::is_unsigned<T>::value && std::is_integral<T>::value)
 inline constexpr T SwapBytes(T value) {
   // MSVC intrinsics are not constexpr, so we provide our own constexpr
   // implementation. We provide it unconditionally so we can test it on all
@@ -97,14 +97,14 @@ inline constexpr T SwapBytes(T value) {
 
 // Signed values are byte-swapped as unsigned values.
 template <class T>
-  requires(std::is_signed_v<T> && std::is_integral_v<T>)
+  requires(std::is_signed<T>::value && std::is_integral<T>::value)
 inline constexpr T SwapBytes(T value) {
   return static_cast<T>(SwapBytes(static_cast<std::make_unsigned_t<T>>(value)));
 }
 
 // Converts from a byte array to an integer.
 template <class T>
-  requires(std::is_unsigned_v<T> && std::is_integral_v<T>)
+  requires(std::is_unsigned<T>::value && std::is_integral<T>::value)
 inline constexpr T FromLittleEndian(std::span<const uint8_t, sizeof(T)> bytes) {
   T val;
   if (std::is_constant_evaluated()) {
@@ -123,14 +123,14 @@ inline constexpr T FromLittleEndian(std::span<const uint8_t, sizeof(T)> bytes) {
 }
 
 template <class T>
-  requires(std::is_signed_v<T> && std::is_integral_v<T>)
+  requires(std::is_signed<T>::value && std::is_integral<T>::value)
 inline constexpr T FromLittleEndian(std::span<const uint8_t, sizeof(T)> bytes) {
   return static_cast<T>(FromLittleEndian<std::make_unsigned_t<T>>(bytes));
 }
 
 // Converts to a byte array from an integer.
 template <class T>
-  requires(std::is_unsigned_v<T> && std::is_integral_v<T>)
+  requires(std::is_unsigned<T>::value && std::is_integral<T>::value)
 inline constexpr std::array<uint8_t, sizeof(T)> ToLittleEndian(T val) {
   auto bytes = std::array<uint8_t, sizeof(T)>();
   if (std::is_constant_evaluated()) {
@@ -153,7 +153,7 @@ inline constexpr std::array<uint8_t, sizeof(T)> ToLittleEndian(T val) {
 }
 
 template <class T>
-  requires(std::is_signed_v<T> && std::is_integral_v<T>)
+  requires(std::is_signed<T>::value && std::is_integral<T>::value)
 inline constexpr std::array<uint8_t, sizeof(T)> ToLittleEndian(T val) {
   return ToLittleEndian(static_cast<std::make_unsigned_t<T>>(val));
 }

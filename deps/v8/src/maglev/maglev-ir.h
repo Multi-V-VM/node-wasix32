@@ -2012,7 +2012,7 @@ class NodeBase : public ZoneObject {
 
   template <typename RegisterT>
   uint8_t num_temporaries_needed() const {
-    if constexpr (std::is_same_v<RegisterT, Register>) {
+    if constexpr (std::is_same<RegisterT, Register>::value) {
       return NumTemporariesNeededField::decode(bitfield_);
     } else {
       return NumDoubleTemporariesNeededField::decode(bitfield_);
@@ -2309,7 +2309,7 @@ class NodeBase : public ZoneObject {
     template <typename RegisterT>
     RegListBase<RegisterT>& temporaries() {
       DCHECK_EQ(state_, State::kReglist);
-      if constexpr (std::is_same_v<RegisterT, Register>) {
+      if constexpr (std::is_same<RegisterT, Register>::value) {
         return store_.regs_.temporaries_;
       } else {
         return store_.regs_.double_temporaries_;
@@ -2818,7 +2818,7 @@ class FixedInputNodeTMixin : public NodeTMixin<Base, Derived> {
   void VerifyInputs(MaglevGraphLabeller* graph_labeller) const {
     if constexpr (kInputCount != 0) {
       static_assert(
-          std::is_same_v<const InputTypes, decltype(Derived::kInputTypes)>);
+          std::is_same<const InputTypes, decltype(Derived::kInputTypes)>::value);
       static_assert(kInputCount == Derived::kInputTypes.size());
       for (int i = 0; i < static_cast<int>(kInputCount); ++i) {
         CheckValueInputIs(this, i, Derived::kInputTypes[i], graph_labeller);
@@ -2830,7 +2830,7 @@ class FixedInputNodeTMixin : public NodeTMixin<Base, Derived> {
   void MarkTaggedInputsAsDecompressing() const {
     if constexpr (kInputCount != 0) {
       static_assert(
-          std::is_same_v<const InputTypes, decltype(Derived::kInputTypes)>);
+          std::is_same<const InputTypes, decltype(Derived::kInputTypes)>::value);
       static_assert(kInputCount == Derived::kInputTypes.size());
       for (int i = 0; i < static_cast<int>(kInputCount); ++i) {
         if (Derived::kInputTypes[i] == ValueRepresentation::kTagged) {

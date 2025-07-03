@@ -115,6 +115,7 @@ class SourceLocation {
 
 namespace v8 {
 namespace base {
+#ifndef V8_BASE_BITS_DEFINED
 namespace bits {
   inline uint32_t RotateRight32(uint32_t value, uint32_t shift) {
     return (value >> shift) | (value << (32 - shift));
@@ -167,6 +168,7 @@ namespace bits {
     return value && !(value & (value - 1));
   }
 }  // namespace bits
+#endif // V8_BASE_BITS_DEFINED
 
 // Helper functions
 template <typename T>
@@ -183,6 +185,7 @@ class AsAtomicPointerImpl {
 };
 
 // CallOnce implementation
+#ifndef V8_BASE_ONCE_TYPE_DEFINED
 typedef std::atomic<int> OnceType;
 
 template<typename Function, typename Arg>
@@ -197,6 +200,7 @@ inline void CallOnce(OnceType* once, Function function, Arg* arg) {
     }
   }
 }
+#endif
 
 }  // namespace base
 
@@ -212,20 +216,27 @@ using uint32 = uint32_t;
 using int64 = int64_t;
 using uint64 = uint64_t;
 
+// SmiTagging template for compatibility
+template<int PointerSize>
+struct SmiTagging {
+  static constexpr int kSmiShiftSize = 1;
+  static constexpr int kSmiTagSize = 1;
+};
+
 // Constants - only define once
 #ifndef V8_INTERNAL_CONSTANTS_DEFINED
 #define V8_INTERNAL_CONSTANTS_DEFINED
-constexpr int kSystemPointerSize = sizeof(void*);
-constexpr int kApiSystemPointerSize = kSystemPointerSize;
-constexpr int kInt32Size = sizeof(int32_t);
-constexpr int kInt64Size = sizeof(int64_t);
-constexpr int kTaggedSize = kInt32Size;
-constexpr int kApiTaggedSize = kTaggedSize;
+#define kSystemPointerSize sizeof(void*)
+#define kApiSystemPointerSize kSystemPointerSize
+#define kInt32Size sizeof(int32_t)
+#define kInt64Size sizeof(int64_t)
+#define kTaggedSize kInt32Size
+#define kApiTaggedSize kTaggedSize
 
 // Memory units
-constexpr int KB = 1024;
-constexpr int MB = KB * KB;
-constexpr int GB = KB * KB * KB;
+#define KB 1024
+#define MB KB * KB
+#define GB KB * KB * KB
 #endif
 
 // Pointer types
@@ -237,16 +248,33 @@ using AtomicTagged_t = std::atomic<uint32_t>;
 
 // JS Dispatch handle constants
 constexpr int kJSDispatchHandleShift = 0;
-constexpr int kJSDispatchHandleSize = 16;
+#ifndef kJSDispatchHandleSize
+#define kJSDispatchHandleSize 16
+#endif
 
 // External allocation limit
-constexpr size_t kExternalAllocationSoftLimit = 64 * MB;
+#ifndef kExternalAllocationSoftLimit
+#define kExternalAllocationSoftLimit (64 * MB)
+#endif
 
 // Internals class
+#ifndef V8_INTERNALS_CLASS_DEFINED
+#define V8_INTERNALS_CLASS_DEFINED
 class Internals {
  public:
-  static constexpr size_t kExternalAllocationSoftLimit = 64 * MB;
+  // Use a different name to avoid macro expansion
+  static constexpr size_t kExternalAllocationSoftLimit_ = 64 * 1024 * 1024;
+  
+  // Add missing methods
+  static constexpr int IntToSmi(int value) {
+    return (value << 1) | 1;
+  }
+  
+  static constexpr int SmiValue(int smi) {
+    return smi >> 1;
+  }
 };
+#endif
 
 namespace bits {
   using v8::base::bits::RotateRight32;
@@ -324,9 +352,6 @@ class SharedMemory {
 
 }  // namespace v8
 
-// V8_BASE_EXPORT macro - don't define if already defined
-#ifndef V8_BASE_EXPORT
-#define V8_BASE_EXPORT __attribute__((visibility("default")))
-#endif
+// V8_BASE_EXPORT macro is defined in src/base/base-export.h
 
 #endif  // V8_WASI_NUCLEAR_FIX_CLEAN_H_

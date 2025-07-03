@@ -28,7 +28,7 @@
 
 #define MSAN_ALLOCATED_UNINITIALIZED_MEMORY(start, size)              \
   static_assert((std::is_pointer_v<decltype(start)> ||                \
-                 std::is_same_v<v8::base::Address, decltype(start)>), \
+                 std::is_same<v8::base::Address, decltype(start)>::value), \
                 "static type violation");                             \
   static_assert(std::is_convertible_v<decltype(size), size_t>,        \
                 "static type violation");                             \

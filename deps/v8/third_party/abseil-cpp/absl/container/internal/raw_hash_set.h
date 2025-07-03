@@ -1586,7 +1586,7 @@ constexpr bool ShouldSampleHashtablezInfoForAlloc() {
   // calls they will or won't make.  Avoid sampling for people with custom
   // allocators to get us out of this mess.  This is not a hard guarantee but
   // a workaround while we plan the exact guarantee we want to provide.
-  return std::is_same_v<CharAlloc, std::allocator<char>>;
+  return std::is_same<CharAlloc, std::allocator<char>>::value;
 }
 
 template <bool kSooEnabled>

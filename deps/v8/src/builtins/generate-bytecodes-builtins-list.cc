@@ -2,8 +2,15 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
+#ifdef __wasi__
+// WASI doesn't have full std::ofstream support, use cout
+#include <iostream>
+#include <ostream>
+#else
 #include <fstream>
 #include <iostream>
+#include <ostream>
+#endif
 
 #include "src/interpreter/bytecodes.h"
 
@@ -14,7 +21,7 @@ namespace interpreter {
 const int kIllegalBytecodeHandler = -1;
 const int kIllegalBytecodeHandlerEncoding = 255;
 
-void WriteBytecode(std::ofstream& out, Bytecode bytecode,
+void WriteBytecode(std::ostream& out, Bytecode bytecode,
                    OperandScale operand_scale, int* count, int offset_table[],
                    int table_index) {
   DCHECK_NOT_NULL(count);
@@ -39,7 +46,13 @@ void WriteBytecode(std::ofstream& out, Bytecode bytecode,
 }
 
 void WriteHeader(const char* header_filename) {
+#ifdef __wasi__
+  // In WASI, write to stdout instead of file
+  std::ostream& out = std::cout;
+  (void)header_filename; // Unused in WASI
+#else
   std::ofstream out(header_filename);
+#endif
 
   out << "// Automatically generated from interpreter/bytecodes.h\n"
       << "// The following list macro is used to populate the builtins list\n"

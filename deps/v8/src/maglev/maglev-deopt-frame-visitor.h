@@ -75,7 +75,7 @@ class DeoptInfoVisitor {
         frame.as_interpreted().frame_state()->ForEachValue(
             frame.as_interpreted().unit(),
             [&](ValueNode*& node, interpreter::Register reg) {
-              if constexpr (std::is_same_v<DeoptInfoT, LazyDeoptInfo>) {
+              if constexpr (std::is_same<DeoptInfoT, LazyDeoptInfo>::value) {
                 // Skip over the result location for lazy deopts, since it is
                 // irrelevant for lazy deopts (unoptimized code will recreate
                 // the result).

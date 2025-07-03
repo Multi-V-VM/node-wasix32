@@ -15,10 +15,10 @@ namespace v8::base {
 namespace internal {
 
 template <typename T>
-  requires std::is_arithmetic_v<T>
+  requires std::is_arithmetic<T>::value
 class ClampedNumeric;
 template <typename T>
-  requires std::is_arithmetic_v<T>
+  requires std::is_arithmetic<T>::value
 class StrictNumeric;
 
 // Overload the ostream output operator to make logging work nicely.

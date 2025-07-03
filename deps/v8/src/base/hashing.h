@@ -21,6 +21,10 @@
 #include "src/base/base-export.h"
 #include "src/base/bits.h"
 #include "src/base/macros.h"
+#ifdef __wasi__
+// Also include v8-internal.h to ensure bits namespace is available
+#include "../../include/v8-internal.h"
+#endif
 
 namespace v8 {
 namespace base {
@@ -275,30 +279,30 @@ V8_INLINE size_t hash_value(std::tuple<T...> const& v) {
   return hash_value_impl(v, std::make_index_sequence<sizeof...(T)>());
 }
 
+// Enum hash_value implementation
 template <typename T>
-V8_INLINE size_t hash_value(T v)
-  requires std::is_enum<T>::value
-{
-  return hash_value(static_cast<std::underlying_type_t<T>>(v));
+typename std::enable_if<std::is_enum<T>::value, size_t>::type
+hash_value(T v) {
+  return hash_value(static_cast<typename std::underlying_type_t<T>>(v));
 }
 
 // Provide a hash_value function for each T with a hash_value member function.
 template <typename T>
-  requires requires(const T& t) {
-    { t.hash_value() } -> std::convertible_to<size_t>;
-  }
-V8_INLINE size_t hash_value(const T& v) {
+auto hash_value(const T& v) -> decltype(v.hash_value()) {
   return v.hash_value();
 }
 
+// Hashable trait for WASI compatibility
+template <typename T, typename = void>
+struct is_hashable : std::false_type {};
+
 template <typename T>
-concept Hashable = requires(const T& t) {
-  { hash_value(t) } -> std::convertible_to<size_t>;
-};
+struct is_hashable<T, std::void_t<decltype(hash_value(std::declval<const T&>()))>>
+    : std::true_type {};
 
 // Define base::hash to call the hash_value function.
-template <Hashable T>
-struct hash<T> {
+template <typename T>
+struct hash {
   V8_INLINE constexpr size_t operator()(const T& v) const {
     return hash_value(v);
   }
@@ -371,11 +375,12 @@ V8_BASE_BIT_SPECIALIZE_BIT_CAST(double, uint64_t)
 }  // namespace v8
 
 // Also define std::hash for all classes that can be hashed via v8::base::hash.
-namespace std {
-template <typename T>
-  requires requires { typename v8::base::hash<T>; }
-struct hash<T> : v8::base::hash<T> {};
-
-}  // namespace std
+// WASI: Commented out to avoid conflicts with std::hash
+// namespace std {
+// // Extend std::hash for types that have v8::base::hash specialization
+// template <typename T>
+// struct hash : v8::base::hash<T> {};
+// 
+// }  // namespace std
 
 #endif  // V8_BASE_HASHING_H_

@@ -104,7 +104,7 @@ class TaggedArrayBase : public detail::TaggedArrayHeader<ShapeT, Super> {
       std::is_convertible_v<Smi, ElementT>;
 
   static constexpr WriteBarrierMode kDefaultMode =
-      std::is_same_v<ElementT, Smi> ? SKIP_WRITE_BARRIER : UPDATE_WRITE_BARRIER;
+      std::is_same<ElementT, Smi>::value ? SKIP_WRITE_BARRIER : UPDATE_WRITE_BARRIER;
 
  public:
   using Header = detail::TaggedArrayHeader<ShapeT, Super>;
@@ -390,7 +390,7 @@ class PrimitiveArrayBase : public detail::ArrayHeaderBase<Super, true> {
   static_assert(!is_subtype_v<ElementT, Object>);
 
   // Bug(v8:8875): Doubles may be unaligned.
-  using ElementMemberT = std::conditional_t<std::is_same_v<ElementT, double>,
+  using ElementMemberT = std::conditional_t<std::is_same<ElementT, double>::value,
                                             UnalignedDoubleMember, ElementT>;
   static_assert(alignof(ElementMemberT) <= alignof(Tagged_t));
 

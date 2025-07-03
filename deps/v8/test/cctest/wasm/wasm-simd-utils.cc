@@ -1747,7 +1747,7 @@ void RunI32x8ConvertF32x8RevecTest(WasmOpcode opcode,
                                                   WASM_LOCAL_GET(param1)))),
         WASM_ONE);
   }
-  bool is_unsigned = std::is_same_v<IntType, uint32_t>;
+  bool is_unsigned = std::is_same<IntType, uint32_t>::value;
   FOR_FLOAT32_INPUTS(x) {
     if (!PlatformCanRepresent(x)) continue;
     CHECK_EQ(1, r.Call(x));
@@ -1789,7 +1789,7 @@ void RunF32x8ConvertI32x8RevecTest(WasmOpcode opcode,
                                                   WASM_LOCAL_GET(param1)))),
         WASM_ONE);
   }
-  bool is_unsigned = std::is_same_v<IntType, uint32_t>;
+  bool is_unsigned = std::is_same<IntType, uint32_t>::value;
   FOR_INT32_INPUTS(x) {
     CHECK_EQ(1, r.Call(x));
     float expected_value = is_unsigned

@@ -15,6 +15,7 @@
 #include "src/torque/constants.h"
 #include "src/torque/source-positions.h"
 #include "src/torque/utils.h"
+#include "src/base/logging_wasi.h"
 
 namespace v8::internal::torque {
 
@@ -196,7 +197,7 @@ class V8_EXPORT_PRIVATE Type : public TypeBase {
 inline size_t hash_value(const TypeVector& types) {
   size_t hash = 0;
   for (const Type* t : types) {
-    hash = base::hash_combine(hash, t);
+    hash = v8::base::hash_combine(hash, t);
   }
   return hash;
 }
@@ -346,9 +347,9 @@ class V8_EXPORT_PRIVATE BuiltinPointerType final : public Type {
   const Type* return_type() const { return return_type_; }
 
   friend size_t hash_value(const BuiltinPointerType& p) {
-    size_t result = base::hash_value(p.return_type_);
+    size_t result = v8::base::hash_value(p.return_type_);
     for (const Type* parameter : p.parameter_types_) {
-      result = base::hash_combine(result, parameter);
+      result = v8::base::hash_combine(result, parameter);
     }
     return result;
   }
@@ -400,7 +401,7 @@ class V8_EXPORT_PRIVATE UnionType final : public Type {
   friend size_t hash_value(const UnionType& p) {
     size_t result = 0;
     for (const Type* t : p.types_) {
-      result = base::hash_combine(result, t);
+      result = v8::base::hash_combine(result, t);
     }
     return result;
   }
@@ -630,7 +631,7 @@ class StructType final : public AggregateType {
     kWeakTagged = 1 << 1,
     kUntagged = 1 << 2,
   };
-  using Classification = base::Flags<ClassificationFlag>;
+  using Classification = v8::base::Flags<ClassificationFlag>;
 
   // Classifies a struct as containing tagged data, untagged data, or both.
   Classification ClassifyContents() const;
@@ -825,8 +826,9 @@ std::ostream& operator<<(std::ostream& os, const Type* t) {
 }
 
 // Don't emit an error if a Type* is printed due to CHECK macros.
-inline std::ostream& operator<<(base::CheckMessageStream& os, const Type* t) {
-  return os << static_cast<const void*>(t);
+inline v8::base::CheckMessageStream& operator<<(v8::base::CheckMessageStream& os, const Type* t) {
+  os << static_cast<const void*>(t);
+  return os;
 }
 
 class VisitResult {

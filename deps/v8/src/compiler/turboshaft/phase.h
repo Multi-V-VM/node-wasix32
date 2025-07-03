@@ -68,8 +68,8 @@ struct HasProperRunMethod {
       "Phase::Run needs at least two parameters (PipelineData* and Zone*)");
   using parameter0 = base::tmp::element_t<parameters, 0>;
   using parameter1 = base::tmp::element_t<parameters, 1>;
-  static constexpr bool value = std::is_same_v<parameter0, PipelineData*> &&
-                                std::is_same_v<parameter1, Zone*>;
+  static constexpr bool value = std::is_same<parameter0, PipelineData*>::value &&
+                                std::is_same<parameter1, Zone*>::value;
 };
 
 template <typename Phase, typename... Args>

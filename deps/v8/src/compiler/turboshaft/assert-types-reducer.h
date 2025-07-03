@@ -45,12 +45,12 @@ class AssertTypesReducer
   template <typename Op, typename Continuation>
   OpIndex ReduceInputGraphOperation(OpIndex ig_index, const Op& operation) {
     OpIndex og_index = Continuation{this}.ReduceInputGraph(ig_index, operation);
-    if constexpr (std::is_same_v<Op, LoadRootRegisterOp>) {
+    if constexpr (std::is_same<Op, LoadRootRegisterOp>::value) {
       // LoadRootRegister is a bit special and should never be materialized,
       // hence we cannot assert its type.
       return og_index;
     }
-    if (std::is_same_v<Op, ConstantOp>) {
+    if (std::is_same<Op, ConstantOp>::value) {
       // Constants are constant by definition, so asserting their types doesn't
       // seem super useful. Additionally, they can appear before Parameters in
       // the graph, which leads to issues because asserting their types requires

@@ -311,7 +311,7 @@ struct CastTraits<DeoptimizationFrameTranslation>
 
 template <class T>
 T HeapObject::Relaxed_ReadField(size_t offset) const
-  requires((std::is_arithmetic_v<T> || std::is_enum_v<T>) &&
+  requires((std::is_arithmetic<T>::value || std::is_enum_v<T>) &&
            !std::is_floating_point_v<T>)
 {
   // Pointer compression causes types larger than kTaggedSize to be
@@ -324,7 +324,7 @@ T HeapObject::Relaxed_ReadField(size_t offset) const
 
 template <class T>
 void HeapObject::Relaxed_WriteField(size_t offset, T value)
-  requires((std::is_arithmetic_v<T> || std::is_enum_v<T>) &&
+  requires((std::is_arithmetic<T>::value || std::is_enum_v<T>) &&
            !std::is_floating_point_v<T>)
 {
   // Pointer compression causes types larger than kTaggedSize to be
@@ -338,7 +338,7 @@ void HeapObject::Relaxed_WriteField(size_t offset, T value)
 
 template <class T>
 T HeapObject::Acquire_ReadField(size_t offset) const
-  requires((std::is_arithmetic_v<T> || std::is_enum_v<T>) &&
+  requires((std::is_arithmetic<T>::value || std::is_enum_v<T>) &&
            !std::is_floating_point_v<T>)
 {
   // Pointer compression causes types larger than kTaggedSize to be

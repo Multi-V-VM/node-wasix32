@@ -48,7 +48,7 @@ struct ElementAccessTS : public compiler::ElementAccess {
 class AccessBuilderTS : public AllStatic {
  public:
   template <typename Class>
-  static constexpr bool is_array_buffer_v = std::is_same_v<Class, ArrayBuffer>;
+  static constexpr bool is_array_buffer_v = std::is_same<Class, ArrayBuffer>::value;
 
 #define TF_FIELD_ACCESS(Class, T, name)                              \
   static FieldAccessTS<Class, T> name() {                            \

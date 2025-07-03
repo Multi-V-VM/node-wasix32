@@ -57,11 +57,11 @@ struct FormattedStringPart;  // Specializations below.
 // int32_t, int64_t, long, long long sometimes being the same types and
 // sometimes not, depending on the platform.
 template <typename I>
-  requires std::is_integral_v<I>
+  requires std::is_integral<I>::value
 struct FormattedStringPart<I> {
   static_assert(sizeof(I) == 4 || sizeof(I) == 8);
   constexpr static bool kIs64Bit = sizeof(I) == 8;
-  constexpr static bool kIsSigned = std::is_signed_v<I>;
+  constexpr static bool kIsSigned = std::is_signed<I>::value;
   static constexpr int kMaxLen = (kIs64Bit ? 20 : 10) + (kIsSigned ? 1 : 0);
   static constexpr std::string_view kFormats[2][2]{{"%" PRIu32, "%" PRId32},
                                                    {"%" PRIu64, "%" PRId64}};

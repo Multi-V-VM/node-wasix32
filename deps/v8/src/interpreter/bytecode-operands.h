@@ -218,14 +218,14 @@ class BytecodeOperands : public AllStatic {
 
   // Returns true if |operand_type| is a scalable signed byte.
   static constexpr bool IsScalableSignedByte(OperandType operand_type) {
-    return base::IsInRange(operand_type, OperandType::kImm,
-                           OperandType::kRegInOut);
+    return ::v8::base::IsInRange(operand_type, OperandType::kImm,
+                                 OperandType::kRegInOut);
   }
 
   // Returns true if |operand_type| is a scalable unsigned byte.
   static constexpr bool IsScalableUnsignedByte(OperandType operand_type) {
-    return base::IsInRange(operand_type, OperandType::kIdx,
-                           OperandType::kRegCount);
+    return ::v8::base::IsInRange(operand_type, OperandType::kIdx,
+                                 OperandType::kRegCount);
   }
 };
 

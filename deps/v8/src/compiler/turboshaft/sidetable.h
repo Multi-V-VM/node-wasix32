@@ -26,8 +26,8 @@ namespace detail {
 template <class T, class Key>
 class GrowingSidetable {
  public:
-  static_assert(std::is_same_v<Key, OpIndex> ||
-                std::is_same_v<Key, BlockIndex>);
+  static_assert(std::is_same<Key, OpIndex>::value ||
+                std::is_same<Key, BlockIndex>::value);
 
   T& operator[](Key index) {
     DCHECK(index.valid());
@@ -81,8 +81,8 @@ class GrowingSidetable {
 template <class T, class Key>
 class FixedSidetable {
  public:
-  static_assert(std::is_same_v<Key, OpIndex> ||
-                std::is_same_v<Key, BlockIndex>);
+  static_assert(std::is_same<Key, OpIndex>::value ||
+                std::is_same<Key, BlockIndex>::value);
 
   T& operator[](Key op) {
     DCHECK_LT(op.id(), table_.size());

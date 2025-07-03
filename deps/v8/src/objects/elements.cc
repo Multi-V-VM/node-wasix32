@@ -3636,7 +3636,7 @@ class TypedElementsAccessor
       }
     } else if ((scalar == 0 && !(std::is_floating_point_v<ElementType> &&
                                  IsMinusZero(scalar))) ||
-               (std::is_integral_v<ElementType> &&
+               (std::is_integral<ElementType>::value &&
                 scalar == static_cast<ElementType>(-1))) {
       // As of 2022-06, this is faster than {std::fill}.
       // We could extend this to any {scalar} that's a pattern of repeating
@@ -3818,7 +3818,7 @@ class TypedElementsAccessor
       double search_value = Object::NumberValue(*value);
       if (!std::isfinite(search_value)) {
         if (!IsFloat16TypedArrayElementsKind(Kind) &&
-            std::is_integral_v<ElementType>) {
+            std::is_integral<ElementType>::value) {
           // Integral types cannot represent +Inf or NaN.
           return Just<int64_t>(-1);
         } else if (std::isnan(search_value)) {

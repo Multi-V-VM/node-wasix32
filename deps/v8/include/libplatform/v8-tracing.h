@@ -1,8 +1,4 @@
 #ifdef __wasi__
-#include "v8-tracing-base.h"
-#define V8_PLATFORM_NON_EXPORTED_BASE(x) public x
-#else
-#ifdef __wasi__
 #include "wasi/concepts-fix.h"
 #endif
 // Copyright 2016 the V8 project authors. All rights reserved.
@@ -337,4 +333,3 @@ class V8_PLATFORM_EXPORT TracingController
 }  // namespace v8
 
 #endif  // V8_LIBPLATFORM_V8_TRACING_H_
-#endif // __wasi__

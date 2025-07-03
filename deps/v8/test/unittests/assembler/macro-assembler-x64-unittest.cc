@@ -1798,7 +1798,7 @@ void RunExtMulTest(Isolate* isolate, OpType expected_op) {
   __ vmovdqu(lhs, Operand(kCArgRegs[0], 0));
   __ vmovdqu(rhs, Operand(kCArgRegs[1], 0));
 
-  bool is_signed = std::is_signed_v<T>;
+  bool is_signed = std::is_signed<T>::value;
   // Calculation
   switch (sizeof(T)) {
     case 8:

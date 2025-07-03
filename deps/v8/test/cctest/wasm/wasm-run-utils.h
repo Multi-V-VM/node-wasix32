@@ -516,24 +516,24 @@ class WasmRunner : public WasmRunnerBase {
   template <typename T>
   DirectHandle<Object> MakeParam(T t) {
     Factory* factory = builder_.isolate()->factory();
-    if constexpr (std::is_integral_v<T> && std::is_signed_v<T> &&
+    if constexpr (std::is_integral<T>::value && std::is_signed<T>::value &&
                   sizeof(T) <= sizeof(int)) {
       return factory->NewNumberFromInt(t);
     }
-    if constexpr (std::is_integral_v<T> && std::is_unsigned_v<T> &&
+    if constexpr (std::is_integral<T>::value && std::is_unsigned<T>::value &&
                   sizeof(T) <= sizeof(int)) {
       return factory->NewNumberFromUint(t);
     }
-    if constexpr (std::is_same_v<T, int64_t>) {
+    if constexpr (std::is_same<T, int64_t>::value) {
       return BigInt::FromInt64(builder_.isolate(), t);
     }
-    if constexpr (std::is_same_v<T, uint64_t>) {
+    if constexpr (std::is_same<T, uint64_t>::value) {
       return BigInt::FromUint64(builder_.isolate(), t);
     }
-    if constexpr (std::is_same_v<T, float>) {
+    if constexpr (std::is_same<T, float>::value) {
       return factory->NewNumber(t);
     }
-    if constexpr (std::is_same_v<T, double>) {
+    if constexpr (std::is_same<T, double>::value) {
       return factory->NewNumber(t);
     }
     UNIMPLEMENTED();
@@ -555,7 +555,7 @@ class WasmRunner : public WasmRunnerBase {
 
     DirectHandle<Object> result = retval.ToHandleChecked();
     // For int64_t and uint64_t returns we will get a BigInt.
-    if constexpr (std::is_integral_v<ReturnType>) {
+    if constexpr (std::is_integral<ReturnType>::value) {
       if constexpr (sizeof(ReturnType) == sizeof(int64_t)) {
         CHECK(IsBigInt(*result));
         return Cast<BigInt>(*result)->AsInt64();
@@ -567,8 +567,8 @@ class WasmRunner : public WasmRunnerBase {
     double value = Object::NumberValue(Cast<Number>(*result));
     // The JS API interprets all Wasm values as signed, hence we cast via the
     // signed equivalent type to avoid undefined behaviour in the casting.
-    if constexpr (std::is_integral_v<ReturnType> &&
-                  std::is_unsigned_v<ReturnType>) {
+    if constexpr (std::is_integral<ReturnType>::value &&
+                  std::is_unsigned<ReturnType>::value) {
       using signed_t = std::make_signed_t<ReturnType>;
       return static_cast<ReturnType>(static_cast<signed_t>(value));
     }
