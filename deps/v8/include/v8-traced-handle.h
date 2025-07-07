@@ -38,6 +38,29 @@ class TracedGlobal : public TracedHandle<T> {
   ~TracedGlobal() = default;
 };
 
+// TracedReference - used by v8-object.h
+template <class T>
+class TracedReference : public TracedHandle<T> {
+ public:
+  TracedReference() = default;
+  ~TracedReference() = default;
+  
+  // 移动构造和赋值
+  TracedReference(TracedReference&&) = default;
+  TracedReference& operator=(TracedReference&&) = default;
+  
+  // 禁用拷贝
+  TracedReference(const TracedReference&) = delete;
+  TracedReference& operator=(const TracedReference&) = delete;
+  
+  // WASI compatibility - provide value() method
+  template<typename U>
+  U* value() const {
+    // For WASI, return a dummy value since we don't have real implementation
+    return nullptr;
+  }
+};
+
 }  // namespace v8
 
 #endif  // V8_V8_TRACED_HANDLE_H_

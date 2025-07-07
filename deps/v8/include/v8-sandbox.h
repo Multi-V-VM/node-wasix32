@@ -28,9 +28,15 @@ class SandboxedPointer {
 };
 
 // Simplified CppHeapPointerTagRange
+#ifndef V8_CPPHEAP_POINTER_TAG_RANGE_DEFINED
+#define V8_CPPHEAP_POINTER_TAG_RANGE_DEFINED
 struct CppHeapPointerTagRange {
-  constexpr int kTagShift = 1;
+  static constexpr int kTagShift = 1;
+  int start;
+  int end;
+  CppHeapPointerTagRange(int s, int e) : start(s), end(e) {}
 };
+#endif
 
 }  // namespace internal
 

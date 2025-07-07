@@ -1,116 +1,104 @@
-// WASI stub for genccode tool
-// This generates a minimal C file with ICU data for WASI builds
-
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <unistd.h>
+// Host stub for genccode when cross-compiling for WASI
+// This runs on the host system to generate assembly or C files from ICU data
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
+#include <string>
 
 int main(int argc, char* argv[]) {
-    const char* input_file = nullptr;
-    const char* output_dir = ".";
-    const char* entry_point = "icudata";
-    const char* name_prefix = "icudt";
-    
-    // Parse arguments
-    for (int i = 1; i < argc; i++) {
-        if (strcmp(argv[i], "-d") == 0 && i + 1 < argc) {
-            output_dir = argv[++i];
-        } else if (strcmp(argv[i], "-n") == 0 && i + 1 < argc) {
-            entry_point = argv[++i];
-        } else if (strcmp(argv[i], "-e") == 0 && i + 1 < argc) {
-            name_prefix = argv[++i];
-        } else if (argv[i][0] != '-') {
-            input_file = argv[i];
+  // Parse command line arguments
+  const char* output_file = nullptr;
+  const char* input_file = nullptr;
+  const char* entry_point = nullptr;
+  std::string destdir;
+  
+  for (int i = 1; i < argc; i++) {
+    if (strcmp(argv[i], "-d") == 0 || strcmp(argv[i], "--destdir") == 0) {
+      if (i + 1 < argc) {
+        destdir = argv[++i];
+        if (!destdir.empty() && destdir.back() != '/') {
+          destdir += '/';
         }
+      }
+    } else if (strcmp(argv[i], "-n") == 0 || strcmp(argv[i], "--name") == 0) {
+      if (i + 1 < argc) {
+        entry_point = argv[++i];
+      }
+    } else if (strcmp(argv[i], "-e") == 0 || strcmp(argv[i], "--entrypoint") == 0) {
+      if (i + 1 < argc) {
+        entry_point = argv[++i];
+      }
+    } else if (strcmp(argv[i], "-o") == 0) {
+      if (i + 1 < argc) {
+        output_file = argv[++i];
+      }
+    } else if (argv[i][0] != '-') {
+      // Non-option argument is input file
+      if (!input_file) {
+        input_file = argv[i];
+      }
     }
+  }
+  
+  if (!input_file) {
+    fprintf(stderr, "Error: No input file specified\n");
+    return 1;
+  }
+  
+  // Use default entry point if not specified
+  if (!entry_point) {
+    entry_point = "icudt77_dat";
+  }
+  
+  // Determine output file name
+  std::string outfile;
+  if (output_file) {
+    outfile = destdir + output_file;
+  } else {
+    // Extract filename from input path
+    std::string infile(input_file);
+    size_t pos = infile.find_last_of("/\\");
+    std::string basename = (pos != std::string::npos) ? infile.substr(pos + 1) : infile;
     
-    if (!input_file) {
-        fprintf(stderr, "genccode stub: need input file\n");
-        return 1;
+    // Replace extension with .S
+    pos = basename.find_last_of(".");
+    if (pos != std::string::npos) {
+      basename = basename.substr(0, pos);
     }
-    
-    // Read input file
-    FILE* in = fopen(input_file, "rb");
-    if (!in) {
-        fprintf(stderr, "genccode stub: cannot open input file %s\n", input_file);
-        return 1;
-    }
-    
-    // Get file size
-    fseek(in, 0, SEEK_END);
-    long file_size = ftell(in);
-    fseek(in, 0, SEEK_SET);
-    
-    // Read file content
-    unsigned char* data = (unsigned char*)malloc(file_size);
-    if (!data) {
-        fprintf(stderr, "genccode stub: out of memory\n");
-        fclose(in);
-        return 1;
-    }
-    
-    size_t bytes_read = fread(data, 1, file_size, in);
-    fclose(in);
-    
-    if (bytes_read != (size_t)file_size) {
-        fprintf(stderr, "genccode stub: read error\n");
-        free(data);
-        return 1;
-    }
-    
-    // Generate output filename
-    char output_path[1024];
-    snprintf(output_path, sizeof(output_path), "%s/%s_dat.c", output_dir, name_prefix);
-    
-    // Create output C file
-    FILE* out = fopen(output_path, "w");
-    if (!out) {
-        fprintf(stderr, "genccode stub: cannot create output file %s\n", output_path);
-        free(data);
-        return 1;
-    }
-    
-    // Write C file header
-    fprintf(out, "/* genccode stub generated file */\n");
-    fprintf(out, "#include <stddef.h>\n");
-    fprintf(out, "#ifdef __cplusplus\n");
-    fprintf(out, "extern \"C\" {\n");
-    fprintf(out, "#endif\n\n");
-    
-    // Write data array
-    fprintf(out, "static const unsigned char %s_data[] = {\n", entry_point);
-    
-    for (long i = 0; i < file_size; i++) {
-        if (i % 16 == 0) {
-            fprintf(out, "    ");
-        }
-        fprintf(out, "0x%02x", data[i]);
-        if (i < file_size - 1) {
-            fprintf(out, ",");
-        }
-        if (i % 16 == 15 || i == file_size - 1) {
-            fprintf(out, "\n");
-        } else {
-            fprintf(out, " ");
-        }
-    }
-    
-    fprintf(out, "};\n\n");
-    
-    // Write size variable
-    fprintf(out, "const size_t %s_size = %ld;\n", entry_point, file_size);
-    
-    // Write entry point
-    fprintf(out, "const unsigned char* %s = %s_data;\n", entry_point, entry_point);
-    
-    fprintf(out, "\n#ifdef __cplusplus\n");
-    fprintf(out, "}\n");
-    fprintf(out, "#endif\n");
-    
-    fclose(out);
-    free(data);
-    
-    printf("genccode stub: generated %s (%ld bytes)\n", output_path, file_size);
-    return 0;
+    outfile = destdir + basename + "_dat.S";
+  }
+  
+  // Check if input file exists and get its size
+  FILE* inf = fopen(input_file, "rb");
+  if (!inf) {
+    fprintf(stderr, "Error: Could not open input file: %s\n", input_file);
+    return 1;
+  }
+  
+  // Get file size
+  fseek(inf, 0, SEEK_END);
+  long filesize = ftell(inf);
+  fclose(inf);
+  
+  // Generate assembly file
+  FILE* out = fopen(outfile.c_str(), "w");
+  if (!out) {
+    fprintf(stderr, "Error: Could not create output file: %s\n", outfile.c_str());
+    return 1;
+  }
+  
+  // Write assembly for including binary data
+  fprintf(out, "# Generated by genccode stub for WASI cross-compilation\n");
+  fprintf(out, ".globl %s\n", entry_point);
+  fprintf(out, ".globl %s_size\n", entry_point);
+  fprintf(out, ".section .rodata\n");
+  fprintf(out, ".align 8\n");
+  fprintf(out, "%s:\n", entry_point);
+  fprintf(out, ".incbin \"%s\"\n", input_file);
+  fprintf(out, "%s_size:\n", entry_point);
+  fprintf(out, ".long %ld\n", filesize);
+  
+  fclose(out);
+  
+  return 0;
 }

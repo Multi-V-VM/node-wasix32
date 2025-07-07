@@ -9,6 +9,7 @@
 #define INCLUDE_V8_PERSISTENT_HANDLE_H_
 
 #include "v8-internal.h"            // NOLINT(build/include_directory)
+#include "v8-handle-base.h"         // NOLINT(build/include_directory)
 #include "v8-local-handle.h"        // NOLINT(build/include_directory)
 #include "v8-weak-callback-info.h"  // NOLINT(build/include_directory)
 #include "v8config.h"               // NOLINT(build/include_directory)
@@ -22,6 +23,8 @@ template <class T>
 class Global;
 template <class T>
 class PersistentBase;
+template <class T, class M = void>
+class Persistent;
 template <class K, class V, class T>
 class PersistentValueMap;
 class Value;
@@ -226,6 +229,14 @@ class PersistentBase : public api_internal::IndirectHandleBase {
       : IndirectHandleBase(location) {}
 
   V8_INLINE static internal::Address* New(Isolate* isolate, T* that);
+  
+#ifdef __wasi__
+  // WASI compatibility - provide value() method
+  template<typename U>
+  U* value() const {
+    return reinterpret_cast<U*>(*slot());
+  }
+#endif
 };
 
 /**

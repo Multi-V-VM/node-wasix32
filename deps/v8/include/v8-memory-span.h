@@ -31,8 +31,9 @@
 
 #ifdef __wasi__
 // WASI compatibility - provide missing types and disable ranges
+// Don't redefine ranges if they already exist
+#if !defined(_LIBCPP_STD_VER) || _LIBCPP_STD_VER < 20
 namespace std {
-using contiguous_iterator_tag = output_iterator_tag;
 namespace ranges {
 template <typename T>
 inline constexpr bool enable_view = false;
@@ -40,6 +41,7 @@ template <typename T>
 inline constexpr bool enable_borrowed_range = false;
 }  // namespace ranges
 }  // namespace std
+#endif
 
 namespace v8 {
 
@@ -188,8 +190,11 @@ class V8_EXPORT MemorySpan {
     // standard as part of the Ranges papers.
     // TODO(pkasting): Add this unconditionally after dropping support for old
     // libstdc++ versions.
-#if __has_include(<ranges>) || defined(__wasi__)
+#if __has_include(<ranges>)
     using iterator_concept = std::contiguous_iterator_tag;
+#elif defined(__wasi__)
+    // For WASI, just use random_access_iterator_tag
+    using iterator_concept = std::random_access_iterator_tag;
 #endif
 
     // Required to satisfy `std::semiregular<>`.

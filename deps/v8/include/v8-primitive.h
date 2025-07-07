@@ -140,7 +140,7 @@ enum class NewStringType {
 class V8_EXPORT String : public Name {
  public:
   static constexpr int kMaxLength =
-      internal::kApiSystemPointerSize == 4 ? (1 << 28) - 16 : (1 << 29) - 24;
+      kApiSystemPointerSize == 4 ? (1 << 28) - 16 : (1 << 29) - 24;
 
   enum Encoding {
     UNKNOWN_ENCODING = 0x1,

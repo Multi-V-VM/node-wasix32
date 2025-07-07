@@ -1,16 +1,8 @@
 #ifdef __wasi__
 #include "wasi/v8-wasi-compat.h"
-#endif
-
-#ifdef __wasi__
 #include "wasi/concepts-fix.h"
 #include <cstring>
 #include <type_traits>
-
-// WASI-specific type aliases
-namespace v8 {
-template<typename T> using BasicTracedReference = TracedReference<T>;
-}
 #endif
 
 #ifdef __wasi__
@@ -41,6 +33,9 @@ template<typename T> using BasicTracedReference = TracedReference<T>;
 #endif
 
 namespace v8 {
+
+// Type alias for backward compatibility
+// BasicTracedReference is defined separately in v8-function-callback.h
 
 class Array;
 class Function;
@@ -503,23 +498,13 @@ class V8_EXPORT Object : public Value {
   /** Same as above, but works for PersistentBase. */
   V8_INLINE static int InternalFieldCount(
       const PersistentBase<Object>& object) {
-    
-#ifdef __wasi__
-    return reinterpret_cast<Object*>(object.val_)
-#else
-    return object.template value<Object>()
-#endif->InternalFieldCount();
+    return object.template value<Object>()->InternalFieldCount();
   }
 
   /** Same as above, but works for BasicTracedReference. */
   V8_INLINE static int InternalFieldCount(
       const TracedReference<Object>& object) {
-    
-#ifdef __wasi__
-    return reinterpret_cast<Object*>(object.val_)
-#else
-    return object.template value<Object>()
-#endif->InternalFieldCount();
+    return object.template value<Object>()->InternalFieldCount();
   }
 
   /**
@@ -549,25 +534,13 @@ class V8_EXPORT Object : public Value {
   /** Same as above, but works for PersistentBase. */
   V8_INLINE static void* GetAlignedPointerFromInternalField(
       const PersistentBase<Object>& object, int index) {
-    
-#ifdef __wasi__
-    return reinterpret_cast<Object*>(object.val_)
-#else
-    return object.template value<Object>()
-#endif->GetAlignedPointerFromInternalField(
-        index);
+    return object.template value<Object>()->GetAlignedPointerFromInternalField(index);
   }
 
   /** Same as above, but works for TracedReference. */
   V8_INLINE static void* GetAlignedPointerFromInternalField(
       const TracedReference<Object>& object, int index) {
-    
-#ifdef __wasi__
-    return reinterpret_cast<Object*>(object.val_)
-#else
-    return object.template value<Object>()
-#endif->GetAlignedPointerFromInternalField(
-        index);
+    return object.template value<Object>()->GetAlignedPointerFromInternalField(index);
   }
 
   /**
@@ -602,15 +575,15 @@ class V8_EXPORT Object : public Value {
   template <typename T = void>
   static V8_INLINE T* Unwrap(v8::Isolate* isolate,
                              const v8::Local<v8::Object>& wrapper,
-                             CppHeapPointerTagRange tag_range);
+                             internal::CppHeapPointerTagRange tag_range);
   template <typename T = void>
   static V8_INLINE T* Unwrap(v8::Isolate* isolate,
                              const PersistentBase<Object>& wrapper,
-                             CppHeapPointerTagRange tag_range);
+                             internal::CppHeapPointerTagRange tag_range);
   template <typename T = void>
   static V8_INLINE T* Unwrap(v8::Isolate* isolate,
                              const TracedReference<Object>& wrapper,
-                             CppHeapPointerTagRange tag_range);
+                             internal::CppHeapPointerTagRange tag_range);
 
   /**
    * Wraps a JS wrapper with a C++ instance.
@@ -750,10 +723,11 @@ class V8_EXPORT Object : public Value {
       v8::Isolate* isolate, const PersistentBase<Object>& object) {
     
 #ifdef __wasi__
-    return reinterpret_cast<Object*>(object.val_)
+    return reinterpret_cast<Object*>(object.template value<Object>())->GetCreationContext(isolate);
 #else
-    return object.template value<Object>()
-#endif->GetCreationContext(isolate);
+    return object.template value<Object>()->GetCreationContext(isolate);
+#endif
+
   }
   V8_INLINE static MaybeLocal<Context> GetCreationContext(
       const PersistentBase<Object>& object);
@@ -833,10 +807,10 @@ class V8_EXPORT Object : public Value {
   V8_INLINE static Isolate* GetIsolate(const TracedReference<Object>& handle) {
     
 #ifdef __wasi__
-    return reinterpret_cast<Object*>(handle.val_)
+    return reinterpret_cast<Object*>(handle.template value<Object>())->GetIsolate();
 #else
-    return handle.template value<Object>()
-#endif->GetIsolate();
+    return handle.template value<Object>()->GetIsolate();
+#endif
   }
 
   /**
@@ -878,7 +852,7 @@ class V8_EXPORT Object : public Value {
 
  private:
   static void* Unwrap(v8::Isolate* isolate, internal::Address wrapper_obj,
-                      CppHeapPointerTagRange tag_range);
+                      internal::CppHeapPointerTagRange tag_range);
   static void Wrap(v8::Isolate* isolate, internal::Address wrapper_obj,
                    CppHeapPointerTag tag, void* wrappable);
 
@@ -964,7 +938,7 @@ void* Object::GetAlignedPointerFromInternalField(int index) {
 // static
 template <CppHeapPointerTag tag, typename T>
 T* Object::Unwrap(v8::Isolate* isolate, const v8::Local<v8::Object>& wrapper) {
-  CppHeapPointerTagRange tag_range(tag, tag);
+  internal::CppHeapPointerTagRange tag_range(tag, tag);
   auto obj = internal::ValueHelper::ValueAsAddress(*wrapper);
 #if !defined(V8_ENABLE_CHECKS)
   return internal::ReadCppHeapPointerField<T>(
@@ -977,7 +951,7 @@ T* Object::Unwrap(v8::Isolate* isolate, const v8::Local<v8::Object>& wrapper) {
 // static
 template <CppHeapPointerTag tag, typename T>
 T* Object::Unwrap(v8::Isolate* isolate, const PersistentBase<Object>& wrapper) {
-  CppHeapPointerTagRange tag_range(tag, tag);
+  internal::CppHeapPointerTagRange tag_range(tag, tag);
   auto obj =
       internal::ValueHelper::ValueAsAddress(wrapper.template value<Object>());
 #if !defined(V8_ENABLE_CHECKS)
@@ -992,7 +966,7 @@ T* Object::Unwrap(v8::Isolate* isolate, const PersistentBase<Object>& wrapper) {
 template <CppHeapPointerTag tag, typename T>
 T* Object::Unwrap(v8::Isolate* isolate,
                   const TracedReference<Object>& wrapper) {
-  CppHeapPointerTagRange tag_range(tag, tag);
+  internal::CppHeapPointerTagRange tag_range(tag, tag);
   auto obj =
       internal::ValueHelper::ValueAsAddress(wrapper.template value<Object>());
 #if !defined(V8_ENABLE_CHECKS)
@@ -1006,7 +980,7 @@ T* Object::Unwrap(v8::Isolate* isolate,
 // static
 template <typename T>
 T* Object::Unwrap(v8::Isolate* isolate, const v8::Local<v8::Object>& wrapper,
-                  CppHeapPointerTagRange tag_range) {
+                  internal::CppHeapPointerTagRange tag_range) {
   auto obj = internal::ValueHelper::ValueAsAddress(*wrapper);
 #if !defined(V8_ENABLE_CHECKS)
   return internal::ReadCppHeapPointerField<T>(
@@ -1019,7 +993,7 @@ T* Object::Unwrap(v8::Isolate* isolate, const v8::Local<v8::Object>& wrapper,
 // static
 template <typename T>
 T* Object::Unwrap(v8::Isolate* isolate, const PersistentBase<Object>& wrapper,
-                  CppHeapPointerTagRange tag_range) {
+                  internal::CppHeapPointerTagRange tag_range) {
   auto obj =
       internal::ValueHelper::ValueAsAddress(wrapper.template value<Object>());
 #if !defined(V8_ENABLE_CHECKS)
@@ -1035,7 +1009,7 @@ T* Object::Unwrap(v8::Isolate* isolate, const PersistentBase<Object>& wrapper,
 template <typename T>
 T* Object::Unwrap(v8::Isolate* isolate,
                   const TracedReference<Object>& wrapper,
-                  CppHeapPointerTagRange tag_range) {
+                  internal::CppHeapPointerTagRange tag_range) {
   auto obj =
       internal::ValueHelper::ValueAsAddress(wrapper.template value<Object>());
 #if !defined(V8_ENABLE_CHECKS)
@@ -1115,28 +1089,4 @@ Object* Object::Cast(v8::Value* value) {
 
 #endif  // INCLUDE_V8_OBJECT_H_
 
-#ifdef __wasi__
-// WASI-specific extensions for missing methods
-namespace v8 {
-
-template<typename T>
-class PersistentBase {
-public:
-    template<typename U>
-    U* value() const {
-        return reinterpret_cast<U*>(const_cast<PersistentBase*>(this));
-    }
-};
-
-template<typename T>  
-class TracedReference {
-public:
-    template<typename U>
-    U* value() const {
-        return reinterpret_cast<U*>(const_cast<TracedReference*>(this));
-    }
-};
-
-} // namespace v8
-#endif
-#ifdef __wasi__
+// End of v8-object.h

@@ -257,24 +257,7 @@ constexpr int kJSDispatchHandleShift = 0;
 #define kExternalAllocationSoftLimit (64 * MB)
 #endif
 
-// Internals class
-#ifndef V8_INTERNALS_CLASS_DEFINED
-#define V8_INTERNALS_CLASS_DEFINED
-class Internals {
- public:
-  // Use a different name to avoid macro expansion
-  static constexpr size_t kExternalAllocationSoftLimit_ = 64 * 1024 * 1024;
-  
-  // Add missing methods
-  static constexpr int IntToSmi(int value) {
-    return (value << 1) | 1;
-  }
-  
-  static constexpr int SmiValue(int smi) {
-    return smi >> 1;
-  }
-};
-#endif
+// Internals class is defined in v8-wasi-compat.h
 
 namespace bits {
   using v8::base::bits::RotateRight32;

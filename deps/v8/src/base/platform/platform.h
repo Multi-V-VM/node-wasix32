@@ -507,6 +507,9 @@ class V8_BASE_EXPORT AddressSpaceReservation {
   V8_WARN_UNUSED_RESULT bool MergePlaceholders(void* address, size_t size);
 #endif  // V8_OS_WIN
 
+  // GC fake mmap file getter
+  static const char* GetGCFakeMMapFile() { return nullptr; }
+
  private:
   friend class OS;
 
@@ -712,3 +715,8 @@ V8_BASE_EXPORT void SetJitWriteProtected(int enable);
 }  // namespace v8::base
 
 #endif  // V8_BASE_PLATFORM_PLATFORM_H_
+
+// WASI fix: Add missing declaration
+#ifdef V8_OS_WASI
+static const char* GetGCFakeMMapFile();
+#endif

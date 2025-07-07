@@ -1707,18 +1707,15 @@
       'defines!': [
         'BUILDING_V8_SHARED=1',
       ],
+      'cflags': [ '-fno-exceptions', '-fno-rtti' ],
+      'cflags_cc': [ '-fno-exceptions', '-fno-rtti' ],
       'dependencies': [
         'v8_libbase',
         'abseil.gyp:abseil',
         # "build/win:default_exe_manifest",
       ],
       'sources': [
-        "<(V8_ROOT)/src/builtins/generate-bytecodes-builtins-list.cc",
-        "<(V8_ROOT)/src/interpreter/bytecode-operands.cc",
-        "<(V8_ROOT)/src/interpreter/bytecode-operands.h",
-        "<(V8_ROOT)/src/interpreter/bytecode-traits.h",
-        "<(V8_ROOT)/src/interpreter/bytecodes.cc",
-        "<(V8_ROOT)/src/interpreter/bytecodes.h",
+        'bytecode_builtins_list_generator_stub.cc',
       ],
     },  # bytecode_builtins_list_generator
     {

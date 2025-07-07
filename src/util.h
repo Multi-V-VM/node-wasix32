@@ -222,6 +222,26 @@ constexpr int64_t kMaxSafeJsInteger = 9007199254740991;
 
 inline bool IsSafeJsInt(v8::Local<v8::Value> v);
 
+#ifdef __wasi__
+// WASI stubs for list structures
+template <typename T>
+class ListNode {
+ public:
+  ListNode() = default;
+  bool IsEmpty() const { return true; }
+  void Remove() {}
+};
+
+template <typename T, ListNode<T> (T::*M)>
+class ListHead {
+ public:
+  ListHead() = default;
+  bool IsEmpty() const { return true; }
+  void PushBack(T* element) {}
+  void PushFront(T* element) {}
+  T* PopFront() { return nullptr; }
+};
+#else
 // TAILQ-style intrusive list node.
 template <typename T>
 class ListNode;
@@ -279,6 +299,7 @@ class ListHead {
   friend int GenDebugSymbols();
   ListNode<T> head_;
 };
+#endif  // __wasi__
 
 // The helper is for doing safe downcasts from base types to derived types.
 template <typename Inner, typename Outer>

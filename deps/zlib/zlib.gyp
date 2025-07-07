@@ -268,9 +268,16 @@
                                     "defines": ["USE_FILE32API"],
                                 },
                             ],
+                            [
+                                'OS=="wasi"',
+                                {
+                                    # WASI doesn't support SIMD optimizations
+                                    "defines": ["CPU_NO_SIMD", "USE_FILE32API"],
+                                },
+                            ],
                             # Incorporate optimizations where possible.
                             [
-                                '(target_arch in "ia32 x64" and OS!="ios") or arm_fpu=="neon"',
+                                '((target_arch in "ia32 x64" and OS!="ios") or arm_fpu=="neon") and OS!="wasi"',
                                 {
                                     "dependencies": ["zlib_data_chunk_simd"],
                                     "sources": ["<(ZLIB_ROOT)/slide_hash_simd.h"],
@@ -281,7 +288,7 @@
                                 },
                             ],
                             [
-                                'target_arch in "ia32 x64" and OS!="ios"',
+                                'target_arch in "ia32 x64" and OS!="ios" and OS!="wasi"',
                                 {
                                     "dependencies": [
                                         "zlib_adler32_simd",
@@ -316,7 +323,7 @@
                                             {
                                                 "conditions": [
                                                     [
-                                                        'OS!="ios"',
+                                                        'OS!="ios" and OS!="wasi"',
                                                         {
                                                             "dependencies": [
                                                                 "zlib_adler32_simd",

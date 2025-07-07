@@ -1,13 +1,42 @@
+#ifndef SRC_MEMORY_TRACKER_H_
+#define SRC_MEMORY_TRACKER_H_
+
 #ifdef __wasi__
 // WASI stub for memory_tracker.h
 #include <cstddef>
+#include "v8-local-handle.h"
+#include "v8-object.h"
+
 namespace node {
+
+// Forward declaration
+class MemoryTracker;
+
+// MemoryRetainer base class for WASI
+class MemoryRetainer {
+ public:
+  virtual ~MemoryRetainer() = default;
+  virtual void MemoryInfo(MemoryTracker* tracker) const {}
+  virtual const char* MemoryInfoName() const { return ""; }
+  virtual size_t SelfSize() const { return 0; }
+  virtual bool IsRootNode() const { return false; }
+  virtual v8::Local<v8::Object> WrappedObject() const { return v8::Local<v8::Object>(); }
+};
+
+// MemoryTracker class
 class MemoryTracker {
 public:
   template<typename T> void TrackField(const char* name, const T& value) {}
   template<typename T> void TrackFieldWithSize(const char* name, const T& value, size_t size = 0) {}
 };
-}
+
+// Macro stubs
+#define SET_MEMORY_INFO_NAME(name) \
+  const char* MemoryInfoName() const override { return #name; }
+#define SET_SELF_SIZE(size) \
+  size_t SelfSize() const override { return size; }
+
+}  // namespace node
 #else
 #pragma once
 
@@ -343,3 +372,5 @@ class MemoryTracker {
 
 #endif  // defined(NODE_WANT_INTERNALS) && NODE_WANT_INTERNALS
 #endif // __wasi__
+
+#endif  // SRC_MEMORY_TRACKER_H_

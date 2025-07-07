@@ -49,7 +49,7 @@ enum class BackingStoreOnFailureMode { kReturnNull, kOutOfMemory };
  * default. Use Isolate::CreateParams::array_buffer_allocator_shared when
  * creating the Isolate to make it hold a reference to the allocator itself.
  */
-class V8_EXPORT BackingStore : public v8::internal::BackingStoreBase {
+class V8_EXPORT BackingStore : public internal::BackingStoreBase {
  public:
   ~BackingStore();
 
@@ -347,12 +347,12 @@ class V8_EXPORT ArrayBuffer : public Object {
    * Nothing if the key didn't pass the [[ArrayBufferDetachKey]] check,
    * Just(true) otherwise.
    */
-  V8_WARN_UNUSED_RESULT Maybe<bool> Detach(v8::Local<v8::Value> key);
+  V8_WARN_UNUSED_RESULT Maybe<bool> Detach(Local<Value> key);
 
   /**
    * Sets the ArrayBufferDetachKey.
    */
-  void SetDetachKey(v8::Local<v8::Value> key);
+  void SetDetachKey(Local<Value> key);
 
   /**
    * Get a shared pointer to the backing store of this array buffer. This
@@ -448,7 +448,7 @@ class V8_EXPORT ArrayBufferView : public Object {
    * was defined in gn with `typed_array_max_size_in_heap`. The default value is
    * 64 bytes.
    */
-  v8::MemorySpan<uint8_t> GetContents(v8::MemorySpan<uint8_t> storage);
+  MemorySpan<uint8_t> GetContents(MemorySpan<uint8_t> storage);
 
   /**
    * Returns true if ArrayBufferView's backing ArrayBuffer has already been

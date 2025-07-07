@@ -17,6 +17,13 @@
 #include "v8-platform.h"   // NOLINT(build/include_directory)
 #include "v8config.h"      // NOLINT(build/include_directory)
 
+#ifdef __wasi__
+namespace v8 {
+// Forward declaration
+class SharedMemoryStatistics;
+}
+#endif
+
 // We reserve the V8_* prefix for macros defined in V8 public API and
 // assume there are no name conflicts with the embedder's code.
 

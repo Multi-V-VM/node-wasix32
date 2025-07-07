@@ -15,7 +15,9 @@
 
 // Disable problematic features
 #define V8_ENABLE_SANDBOX 0
+#ifndef V8_ENABLE_MAGLEV
 #define V8_ENABLE_MAGLEV 0
+#endif
 #define V8_COMPRESS_POINTERS 0
 #define V8_31BIT_SMIS_ON_64BIT_ARCH 0
 #define V8_ENABLE_POINTER_COMPRESSION 0
@@ -24,13 +26,15 @@
 #define V8_EXPORT
 #define V8_EXPORT_PRIVATE  
 #define V8_INLINE inline
-#define V8_NOINLINE
+#define V8_NOINLINE __attribute__((noinline))
 #define V8_TRIVIAL_ABI
-#define V8_LIKELY(x) (x)
-#define V8_UNLIKELY(x) (x)
-#define V8_WARN_UNUSED_RESULT
-#define V8_NODISCARD
-#define V8_FALLTHROUGH
+#define V8_LIKELY(x) __builtin_expect(!!(x), 1)
+#define V8_UNLIKELY(x) __builtin_expect(!!(x), 0)
+#define V8_WARN_UNUSED_RESULT __attribute__((warn_unused_result))
+#define V8_NODISCARD [[nodiscard]]
+#define V8_FALLTHROUGH [[fallthrough]]
+#define V8_NO_UNIQUE_ADDRESS [[no_unique_address]]
+#define V8_HAS_ATTRIBUTE_NO_UNIQUE_ADDRESS 1
 
 // Compiler detection
 #define V8_CC_CLANG 1

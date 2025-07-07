@@ -133,6 +133,7 @@
             "src/unix/tty.c",
             "src/unix/udp.c",
             "src/unix/aix.c",
+            "src/unix/wasi-stubs.c",
         ],
         "uv_sources_apple": [],
         "uv_sources_linux": [

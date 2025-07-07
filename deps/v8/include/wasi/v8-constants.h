@@ -12,7 +12,7 @@ constexpr size_t MB = 1024 * KB;
 constexpr size_t GB = 1024 * MB;
 
 // Missing API constants for WASI
-constexpr int kApiTaggedSize = 8;  // Same as kTaggedSize for WASI
+constexpr int kApiTaggedSize = 4;  // Same as kTaggedSize for WASI
 constexpr int kApiSystemPointerSize = sizeof(void*);
 constexpr int kApiDoubleSize = 8;
 

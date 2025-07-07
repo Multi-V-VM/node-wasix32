@@ -2,10 +2,18 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
+#ifdef __wasi__
+// WASI doesn't support file streams, use C-style file operations
+#include <cstdio>
+#include <iomanip>
+#include <iostream>
+#include <sstream>
+#else
 #include <fstream>
 #include <iomanip>
 #include <iostream>
 #include <sstream>
+#endif
 
 #include "src/base/strings.h"
 #include "src/regexp/special-case.h"
@@ -18,8 +26,13 @@ static const base::uc32 kSurrogateEnd = 0xdfff;
 static const base::uc32 kNonBmpStart = 0x10000;
 
 // The following code generates "src/regexp/special-case.cc".
+#ifdef __wasi__
+void PrintSet(std::stringstream& out, const char* name,
+              const icu::UnicodeSet& set) {
+#else
 void PrintSet(std::ofstream& out, const char* name,
               const icu::UnicodeSet& set) {
+#endif
   out << "icu::UnicodeSet Build" << name << "() {\n"
       << "  icu::UnicodeSet set;\n";
   for (int32_t i = 0; i < set.getRangeCount(); i++) {
@@ -47,7 +60,11 @@ void PrintSet(std::ofstream& out, const char* name,
       << "}\n\n";
 }
 
+#ifdef __wasi__
+void PrintSpecial(std::stringstream& out) {
+#else
 void PrintSpecial(std::ofstream& out) {
+#endif
   icu::UnicodeSet current;
   icu::UnicodeSet special_add;
   icu::UnicodeSet ignore;
@@ -127,8 +144,13 @@ void PrintSpecial(std::ofstream& out) {
 }
 
 void WriteHeader(const char* header_filename) {
+#ifdef __wasi__
+  std::stringstream out;
+  out << std::hex << std::setfill('0') << std::setw(4);
+#else
   std::ofstream out(header_filename);
   out << std::hex << std::setfill('0') << std::setw(4);
+#endif
   out << "// Copyright 2020 the V8 project authors. All rights reserved.\n"
       << "// Use of this source code is governed by a BSD-style license that\n"
       << "// can be found in the LICENSE file.\n\n"
@@ -151,6 +173,19 @@ void WriteHeader(const char* header_filename) {
       << "}  // namespace internal\n"
       << "}  // namespace v8\n"
       << "#endif  // V8_INTL_SUPPORT\n";
+
+#ifdef __wasi__
+  // Write stringstream content to file using C-style operations
+  FILE* file = fopen(header_filename, "w");
+  if (file) {
+    std::string content = out.str();
+    fwrite(content.c_str(), 1, content.length(), file);
+    fclose(file);
+  } else {
+    std::cerr << "Error: Could not open file " << header_filename << std::endl;
+    std::exit(1);
+  }
+#endif
 }
 
 }  // namespace internal

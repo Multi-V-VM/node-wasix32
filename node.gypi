@@ -381,8 +381,6 @@
           'dependencies': [
             './deps/openssl/openssl.gyp:openssl',
 
-            # For tests
-            './deps/openssl/openssl.gyp:openssl-cli',
           ],
           'conditions': [
             # -force_load or --whole-archive are not applicable for

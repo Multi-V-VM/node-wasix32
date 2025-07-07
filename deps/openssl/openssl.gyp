@@ -3,7 +3,6 @@
     'gas_version%': '0.0',
     'llvm_version%': '0.0',
     'nasm_version%': '0.0',
-    'openssl-cli': '<(PRODUCT_DIR)/<(EXECUTABLE_PREFIX)openssl-cli<(EXECUTABLE_SUFFIX)',
     'conditions': [
       ['GENERATOR == "ninja"', {
         'modules_dir': '<(PRODUCT_DIR_ABS_CSTR)/obj/lib/openssl-modules',
@@ -55,27 +54,9 @@
         'include_dirs': [ 'openssl/include', 'openssl/crypto/include']
       }
     }, {
-      # openssl-cli target
-      'target_name': 'openssl-cli',
-      'type': 'executable',
-      'dependencies': ['openssl'],
-      'includes': ['./openssl_common.gypi'],
-      'include_dirs+': ['openssl/apps/include'],
-      'defines': [
-        'OPENSSL_API_COMPAT=0x10100001L',
-        #'OPENSSL_NO_DEPRECATED',
-      ],
-      'conditions': [
-        # Avoid excessive LTO
-        ['enable_lto=="true"', {
-          'ldflags': [ '-fno-lto' ],
-        }],
-     ]
-    }, {
       # openssl-fipsmodule target
       'target_name': 'openssl-fipsmodule',
       'type': 'shared_library',
-      'dependencies': ['openssl-cli'],
       'includes': ['./openssl_common.gypi'],
       'include_dirs+': ['openssl/apps/include'],
       'cflags': [ '-fPIC' ],

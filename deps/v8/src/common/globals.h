@@ -667,8 +667,7 @@ constexpr int kEmbedderDataSlotSizeInTaggedSlots =
 static_assert(kEmbedderDataSlotSize >= kSystemPointerSize);
 
 #ifndef kExternalAllocationSoftLimit
-constexpr size_t kExternalAllocationSoftLimit =
-    Internals::kExternalAllocationSoftLimit;
+constexpr size_t kExternalAllocationSoftLimit = 64 * 1024 * 1024;
 #endif
 
 // Maximum object size that gets allocated into regular pages. Objects larger

@@ -160,12 +160,12 @@ class FunctionCallbackInfo {
   static constexpr int kArgsLengthWithReceiver = kArgsLength + 1;
 
   // Codegen constants:
-  static constexpr int kSize = 3 * internal::kApiSystemPointerSize;
+  static constexpr int kSize = 3 * kApiSystemPointerSize;
   static constexpr int kImplicitArgsOffset = 0;
   static constexpr int kValuesOffset =
-      kImplicitArgsOffset + internal::kApiSystemPointerSize;
+      kImplicitArgsOffset + kApiSystemPointerSize;
   static constexpr int kLengthOffset =
-      kValuesOffset + internal::kApiSystemPointerSize;
+      kValuesOffset + kApiSystemPointerSize;
 
   static constexpr int kThisValuesIndex = -1;
   static_assert(ReturnValue<Value>::kIsolateValueIndex ==
@@ -301,7 +301,7 @@ class PropertyCallbackInfo {
   static constexpr int kThisIndex = 7;
   static constexpr int kArgsLength = 8;
 
-  static constexpr int kSize = kArgsLength * internal::kApiSystemPointerSize;
+  static constexpr int kSize = kArgsLength * kApiSystemPointerSize;
 
   PropertyCallbackInfo() = default;
 

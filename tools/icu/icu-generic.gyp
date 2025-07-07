@@ -513,20 +513,13 @@
       'toolsets': [ 'host' ],
       'type': 'executable',
       'dependencies': [ 'icutools' ],
-      'conditions': [
-        ['target_arch=="wasm32"', {
-          # For WASI, use stub implementation
-          'sources': [
-            'icupkg_wasi_stub.cpp',
-            'no-op.cc',
-          ],
-        }, {
-          'sources': [
-            '<@(icu_src_icupkg)',
-            'no-op.cc',
-          ],
-        }],
+      # Always use stub for cross-compilation
+      'sources': [
+        'icupkg_wasi_stub.cpp',
+        'no-op.cc',
       ],
+      'cflags': [ '-fno-exceptions', '-fno-rtti' ],
+      'cflags_cc': [ '-fno-exceptions', '-fno-rtti' ],
       'conditions': [
         # Avoid excessive LTO
         ['enable_lto=="true"', {
@@ -540,20 +533,13 @@
       'toolsets': [ 'host' ],
       'type': 'executable',
       'dependencies': [ 'icutools' ],
-      'conditions': [
-        ['target_arch=="wasm32"', {
-          # For WASI, use stub implementation
-          'sources': [
-            'genccode_wasi_stub.cpp',
-            'no-op.cc',
-          ],
-        }, {
-          'sources': [
-            '<@(icu_src_genccode)',
-            'no-op.cc',
-          ],
-        }],
+      # Always use stub for cross-compilation
+      'sources': [
+        'genccode_wasi_stub.cpp',
+        'no-op.cc',
       ],
+      'cflags': [ '-fno-exceptions', '-fno-rtti' ],
+      'cflags_cc': [ '-fno-exceptions', '-fno-rtti' ],
       'conditions': [
         # Avoid excessive LTO
         ['enable_lto=="true"', {

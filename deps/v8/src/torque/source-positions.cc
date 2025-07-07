@@ -4,6 +4,9 @@
 
 #include "src/torque/source-positions.h"
 
+#ifdef __wasi__
+#include <cstdio>
+#endif
 #include <fstream>
 #include "src/torque/utils.h"
 
@@ -67,8 +70,17 @@ std::vector<SourceId> SourceFileMap::AllSources() {
 // static
 bool SourceFileMap::FileRelativeToV8RootExists(const std::string& path) {
   const std::string file = Get().v8_root_ + "/" + path;
+#ifdef __wasi__
+  FILE* f = fopen(file.c_str(), "r");
+  if (f) {
+    fclose(f);
+    return true;
+  }
+  return false;
+#else
   std::ifstream stream(file);
   return stream.good();
+#endif
 }
 
 }  // namespace torque

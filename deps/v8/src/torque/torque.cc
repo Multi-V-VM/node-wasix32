@@ -35,7 +35,7 @@ int WrappedMain(int argc, const char** argv) {
     } else if (argument == "-m32") {
 #ifdef V8_COMPRESS_POINTERS
       std::cerr << "Pointer compression is incompatible with -m32.\n";
-      base::OS::Abort();
+      v8::base::OS::Abort();
 #else
       options.force_32bit_output = true;
 #endif
@@ -55,7 +55,7 @@ int WrappedMain(int argc, const char** argv) {
       if (!StringEndsWith(files.back(), ".tq")) {
         std::cerr << "Unexpected command-line argument \"" << files.back()
                   << "\", expected a .tq file.\n";
-        base::OS::Abort();
+        v8::base::OS::Abort();
       }
     }
   }

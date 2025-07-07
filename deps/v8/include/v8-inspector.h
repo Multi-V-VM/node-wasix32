@@ -13,8 +13,7 @@
 #include <cctype>
 #include <memory>
 
-#include "v8-isolate.h"       // NOLINT(build/include_directory)
-#include "v8-local-handle.h"  // NOLINT(build/include_directory)
+#include "v8.h"  // NOLINT(build/include_directory)
 
 namespace v8 {
 class Context;
