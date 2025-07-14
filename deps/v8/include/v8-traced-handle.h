@@ -53,6 +53,11 @@ class TracedReference : public TracedHandle<T> {
   TracedReference(const TracedReference&) = delete;
   TracedReference& operator=(const TracedReference&) = delete;
   
+  // Get method for compatibility
+  Local<T> Get(Isolate* isolate) const {
+    return Local<T>();
+  }
+  
   // WASI compatibility - provide value() method
   template<typename U>
   U* value() const {

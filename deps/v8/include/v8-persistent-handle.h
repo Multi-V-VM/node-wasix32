@@ -202,6 +202,22 @@ class PersistentBase : public api_internal::IndirectHandleBase {
    */
   V8_INLINE uint16_t WrapperClassId() const;
 
+#ifdef __wasi__
+  /**
+   * WASI stub: Check if the persistent handle is empty
+   */
+  V8_INLINE bool IsEmpty() const {
+    return slot() == nullptr || *slot() == internal::kNullAddress;
+  }
+  
+  /**
+   * WASI stub: Clear the persistent handle  
+   */
+  V8_INLINE void Clear() {
+    Reset();
+  }
+#endif
+
   PersistentBase(const PersistentBase& other) = delete;
   void operator=(const PersistentBase&) = delete;
 

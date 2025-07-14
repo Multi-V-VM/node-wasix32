@@ -18,6 +18,19 @@
 #include "cppgc/visitor.h"
 #include "v8config.h"  // NOLINT(build/include_directory)
 
+// Define V8_CLANG_NO_SANITIZE for WASM builds if not already defined
+#ifndef V8_CLANG_NO_SANITIZE
+#if defined(__clang__) && defined(__has_attribute)
+#if __has_attribute(no_sanitize)
+#define V8_CLANG_NO_SANITIZE(what) __attribute__((no_sanitize(what)))
+#else
+#define V8_CLANG_NO_SANITIZE(what)
+#endif
+#else
+#define V8_CLANG_NO_SANITIZE(what)
+#endif
+#endif
+
 namespace cppgc {
 namespace internal {
 

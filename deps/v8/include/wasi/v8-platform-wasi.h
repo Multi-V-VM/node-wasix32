@@ -182,12 +182,12 @@ public:
 class JobHandle {
 public:
   virtual ~JobHandle() = default;
-  virtual void NotifyConcurrencyIncrease() = 0;
-  virtual void Join() = 0;
-  virtual void Cancel() = 0;
-  virtual void CancelAndDetach() = 0;
-  virtual bool IsActive() = 0;
-  virtual bool IsValid() = 0;
+  virtual void NotifyConcurrencyIncrease() {}
+  virtual void Join() {}
+  virtual void Cancel() {}
+  virtual void CancelAndDetach() {}
+  virtual bool IsActive() { return false; }
+  virtual bool IsValid() { return false; }
 };
 
 class TaskRunner {

@@ -45,6 +45,7 @@
 
 namespace node {
 
+#ifndef __wasi__
 template <typename T>
 ListNode<T>::ListNode() : prev_(this), next_(this) {}
 
@@ -133,6 +134,7 @@ template <typename T, ListNode<T> (T::*M)>
 typename ListHead<T, M>::Iterator ListHead<T, M>::end() const {
   return Iterator(const_cast<ListNode<T>*>(&head_));
 }
+#endif
 
 template <typename Inner, typename Outer>
 constexpr uintptr_t OffsetOf(Inner Outer::*field) {
@@ -322,13 +324,19 @@ inline v8::Array::CallbackResult PushItemToVector(uint32_t index,
   return v8::Array::CallbackResult::kContinue;
 }
 
-v8::Maybe<void> FromV8Array(v8::Local<v8::Context> context,
+v8::Maybe<bool> FromV8Array(v8::Local<v8::Context> context,
                             v8::Local<v8::Array> js_array,
                             std::vector<v8::Global<v8::Value>>* out) {
+#ifdef __wasi__
+  // WASI stub implementation
+  return v8::Just(false);
+#else
   uint32_t count = js_array->Length();
   out->reserve(count);
   ArrayIterationData data{out, context->GetIsolate()};
-  return js_array->Iterate(context, PushItemToVector, &data);
+  auto result = js_array->Iterate(context, PushItemToVector, &data);
+  return v8::Just(result.IsJust());
+#endif
 }
 
 v8::MaybeLocal<v8::Value> ToV8Value(v8::Local<v8::Context> context,
@@ -491,7 +499,7 @@ v8::Local<v8::Array> ToV8ValuePrimitiveArray(v8::Local<v8::Context> context,
   if (isolate == nullptr) isolate = context->GetIsolate();
   v8::EscapableHandleScope handle_scope(isolate);
 
-  v8::LocalVector<v8::Value> elements(isolate);
+  v8::LocalVector<v8::Value> elements;
   elements.reserve(vec.size());
 
   for (const auto& value : vec) {

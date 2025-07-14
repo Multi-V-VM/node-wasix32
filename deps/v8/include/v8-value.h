@@ -14,6 +14,7 @@
 namespace v8 {
 
 class Isolate;
+class Object;
 
 /**
  * The superclass of all JavaScript values and objects.
@@ -320,6 +321,18 @@ class V8_EXPORT Value : public Data {
    * Returns true if this value is a Module Namespace Object.
    */
   bool IsModuleNamespaceObject() const;
+
+#ifdef __wasi__
+  /**
+   * WASI stub: Convert to object
+   */
+  V8_WARN_UNUSED_RESULT MaybeLocal<Object> ToObject(Local<Context> context) const {
+    if (IsObject()) {
+      return MaybeLocal<Object>(Local<Object>(reinterpret_cast<Object*>(const_cast<Value*>(this))));
+    }
+    return MaybeLocal<Object>();
+  }
+#endif
 
   /**
    * Cast functions

@@ -1032,7 +1032,7 @@ String::ExternalStringResource* String::GetExternalStringResource() const {
 #else
     Isolate* isolate = I::GetIsolateForSandbox(obj);
 #endif
-    A value = I::ReadExternalPointerField<internal::kExternalStringResourceTag>(
+    A value = I::ReadExternalPointerField<internal::Internals::kExternalStringResourceTag>(
         isolate, obj, I::kStringResourceOffset);
     result = reinterpret_cast<String::ExternalStringResource*>(value);
   } else {
@@ -1054,7 +1054,7 @@ String::ExternalStringResourceBase* String::GetExternalStringResourceBase(
   ExternalStringResourceBase* resource;
   if (type == I::kExternalOneByteRepresentationTag ||
       type == I::kExternalTwoByteRepresentationTag) {
-    A value = I::ReadExternalPointerField<internal::kExternalStringResourceTag>(
+    A value = I::ReadExternalPointerField<internal::Internals::kExternalStringResourceTag>(
         isolate, obj, I::kStringResourceOffset);
     resource = reinterpret_cast<ExternalStringResourceBase*>(value);
   } else {
@@ -1081,7 +1081,7 @@ String::ExternalStringResourceBase* String::GetExternalStringResourceBase(
 #else
     Isolate* isolate = I::GetIsolateForSandbox(obj);
 #endif
-    A value = I::ReadExternalPointerField<internal::kExternalStringResourceTag>(
+    A value = I::ReadExternalPointerField<internal::Internals::kExternalStringResourceTag>(
         isolate, obj, I::kStringResourceOffset);
     resource = reinterpret_cast<ExternalStringResourceBase*>(value);
   } else {

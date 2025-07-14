@@ -272,8 +272,4 @@ constexpr bool IsAnyMemberTypeV = internal::IsAnyMemberTypeV<std::decay_t<T>>;
 
 }  // namespace cppgc
 
-#else
-// Non-WASI: Original type traits would go here
-#endif  // __wasi__
-
 #endif  // INCLUDE_CPPGC_TYPE_TRAITS_H_

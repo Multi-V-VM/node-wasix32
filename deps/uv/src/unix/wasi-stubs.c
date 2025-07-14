@@ -28,9 +28,6 @@
 
 // Stub implementations for WASI - Only implement missing functions
 
-char** uv_setup_args(int argc, char** argv) {
-  return argv;
-}
 
 unsigned int if_nametoindex(const char *ifname) {
   return 0;

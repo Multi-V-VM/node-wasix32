@@ -46,6 +46,12 @@ public:
     return Local<S>(reinterpret_cast<S*>(ptr_));
   }
   
+  // Template method for safe cast (same as unsafe in WASI)
+  template<typename S>
+  Local<S> As() const {
+    return Local<S>(reinterpret_cast<S*>(ptr_));
+  }
+  
   // Method to get value
   template<typename S>
   S* value() const {

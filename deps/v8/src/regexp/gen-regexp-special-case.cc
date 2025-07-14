@@ -21,9 +21,9 @@
 namespace v8 {
 namespace internal {
 
-static const base::uc32 kSurrogateStart = 0xd800;
-static const base::uc32 kSurrogateEnd = 0xdfff;
-static const base::uc32 kNonBmpStart = 0x10000;
+static const ::v8::base::uc32 kSurrogateStart = 0xd800;
+static const ::v8::base::uc32 kSurrogateEnd = 0xdfff;
+static const ::v8::base::uc32 kNonBmpStart = 0x10000;
 
 // The following code generates "src/regexp/special-case.cc".
 #ifdef __wasi__

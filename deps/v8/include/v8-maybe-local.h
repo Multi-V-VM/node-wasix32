@@ -17,6 +17,10 @@ class MaybeLocal {
   bool IsEmpty() const { return true; }
   Local<T> ToLocalChecked() const { return Local<T>(); }
   bool ToLocal(Local<T>* out) const { return false; }
+  
+  Local<T> FromMaybe(Local<T> default_value) const {
+    return default_value;
+  }
 };
 
 }  // namespace v8

@@ -7,7 +7,7 @@
 #define NAPI_EXPERIMENTAL
 #include "node_api.h"
 #include "uv.h"
-#ifdef __POSIX__
+#if defined(__POSIX__) && !defined(__wasi__)
 #include <dlfcn.h>
 #endif
 
@@ -115,7 +115,7 @@ namespace binding {
 
 class DLib {
  public:
-#ifdef __POSIX__
+#if defined(__POSIX__) && !defined(__wasi__)
   static const int kDefaultFlags = RTLD_LAZY;
 #else
   static const int kDefaultFlags = 0;

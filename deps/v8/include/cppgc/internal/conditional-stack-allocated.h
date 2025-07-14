@@ -24,9 +24,8 @@ class ConditionalStackAllocatedBase {
   ~ConditionalStackAllocatedBase() = default;
 };
 
-// Type traits stubs for WASI
-template <typename T>
-constexpr bool IsTraceableV = false;
+// Type traits stubs for WASI - only define if not already defined
+// This is now defined in cppgc/type-traits.h, so we don't define it here
 
 }  // namespace internal
 }  // namespace cppgc

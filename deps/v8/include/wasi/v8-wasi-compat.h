@@ -88,6 +88,16 @@ class HandleScope {
   ~HandleScope() {}
 };
 
+class EscapableHandleScope : public HandleScope {
+ public:
+  explicit EscapableHandleScope(Isolate* isolate) : HandleScope(isolate) {}
+  ~EscapableHandleScope() {}
+  
+  template<typename T>
+  Local<T> Escape(Local<T> value) {
+    return value;
+  }
+};
 
 // LocalVector template
 template<typename T>
@@ -104,6 +114,9 @@ class Isolate;
 // Use uintptr_t to match v8-internal.h definition
 using Address = uintptr_t;
 #endif
+
+// Define kNullAddress constant
+constexpr Address kNullAddress = 0;
 
 #ifndef V8_INTERNAL_POINTER_TYPES_DEFINED
 #define V8_INTERNAL_POINTER_TYPES_DEFINED

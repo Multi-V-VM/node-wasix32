@@ -5,6 +5,10 @@
 // Platform-specific code shared between macOS and iOS goes here. The
 // POSIX-compatible parts in platform-posix.cc.
 
+#ifdef __wasi__
+// Empty stub for WASI builds
+#else
+
 #include <AvailabilityMacros.h>
 #include <dlfcn.h>
 #include <errno.h>
@@ -238,3 +242,5 @@ V8_BASE_EXPORT void SetJitWriteProtected(int enable) {
 
 }  // namespace base
 }  // namespace v8
+
+#endif  // __wasi__

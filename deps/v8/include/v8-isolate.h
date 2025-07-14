@@ -60,6 +60,11 @@ class V8_EXPORT Isolate {
   
   // AbortOnUncaughtExceptionCallback typedef
   using AbortOnUncaughtExceptionCallback = bool (*)(Isolate*);
+  
+  // Exception handling
+  Local<Value> ThrowException(Local<Value> exception) {
+    return exception;
+  }
 };
 #else
 // Forward declaration for Isolate

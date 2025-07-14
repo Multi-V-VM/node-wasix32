@@ -20,6 +20,7 @@ class MemoryRetainer {
   virtual const char* MemoryInfoName() const { return ""; }
   virtual size_t SelfSize() const { return 0; }
   virtual bool IsRootNode() const { return false; }
+  virtual bool IsCppgcWrapper() const { return false; }
   virtual v8::Local<v8::Object> WrappedObject() const { return v8::Local<v8::Object>(); }
 };
 
@@ -33,8 +34,8 @@ public:
 // Macro stubs
 #define SET_MEMORY_INFO_NAME(name) \
   const char* MemoryInfoName() const override { return #name; }
-#define SET_SELF_SIZE(size) \
-  size_t SelfSize() const override { return size; }
+#define SET_SELF_SIZE(Klass) \
+  size_t SelfSize() const override { return sizeof(Klass); }
 
 }  // namespace node
 #else

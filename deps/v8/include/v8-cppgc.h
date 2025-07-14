@@ -27,6 +27,58 @@
 #include "v8-traced-handle.h"  // NOLINT(build/include_directory)
 
 namespace cppgc {
+
+#ifdef __wasi__
+// WASI stub definitions for missing cppgc types
+class Heap {
+ public:
+  enum class MarkingType { kAtomic, kIncremental, kIncrementalAndConcurrent };
+  enum class SweepingType { kAtomic, kIncremental, kIncrementalAndConcurrent };
+};
+
+class CustomSpaceBase {};
+using CustomSpaceIndex = size_t;
+
+class HeapStatistics {
+ public:
+  enum class DetailLevel { kBrief, kDetailed };
+};
+
+// Forward declarations for Visitor dependencies
+#ifndef CPPGC_TRACE_TRAIT_H_
+class TraceDescriptor {
+ public:
+  constexpr TraceDescriptor(size_t, size_t) {}
+};
+#endif
+using WeakCallback = void (*)(const void*);
+
+class Visitor {
+ public:
+  class Key {};
+  Visitor(Key) {}
+  virtual ~Visitor() = default;
+  virtual void Visit(const void*, TraceDescriptor) {}
+  virtual void VisitWeak(const void*, TraceDescriptor, WeakCallback, const void*) {}
+  virtual void VisitEphemeron(const void*, const void*, TraceDescriptor) {}
+  virtual void VisitWeakContainer(const void*, TraceDescriptor, TraceDescriptor, WeakCallback, const void*) {}
+  virtual void RegisterWeakCallback(WeakCallback, const void*) {}
+  virtual void HandleMovableReference(const void**) {}
+  
+  // Trace method for v8::TracedReference
+  template<typename T>
+  void Trace(const v8::TracedReference<T>&) {}
+};
+
+namespace internal {
+class RootVisitor {
+ public:
+  virtual ~RootVisitor() = default;
+  template<typename T>
+  void Trace(const T&) {}
+};
+}  // namespace internal
+#endif
 class AllocationHandle;
 class HeapHandle;
 }  // namespace cppgc
@@ -144,6 +196,14 @@ class V8_EXPORT CppHeap {
 
   friend class internal::CppHeap;
 };
+
+#ifdef __wasi__
+// Forward declaration for WASI
+class TracedReferenceBase {
+ public:
+  bool IsEmptyThreadSafe() const { return true; }
+};
+#endif
 
 class JSVisitor : public cppgc::Visitor {
  public:

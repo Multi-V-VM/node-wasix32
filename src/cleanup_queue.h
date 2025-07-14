@@ -22,8 +22,8 @@ class CleanupQueue : public MemoryRetainer {
   CleanupQueue(const CleanupQueue&) = delete;
 
   SET_MEMORY_INFO_NAME(CleanupQueue)
-  SET_NO_MEMORY_INFO()
   inline size_t SelfSize() const override;
+  inline void MemoryInfo(node::MemoryTracker* tracker) const override {}
 
   inline bool empty() const;
 

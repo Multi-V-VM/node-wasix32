@@ -18,8 +18,8 @@
     {
       'target_name': 'openssl',
       'type': '<(library)',
-      'includes': ['./openssl.gypi'],
-      'includes': ['./openssl_common.gypi'],
+      'includes': ['./openssl.gypi', './openssl_common.gypi'],
+      'sources': [ '<@(openssl_sources)' ],
       'defines': [
         # Compile out hardware engines.  Most are stubs that dynamically load
         # the real driver but that poses a security liability when an attacker
@@ -30,11 +30,13 @@
         #'OPENSSL_NO_DEPRECATED',
       ],
       'conditions': [
-        [ 'openssl_no_asm==1', {
+        [ 'openssl_no_asm==1 or OS=="wasi"', {
           'includes': ['./openssl_no_asm.gypi'],
+          'sources+': [ '<@(openssl_sources_no_asm)' ],
         }, 'target_arch=="arm64" and OS=="win"', {
           # VC-WIN64-ARM inherits from VC-noCE-common that has no asms.
           'includes': ['./openssl_no_asm.gypi'],
+          'sources+': [ '<@(openssl_sources_no_asm)' ],
         }, 'gas_version and v(gas_version) >= v("2.26") or '
            'nasm_version and v(nasm_version) >= v("2.11.8")', {
            # Require AVX512IFMA supported. See

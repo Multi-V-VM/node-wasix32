@@ -473,7 +473,7 @@ void* Context::GetAlignedPointerFromEmbedderData(Isolate* isolate, int index) {
                      (I::kEmbedderDataSlotSize * index) +
                      I::kEmbedderDataSlotExternalPointerOffset;
   return reinterpret_cast<void*>(
-      I::ReadExternalPointerField<internal::kEmbedderDataSlotPayloadTag>(
+      I::ReadExternalPointerField<internal::Internals::kEmbedderDataSlotPayloadTag>(
           isolate, embedder_data, value_offset));
 #else
   return SlowGetAlignedPointerFromEmbedderData(index);
@@ -492,7 +492,7 @@ void* Context::GetAlignedPointerFromEmbedderData(int index) {
                      I::kEmbedderDataSlotExternalPointerOffset;
   Isolate* isolate = I::GetIsolateForSandbox(ctx);
   return reinterpret_cast<void*>(
-      I::ReadExternalPointerField<internal::kEmbedderDataSlotPayloadTag>(
+      I::ReadExternalPointerField<internal::Internals::kEmbedderDataSlotPayloadTag>(
           isolate, embedder_data, value_offset));
 #else
   return SlowGetAlignedPointerFromEmbedderData(index);
