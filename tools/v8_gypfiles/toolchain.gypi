@@ -327,6 +327,11 @@
           'V8_TARGET_ARCH_IA32',
         ],
       }],  # v8_target_arch=="ia32"
+      ['v8_target_arch=="wasm32"', {
+        'defines': [
+          'V8_TARGET_ARCH_WASM32',
+        ],
+      }],  # v8_target_arch=="wasm32"
       ['v8_target_arch=="mips64" or v8_target_arch=="mips64el"', {
         'target_conditions': [
           ['_toolset=="target"', {

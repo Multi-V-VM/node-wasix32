@@ -58,6 +58,13 @@ class V8_EXPORT Isolate {
     kMessageWarning
   };
   
+  // Priority enum
+  enum class Priority {
+    kBestEffort = 0,
+    kUserVisible = 1,
+    kUserBlocking = 2,
+  };
+  
   // AbortOnUncaughtExceptionCallback typedef
   using AbortOnUncaughtExceptionCallback = bool (*)(Isolate*);
   

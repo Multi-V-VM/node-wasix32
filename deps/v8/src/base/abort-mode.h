@@ -8,6 +8,7 @@
 // This file describes the way aborts are handled in OS::Abort and the way
 // DCHECKs are working.
 
+#include "include/v8config.h"
 #include "src/base/base-export.h"
 
 namespace v8 {

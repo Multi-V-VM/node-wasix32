@@ -83,6 +83,33 @@ using Address = uintptr_t;
 #define NO_SANITIZE_CFI_ICALL
 #endif
 
+// Additional compiler attribute macros
+#ifndef V8_PRESERVE_MOST
+#if __has_attribute(preserve_most)
+#define V8_PRESERVE_MOST __attribute__((preserve_most))
+#else
+#define V8_PRESERVE_MOST
+#endif
+#endif
+
+#ifndef V8_CONSTINIT
+#if defined(__cpp_constinit) && __cpp_constinit >= 201907L
+#define V8_CONSTINIT constinit
+#elif __has_attribute(require_constant_initialization)
+#define V8_CONSTINIT __attribute__((require_constant_initialization))
+#else
+#define V8_CONSTINIT
+#endif
+#endif
+
+#ifndef V8_CONST
+#if __cplusplus >= 201402L
+#define V8_CONST constexpr
+#else
+#define V8_CONST const
+#endif
+#endif
+
 #endif  // __wasi__
 
 #endif  // V8_WASI_MACRO_FIXES_H_

@@ -41,7 +41,7 @@ class V8_EXPORT CppHeapExternal : public Data {
   }
 
   template <typename T>
-  T* Value(Isolate* isolate, CppHeapPointerTagRange tag_range) const {
+  T* Value(Isolate* isolate, v8::CppHeapPointerTagRange tag_range) const {
     static_assert(cppgc::IsGarbageCollectedTypeV<T>,
                   "Object must be of type GarbageCollected.");
     return static_cast<T*>(ValueImpl(isolate, tag_range));
@@ -51,7 +51,7 @@ class V8_EXPORT CppHeapExternal : public Data {
   static void CheckCast(v8::Data* obj);
   static Local<CppHeapExternal> NewImpl(Isolate* isolate, void* value,
                                         CppHeapPointerTag tag);
-  void* ValueImpl(Isolate*, CppHeapPointerTagRange tag_range) const;
+  void* ValueImpl(Isolate*, v8::CppHeapPointerTagRange tag_range) const;
 };
 
 }  // namespace v8

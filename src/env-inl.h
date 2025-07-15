@@ -1,3 +1,7 @@
+#ifdef __wasi__
+#include "wasi-isolate-extensions.h"
+#endif
+
 // Copyright Joyent, Inc. and other Node contributors.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
@@ -909,13 +913,23 @@ inline bool Environment::report_exclude_env() const {
 inline void Environment::AddHeapSnapshotNearHeapLimitCallback() {
   DCHECK(!heapsnapshot_near_heap_limit_callback_added_);
   heapsnapshot_near_heap_limit_callback_added_ = true;
+  
+#ifndef __wasi__
+  
+#ifndef __wasi__
   isolate_->AddNearHeapLimitCallback(Environment::NearHeapLimitCallback, this);
+#endif
+#endif
 }
 
 inline void Environment::RemoveHeapSnapshotNearHeapLimitCallback(
     size_t heap_limit) {
   DCHECK(heapsnapshot_near_heap_limit_callback_added_);
   heapsnapshot_near_heap_limit_callback_added_ = false;
+  
+#ifndef __wasi__
+  
+#ifndef __wasi__
   isolate_->RemoveNearHeapLimitCallback(Environment::NearHeapLimitCallback,
                                         heap_limit);
 }
@@ -929,3 +943,4 @@ inline void Environment::RemoveHeapSnapshotNearHeapLimitCallback(
 #endif  // defined(NODE_WANT_INTERNALS) && NODE_WANT_INTERNALS
 
 #endif  // SRC_ENV_INL_H_
+#endif // Fix for unterminated conditional

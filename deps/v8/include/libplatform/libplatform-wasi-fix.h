@@ -1,6 +1,15 @@
 #ifndef V8_LIBPLATFORM_WASI_FIX_H_
 #define V8_LIBPLATFORM_WASI_FIX_H_
 
+// Forward declarations to avoid circular includes
+namespace v8 {
+namespace platform {
+namespace tracing {
+class TracingController;
+}  // namespace tracing
+}  // namespace platform
+}  // namespace v8
+
 #include "wasi/v8-platform-wasi-fixed.h"
 #include "wasi/nuclear-fix.h"
 
@@ -19,9 +28,7 @@ class TraceBufferChunk {
 
 }  // namespace platform
 
-namespace tracing {
-using TracingController = v8::TracingController;
-}  // namespace tracing
+// TracingController is already defined in v8-platform-wasi-fixed.h
 
 }  // namespace v8
 

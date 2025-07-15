@@ -167,6 +167,43 @@ namespace bits {
   inline bool IsPowerOfTwo(T value) {
     return value && !(value & (value - 1));
   }
+  
+  inline uint32_t RoundUpToPowerOfTwo32(uint32_t value) {
+    if (value == 0) return 1;
+    // The following code is based on the "Bit Twiddling Hacks" webpage.
+    value--;
+    value |= value >> 1;
+    value |= value >> 2;
+    value |= value >> 4;
+    value |= value >> 8;
+    value |= value >> 16;
+    value++;
+    return value;
+  }
+  
+  inline uint64_t RoundUpToPowerOfTwo64(uint64_t value) {
+    if (value == 0) return 1;
+    // The following code is based on the "Bit Twiddling Hacks" webpage.
+    value--;
+    value |= value >> 1;
+    value |= value >> 2;
+    value |= value >> 4;
+    value |= value >> 8;
+    value |= value >> 16;
+    value |= value >> 32;
+    value++;
+    return value;
+  }
+  
+  // Generic template that delegates to the appropriate sized version
+  template<typename T>
+  inline T RoundUpToPowerOfTwo(T value) {
+    if constexpr (sizeof(T) <= 4) {
+      return static_cast<T>(RoundUpToPowerOfTwo32(static_cast<uint32_t>(value)));
+    } else {
+      return static_cast<T>(RoundUpToPowerOfTwo64(static_cast<uint64_t>(value)));
+    }
+  }
 }  // namespace bits
 #endif // V8_BASE_BITS_DEFINED
 

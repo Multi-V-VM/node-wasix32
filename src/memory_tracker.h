@@ -6,6 +6,7 @@
 #include <cstddef>
 #include "v8-local-handle.h"
 #include "v8-object.h"
+#include "wasi/embedder-graph-stub.h"
 
 namespace node {
 
@@ -22,6 +23,9 @@ class MemoryRetainer {
   virtual bool IsRootNode() const { return false; }
   virtual bool IsCppgcWrapper() const { return false; }
   virtual v8::Local<v8::Object> WrappedObject() const { return v8::Local<v8::Object>(); }
+  virtual v8::EmbedderGraph::Node::Detachedness GetDetachedness() const { 
+    return v8::EmbedderGraph::Node::Detachedness::kUnknown; 
+  }
 };
 
 // MemoryTracker class
@@ -29,6 +33,11 @@ class MemoryTracker {
 public:
   template<typename T> void TrackField(const char* name, const T& value) {}
   template<typename T> void TrackFieldWithSize(const char* name, const T& value, size_t size = 0) {}
+  void TrackFieldWithSize(const char* edge_name, size_t size, const char* node_name = nullptr) {}
+  void TrackInlineFieldWithSize(const char* edge_name, size_t size, const char* node_name = nullptr) {}
+  
+  v8::Isolate* isolate() const { return nullptr; }
+  v8::EmbedderGraph* graph() const { return nullptr; }
 };
 
 // Macro stubs

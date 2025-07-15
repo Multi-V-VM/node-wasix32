@@ -1,14 +1,10 @@
-// Copyright 2023 the V8 project authors. All rights reserved.
-// Use of this source code is governed by a BSD-style license that can be
-// found in the LICENSE file.
-
-// Minimal implementation for WASI builds
+// WASI-specific abort-mode symbols to satisfy linker requirements
 #ifdef __wasi__
-// Empty - symbols provided by abort-mode-wasi-minimal.cc
-#else
-#include "src/base/abort-mode.h"
 namespace v8 {
 namespace base {
+// Minimal enum declaration for WASI
+enum class AbortMode { kDefault };
+// Provide minimal symbol
 AbortMode g_abort_mode = AbortMode::kDefault;
 }  // namespace base
 }  // namespace v8

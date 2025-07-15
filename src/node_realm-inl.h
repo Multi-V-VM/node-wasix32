@@ -1,3 +1,11 @@
+#ifdef __wasi__
+#include "wasi-base-object-list-fix.h"
+#endif
+
+#ifdef __wasi__
+#include "wasi-isolate-extensions.h"
+#endif
+
 #ifndef SRC_NODE_REALM_INL_H_
 #define SRC_NODE_REALM_INL_H_
 

@@ -383,6 +383,11 @@
             '<(V8_ROOT)/src/builtins/s390/builtins-s390.cc',
           ],
         }],
+        ['v8_target_arch=="wasm32"', {
+          'sources': [
+            '<(V8_ROOT)/src/builtins/wasm32/builtins-wasm32.cc',
+          ],
+        }],
         ['v8_enable_i18n_support==1', {
           'dependencies': [
             '<(icu_gyp_path):icui18n',
@@ -706,6 +711,17 @@
               }],
             ],
           }],
+          ['v8_target_arch=="wasm32"', {
+            'sources': [
+              '<(V8_ROOT)/src/codegen/wasm32/assembler-wasm32.h',
+              '<(V8_ROOT)/src/codegen/wasm32/assembler-wasm32-inl.h',
+              '<(V8_ROOT)/src/codegen/wasm32/constants-wasm32.h',
+              '<(V8_ROOT)/src/codegen/wasm32/interface-descriptors-wasm32-inl.h',
+              '<(V8_ROOT)/src/codegen/wasm32/macro-assembler-wasm32.h',
+              '<(V8_ROOT)/src/codegen/wasm32/register-wasm32.h',
+              '<(V8_ROOT)/src/codegen/wasm32/reglist-wasm32.h',
+            ],
+          }],
           ['v8_target_arch=="x64"', {
             'sources': [
               '<!@pymod_do_main(GN-scraper "<(V8_ROOT)/BUILD.gn"  "v8_header_set.\\"v8_internal_headers\\".*?v8_enable_i18n_support.*?v8_current_cpu == \\"x64\\".*?sources \\+= ")',
@@ -858,6 +874,11 @@
           ['v8_target_arch=="ia32"', {
             'sources': [
               '<!@pymod_do_main(GN-scraper "<(V8_ROOT)/BUILD.gn"  "v8_compiler_sources =.*?v8_current_cpu == \\"x86\\".*?v8_compiler_sources \\+= ")',
+            ],
+          }],
+          ['v8_target_arch=="wasm32"', {
+            'sources': [
+              # WASM32 compiler sources would go here when implemented
             ],
           }],
           ['v8_target_arch=="x64"', {
@@ -1124,6 +1145,13 @@
         ['v8_target_arch=="ia32"', {
           'sources': [
             '<!@pymod_do_main(GN-scraper "<(V8_ROOT)/BUILD.gn"  "\\"v8_base_without_compiler.*?v8_enable_wasm_gdb_remote_debugging.*?v8_current_cpu == \\"x86.*?sources \\+= ")',
+          ],
+        }],
+        ['v8_target_arch=="wasm32"', {
+          'sources': [
+            '<(V8_ROOT)/src/codegen/wasm32/assembler-wasm32.cc',
+            '<(V8_ROOT)/src/codegen/wasm32/cpu-wasm32.cc',
+            '<(V8_ROOT)/src/codegen/wasm32/macro-assembler-wasm32.cc',
           ],
         }],
         ['v8_target_arch=="x64"', {
@@ -2012,6 +2040,11 @@
               ['_toolset == "host" and host_arch == "loong64" or _toolset == "target" and target_arch=="loong64"', {
                 'sources': [
                   '<(V8_ROOT)/src/heap/base/asm/loong64/push_registers_asm.cc',
+                ],
+              }],
+              ['_toolset == "host" and host_arch == "wasm32" or _toolset == "target" and target_arch=="wasm32"', {
+                'sources': [
+                  '<(V8_ROOT)/src/heap/base/asm/wasm32/push_registers_asm.cc',
                 ],
               }],
             ]

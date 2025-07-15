@@ -50,6 +50,9 @@
 #include "uv.h"
 #include "v8-external-memory-accounter.h"
 #include "v8.h"
+#ifdef __wasi__
+#include "wasi/embedder-graph-stub.h"
+#endif
 
 #if HAVE_OPENSSL
 #include <openssl/evp.h>

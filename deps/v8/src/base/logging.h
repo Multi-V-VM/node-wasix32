@@ -1,6 +1,8 @@
 #ifndef V8_SRC_BASE_LOGGING_H_
 #define V8_SRC_BASE_LOGGING_H_
 
+#include <cstdlib>  // for abort()
+
 // Minimal logging stubs for WASI
 #ifndef CHECK
 #define CHECK(condition) ((void)0)
@@ -93,6 +95,19 @@
 namespace v8 {
 namespace base {
 constexpr const char* kUnreachableCodeMessage = "Unreachable code";
+
+// Out-of-memory error types
+enum class OOMType {
+  kProcess,      // General process out of memory
+  kJavaScript    // JavaScript heap out of memory
+};
+
+// Fatal out-of-memory handler
+[[noreturn]] inline void FatalOOM(OOMType type, const char* location) {
+  // In WASI, we simply abort on OOM
+  abort();
+}
+
 }  // namespace base
 }  // namespace v8
 

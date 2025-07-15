@@ -128,7 +128,18 @@ class V8_EXPORT Platform {
    */
   virtual std::unique_ptr<JobHandle> PostJob(
       TaskPriority priority, std::unique_ptr<JobTask> job_task) {
-    return std::make_unique<JobHandle>();
+    
+#ifdef __wasi__
+    class WASIJobHandle : public JobHandle {
+     public:
+      void Join() override {}
+      void Cancel() override {}
+      bool IsActive() override { return false; }
+    };
+    return std::make_unique<WASIJobHandle>();
+#else
+    return nullptr;
+#endif
   }
 
   /**

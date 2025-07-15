@@ -45,12 +45,7 @@ class HeapStatistics {
 };
 
 // Forward declarations for Visitor dependencies
-#ifndef CPPGC_TRACE_TRAIT_H_
-class TraceDescriptor {
- public:
-  constexpr TraceDescriptor(size_t, size_t) {}
-};
-#endif
+// TraceDescriptor is defined in cppgc/trace-trait.h
 using WeakCallback = void (*)(const void*);
 
 class Visitor {
@@ -69,15 +64,6 @@ class Visitor {
   template<typename T>
   void Trace(const v8::TracedReference<T>&) {}
 };
-
-namespace internal {
-class RootVisitor {
- public:
-  virtual ~RootVisitor() = default;
-  template<typename T>
-  void Trace(const T&) {}
-};
-}  // namespace internal
 #endif
 class AllocationHandle;
 class HeapHandle;

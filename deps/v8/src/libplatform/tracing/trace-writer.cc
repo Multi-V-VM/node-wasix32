@@ -9,14 +9,12 @@
 // WASI stub implementation
 #include <ostream>
 #include <string>
+#include "include/libplatform/v8-tracing.h"
+
 namespace v8 {
 namespace platform {
 namespace tracing {
-class TraceWriter {
- public:
-  static TraceWriter* CreateJSONTraceWriter(std::ostream&);
-  static TraceWriter* CreateJSONTraceWriter(std::ostream&, const std::string&);
-};
+// TraceWriter is already declared in v8-tracing.h, just provide stub implementations
 TraceWriter* TraceWriter::CreateJSONTraceWriter(std::ostream&) { return nullptr; }
 TraceWriter* TraceWriter::CreateJSONTraceWriter(std::ostream&, const std::string&) { return nullptr; }
 }  // namespace tracing

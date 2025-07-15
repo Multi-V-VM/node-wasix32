@@ -3,6 +3,11 @@
 
 #if defined(NODE_WANT_INTERNALS) && NODE_WANT_INTERNALS
 
+#ifdef __wasi__
+// For WASI builds, the inline implementations are already in memory_tracker.h
+// This file should be empty to avoid redefinition errors
+#else
+
 #include "cppgc_helpers.h"
 #include "memory_tracker.h"
 #include "util-inl.h"
@@ -448,6 +453,8 @@ void MemoryTracker::AdjustCurrentNodeSize(int diff) {
 }
 
 }  // namespace node
+
+#endif  // !__wasi__
 
 #endif  // defined(NODE_WANT_INTERNALS) && NODE_WANT_INTERNALS
 

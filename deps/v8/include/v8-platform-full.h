@@ -48,6 +48,16 @@ class JobTask {
 // PageAllocator interface
 class PageAllocator {
  public:
+  // Permission enum for backwards compatibility
+  enum Permission {
+    kNoAccess,
+    kRead,
+    kReadWrite,
+    kReadWriteExecute,
+    kReadExecute,
+    kNoAccessWillJitLater
+  };
+  
   virtual ~PageAllocator() = default;
   
   virtual size_t AllocatePageSize() = 0;

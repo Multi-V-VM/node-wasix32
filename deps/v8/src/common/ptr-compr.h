@@ -10,6 +10,11 @@
 
 namespace v8::internal {
 
+// Import base namespace functions
+using ::v8::base::Memory;
+using ::v8::base::ReadUnalignedValue;
+using ::v8::base::WriteUnalignedValue;
+
 class IsolateGroup;
 
 #ifdef V8_ENABLE_SANDBOX
@@ -53,7 +58,7 @@ class V8HeapCompressionSchemeImpl {
 
   // Process-wide cage base value used for decompression.
   V8_INLINE static void InitBase(Address base);
-  V8_CONST V8_INLINE static Address base();
+  V8_INLINE static Address base();
 };
 
 // The main pointer compression cage, used for most objects.
@@ -66,9 +71,9 @@ class MainCage : public AllStatic {
   static V8_EXPORT_PRIVATE void set_base_non_inlined(Address base);
 
 #ifdef V8_COMPRESS_POINTERS_IN_SHARED_CAGE
-  static V8_EXPORT_PRIVATE uintptr_t base_ V8_CONSTINIT;
+  static V8_EXPORT_PRIVATE uintptr_t base_;
 #else
-  static thread_local uintptr_t base_ V8_CONSTINIT;
+  static thread_local uintptr_t base_;
 #endif  // V8_COMPRESS_POINTERS_IN_SHARED_CAGE
 };
 using V8HeapCompressionScheme = V8HeapCompressionSchemeImpl<MainCage>;
@@ -83,7 +88,7 @@ class TrustedCage : public AllStatic {
   static V8_EXPORT_PRIVATE Address base_non_inlined();
   static V8_EXPORT_PRIVATE void set_base_non_inlined(Address base);
 
-  static V8_EXPORT_PRIVATE uintptr_t base_ V8_CONSTINIT;
+  static V8_EXPORT_PRIVATE uintptr_t base_;
 };
 using TrustedSpaceCompressionScheme = V8HeapCompressionSchemeImpl<TrustedCage>;
 #else
@@ -184,9 +189,9 @@ class ExternalCodeCompressionScheme {
   static V8_EXPORT_PRIVATE void set_base_non_inlined(Address base);
 
 #ifdef V8_COMPRESS_POINTERS_IN_SHARED_CAGE
-  static V8_EXPORT_PRIVATE uintptr_t base_ V8_CONSTINIT;
+  static V8_EXPORT_PRIVATE uintptr_t base_;
 #else
-  static thread_local uintptr_t base_ V8_CONSTINIT;
+  static thread_local uintptr_t base_;
 #endif  // V8_COMPRESS_POINTERS_IN_SHARED_CAGE
 };
 
@@ -206,9 +211,9 @@ static inline V ReadMaybeUnalignedValue(Address p) {
   constexpr bool unaligned_double_field =
       std::is_same<V, double>::value && kDoubleSize > kTaggedSize;
   if (unaligned_double_field || v8_pointer_compression_unaligned) {
-    return base::ReadUnalignedValue<V>(p);
+    return ReadUnalignedValue<V>(p);
   } else {
-    return base::Memory<V>(p);
+    return Memory<V>(p);
   }
 }
 
@@ -224,9 +229,9 @@ static inline void WriteMaybeUnalignedValue(Address p, V value) {
   constexpr bool unaligned_double_field =
       std::is_same<V, double>::value && kDoubleSize > kTaggedSize;
   if (unaligned_double_field || v8_pointer_compression_unaligned) {
-    base::WriteUnalignedValue<V>(p, value);
+    WriteUnalignedValue<V>(p, value);
   } else {
-    base::Memory<V>(p) = value;
+    Memory<V>(p) = value;
   }
 }
 

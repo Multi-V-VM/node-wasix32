@@ -18,6 +18,18 @@
 #include "cppgc/visitor.h"
 #include "v8config.h"  // NOLINT(build/include_directory)
 
+// Forward declaration for WASI
+#ifdef __wasi__
+namespace cppgc {
+namespace internal {
+class RootVisitor {
+ public:
+  void Trace(const void*) {}
+};
+}  // namespace internal
+}  // namespace cppgc
+#endif
+
 // Define V8_CLANG_NO_SANITIZE for WASM builds if not already defined
 #ifndef V8_CLANG_NO_SANITIZE
 #if defined(__clang__) && defined(__has_attribute)

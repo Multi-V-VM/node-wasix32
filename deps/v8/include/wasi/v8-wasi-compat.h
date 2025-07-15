@@ -14,10 +14,27 @@
 #include <cstdint>
 #include <limits>
 #include <vector>
+#include <cstring>  // for memcpy
+#include <type_traits>  // for std::false_type, std::true_type, std::void_t
 
 // V8 attribute macros for WASI
 #ifndef V8_DEPRECATE_SOON
 #define V8_DEPRECATE_SOON(message) [[deprecated(message)]]
+#endif
+
+// Ensure V8_INLINE is defined
+#ifndef V8_INLINE
+#define V8_INLINE inline
+#endif
+
+// Ensure V8_NOINLINE is defined
+#ifndef V8_NOINLINE
+#define V8_NOINLINE __attribute__((noinline))
+#endif
+
+// Ensure V8_WARN_UNUSED_RESULT is defined
+#ifndef V8_WARN_UNUSED_RESULT
+#define V8_WARN_UNUSED_RESULT __attribute__((warn_unused_result))
 #endif
 
 // Undefine any macros that might conflict from nuclear-fix.h
@@ -45,11 +62,15 @@ constexpr int kCppHeapPointerTagShift = 1;
 constexpr int kJSAPIObjectWithEmbedderSlotsHeaderSize = 16;
 constexpr int kEmbedderDataSlotSize = 8;
 
-// Smi 相关常量（32位 WASI 系统）
-constexpr int kSmiTagSize = 1;
-constexpr int kSmiShiftSize = 0;
-constexpr int kSmiValueSize = 31;
+// Smi constants are defined in v8-internal.h
+// Only define additional constants needed for WASI
 constexpr int kSmiTag = 0;
+constexpr int kSmiTagMask = 1;  // (1 << kSmiTagSize) - 1
+
+// Heap object tag constants
+constexpr int kHeapObjectTagSize = 2;
+constexpr int kHeapObjectTagMask = (1 << kHeapObjectTagSize) - 1;  // = 3
+constexpr int kWeakHeapObjectTag = 3;
 
 // 指针和标记大小常量
 constexpr int kTaggedSize = 4;  // 32位指针
@@ -80,17 +101,24 @@ class Isolate;
 template<typename T> class Local;
 class FixedArray;
 class CppHeap;
+class ArrayBuffer;
 
-// HandleScope stub
-class HandleScope {
+// SealHandleScope stub for WASI
+class SealHandleScope {
  public:
-  explicit HandleScope(Isolate* isolate) {}
-  ~HandleScope() {}
+  explicit SealHandleScope(Isolate* isolate) : isolate_(isolate) {}
+  ~SealHandleScope() {}
+  
+ private:
+  Isolate* isolate_;
+  SealHandleScope(const SealHandleScope&) = delete;
+  SealHandleScope& operator=(const SealHandleScope&) = delete;
 };
 
-class EscapableHandleScope : public HandleScope {
+// EscapableHandleScope stub
+class EscapableHandleScope {
  public:
-  explicit EscapableHandleScope(Isolate* isolate) : HandleScope(isolate) {}
+  explicit EscapableHandleScope(Isolate* isolate) {}
   ~EscapableHandleScope() {}
   
   template<typename T>
@@ -102,6 +130,29 @@ class EscapableHandleScope : public HandleScope {
 // LocalVector template
 template<typename T>
 using LocalVector = std::vector<Local<T>>;
+// HandleScope is already defined by V8
+
+// NearHeapLimitCallback type
+typedef size_t (*NearHeapLimitCallback)(void* data, size_t current_heap_limit,
+                                         size_t initial_heap_limit);
+
+// Forward declare StackTrace class to avoid conflicts
+class StackTrace;
+
+// StackTraceOptions enum - placed in v8 namespace to avoid conflicts
+enum StackTraceOptions {
+  kSTLineNumber = 1,
+  kSTColumnOffset = 1 << 1,
+  kSTScriptName = 1 << 2,
+  kSTFunctionName = 1 << 3,
+  kSTIsEval = 1 << 4,
+  kSTIsConstructor = 1 << 5,
+  kSTScriptNameOrSourceURL = 1 << 6,
+  kSTScriptId = 1 << 7,
+  kSTExposeFramesAcrossSecurityOrigins = 1 << 8,
+  kSTOverview = kSTLineNumber | kSTColumnOffset | kSTScriptName | kSTFunctionName,
+  kSTDetailed = kSTOverview | kSTIsEval | kSTIsConstructor | kSTScriptNameOrSourceURL
+};
 
 namespace internal {
 
@@ -157,8 +208,8 @@ class Internals {
 
   // SMI 转换
   static constexpr Address IntegralToSmi(int value) {
-    return (static_cast<Address>(value) << (kSmiTagSize + kSmiShiftSize)) |
-           kSmiTag;
+    // kSmiTagSize = 1, kSmiShiftSize = 0, kSmiTag = 0
+    return (static_cast<Address>(value) << 1) | 0;
   }
 
   // 虚拟函数声明
@@ -193,8 +244,9 @@ class Internals {
   
   // IsValidSmi function
   static constexpr bool IsValidSmi(intptr_t value) {
-    return value >= (-static_cast<intptr_t>(1) << (kSmiValueSize - 1)) &&
-           value <= (static_cast<intptr_t>(1) << (kSmiValueSize - 1)) - 1;
+    // kSmiValueSize = 31
+    return value >= (-static_cast<intptr_t>(1) << 30) &&
+           value <= (static_cast<intptr_t>(1) << 30) - 1;
   }
   
   // TryIntegralToSmi - returns pointer to Smi or nullptr
@@ -245,6 +297,10 @@ class Internals {
   static Address ReadExternalPointerField(void* isolate, Address obj,
                                           int offset) {
     return 0;
+  }
+  
+  static void IncrementLongTasksStatsCounter(void* isolate) {
+    // No-op for WASI
   }
 };
 #endif // V8_INTERNALS_CLASS_DEFINED
@@ -314,7 +370,17 @@ enum ExternalPointerTag : uint64_t {
   kWasmWasmStreamingTag = 0x1000
 };
 
+// Re-export smi constants to internal namespace
+// Only export constants not already in v8-internal.h
+using ::kSmiTag;
+using ::kSmiTagMask;
+using ::kHeapObjectTagSize;
+using ::kHeapObjectTagMask;
+using ::kWeakHeapObjectTag;
+using ::kHeapObjectTag;
+
 }  // namespace internal
+
 }  // namespace v8
 
 #endif  // V8_WASI_CONSTANTS_DEFINED

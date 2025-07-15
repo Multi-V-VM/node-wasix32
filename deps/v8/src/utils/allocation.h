@@ -22,6 +22,15 @@ class BoundedPageAllocator;
 
 namespace internal {
 
+// Import base namespace types
+using ::v8::base::is_trivially_copyable;
+using ::v8::base::AllocationResult;
+using ::v8::base::AddressRegion;
+using ::v8::base::BoundedPageAllocator;
+using ::v8::base::PageInitializationMode;
+using ::v8::base::PageFreeingMode;
+using ::v8::base::Malloc;
+
 class Isolate;
 
 // This file defines memory allocation functions. If a first attempt at an

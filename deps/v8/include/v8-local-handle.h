@@ -21,7 +21,6 @@ class String;
 class Private;
 
 template<typename T> class Local {
-  T* ptr_;
 public:
   Local() : ptr_(nullptr) {}
   T* operator->() const { return ptr_; }
@@ -71,6 +70,12 @@ public:
   // Constructor for casting from compatible types
   template<typename S>
   Local(const Local<S>& that) : ptr_(reinterpret_cast<T*>(that.ptr_)) {}
+  
+  // Friend declaration to allow access between different Local instantiations
+  template<typename S> friend class Local;
+  
+private:
+  T* ptr_;
 };
 
 } // namespace v8

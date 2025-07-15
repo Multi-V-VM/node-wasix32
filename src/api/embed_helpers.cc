@@ -1,3 +1,7 @@
+#ifdef __wasi__
+#include "wasi-compat-macros.h"
+#endif
+
 #include "debug_utils-inl.h"
 #include "env-inl.h"
 #include "node.h"
@@ -13,7 +17,11 @@ using v8::Local;
 using v8::Locker;
 using v8::Maybe;
 using v8::Nothing;
+#ifndef __wasi__
 using v8::SealHandleScope;
+#else
+#define SealHandleScope HandleScope
+#endif
 using v8::SnapshotCreator;
 using v8::TryCatch;
 
@@ -114,11 +122,13 @@ CommonEnvironmentSetup::CommonEnvironmentSetup(
   const std::vector<intptr_t>& external_references =
       SnapshotBuilder::CollectExternalReferences();
   Isolate::CreateParams params;
+  
+#ifndef __wasi__
   params.array_buffer_allocator = impl_->allocator.get();
-  params.external_references = external_references.data();
   params.external_references = external_references.data();
   params.cpp_heap =
       v8::CppHeap::Create(platform, v8::CppHeapCreateParams{{}}).release();
+#endif
 
   Isolate* isolate;
 
@@ -128,15 +138,23 @@ CommonEnvironmentSetup::CommonEnvironmentSetup(
   if (flags & Flags::kIsForSnapshotting) {
     // The isolate must be registered before the SnapshotCreator initializes the
     // isolate, so that the memory reducer can be initialized.
+    
+#ifdef __wasi__
+    isolate = impl_->isolate = Isolate::New(Isolate::CreateParams());
+#else
     isolate = impl_->isolate = Isolate::Allocate();
+#endif
     platform->RegisterIsolate(isolate, loop);
 
     impl_->snapshot_creator.emplace(isolate, params);
+    
+#ifndef __wasi__
     isolate->SetCaptureStackTraceForUncaughtExceptions(
         true,
         static_cast<int>(
             per_process::cli_options->per_isolate->stack_trace_limit),
         v8::StackTrace::StackTraceOptions::kDetailed);
+#endif
     SetIsolateMiscHandlers(isolate, {});
   } else {
     isolate = impl_->isolate =

@@ -36,6 +36,29 @@
 #define V8_NO_UNIQUE_ADDRESS [[no_unique_address]]
 #define V8_HAS_ATTRIBUTE_NO_UNIQUE_ADDRESS 1
 
+// Additional compiler attributes
+#if __has_attribute(preserve_most)
+#define V8_PRESERVE_MOST __attribute__((preserve_most))
+#else
+#define V8_PRESERVE_MOST
+#endif
+
+// C++20 constinit support
+#if defined(__cpp_constinit) && __cpp_constinit >= 201907L
+#define V8_CONSTINIT constinit
+#elif __has_attribute(require_constant_initialization)
+#define V8_CONSTINIT __attribute__((require_constant_initialization))
+#else
+#define V8_CONSTINIT
+#endif
+
+// Constexpr support
+#if __cplusplus >= 201402L
+#define V8_CONST constexpr
+#else
+#define V8_CONST const
+#endif
+
 // Compiler detection
 #define V8_CC_CLANG 1
 
