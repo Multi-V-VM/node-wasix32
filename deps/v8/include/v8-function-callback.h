@@ -14,6 +14,7 @@
 #include "v8-internal.h"      // NOLINT(build/include_directory)
 #include "v8-local-handle.h"  // NOLINT(build/include_directory)
 #include "v8-primitive.h"     // NOLINT(build/include_directory)
+#include "v8-container.h"     // NOLINT(build/include_directory)
 #include "v8config.h"         // NOLINT(build/include_directory)
 
 namespace v8 {
@@ -336,7 +337,7 @@ void ReturnValue<T>::Set(const Global<S>& handle) {
   if (V8_UNLIKELY(handle.IsEmpty())) {
     SetDefaultValue();
   } else {
-    SetInternal(handle.ptr());
+    SetInternal(*handle.ptr());
   }
 }
 
@@ -357,7 +358,7 @@ void ReturnValue<T>::Set(const BasicTracedReference<S>& handle) {
   if (V8_UNLIKELY(handle.IsEmpty())) {
     SetDefaultValue();
   } else {
-    SetInternal(handle.ptr());
+    SetInternal(*handle.ptr());
   }
 }
 
@@ -394,7 +395,7 @@ void ReturnValue<T>::Set(const Local<S> handle) {
     // it was possible to set the return value even for ReturnValue<void>.
     Set(handle->BooleanValue(GetIsolate()));
   } else {
-    SetInternal(handle.ptr());
+    SetInternal(*handle.ptr());
   }
 }
 
@@ -422,7 +423,7 @@ void ReturnValue<T>::SetNonEmpty(const Local<S> handle) {
     // it was possible to set the return value even for ReturnValue<void>.
     Set(handle->BooleanValue(GetIsolate()));
   } else {
-    SetInternal(handle.ptr());
+    SetInternal(*handle.ptr());
   }
 }
 

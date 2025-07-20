@@ -8,7 +8,11 @@
 #ifndef V8_LIBPLATFORM_TRACING_RECORDER_MAC_H_
 #define V8_LIBPLATFORM_TRACING_RECORDER_MAC_H_
 
+#include <os/log.h>
+#include <os/signpost.h>
 #include "src/libplatform/tracing/recorder.h"
+
+static os_log_t v8Provider;
 
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wunguarded-availability"

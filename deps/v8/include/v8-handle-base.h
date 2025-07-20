@@ -24,6 +24,7 @@ class IndirectHandleBase {
   IndirectHandleBase() : slot_(nullptr) {}
   explicit IndirectHandleBase(v8::internal::Address* location) : slot_(location) {}
   
+  v8::internal::Address*& slot() { return slot_; }
   v8::internal::Address* slot() const { return slot_; }
   v8::internal::Address* const* slot_address() const { return &slot_; }
   

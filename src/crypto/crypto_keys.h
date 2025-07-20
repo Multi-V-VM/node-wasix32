@@ -144,7 +144,7 @@ class KeyObjectHandle : public BaseObject {
   SET_MEMORY_INFO_NAME(KeyObjectHandle)
   SET_SELF_SIZE(KeyObjectHandle)
 
-  const KeyObjectData& Data();
+  const KeyObjectData& Data() const;
 
  protected:
   static void New(const v8::FunctionCallbackInfo<v8::Value>& args);

@@ -8,6 +8,10 @@
 #include <atomic>
 #include <memory>
 
+#ifdef __wasi__
+#include "src/wasi-v8-base-fixes.h"
+#endif
+
 #include "include/v8-platform.h"
 #include "src/base/macros.h"
 #include "src/logging/tracing-flags.h"

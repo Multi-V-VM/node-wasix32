@@ -147,3 +147,6 @@ inline Maybe<T> Just(Args&&... args) {
 }  // namespace v8
 
 #endif  // INCLUDE_V8_MAYBE_H_
+#ifdef __wasi__
+#include "wasi/v8-maybe-specialization.h"
+#endif

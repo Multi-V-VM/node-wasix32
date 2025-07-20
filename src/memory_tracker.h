@@ -45,6 +45,8 @@ public:
   const char* MemoryInfoName() const override { return #name; }
 #define SET_SELF_SIZE(Klass) \
   size_t SelfSize() const override { return sizeof(Klass); }
+#define SET_NO_MEMORY_INFO() \
+  void MemoryInfo(MemoryTracker* tracker) const override {}
 
 }  // namespace node
 #else

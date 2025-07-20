@@ -10,6 +10,10 @@
 #include <type_traits>
 #include <utility>
 
+#ifdef __wasi__
+#include "src/wasi-v8-base-fixes.h"
+#endif
+
 #include "src/base/logging.h"
 #include "src/base/vector.h"
 #include "src/common/globals.h"

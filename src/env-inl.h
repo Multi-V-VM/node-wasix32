@@ -179,9 +179,16 @@ inline bool TickInfo::has_rejection_to_warn() const {
 }
 
 inline Environment* Environment::GetCurrent(v8::Isolate* isolate) {
+#ifdef __wasi__
+  if (!node::wasi_compat::IsolateInContext(isolate)) [[unlikely]]
+    return nullptr;
+#else
   if (!isolate->InContext()) [[unlikely]]
     return nullptr;
+#endif
+#ifndef __wasi__
   v8::HandleScope handle_scope(isolate);
+#endif
   return GetCurrent(isolate->GetCurrentContext());
 }
 
@@ -210,7 +217,12 @@ inline v8::Isolate* Environment::isolate() const {
 }
 
 inline cppgc::AllocationHandle& Environment::cppgc_allocation_handle() const {
+#ifdef __wasi__
+  static cppgc::AllocationHandle dummy_handle;
+  return dummy_handle;
+#else
   return isolate_->GetCppHeap()->GetAllocationHandle();
+#endif
 }
 
 inline v8::ExternalMemoryAccounter* Environment::external_memory_accounter()
@@ -915,10 +927,7 @@ inline void Environment::AddHeapSnapshotNearHeapLimitCallback() {
   heapsnapshot_near_heap_limit_callback_added_ = true;
   
 #ifndef __wasi__
-  
-#ifndef __wasi__
   isolate_->AddNearHeapLimitCallback(Environment::NearHeapLimitCallback, this);
-#endif
 #endif
 }
 
@@ -928,10 +937,9 @@ inline void Environment::RemoveHeapSnapshotNearHeapLimitCallback(
   heapsnapshot_near_heap_limit_callback_added_ = false;
   
 #ifndef __wasi__
-  
-#ifndef __wasi__
   isolate_->RemoveNearHeapLimitCallback(Environment::NearHeapLimitCallback,
                                         heap_limit);
+#endif
 }
 
 }  // namespace node
@@ -943,4 +951,3 @@ inline void Environment::RemoveHeapSnapshotNearHeapLimitCallback(
 #endif  // defined(NODE_WANT_INTERNALS) && NODE_WANT_INTERNALS
 
 #endif  // SRC_ENV_INL_H_
-#endif // Fix for unterminated conditional

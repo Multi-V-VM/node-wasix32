@@ -5,6 +5,10 @@
 #ifndef V8_STRINGS_UNICODE_DECODER_H_
 #define V8_STRINGS_UNICODE_DECODER_H_
 
+#ifdef __wasi__
+#include "src/wasi-v8-base-fixes.h"
+#endif
+
 #include "src/base/vector.h"
 #include "src/strings/unicode.h"
 

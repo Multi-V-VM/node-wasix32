@@ -6,8 +6,8 @@
 
 // Stub out V8 features not available in WASI
 
-// SealHandleScope - just use regular HandleScope
-#define SealHandleScope HandleScope
+// SealHandleScope - commented out to avoid conflicts
+// #define SealHandleScope HandleScope
 
 // Isolate methods that don't exist in WASI
 #define WASI_STUB_ISOLATE_METHOD(isolate, method, ...) \

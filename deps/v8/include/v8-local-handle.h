@@ -19,6 +19,7 @@ class Primitive;
 class Boolean;
 class String;
 class Private;
+template<typename T> class PersistentBase;
 
 template<typename T> class Local {
 public:
@@ -67,12 +68,23 @@ public:
     return Local<T>(reinterpret_cast<T*>(addr));
   }
   
+  // New method for PersistentBase compatibility
+  template<typename S>
+  static Local<T> New(Isolate* isolate, const PersistentBase<S>& persistent) {
+    return New(isolate, persistent.operator->());
+  }
+  
   // Constructor for casting from compatible types
   template<typename S>
   Local(const Local<S>& that) : ptr_(reinterpret_cast<T*>(that.ptr_)) {}
   
   // Friend declaration to allow access between different Local instantiations
   template<typename S> friend class Local;
+  
+  // Add ptr() method for WASI compatibility
+  internal::Address* ptr() const {
+    return reinterpret_cast<internal::Address*>(ptr_);
+  }
   
 private:
   T* ptr_;

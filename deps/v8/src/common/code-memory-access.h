@@ -8,6 +8,10 @@
 #include <map>
 #include <optional>
 
+#ifdef __wasi__
+#include "src/wasi-v8-base-fixes.h"
+#endif
+
 #include "include/v8-internal.h"
 #include "include/v8-platform.h"
 #include "src/base/build_config.h"

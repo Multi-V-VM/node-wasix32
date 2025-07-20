@@ -1,9 +1,5 @@
 #ifdef __wasi__
-#include "wasi-base-object-list-fix.h"
-#endif
-
-#ifdef __wasi__
-#include "wasi-isolate-extensions.h"
+#include "wasi-v8-extensions.h"
 #endif
 
 #ifndef SRC_NODE_REALM_INL_H_
@@ -17,10 +13,10 @@
 namespace node {
 
 inline Realm* Realm::GetCurrent(v8::Isolate* isolate) {
-  if (!isolate->InContext()) [[unlikely]] {
+  if (!node::wasi_compat::IsolateInContext(isolate)) [[unlikely]] {
     return nullptr;
   }
-  v8::HandleScope handle_scope(isolate);
+  // WASI: HandleScope removed for compatibility
   return GetCurrent(isolate->GetCurrentContext());
 }
 
@@ -119,9 +115,14 @@ inline BindingDataStore* Realm::binding_data_store() {
 
 template <typename T>
 void Realm::ForEachBaseObject(T&& iterator) const {
+#ifdef __wasi__
+  // WASI: BaseObjectList is a stub, cannot iterate
+  // TODO: Implement proper iteration for WASI
+#else
   for (auto bo : base_object_list_) {
     iterator(bo);
   }
+#endif
 }
 
 int64_t Realm::base_object_created_after_bootstrap() const {

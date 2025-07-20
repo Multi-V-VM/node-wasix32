@@ -103,6 +103,18 @@ class FixedArray;
 class CppHeap;
 class ArrayBuffer;
 
+// HandleScope stub for WASI
+class HandleScope {
+ public:
+  explicit HandleScope(Isolate* isolate) : isolate_(isolate) {}
+  ~HandleScope() = default;
+  
+ private:
+  Isolate* isolate_;
+  HandleScope(const HandleScope&) = delete;
+  HandleScope& operator=(const HandleScope&) = delete;
+};
+
 // SealHandleScope stub for WASI
 class SealHandleScope {
  public:
@@ -315,6 +327,13 @@ struct CppHeapPointerTagRange {
   CppHeapPointerTagRange(int s, int e) : start(s), end(e) {}
 };
 #endif
+
+} // namespace internal
+
+// Make CppHeapPointerTagRange available in v8 namespace
+using CppHeapPointerTagRange = internal::CppHeapPointerTagRange;
+
+namespace internal {
 
 // Re-export constants to internal namespace
 constexpr int kApiSystemPointerSize = ::kApiSystemPointerSize;

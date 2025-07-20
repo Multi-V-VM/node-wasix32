@@ -643,7 +643,7 @@ MaybeLocal<Object> KeyObjectHandle::Create(Environment* env,
   return obj;
 }
 
-const KeyObjectData& KeyObjectHandle::Data() {
+const KeyObjectData& KeyObjectHandle::Data() const {
   return data_;
 }
 

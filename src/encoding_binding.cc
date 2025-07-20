@@ -1,4 +1,7 @@
 #include "encoding_binding.h"
+#ifdef __wasi__
+#include "wasi-v8-api-fixes.h"
+#endif
 #include "ada.h"
 #include "env-inl.h"
 #include "node_buffer.h"

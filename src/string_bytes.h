@@ -24,6 +24,10 @@
 
 #if defined(NODE_WANT_INTERNALS) && NODE_WANT_INTERNALS
 
+#ifdef __wasi__
+#include "wasi-v8-api-fixes.h"
+#endif
+
 // Decodes a v8::Local<v8::String> or Buffer to a raw char*
 
 #include "v8.h"

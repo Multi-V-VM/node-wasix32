@@ -3,25 +3,23 @@
 
 #ifdef __wasi__
 
-// Extension methods for V8 Isolate in WASI builds
-namespace v8 {
+// WASI compatibility extensions for Isolate methods
 
-// Inline stub methods for missing Isolate functionality
-inline bool IsolateInContext(Isolate* isolate) {
-  // WASI always has a context
+namespace v8 {
+class Isolate;
+}
+
+// Extension functions to handle missing Isolate methods in WASI
+namespace node {
+namespace wasi_compat {
+
+// Check if isolate is in context (WASI always returns true)
+inline bool IsolateInContext(v8::Isolate* isolate) {
   return true;
 }
 
-inline CppHeap* IsolateGetCppHeap(Isolate* isolate) {
-  // WASI doesn't use CppHeap
-  return nullptr;
-}
-
-} // namespace v8
-
-// Macros to redirect method calls
-#define InContext() v8::IsolateInContext(this)
-#define GetCppHeap() v8::IsolateGetCppHeap(this)
+} // namespace wasi_compat
+} // namespace node
 
 #endif // __wasi__
 

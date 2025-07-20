@@ -341,7 +341,13 @@ static struct global_handle_map_t {
 DLib::DLib(const char* filename, int flags)
     : filename_(filename), flags_(flags), handle_(nullptr) {}
 
-#ifdef __POSIX__
+#ifdef __wasi__
+// WASI doesn't support dynamic loading
+bool DLib::Open() {
+  errmsg_ = "Dynamic loading not supported on WASI";
+  return false;
+}
+#elif defined(__POSIX__)
 bool DLib::Open() {
   handle_ = dlopen(filename_.c_str(), flags_);
   if (handle_ != nullptr) return true;
@@ -349,6 +355,16 @@ bool DLib::Open() {
   return false;
 }
 
+#ifdef __wasi__
+void DLib::Close() {
+  // No-op on WASI
+}
+
+void* DLib::GetSymbolAddress(const char* name) {
+  // WASI doesn't support dynamic symbol lookup
+  return nullptr;
+}
+#else  // !__wasi__
 void DLib::Close() {
   if (handle_ == nullptr) return;
 
@@ -372,6 +388,7 @@ void DLib::Close() {
 void* DLib::GetSymbolAddress(const char* name) {
   return dlsym(handle_, name);
 }
+#endif  // __wasi__
 #else   // !__POSIX__
 bool DLib::Open() {
   int ret = uv_dlopen(filename_.c_str(), &lib_);
@@ -455,8 +472,11 @@ void DLOpen(const FunctionCallbackInfo<Value>& args) {
   }
 
   int32_t flags = DLib::kDefaultFlags;
-  if (args.Length() > 2 && !args[2]->Int32Value(context).To(&flags)) {
-    return THROW_ERR_INVALID_ARG_TYPE(env, "flag argument must be an integer.");
+  if (args.Length() > 2) {
+    if (!args[2]->IsInt32()) {
+      return THROW_ERR_INVALID_ARG_TYPE(env, "flag argument must be an integer.");
+    }
+    flags = args[2].As<v8::Int32>()->Value();
   }
 
   Local<Object> module;
