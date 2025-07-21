@@ -50,6 +50,60 @@ class SwissNameDictionary;
 class WasmExportedFunctionData;
 class ZoneAllocationPolicy;
 
+// Tag type for constructors that skip checks
+// Note: This is also defined in v8-handle-base.h for WASI builds
+#ifndef __wasi__
+struct no_checking_tag {};
+#endif
+
+// WrappedIterator: A simple iterator wrapper that provides type conversion
+// from the underlying container's element type to DirectHandle<T>.
+template <typename Iterator, typename ValueType>
+class WrappedIterator {
+ public:
+  using iterator_category = typename std::iterator_traits<Iterator>::iterator_category;
+  using value_type = ValueType;
+  using difference_type = typename std::iterator_traits<Iterator>::difference_type;
+  using pointer = value_type*;
+  using reference = value_type&;
+
+  WrappedIterator() = default;
+  explicit WrappedIterator(Iterator it) : it_(it) {}
+
+  // Dereference operator
+  reference operator*() const { return *reinterpret_cast<pointer>(&*it_); }
+  pointer operator->() const { return reinterpret_cast<pointer>(&*it_); }
+
+  // Increment/decrement operators
+  WrappedIterator& operator++() { ++it_; return *this; }
+  WrappedIterator operator++(int) { WrappedIterator tmp(*this); ++it_; return tmp; }
+  WrappedIterator& operator--() { --it_; return *this; }
+  WrappedIterator operator--(int) { WrappedIterator tmp(*this); --it_; return tmp; }
+
+  // Arithmetic operators
+  WrappedIterator operator+(difference_type n) const { return WrappedIterator(it_ + n); }
+  WrappedIterator operator-(difference_type n) const { return WrappedIterator(it_ - n); }
+  WrappedIterator& operator+=(difference_type n) { it_ += n; return *this; }
+  WrappedIterator& operator-=(difference_type n) { it_ -= n; return *this; }
+
+  // Difference operator
+  difference_type operator-(const WrappedIterator& other) const { return it_ - other.it_; }
+
+  // Comparison operators
+  bool operator==(const WrappedIterator& other) const { return it_ == other.it_; }
+  bool operator!=(const WrappedIterator& other) const { return it_ != other.it_; }
+  bool operator<(const WrappedIterator& other) const { return it_ < other.it_; }
+  bool operator>(const WrappedIterator& other) const { return it_ > other.it_; }
+  bool operator<=(const WrappedIterator& other) const { return it_ <= other.it_; }
+  bool operator>=(const WrappedIterator& other) const { return it_ >= other.it_; }
+
+  // Access to underlying iterator
+  Iterator base() const { return it_; }
+
+ private:
+  Iterator it_;
+};
+
 constexpr Address kTaggedNullAddress = 0x1;
 
 // ----------------------------------------------------------------------------
@@ -225,7 +279,8 @@ class Handle final : public HandleBase {
   // Provide function object for location hashing.
   struct hash {
     V8_INLINE size_t operator()(Handle<T> const& handle) const {
-      return base::hash<Address>()(handle.address());
+      // Use std::hash for Address (uintptr_t) to avoid WASI namespace issues
+      return std::hash<Address>()(handle.address());
     }
   };
 
