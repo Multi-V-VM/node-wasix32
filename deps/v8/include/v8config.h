@@ -36,8 +36,24 @@
 #define V8_NO_UNIQUE_ADDRESS [[no_unique_address]]
 #define V8_HAS_ATTRIBUTE_NO_UNIQUE_ADDRESS 1
 
+// V8_ASSUME(x) tells the compiler to assume that x is true
+#ifdef __wasi__
+// WASI: Use simpler form for constexpr compatibility
+#define V8_ASSUME(x) ((void)0)
+#else
+#if defined(__has_builtin)
+#if __has_builtin(__builtin_assume)
+#define V8_ASSUME(x) __builtin_assume(!!(x))
+#else
+#define V8_ASSUME(x) do { if (!(x)) __builtin_unreachable(); } while (0)
+#endif
+#else
+#define V8_ASSUME(x) do { if (!(x)) __builtin_unreachable(); } while (0)
+#endif
+#endif
+
 // Additional compiler attributes
-#if __has_attribute(preserve_most)
+#if __has_attribute(preserve_most) && !defined(__wasi__)
 #define V8_PRESERVE_MOST __attribute__((preserve_most))
 #else
 #define V8_PRESERVE_MOST

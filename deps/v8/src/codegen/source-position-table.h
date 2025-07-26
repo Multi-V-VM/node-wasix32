@@ -60,7 +60,7 @@ class V8_EXPORT_PRIVATE SourcePositionTableBuilder {
   template <typename IsolateT>
   EXPORT_TEMPLATE_DECLARE(V8_EXPORT_PRIVATE)
   Handle<TrustedByteArray> ToSourcePositionTable(IsolateT* isolate);
-  base::OwnedVector<uint8_t> ToSourcePositionTableVector();
+  ::v8::base::OwnedVector<uint8_t> ToSourcePositionTableVector();
 
   inline bool Omit() const { return mode_ != RECORD_SOURCE_POSITIONS; }
   inline bool Lazy() const { return mode_ == LAZY_SOURCE_POSITIONS; }

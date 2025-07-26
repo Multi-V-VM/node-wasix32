@@ -16,21 +16,20 @@ template<typename T>
 inline T* AddressOf(const T& ref) {
   return const_cast<T*>(&ref);
 }
-}
-}
-
-// Override problematic Persistent methods
-#define V8_PERSISTENT_BASE_GET_FIX 1
+}  // namespace internal
 
 // Add ptr() method to Local<T>
 template <typename T>
 struct LocalPtrFix {
-  static internal::Address* ptr(const Local<T>& local) {
-    return reinterpret_cast<internal::Address*>(const_cast<T*>(*local));
+  static ::v8::internal::Address* ptr(const ::v8::Local<T>& local) {
+    return reinterpret_cast<::v8::internal::Address*>(const_cast<T*>(*local));
   }
 };
 
 }  // namespace v8
+
+// Override problematic Persistent methods
+#define V8_PERSISTENT_BASE_GET_FIX 1
 
 // Fix UNREACHABLE macro for WASI
 #ifdef UNREACHABLE
@@ -43,9 +42,8 @@ struct LocalPtrFix {
   } while (0)
 
 namespace v8 {
-
-// simdutf function name fixes
 namespace simdutf {
+
 // Map old function names to new ones
 inline auto validate_utf8_with_errors(const char* data, size_t length) {
   // Return a simple result struct

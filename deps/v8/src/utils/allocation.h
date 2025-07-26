@@ -1,3 +1,6 @@
+#ifdef __wasi__
+#endif
+
 // Copyright 2012 the V8 project authors. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
@@ -24,8 +27,7 @@ namespace internal {
 
 // Import base namespace types
 using ::v8::base::is_trivially_copyable;
-using ::v8::base::AllocationResult;
-using ::v8::base::AddressRegion;
+
 using ::v8::base::BoundedPageAllocator;
 using ::v8::base::PageInitializationMode;
 using ::v8::base::PageFreeingMode;
@@ -109,7 +111,7 @@ void* AllocWithRetry(size_t size, MallocFn = base::Malloc);
 
 // Performs a malloc, with retry logic on failure. Returns nullptr on failure.
 // Call free to release memory allocated with this function.
-base::AllocationResult<void*> AllocAtLeastWithRetry(size_t size);
+AllocationResult<void*> AllocAtLeastWithRetry(size_t size);
 
 V8_EXPORT_PRIVATE void* AlignedAllocWithRetry(size_t size, size_t alignment);
 V8_EXPORT_PRIVATE void AlignedFree(void* ptr);

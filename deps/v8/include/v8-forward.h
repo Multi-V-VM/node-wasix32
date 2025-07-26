@@ -13,8 +13,13 @@
 // either via v8.h or the more fine-grained headers.
 
 #include "v8-local-handle.h"  // NOLINT(build/include_directory)
+#include <vector>
 
 namespace v8 {
+
+// LocalVector template for WASI builds
+template <typename T>
+using LocalVector = std::vector<Local<T>>;
 
 class AccessorSignature;
 class Array;

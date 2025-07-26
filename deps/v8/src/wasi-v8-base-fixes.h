@@ -84,8 +84,9 @@ class Vector {
 };
 
 // Mutex types
-using Mutex = std::mutex;
-using MutexGuard = std::lock_guard<std::mutex>;
+// Note: These are defined in wasi-consolidated-fixes.h now
+// using Mutex = std::mutex;
+// using MutexGuard = std::lock_guard<std::mutex>;
 
 // Placeholder for BoundedPageAllocator
 class BoundedPageAllocator {
@@ -94,26 +95,85 @@ class BoundedPageAllocator {
   ~BoundedPageAllocator() = default;
 };
 
-}  // namespace base
+// Add missing template types that cause namespace conflicts
+template<typename T>
+struct hash : public std::hash<T> {};
 
-// ValueHelper for accessing internal addresses
-class ValueHelper {
+template<typename T>
+struct bit_hash : public std::hash<T> {};
+
+template<typename T>
+struct bit_equal_to : public std::equal_to<T> {};
+
+template<typename T, typename U>
+class Flags {
  public:
-  template<typename T>
-  static Address ValueAsAddress(const T* value) {
-    return reinterpret_cast<Address>(value);
-  }
-  
-  template<typename T, bool check_null = true>
-  static T* SlotAsValue(Address* slot) {
-    if (check_null && !slot) return nullptr;
-    return reinterpret_cast<T*>(*slot);
-  }
-  
-  static bool IsEmpty(void* value) {
-    return value == nullptr;
-  }
+  Flags() = default;
 };
+
+template<typename T, typename U>
+class EnumSet {
+ public:
+  EnumSet() = default;
+};
+
+class AddressRegion {
+ public:
+  AddressRegion() = default;
+  AddressRegion(Address addr, size_t sz) : address_(addr), size_(sz) {}
+  
+  Address address() const { return address_; }
+  size_t size() const { return size_; }
+  
+ private:
+  Address address_ = 0;
+  size_t size_ = 0;
+};
+
+// Memory allocation types
+enum class PageInitializationMode { kUninitialized, kZeroInitialized };
+enum class PageFreeingMode { kMakeInaccessible, kDiscard };
+
+struct AllocationResult {
+  void* ptr;
+  size_t size;
+  AllocationResult() : ptr(nullptr), size(0) {}
+  AllocationResult(void* p, size_t s) : ptr(p), size(s) {}
+};
+
+// Function stubs
+inline void* Malloc(size_t size) { return malloc(size); }
+inline void Free(void* ptr) { free(ptr); }
+inline AllocationResult AllocatePages(size_t size) {
+  return AllocationResult(malloc(size), size);
+}
+inline void FreePages(void* address, size_t size) { free(address); }
+
+inline size_t hash_combine(size_t seed, size_t hash) {
+  return seed ^ (hash + 0x9e3779b9 + (seed << 6) + (seed >> 2));
+}
+
+template<typename T>
+using is_trivially_copyable = std::is_trivially_copyable<T>;
+
+namespace bits {
+  inline unsigned CountLeadingZeros(uint32_t value) {
+    return value ? __builtin_clz(value) : 32;
+  }
+  inline unsigned CountPopulation(uint32_t value) {
+    return __builtin_popcount(value);
+  }
+  inline unsigned CountPopulation(uint16_t value) {
+    return __builtin_popcount(value);
+  }
+}
+
+// Add iterator template for missing std::iterator usage
+template<typename Category, typename T, typename Distance = std::ptrdiff_t, 
+         typename Pointer = T*, typename Reference = T&>
+using iterator = std::iterator<Category, T, Distance, Pointer, Reference>;
+
+}  // namespace base
 
 }  // namespace internal
 }  // namespace v8

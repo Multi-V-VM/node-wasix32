@@ -62,7 +62,7 @@ inline unsigned int FastD2UI(double x) {
 
 // Adopted from https://gist.github.com/rygorous/2156668
 inline uint16_t DoubleToFloat16(double value) {
-  uint64_t in = base::bit_cast<uint64_t>(value);
+  uint64_t in = bit_cast<uint64_t>(value);
   uint16_t out = 0;
 
   // Take the absolute value of the input.
@@ -80,9 +80,9 @@ inline uint16_t DoubleToFloat16(double value) {
       // Result is a denormal or zero. Use the magic value and FP addition to
       // align 10 mantissa bits at the bottom of the float. Depends on FP
       // addition being round-to-nearest-even.
-      double temp = base::bit_cast<double>(in) +
-                    base::bit_cast<double>(kFP64To16DenormalMagic);
-      out = base::bit_cast<uint64_t>(temp) - kFP64To16DenormalMagic;
+      double temp = bit_cast<double>(in) +
+                    bit_cast<double>(kFP64To16DenormalMagic);
+      out = bit_cast<uint64_t>(temp) - kFP64To16DenormalMagic;
     } else {
       // Result is not a denormal.
 
@@ -233,7 +233,7 @@ bool DoubleToUint32IfEqualToSelf(double value, uint32_t* uint32_value) {
   // exponent and remaining significand bits are valid, and only then check the
   // value in the bottom 32 bits.
 
-  uint64_t result = base::bit_cast<uint64_t>(shifted_value);
+  uint64_t result = bit_cast<uint64_t>(shifted_value);
   if ((result >> 32) == kValidTopBits) {
     *uint32_value = result & kBottomBitMask;
     return FastUI2D(result & kBottomBitMask) == value;

@@ -1,3 +1,6 @@
+#ifdef __wasi__
+#endif
+
 // Copyright 2011 the V8 project authors. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
@@ -707,9 +710,9 @@ IndirectHandle<T> indirect_handle(DirectHandle<T> handle,
 template <typename T>
 class V8_TRIVIAL_ABI DirectHandle :
 #ifdef ENABLE_SLOW_DCHECKS
-    public api_internal::StackAllocated<true>
+    public StackAllocated<true>
 #else
-    public api_internal::StackAllocated<false>
+    public StackAllocated<false>
 #endif
 {
  public:

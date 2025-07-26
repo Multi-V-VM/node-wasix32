@@ -1,3 +1,7 @@
+#ifdef __wasi__
+#include "../wasi-v8-api-additions.h"
+#endif
+
 #include "inspector_profiler.h"
 #include "base_object-inl.h"
 #include "debug_utils-inl.h"

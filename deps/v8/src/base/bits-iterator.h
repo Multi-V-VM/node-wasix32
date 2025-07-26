@@ -8,6 +8,9 @@
 #include <type_traits>
 
 #include "src/base/bits.h"
+#ifdef __wasi__
+#include "../../../../wasi-v8-bits-fixes.h"
+#endif
 #include "src/base/iterator.h"
 
 namespace v8 {

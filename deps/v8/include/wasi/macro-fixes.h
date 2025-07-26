@@ -110,6 +110,15 @@ using Address = uintptr_t;
 #endif
 #endif
 
+// Deprecation macros
+#ifndef V8_DEPRECATE_SOON
+#define V8_DEPRECATE_SOON(message)
+#endif
+
+#ifndef V8_DEPRECATED
+#define V8_DEPRECATED(message)
+#endif
+
 #endif  // __wasi__
 
 #endif  // V8_WASI_MACRO_FIXES_H_

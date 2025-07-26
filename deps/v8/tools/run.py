@@ -4,10 +4,11 @@
 # found in the LICENSE file.
 
 """This program wraps an arbitrary command since gn currently can only execute
-scripts."""
+scripts. Modified to support WASM execution."""
 
 import subprocess
 import sys
+import os
 
 from pathlib import Path
 
@@ -20,6 +21,17 @@ if cmd and cmd[0] == '--redirect-stdout':
   stdout_file = Path(cmd[1])
   kwargs = dict(stdout=subprocess.PIPE)
   cmd = cmd[2:]
+
+# Check if the first argument is a WASM file
+if cmd and cmd[0].endswith('.wasm'):
+    # Use our wasm-exec-wrapper.sh
+    wrapper_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__)))), 
+                                'wasm-exec-wrapper.sh')
+    if os.path.exists(wrapper_path):
+        cmd = [wrapper_path] + cmd
+    else:
+        # Try wasmtime directly
+        cmd = ['wasmtime'] + cmd
 
 process = subprocess.Popen(cmd, **kwargs)
 stdout, _ = process.communicate()

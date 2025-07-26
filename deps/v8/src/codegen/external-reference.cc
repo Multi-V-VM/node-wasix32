@@ -1929,9 +1929,9 @@ size_t hash_value(ExternalReference reference) {
   if (v8_flags.predictable) {
     // Avoid ASLR non-determinism in predictable mode. For this, just take the
     // lowest 12 bit corresponding to a 4K page size.
-    return base::hash<Address>()(reference.raw() & 0xfff);
+    return std::hash<Address>()(reference.raw() & 0xfff);
   }
-  return base::hash<Address>()(reference.raw());
+  return std::hash<Address>()(reference.raw());
 }
 
 namespace {

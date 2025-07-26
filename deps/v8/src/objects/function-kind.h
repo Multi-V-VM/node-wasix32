@@ -70,13 +70,13 @@ static_assert(static_cast<int>(FunctionKind::kLastFunctionKind) <
               (1 << kFunctionKindBitSize));
 
 inline bool IsArrowFunction(FunctionKind kind) {
-  return base::IsInRange(kind, FunctionKind::kArrowFunction,
-                         FunctionKind::kAsyncArrowFunction);
+  return ::v8::base::IsInRange(kind, FunctionKind::kArrowFunction,
+                                FunctionKind::kAsyncArrowFunction);
 }
 
 inline bool IsModule(FunctionKind kind) {
-  return base::IsInRange(kind, FunctionKind::kModule,
-                         FunctionKind::kModuleWithTopLevelAwait);
+  return ::v8::base::IsInRange(kind, FunctionKind::kModule,
+                                FunctionKind::kModuleWithTopLevelAwait);
 }
 
 inline bool IsModuleWithTopLevelAwait(FunctionKind kind) {
@@ -84,18 +84,18 @@ inline bool IsModuleWithTopLevelAwait(FunctionKind kind) {
 }
 
 inline bool IsAsyncGeneratorFunction(FunctionKind kind) {
-  return base::IsInRange(kind, FunctionKind::kAsyncConciseGeneratorMethod,
-                         FunctionKind::kAsyncGeneratorFunction);
+  return ::v8::base::IsInRange(kind, FunctionKind::kAsyncConciseGeneratorMethod,
+                                FunctionKind::kAsyncGeneratorFunction);
 }
 
 inline bool IsGeneratorFunction(FunctionKind kind) {
-  return base::IsInRange(kind, FunctionKind::kAsyncConciseGeneratorMethod,
-                         FunctionKind::kStaticConciseGeneratorMethod);
+  return ::v8::base::IsInRange(kind, FunctionKind::kAsyncConciseGeneratorMethod,
+                                FunctionKind::kStaticConciseGeneratorMethod);
 }
 
 inline bool IsAsyncFunction(FunctionKind kind) {
-  return base::IsInRange(kind, FunctionKind::kAsyncArrowFunction,
-                         FunctionKind::kAsyncGeneratorFunction);
+  return ::v8::base::IsInRange(kind, FunctionKind::kAsyncArrowFunction,
+                                FunctionKind::kAsyncGeneratorFunction);
 }
 
 inline bool IsResumableFunction(FunctionKind kind) {
@@ -103,64 +103,64 @@ inline bool IsResumableFunction(FunctionKind kind) {
 }
 
 inline bool IsConciseMethod(FunctionKind kind) {
-  return base::IsInRange(kind, FunctionKind::kAsyncConciseMethod,
-                         FunctionKind::kStaticAsyncConciseGeneratorMethod) ||
-         base::IsInRange(kind, FunctionKind::kConciseGeneratorMethod,
-                         FunctionKind::kClassStaticInitializerFunction);
+  return ::v8::base::IsInRange(kind, FunctionKind::kAsyncConciseMethod,
+                                FunctionKind::kStaticAsyncConciseGeneratorMethod) ||
+         ::v8::base::IsInRange(kind, FunctionKind::kConciseGeneratorMethod,
+                               FunctionKind::kClassStaticInitializerFunction);
 }
 
 inline bool IsStrictFunctionWithoutPrototype(FunctionKind kind) {
-  return base::IsInRange(kind, FunctionKind::kGetterFunction,
-                         FunctionKind::kAsyncArrowFunction) ||
-         base::IsInRange(kind, FunctionKind::kAsyncConciseMethod,
-                         FunctionKind::kStaticAsyncConciseGeneratorMethod) ||
-         base::IsInRange(kind, FunctionKind::kConciseGeneratorMethod,
-                         FunctionKind::kClassStaticInitializerFunction);
+  return ::v8::base::IsInRange(kind, FunctionKind::kGetterFunction,
+                                FunctionKind::kAsyncArrowFunction) ||
+         ::v8::base::IsInRange(kind, FunctionKind::kAsyncConciseMethod,
+                               FunctionKind::kStaticAsyncConciseGeneratorMethod) ||
+         ::v8::base::IsInRange(kind, FunctionKind::kConciseGeneratorMethod,
+                               FunctionKind::kClassStaticInitializerFunction);
 }
 
 inline bool IsGetterFunction(FunctionKind kind) {
-  return base::IsInRange(kind, FunctionKind::kGetterFunction,
-                         FunctionKind::kStaticGetterFunction);
+  return ::v8::base::IsInRange(kind, FunctionKind::kGetterFunction,
+                                FunctionKind::kStaticGetterFunction);
 }
 
 inline bool IsSetterFunction(FunctionKind kind) {
-  return base::IsInRange(kind, FunctionKind::kSetterFunction,
-                         FunctionKind::kStaticSetterFunction);
+  return ::v8::base::IsInRange(kind, FunctionKind::kSetterFunction,
+                                FunctionKind::kStaticSetterFunction);
 }
 
 inline bool IsAccessorFunction(FunctionKind kind) {
-  return base::IsInRange(kind, FunctionKind::kGetterFunction,
-                         FunctionKind::kStaticSetterFunction);
+  return ::v8::base::IsInRange(kind, FunctionKind::kGetterFunction,
+                                FunctionKind::kStaticSetterFunction);
 }
 
 inline bool IsDefaultConstructor(FunctionKind kind) {
-  return base::IsInRange(kind, FunctionKind::kDefaultBaseConstructor,
-                         FunctionKind::kDefaultDerivedConstructor);
+  return ::v8::base::IsInRange(kind, FunctionKind::kDefaultBaseConstructor,
+                                FunctionKind::kDefaultDerivedConstructor);
 }
 
 inline bool IsBaseConstructor(FunctionKind kind) {
-  return base::IsInRange(kind, FunctionKind::kBaseConstructor,
-                         FunctionKind::kDefaultBaseConstructor);
+  return ::v8::base::IsInRange(kind, FunctionKind::kBaseConstructor,
+                                FunctionKind::kDefaultBaseConstructor);
 }
 
 inline bool IsDerivedConstructor(FunctionKind kind) {
-  return base::IsInRange(kind, FunctionKind::kDefaultDerivedConstructor,
-                         FunctionKind::kDerivedConstructor);
+  return ::v8::base::IsInRange(kind, FunctionKind::kDefaultDerivedConstructor,
+                                FunctionKind::kDerivedConstructor);
 }
 
 inline bool IsClassConstructor(FunctionKind kind) {
-  return base::IsInRange(kind, FunctionKind::kBaseConstructor,
-                         FunctionKind::kDerivedConstructor);
+  return ::v8::base::IsInRange(kind, FunctionKind::kBaseConstructor,
+                                FunctionKind::kDerivedConstructor);
 }
 
 inline bool IsClassMembersInitializerFunction(FunctionKind kind) {
-  return base::IsInRange(kind, FunctionKind::kClassMembersInitializerFunction,
-                         FunctionKind::kClassStaticInitializerFunction);
+  return ::v8::base::IsInRange(kind, FunctionKind::kClassMembersInitializerFunction,
+                                FunctionKind::kClassStaticInitializerFunction);
 }
 
 inline bool IsConstructable(FunctionKind kind) {
-  return base::IsInRange(kind, FunctionKind::kNormalFunction,
-                         FunctionKind::kDerivedConstructor);
+  return ::v8::base::IsInRange(kind, FunctionKind::kNormalFunction,
+                                FunctionKind::kDerivedConstructor);
 }
 
 inline bool IsStatic(FunctionKind kind) {

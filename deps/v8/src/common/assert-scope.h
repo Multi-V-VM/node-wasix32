@@ -299,11 +299,19 @@ class V8_NODISCARD NoGarbageCollectionMutexGuard {
       : guard_(mutex), mutex_(mutex), no_gc_(std::in_place) {}
 
   void Unlock() {
+#ifdef __wasi__
+    mutex_->unlock();
+#else
     mutex_->Unlock();
+#endif
     no_gc_.reset();
   }
   void Lock() {
+#ifdef __wasi__
+    mutex_->lock();
+#else
     mutex_->Lock();
+#endif
     no_gc_.emplace();
   }
 

@@ -1,3 +1,6 @@
+#ifdef __wasi__
+#endif
+
 #ifndef SRC_ALIASED_BUFFER_INL_H_
 #define SRC_ALIASED_BUFFER_INL_H_
 
@@ -16,7 +19,7 @@ AliasedBufferBase<NativeT, V8T>::AliasedBufferBase(
     v8::Isolate* isolate, const size_t count, const AliasedBufferIndex* index)
     : isolate_(isolate), count_(count), byte_offset_(0), index_(index) {
   CHECK_GT(count, 0);
-  if (index != nullptr) {
+  if (index_ != nullptr) {
     // Will be deserialized later.
     return;
   }
@@ -29,8 +32,8 @@ AliasedBufferBase<NativeT, V8T>::AliasedBufferBase(
   buffer_ = static_cast<NativeT*>(ab->Data());
 
   // allocate v8 TypedArray
-  v8::Local<V8T> js_array = V8T::New(ab, byte_offset_, count);
-  js_array_ = v8::Global<V8T>(isolate, js_array);
+  v8::Local<V8T> js_array = V8T::New(ab, 0, count);
+  js_array_ = v8::Global<V8T>(isolate_, js_array);
 }
 
 template <typename NativeT, typename V8T>
@@ -44,7 +47,7 @@ AliasedBufferBase<NativeT, V8T>::AliasedBufferBase(
       count_(count),
       byte_offset_(byte_offset),
       index_(index) {
-  if (index != nullptr) {
+  if (index_ != nullptr) {
     // Will be deserialized later.
     return;
   }
@@ -61,7 +64,7 @@ AliasedBufferBase<NativeT, V8T>::AliasedBufferBase(
       const_cast<uint8_t*>(backing_buffer.GetNativeBuffer() + byte_offset));
 
   v8::Local<V8T> js_array = V8T::New(ab, byte_offset, count);
-  js_array_ = v8::Global<V8T>(isolate, js_array);
+  js_array_ = v8::Global<V8T>(isolate_, js_array);
 }
 
 template <typename NativeT, typename V8T>

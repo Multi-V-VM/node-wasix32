@@ -33,10 +33,10 @@ class alignas(double) Simd128 {
 
 #define DEFINE_SIMD_TYPE_SPECIFIC_METHODS(cType, sType, name, size)          \
   explicit Simd128(sType val) {                                              \
-    base::WriteUnalignedValue<sType>(reinterpret_cast<Address>(val_), val);  \
+    ::v8::base::WriteUnalignedValue<sType>(reinterpret_cast<Address>(val_), val);  \
   }                                                                          \
   sType to_##name() const {                                                  \
-    return base::ReadUnalignedValue<sType>(reinterpret_cast<Address>(val_)); \
+    return ::v8::base::ReadUnalignedValue<sType>(reinterpret_cast<Address>(val_)); \
   }
   FOREACH_SIMD_TYPE(DEFINE_SIMD_TYPE_SPECIFIC_METHODS)
 #undef DEFINE_SIMD_TYPE_SPECIFIC_METHODS

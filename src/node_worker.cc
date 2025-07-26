@@ -1,3 +1,7 @@
+#ifdef __wasi__
+#include "../wasi-v8-api-additions.h"
+#endif
+
 #include "node_worker.h"
 #include "async_wrap-inl.h"
 #include "debug_utils-inl.h"

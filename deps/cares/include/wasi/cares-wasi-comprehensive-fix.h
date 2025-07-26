@@ -114,6 +114,12 @@ typedef int ares_socket_t;
 extern "C" {
 #endif
 
+// Note: Any function prototypes should go here
+
+#ifdef __cplusplus
+}
+#endif
+
 #endif /* __wasi__ */
 
 #endif /* CARES_WASI_COMPREHENSIVE_FIX_H */

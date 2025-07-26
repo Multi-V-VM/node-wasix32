@@ -9,7 +9,18 @@
 #include "wasi/v8-wasi-compat.h"
 
 namespace v8 {
-template<bool B> class StackAllocated {};
+
+// Tag type for constructors that skip checks
+namespace internal {
+struct no_checking_tag {};
+}
+
+template<bool B> class StackAllocated {
+public:
+  StackAllocated() = default;
+  // Constructor that accepts no_checking_tag for compatibility
+  explicit StackAllocated(internal::no_checking_tag) {}
+};
 
 // Simplified handle base for WASI
 class HandleBase {

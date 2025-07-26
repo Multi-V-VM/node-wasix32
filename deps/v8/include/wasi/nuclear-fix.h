@@ -77,6 +77,10 @@ class SourceLocation {
 #define DCHECK_NE(a, b) ((void)0)
 #endif
 
+#ifndef CHECK_IMPLIES
+#define CHECK_IMPLIES(a, b) ((void)0)
+#endif
+
 #ifndef CHECK
 #define CHECK(condition) ((void)0)
 #endif
@@ -94,7 +98,7 @@ class SourceLocation {
 #endif
 
 #ifndef UNREACHABLE
-#define UNREACHABLE() __builtin_unreachable()
+#define UNREACHABLE(...) __builtin_unreachable()
 #endif
 
 #ifndef UNIMPLEMENTED
@@ -151,16 +155,36 @@ namespace bits {
     return result;
   }
   
-  inline unsigned CountTrailingZerosNonZero(uint32_t value) {
+  constexpr unsigned CountTrailingZerosNonZero(uint32_t value) {
     return __builtin_ctz(value);
   }
   
-  inline unsigned CountTrailingZeros32(uint32_t value) {
+  constexpr unsigned CountTrailingZeros32(uint32_t value) {
     return value ? __builtin_ctz(value) : 32;
   }
   
-  inline unsigned CountPopulation(uint32_t value) {
+  constexpr unsigned CountPopulation(uint32_t value) {
     return __builtin_popcount(value);
+  }
+  
+  constexpr unsigned CountPopulation(uint16_t value) {
+    return __builtin_popcount(value);
+  }
+  
+  constexpr unsigned CountPopulation(uint64_t value) {
+    return __builtin_popcountll(value);
+  }
+  
+  constexpr unsigned CountLeadingZeros(uint32_t value) {
+    return value ? __builtin_clz(value) : 32;
+  }
+  
+  constexpr unsigned CountLeadingZeros(uint16_t value) {
+    return value ? __builtin_clz(value) - 16 : 16;
+  }
+  
+  constexpr unsigned CountLeadingZeros(uint64_t value) {
+    return value ? __builtin_clzll(value) : 64;
   }
   
   template<typename T>
@@ -283,6 +307,12 @@ using IndirectPointerHandle = uint32_t;
 using TrustedPointerHandle = uint32_t;
 using AtomicTagged_t = std::atomic<uint32_t>;
 
+// Add missing ExternalPointerTag
+namespace internal {
+using ExternalPointerTag = uint64_t;
+constexpr ExternalPointerTag kWasmWasmStreamingTag = 0x0123456789ABCDEF;
+} // namespace internal
+
 // JS Dispatch handle constants
 constexpr int kJSDispatchHandleShift = 0;
 #ifndef kJSDispatchHandleSize
@@ -301,6 +331,8 @@ namespace bits {
   using v8::base::bits::SignedSaturatedAdd64;
   using v8::base::bits::SignedSaturatedSub64;
   using v8::base::bits::CountTrailingZerosNonZero;
+  using v8::base::bits::CountPopulation;
+  using v8::base::bits::CountLeadingZeros;
 }  // namespace bits
 
 namespace base {

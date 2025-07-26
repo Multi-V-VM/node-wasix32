@@ -154,7 +154,7 @@ enum ConversionFlag {
 // Converts a string into a double value according to ECMA-262 9.3.1
 double StringToDouble(base::Vector<const uint8_t> str, ConversionFlag flag,
                       double empty_string_val = 0);
-double StringToDouble(base::Vector<const base::uc16> str, ConversionFlag flag,
+double StringToDouble(base::Vector<const ::v8::base::uc16> str, ConversionFlag flag,
                       double empty_string_val = 0);
 // This version expects a zero-terminated character array.
 double V8_EXPORT_PRIVATE StringToDouble(const char* str, ConversionFlag flag,
@@ -222,7 +222,7 @@ std::string_view DoubleToRadixStringView(double value, int radix,
                                          base::Vector<char> buffer);
 
 static inline bool IsMinusZero(double value) {
-  return base::bit_cast<int64_t>(value) == base::bit_cast<int64_t>(-0.0);
+  return bit_cast<int64_t>(value) == bit_cast<int64_t>(-0.0);
 }
 
 // Returns true if value can be converted to a SMI, and returns the resulting

@@ -17,6 +17,7 @@
 
 #include "v8-callbacks.h"     // NOLINT(build/include_directory)
 #include "v8-data.h"          // NOLINT(build/include_directory)
+#include "v8-forward.h"       // NOLINT(build/include_directory)
 #include "v8-local-handle.h"  // NOLINT(build/include_directory)
 #include "v8-maybe.h"         // NOLINT(build/include_directory)
 #include "v8-memory-span.h"   // NOLINT(build/include_directory)

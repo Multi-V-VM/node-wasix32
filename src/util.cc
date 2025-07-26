@@ -19,6 +19,9 @@
 // OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE
 // USE OR OTHER DEALINGS IN THE SOFTWARE.
 
+#ifdef __wasi__
+#endif
+
 #include "util.h"  // NOLINT(build/include_inline)
 #include <cmath>
 #include <cstdint>

@@ -275,7 +275,7 @@ class ChannelImpl final : public v8_inspector::V8Inspector::Channel,
       network_inspector_->emitNotification(
           context, domain_name, event_name, params);
     } else {
-      UNREACHABLE("Unknown domain for emitNotificationFromBackend");
+      UNREACHABLE(); // Unknown domain for emitNotificationFromBackend
     }
   }
 
@@ -983,7 +983,7 @@ void Agent::ToggleNetworkTracking(Isolate* isolate, Local<Function> fn) {
   USE(fn->Call(context, Undefined(isolate), 0, nullptr));
   if (try_catch.HasCaught() && !try_catch.HasTerminated()) {
     PrintCaughtException(isolate, context, try_catch);
-    UNREACHABLE("Cannot toggle network tracking, please report this.");
+    UNREACHABLE(); // Cannot toggle network tracking, please report this.
   }
 }
 
@@ -1082,7 +1082,7 @@ void Agent::ToggleAsyncHook(Isolate* isolate, Local<Function> fn) {
   USE(fn->Call(context, Undefined(isolate), 0, nullptr));
   if (try_catch.HasCaught() && !try_catch.HasTerminated()) {
     PrintCaughtException(isolate, context, try_catch);
-    UNREACHABLE("Cannot toggle Inspector's AsyncHook, please report this.");
+    UNREACHABLE(); // Cannot toggle Inspector's AsyncHook, please report this.
   }
 }
 

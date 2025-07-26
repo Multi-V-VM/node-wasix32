@@ -1,3 +1,7 @@
+#ifdef __wasi__
+#include "../wasi-v8-api-additions.h"
+#endif
+
 #include "string_decoder.h"  // NOLINT(build/include_inline)
 #include "string_decoder-inl.h"
 

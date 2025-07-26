@@ -15,6 +15,9 @@
 
 namespace v8 {
 
+// Import CppHeapPointerTagRange from internal namespace
+using CppHeapPointerTagRange = internal::CppHeapPointerTagRange;
+
 class Isolate;
 
 /**

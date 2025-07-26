@@ -1,4 +1,11 @@
+#ifdef __wasi__
+#endif
+
 #include "node_sqlite.h"
+
+#ifdef __wasi__
+#include "../wasi-v8-api-additions.h"
+#endif
 #include <path.h>
 #include "base_object-inl.h"
 #include "debug_utils-inl.h"
@@ -92,7 +99,7 @@ using v8::Value;
       case SQLITE_TEXT: {                                                      \
         const char* v =                                                        \
             reinterpret_cast<const char*>(sqlite3_##from##_text(__VA_ARGS__)); \
-        (result) = String::NewFromUtf8((isolate), v).As<Value>();              \
+        (result) = String::NewFromUtf8((isolate), v).ToLocalChecked();         \
         break;                                                                 \
       }                                                                        \
       case SQLITE_NULL: {                                                      \
@@ -112,7 +119,7 @@ using v8::Value;
         break;                                                                 \
       }                                                                        \
       default:                                                                 \
-        UNREACHABLE("Bad SQLite value");                                       \
+        UNREACHABLE();                                                         \
     }                                                                          \
   } while (0)
 
@@ -304,7 +311,7 @@ class CustomAggregate {
     }
 
     auto recv = Undefined(isolate);
-    LocalVector<Value> js_argv(isolate);
+    LocalVector<Value> js_argv;
     js_argv.emplace_back(Local<Value>::New(isolate, agg->value));
 
     for (int i = 0; i < argc; ++i) {
@@ -608,7 +615,7 @@ void UserDefinedFunction::xFunc(sqlite3_context* ctx,
   Isolate* isolate = env->isolate();
   auto recv = Undefined(isolate);
   auto fn = self->fn_.Get(isolate);
-  LocalVector<Value> js_argv(isolate);
+  LocalVector<Value> js_argv;
 
   for (int i = 0; i < argc; ++i) {
     sqlite3_value* value = argv[i];
@@ -1639,7 +1646,7 @@ void DatabaseSync::ApplyChangeset(const FunctionCallbackInfo<Value>& args) {
         }
         constexpr auto invalid_value = -1;
         if (!result->IsInt32()) return invalid_value;
-        return result->Int32Value(env->context()).FromJust();
+        return result.As<v8::Int32>()->Value();
       };
     }
 
@@ -1677,7 +1684,7 @@ void DatabaseSync::ApplyChangeset(const FunctionCallbackInfo<Value>& args) {
         Local<Value> result =
             filterFunc->Call(env->context(), Null(env->isolate()), 1, argv)
                 .ToLocalChecked();
-        return result->BooleanValue(env->isolate());
+        return result->IsTrue();
       };
     }
   }
@@ -1952,7 +1959,7 @@ MaybeLocal<Name> StatementSync::ColumnNameToName(const int column) {
     return MaybeLocal<Name>();
   }
 
-  return String::NewFromUtf8(env()->isolate(), col_name).As<Name>();
+  return String::NewFromUtf8(env()->isolate(), col_name).ToLocalChecked().As<Name>();
 }
 
 void StatementSync::MemoryInfo(MemoryTracker* tracker) const {}
@@ -1973,11 +1980,11 @@ void StatementSync::All(const FunctionCallbackInfo<Value>& args) {
 
   auto reset = OnScopeLeave([&]() { sqlite3_reset(stmt->statement_); });
   int num_cols = sqlite3_column_count(stmt->statement_);
-  LocalVector<Value> rows(isolate);
+  LocalVector<Value> rows;
 
   if (stmt->return_arrays_) {
     while ((r = sqlite3_step(stmt->statement_)) == SQLITE_ROW) {
-      LocalVector<Value> array_values(isolate);
+      LocalVector<Value> array_values;
       array_values.reserve(num_cols);
       for (int i = 0; i < num_cols; ++i) {
         Local<Value> val;
@@ -1989,7 +1996,7 @@ void StatementSync::All(const FunctionCallbackInfo<Value>& args) {
       rows.emplace_back(row_array);
     }
   } else {
-    LocalVector<Name> row_keys(isolate);
+    LocalVector<Value> row_keys;
 
     while ((r = sqlite3_step(stmt->statement_)) == SQLITE_ROW) {
       if (row_keys.size() == 0) {
@@ -2001,7 +2008,7 @@ void StatementSync::All(const FunctionCallbackInfo<Value>& args) {
         }
       }
 
-      LocalVector<Value> row_values(isolate);
+      LocalVector<Value> row_values;
       row_values.reserve(num_cols);
       for (int i = 0; i < num_cols; ++i) {
         Local<Value> val;
@@ -2089,7 +2096,7 @@ void StatementSync::Get(const FunctionCallbackInfo<Value>& args) {
   }
 
   if (stmt->return_arrays_) {
-    LocalVector<Value> array_values(isolate);
+    LocalVector<Value> array_values;
     array_values.reserve(num_cols);
     for (int i = 0; i < num_cols; ++i) {
       Local<Value> val;
@@ -2100,9 +2107,9 @@ void StatementSync::Get(const FunctionCallbackInfo<Value>& args) {
         Array::New(isolate, array_values.data(), array_values.size());
     args.GetReturnValue().Set(result);
   } else {
-    LocalVector<Name> keys(isolate);
+    LocalVector<Value> keys;
     keys.reserve(num_cols);
-    LocalVector<Value> values(isolate);
+    LocalVector<Value> values;
     values.reserve(num_cols);
 
     for (int i = 0; i < num_cols; ++i) {
@@ -2174,18 +2181,17 @@ void StatementSync::Columns(const FunctionCallbackInfo<Value>& args) {
       env, stmt->IsFinalized(), "statement has been finalized");
   int num_cols = sqlite3_column_count(stmt->statement_);
   Isolate* isolate = env->isolate();
-  LocalVector<Value> cols(isolate);
-  LocalVector<Name> col_keys(isolate,
-                             {env->column_string(),
-                              env->database_string(),
-                              env->name_string(),
-                              env->table_string(),
-                              env->type_string()});
+  LocalVector<Value> cols;
+  LocalVector<Name> col_keys = {env->column_string(),
+                               env->database_string(),
+                               env->name_string(),
+                               env->table_string(),
+                               env->type_string()};
   Local<Value> value;
 
   cols.reserve(num_cols);
   for (int i = 0; i < num_cols; ++i) {
-    LocalVector<Value> col_values(isolate);
+    LocalVector<Value> col_values;
     col_values.reserve(col_keys.size());
 
     if (!NullableSQLiteStringToValue(
@@ -2458,10 +2464,10 @@ void StatementSyncIterator::Next(const FunctionCallbackInfo<Value>& args) {
   THROW_AND_RETURN_ON_BAD_STATE(
       env, iter->stmt_->IsFinalized(), "statement has been finalized");
   Isolate* isolate = env->isolate();
-  LocalVector<Name> keys(isolate, {env->done_string(), env->value_string()});
+  LocalVector<Name> keys = MakeLocalVector<Name>(isolate, {env->done_string(), env->value_string()});
 
   if (iter->done_) {
-    LocalVector<Value> values(isolate,
+    LocalVector<Value> values = MakeLocalVector<Value>(isolate,
                               {Boolean::New(isolate, true), Null(isolate)});
     DCHECK_EQ(values.size(), keys.size());
     Local<Object> result = Object::New(
@@ -2475,7 +2481,7 @@ void StatementSyncIterator::Next(const FunctionCallbackInfo<Value>& args) {
     CHECK_ERROR_OR_THROW(
         env->isolate(), iter->stmt_->db_.get(), r, SQLITE_DONE, void());
     sqlite3_reset(iter->stmt_->statement_);
-    LocalVector<Value> values(isolate,
+    LocalVector<Value> values = MakeLocalVector<Value>(isolate,
                               {Boolean::New(isolate, true), Null(isolate)});
     DCHECK_EQ(values.size(), keys.size());
     Local<Object> result = Object::New(
@@ -2488,7 +2494,7 @@ void StatementSyncIterator::Next(const FunctionCallbackInfo<Value>& args) {
   Local<Value> row_value;
 
   if (iter->stmt_->return_arrays_) {
-    LocalVector<Value> array_values(isolate);
+    LocalVector<Value> array_values;
     array_values.reserve(num_cols);
     for (int i = 0; i < num_cols; ++i) {
       Local<Value> val;
@@ -2497,8 +2503,8 @@ void StatementSyncIterator::Next(const FunctionCallbackInfo<Value>& args) {
     }
     row_value = Array::New(isolate, array_values.data(), array_values.size());
   } else {
-    LocalVector<Name> row_keys(isolate);
-    LocalVector<Value> row_values(isolate);
+    LocalVector<Value> row_keys;
+    LocalVector<Value> row_values;
     row_keys.reserve(num_cols);
     row_values.reserve(num_cols);
     for (int i = 0; i < num_cols; ++i) {
@@ -2515,7 +2521,7 @@ void StatementSyncIterator::Next(const FunctionCallbackInfo<Value>& args) {
         isolate, Null(isolate), row_keys.data(), row_values.data(), num_cols);
   }
 
-  LocalVector<Value> values(isolate, {Boolean::New(isolate, false), row_value});
+  LocalVector<Value> values = MakeLocalVector<Value>(isolate, {Boolean::New(isolate, false), row_value});
   DCHECK_EQ(keys.size(), values.size());
   Local<Object> result = Object::New(
       isolate, Null(isolate), keys.data(), values.data(), keys.size());
@@ -2532,8 +2538,8 @@ void StatementSyncIterator::Return(const FunctionCallbackInfo<Value>& args) {
 
   sqlite3_reset(iter->stmt_->statement_);
   iter->done_ = true;
-  LocalVector<Name> keys(isolate, {env->done_string(), env->value_string()});
-  LocalVector<Value> values(isolate,
+  LocalVector<Name> keys = MakeLocalVector<Name>(isolate, {env->done_string(), env->value_string()});
+  LocalVector<Value> values = MakeLocalVector<Value>(isolate,
                             {Boolean::New(isolate, true), Null(isolate)});
 
   DCHECK_EQ(keys.size(), values.size());

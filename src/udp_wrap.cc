@@ -19,7 +19,14 @@
 // OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE
 // USE OR OTHER DEALINGS IN THE SOFTWARE.
 
+#ifdef __wasi__
+#endif
+
 #include "udp_wrap.h"
+
+#ifdef __wasi__
+#include "../wasi-v8-api-additions.h"
+#endif
 #include "env-inl.h"
 #include "handle_wrap.h"
 #include "node_buffer.h"

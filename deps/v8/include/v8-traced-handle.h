@@ -5,8 +5,12 @@
 #define V8_V8_TRACED_HANDLE_H_
 
 #include "v8config.h"
+#include "v8-local-handle.h"  // For Local<T>
 
 namespace v8 {
+
+// Forward declaration
+class Isolate;
 
 // 为 WASI 提供最小的追踪句柄支持
 template <class T>

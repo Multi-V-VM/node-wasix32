@@ -13,6 +13,7 @@
 #define INCLUDE_V8_PRIMITIVE_H_
 
 #include "v8-data.h"          // NOLINT(build/include_directory)
+#include "v8-handle-base.h"   // NOLINT(build/include_directory)
 #include "v8-internal.h"      // NOLINT(build/include_directory)
 #include "v8-local-handle.h"  // NOLINT(build/include_directory)
 #include "v8-maybe-local.h"   // NOLINT(build/include_directory)

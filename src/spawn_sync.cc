@@ -19,7 +19,11 @@
 // OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE
 // USE OR OTHER DEALINGS IN THE SOFTWARE.
 
+#ifdef __wasi__
+#endif
+
 #include "spawn_sync.h"
+#include "spawn_sync-inl.h"
 #include "debug_utils-inl.h"
 #include "env-inl.h"
 #include "node_errors.h"

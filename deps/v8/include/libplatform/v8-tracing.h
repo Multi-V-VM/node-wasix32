@@ -1,6 +1,3 @@
-#ifdef __wasi__
-#include "wasi/concepts-fix.h"
-#endif
 // Copyright 2016 the V8 project authors. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
@@ -9,12 +6,14 @@
 #define V8_LIBPLATFORM_V8_TRACING_H_
 
 #include <atomic>
+#include <fstream>
 #include <memory>
 #include <unordered_set>
 #include <vector>
 
 #include "libplatform/libplatform-export.h"
 #include "v8-platform.h"  // NOLINT(build/include_directory)
+#include "v8-tracing-base.h"  // NOLINT(build/include_directory)
 
 namespace perfetto {
 namespace trace_processor {
@@ -25,8 +24,14 @@ class TracingSession;
 
 namespace v8 {
 
+// Add typedef for V8TracingController
+using V8TracingController = v8::TracingController;
+
 namespace base {
+#ifndef V8_BASE_MUTEX_FORWARD_DECLARED
+#define V8_BASE_MUTEX_FORWARD_DECLARED
 class Mutex;
+#endif
 }  // namespace base
 
 namespace platform {
@@ -34,8 +39,10 @@ namespace tracing {
 
 class TraceEventListener;
 
-const int kTraceMaxNumArgs = 2;
+// TraceObject class is already defined in v8-tracing-base.h
+// We need to be in the right namespace
 
+#if 0
 class V8_PLATFORM_EXPORT TraceObject {
  public:
   union ArgValue {
@@ -114,7 +121,9 @@ class V8_PLATFORM_EXPORT TraceObject {
   TraceObject(const TraceObject&) = delete;
   void operator=(const TraceObject&) = delete;
 };
+#endif
 
+#if 0
 class V8_PLATFORM_EXPORT TraceWriter {
  public:
   TraceWriter() = default;
@@ -133,30 +142,33 @@ class V8_PLATFORM_EXPORT TraceWriter {
   TraceWriter(const TraceWriter&) = delete;
   void operator=(const TraceWriter&) = delete;
 };
+#endif
 
+#if 0
 class V8_PLATFORM_EXPORT TraceBufferChunk {
  public:
   explicit TraceBufferChunk(uint32_t seq);
 
   void Reset(uint32_t new_seq);
-  bool IsFull() const { return next_free_ == kTraceBufferChunkSize; }
+  bool IsFull() const { return next_free_ == kChunkSize; }
   TraceObject* AddTraceEvent(size_t* event_index);
   TraceObject* GetEventAt(size_t index) { return &chunk_[index]; }
 
   uint32_t seq() const { return seq_; }
   size_t size() const { return next_free_; }
 
-  static const size_t kTraceBufferChunkSize = 64;
+  static const size_t kChunkSize = 64;
 
  private:
   size_t next_free_ = 0;
-  TraceObject chunk_[kTraceBufferChunkSize];
+  TraceObject chunk_[kChunkSize];
   uint32_t seq_;
 
   // Disallow copy and assign
   TraceBufferChunk(const TraceBufferChunk&) = delete;
   void operator=(const TraceBufferChunk&) = delete;
 };
+#endif
 
 class V8_PLATFORM_EXPORT TraceBuffer {
  public:
@@ -169,7 +181,7 @@ class V8_PLATFORM_EXPORT TraceBuffer {
 
   static const size_t kRingBufferChunks = 1024;
 
-  static v8::platform::tracing::TraceBuffer* CreateTraceBufferRingBuffer(size_t max_chunks,
+  static TraceBuffer* CreateTraceBufferRingBuffer(size_t max_chunks,
                                                   TraceWriter* trace_writer);
 
  private:
@@ -214,7 +226,7 @@ class V8_PLATFORM_EXPORT TraceConfig {
 
   void AddIncludedCategory(const char* included_category);
 
-  bool IsCategoryGroupEnabled(const char* category_group) const;
+  bool IsCategoryGroupEnabled(const uint8_t* category_group_enabled) const;
 
  private:
   TraceRecordMode record_mode_;
@@ -227,39 +239,23 @@ class V8_PLATFORM_EXPORT TraceConfig {
   void operator=(const TraceConfig&) = delete;
 };
 
-#if defined(_MSC_VER)
-#define V8_PLATFORM_NON_EXPORTED_BASE(code) \
-  __pragma(warning(suppress : 4275)) code
-#else
-#define V8_PLATFORM_NON_EXPORTED_BASE(code) code
-#endif  // defined(_MSC_VER)
-
+#if defined(V8_USE_PERFETTO)
 class V8_PLATFORM_EXPORT TracingController
-    : public V8_PLATFORM_NON_EXPORTED_BASE(v8::TracingController) {
+    : public V8TracingController,
+      public perfetto::TrackEventSessionObserver {
+#else
+class V8_PLATFORM_EXPORT TracingController : public V8TracingController {
+#endif
  public:
   TracingController();
   ~TracingController() override;
 
 #if defined(V8_USE_PERFETTO)
-  // Must be called before StartTracing() if V8_USE_PERFETTO is true. Provides
-  // the output stream for the JSON trace data.
-  void InitializeForPerfetto(std::ostream* output_stream);
-  // Provide an optional listener for testing that will receive trace events.
-  // Must be called before StartTracing().
-  void SetTraceEventListenerForTesting(TraceEventListener* listener);
-#else   // defined(V8_USE_PERFETTO)
-  // The pointer returned from GetCategoryGroupEnabled() points to a value with
-  // zero or more of the following bits. Used in this class only. The
-  // TRACE_EVENT macros should only use the value as a bool. These values must
-  // be in sync with macro values in TraceEvent.h in Blink.
-  enum CategoryGroupEnabledFlags {
-    // Category group enabled for the recording mode.
-    ENABLED_FOR_RECORDING = 1 << 0,
-    // Category group enabled by SetEventCallbackEnabled().
-    ENABLED_FOR_EVENT_CALLBACK = 1 << 2,
-    // Category group enabled to export events to ETW.
-    ENABLED_FOR_ETW_EXPORT = 1 << 3
-  };
+  // perfetto::TrackEventSessionObserver
+  void OnSetup(const perfetto::DataSourceBase::SetupArgs&) override;
+  void OnStart(const perfetto::DataSourceBase::StartArgs&) override;
+  void OnStop(const perfetto::DataSourceBase::StopArgs&) override;
+#endif
 
   // Takes ownership of |trace_buffer|.
   void Initialize(TraceBuffer* trace_buffer);
@@ -283,50 +279,36 @@ class V8_PLATFORM_EXPORT TracingController
   void UpdateTraceEventDuration(const uint8_t* category_enabled_flag,
                                 const char* name, uint64_t handle) override;
 
-  static const char* GetCategoryGroupName(const uint8_t* category_enabled_flag);
-
   void AddTraceStateObserver(
       v8::TracingController::TraceStateObserver* observer) override;
   void RemoveTraceStateObserver(
       v8::TracingController::TraceStateObserver* observer) override;
-#endif  // !defined(V8_USE_PERFETTO)
 
   void StartTracing(TraceConfig* trace_config);
   void StopTracing();
 
+  static const char* GetCategoryGroupName(const uint8_t* category_enabled_flag);
+
  protected:
-#if !defined(V8_USE_PERFETTO)
   virtual int64_t CurrentTimestampMicroseconds();
   virtual int64_t CurrentCpuTimestampMicroseconds();
-#endif  // !defined(V8_USE_PERFETTO)
 
  private:
-#if !defined(V8_USE_PERFETTO)
-  void UpdateCategoryGroupEnabledFlag(size_t category_index);
-  void UpdateCategoryGroupEnabledFlags();
-#endif  // !defined(V8_USE_PERFETTO)
+  void UpdateCategoryState();
 
-  std::unique_ptr<base::Mutex> mutex_;
-  std::unique_ptr<TraceConfig> trace_config_;
-  std::atomic_bool recording_{false};
-
-#if defined(V8_USE_PERFETTO)
-  std::ostream* output_stream_ = nullptr;
-  std::unique_ptr<perfetto::trace_processor::TraceProcessorStorage>
-      trace_processor_;
-  TraceEventListener* listener_for_testing_ = nullptr;
-  std::unique_ptr<perfetto::TracingSession> tracing_session_;
-#else   // !defined(V8_USE_PERFETTO)
-  std::unordered_set<v8::TracingController::TraceStateObserver*> observers_;
   std::unique_ptr<TraceBuffer> trace_buffer_;
-#endif  // !defined(V8_USE_PERFETTO)
+  std::unique_ptr<TraceConfig> trace_config_;
+  std::unique_ptr<base::Mutex> mutex_;
+  std::unordered_set<v8::TracingController::TraceStateObserver*> observers_;
+  std::atomic_bool recording_{false};
+#if defined(V8_USE_PERFETTO)
+  std::atomic_bool perfetto_recording_{false};
+#endif
 
   // Disallow copy and assign
   TracingController(const TracingController&) = delete;
   void operator=(const TracingController&) = delete;
 };
-
-#undef V8_PLATFORM_NON_EXPORTED_BASE
 
 }  // namespace tracing
 }  // namespace platform

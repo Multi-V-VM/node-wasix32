@@ -88,6 +88,10 @@ class TraceWriter {
   virtual ~TraceWriter() = default;
   virtual void AppendTraceEvent(TraceObject* trace_event) = 0;
   virtual void Flush() = 0;
+  
+  static TraceWriter* CreateJSONTraceWriter(std::ostream& stream);
+  static TraceWriter* CreateJSONTraceWriter(std::ostream& stream,
+                                            const std::string& tag);
 
  private:
   TraceWriter(const TraceWriter&) = delete;

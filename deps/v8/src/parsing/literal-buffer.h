@@ -27,9 +27,9 @@ class LiteralBuffer final {
     AddOneByteChar(static_cast<uint8_t>(code_unit));
   }
 
-  V8_INLINE void AddChar(base::uc32 code_unit) {
+  V8_INLINE void AddChar(::v8::base::uc32 code_unit) {
     if (is_one_byte()) {
-      if (code_unit <= static_cast<base::uc32>(unibrow::Latin1::kMaxChar)) {
+      if (code_unit <= static_cast<::v8::base::uc32>(unibrow::Latin1::kMaxChar)) {
         AddOneByteChar(static_cast<uint8_t>(code_unit));
         return;
       }
@@ -92,7 +92,7 @@ class LiteralBuffer final {
     position_ += kOneByteSize;
   }
 
-  void AddTwoByteChar(base::uc32 code_unit);
+  void AddTwoByteChar(::v8::base::uc32 code_unit);
   int NewCapacity(int min_capacity);
   V8_NOINLINE V8_PRESERVE_MOST void ExpandBuffer();
   void ConvertToTwoByte();

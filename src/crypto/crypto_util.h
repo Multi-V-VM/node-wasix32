@@ -1,3 +1,6 @@
+#ifdef __wasi__
+#endif
+
 #ifndef SRC_CRYPTO_CRYPTO_UTIL_H_
 #define SRC_CRYPTO_CRYPTO_UTIL_H_
 
@@ -137,7 +140,7 @@ void CryptoErrorStore::Insert(const NodeCryptoError error, Args&&... args) {
 }
 
 v8::MaybeLocal<v8::Value> cryptoErrorListToException(
-    Environment* env, const ncrypto::CryptoErrorList& errors);
+    node::Environment* env, const ncrypto::CryptoErrorList& errors);
 
 template <typename T>
 T* MallocOpenSSL(size_t count) {

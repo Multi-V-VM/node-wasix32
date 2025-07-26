@@ -149,7 +149,7 @@ class SimpleStringBuilder final {
 };
 
 inline double JunkStringValue() {
-  return base::bit_cast<double, uint64_t>(kQuietNaNMask);
+  return bit_cast<double, uint64_t>(kQuietNaNMask);
 }
 
 inline double SignedZero(bool negative) {

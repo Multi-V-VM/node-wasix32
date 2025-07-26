@@ -1,3 +1,6 @@
+#ifdef __wasi__
+#endif
+
 // Copyright 2024 the V8 project authors. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
@@ -7,6 +10,20 @@
 
 #include "include/v8-internal.h"
 #include "src/common/segmented-table.h"
+
+#ifdef __wasi__
+// WASI-specific fixes for missing types
+namespace v8 {
+namespace internal {
+  // Add missing kEntriesPerSegment constant for WASI builds
+  template<typename Entry, size_t size>
+  class SegmentedTable;
+  
+  template<typename Entry, size_t size>
+  constexpr size_t kEntriesPerSegment = 64 * 1024 / sizeof(Entry);
+}
+}
+#endif
 
 #if !V8_ENABLE_WEBASSEMBLY
 #error This header should only be included if WebAssembly is enabled.
@@ -136,26 +153,26 @@ class V8_EXPORT_PRIVATE WasmCodePointerTable
 
   // This marker is used to temporarily unlink the freelist to get exclusive
   // access.
-  static constexpr FreelistHead kRetryMarker = FreelistHead(0xffffffff, 0);
-  static bool IsRetryMarker(FreelistHead freelist) {
+  static constexpr typename Base::FreelistHead kRetryMarker = typename Base::FreelistHead(0xffffffff, 0);
+  static bool IsRetryMarker(typename Base::FreelistHead freelist) {
     return freelist.length() == kRetryMarker.length() &&
            freelist.next() == kRetryMarker.next();
   }
 
   // Access the Freelist head, retrying if the retry marker is seen.
-  V8_INLINE FreelistHead ReadFreelistHead();
+  V8_INLINE typename Base::FreelistHead ReadFreelistHead();
 
   // Allocate an entry either from the freelist or creating a new segment.
   uint32_t AllocateEntryImpl();
 
   // Atomically link a freelist into the current freelist head.
-  V8_INLINE FreelistHead LinkFreelist(FreelistHead new_freelist,
+  V8_INLINE typename Base::FreelistHead LinkFreelist(typename Base::FreelistHead new_freelist,
                                       uint32_t last_element);
 
   // Helper functions for converting a freelist to a vector and back.
   // Freelist access is not atomic.
-  std::vector<uint32_t> FreelistToVector(FreelistHead freelist);
-  FreelistHead VectorToFreelist(std::vector<uint32_t> entries);
+  std::vector<uint32_t> FreelistToVector(typename Base::FreelistHead freelist);
+  typename Base::FreelistHead VectorToFreelist(std::vector<uint32_t> entries);
 
   // Try to allocate the first entry of the freelist.
   //
@@ -167,12 +184,12 @@ class V8_EXPORT_PRIVATE WasmCodePointerTable
   // Not atomic and should only be used if you have exclusive access to the
   // freelist.
   V8_INLINE uint32_t
-  AllocateEntryFromFreelistNonAtomic(FreelistHead* freelist_head);
+  AllocateEntryFromFreelistNonAtomic(typename Base::FreelistHead* freelist_head);
 
   // Free all handles in the `native_function_map_`.
   void FreeNativeFunctionHandles();
 
-  std::atomic<FreelistHead> freelist_head_ = FreelistHead();
+  std::atomic<typename Base::FreelistHead> freelist_head_ = typename Base::FreelistHead();
   // The mutex is used to avoid two threads from concurrently allocating
   // segments and using more memory than needed.
   base::Mutex segment_allocation_mutex_;

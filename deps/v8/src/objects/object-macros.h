@@ -32,7 +32,6 @@
 // These macros are to enable packing down to 4-byte alignment (i.e. int32
 // alignment, since we have int32 fields), and to add warnings which ensure that
 // there is no unwanted within-object padding.
-#if V8_CC_GNU
 #define V8_OBJECT_PUSH                                                    \
   _Pragma("pack(push)") _Pragma("pack(4)") _Pragma("GCC diagnostic push") \
       _Pragma("GCC diagnostic error \"-Wpadded\"")
@@ -42,9 +41,6 @@
   __pragma(pack(push)) __pragma(pack(4)) __pragma(warning(push)) \
       __pragma(warning(default : 4820))
 #define V8_OBJECT_POP __pragma(pack(pop)) __pragma(warning(pop))
-#else
-#error Unsupported compiler
-#endif
 
 #define V8_OBJECT V8_OBJECT_PUSH
 // Compilers wants the pragmas to be a new statement, but we prefer to have

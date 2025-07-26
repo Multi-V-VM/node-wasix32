@@ -31,11 +31,14 @@
 // Decodes a v8::Local<v8::String> or Buffer to a raw char*
 
 #include "v8.h"
-#include "env-inl.h"
-
+#include "util.h"  // For MaybeStackBuffer
+#include "node.h"  // For enum encoding
 #include <string>
 
 namespace node {
+
+// Forward declarations
+class Environment;
 
 class StringBytes {
  public:

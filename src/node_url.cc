@@ -1,4 +1,12 @@
+#ifdef __wasi__
+#endif
+
 #include "node_url.h"
+
+#ifdef __wasi__
+#include "../wasi-v8-api-additions.h"
+#endif
+
 #include "ada.h"
 #include "base_object-inl.h"
 #include "node_debug.h"

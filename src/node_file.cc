@@ -18,6 +18,10 @@
 // DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR
 // OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE
 // USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+#ifdef __wasi__
+#endif
+
 #include "node_file.h"  // NOLINT(build/include_inline)
 #include "ada.h"
 #include "aliased_buffer-inl.h"
@@ -206,11 +210,11 @@ static const char* get_fs_func_name_by_type(uv_fs_type req_type) {
 typedef void(*uv_fs_callback_t)(uv_fs_t*);
 
 
-void FSContinuationData::MemoryInfo(MemoryTracker* tracker) const {
+void fs::FSContinuationData::MemoryInfo(MemoryTracker* tracker) const {
   tracker->TrackField("paths", paths_);
 }
 
-FileHandleReadWrap::~FileHandleReadWrap() = default;
+fs::FileHandleReadWrap::~FileHandleReadWrap() = default;
 
 FSReqBase::~FSReqBase() = default;
 

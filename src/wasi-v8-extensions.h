@@ -13,10 +13,7 @@ namespace node {
 namespace wasi_compat {
 
 // Extension functions for missing V8 Isolate methods
-inline bool IsolateInContext(v8::Isolate* isolate) {
-  // WASI always has a context
-  return true;
-}
+// IsolateInContext is already defined in wasi-isolate-extensions.h
 
 inline v8::CppHeap* IsolateGetCppHeap(v8::Isolate* isolate) {
   // WASI doesn't use CppHeap

@@ -15,6 +15,7 @@
 
 #include "cppgc/common.h"
 #include "v8-data.h"          // NOLINT(build/include_directory)
+#include "v8-forward.h"       // NOLINT(build/include_directory)
 #include "v8-local-handle.h"  // NOLINT(build/include_directory)
 #include "v8-promise.h"       // NOLINT(build/include_directory)
 #include "v8config.h"         // NOLINT(build/include_directory)

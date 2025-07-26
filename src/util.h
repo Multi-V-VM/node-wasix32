@@ -25,6 +25,9 @@
 #if defined(NODE_WANT_INTERNALS) && NODE_WANT_INTERNALS
 
 #include "uv.h"
+#ifdef __wasi__
+#include "wasi-v8-complete-missing.h"
+#endif
 #include "v8-inspector.h"
 #include "v8.h"
 

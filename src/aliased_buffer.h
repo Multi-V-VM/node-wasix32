@@ -31,7 +31,7 @@ typedef size_t AliasedBufferIndex;
 template <class NativeT, class V8T>
 class AliasedBufferBase final : public MemoryRetainer {
  public:
-  static_assert(std::is_scalar_v<NativeT>);
+  static_assert(::std::is_scalar_v<NativeT>);
 
   AliasedBufferBase(v8::Isolate* isolate,
                     size_t count,
@@ -50,15 +50,15 @@ class AliasedBufferBase final : public MemoryRetainer {
       v8::Isolate* isolate,
       size_t byte_offset,
       size_t count,
-      const AliasedBufferBase<uint8_t, v8::Uint8Array>& backing_buffer,
+      const AliasedBufferBase<uint8_t, ::v8::Uint8Array>& backing_buffer,
       const AliasedBufferIndex* index = nullptr);
 
   AliasedBufferBase(const AliasedBufferBase& that);
 
-  AliasedBufferIndex Serialize(v8::Local<v8::Context> context,
-                               v8::SnapshotCreator* creator);
+  AliasedBufferIndex Serialize(::v8::Local<::v8::Context> context,
+                               ::v8::SnapshotCreator* creator);
 
-  void Deserialize(v8::Local<v8::Context> context);
+  void Deserialize(::v8::Local<::v8::Context> context);
 
   AliasedBufferBase& operator=(AliasedBufferBase&& that) noexcept;
 
@@ -113,7 +113,7 @@ class AliasedBufferBase final : public MemoryRetainer {
   /**
    *  Get the underlying v8 TypedArray overlaid on top of the native buffer
    */
-  v8::Local<V8T> GetJSArray() const;
+  ::v8::Local<V8T> GetJSArray() const;
 
   void Release();
 
@@ -129,7 +129,7 @@ class AliasedBufferBase final : public MemoryRetainer {
   *  Get the underlying v8::ArrayBuffer underlying the TypedArray and
   *  overlaying the native buffer
   */
-  v8::Local<v8::ArrayBuffer> GetArrayBuffer() const;
+  ::v8::Local<::v8::ArrayBuffer> GetArrayBuffer() const;
 
   /**
    *  Get the underlying native buffer. Note that all reads/writes should occur
@@ -177,7 +177,7 @@ class AliasedBufferBase final : public MemoryRetainer {
   size_t count_ = 0;
   size_t byte_offset_ = 0;
   NativeT* buffer_ = nullptr;
-  v8::Global<V8T> js_array_;
+  ::v8::Global<V8T> js_array_;
 
   // Deserialize data
   const AliasedBufferIndex* index_ = nullptr;
@@ -195,7 +195,7 @@ class AliasedBufferBase final : public MemoryRetainer {
   V(int64_t, BigInt64Array)
 
 #define V(NativeT, V8T)                                                        \
-  typedef AliasedBufferBase<NativeT, v8::V8T> Aliased##V8T;
+  typedef AliasedBufferBase<NativeT, ::v8::V8T> Aliased##V8T;
 ALIASED_BUFFER_LIST(V)
 #undef V
 

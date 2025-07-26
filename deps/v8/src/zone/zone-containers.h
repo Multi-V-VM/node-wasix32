@@ -599,10 +599,10 @@ class ZoneIntrusiveSet
     : public base::IntrusiveSet<T, GetIntrusiveSetIndex, ZoneVector<T>> {
  public:
   explicit ZoneIntrusiveSet(Zone* zone, GetIntrusiveSetIndex index_functor = {})
-      : base::IntrusiveSet<T, GetIntrusiveSetIndex, ZoneVector<T>>(
+      : ::v8::base::IntrusiveSet<T, GetIntrusiveSetIndex, ZoneVector<T>>(
             ZoneVector<T>(zone), std::move(index_functor)) {}
 };
-using base::IntrusiveSetIndex;
+using ::v8::base::IntrusiveSetIndex;
 
 // A wrapper subclass for std::deque to make it easy to construct one
 // that uses a zone allocator.
@@ -748,14 +748,14 @@ class ZoneMultimap
 // A wrapper subclass for base::SmallVector to make it easy to construct one
 // that uses a zone allocator.
 template <typename T, size_t kSize>
-class SmallZoneVector : public base::SmallVector<T, kSize, ZoneAllocator<T>> {
+class SmallZoneVector : public ::v8::base::SmallVector<T, kSize, ZoneAllocator<T>> {
  public:
   // Constructs an empty small vector.
   explicit SmallZoneVector(Zone* zone)
-      : base::SmallVector<T, kSize, ZoneAllocator<T>>(ZoneAllocator<T>(zone)) {}
+      : ::v8::base::SmallVector<T, kSize, ZoneAllocator<T>>(ZoneAllocator<T>(zone)) {}
 
   explicit SmallZoneVector(size_t size, Zone* zone)
-      : base::SmallVector<T, kSize, ZoneAllocator<T>>(
+      : ::v8::base::SmallVector<T, kSize, ZoneAllocator<T>>(
             size, ZoneAllocator<T>(ZoneAllocator<T>(zone))) {}
 };
 
@@ -777,11 +777,11 @@ class ZoneMapInit {
 template <typename K, typename V, size_t kArraySize,
           typename Compare = std::less<K>, typename KeyEqual = std::equal_to<K>>
 class SmallZoneMap
-    : public base::SmallMap<ZoneMap<K, V, Compare>, kArraySize, KeyEqual,
+    : public ::v8::base::SmallMap<ZoneMap<K, V, Compare>, kArraySize, KeyEqual,
                             ZoneMapInit<ZoneMap<K, V, Compare>>> {
  public:
   explicit SmallZoneMap(Zone* zone)
-      : base::SmallMap<ZoneMap<K, V, Compare>, kArraySize, KeyEqual,
+      : ::v8::base::SmallMap<ZoneMap<K, V, Compare>, kArraySize, KeyEqual,
                        ZoneMapInit<ZoneMap<K, V, Compare>>>(
             ZoneMapInit<ZoneMap<K, V, Compare>>(zone)) {}
 };

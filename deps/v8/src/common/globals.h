@@ -22,6 +22,7 @@
 // WASI 兼容性修复
 #ifdef __wasi__
 #include "wasi/concepts-fix.h"
+#include "../../../../wasi-v8-essential-constants.h"
 #endif
 
 namespace v8 {
@@ -562,6 +563,10 @@ constexpr int kJSDispatchTableEntrySizeLog2 = 4;
 // As with the other tables, a maximum table size in combination with shifted
 // indices allows omitting bounds checks.
 constexpr size_t kJSDispatchTableReservationSize =
+    (V8_LOWER_LIMITS_MODE_BOOL ? 16 : 256) * MB;
+
+// The size of the virtual memory reservation for the CodePointerTable.
+constexpr size_t kCodePointerTableReservationSize =
     (V8_LOWER_LIMITS_MODE_BOOL ? 16 : 256) * MB;
 // The maximum number of entries in a JSDispatchTable.
 constexpr size_t kMaxJSDispatchEntries =

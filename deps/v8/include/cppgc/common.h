@@ -7,7 +7,10 @@
 #ifdef __wasi__
 // WASI stub for cppgc common
 namespace cppgc {
-  enum class EmbedderStackState { kEmpty, kNonEmpty };
+  enum class EmbedderStackState { 
+    kNoHeapPointers,
+    kMayContainHeapPointers 
+  };
 }
 #else
 // Include real cppgc/common.h for non-WASI

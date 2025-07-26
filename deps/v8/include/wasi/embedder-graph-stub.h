@@ -44,7 +44,7 @@ class EmbedderGraph {
   
   virtual ~EmbedderGraph() = default;
   virtual Node* V8Node(Local<Value> value) = 0;
-  virtual Node* AddNode(std::unique_ptr<Node> node) = 0;
+  virtual Node* AddNode(::std::unique_ptr<Node> node) = 0;
   virtual void AddEdge(Node* from, Node* to, const char* name = nullptr) = 0;
 };
 

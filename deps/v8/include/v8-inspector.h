@@ -1,5 +1,6 @@
 #ifdef __wasi__
 #include "wasi/concepts-fix.h"
+#include "wasi/v8-inspector-wasi-fixes.h"
 #endif
 // Copyright 2016 the V8 project authors. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be

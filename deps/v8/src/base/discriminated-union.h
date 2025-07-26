@@ -10,6 +10,9 @@
 
 #include "src/base/compiler-specific.h"
 #include "src/base/template-utils.h"
+#ifdef __wasi__
+#include "../../../../wasi-v8-template-utils.h"
+#endif
 
 namespace v8 {
 namespace base {

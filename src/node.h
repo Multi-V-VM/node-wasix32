@@ -73,6 +73,10 @@
 
 #include "v8.h"  // NOLINT(build/include_order)
 
+#ifdef __wasi__
+#include "wasi-node-compat.h"
+#endif
+
 #include "v8-platform.h"  // NOLINT(build/include_order)
 #include "node_version.h"  // NODE_MODULE_VERSION
 
@@ -156,7 +160,7 @@ NODE_DEPRECATED("Use ErrnoException(isolate, ...)",
       const char* syscall = nullptr,
       const char* message = nullptr,
       const char* path = nullptr) {
-  return ErrnoException(v8::Isolate::GetCurrent(),
+  return ErrnoException(V8_ISOLATE_GET_CURRENT(),
                         errorno,
                         syscall,
                         message,
@@ -168,7 +172,7 @@ NODE_DEPRECATED("Use UVException(isolate, ...)",
                                         const char* syscall = nullptr,
                                         const char* message = nullptr,
                                         const char* path = nullptr) {
-  return UVException(v8::Isolate::GetCurrent(),
+  return UVException(V8_ISOLATE_GET_CURRENT(),
                      errorno,
                      syscall,
                      message,
@@ -971,8 +975,9 @@ CommonEnvironmentSetup::CreateFromSnapshot(
 /* Converts a unixtime to V8 Date */
 NODE_DEPRECATED("Use v8::Date::New() directly",
                 inline v8::Local<v8::Value> NODE_UNIXTIME_V8(double time) {
+                  auto isolate = V8_ISOLATE_GET_CURRENT();
                   return v8::Date::New(
-                             v8::Isolate::GetCurrent()->GetCurrentContext(),
+                             isolate ? v8::Isolate_GetCurrentContext(isolate) : v8::Local<v8::Context>(),
                              1000 * time)
                       .ToLocalChecked();
                 })
@@ -986,7 +991,7 @@ NODE_DEPRECATED("Use v8::Date::ValueOf() directly",
 #define NODE_DEFINE_CONSTANT(target, constant)                                 \
   do {                                                                         \
     v8::Isolate* isolate = target->GetIsolate();                               \
-    v8::Local<v8::Context> context = isolate->GetCurrentContext();             \
+    v8::Local<v8::Context> context = v8::Isolate_GetCurrentContext(isolate);             \
     v8::Local<v8::String> constant_name = v8::String::NewFromUtf8Literal(      \
         isolate, #constant, v8::NewStringType::kInternalized);                 \
     v8::Local<v8::Number> constant_value =                                     \
@@ -1002,7 +1007,7 @@ NODE_DEPRECATED("Use v8::Date::ValueOf() directly",
 #define NODE_DEFINE_HIDDEN_CONSTANT(target, constant)                          \
   do {                                                                         \
     v8::Isolate* isolate = target->GetIsolate();                               \
-    v8::Local<v8::Context> context = isolate->GetCurrentContext();             \
+    v8::Local<v8::Context> context = v8::Isolate_GetCurrentContext(isolate);             \
     v8::Local<v8::String> constant_name = v8::String::NewFromUtf8Literal(      \
         isolate, #constant, v8::NewStringType::kInternalized);                 \
     v8::Local<v8::Number> constant_value =                                     \
@@ -1020,7 +1025,7 @@ NODE_DEPRECATED("Use v8::Date::ValueOf() directly",
 inline void NODE_SET_METHOD(v8::Local<v8::Template> recv,
                             const char* name,
                             v8::FunctionCallback callback) {
-  v8::Isolate* isolate = v8::Isolate::GetCurrent();
+  v8::Isolate* isolate = V8_ISOLATE_GET_CURRENT();
   v8::HandleScope handle_scope(isolate);
   v8::Local<v8::FunctionTemplate> t = v8::FunctionTemplate::New(isolate,
                                                                 callback);
@@ -1034,9 +1039,9 @@ inline void NODE_SET_METHOD(v8::Local<v8::Template> recv,
 inline void NODE_SET_METHOD(v8::Local<v8::Object> recv,
                             const char* name,
                             v8::FunctionCallback callback) {
-  v8::Isolate* isolate = v8::Isolate::GetCurrent();
+  v8::Isolate* isolate = V8_ISOLATE_GET_CURRENT();
   v8::HandleScope handle_scope(isolate);
-  v8::Local<v8::Context> context = isolate->GetCurrentContext();
+  v8::Local<v8::Context> context = v8::Isolate_GetCurrentContext(isolate);
   v8::Local<v8::FunctionTemplate> t = v8::FunctionTemplate::New(isolate,
                                                                 callback);
   v8::Local<v8::Function> fn = t->GetFunction(context).ToLocalChecked();
@@ -1052,7 +1057,7 @@ inline void NODE_SET_METHOD(v8::Local<v8::Object> recv,
 inline void NODE_SET_PROTOTYPE_METHOD(v8::Local<v8::FunctionTemplate> recv,
                                       const char* name,
                                       v8::FunctionCallback callback) {
-  v8::Isolate* isolate = v8::Isolate::GetCurrent();
+  v8::Isolate* isolate = V8_ISOLATE_GET_CURRENT();
   v8::HandleScope handle_scope(isolate);
   v8::Local<v8::Signature> s = v8::Signature::New(isolate, recv);
   v8::Local<v8::FunctionTemplate> t =
