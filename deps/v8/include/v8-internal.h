@@ -7,7 +7,7 @@
 #include "wasi/v8-wasi-compat.h"
 #include "../../../../wasi-v8-internals-minimal.h"
 #include "../../../../wasi-v8-bits-fixes.h"
-#include "../../../../wasi-v8-missing-types.h"
+#include "wasi/wasi-v8-missing-types.h"
 #include "../../../../wasi-v8-custom-arguments.h"
 // #include "../../../../wasi-v8-minimal-missing.h" // Now included from util.h
 #else

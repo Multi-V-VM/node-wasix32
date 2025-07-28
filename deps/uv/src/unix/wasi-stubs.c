@@ -150,4 +150,10 @@ void freeifaddrs(struct ifaddrs *ifa) {
   // No-op since we don't allocate anything
 }
 
+// Node.js specific stubs
+char** uv_setup_args(int argc, char** argv) {
+  // Return argv as-is for WASI
+  return argv;
+}
+
 #endif /* __wasi__ */

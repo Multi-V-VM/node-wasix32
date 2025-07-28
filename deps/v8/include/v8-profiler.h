@@ -44,8 +44,10 @@ class HeapSnapshot {
 class HeapProfiler {
  public:
   struct HeapSnapshotOptions {
-    bool capture_numeric_value = false;
-    bool is_brief = false;
+    bool capture_numeric_value;
+    bool is_brief;
+    
+    HeapSnapshotOptions() : capture_numeric_value(false), is_brief(false) {}
   };
   
   void DeleteAllHeapSnapshots() {}

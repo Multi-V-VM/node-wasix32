@@ -191,8 +191,7 @@ using NamedPropertyGetterCallback = Intercepted (*)(
 // Use `info.GetReturnValue().Set()` to set the return value of the
 // intercepted get request. If the property does not exist the callback should
 // not set the result and must not produce side effects.
-using GenericNamedPropertyGetterCallback V8_DEPRECATE_SOON(
-    "Use NamedPropertyGetterCallback instead") =
+using GenericNamedPropertyGetterCallback =
     void (*)(Local<Name> property, const PropertyCallbackInfo<Value>& info);
 
 /**

@@ -1583,7 +1583,7 @@ void Simulator::EvalTableInit() {
 }
 
 Simulator::Simulator(Isolate* isolate) : isolate_(isolate) {
-  static base::OnceType once = V8_ONCE_INIT;
+  static base::v8::Once::OnceType once = V8_ONCE_INIT;
   base::CallOnce(&once, &Simulator::EvalTableInit);
 // Set up simulator support first. Some of this information is needed to
 // setup the architecture state.

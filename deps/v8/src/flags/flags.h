@@ -33,10 +33,10 @@ class FlagValue {
   //
   // Other types can be added as needed, after checking that memory protection
   // works for them.
-  static_assert(std::is_same_v<std::decay_t<T>, T>);
-  static_assert(std::is_arithmetic<T>::value ||
-                std::is_same_v<std::optional<bool>, T> ||
-                std::is_same<const char*, T>::value);
+  static_assert(::std::is_same_v<::std::decay_t<T>, T>);
+  static_assert(::std::is_arithmetic<T>::value ||
+                ::std::is_same_v<::std::optional<bool>, T> ||
+                ::std::is_same<const char*, T>::value);
 
  public:
   using underlying_type = T;

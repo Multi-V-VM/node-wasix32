@@ -145,7 +145,7 @@ class HandleBase {
   }
 #else
   V8_INLINE ValueHelper::InternalRepresentationType repr() const {
-    return location_;
+    return reinterpret_cast<ValueHelper::InternalRepresentationType>(location_);
   }
 #endif  // V8_ENABLE_DIRECT_HANDLE
 

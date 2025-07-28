@@ -173,8 +173,8 @@ constexpr int kApiSizetSize = sizeof(size_t);
 constexpr int kApiTaggedSize = kApiSystemPointerSize;
 #endif
 
-// kSmiTagSize is already defined in v8-wasi-compat.h
-// constexpr int kSmiTagSize = 1;
+// kSmiTagSize needs to be defined for the code below
+constexpr int kSmiTagSize = 1;
 
 #ifndef kSmiTagMask
 constexpr intptr_t kSmiTagMask = (1 << kSmiTagSize) - 1;

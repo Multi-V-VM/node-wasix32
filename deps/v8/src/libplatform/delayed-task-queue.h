@@ -65,7 +65,7 @@ class V8_PLATFORM_EXPORT DelayedTaskQueue {
   std::unique_ptr<Task> PopTaskFromDelayedQueue(double now);
 
   std::queue<std::unique_ptr<Task>> task_queue_;
-  std::multimap<double, std::unique_ptr<Task>> delayed_task_queue_;
+  ::std::multimap<double, std::unique_ptr<Task>> delayed_task_queue_;
   bool terminated_ = false;
   TimeFunction time_function_;
 };

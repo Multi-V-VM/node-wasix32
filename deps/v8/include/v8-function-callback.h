@@ -412,9 +412,9 @@ void ReturnValue<T>::SetNonEmpty(const Local<S> handle) {
                 "forget to handle info.ShouldThrowOnError()). "
                 "See http://crbug.com/348660658 for details.");
 #else
-  static constexpr bool is_allowed_void = std::is_void<T>::value;
+  static constexpr bool is_allowed_void = ::std::is_void<T>::value;
 #endif  // V8_IMMINENT_DEPRECATION_WARNINGS
-  static_assert(is_allowed_void || std::is_base_of<T, S>::value, "type check");
+  static_assert(is_allowed_void || ::std::is_base_of<T, S>::value, "type check");
 #ifdef V8_ENABLE_CHECKS
   internal::VerifyHandleIsNonEmpty(handle.IsEmpty());
 #endif  // V8_ENABLE_CHECKS
@@ -437,8 +437,8 @@ template <typename T>
 void ReturnValue<T>::Set(int16_t i) {
   static_assert(std::is_base_of<T, Integer>::value, "type check");
   using I = internal::Internals;
-  static_assert(I::IsValidSmi(std::numeric_limits<int16_t>::min()));
-  static_assert(I::IsValidSmi(std::numeric_limits<int16_t>::max()));
+  static_assert(I::IsValidSmi(::std::numeric_limits<int16_t>::min()));
+  static_assert(I::IsValidSmi(::std::numeric_limits<int16_t>::max()));
   SetInternal(I::IntegralToSmi(i));
 }
 

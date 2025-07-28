@@ -6,7 +6,8 @@
 #include <cstddef>
 #include "v8-local-handle.h"
 #include "v8-object.h"
-#include "wasi/embedder-graph-stub.h"
+// embedder-graph-stub.h removed - v8-profiler.h already has the definitions
+#include "v8-profiler.h"
 
 namespace node {
 

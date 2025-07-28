@@ -141,7 +141,7 @@ struct DefaultCreateTrait {
 
 struct ThreadSafeInitOnceTrait {
   template <typename Function, typename Storage>
-  static void Init(OnceType* once, Function function, Storage storage) {
+  static void Init(v8::Once::OnceType* once, Function function, Storage storage) {
     CallOnce(once, function, storage);
   }
 };
@@ -150,7 +150,7 @@ struct ThreadSafeInitOnceTrait {
 // Initialization trait for users who don't care about thread-safety.
 struct SingleThreadInitOnceTrait {
   template <typename Function, typename Storage>
-  static void Init(OnceType* once, Function function, Storage storage) {
+  static void Init(v8::Once::OnceType* once, Function function, Storage storage) {
     if (*once == ONCE_STATE_UNINITIALIZED) {
       function(storage);
       *once = ONCE_STATE_DONE;
@@ -188,7 +188,7 @@ struct LazyInstanceImpl {
     return *AllocationTrait::MutableInstance(&storage_);
   }
 
-  mutable OnceType once_;
+  mutable v8::Once::OnceType once_;
   alignas(AlignmentType) mutable StorageType storage_;
 };
 

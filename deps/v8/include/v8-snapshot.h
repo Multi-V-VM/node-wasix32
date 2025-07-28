@@ -149,7 +149,6 @@ class V8_EXPORT SnapshotCreator {
    * \param owns_isolate whether this SnapshotCreator should call
    *        v8::Isolate::Dispose() during its destructor.
    */
-  V8_DEPRECATE_SOON("Use the version that passes CreateParams instead.")
   explicit SnapshotCreator(Isolate* isolate,
                            const intptr_t* external_references = nullptr,
                            const StartupData* existing_blob = nullptr,
@@ -163,7 +162,6 @@ class V8_EXPORT SnapshotCreator {
    * \param external_references a null-terminated array of external references
    *        that must be equivalent to CreateParams::external_references.
    */
-  V8_DEPRECATE_SOON("Use the version that passes CreateParams instead.")
   explicit SnapshotCreator(const intptr_t* external_references = nullptr,
                            const StartupData* existing_blob = nullptr);
 

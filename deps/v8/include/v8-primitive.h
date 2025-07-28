@@ -1033,8 +1033,8 @@ String::ExternalStringResource* String::GetExternalStringResource() const {
 #else
     Isolate* isolate = I::GetIsolateForSandbox(obj);
 #endif
-    A value = I::ReadExternalPointerField<internal::Internals::kExternalStringResourceTag>(
-        isolate, obj, I::kStringResourceOffset);
+    A value = I::ReadExternalPointerField(
+        isolate, obj, I::kStringResourceOffset, I::kExternalStringResourceTag);
     result = reinterpret_cast<String::ExternalStringResource*>(value);
   } else {
     result = GetExternalStringResourceSlow();
@@ -1055,8 +1055,8 @@ String::ExternalStringResourceBase* String::GetExternalStringResourceBase(
   ExternalStringResourceBase* resource;
   if (type == I::kExternalOneByteRepresentationTag ||
       type == I::kExternalTwoByteRepresentationTag) {
-    A value = I::ReadExternalPointerField<internal::Internals::kExternalStringResourceTag>(
-        isolate, obj, I::kStringResourceOffset);
+    A value = I::ReadExternalPointerField(
+        isolate, obj, I::kStringResourceOffset, I::kExternalStringResourceTag);
     resource = reinterpret_cast<ExternalStringResourceBase*>(value);
   } else {
     resource = GetExternalStringResourceBaseSlow(encoding_out);
@@ -1082,8 +1082,8 @@ String::ExternalStringResourceBase* String::GetExternalStringResourceBase(
 #else
     Isolate* isolate = I::GetIsolateForSandbox(obj);
 #endif
-    A value = I::ReadExternalPointerField<internal::Internals::kExternalStringResourceTag>(
-        isolate, obj, I::kStringResourceOffset);
+    A value = I::ReadExternalPointerField(
+        isolate, obj, I::kStringResourceOffset, I::kExternalStringResourceTag);
     resource = reinterpret_cast<ExternalStringResourceBase*>(value);
   } else {
     resource = GetExternalStringResourceBaseSlow(encoding_out);
@@ -1135,3 +1135,13 @@ Local<Boolean> Boolean::New(Isolate* isolate, bool value) {
 }  // namespace v8
 
 #endif  // INCLUDE_V8_PRIMITIVE_H_
+
+// Additional String methods for WASI compatibility
+namespace v8 {
+  inline MaybeLocal<String> String::NewFromUtf8(Isolate* isolate, 
+                                                 const char* data,
+                                                 NewStringType type,
+                                                 int length) {
+    return MaybeLocal<String>(Local<String>::New(isolate, reinterpret_cast<String*>(const_cast<char*>(data))));
+  }
+}

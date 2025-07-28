@@ -555,7 +555,7 @@ Global<Context> Shell::evaluation_context_;
 ArrayBuffer::Allocator* Shell::array_buffer_allocator;
 bool check_d8_flag_contradictions = true;
 ShellOptions Shell::options;
-base::OnceType Shell::quit_once_ = V8_ONCE_INIT;
+base::v8::Once::OnceType Shell::quit_once_ = V8_ONCE_INIT;
 
 ScriptCompiler::CachedData* Shell::LookupCodeCache(Isolate* isolate,
                                                    Local<Value> source) {

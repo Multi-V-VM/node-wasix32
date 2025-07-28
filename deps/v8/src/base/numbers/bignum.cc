@@ -599,7 +599,7 @@ int Bignum::PlusCompare(const Bignum& a, const Bignum& b, const Bignum& c) {
 
   Chunk borrow = 0;
   // Starting at min_exponent all digits are == 0. So no need to compare them.
-  int min_exponent = std::min({a.exponent_, b.exponent_, c.exponent_});
+  int min_exponent = ::std::min({a.exponent_, b.exponent_, c.exponent_});
   for (int i = c.BigitLength() - 1; i >= min_exponent; --i) {
     Chunk chunk_a = a.BigitAt(i);
     Chunk chunk_b = b.BigitAt(i);

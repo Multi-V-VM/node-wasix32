@@ -26,7 +26,7 @@ TargetArchitecture::TargetArchitecture(bool force_32bit)
     : tagged_size_(force_32bit ? sizeof(int32_t) : kTaggedSize),
       raw_ptr_size_(force_32bit ? sizeof(int32_t) : kSystemPointerSize),
       smi_tag_and_shift_size_(
-          kSmiTagSize + (force_32bit ? SmiTagging<kApiInt32Size>::kSmiShiftSize
+          kSmiTagSize + (force_32bit ? ::SmiTagging<kApiInt32Size>::kSmiShiftSize
                                      : kSmiShiftSize)),
       external_ptr_size_(force_32bit ? sizeof(int32_t)
                                      : kExternalPointerSlotSize),

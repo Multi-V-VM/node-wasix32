@@ -508,7 +508,7 @@ namespace internal {
 
 // Helper to count the number of occurances of `T` in `List`
 template <typename T, typename... List>
-struct count : std::integral_constant<int, 0> {};
+struct count : ::std::integral_constant<int, 0> {};
 template <typename T, typename... Args>
 struct count<T, T, Args...>
     : std::integral_constant<std::size_t, 1 + count<T, Args...>::value> {};

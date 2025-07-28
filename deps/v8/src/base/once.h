@@ -10,7 +10,7 @@ namespace v8 {
 namespace base {
 
 #ifndef __wasi__
-using OnceType = int;
+using v8::Once::OnceType = int;
 #endif
 
 #define V8_ONCE_INIT 0
@@ -19,7 +19,7 @@ using OnceType = int;
 
 #ifndef __wasi__
 template <typename T>
-void CallOnce(OnceType* once, T init_func) {
+void CallOnce(v8::Once::OnceType* once, T init_func) {
   if (*once == ONCE_STATE_UNINITIALIZED) {
     init_func();
     *once = ONCE_STATE_DONE;

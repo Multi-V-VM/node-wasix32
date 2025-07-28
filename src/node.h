@@ -75,6 +75,7 @@
 
 #ifdef __wasi__
 #include "wasi-node-compat.h"
+#include "wasi-v8-api-fixes.h"
 #endif
 
 #include "v8-platform.h"  // NOLINT(build/include_order)
@@ -982,11 +983,13 @@ NODE_DEPRECATED("Use v8::Date::New() directly",
                       .ToLocalChecked();
                 })
 #define NODE_UNIXTIME_V8 node::NODE_UNIXTIME_V8
+#ifndef __wasi__
 NODE_DEPRECATED("Use v8::Date::ValueOf() directly",
                 inline double NODE_V8_UNIXTIME(v8::Local<v8::Date> date) {
   return date->ValueOf() / 1000;
 })
 #define NODE_V8_UNIXTIME node::NODE_V8_UNIXTIME
+#endif
 
 #define NODE_DEFINE_CONSTANT(target, constant)                                 \
   do {                                                                         \
@@ -1312,8 +1315,8 @@ NODE_EXTERN void AtExit(Environment* env,
 
 typedef double async_id;
 struct async_context {
-  ::node::async_id async_id;
-  ::node::async_id trigger_async_id;
+  async_id async_id_value;
+  async_id trigger_async_id;
 };
 
 /* This is a lot like node::AtExit, except that the hooks added via this

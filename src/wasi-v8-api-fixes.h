@@ -18,6 +18,10 @@ inline T* AddressOf(const T& ref) {
 }
 }  // namespace internal
 
+// Add missing Isolate functions for WASI
+inline Isolate* Isolate_GetCurrent() { return nullptr; }
+inline Local<Context> Isolate_GetCurrentContext(Isolate* isolate) { return Local<Context>(); }
+
 // Add ptr() method to Local<T>
 template <typename T>
 struct LocalPtrFix {

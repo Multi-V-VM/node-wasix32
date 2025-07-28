@@ -941,11 +941,11 @@ double OS::TimeCurrentMillis() {
 }
 
 double PosixTimezoneCache::DaylightSavingsOffset(double time) {
-  if (std::isnan(time)) return std::numeric_limits<double>::quiet_NaN();
-  time_t tv = static_cast<time_t>(std::floor(time/msPerSecond));
+  if (::std::isnan(time)) return ::std::numeric_limits<double>::quiet_NaN();
+  time_t tv = static_cast<time_t>(::std::floor(time/msPerSecond));
   struct tm tm;
   struct tm* t = localtime_r(&tv, &tm);
-  if (nullptr == t) return std::numeric_limits<double>::quiet_NaN();
+  if (nullptr == t) return ::std::numeric_limits<double>::quiet_NaN();
   return t->tm_isdst > 0 ? 3600 * msPerSecond : 0;
 }
 

@@ -3,9 +3,14 @@
 
 #include <memory>
 #include <string>
+
 #include "v8-local-handle.h"
 #include "v8-value.h"
 #include "v8-primitive.h"
+
+// Only define these stubs if V8_PROFILER_H_ hasn't been included yet
+#ifndef V8_PROFILER_H_
+#define V8_WASI_EMBEDDER_GRAPH_STUB_ACTIVE 1
 
 namespace v8 {
 
@@ -23,6 +28,8 @@ struct HeapStatsUpdate {
 };
 
 // Stub for EmbedderGraph - used for heap snapshots
+#ifndef V8_EMBEDDER_GRAPH_DEFINED
+#define V8_EMBEDDER_GRAPH_DEFINED
 class EmbedderGraph {
  public:
   class Node {
@@ -47,8 +54,11 @@ class EmbedderGraph {
   virtual Node* AddNode(::std::unique_ptr<Node> node) = 0;
   virtual void AddEdge(Node* from, Node* to, const char* name = nullptr) = 0;
 };
+#endif // V8_EMBEDDER_GRAPH_DEFINED
 
 // Stub for HeapProfiler
+#ifndef V8_HEAP_PROFILER_DEFINED
+#define V8_HEAP_PROFILER_DEFINED
 class HeapProfiler {
  public:
   struct HeapSnapshotOptions {
@@ -68,6 +78,7 @@ class HeapProfiler {
   
   ~HeapProfiler() = default;
 };
+#endif // V8_HEAP_PROFILER_DEFINED
 
 // Stub for HeapGraphEdge - defined before HeapGraphNode due to dependency
 class HeapGraphEdge {
@@ -135,6 +146,8 @@ class OutputStream {
 };
 
 // Stub for HeapSnapshot
+#ifndef V8_HEAP_SNAPSHOT_DEFINED
+#define V8_HEAP_SNAPSHOT_DEFINED
 class HeapSnapshot {
  public:
   enum class SerializationFormat {
@@ -151,7 +164,10 @@ class HeapSnapshot {
   virtual void Serialize(OutputStream* stream,
                         SerializationFormat format) const = 0;
 };
+#endif // V8_HEAP_SNAPSHOT_DEFINED
 
 }  // namespace v8
+
+#endif // V8_PROFILER_H_
 
 #endif  // V8_WASI_EMBEDDER_GRAPH_STUB_H_

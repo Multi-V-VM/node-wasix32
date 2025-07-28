@@ -13,6 +13,19 @@
 #include "src/base/compiler-specific.h"
 #include "src/base/logging.h"
 
+// Define V8_CLANG_NO_SANITIZE if not already defined
+#ifndef V8_CLANG_NO_SANITIZE
+#if defined(__clang__) && defined(__has_attribute)
+#if __has_attribute(no_sanitize)
+#define V8_CLANG_NO_SANITIZE(what) __attribute__((no_sanitize(what)))
+#else
+#define V8_CLANG_NO_SANITIZE(what)
+#endif
+#else
+#define V8_CLANG_NO_SANITIZE(what)
+#endif
+#endif
+
 // No-op macro which is used to work around MSVC's funky VA_ARGS support.
 #define EXPAND(X) X
 

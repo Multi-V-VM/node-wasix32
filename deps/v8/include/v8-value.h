@@ -7,6 +7,8 @@
 
 #ifndef INCLUDE_V8_VALUE_H_
 #define INCLUDE_V8_VALUE_H_
+#include "v8-maybe-local.h"
+// v8-maybe.h already included via v8-maybe-local.h
 
 #include "v8-data.h"          // NOLINT(build/include_directory)
 #include "v8config.h"         // NOLINT(build/include_directory)

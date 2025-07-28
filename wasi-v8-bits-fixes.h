@@ -52,6 +52,11 @@ inline constexpr unsigned CountTrailingZeros(uint8_t value) {
   return CountTrailingZeros(static_cast<uint32_t>(value));
 }
 
+// Add the specific CountTrailingZeros32 function that's being called
+inline constexpr unsigned CountTrailingZeros32(uint32_t value) {
+  return CountTrailingZeros(value);
+}
+
 }  // namespace bits
 }  // namespace base
 }  // namespace v8

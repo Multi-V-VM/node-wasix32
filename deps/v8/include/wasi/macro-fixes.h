@@ -28,6 +28,12 @@
 #ifndef V8_WARN_UNUSED_RESULT
 #define V8_WARN_UNUSED_RESULT
 #endif
+#ifndef V8_INLINE
+#define V8_INLINE inline
+#endif
+#ifndef V8_NODISCARD
+#define V8_NODISCARD
+#endif
 #ifndef NON_EXPORTED_BASE
 #define NON_EXPORTED_BASE(x) x
 #endif

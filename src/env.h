@@ -51,7 +51,7 @@
 #include "v8-external-memory-accounter.h"
 #include "v8.h"
 #ifdef __wasi__
-#include "wasi/embedder-graph-stub.h"
+// embedder-graph-stub.h removed - v8-profiler.h already has the definitions
 #endif
 
 #if HAVE_OPENSSL

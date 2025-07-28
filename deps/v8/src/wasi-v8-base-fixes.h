@@ -166,12 +166,26 @@ namespace bits {
   inline unsigned CountPopulation(uint16_t value) {
     return __builtin_popcount(value);
   }
+  inline unsigned CountTrailingZeros(uint32_t value) {
+    return value ? __builtin_ctz(value) : 32;
+  }
+  inline unsigned CountTrailingZeros(uint64_t value) {
+    return value ? __builtin_ctzll(value) : 64;
+  }
+  inline uint32_t RoundUpToPowerOfTwo32(uint32_t value) {
+    if (value <= 1) return 1;
+    value--;
+    value |= value >> 1;
+    value |= value >> 2;
+    value |= value >> 4;
+    value |= value >> 8;
+    value |= value >> 16;
+    return value + 1;
+  }
 }
 
-// Add iterator template for missing std::iterator usage
-template<typename Category, typename T, typename Distance = std::ptrdiff_t, 
-         typename Pointer = T*, typename Reference = T&>
-using iterator = std::iterator<Category, T, Distance, Pointer, Reference>;
+// iterator is already defined in wasi-v8-namespace-fix.h
+// Don't redefine it here
 
 }  // namespace base
 

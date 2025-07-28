@@ -29,4 +29,3 @@ inline MaybeLocal<Object> Value::ToObject(Local<Context> context) const {
 } // namespace v8
 
 #endif // WASI_V8_VALUE_METHODS_H
-EOF < /dev/null

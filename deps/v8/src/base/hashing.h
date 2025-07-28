@@ -9,6 +9,8 @@
 #ifndef V8_BASE_HASHING_H_
 #define V8_BASE_HASHING_H_
 
+#include "src/base/bits-namespace-fix.h"
+
 #include <stddef.h>
 #include <stdint.h>
 
