@@ -13,7 +13,9 @@ void CppgcMixin::Wrap(T* ptr, Realm* realm, v8::Local<v8::Object> obj) {
   CHECK_GE(obj->InternalFieldCount(), T::kInternalFieldCount);
   ptr->realm_ = realm;
   v8::Isolate* isolate = realm->isolate();
-  ptr->traced_reference_ = v8::TracedReference<v8::Object>(isolate, obj);
+  // Create TracedReference and then Reset it with the object
+  ptr->traced_reference_ = v8::TracedReference<v8::Object>();
+  ptr->traced_reference_.Reset(isolate, obj);
   // Note that ptr must be of concrete type T in Wrap.
   v8::Object::Wrap<v8::CppHeapPointerTag::kDefaultTag>(isolate, obj, ptr);
   // Keep the layout consistent with BaseObjects.

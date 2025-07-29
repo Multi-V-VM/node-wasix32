@@ -8,6 +8,8 @@
 #include <utility>
 #include <vector>
 #include <mutex>
+#include <set>
+#include <deque>
 
 // Forward declare v8::internal types
 namespace v8 {
@@ -16,6 +18,21 @@ namespace internal {
 using Address = uintptr_t;
 }  // namespace internal
 }  // namespace v8
+
+// Mutex types are defined in base/platform/mutex.h
+// We include it if available, otherwise provide forward declarations
+#ifdef V8_BASE_PLATFORM_MUTEX_H_
+// mutex.h is already included
+#else
+// Forward declarations for when mutex.h is not yet included
+namespace v8 {
+namespace base {
+class Mutex;
+template <typename T> class LockGuard;
+using MutexGuard = LockGuard<Mutex>;
+}  // namespace base
+}  // namespace v8
+#endif
 
 // Add missing base namespace types
 namespace v8 {
@@ -74,6 +91,11 @@ class Vector {
   
   bool IsEmpty() const { return length_ == 0; }
   
+  // Implicit conversion to const version
+  operator Vector<const T>() const {
+    return Vector<const T>(data_, length_);
+  }
+  
  private:
   typename std::conditional<
     std::is_const<T>::value,
@@ -83,10 +105,7 @@ class Vector {
   size_t length_ = 0;
 };
 
-// Mutex types
-// Note: These are defined in wasi-consolidated-fixes.h now
-// using Mutex = std::mutex;
-// using MutexGuard = std::lock_guard<std::mutex>;
+// Mutex types are handled above
 
 // Placeholder for BoundedPageAllocator
 class BoundedPageAllocator {
@@ -108,7 +127,46 @@ struct bit_equal_to : public std::equal_to<T> {};
 template<typename T, typename U>
 class Flags {
  public:
-  Flags() = default;
+  using flag_type = T;
+  using mask_type = U;
+  
+  constexpr Flags() : value_(0) {}
+  constexpr explicit Flags(T value) : value_(static_cast<U>(value)) {}
+  constexpr explicit Flags(U value) : value_(value) {}
+  
+  bool operator==(const Flags& other) const { return value_ == other.value_; }
+  bool operator!=(const Flags& other) const { return value_ != other.value_; }
+  
+  constexpr Flags operator&(T flag) const { return Flags(value_ & static_cast<U>(flag)); }
+  constexpr Flags operator|(T flag) const { return Flags(value_ | static_cast<U>(flag)); }
+  constexpr Flags operator^(T flag) const { return Flags(value_ ^ static_cast<U>(flag)); }
+  
+  constexpr Flags operator&(const Flags& other) const { return Flags(value_ & other.value_); }
+  constexpr Flags operator|(const Flags& other) const { return Flags(value_ | other.value_); }
+  constexpr Flags operator^(const Flags& other) const { return Flags(value_ ^ other.value_); }
+  
+  Flags& operator&=(T flag) { value_ &= static_cast<U>(flag); return *this; }
+  Flags& operator|=(T flag) { value_ |= static_cast<U>(flag); return *this; }
+  Flags& operator^=(T flag) { value_ ^= static_cast<U>(flag); return *this; }
+  
+  operator U() const { return value_; }
+  U value() const { return value_; }
+  
+  // Friend operators for combining flags
+  friend constexpr Flags operator|(const Flags& lhs, const Flags& rhs) {
+    return Flags(static_cast<T>(lhs.value_ | rhs.value_));
+  }
+  
+  friend constexpr Flags operator&(const Flags& lhs, const Flags& rhs) {
+    return Flags(static_cast<T>(lhs.value_ & rhs.value_));
+  }
+  
+  friend constexpr Flags operator^(const Flags& lhs, const Flags& rhs) {
+    return Flags(static_cast<T>(lhs.value_ ^ rhs.value_));
+  }
+  
+ private:
+  U value_;
 };
 
 // EnumSet is now defined in v8/src/base/enum-set.h
@@ -174,7 +232,24 @@ namespace bits {
   inline unsigned CountPopulation(uint16_t value) {
     return __builtin_popcount(value);
   }
-  // CountTrailingZeros functions removed - using existing V8 implementations
+  // Add clear CountTrailingZeros implementations to avoid ambiguity
+  inline unsigned CountTrailingZeros(uint32_t value) {
+    return value == 0 ? 32 : __builtin_ctz(value);
+  }
+  
+  inline unsigned CountTrailingZeros(uint64_t value) {
+    return value == 0 ? 64 : __builtin_ctzll(value);
+  }
+  
+  // Add uintptr_t overload to resolve ambiguity
+  inline unsigned CountTrailingZeros(uintptr_t value) {
+    // Route to appropriate implementation based on size
+    if constexpr (sizeof(uintptr_t) == sizeof(uint32_t)) {
+      return CountTrailingZeros(static_cast<uint32_t>(value));
+    } else {
+      return CountTrailingZeros(static_cast<uint64_t>(value));
+    }
+  }
   inline uint32_t RoundUpToPowerOfTwo32(uint32_t value) {
     if (value <= 1) return 1;
     value--;
@@ -185,6 +260,27 @@ namespace bits {
     value |= value >> 16;
     return value + 1;
   }
+  
+  // Add the generic version that small-vector.h is looking for
+  inline uint32_t RoundUpToPowerOfTwo(uint32_t value) {
+    return RoundUpToPowerOfTwo32(value);
+  }
+  
+  inline uint64_t RoundUpToPowerOfTwo(uint64_t value) {
+    if (value <= 1) return 1;
+    value--;
+    value |= value >> 1;
+    value |= value >> 2;
+    value |= value >> 4;
+    value |= value >> 8;
+    value |= value >> 16;
+    value |= value >> 32;
+    return value + 1;
+  }
+  
+  inline uint64_t RoundUpToPowerOfTwo64(uint64_t value) {
+    return RoundUpToPowerOfTwo(value);
+  }
 }
 
 // iterator is already defined in wasi-v8-namespace-fix.h
@@ -193,6 +289,23 @@ namespace bits {
 }  // namespace base
 
 }  // namespace internal
+}  // namespace v8
+
+// Also add them to v8::std namespace
+namespace v8 {
+namespace std {
+  using ::std::decay_t;
+  using ::std::remove_pointer_t;
+  // Don't add remove_cv_t here as it conflicts with std-namespace-fix.h
+  using ::std::extent_v;
+  using ::std::is_bounded_array_v;
+  using ::std::multiset;
+  using ::std::deque;
+}  // namespace std
+
+// Note: RoundUpToPowerOfTwo functions are already defined in base/bits.h
+// No need to redefine them here
+
 }  // namespace v8
 
 #endif  // __wasi__

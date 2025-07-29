@@ -26,7 +26,7 @@ class Execution final : public AllStatic {
   V8_EXPORT_PRIVATE V8_WARN_UNUSED_RESULT static MaybeHandle<Object> Call(
       Isolate* isolate, DirectHandle<Object> callable,
       DirectHandle<Object> receiver,
-      base::Vector<const DirectHandle<Object>> args);
+      ::v8::base::Vector<const DirectHandle<Object>> args);
   // Run a script. For JSFunctions that are not scripts, use Execution::Call.
   // Depending on the script, the host_defined_options might not be used but the
   // caller has to provide it at all times.
@@ -37,17 +37,17 @@ class Execution final : public AllStatic {
   V8_WARN_UNUSED_RESULT static MaybeHandle<Object> CallBuiltin(
       Isolate* isolate, DirectHandle<JSFunction> builtin,
       DirectHandle<Object> receiver,
-      base::Vector<const DirectHandle<Object>> args);
+      ::v8::base::Vector<const DirectHandle<Object>> args);
 
   // Construct object from function, the caller supplies an array of
   // arguments.
   V8_WARN_UNUSED_RESULT static MaybeDirectHandle<JSReceiver> New(
       Isolate* isolate, DirectHandle<Object> constructor,
-      base::Vector<const DirectHandle<Object>> args);
+      ::v8::base::Vector<const DirectHandle<Object>> args);
   V8_WARN_UNUSED_RESULT static MaybeDirectHandle<JSReceiver> New(
       Isolate* isolate, DirectHandle<Object> constructor,
       DirectHandle<Object> new_target,
-      base::Vector<const DirectHandle<Object>> args);
+      ::v8::base::Vector<const DirectHandle<Object>> args);
 
   // Call a function, just like Call(), but handle don't report exceptions
   // externally.
@@ -59,7 +59,7 @@ class Execution final : public AllStatic {
   V8_EXPORT_PRIVATE static MaybeDirectHandle<Object> TryCall(
       Isolate* isolate, DirectHandle<Object> callable,
       DirectHandle<Object> receiver,
-      base::Vector<const DirectHandle<Object>> args,
+      ::v8::::v8::base::Vector<const DirectHandle<Object>> args,
       MessageHandling message_handling,
       MaybeDirectHandle<Object>* exception_out);
   // Same as Execute::TryCall but for scripts which need an explicit

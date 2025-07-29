@@ -440,7 +440,7 @@ struct IsolateSettings {
   v8::MicrotasksPolicy policy = v8::MicrotasksPolicy::kExplicit;
 
   // Error handling callbacks
-  v8::Isolate::AbortOnUncaughtExceptionCallback
+  v8::AbortOnUncaughtExceptionCallback
       should_abort_on_uncaught_exception_callback = nullptr;
   v8::FatalErrorCallback fatal_error_callback = nullptr;
   v8::OOMErrorCallback oom_error_callback = nullptr;

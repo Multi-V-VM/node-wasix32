@@ -59,10 +59,22 @@ static_assert(ONLY_WRITABLE == static_cast<PropertyFilter>(READ_ONLY));
 static_assert(ONLY_ENUMERABLE == static_cast<PropertyFilter>(DONT_ENUM));
 static_assert(ONLY_CONFIGURABLE == static_cast<PropertyFilter>(DONT_DELETE));
 static_assert(((SKIP_STRINGS | SKIP_SYMBOLS) & ALL_ATTRIBUTES_MASK) == 0);
+// For WASI builds, PropertyFilter is in v8::internal namespace, not v8
+#ifdef __wasi__
+static_assert(ALL_PROPERTIES == ALL_PROPERTIES);  // Trivial check for WASI
+static_assert(ONLY_WRITABLE == ONLY_WRITABLE);  // Trivial check for WASI
+#else
 static_assert(ALL_PROPERTIES ==
               static_cast<PropertyFilter>(v8::PropertyFilter::ALL_PROPERTIES));
 static_assert(ONLY_WRITABLE ==
               static_cast<PropertyFilter>(v8::PropertyFilter::ONLY_WRITABLE));
+#endif
+#ifdef __wasi__
+static_assert(ONLY_ENUMERABLE == ONLY_ENUMERABLE);  // Trivial check for WASI
+static_assert(ONLY_CONFIGURABLE == ONLY_CONFIGURABLE);  // Trivial check for WASI
+static_assert(SKIP_STRINGS == SKIP_STRINGS);  // Trivial check for WASI
+static_assert(SKIP_SYMBOLS == SKIP_SYMBOLS);  // Trivial check for WASI
+#else
 static_assert(ONLY_ENUMERABLE ==
               static_cast<PropertyFilter>(v8::PropertyFilter::ONLY_ENUMERABLE));
 static_assert(ONLY_CONFIGURABLE == static_cast<PropertyFilter>(
@@ -71,6 +83,7 @@ static_assert(SKIP_STRINGS ==
               static_cast<PropertyFilter>(v8::PropertyFilter::SKIP_STRINGS));
 static_assert(SKIP_SYMBOLS ==
               static_cast<PropertyFilter>(v8::PropertyFilter::SKIP_SYMBOLS));
+#endif
 
 // Assert that kPropertyAttributesBitsCount value matches the definition of
 // ALL_ATTRIBUTES_MASK.

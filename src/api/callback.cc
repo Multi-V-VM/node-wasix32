@@ -3,6 +3,9 @@
 #include "env-inl.h"
 #include "node.h"
 #include "v8.h"
+#ifdef __wasi__
+#include "wasi-async-context-fix.h"
+#endif
 
 namespace node {
 
@@ -84,14 +87,26 @@ InternalCallbackScope::InternalCallbackScope(Environment* env,
       isolate, async_context_frame::exchange(isolate, context_frame));
 
   env->async_hooks()->push_async_context(
+#ifdef __wasi__
+    async_context_.async_id_value, async_context_.trigger_async_id, object);
+#else
     async_context_.async_id, async_context_.trigger_async_id, object);
+#endif
 
   pushed_ids_ = true;
 
+#ifdef __wasi__
+  if (asyncContext.async_id_value != 0 && !skip_hooks_) {
+#else
   if (asyncContext.async_id != 0 && !skip_hooks_) {
+#endif
     // No need to check a return value because the application will exit if
     // an exception occurs.
+#ifdef __wasi__
+    AsyncWrap::EmitBefore(env, asyncContext.async_id_value);
+#else
     AsyncWrap::EmitBefore(env, asyncContext.async_id);
+#endif
   }
 }
 
@@ -120,12 +135,21 @@ void InternalCallbackScope::Close() {
   Isolate* isolate = env_->isolate();
   auto idle = OnScopeLeave([&]() { isolate->SetIdle(true); });
 
+#ifdef __wasi__
+  if (!failed_ && async_context_.async_id_value != 0 && !skip_hooks_) {
+    AsyncWrap::EmitAfter(env_, async_context_.async_id_value);
+#else
   if (!failed_ && async_context_.async_id != 0 && !skip_hooks_) {
     AsyncWrap::EmitAfter(env_, async_context_.async_id);
+#endif
   }
 
   if (pushed_ids_) {
+#ifdef __wasi__
+    env_->async_hooks()->pop_async_context(async_context_.async_id_value);
+#else
     env_->async_hooks()->pop_async_context(async_context_.async_id);
+#endif
 
     async_context_frame::exchange(isolate, prior_context_frame_.Get(isolate));
   }
@@ -216,7 +240,11 @@ MaybeLocal<Value> InternalMakeCallback(Environment* env,
   Local<Context> context = env->context();
   if (use_async_hooks_trampoline) {
     MaybeStackBuffer<Local<Value>, 16> args(3 + argc);
+#ifdef __wasi__
+    args[0] = Number::New(env->isolate(), asyncContext.async_id_value);
+#else
     args[0] = Number::New(env->isolate(), asyncContext.async_id);
+#endif
     args[1] = resource;
     args[2] = callback;
     for (int i = 0; i < argc; i++) {

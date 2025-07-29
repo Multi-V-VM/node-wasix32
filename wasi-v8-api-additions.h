@@ -8,6 +8,12 @@
 #include <initializer_list>
 #include <cstddef>
 
+// Include necessary V8 headers first
+#include "deps/v8/include/v8-value.h"
+#include "deps/v8/include/v8-object.h"
+#include "deps/v8/include/v8-local-handle.h"
+#include "deps/v8/include/v8-primitive.h"
+
 // This header includes our comprehensive V8 API stubs
 #include "wasi-v8-api-stubs.h"
 
@@ -21,16 +27,8 @@ inline std::vector<Local<T>> MakeLocalVector(Isolate* isolate,
     return std::vector<Local<T>>(init);
 }
 
-// Fix for Value inline methods
-inline bool Value::IsString() const {
-    // For WASI, provide a simplified check
-    // This would normally check the object type bits
-    return false; // Safe default for WASI
-}
-
-inline bool Value::QuickIsString() const {
-    return false; // Safe default for WASI
-}
+// Value inline methods are now defined in wasi/v8-value-inline-impl.h
+// Note: QuickIsString is not implemented for WASI - it should be defined in v8-value.h
 
 // Fix for Object::New overload issues
 inline Local<Object> ObjectNewWithArrays(
@@ -45,7 +43,6 @@ inline Local<Object> ObjectNewWithArrays(
 
 } // namespace v8
 
-// Include additional V8 Value methods
-#include "wasi-v8-value-methods.h"
+// Note: V8 Value methods are now implemented directly in v8-value.h with __wasi__ guards
 
 #endif // WASI_V8_API_ADDITIONS_H

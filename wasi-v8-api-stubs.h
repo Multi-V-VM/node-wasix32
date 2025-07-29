@@ -8,13 +8,22 @@
 // Comprehensive V8 API stubs for WASI build
 
 // Additional cppgc namespace stubs (must be before v8 namespace)
+// Only define if V8 headers haven't been included
+#if !defined(CPPGC_STUBS_DEFINED) && !defined(V8_CPPGC_H_)
+#define CPPGC_STUBS_DEFINED
+
 namespace cppgc {
 
+#ifndef CPPGC_CUSTOM_SPACE_BASE_DEFINED
+#define CPPGC_CUSTOM_SPACE_BASE_DEFINED
 class CustomSpaceBase {
  public:
   virtual ~CustomSpaceBase() = default;
 };
+#endif
 
+#ifndef CPPGC_HEAP_DEFINED  
+#define CPPGC_HEAP_DEFINED
 class Heap {
  public:
   enum class MarkingType {
@@ -29,8 +38,11 @@ class Heap {
     kIncrementalAndConcurrent
   };
 };
+#endif
 
 } // namespace cppgc
+
+#endif // CPPGC_STUBS_DEFINED
 
 namespace v8 {
 
@@ -75,11 +87,25 @@ class External;
 class Signature;
 class AccessorSignature;
 class Extension;
+class Platform;
+
+// SourceLocation is now defined in v8-source-location.h
+
+// Missing QueryObjectPredicate for internal_only_v8.cc
+class QueryObjectPredicate {
+ public:
+  virtual ~QueryObjectPredicate() = default;
+  virtual bool Filter(Local<Object> object) = 0;
+};
 
 // Note: Local and MaybeLocal are template classes that should be defined
 // by V8 headers. We only provide stub implementations if they're missing.
 
-// HandleScope stub
+// HandleScope stub - prevent redefinition, only define if not already defined
+#if !defined(HANDLESCOPE_STUBS_DEFINED) && !defined(V8_HANDLESCOPE_DEFINED)
+#define HANDLESCOPE_STUBS_DEFINED
+#define V8_HANDLESCOPE_DEFINED
+
 class HandleScope {
  public:
   explicit HandleScope(Isolate* isolate) {}
@@ -103,13 +129,11 @@ class EscapableHandleScope : public HandleScope {
   MaybeLocal<T> EscapeMaybe(MaybeLocal<T> value) { return value; }
 };
 
-// CppHeap stub
-class CppHeap {
- public:
-  static std::unique_ptr<CppHeap> Create(
-      v8::Platform* platform,
-      const CppHeapCreateParams& params) { return nullptr; }
-};
+#endif // HANDLESCOPE_STUBS_DEFINED
+
+// CppHeap stub - prevent redefinition, only define if V8 headers haven't been included
+#if !defined(CPPHEAP_STUBS_DEFINED) && !defined(V8_CPPGC_H_)
+#define CPPHEAP_STUBS_DEFINED
 
 struct CppHeapCreateParams {
   std::vector<std::unique_ptr<cppgc::CustomSpaceBase>> custom_spaces;
@@ -119,6 +143,15 @@ struct CppHeapCreateParams {
       cppgc::Heap::SweepingType::kIncrementalAndConcurrent;
 };
 
+class CppHeap {
+ public:
+  static std::unique_ptr<CppHeap> Create(
+      v8::Platform* platform,
+      const CppHeapCreateParams& params) { return nullptr; }
+};
+
+#endif // CPPHEAP_STUBS_DEFINED
+
 // Context methods are defined inline in V8 headers
 
 // ExternalPointerTag enum
@@ -127,6 +160,9 @@ enum ExternalPointerTag : uint64_t {
   kExternalPointerFreeEntryTag = 1,
   kAnyExternalPointerTag = ~0ULL,
 };
+
+// ExternalPointerHandle type  
+using ExternalPointerHandle = uint32_t;
 
 // Internal namespace additions
 namespace internal {
@@ -140,16 +176,25 @@ class Isolate;
 using Address = uintptr_t;
 #endif
 
-// Missing internal functions
-inline bool ShouldThrowOnError(v8::internal::Isolate* isolate) { return false; }
-inline bool PointerCompressionIsEnabled() { return false; }
-inline bool SandboxIsEnabled() { return false; }
+// Note: Internal functions are defined in other WASI compatibility files
+// - ShouldThrowOnError is defined in nuclear-fix.h
+// - PointerCompressionIsEnabled and SandboxIsEnabled are defined in wasi-v8-initialization-functions.h
 
-// Missing constants
-constexpr ExternalPointerTag kWasmWasmStreamingTag = static_cast<ExternalPointerTag>(0x1000);
-constexpr ExternalPointerTag kWasmStringViewIterTag = static_cast<ExternalPointerTag>(0x1001);
-constexpr ExternalPointerTag kApiAccessorPairGetterTag = static_cast<ExternalPointerTag>(0x1002);
-constexpr ExternalPointerTag kApiAccessorPairSetterTag = static_cast<ExternalPointerTag>(0x1003);
+// Stub HeapProfiler class for internal_only_v8.cc
+class HeapProfiler {
+ public:
+  void QueryObjects(Local<Context> context, QueryObjectPredicate* predicate, 
+                   std::vector<Local<Object>>* objects) {
+    // Do nothing for WASI build
+  }
+};
+
+// Note: External pointer tags are defined in nuclear-fix.h to avoid conflicts
+
+// External pointer table constants for WASI
+constexpr size_t kExternalPointerTableReservationSize = 1024 * 1024; // 1MB
+constexpr size_t kMaxExternalPointers = kExternalPointerTableReservationSize / 8;
+constexpr size_t kMaxCapacity = kMaxExternalPointers;
 
 // V8 slot and smi value operations
 #ifndef kApiSystemPointerSize
@@ -176,9 +221,7 @@ constexpr int kApiTaggedSize = kApiSystemPointerSize;
 // kSmiTagSize needs to be defined for the code below
 constexpr int kSmiTagSize = 1;
 
-#ifndef kSmiTagMask
-constexpr intptr_t kSmiTagMask = (1 << kSmiTagSize) - 1;
-#endif
+// Note: kSmiTagMask is defined in wasi-v8-flags-fix.h
 
 inline int SmiValue(Address value) {
   return static_cast<int32_t>(static_cast<intptr_t>(value)) >> kSmiTagSize;
@@ -201,6 +244,8 @@ inline Address ReadExternalPointerField(Address field_address,
 // Isolate methods are defined in V8 headers
 
 } // namespace internal
+
+// Note: Isolate stub methods like New() and SetIdle() are defined in v8-isolate-wasi-ext.h
 
 } // namespace v8
 

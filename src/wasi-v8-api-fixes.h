@@ -8,8 +8,16 @@
 // JustVoid is now provided by v8-maybe-specialization.h
 // No additional fix needed here
 
+// Forward declarations
+struct Environment;
+
+
 // V8 Persistent handle fixes
 namespace v8 {
+
+// Forward declare CppHeap for WASI
+class CppHeap;
+
 namespace internal {
 // Helper to make persistent handle API work with WASI
 template<typename T>
@@ -22,6 +30,7 @@ inline T* AddressOf(const T& ref) {
 inline Isolate* Isolate_GetCurrent() { return nullptr; }
 inline Local<Context> Isolate_GetCurrentContext(Isolate* isolate) { return Local<Context>(); }
 
+
 // Add ptr() method to Local<T>
 template <typename T>
 struct LocalPtrFix {
@@ -30,7 +39,30 @@ struct LocalPtrFix {
   }
 };
 
+// Fix for Local<T>* conversion issues
+// Allow implicit conversions between Local<Value>* and Local<SpecificType>*
+template<typename T>
+inline Local<T>* LocalCast(Local<Value>* value) {
+  return reinterpret_cast<Local<T>*>(value);
+}
+
+// Template specialization for ToLocal to handle type conversions
+template<typename T, typename S>
+inline bool ToLocalHelper(MaybeLocal<S> maybe, Local<T>* out) {
+  Local<S> local;
+  if (maybe.ToLocal(&local)) {
+    *out = local.template As<T>();
+    return true;
+  }
+  return false;
+}
+
+
 }  // namespace v8
+
+// Macro to help with ToLocal type conversions
+#define TOLOCAL_TYPED(maybe, out, type) \
+  (maybe).ToLocal(reinterpret_cast<v8::Local<type>*>(out))
 
 // Override problematic Persistent methods
 #define V8_PERSISTENT_BASE_GET_FIX 1
@@ -41,7 +73,12 @@ struct LocalPtrFix {
 #endif
 #define UNREACHABLE(...) \
   do { \
-    fprintf(stderr, "UNREACHABLE: %s\n", ##__VA_ARGS__); \
+    fprintf(stderr, "UNREACHABLE at %s:%d", __FILE__, __LINE__); \
+    if (sizeof((const char*[]){__VA_ARGS__}) > sizeof(const char*[])) { \
+      fprintf(stderr, ": "); \
+      fprintf(stderr, __VA_ARGS__); \
+    } \
+    fprintf(stderr, "\n"); \
     __builtin_unreachable(); \
   } while (0)
 
@@ -85,6 +122,21 @@ inline size_t convert_latin1_to_utf8(const char* src, size_t len, char* dst) {
 
 }  // namespace simdutf
 }  // namespace v8
+
+// Note: async_context has async_id_value field but code expects async_id
+// This will need to be fixed in the code that uses it
+
+// Add missing Value methods for Node.js compatibility
+// These need to be added to the Value class itself
+namespace v8 {
+
+// We can't add methods to Value class directly in WASI, 
+// so we'll need to provide them through a different mechanism
+// For now, provide stub implementations that Node.js can use
+
+}  // namespace v8
+
+// Instead of macros, let's add these methods to v8-value.h directly through include
 
 #endif // __wasi__
 

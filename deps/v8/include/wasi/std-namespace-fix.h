@@ -194,7 +194,13 @@ namespace chrono {
 
 // Type traits
 template<typename T> using is_trivially_copyable = ::std::is_trivially_copyable<T>;
+template<typename T> constexpr bool is_trivially_copyable_v = ::std::is_trivially_copyable_v<T>;
 template<typename T> using is_trivially_destructible = ::std::is_trivially_destructible<T>;
+template<typename T> constexpr bool is_trivially_destructible_v = ::std::is_trivially_destructible_v<T>;
+template<typename T> using is_move_constructible = ::std::is_move_constructible<T>;
+template<typename T> constexpr bool is_move_constructible_v = ::std::is_move_constructible_v<T>;
+template<typename T> using is_move_assignable = ::std::is_move_assignable<T>;
+template<typename T> constexpr bool is_move_assignable_v = ::std::is_move_assignable_v<T>;
 
 // Utility templates
 template<typename T> using optional = ::std::optional<T>;

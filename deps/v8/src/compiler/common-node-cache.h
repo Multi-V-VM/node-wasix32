@@ -6,6 +6,7 @@
 #define V8_COMPILER_COMMON_NODE_CACHE_H_
 
 #include "src/compiler/node-cache.h"
+#include "src/base/macros.h"
 
 namespace v8 {
 namespace internal {

@@ -2,29 +2,13 @@
 #define WASI_V8_VALUE_METHODS_H
 
 // This file provides additional V8 Value methods for WASI builds
+// Note: Most Value methods are now implemented directly in v8-value.h with __wasi__ guards
+// This file is kept for compatibility but methods have been moved to v8-value.h
 
 namespace v8 {
 
-// Value methods that may be missing in WASI builds
-inline MaybeLocal<String> Value::ToString(Local<Context> context) const {
-    // Return empty string for WASI builds
-    return MaybeLocal<String>();
-}
-
-inline MaybeLocal<Number> Value::ToNumber(Local<Context> context) const {
-    // Return empty number for WASI builds
-    return MaybeLocal<Number>();
-}
-
-inline MaybeLocal<Integer> Value::ToInteger(Local<Context> context) const {
-    // Return empty integer for WASI builds
-    return MaybeLocal<Integer>();
-}
-
-inline MaybeLocal<Object> Value::ToObject(Local<Context> context) const {
-    // Return empty object for WASI builds
-    return MaybeLocal<Object>();
-}
+// All Value method implementations have been moved to v8-value.h to avoid redefinition conflicts
+// This file is now primarily used for compatibility
 
 } // namespace v8
 

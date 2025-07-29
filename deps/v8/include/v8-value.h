@@ -354,6 +354,14 @@ class V8_EXPORT Value : public Data {
     // Objects, arrays, etc. are truthy
     return true;
   }
+  
+  /**
+   * WASI stub: Value conversion methods expected by Node.js
+   */
+  V8_INLINE V8_WARN_UNUSED_RESULT Maybe<int64_t> IntegerValue(Local<Context> context) const;
+  V8_INLINE V8_WARN_UNUSED_RESULT Maybe<int32_t> Int32Value(Local<Context> context) const;
+  V8_INLINE V8_WARN_UNUSED_RESULT Maybe<uint32_t> Uint32Value(Local<Context> context) const;
+  V8_INLINE V8_WARN_UNUSED_RESULT Maybe<double> NumberValue(Local<Context> context) const;
 #endif
 
   /**
@@ -365,6 +373,11 @@ class V8_EXPORT Value : public Data {
 #endif
     return static_cast<Value*>(data);
   }
+
+#ifdef __wasi__
+  // WASI: Add missing ToString method
+  MaybeLocal<String> ToString(Local<Context> context) const;
+#endif
 
  private:
   static void CheckCast(Data* that);

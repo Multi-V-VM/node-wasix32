@@ -36,7 +36,7 @@ class CompilationStatistics final : public Malloced {
 
     std::string AsJSON();
 
-    base::TimeDelta delta_;
+    ::v8::base::TimeDelta delta_;
     size_t total_allocated_bytes_ = 0;
     size_t max_allocated_bytes_ = 0;
     size_t absolute_max_allocated_bytes_ = 0;
@@ -84,7 +84,7 @@ class CompilationStatistics final : public Malloced {
   TotalStats total_stats_;
   PhaseKindMap phase_kind_map_;
   PhaseMap phase_map_;
-  base::Mutex access_mutex_;
+  ::v8::base::Mutex access_mutex_;
 };
 
 std::ostream& operator<<(std::ostream& os, const AsPrintableStatistics& s);

@@ -139,14 +139,24 @@ inline constexpr CodeKindFlag CodeKindToCodeKindFlag(CodeKind kind) {
 }
 
 // CodeKinds represents a set of CodeKind.
-using CodeKinds = base::Flags<CodeKindFlag>;
-DEFINE_OPERATORS_FOR_FLAGS(CodeKinds)
+using CodeKinds = base::Flags<CodeKindFlag, uint32_t>;
 
-static constexpr CodeKinds kJSFunctionCodeKindsMask{
-    CodeKindFlag::INTERPRETED_FUNCTION | CodeKindFlag::BASELINE |
-    CodeKindFlag::MAGLEV | CodeKindFlag::TURBOFAN_JS};
-static constexpr CodeKinds kOptimizedJSFunctionCodeKindsMask{
-    CodeKindFlag::MAGLEV | CodeKindFlag::TURBOFAN_JS};
+#ifdef __wasi__
+// WASI compatibility fix for flags operators
+namespace v8 {
+namespace internal {
+using CodeKindsType = CodeKinds;
+} // namespace internal
+} // namespace v8
+#else
+DEFINE_OPERATORS_FOR_FLAGS(CodeKinds)
+#endif
+
+static constexpr CodeKinds kJSFunctionCodeKindsMask =
+    CodeKinds(CodeKindFlag::INTERPRETED_FUNCTION) | CodeKinds(CodeKindFlag::BASELINE) |
+    CodeKinds(CodeKindFlag::MAGLEV) | CodeKinds(CodeKindFlag::TURBOFAN_JS);
+static constexpr CodeKinds kOptimizedJSFunctionCodeKindsMask =
+    CodeKinds(CodeKindFlag::MAGLEV) | CodeKinds(CodeKindFlag::TURBOFAN_JS);
 
 }  // namespace internal
 }  // namespace v8

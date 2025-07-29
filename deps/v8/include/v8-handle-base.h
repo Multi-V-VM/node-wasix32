@@ -58,15 +58,16 @@ class ValueHelper {
     return value == nullptr; 
   }
   
+  // Overload for pointer types (when called with *Local<T>)
   template<typename T>
-  static Address ValueAsAddress(const T* value) {
-    return reinterpret_cast<Address>(const_cast<T*>(value));
+  static InternalRepresentationType ValueAsAddress(T* value) {
+    return reinterpret_cast<InternalRepresentationType>(value);
   }
   
-  // Overload for references
+  // Overload for const pointer types
   template<typename T>
-  static Address ValueAsAddress(const T& value) {
-    return reinterpret_cast<Address>(const_cast<T*>(&value));
+  static InternalRepresentationType ValueAsAddress(const T* value) {
+    return reinterpret_cast<InternalRepresentationType>(const_cast<T*>(value));
   }
   
   template<typename T>

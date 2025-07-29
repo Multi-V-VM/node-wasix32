@@ -24,6 +24,10 @@ class IsolateWASIExt {
     // No-op for WASI
   }
   
+  static void SetIdle(Isolate* isolate, bool is_idle) {
+    // No-op for WASI - idle state management not needed
+  }
+  
   static void SetCaptureStackTraceForUncaughtExceptions(
       Isolate* isolate,
       bool capture,
@@ -78,6 +82,9 @@ class WASIJobHandle : public JobHandle {
       StackTrace::StackTraceOptions options = StackTrace::kOverview) { \
     v8::IsolateWASIExt::SetCaptureStackTraceForUncaughtExceptions( \
         this, capture, frame_limit, options); \
+  } \
+  void SetIdle(bool is_idle) { \
+    v8::IsolateWASIExt::SetIdle(this, is_idle); \
   } \
   static Isolate* Allocate() { \
     return v8::IsolateWASIExt::Allocate(); \

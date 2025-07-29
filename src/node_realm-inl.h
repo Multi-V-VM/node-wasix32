@@ -1,5 +1,6 @@
 #ifdef __wasi__
 #include "wasi-v8-extensions.h"
+#include "wasi-isolate-extensions.h"
 #endif
 
 #ifndef SRC_NODE_REALM_INL_H_

@@ -40,12 +40,21 @@ const char* GetTaskPriorityName(TaskPriority priority) {
 }
 
 static void PrintSourceLocation(const v8::SourceLocation& location) {
+#ifdef __wasi__
+  const char* loc = location.ToString();
+  if (loc && *loc) {
+    fprintf(stderr, " %s\n", loc);
+  } else {
+    fprintf(stderr, " <no location>\n");
+  }
+#else
   auto loc = location.ToString();
   if (!loc.empty()) {
     fprintf(stderr, " %s\n", loc.c_str());
   } else {
     fprintf(stderr, " <no location>\n");
   }
+#endif
 }
 
 static void PlatformWorkerThread(void* data) {
@@ -656,6 +665,15 @@ bool PerIsolatePlatformData::FlushForegroundTasksInternal() {
   return did_work;
 }
 
+// Implementation required by v8::Platform interface
+void NodePlatform::PostTaskOnWorkerThread(
+    v8::TaskPriority priority,
+    std::unique_ptr<v8::Task> task) {
+  // Use default SourceLocation for the v8::Platform interface method
+  v8::SourceLocation location;
+  PostTaskOnWorkerThreadImpl(priority, std::move(task), location);
+}
+
 void NodePlatform::PostTaskOnWorkerThreadImpl(
     v8::TaskPriority priority,
     std::unique_ptr<v8::Task> task,
@@ -693,6 +711,16 @@ void NodePlatform::PostDelayedTaskOnWorkerThreadImpl(
   }
   worker_thread_task_runner_->PostDelayedTask(
       priority, std::move(task), location, delay_in_seconds);
+}
+
+void NodePlatform::CallDelayedOnWorkerThread(std::unique_ptr<v8::Task> task,
+                                            double delay_in_seconds) {
+  // Use default priority and source location for the v8::Platform interface method
+  PostDelayedTaskOnWorkerThreadImpl(
+      v8::TaskPriority::kUserVisible,
+      std::move(task),
+      delay_in_seconds,
+      v8::SourceLocation());
 }
 
 IsolatePlatformDelegate* NodePlatform::ForIsolate(Isolate* isolate) {
@@ -739,6 +767,13 @@ bool NodePlatform::IdleTasksEnabled(Isolate* isolate) {
   return ForIsolate(isolate)->IdleTasksEnabled();
 }
 
+// Implementation required by v8::Platform interface (single parameter)
+std::shared_ptr<v8::TaskRunner> NodePlatform::GetForegroundTaskRunner(
+    Isolate* isolate) {
+  return ForIsolate(isolate)->GetForegroundTaskRunner();
+}
+
+// Additional overload with priority parameter
 std::shared_ptr<v8::TaskRunner> NodePlatform::GetForegroundTaskRunner(
     Isolate* isolate, v8::TaskPriority priority) {
   return ForIsolate(isolate)->GetForegroundTaskRunner();
@@ -764,6 +799,32 @@ Platform::StackTracePrinter NodePlatform::GetStackTracePrinter() {
     DumpNativeBacktrace(stderr);
     fflush(stderr);
   };
+}
+
+// Implementation of v8::Platform pure virtual methods
+void NodePlatform::CallOnWorkerThread(std::unique_ptr<v8::Task> task) {
+  // Use default priority for tasks without explicit priority
+  PostTaskOnWorkerThread(v8::TaskPriority::kUserVisible, std::move(task));
+}
+
+void NodePlatform::CallDelayedOnWorkerThread(
+    std::unique_ptr<v8::Task> task,
+    double delay_in_seconds) {
+  // Use default priority and source location
+  v8::SourceLocation location;
+  PostDelayedTaskOnWorkerThreadImpl(
+      v8::TaskPriority::kUserVisible, 
+      std::move(task), 
+      delay_in_seconds, 
+      location);
+}
+
+std::unique_ptr<v8::JobHandle> NodePlatform::PostJob(
+    v8::TaskPriority priority,
+    std::unique_ptr<v8::JobTask> job_task) {
+  // Use default source location for the v8::Platform interface method
+  v8::SourceLocation location;
+  return CreateJobImpl(priority, std::move(job_task), location);
 }
 
 v8::PageAllocator* NodePlatform::GetPageAllocator() {

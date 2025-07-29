@@ -235,8 +235,14 @@ struct ExternalPointerTableEntry {
 //  When LSan is active, we need "fat" entries, see above.
 static_assert(sizeof(ExternalPointerTableEntry) == 16);
 #else
-//  We expect ExternalPointerTable entries to consist of a single 64-bit word.
+//  We expect ExternalPointerTable entries to consist of a single pointer-sized word.
+#ifdef __wasi__
+// WASI is 32-bit, so pointer is 4 bytes
+static_assert(sizeof(ExternalPointerTableEntry) == sizeof(void*));
+#else
+// Other platforms expect 64-bit entries
 static_assert(sizeof(ExternalPointerTableEntry) == 8);
+#endif
 #endif
 
 /**

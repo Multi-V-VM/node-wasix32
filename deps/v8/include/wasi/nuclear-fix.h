@@ -110,10 +110,12 @@ constexpr Address kNullAddress = 0;
 class Internals {
  public:
   static constexpr int kJSObjectType = 1057;  // Must match JS_OBJECT_TYPE from instance-type.h
-  static constexpr int kFirstNonstringType = 0x40;
-  static constexpr int kForeignType = 0x45;
+  static constexpr int kFirstNonstringType = 128;  // Updated to match actual value (was 64)
+  static constexpr int kForeignType = 204;  // Updated to match actual value (was 69)
   static constexpr int kFirstJSApiObjectType = 1058;
-  static constexpr int kJSSpecialApiObjectType = 1060;
+  static constexpr int kLastJSApiObjectType = 2058;  // Add missing constant
+  static constexpr int kJSSpecialApiObjectType = 1040;  // Updated to match error
+  static constexpr int kOddballType = 131;  // Updated to match actual value (was 70)
   
   static constexpr int kUndefinedValueRootIndex = 5;
   static constexpr int kNullValueRootIndex = 6;
@@ -132,6 +134,7 @@ class Internals {
   
   static constexpr uintptr_t kExternalPointerTagShift = 48;
   static constexpr uint64_t kExternalPointerTagMask = 0xFFFF000000000000ULL;
+  static constexpr uint64_t kExternalPointerMarkBit = 0x0001000000000000ULL;
   
   static constexpr int kIsolateRootsOffset = 0;
   static constexpr int kExternalPointerTableOffset = 16;
@@ -251,8 +254,14 @@ inline void* IsolateFromNeverReadOnlySpaceObject(Address obj) { return nullptr; 
 inline bool ShouldThrowOnError(Address args, int mode) { return false; }
 inline bool ShouldThrowOnError(Isolate* isolate) { return false; }
 
+// Missing compression and sandbox functions
+inline bool PointerCompressionIsEnabled() { return false; }
+inline bool SandboxIsEnabled() { return false; }
+
 // Missing cast check function
 inline void PerformCastCheck(Address value) { /* no-op for WASI */ }
+template<typename T>
+inline void PerformCastCheck(T* value) { /* no-op for WASI */ }
 
 template<typename T>
 inline T* ReadCppHeapPointerField(void* isolate, Address obj, int offset, uint64_t tag_range) {
@@ -265,13 +274,22 @@ static constexpr uint64_t kWasmWasmStreamingTag = 0x2;
 // Make internals constants available directly in v8::internal namespace
 static constexpr size_t kMaxSafeBufferSizeForSandbox = Internals::kMaxSafeBufferSizeForSandbox;
 
+// Add missing size constants
+static constexpr int kInt64Size = sizeof(int64_t);
+
 // Add ExternalPointerTag type
 using ExternalPointerTag = uint64_t;
+using ExternalPointerHandle = uint32_t;
 
 // Add missing external pointer constants
 static constexpr uintptr_t kExternalPointerTagShift = Internals::kExternalPointerTagShift;
 static constexpr uint64_t kExternalPointerTagMask = Internals::kExternalPointerTagMask;
+static constexpr uint64_t kExternalPointerMarkBit = Internals::kExternalPointerMarkBit;
 static constexpr uint64_t kExternalPointerPayloadMask = ~kExternalPointerTagMask;
+
+// Add special external pointer tags
+static constexpr ExternalPointerTag kExternalPointerFreeEntryTag = 0x7FFF000000000000ULL;
+static constexpr ExternalPointerTag kExternalPointerEvacuationEntryTag = 0x7FFE000000000000ULL;
 
 // Add ExternalPointerTagRange class
 class ExternalPointerTagRange {
@@ -543,10 +561,10 @@ inline void CallOnce(::std::atomic<int>* once, void (*init_func)(void*), void* a
 template<typename Arg>
 inline void CallOnce(Once* once, void (*init_func)(Arg*), Arg* arg) {
   // Use a global flag since we can't access private state_
-  static std::mutex mtx;
-  static std::set<void*> initialized_funcs;
+  static ::std::mutex mtx;
+  static ::std::set<void*> initialized_funcs;
   
-  std::lock_guard<std::mutex> lock(mtx);
+  ::std::lock_guard<::std::mutex> lock(mtx);
   if (initialized_funcs.find((void*)init_func) == initialized_funcs.end()) {
     init_func(arg);
     initialized_funcs.insert((void*)init_func);

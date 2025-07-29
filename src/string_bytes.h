@@ -35,6 +35,9 @@
 #include "node.h"  // For enum encoding
 #include <string>
 
+// Include env.h for both WASI and non-WASI
+#include "env.h"
+
 namespace node {
 
 // Forward declarations

@@ -523,7 +523,7 @@ Fragment GetDefinitionImpl(const std::vector<char>& code,
   static_assert(is_two_byte || std::is_same_v<T, char>);
 
   size_t count = is_two_byte
- #ifdef __wasi__
+#ifdef __wasi__
                     ? code.size()  // Simple approximation for WASI
 #else
                     ? simdutf::utf16_length_from_utf8(code.data(), code.size())

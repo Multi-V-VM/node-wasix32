@@ -172,7 +172,7 @@ class AstNode: public ZoneObject {
 
  private:
   int position_;
-  using NodeTypeField = base::BitField<NodeType, 0, 6>;
+  using NodeTypeField = ::v8::base::BitField<NodeType, 0, 6>;
 
  protected:
   uint32_t bit_field_;
@@ -1183,7 +1183,7 @@ class LiteralBoilerplateBuilder {
   // - depth == kUninitialized, DCHECK(!is_initialized())
   // - depth == kShallow, which means depth = 1
   // - depth == kNotShallow, which means depth > 1
-  using DepthField = base::BitField<DepthKind, 0, kDepthKindBits>;
+  using DepthField = ::v8::base::BitField<DepthKind, 0, kDepthKindBits>;
   using NeedsInitialAllocationSiteField = DepthField::Next<bool, 1>;
   using IsSimpleField = NeedsInitialAllocationSiteField::Next<bool, 1>;
   using BoilerplateDescriptorKindField =

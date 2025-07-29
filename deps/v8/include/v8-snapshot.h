@@ -175,7 +175,7 @@ class V8_EXPORT SnapshotCreator {
    *               - `params.existing_blob` is an optional snapshot blob from
    *                 which can be used to initialize the new blob.
    */
-  explicit SnapshotCreator(const v8::Isolate::CreateParams& params);
+  explicit SnapshotCreator(const Isolate::CreateParams& params);
 
   /**
    * Initializes an Isolate for serialization and enters it. The creator does

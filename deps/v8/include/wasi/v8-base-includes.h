@@ -9,12 +9,10 @@
 // This header provides the necessary includes or stubs
 
 // Check if we're in a context where V8 base headers are available
-#ifdef V8_BASE_BUILD
+// For WASI build, we should check if mutex.h has already been included
+#if defined(V8_BASE_PLATFORM_MUTEX_H_)
 
-// Include the actual V8 base headers
-#include "src/base/macros.h"
-#include "src/base/platform/mutex.h"
-#include "src/base/vector.h"
+// V8 base headers are already included, nothing to do
 
 #else
 
@@ -105,6 +103,22 @@ class Vector {
     return Vector<T>(start_ + from, to - from);
   }
   
+  bool operator==(const Vector<T>& other) const {
+    if (length_ != other.length_) return false;
+    for (size_t i = 0; i < length_; ++i) {
+      if (start_[i] != other.start_[i]) return false;
+    }
+    return true;
+  }
+  
+  bool operator==(const Vector<const T>& other) const {
+    if (length_ != other.length_) return false;
+    for (size_t i = 0; i < length_; ++i) {
+      if (start_[i] != other.start_[i]) return false;
+    }
+    return true;
+  }
+  
  private:
   T* start_;
   size_t length_;
@@ -115,7 +129,25 @@ class Vector {
 }  // namespace base
 }  // namespace v8
 
-#endif // V8_BASE_BUILD
+// Also provide global operator== for Vector comparison
+namespace v8 {
+namespace internal {
+namespace base {
+
+template<typename T>
+bool operator==(const ::v8::base::Vector<T>& lhs, const ::v8::base::Vector<T>& rhs) {
+  if (lhs.length() != rhs.length()) return false;
+  for (size_t i = 0; i < lhs.length(); ++i) {
+    if (lhs[i] != rhs[i]) return false;
+  }
+  return true;
+}
+
+}  // namespace base
+}  // namespace internal
+}  // namespace v8
+
+#endif // V8_BASE_PLATFORM_MUTEX_H_
 
 #endif // __wasi__
 

@@ -66,6 +66,8 @@
 
 
 // === Phase 5: Host and service structures ===
+#ifndef HOSTENT_DEFINED
+#define HOSTENT_DEFINED
 struct hostent {
   char* h_name;       /* official name of host */
   char** h_aliases;   /* alias list */
@@ -73,13 +75,17 @@ struct hostent {
   int h_length;       /* length of address */
   char** h_addr_list; /* list of addresses */
 };
+#endif
 
+#ifndef SERVENT_DEFINED
+#define SERVENT_DEFINED
 struct servent {
   char* s_name;     /* official name of service */
   char** s_aliases; /* alias list */
   int s_port;       /* port number */
   char* s_proto;    /* protocol to use */
 };
+#endif
 
 // === Phase 6: Type definitions ===
 typedef uint32_t socklen_t;

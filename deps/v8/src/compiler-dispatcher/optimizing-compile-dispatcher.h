@@ -35,12 +35,12 @@ struct alignas(PROCESSOR_CACHE_LINE_SIZE) OptimizingCompileTaskState {
 class V8_EXPORT OptimizingCompileInputQueue {
  public:
   inline bool IsAvailable() {
-    base::MutexGuard access(&mutex_);
+    ::v8::base::MutexGuard access(&mutex_);
     return queue_.size() < capacity_;
   }
 
   inline size_t Length() {
-    base::MutexGuard access_queue(&mutex_);
+    ::v8::base::MutexGuard access_queue(&mutex_);
     return queue_.size();
   }
 
@@ -61,8 +61,8 @@ class V8_EXPORT OptimizingCompileInputQueue {
   std::deque<TurbofanCompilationJob*> queue_;
   size_t capacity_;
 
-  base::Mutex mutex_;
-  base::ConditionVariable task_finished_;
+  ::v8::base::Mutex mutex_;
+  ::v8::base::ConditionVariable task_finished_;
 
   friend class OptimizingCompileTaskExecutor;
 };
@@ -140,7 +140,7 @@ class V8_EXPORT OptimizingCompileTaskExecutor {
 
   std::unique_ptr<JobHandle> job_handle_;
 
-  base::OwnedVector<OptimizingCompileTaskState> task_states_;
+  ::v8::base::OwnedVector<OptimizingCompileTaskState> task_states_;
 
   // Used to avoid creating the JobHandle twice.
   bool is_initialized_ = false;
@@ -164,7 +164,7 @@ class OptimizingCompileOutputQueue {
 
   // Used for job based recompilation which has multiple producers on
   // different threads.
-  base::Mutex mutex_;
+  ::v8::base::Mutex mutex_;
 };
 
 // OptimizingCompileDispatcher is an isolate-specific class to enqueue Turbofan

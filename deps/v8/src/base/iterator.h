@@ -166,7 +166,7 @@ class TupleIterator
   explicit TupleIterator(Iterators... its) : its_(its...) {}
 
   TupleIterator& operator++() {
-    std::apply([](auto&... iterators) { (++iterators, ...); }, its_);
+    ::std::apply([](auto&... iterators) { (++iterators, ...); }, its_);
     return *this;
   }
 

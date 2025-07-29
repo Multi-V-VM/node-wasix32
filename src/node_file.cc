@@ -3501,7 +3501,14 @@ static void CpSyncCopyDir(const FunctionCallbackInfo<Value>& args) {
           }
 
           if (std::filesystem::exists(dest_file_path)) {
+#ifdef __wasi__
+            // WASI doesn't have is_symlink, use file_status instead
+            std::error_code ec;
+            auto status = std::filesystem::status(dest_file_path, ec);
+            if (!ec && status.type() == std::filesystem::file_type::symlink) {
+#else
             if (std::filesystem::is_symlink((dest_file_path.c_str()))) {
+#endif
               auto current_dest_symlink_target =
                   std::filesystem::read_symlink(dest_file_path.c_str(), error);
               if (error) {

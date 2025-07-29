@@ -28,6 +28,7 @@
 #include "src/objects/objects-definitions.h"
 #include "src/objects/property-details.h"
 #include "src/objects/tagged-impl.h"
+#include <functional>  // For std::hash
 #include "src/objects/tagged.h"
 #include "src/utils/utils.h"
 
@@ -506,7 +507,7 @@ class Object : public AllStatic {
   // For use with std::unordered_set.
   struct Hasher {
     size_t operator()(const Tagged<Object> o) const {
-      return std::hash<v8::internal::Address>{}(static_cast<Tagged_t>(o.ptr()));
+      return std::hash<Address>{}(static_cast<Tagged_t>(o.ptr()));
     }
   };
 

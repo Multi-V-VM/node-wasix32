@@ -66,6 +66,16 @@ class HeapProfiler {
 };
 #endif // V8_HEAP_PROFILER_DEFINED
 
+#ifndef V8_CPU_PROFILER_DEFINED
+#define V8_CPU_PROFILER_DEFINED
+class CpuProfiler {
+ public:
+  static void UseDetailedSourcePositionsForProfiling(Isolate* isolate) {
+    // WASI stub - no-op
+  }
+};
+#endif // V8_CPU_PROFILER_DEFINED
+
 } // namespace v8
 
 #endif // __wasi__

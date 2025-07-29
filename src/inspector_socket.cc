@@ -154,7 +154,35 @@ static void generate_accept_string(const std::string& client_key,
   USE(SHA1(reinterpret_cast<const unsigned char*>(input.data()),
            input.size(),
            reinterpret_cast<unsigned char*>(hash)));
-  simdutf::binary_to_base64(hash, sizeof(hash), *buffer);
+  // Use nbytes base64 encoding instead of simdutf
+  size_t encoded_size = nbytes::Base64EncodedSize(sizeof(hash));
+  static const char base64_chars[] =
+      "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+  
+  size_t i = 0;
+  size_t j = 0;
+  unsigned char* bytes = reinterpret_cast<unsigned char*>(hash);
+  
+  while (i < sizeof(hash)) {
+    uint32_t octet_a = i < sizeof(hash) ? bytes[i++] : 0;
+    uint32_t octet_b = i < sizeof(hash) ? bytes[i++] : 0;
+    uint32_t octet_c = i < sizeof(hash) ? bytes[i++] : 0;
+    
+    uint32_t triple = (octet_a << 0x10) + (octet_b << 0x08) + octet_c;
+    
+    (*buffer)[j++] = base64_chars[(triple >> 3 * 6) & 0x3F];
+    (*buffer)[j++] = base64_chars[(triple >> 2 * 6) & 0x3F];
+    (*buffer)[j++] = base64_chars[(triple >> 1 * 6) & 0x3F];
+    (*buffer)[j++] = base64_chars[(triple >> 0 * 6) & 0x3F];
+  }
+  
+  // Handle padding
+  if (sizeof(hash) % 3) {
+    for (i = 0; i < 3 - (sizeof(hash) % 3); i++)
+      (*buffer)[encoded_size - 1 - i] = '=';
+  }
+  
+  (*buffer)[encoded_size] = '\0';
 }
 
 static std::string TrimPort(const std::string& host) {

@@ -36,6 +36,17 @@
 #define V8_NO_UNIQUE_ADDRESS [[no_unique_address]]
 #define V8_HAS_ATTRIBUTE_NO_UNIQUE_ADDRESS 1
 
+// Null pointer checks
+#if defined(__has_attribute)
+#if __has_attribute(nonnull)
+#define V8_NONNULL(...) __attribute__((nonnull(__VA_ARGS__)))
+#else
+#define V8_NONNULL(...)
+#endif
+#else
+#define V8_NONNULL(...)
+#endif
+
 // V8_ASSUME(x) tells the compiler to assume that x is true
 #ifdef __wasi__
 // WASI: Use simpler form for constexpr compatibility

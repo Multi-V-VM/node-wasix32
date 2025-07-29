@@ -13,10 +13,10 @@ namespace v8 {
 // Forward declarations
 class Isolate;
 class Context;
-class Value;
+// Value is defined in v8-value.h, don't forward declare
 class String;
 class Object;
-class Primitive;
+// Primitive is defined in v8-primitive.h, don't forward declare
 class Boolean;
 class Number;
 class Integer;
@@ -70,6 +70,10 @@ class Local {
   
   static Local<T> FromSlot(Address* slot) {
     return Local<T>(reinterpret_cast<T*>(*slot));
+  }
+  
+  static Local<T> FromRepr(Address repr) {
+    return Local<T>(reinterpret_cast<T*>(repr));
   }
   
   // Add value method for compatibility with PersistentBase

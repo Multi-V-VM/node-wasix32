@@ -63,7 +63,7 @@ T* NewArray(size_t size) {
 
 template <typename T>
 T* NewArray(size_t size, T default_val)
-  requires base::is_trivially_copyable<T>::value
+  requires ::v8::base::is_trivially_copyable<T>::value
 {
   T* result = reinterpret_cast<T*>(NewArray<uint8_t>(sizeof(T) * size));
   for (size_t i = 0; i < size; ++i) result[i] = default_val;
@@ -107,7 +107,7 @@ using MallocFn = void* (*)(size_t);
 
 // Performs a malloc, with retry logic on failure. Returns nullptr on failure.
 // Call free to release memory allocated with this function.
-void* AllocWithRetry(size_t size, MallocFn = base::Malloc);
+void* AllocWithRetry(size_t size, MallocFn = ::v8::base::Malloc);
 
 // Performs a malloc, with retry logic on failure. Returns nullptr on failure.
 // Call free to release memory allocated with this function.
@@ -382,7 +382,7 @@ class VirtualMemoryCage {
     return ::v8::base::AddressRegion{base_, size_};
   }
 
-  base::BoundedPageAllocator* page_allocator() const {
+  ::v8::base::BoundedPageAllocator* page_allocator() const {
     return page_allocator_.get();
   }
 
@@ -404,8 +404,8 @@ class VirtualMemoryCage {
     size_t page_size;
     Address requested_start_hint;
     PageAllocator::Permission permissions;
-    base::PageInitializationMode page_initialization_mode;
-    base::PageFreeingMode page_freeing_mode;
+    ::v8::base::PageInitializationMode page_initialization_mode;
+    ::v8::base::PageFreeingMode page_freeing_mode;
 
     static constexpr size_t kAnyBaseAlignment = 1;
   };
@@ -425,7 +425,7 @@ class VirtualMemoryCage {
  protected:
   Address base_ = kNullAddress;
   size_t size_ = 0;
-  std::unique_ptr<base::BoundedPageAllocator> page_allocator_;
+  std::unique_ptr<::v8::base::BoundedPageAllocator> page_allocator_;
   VirtualMemory reservation_;
 };
 

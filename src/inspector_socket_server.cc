@@ -10,6 +10,23 @@
 #include <set>
 #include <sstream>
 
+#ifdef __wasi__
+// WASI doesn't have addrinfo, provide a minimal definition
+#ifndef ADDRINFO_DEFINED
+#define ADDRINFO_DEFINED
+struct addrinfo {
+  int              ai_flags;
+  int              ai_family;
+  int              ai_socktype;
+  int              ai_protocol;
+  socklen_t        ai_addrlen;
+  struct sockaddr *ai_addr;
+  char            *ai_canonname;
+  struct addrinfo *ai_next;
+};
+#endif
+#endif
+
 namespace node {
 namespace inspector {
 
@@ -391,7 +408,12 @@ bool InspectorSocketServer::Start() {
   delegate_.swap(delegate_holder);
   struct addrinfo hints;
   memset(&hints, 0, sizeof(hints));
+#ifdef __wasi__
+  // WASI doesn't define AI_NUMERICSERV, use 0 as fallback
+  hints.ai_flags = 0;
+#else
   hints.ai_flags = AI_NUMERICSERV;
+#endif
   hints.ai_socktype = SOCK_STREAM;
   uv_getaddrinfo_t req;
   const std::string port_string = std::to_string(port_);

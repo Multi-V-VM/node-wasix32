@@ -6,6 +6,7 @@
 #define V8_CODEGEN_SAFEPOINT_TABLE_H_
 
 #include "src/base/bit-field.h"
+#include "src/base/vector.h"
 #include "src/codegen/safepoint-table-base.h"
 #include "src/common/assert-scope.h"
 #include "src/utils/allocation.h"

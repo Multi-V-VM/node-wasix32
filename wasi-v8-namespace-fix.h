@@ -4,11 +4,12 @@
 
 // Fix namespace issues for V8 internal types
 
-// Forward declare LockGuard template
+// Forward declare LockGuard template and Mutex classes
+// These are implemented in wasi-v8-base-fixes.h
 namespace v8 {
 namespace base {
-template <typename Mutex> class LockGuard;
 class Mutex;
+template <typename MutexType> class LockGuard;
 using MutexGuard = LockGuard<Mutex>;
 
 template <class T, int shift, int size, class U>
@@ -43,10 +44,13 @@ namespace bits {
 unsigned CountPopulation(uint32_t value);
 unsigned CountPopulation(uint16_t value);
 unsigned CountLeadingZeros(uint32_t value);
+int CountTrailingZerosNonZero(uint32_t value);
 unsigned CountTrailingZerosNonZero(uint64_t value);
-unsigned CountTrailingZeros(uint32_t value);
-unsigned CountTrailingZeros(uint64_t value);
+// Note: CountTrailingZeros functions removed to avoid ambiguity - using builtin versions
 uint32_t RoundUpToPowerOfTwo32(uint32_t value);
+uint32_t RoundUpToPowerOfTwo(uint32_t value);
+uint64_t RoundUpToPowerOfTwo(uint64_t value);
+uint64_t RoundUpToPowerOfTwo64(uint64_t value);
 } // namespace bits
 
 // Add iterator template - std::iterator is deprecated in C++17

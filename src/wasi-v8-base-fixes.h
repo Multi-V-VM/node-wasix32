@@ -65,9 +65,8 @@ class Vector {
   size_t length_ = 0;
 };
 
-// Mutex types
-using Mutex = std::mutex;
-using MutexGuard = std::lock_guard<std::mutex>;
+// Note: Mutex types are defined in base/platform/mutex.h
+// We don't need to redefine them here
 
 // Placeholder for BoundedPageAllocator
 class BoundedPageAllocator {

@@ -25,6 +25,9 @@ class LocalVector : public std::vector<Local<T>> {
   explicit LocalVector(Isolate* isolate) : std::vector<Local<T>>() {
     // Isolate parameter is ignored in WASI build
   }
+  LocalVector(Isolate* isolate, size_t size) : std::vector<Local<T>>(size) {
+    // Isolate parameter is ignored in WASI build
+  }
   using std::vector<Local<T>>::vector;
 };
 

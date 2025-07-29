@@ -22,7 +22,7 @@ namespace base {
     template<typename T> struct hash;
     template<typename T> struct bit_hash;
     template<typename T> struct bit_equal_to;
-    template<typename T, typename U> class Flags;
+    template<typename T, typename U = int, typename V = U> class Flags;
     template<typename T, typename U> class EnumSet;
     class AddressRegion;
     template<typename T> using is_trivially_copyable = std::is_trivially_copyable<T>;
@@ -71,8 +71,8 @@ namespace base {
     template<typename T>
     using bit_equal_to = ::v8::base::bit_equal_to<T>;
     
-    template<typename T, typename U>
-    using Flags = ::v8::base::Flags<T, U>;
+    template<typename T, typename U = int, typename V = U>
+    using Flags = ::v8::base::Flags<T, U, V>;
     
     template<typename T, typename U>
     using EnumSet = ::v8::base::EnumSet<T, U>;

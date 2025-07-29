@@ -105,7 +105,7 @@ class FutexWaitListNode {
     // If timeout_time_ is base::TimeTicks(), this async waiter doesn't have a
     // timeout or has already been notified. Values other than base::TimeTicks()
     // are used for async waiters with an active timeout.
-    base::TimeTicks timeout_time;
+    ::v8::base::TimeTicks timeout_time;
 
     // The task ID of the timeout task.
     CancelableTaskManager::Id timeout_task_id =

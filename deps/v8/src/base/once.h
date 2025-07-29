@@ -9,9 +9,7 @@
 namespace v8 {
 namespace base {
 
-#ifndef __wasi__
-using v8::Once::OnceType = int;
-#endif
+using OnceType = int;
 
 #define V8_ONCE_INIT 0
 #define ONCE_STATE_UNINITIALIZED 0

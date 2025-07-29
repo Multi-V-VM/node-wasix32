@@ -9,9 +9,17 @@
 #include <type_traits>
 #include <cstring>
 
-#include "include/v8config.h"
+#include "../../include/v8config.h"
 #include "src/base/compiler-specific.h"
 #include "src/base/logging.h"
+
+// Ensure V8 macros are defined for WASI
+#ifndef V8_INLINE
+#define V8_INLINE inline
+#endif
+#ifndef V8_HAS_BUILTIN_BIT_CAST
+#define V8_HAS_BUILTIN_BIT_CAST 0
+#endif
 
 // Define V8_CLANG_NO_SANITIZE if not already defined
 #ifndef V8_CLANG_NO_SANITIZE

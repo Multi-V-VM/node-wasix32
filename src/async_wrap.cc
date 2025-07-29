@@ -678,7 +678,7 @@ MaybeLocal<Value> AsyncWrap::MakeCallback(const Local<Function> cb,
 
   // This is a static call with cached values because the `this` object may
   // no longer be alive at this point.
-  EmitTraceEventAfter(provider, context.async_id);
+  EmitTraceEventAfter(provider, context.async_id_value);
 
   return ret;
 }

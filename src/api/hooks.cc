@@ -2,6 +2,9 @@
 #include "node_internals.h"
 #include "node_process-inl.h"
 #include "async_wrap.h"
+#ifdef __wasi__
+#include "wasi-async-context-fix.h"
+#endif
 
 namespace node {
 
@@ -226,7 +229,7 @@ async_context EmitAsyncInit(Isolate* isolate,
   };
 
   // Run init hooks
-  AsyncWrap::EmitAsyncInit(env, resource, name, context.async_id,
+  AsyncWrap::EmitAsyncInit(env, resource, name, context.async_id_value,
                            context.trigger_async_id);
 
   return context;
@@ -237,7 +240,11 @@ void EmitAsyncDestroy(Isolate* isolate, async_context asyncContext) {
 }
 
 void EmitAsyncDestroy(Environment* env, async_context asyncContext) {
+#ifdef __wasi__
+  AsyncWrap::EmitDestroy(env, asyncContext.async_id_value);
+#else
   AsyncWrap::EmitDestroy(env, asyncContext.async_id);
+#endif
 }
 
 }  // namespace node

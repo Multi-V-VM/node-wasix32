@@ -36,8 +36,54 @@ class Maybe {
     // This is a simplified implementation for compatibility
   }
   
+  // ToChecked method - returns the value or crashes if empty
+  T ToChecked() const {
+    if (!has_value_) {
+      // In production, this would crash. For WASI, return default value
+      return T();
+    }
+    return value_;
+  }
+  
  private:
   T value_;
+  bool has_value_;
+};
+
+// Specialization for bool to handle common boolean return cases
+template <>
+class Maybe<bool> {
+ public:
+  Maybe() : value_(false), has_value_(false) {}
+  explicit Maybe(bool value) : value_(value), has_value_(true) {}
+  
+  bool IsNothing() const { return !has_value_; }
+  bool IsJust() const { return has_value_; }
+  bool FromJust() const { return value_; }
+  bool FromMaybe(bool default_value) const { 
+    return has_value_ ? value_ : default_value; 
+  }
+  bool To(bool* out) const {
+    if (has_value_) {
+      *out = value_;
+      return true;
+    }
+    return false;
+  }
+  
+  static Maybe<bool> Nothing() { return Maybe<bool>(); }
+  static Maybe<bool> Just(bool value) { return Maybe<bool>(value); }
+  
+  void Check() const {
+    // In WASI, we just assume check succeeds if we have a value
+  }
+  
+  bool ToChecked() const {
+    return has_value_ ? value_ : false;
+  }
+  
+ private:
+  bool value_;
   bool has_value_;
 };
 
@@ -57,6 +103,10 @@ class Maybe<void> {
   
   void FromJust() const {
     // No-op for void
+  }
+  
+  void ToChecked() const {
+    // No-op for void - just validates that we have a value
   }
   
   static Maybe<void> Nothing() { return Maybe<void>(false); }

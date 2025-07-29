@@ -27,6 +27,19 @@
 #include "src/zone/zone-allocator.h"
 
 namespace v8 {
+
+#ifdef __wasi__
+// WASI compatibility: bring std types into v8::std namespace
+namespace std {
+  using ::std::forward_list;
+  using ::std::priority_queue;
+  using ::std::lexicographical_compare;
+  using ::std::add_const;
+  using ::std::apply;
+  using ::std::move_backward;
+}
+#endif
+
 namespace internal {
 
 // A drop-in replacement for std::vector that uses a Zone for its allocations,
@@ -596,7 +609,7 @@ bool operator<(const ZoneVector<T>& lhs, const ZoneVector<T>& rhs) {
 
 template <class T, class GetIntrusiveSetIndex>
 class ZoneIntrusiveSet
-    : public base::IntrusiveSet<T, GetIntrusiveSetIndex, ZoneVector<T>> {
+    : public ::v8::base::IntrusiveSet<T, GetIntrusiveSetIndex, ZoneVector<T>> {
  public:
   explicit ZoneIntrusiveSet(Zone* zone, GetIntrusiveSetIndex index_functor = {})
       : ::v8::base::IntrusiveSet<T, GetIntrusiveSetIndex, ZoneVector<T>>(

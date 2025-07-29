@@ -22,18 +22,9 @@
 #ifndef V8_PLATFORM_EXPORT
 #define V8_PLATFORM_EXPORT
 #endif
-#ifndef V8_NOINLINE
-#define V8_NOINLINE
-#endif
-#ifndef V8_WARN_UNUSED_RESULT
-#define V8_WARN_UNUSED_RESULT
-#endif
-#ifndef V8_INLINE
-#define V8_INLINE inline
-#endif
-#ifndef V8_NODISCARD
-#define V8_NODISCARD
-#endif
+// Don't redefine these if v8config.h already defined them
+// V8_NOINLINE, V8_WARN_UNUSED_RESULT, V8_INLINE, V8_NODISCARD
+// are defined in v8config.h with proper attributes
 #ifndef NON_EXPORTED_BASE
 #define NON_EXPORTED_BASE(x) x
 #endif
@@ -77,9 +68,7 @@ using Address = uintptr_t;
 #define V8_HAS_BUILTIN_CTZ 1
 #endif
 
-#ifndef PRINTF_FORMAT
-#define PRINTF_FORMAT(format_param, dots_param)
-#endif
+// Don't redefine PRINTF_FORMAT if already defined in compiler-specific.h
 
 #ifndef SCANF_FORMAT
 #define SCANF_FORMAT(format_param, dots_param)
@@ -89,14 +78,7 @@ using Address = uintptr_t;
 #define NO_SANITIZE_CFI_ICALL
 #endif
 
-// Additional compiler attribute macros
-#ifndef V8_PRESERVE_MOST
-#if __has_attribute(preserve_most)
-#define V8_PRESERVE_MOST __attribute__((preserve_most))
-#else
-#define V8_PRESERVE_MOST
-#endif
-#endif
+// Don't redefine V8_PRESERVE_MOST - it's defined in v8config.h
 
 #ifndef V8_CONSTINIT
 #if defined(__cpp_constinit) && __cpp_constinit >= 201907L

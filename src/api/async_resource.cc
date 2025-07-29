@@ -1,6 +1,9 @@
 #include "async_context_frame.h"
 #include "env-inl.h"
 #include "node.h"
+#ifdef __wasi__
+#include "wasi-async-context-fix.h"
+#endif
 
 namespace node {
 
@@ -66,7 +69,11 @@ Local<Object> AsyncResource::get_resource() {
 }
 
 async_id AsyncResource::get_async_id() const {
+#ifdef __wasi__
+  return async_context_.async_id_value;
+#else
   return async_context_.async_id;
+#endif
 }
 
 async_id AsyncResource::get_trigger_async_id() const {

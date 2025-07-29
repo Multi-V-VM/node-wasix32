@@ -5,9 +5,12 @@
 namespace v8 {
 namespace internal {
 
-// These functions are needed by v8-initialization.h
+// These functions might be needed before nuclear-fix.h is included
+// Use guards to prevent redefinition
+#ifndef V8_INCLUDE_WASI_NUCLEAR_FIX_H_
 inline bool PointerCompressionIsEnabled() { return false; }
 inline bool SandboxIsEnabled() { return false; }
+#endif
 // SmiValuesAre31Bits is already defined in v8-wasi-compat.h
 
 } // namespace internal
