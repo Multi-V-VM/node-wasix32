@@ -179,6 +179,9 @@ Metadata::Release::Release() : name(NODE_RELEASE) {
 #endif  // NODE_HAS_RELEASE_URLS
 }
 
-Metadata::Metadata() : arch(NODE_ARCH), platform(NODE_PLATFORM) {}
+#define STRINGIFY(x) #x
+#define TOSTRING(x) STRINGIFY(x)
+
+Metadata::Metadata() : arch(TOSTRING(NODE_ARCH)), platform(TOSTRING(NODE_PLATFORM)) {}
 
 }  // namespace node

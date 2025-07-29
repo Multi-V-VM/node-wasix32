@@ -43,12 +43,14 @@
 
 #include <array>
 #include <bit>
-#include "v8/include/wasi/std-namespace-fix.h"
+#include "wasi/std-namespace-fix.h"  // NOLINT(build/include_directory)
 #include <filesystem>
 #include <limits>
 #include <memory>
 #include <optional>
+#ifndef __wasi__
 #include <ranges>
+#endif
 #include <set>
 #include <string>
 #include <string_view>
@@ -106,13 +108,13 @@ template <typename T>
 inline T MultiplyWithOverflowCheck(T a, T b);
 
 namespace per_process {
-// Tells whether the per-process V8::Initialize() is called and
-// if it is safe to call v8::Isolate::TryGetCurrent().
+// Tells whether the per-process ::V8::Initialize() is called and
+// if it is safe to call ::v8::Isolate::TryGetCurrent().
 extern bool v8_initialized;
 }  // namespace per_process
 
 // Used by the allocation functions when allocation fails.
-// Thin wrapper around v8::Isolate::LowMemoryNotification() that checks
+// Thin wrapper around ::v8::Isolate::LowMemoryNotification() that checks
 // whether V8 is initialized.
 void LowMemoryNotification();
 
@@ -287,7 +289,7 @@ void DumpJavaScriptBacktrace(FILE* fp);
 // ECMA-262, 15th edition, 21.1.2.6. Number.MAX_SAFE_INTEGER (2^53-1)
 constexpr int64_t kMaxSafeJsInteger = 9007199254740991;
 
-inline bool IsSafeJsInt(v8::Local<v8::Value> v);
+inline bool IsSafeJsInt(::v8::Local<::v8::Value> v);
 
 #ifdef __wasi__
 // WASI stubs for list structures
@@ -394,56 +396,56 @@ class KVStore {
   KVStore(KVStore&&) = delete;
   KVStore& operator=(KVStore&&) = delete;
 
-  virtual v8::MaybeLocal<v8::String> Get(v8::Isolate* isolate,
-                                         v8::Local<v8::String> key) const = 0;
+  virtual ::v8::MaybeLocal<::v8::String> Get(::v8::Isolate* isolate,
+                                         ::v8::Local<::v8::String> key) const = 0;
   virtual std::optional<std::string> Get(const char* key) const = 0;
-  virtual void Set(v8::Isolate* isolate,
-                   v8::Local<v8::String> key,
-                   v8::Local<v8::String> value) = 0;
-  virtual int32_t Query(v8::Isolate* isolate,
-                        v8::Local<v8::String> key) const = 0;
+  virtual void Set(::v8::Isolate* isolate,
+                   ::v8::Local<::v8::String> key,
+                   ::v8::Local<::v8::String> value) = 0;
+  virtual int32_t Query(::v8::Isolate* isolate,
+                        ::v8::Local<::v8::String> key) const = 0;
   virtual int32_t Query(const char* key) const = 0;
-  virtual void Delete(v8::Isolate* isolate, v8::Local<v8::String> key) = 0;
-  virtual v8::MaybeLocal<v8::Array> Enumerate(v8::Isolate* isolate) const = 0;
+  virtual void Delete(::v8::Isolate* isolate, ::v8::Local<::v8::String> key) = 0;
+  virtual ::v8::MaybeLocal<::v8::Array> Enumerate(::v8::Isolate* isolate) const = 0;
 
-  virtual std::shared_ptr<KVStore> Clone(v8::Isolate* isolate) const;
-  virtual v8::Maybe<void> AssignFromObject(v8::Local<v8::Context> context,
-                                           v8::Local<v8::Object> entries);
-  v8::Maybe<void> AssignToObject(v8::Isolate* isolate,
-                                 v8::Local<v8::Context> context,
-                                 v8::Local<v8::Object> object);
+  virtual std::shared_ptr<KVStore> Clone(::v8::Isolate* isolate) const;
+  virtual ::v8::Maybe<void> AssignFromObject(::v8::Local<::v8::Context> context,
+                                           ::v8::Local<::v8::Object> entries);
+  ::v8::Maybe<void> AssignToObject(::v8::Isolate* isolate,
+                                 ::v8::Local<::v8::Context> context,
+                                 ::v8::Local<::v8::Object> object);
 
   static std::shared_ptr<KVStore> CreateMapKVStore();
 };
 
-// Convenience wrapper around v8::String::NewFromOneByte().
-inline v8::Local<v8::String> OneByteString(v8::Isolate* isolate,
+// Convenience wrapper around ::v8::String::NewFromOneByte().
+inline ::v8::Local<::v8::String> OneByteString(::v8::Isolate* isolate,
                                            const char* data,
                                            int length = -1);
 
 // For the people that compile with -funsigned-char.
-inline v8::Local<v8::String> OneByteString(v8::Isolate* isolate,
+inline ::v8::Local<::v8::String> OneByteString(::v8::Isolate* isolate,
                                            const signed char* data,
                                            int length = -1);
 
-inline v8::Local<v8::String> OneByteString(v8::Isolate* isolate,
+inline ::v8::Local<::v8::String> OneByteString(::v8::Isolate* isolate,
                                            const unsigned char* data,
                                            int length = -1);
 
-inline v8::Local<v8::String> OneByteString(v8::Isolate* isolate,
+inline ::v8::Local<::v8::String> OneByteString(::v8::Isolate* isolate,
                                            std::string_view str);
 
 // Used to be a macro, hence the uppercase name.
 template <int N>
-inline v8::Local<v8::String> FIXED_ONE_BYTE_STRING(
-    v8::Isolate* isolate,
+inline ::v8::Local<::v8::String> FIXED_ONE_BYTE_STRING(
+    ::v8::Isolate* isolate,
     const char(&data)[N]) {
   return OneByteString(isolate, data, N - 1);
 }
 
 template <std::size_t N>
-inline v8::Local<v8::String> FIXED_ONE_BYTE_STRING(
-    v8::Isolate* isolate,
+inline ::v8::Local<::v8::String> FIXED_ONE_BYTE_STRING(
+    ::v8::Isolate* isolate,
     const std::array<char, N>& arr) {
   return OneByteString(isolate, arr.data(), N - 1);
 }
@@ -490,7 +492,7 @@ class MaybeStackBuffer {
     return buf_;
   }
 
-  // operator* for compatibility with `v8::String::(Utf8)Value`
+  // operator* for compatibility with `::v8::String::(Utf8)Value`
   T* operator*() {
     return buf_;
   }
@@ -609,11 +611,11 @@ class ArrayBufferViewContents {
   ArrayBufferViewContents(const ArrayBufferViewContents&) = delete;
   void operator=(const ArrayBufferViewContents&) = delete;
 
-  explicit inline ArrayBufferViewContents(v8::Local<v8::Value> value);
-  explicit inline ArrayBufferViewContents(v8::Local<v8::Object> value);
-  explicit inline ArrayBufferViewContents(v8::Local<v8::ArrayBufferView> abv);
-  inline void Read(v8::Local<v8::ArrayBufferView> abv);
-  inline void ReadValue(v8::Local<v8::Value> buf);
+  explicit inline ArrayBufferViewContents(::v8::Local<::v8::Value> value);
+  explicit inline ArrayBufferViewContents(::v8::Local<::v8::Object> value);
+  explicit inline ArrayBufferViewContents(::v8::Local<::v8::ArrayBufferView> abv);
+  inline void Read(::v8::Local<::v8::ArrayBufferView> abv);
+  inline void ReadValue(::v8::Local<::v8::Value> buf);
 
   inline bool WasDetached() const { return was_detached_; }
   inline const T* data() const { return data_; }
@@ -635,7 +637,7 @@ class ArrayBufferViewContents {
 
 class Utf8Value : public MaybeStackBuffer<char> {
  public:
-  explicit Utf8Value(v8::Isolate* isolate, v8::Local<v8::Value> value);
+  explicit Utf8Value(::v8::Isolate* isolate, ::v8::Local<::v8::Value> value);
 
   inline std::string ToString() const { return std::string(out(), length()); }
   inline std::string_view ToStringView() const {
@@ -648,12 +650,12 @@ class Utf8Value : public MaybeStackBuffer<char> {
 
 class TwoByteValue : public MaybeStackBuffer<uint16_t> {
  public:
-  explicit TwoByteValue(v8::Isolate* isolate, v8::Local<v8::Value> value);
+  explicit TwoByteValue(::v8::Isolate* isolate, ::v8::Local<::v8::Value> value);
 };
 
 class BufferValue : public MaybeStackBuffer<char> {
  public:
-  explicit BufferValue(v8::Isolate* isolate, v8::Local<v8::Value> value);
+  explicit BufferValue(::v8::Isolate* isolate, ::v8::Local<::v8::Value> value);
 
   inline std::string ToString() const { return std::string(out(), length()); }
   inline std::string_view ToStringView() const {
@@ -667,7 +669,7 @@ class BufferValue : public MaybeStackBuffer<char> {
 
 #define SPREAD_BUFFER_ARG(val, name)                                           \
   CHECK((val)->IsArrayBufferView());                                           \
-  v8::Local<v8::ArrayBufferView> name = (val).As<v8::ArrayBufferView>();       \
+  ::v8::Local<::v8::ArrayBufferView> name = (val).As<::v8::ArrayBufferView>();       \
   const size_t name##_offset = name->ByteOffset();                             \
   const size_t name##_length = name->ByteLength();                             \
   char* const name##_data =                                                    \
@@ -762,53 +764,53 @@ struct FunctionDeleter {
 template <typename T, void (*function)(T*)>
 using DeleteFnPtr = typename FunctionDeleter<T, function>::Pointer;
 
-// Convert a v8::Array into an std::vector using the callback-based API.
+// Convert a ::v8::Array into an std::vector using the callback-based API.
 // This can be faster than calling Array::Get() repeatedly when the array
 // has more than 2 entries.
 // Note that iterating over an array in C++ and performing operations on each
 // element in a C++ loop is still slower than iterating over the array in JS
 // and calling into native in the JS loop repeatedly on each element,
 // as of V8 11.9.
-inline v8::Maybe<bool> FromV8Array(v8::Local<v8::Context> context,
-                                   v8::Local<v8::Array> js_array,
-                                   std::vector<v8::Global<v8::Value>>* out);
+inline ::v8::Maybe<bool> FromV8Array(::v8::Local<::v8::Context> context,
+                                   ::v8::Local<::v8::Array> js_array,
+                                   std::vector<::v8::Global<::v8::Value>>* out);
 
-inline v8::MaybeLocal<v8::Value> ToV8Value(v8::Local<v8::Context> context,
+inline ::v8::MaybeLocal<::v8::Value> ToV8Value(::v8::Local<::v8::Context> context,
                                            std::string_view str,
-                                           v8::Isolate* isolate = nullptr);
-inline v8::MaybeLocal<v8::Value> ToV8Value(v8::Local<v8::Context> context,
+                                           ::v8::Isolate* isolate = nullptr);
+inline ::v8::MaybeLocal<::v8::Value> ToV8Value(::v8::Local<::v8::Context> context,
                                            v8_inspector::StringView str,
-                                           v8::Isolate* isolate);
+                                           ::v8::Isolate* isolate);
 template <typename T, typename test_for_number =
     typename std::enable_if<std::numeric_limits<T>::is_specialized, bool>::type>
-inline v8::MaybeLocal<v8::Value> ToV8Value(v8::Local<v8::Context> context,
+inline ::v8::MaybeLocal<::v8::Value> ToV8Value(::v8::Local<::v8::Context> context,
                                            const T& number,
-                                           v8::Isolate* isolate = nullptr);
+                                           ::v8::Isolate* isolate = nullptr);
 template <typename T>
-inline v8::MaybeLocal<v8::Value> ToV8Value(v8::Local<v8::Context> context,
+inline ::v8::MaybeLocal<::v8::Value> ToV8Value(::v8::Local<::v8::Context> context,
                                            const std::vector<T>& vec,
-                                           v8::Isolate* isolate = nullptr);
+                                           ::v8::Isolate* isolate = nullptr);
 template <typename T>
-inline v8::MaybeLocal<v8::Value> ToV8Value(v8::Local<v8::Context> context,
+inline ::v8::MaybeLocal<::v8::Value> ToV8Value(::v8::Local<::v8::Context> context,
                                            const std::set<T>& set,
-                                           v8::Isolate* isolate = nullptr);
+                                           ::v8::Isolate* isolate = nullptr);
 template <typename T, typename U>
-inline v8::MaybeLocal<v8::Value> ToV8Value(v8::Local<v8::Context> context,
+inline ::v8::MaybeLocal<::v8::Value> ToV8Value(::v8::Local<::v8::Context> context,
                                            const std::unordered_map<T, U>& map,
-                                           v8::Isolate* isolate = nullptr);
+                                           ::v8::Isolate* isolate = nullptr);
 
 template <typename T, std::size_t U>
-inline v8::MaybeLocal<v8::Value> ToV8Value(
-    v8::Local<v8::Context> context,
-    const std::ranges::elements_view<T, U>& vec,
-    v8::Isolate* isolate = nullptr);
+inline ::v8::MaybeLocal<::v8::Value> ToV8Value(
+    ::v8::Local<::v8::Context> context,
+    const ::v8::std::ranges::elements_view<T, U>& vec,
+    ::v8::Isolate* isolate = nullptr);
 
 // These macros expects a `Isolate* isolate` and a `Local<Context> context`
 // to be in the scope.
 #define READONLY_PROPERTY(obj, name, value)                                    \
   do {                                                                         \
     obj->DefineOwnProperty(                                                    \
-           context, FIXED_ONE_BYTE_STRING(isolate, name), value, v8::ReadOnly) \
+           context, FIXED_ONE_BYTE_STRING(isolate, name), value, ::v8::ReadOnly) \
         .Check();                                                              \
   } while (0)
 
@@ -818,15 +820,15 @@ inline v8::MaybeLocal<v8::Value> ToV8Value(
            context,                                                            \
            OneByteString(isolate, name),                                       \
            var,                                                                \
-           static_cast<v8::PropertyAttribute>(v8::ReadOnly | v8::DontEnum))    \
+           static_cast<::v8::PropertyAttribute>(::v8::ReadOnly | ::v8::DontEnum))    \
         .Check();                                                              \
   } while (0)
 
 #define READONLY_FALSE_PROPERTY(obj, name)                                     \
-  READONLY_PROPERTY(obj, name, v8::False(isolate))
+  READONLY_PROPERTY(obj, name, ::v8::False(isolate))
 
 #define READONLY_TRUE_PROPERTY(obj, name)                                      \
-  READONLY_PROPERTY(obj, name, v8::True(isolate))
+  READONLY_PROPERTY(obj, name, ::v8::True(isolate))
 
 #define READONLY_STRING_PROPERTY(obj, name, str)                               \
   READONLY_PROPERTY(obj, name, ToV8Value(context, str).ToLocalChecked())
@@ -834,13 +836,13 @@ inline v8::MaybeLocal<v8::Value> ToV8Value(
 // Variation on NODE_DEFINE_CONSTANT that sets a String value.
 #define NODE_DEFINE_STRING_CONSTANT(target, name, constant)                    \
   do {                                                                         \
-    v8::Isolate* isolate = target->GetIsolate();                               \
-    v8::Local<v8::String> constant_name =                                      \
-        v8::String::NewFromUtf8(isolate, name).ToLocalChecked();               \
-    v8::Local<v8::String> constant_value =                                     \
-        v8::String::NewFromUtf8(isolate, constant).ToLocalChecked();           \
-    v8::PropertyAttribute constant_attributes =                                \
-        static_cast<v8::PropertyAttribute>(v8::ReadOnly | v8::DontDelete);     \
+    ::v8::Isolate* isolate = target->GetIsolate();                               \
+    ::v8::Local<::v8::String> constant_name =                                      \
+        ::v8::String::NewFromUtf8(isolate, name).ToLocalChecked();               \
+    ::v8::Local<::v8::String> constant_value =                                     \
+        ::v8::String::NewFromUtf8(isolate, constant).ToLocalChecked();           \
+    ::v8::PropertyAttribute constant_attributes =                                \
+        static_cast<::v8::PropertyAttribute>(::v8::ReadOnly | ::v8::DontDelete);     \
     target                                                                     \
         ->DefineOwnProperty(isolate->GetCurrentContext(),                      \
                             constant_name,                                     \
@@ -860,13 +862,13 @@ constexpr inline bool IsBigEndian() {
 static_assert(IsLittleEndian() || IsBigEndian(),
               "Node.js does not support mixed-endian systems");
 
-class SlicedArguments : public MaybeStackBuffer<v8::Local<v8::Value>> {
+class SlicedArguments : public MaybeStackBuffer<::v8::Local<::v8::Value>> {
  public:
   inline explicit SlicedArguments(
-      const v8::FunctionCallbackInfo<v8::Value>& args, size_t start = 0);
+      const ::v8::FunctionCallbackInfo<::v8::Value>& args, size_t start = 0);
 };
 
-// Convert a v8::PersistentBase, e.g. v8::Global, to a Local, with an extra
+// Convert a ::v8::PersistentBase, e.g. ::v8::Global, to a Local, with an extra
 // optimization for strong persistent handles.
 class PersistentToLocal {
  public:
@@ -874,9 +876,9 @@ class PersistentToLocal {
   // while the returned Local<T> is still in scope, it will destroy the
   // reference to the object.
   template <class TypeName>
-  static inline v8::Local<TypeName> Default(
-      v8::Isolate* isolate,
-      const v8::PersistentBase<TypeName>& persistent) {
+  static inline ::v8::Local<TypeName> Default(
+      ::v8::Isolate* isolate,
+      const ::v8::PersistentBase<TypeName>& persistent) {
     if (persistent.IsWeak()) {
       return PersistentToLocal::Weak(isolate, persistent);
     } else {
@@ -890,18 +892,18 @@ class PersistentToLocal {
   // Do not call persistent.Reset() while the returned Local<T> is still in
   // scope, it will destroy the reference to the object.
   template <class TypeName>
-  static inline v8::Local<TypeName> Strong(
-      const v8::PersistentBase<TypeName>& persistent) {
+  static inline ::v8::Local<TypeName> Strong(
+      const ::v8::PersistentBase<TypeName>& persistent) {
     DCHECK(!persistent.IsWeak());
-    return *reinterpret_cast<v8::Local<TypeName>*>(
-        const_cast<v8::PersistentBase<TypeName>*>(&persistent));
+    return *reinterpret_cast<::v8::Local<TypeName>*>(
+        const_cast<::v8::PersistentBase<TypeName>*>(&persistent));
   }
 
   template <class TypeName>
-  static inline v8::Local<TypeName> Weak(
-      v8::Isolate* isolate,
-      const v8::PersistentBase<TypeName>& persistent) {
-    return v8::Local<TypeName>::New(isolate, persistent);
+  static inline ::v8::Local<TypeName> Weak(
+      ::v8::Isolate* isolate,
+      const ::v8::PersistentBase<TypeName>& persistent) {
+    return ::v8::Local<TypeName>::New(isolate, persistent);
   }
 };
 
@@ -940,120 +942,120 @@ int ReadFileSync(std::string* result, const char* path);
 // Reads all contents of a FILE*, aborts if it fails.
 std::vector<char> ReadFileSync(FILE* fp);
 
-v8::Local<v8::FunctionTemplate> NewFunctionTemplate(
-    v8::Isolate* isolate,
-    v8::FunctionCallback callback,
-    v8::Local<v8::Signature> signature = v8::Local<v8::Signature>(),
-    v8::ConstructorBehavior behavior = v8::ConstructorBehavior::kAllow,
-    v8::SideEffectType side_effect = v8::SideEffectType::kHasSideEffect,
-    const v8::CFunction* c_function = nullptr);
+::v8::Local<::v8::FunctionTemplate> NewFunctionTemplate(
+    ::v8::Isolate* isolate,
+    ::v8::FunctionCallback callback,
+    ::v8::Local<::v8::Signature> signature = ::v8::Local<::v8::Signature>(),
+    ::v8::ConstructorBehavior behavior = ::v8::ConstructorBehavior::kAllow,
+    ::v8::SideEffectType side_effect = ::v8::SideEffectType::kHasSideEffect,
+    const ::v8::CFunction* c_function = nullptr);
 
 // Convenience methods for NewFunctionTemplate().
-void SetMethod(v8::Local<v8::Context> context,
-               v8::Local<v8::Object> that,
+void SetMethod(::v8::Local<::v8::Context> context,
+               ::v8::Local<::v8::Object> that,
                const std::string_view name,
-               v8::FunctionCallback callback);
+               ::v8::FunctionCallback callback);
 // Similar to SetProtoMethod but without receiver signature checks.
-void SetMethod(v8::Isolate* isolate,
-               v8::Local<v8::Template> that,
+void SetMethod(::v8::Isolate* isolate,
+               ::v8::Local<::v8::Template> that,
                const std::string_view name,
-               v8::FunctionCallback callback);
+               ::v8::FunctionCallback callback);
 
-void SetFastMethod(v8::Isolate* isolate,
-                   v8::Local<v8::Template> that,
+void SetFastMethod(::v8::Isolate* isolate,
+                   ::v8::Local<::v8::Template> that,
                    const std::string_view name,
-                   v8::FunctionCallback slow_callback,
-                   const v8::CFunction* c_function);
-void SetFastMethod(v8::Local<v8::Context> context,
-                   v8::Local<v8::Object> that,
+                   ::v8::FunctionCallback slow_callback,
+                   const ::v8::CFunction* c_function);
+void SetFastMethod(::v8::Local<::v8::Context> context,
+                   ::v8::Local<::v8::Object> that,
                    const std::string_view name,
-                   v8::FunctionCallback slow_callback,
-                   const v8::CFunction* c_function);
-void SetFastMethod(v8::Isolate* isolate,
-                   v8::Local<v8::Template> that,
+                   ::v8::FunctionCallback slow_callback,
+                   const ::v8::CFunction* c_function);
+void SetFastMethod(::v8::Isolate* isolate,
+                   ::v8::Local<::v8::Template> that,
                    const std::string_view name,
-                   v8::FunctionCallback slow_callback,
-                   const v8::MemorySpan<const v8::CFunction>& methods);
-void SetFastMethodNoSideEffect(v8::Isolate* isolate,
-                               v8::Local<v8::Template> that,
+                   ::v8::FunctionCallback slow_callback,
+                   const ::v8::MemorySpan<const ::v8::CFunction>& methods);
+void SetFastMethodNoSideEffect(::v8::Isolate* isolate,
+                               ::v8::Local<::v8::Template> that,
                                const std::string_view name,
-                               v8::FunctionCallback slow_callback,
-                               const v8::CFunction* c_function);
-void SetFastMethodNoSideEffect(v8::Local<v8::Context> context,
-                               v8::Local<v8::Object> that,
+                               ::v8::FunctionCallback slow_callback,
+                               const ::v8::CFunction* c_function);
+void SetFastMethodNoSideEffect(::v8::Local<::v8::Context> context,
+                               ::v8::Local<::v8::Object> that,
                                const std::string_view name,
-                               v8::FunctionCallback slow_callback,
-                               const v8::CFunction* c_function);
+                               ::v8::FunctionCallback slow_callback,
+                               const ::v8::CFunction* c_function);
 void SetFastMethodNoSideEffect(
-    v8::Isolate* isolate,
-    v8::Local<v8::Template> that,
+    ::v8::Isolate* isolate,
+    ::v8::Local<::v8::Template> that,
     const std::string_view name,
-    v8::FunctionCallback slow_callback,
-    const v8::MemorySpan<const v8::CFunction>& methods);
-void SetProtoMethod(v8::Isolate* isolate,
-                    v8::Local<v8::FunctionTemplate> that,
+    ::v8::FunctionCallback slow_callback,
+    const ::v8::MemorySpan<const ::v8::CFunction>& methods);
+void SetProtoMethod(::v8::Isolate* isolate,
+                    ::v8::Local<::v8::FunctionTemplate> that,
                     const std::string_view name,
-                    v8::FunctionCallback callback);
+                    ::v8::FunctionCallback callback);
 
-void SetInstanceMethod(v8::Isolate* isolate,
-                       v8::Local<v8::FunctionTemplate> that,
+void SetInstanceMethod(::v8::Isolate* isolate,
+                       ::v8::Local<::v8::FunctionTemplate> that,
                        const std::string_view name,
-                       v8::FunctionCallback callback);
+                       ::v8::FunctionCallback callback);
 
 // Safe variants denote the function has no side effects.
-void SetMethodNoSideEffect(v8::Local<v8::Context> context,
-                           v8::Local<v8::Object> that,
+void SetMethodNoSideEffect(::v8::Local<::v8::Context> context,
+                           ::v8::Local<::v8::Object> that,
                            const std::string_view name,
-                           v8::FunctionCallback callback);
-void SetProtoMethodNoSideEffect(v8::Isolate* isolate,
-                                v8::Local<v8::FunctionTemplate> that,
+                           ::v8::FunctionCallback callback);
+void SetProtoMethodNoSideEffect(::v8::Isolate* isolate,
+                                ::v8::Local<::v8::FunctionTemplate> that,
                                 const std::string_view name,
-                                v8::FunctionCallback callback);
-void SetMethodNoSideEffect(v8::Isolate* isolate,
-                           v8::Local<v8::Template> that,
+                                ::v8::FunctionCallback callback);
+void SetMethodNoSideEffect(::v8::Isolate* isolate,
+                           ::v8::Local<::v8::Template> that,
                            const std::string_view name,
-                           v8::FunctionCallback callback);
+                           ::v8::FunctionCallback callback);
 
 // Set the Symbol.dispose method on the prototype of the class.
-void SetProtoDispose(v8::Isolate* isolate,
-                     v8::Local<v8::FunctionTemplate> that,
-                     v8::FunctionCallback callback);
+void SetProtoDispose(::v8::Isolate* isolate,
+                     ::v8::Local<::v8::FunctionTemplate> that,
+                     ::v8::FunctionCallback callback);
 
 // Set the Symbol.asyncDispose method on the prototype of the class.
-void SetProtoAsyncDispose(v8::Isolate* isolate,
-                          v8::Local<v8::FunctionTemplate> that,
-                          v8::FunctionCallback callback);
+void SetProtoAsyncDispose(::v8::Isolate* isolate,
+                          ::v8::Local<::v8::FunctionTemplate> that,
+                          ::v8::FunctionCallback callback);
 
 enum class SetConstructorFunctionFlag {
   NONE,
   SET_CLASS_NAME,
 };
 
-void SetConstructorFunction(v8::Local<v8::Context> context,
-                            v8::Local<v8::Object> that,
+void SetConstructorFunction(::v8::Local<::v8::Context> context,
+                            ::v8::Local<::v8::Object> that,
                             const char* name,
-                            v8::Local<v8::FunctionTemplate> tmpl,
+                            ::v8::Local<::v8::FunctionTemplate> tmpl,
                             SetConstructorFunctionFlag flag =
                                 SetConstructorFunctionFlag::SET_CLASS_NAME);
 
-void SetConstructorFunction(v8::Local<v8::Context> context,
-                            v8::Local<v8::Object> that,
-                            v8::Local<v8::String> name,
-                            v8::Local<v8::FunctionTemplate> tmpl,
+void SetConstructorFunction(::v8::Local<::v8::Context> context,
+                            ::v8::Local<::v8::Object> that,
+                            ::v8::Local<::v8::String> name,
+                            ::v8::Local<::v8::FunctionTemplate> tmpl,
                             SetConstructorFunctionFlag flag =
                                 SetConstructorFunctionFlag::SET_CLASS_NAME);
 
-void SetConstructorFunction(v8::Isolate* isolate,
-                            v8::Local<v8::Template> that,
+void SetConstructorFunction(::v8::Isolate* isolate,
+                            ::v8::Local<::v8::Template> that,
                             const char* name,
-                            v8::Local<v8::FunctionTemplate> tmpl,
+                            ::v8::Local<::v8::FunctionTemplate> tmpl,
                             SetConstructorFunctionFlag flag =
                                 SetConstructorFunctionFlag::SET_CLASS_NAME);
 
-void SetConstructorFunction(v8::Isolate* isolate,
-                            v8::Local<v8::Template> that,
-                            v8::Local<v8::String> name,
-                            v8::Local<v8::FunctionTemplate> tmpl,
+void SetConstructorFunction(::v8::Isolate* isolate,
+                            ::v8::Local<::v8::Template> that,
+                            ::v8::Local<::v8::String> name,
+                            ::v8::Local<::v8::FunctionTemplate> tmpl,
                             SetConstructorFunctionFlag flag =
                                 SetConstructorFunctionFlag::SET_CLASS_NAME);
 
@@ -1063,33 +1065,33 @@ class RAIIIsolateWithoutEntering {
   explicit RAIIIsolateWithoutEntering(const SnapshotData* data = nullptr);
   ~RAIIIsolateWithoutEntering();
 
-  v8::Isolate* get() const { return isolate_; }
+  ::v8::Isolate* get() const { return isolate_; }
 
  private:
-  std::unique_ptr<v8::ArrayBuffer::Allocator> allocator_;
-  v8::Isolate* isolate_;
+  std::unique_ptr<::v8::ArrayBuffer::Allocator> allocator_;
+  ::v8::Isolate* isolate_;
 };
 
-// Simple RAII class to spin up a v8::Isolate instance and enter it
+// Simple RAII class to spin up a ::v8::Isolate instance and enter it
 // immediately.
 class RAIIIsolate {
  public:
   explicit RAIIIsolate(const SnapshotData* data = nullptr);
   ~RAIIIsolate();
 
-  v8::Isolate* get() const { return isolate_.get(); }
+  ::v8::Isolate* get() const { return isolate_.get(); }
 
  private:
   RAIIIsolateWithoutEntering isolate_;
-  v8::Isolate::Scope isolate_scope_;
+  ::v8::Isolate::Scope isolate_scope_;
 };
 
 std::string DetermineSpecificErrorType(Environment* env,
-                                       v8::Local<v8::Value> input);
+                                       ::v8::Local<::v8::Value> input);
 
-v8::Maybe<int32_t> GetValidatedFd(Environment* env, v8::Local<v8::Value> input);
-v8::Maybe<int> GetValidFileMode(Environment* env,
-                                v8::Local<v8::Value> input,
+::v8::Maybe<int32_t> GetValidatedFd(Environment* env, ::v8::Local<::v8::Value> input);
+::v8::Maybe<int> GetValidFileMode(Environment* env,
+                                ::v8::Local<::v8::Value> input,
                                 uv_fs_type type);
 
 #ifdef _WIN32

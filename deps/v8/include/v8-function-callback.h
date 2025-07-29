@@ -1,5 +1,6 @@
 #ifdef __wasi__
 #include "wasi/concepts-fix.h"
+#include "wasi/v8-handle-fixes.h"
 #endif
 // Copyright 2021 the V8 project authors. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
@@ -337,7 +338,11 @@ void ReturnValue<T>::Set(const Global<S>& handle) {
   if (V8_UNLIKELY(handle.IsEmpty())) {
     SetDefaultValue();
   } else {
+#ifdef __wasi__
+    SetInternal(ToInternalAddress(handle));
+#else
     SetInternal(*handle.ptr());
+#endif
   }
 }
 
@@ -348,7 +353,11 @@ void ReturnValue<T>::SetNonEmpty(const Global<S>& handle) {
 #ifdef V8_ENABLE_CHECKS
   internal::VerifyHandleIsNonEmpty(handle.IsEmpty());
 #endif  // V8_ENABLE_CHECKS
+#ifdef __wasi__
+  SetInternal(ToInternalAddress(handle));
+#else
   SetInternal(handle.ptr());
+#endif
 }
 
 template <typename T>
@@ -358,7 +367,11 @@ void ReturnValue<T>::Set(const BasicTracedReference<S>& handle) {
   if (V8_UNLIKELY(handle.IsEmpty())) {
     SetDefaultValue();
   } else {
+#ifdef __wasi__
+    SetInternal(ToInternalAddress(handle));
+#else
     SetInternal(*handle.ptr());
+#endif
   }
 }
 
@@ -369,7 +382,11 @@ void ReturnValue<T>::SetNonEmpty(const BasicTracedReference<S>& handle) {
 #ifdef V8_ENABLE_CHECKS
   internal::VerifyHandleIsNonEmpty(handle.IsEmpty());
 #endif  // V8_ENABLE_CHECKS
+#ifdef __wasi__
+  SetInternal(ToInternalAddress(handle));
+#else
   SetInternal(handle.ptr());
+#endif
 }
 
 template <typename T>
@@ -395,7 +412,11 @@ void ReturnValue<T>::Set(const Local<S> handle) {
     // it was possible to set the return value even for ReturnValue<void>.
     Set(handle->BooleanValue(GetIsolate()));
   } else {
+#ifdef __wasi__
+    SetInternal(ToInternalAddress(handle));
+#else
     SetInternal(*handle.ptr());
+#endif
   }
 }
 
@@ -423,7 +444,11 @@ void ReturnValue<T>::SetNonEmpty(const Local<S> handle) {
     // it was possible to set the return value even for ReturnValue<void>.
     Set(handle->BooleanValue(GetIsolate()));
   } else {
+#ifdef __wasi__
+    SetInternal(ToInternalAddress(handle));
+#else
     SetInternal(*handle.ptr());
+#endif
   }
 }
 
@@ -510,7 +535,11 @@ void ReturnValue<T>::Set(bool value) {
   } else {
     root_index = I::kFalseValueRootIndex;
   }
+#ifdef __wasi__
+  *value_ = reinterpret_cast<internal::Address>(I::GetRoot(GetIsolate(), root_index));
+#else
   *value_ = I::GetRoot(GetIsolate(), root_index);
+#endif
 #endif  // V8_STATIC_ROOTS_BOOL
 }
 
@@ -526,7 +555,11 @@ void ReturnValue<T>::SetDefaultValue() {
 #if V8_STATIC_ROOTS_BOOL
     SetInternal(I::StaticReadOnlyRoot::kUndefinedValue);
 #else
+#ifdef __wasi__
+    *value_ = reinterpret_cast<internal::Address>(I::GetRoot(GetIsolate(), I::kUndefinedValueRootIndex));
+#else
     *value_ = I::GetRoot(GetIsolate(), I::kUndefinedValueRootIndex);
+#endif
 #endif  // V8_STATIC_ROOTS_BOOL
   }
 }
@@ -542,7 +575,11 @@ void ReturnValue<T>::SetNull() {
 #endif  // V8_ENABLE_CHECKS
   SetInternal(I::StaticReadOnlyRoot::kNullValue);
 #else
+#ifdef __wasi__
+  *value_ = reinterpret_cast<internal::Address>(I::GetRoot(GetIsolate(), I::kNullValueRootIndex));
+#else
   *value_ = I::GetRoot(GetIsolate(), I::kNullValueRootIndex);
+#endif
 #endif  // V8_STATIC_ROOTS_BOOL
 }
 
@@ -557,7 +594,11 @@ void ReturnValue<T>::SetUndefined() {
 #endif  // V8_ENABLE_CHECKS
   SetInternal(I::StaticReadOnlyRoot::kUndefinedValue);
 #else
+#ifdef __wasi__
+  *value_ = reinterpret_cast<internal::Address>(I::GetRoot(GetIsolate(), I::kUndefinedValueRootIndex));
+#else
   *value_ = I::GetRoot(GetIsolate(), I::kUndefinedValueRootIndex);
+#endif
 #endif  // V8_STATIC_ROOTS_BOOL
 }
 
@@ -573,7 +614,11 @@ void ReturnValue<T>::SetFalse() {
 #endif  // V8_ENABLE_CHECKS
   SetInternal(I::StaticReadOnlyRoot::kFalseValue);
 #else
+#ifdef __wasi__
+  *value_ = reinterpret_cast<internal::Address>(I::GetRoot(GetIsolate(), I::kFalseValueRootIndex));
+#else
   *value_ = I::GetRoot(GetIsolate(), I::kFalseValueRootIndex);
+#endif
 #endif  // V8_STATIC_ROOTS_BOOL
 }
 
@@ -588,7 +633,11 @@ void ReturnValue<T>::SetEmptyString() {
 #endif  // V8_ENABLE_CHECKS
   SetInternal(I::StaticReadOnlyRoot::kEmptyString);
 #else
+#ifdef __wasi__
+  *value_ = reinterpret_cast<internal::Address>(I::GetRoot(GetIsolate(), I::kEmptyStringRootIndex));
+#else
   *value_ = I::GetRoot(GetIsolate(), I::kEmptyStringRootIndex);
+#endif
 #endif  // V8_STATIC_ROOTS_BOOL
 }
 

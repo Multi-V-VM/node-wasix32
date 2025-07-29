@@ -3,6 +3,7 @@
 
 #include <memory>
 #include <string>
+#include <cstdint>
 
 // Import Address type
 using Address = uintptr_t;
@@ -24,6 +25,7 @@ class Int32;
 class BigInt;
 class Symbol;
 class Name;
+template <typename T> class PersistentBase;
 
 // Complete Local template definition
 template <typename T>
@@ -34,7 +36,7 @@ class Local {
   explicit Local(T* ptr) : ptr_(ptr) {}
   
   template <typename S>
-  Local(Local<S> that) : ptr_(reinterpret_cast<T*>(*that)) {}
+  Local(Local<S> that) : ptr_(reinterpret_cast<T*>(that.ptr())) {}
   
   bool IsEmpty() const { return ptr_ == nullptr; }
   
@@ -43,7 +45,7 @@ class Local {
   
   template <typename S>
   bool operator==(const Local<S>& that) const {
-    return ptr_ == reinterpret_cast<T*>(*that);
+    return ptr_ == that.ptr();
   }
   
   template <typename S>
@@ -51,50 +53,67 @@ class Local {
     return !operator==(that);
   }
   
+  // As() method for casting
+  template <typename S>
+  Local<S> As() const {
+    return Local<S>(reinterpret_cast<S*>(ptr_));
+  }
+  
   // Static factory methods
   static Local<T> New(Isolate* isolate, T* ptr) {
     return Local<T>(ptr);
+  }
+  
+  static Local<T> New(Isolate* isolate, Address addr) {
+    return Local<T>(reinterpret_cast<T*>(addr));
   }
   
   static Local<T> FromSlot(Address* slot) {
     return Local<T>(reinterpret_cast<T*>(*slot));
   }
   
+  // Add value method for compatibility with PersistentBase
+  template <typename S>
+  S* value() const {
+    return reinterpret_cast<S*>(ptr_);
+  }
+  
+  // Add UnsafeAs method
+  template <typename S>
+  Local<S> UnsafeAs() const {
+    return Local<S>(reinterpret_cast<S*>(ptr_));
+  }
+  
+  // Add ptr() method for compatibility
+  T* ptr() const { return ptr_; }
+  
+  // Add New overload for PersistentBase
+  template <typename S>
+  static Local<T> New(Isolate* isolate, const PersistentBase<S>& persistent) {
+    // PersistentBase should have a val_ member that is T*
+    return Local<T>(persistent.template value<T>());
+  }
+  
  private:
   T* ptr_;
   
   template <typename S> friend class Local;
+  template <typename S> friend class PersistentBase;
 };
 
 // String specific functions
 namespace internal {
-  // Stub for NewFromUtf8Literal
+  // Stub for NewFromUtf8Literal - only define if v8-primitive.h not included
+#ifndef INCLUDE_V8_PRIMITIVE_H_
   template <int N>
   Local<String> NewFromUtf8Literal(Isolate* isolate, const char (&literal)[N]) {
     return Local<String>(reinterpret_cast<String*>(const_cast<char*>(literal)));
   }
+#endif
 }
 
 // Additional v8 types (only define if not already defined)
-#ifndef V8_SCRIPT_H_
-class Script {
- public:
-  static Local<Script> Compile(Local<Context> context, Local<String> source) {
-    return Local<Script>();
-  }
-  
-  Local<Value> Run(Local<Context> context) {
-    return Local<Value>();
-  }
-};
-
-class UnboundScript {
- public:
-  Local<Script> BindToCurrentContext() {
-    return Local<Script>();
-  }
-};
-#endif // V8_SCRIPT_H_
+// These are now defined in v8-script.h
 
 } // namespace v8
 

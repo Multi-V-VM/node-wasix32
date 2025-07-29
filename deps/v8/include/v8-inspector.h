@@ -17,11 +17,13 @@
 #include "v8.h"  // NOLINT(build/include_directory)
 
 namespace v8 {
+template<typename T> class Local;
 class Context;
 class Name;
 class Object;
 class StackTrace;
 class Value;
+class Message;
 }  // namespace v8
 
 namespace v8_inspector {
@@ -87,22 +89,22 @@ class V8_EXPORT StringBuffer {
 
 class V8_EXPORT V8ContextInfo {
  public:
-  V8ContextInfo(v8::Local<v8::Context> context, int contextGroupId,
+  V8ContextInfo(::v8::Local<::v8::Context> context, int contextGroupId,
                 StringView humanReadableName)
       : context(context),
         contextGroupId(contextGroupId),
         humanReadableName(humanReadableName),
         hasMemoryOnConsole(false) {}
 
-  v8::Local<v8::Context> context;
-  // Each v8::Context is a part of a group. The group id must be non-zero.
+  ::v8::Local<::v8::Context> context;
+  // Each ::v8::Context is a part of a group. The group id must be non-zero.
   int contextGroupId;
   StringView humanReadableName;
   StringView origin;
   StringView auxData;
   bool hasMemoryOnConsole;
 
-  static int executionContextId(v8::Local<v8::Context> context);
+  static int executionContextId(::v8::Local<::v8::Context> context);
 
   // Disallow copying and allocating this one.
   enum NotNullTagEnum { NotNullLiteral };
@@ -173,7 +175,7 @@ class V8_EXPORT V8InspectorSession {
   // Cross-context inspectable values (DOM nodes in different worlds, etc.).
   class V8_EXPORT Inspectable {
    public:
-    virtual v8::Local<v8::Value> get(v8::Local<v8::Context>) = 0;
+    virtual ::v8::Local<::v8::Value> get(::v8::Local<::v8::Context>) = 0;
     virtual ~Inspectable() = default;
   };
   virtual void addInspectedObject(std::unique_ptr<Inspectable>) = 0;
@@ -200,12 +202,12 @@ class V8_EXPORT V8InspectorSession {
 
   // Remote objects.
   virtual std::unique_ptr<protocol::Runtime::API::RemoteObject> wrapObject(
-      v8::Local<v8::Context>, v8::Local<v8::Value>, StringView groupName,
+      ::v8::Local<::v8::Context>, ::v8::Local<::v8::Value>, StringView groupName,
       bool generatePreview) = 0;
 
   virtual bool unwrapObject(std::unique_ptr<StringBuffer>* error,
-                            StringView objectId, v8::Local<v8::Value>*,
-                            v8::Local<v8::Context>*,
+                            StringView objectId, ::v8::Local<::v8::Value>*,
+                            ::v8::Local<::v8::Context>*,
                             std::unique_ptr<StringBuffer>* objectGroup) = 0;
   virtual void releaseObjectGroup(StringView) = 0;
   virtual void triggerPreciseCoverageDeltaUpdate(StringView occasion) = 0;
@@ -218,11 +220,11 @@ class V8_EXPORT V8InspectorSession {
     };
 
     ResultType type;
-    v8::Local<v8::Value> value;
+    ::v8::Local<::v8::Value> value;
   };
   // Evalaute 'expression' in the provided context. Does the same as
   // Runtime#evaluate under-the-hood but exposed on the C++ side.
-  virtual EvaluateResult evaluate(v8::Local<v8::Context> context,
+  virtual EvaluateResult evaluate(::v8::Local<::v8::Context> context,
                                   StringView expression,
                                   bool includeCommandLineAPI = false) = 0;
 
@@ -232,10 +234,10 @@ class V8_EXPORT V8InspectorSession {
 
 struct V8_EXPORT DeepSerializedValue {
   explicit DeepSerializedValue(std::unique_ptr<StringBuffer> type,
-                               v8::MaybeLocal<v8::Value> value = {})
+                               ::v8::MaybeLocal<::v8::Value> value = {})
       : type(std::move(type)), value(value) {}
   std::unique_ptr<StringBuffer> type;
-  v8::MaybeLocal<v8::Value> value;
+  ::v8::MaybeLocal<::v8::Value> value;
 };
 
 struct V8_EXPORT DeepSerializationResult {
@@ -269,46 +271,46 @@ class V8_EXPORT V8InspectorClient {
   virtual void endUserGesture() {}
 
   virtual std::unique_ptr<DeepSerializationResult> deepSerialize(
-      v8::Local<v8::Value> v8Value, int maxDepth,
-      v8::Local<v8::Object> additionalParameters) {
+      ::v8::Local<::v8::Value> v8Value, int maxDepth,
+      ::v8::Local<::v8::Object> additionalParameters) {
     return nullptr;
   }
-  virtual std::unique_ptr<StringBuffer> valueSubtype(v8::Local<v8::Value>) {
+  virtual std::unique_ptr<StringBuffer> valueSubtype(::v8::Local<::v8::Value>) {
     return nullptr;
   }
   virtual std::unique_ptr<StringBuffer> descriptionForValueSubtype(
-      v8::Local<v8::Context>, v8::Local<v8::Value>) {
+      ::v8::Local<::v8::Context>, ::v8::Local<::v8::Value>) {
     return nullptr;
   }
-  virtual bool isInspectableHeapObject(v8::Local<v8::Object>) { return true; }
+  virtual bool isInspectableHeapObject(::v8::Local<::v8::Object>) { return true; }
 
-  virtual v8::Local<v8::Context> ensureDefaultContextInGroup(
+  virtual ::v8::Local<::v8::Context> ensureDefaultContextInGroup(
       int contextGroupId) {
-    return v8::Local<v8::Context>();
+    return ::v8::Local<::v8::Context>();
   }
   virtual void beginEnsureAllContextsInGroup(int contextGroupId) {}
   virtual void endEnsureAllContextsInGroup(int contextGroupId) {}
 
-  virtual void installAdditionalCommandLineAPI(v8::Local<v8::Context>,
-                                               v8::Local<v8::Object>) {}
+  virtual void installAdditionalCommandLineAPI(::v8::Local<::v8::Context>,
+                                               ::v8::Local<::v8::Object>) {}
   virtual void consoleAPIMessage(int contextGroupId,
-                                 v8::Isolate::MessageErrorLevel level,
+                                 ::v8::Isolate::MessageErrorLevel level,
                                  const StringView& message,
                                  const StringView& url, unsigned lineNumber,
                                  unsigned columnNumber, V8StackTrace*) {}
-  virtual v8::MaybeLocal<v8::Value> memoryInfo(v8::Isolate*,
-                                               v8::Local<v8::Context>) {
-    return v8::MaybeLocal<v8::Value>();
+  virtual ::v8::MaybeLocal<::v8::Value> memoryInfo(::v8::Isolate*,
+                                               ::v8::Local<::v8::Context>) {
+    return ::v8::MaybeLocal<::v8::Value>();
   }
 
-  virtual void consoleTime(v8::Isolate* isolate, v8::Local<v8::String> label) {}
-  virtual void consoleTimeEnd(v8::Isolate* isolate,
-                              v8::Local<v8::String> label) {}
-  virtual void consoleTimeStamp(v8::Isolate* isolate,
-                                v8::Local<v8::String> label) {}
+  virtual void consoleTime(::v8::Isolate* isolate, ::v8::Local<::v8::String> label) {}
+  virtual void consoleTimeEnd(::v8::Isolate* isolate,
+                              ::v8::Local<::v8::String> label) {}
+  virtual void consoleTimeStamp(::v8::Isolate* isolate,
+                                ::v8::Local<::v8::String> label) {}
   virtual void consoleTimeStampWithArgs(
-      v8::Isolate* isolate, v8::Local<v8::String> label,
-      const v8::LocalVector<v8::Value>& args) {}
+      ::v8::Isolate* isolate, ::v8::Local<::v8::String> label,
+      const ::v8::LocalVector<::v8::Value>& args) {}
   virtual void consoleClear(int contextGroupId) {}
   virtual double currentTimeMS() { return 0; }
   typedef void (*TimerCallback)(void*);
@@ -330,8 +332,8 @@ class V8_EXPORT V8InspectorClient {
   // this method returns 0.
   virtual int64_t generateUniqueId() { return 0; }
 
-  virtual void dispatchError(v8::Local<v8::Context>, v8::Local<v8::Message>,
-                             v8::Local<v8::Value>) {}
+  virtual void dispatchError(::v8::Local<::v8::Context>, ::v8::Local<::v8::Message>,
+                             ::v8::Local<::v8::Value>) {}
 };
 
 // These stack trace ids are intended to be passed between debuggers and be
@@ -358,14 +360,14 @@ struct V8_EXPORT V8StackTraceId {
 
 class V8_EXPORT V8Inspector {
  public:
-  static std::unique_ptr<V8Inspector> create(v8::Isolate*, V8InspectorClient*);
+  static std::unique_ptr<V8Inspector> create(::v8::Isolate*, V8InspectorClient*);
   virtual ~V8Inspector() = default;
 
   // Contexts instrumentation.
   virtual void contextCreated(const V8ContextInfo&) = 0;
-  virtual void contextDestroyed(v8::Local<v8::Context>) = 0;
+  virtual void contextDestroyed(::v8::Local<::v8::Context>) = 0;
   virtual void resetContextGroup(int contextGroupId) = 0;
-  virtual v8::MaybeLocal<v8::Context> contextById(int contextId) = 0;
+  virtual ::v8::MaybeLocal<::v8::Context> contextById(int contextId) = 0;
   virtual V8DebuggerId uniqueDebuggerId(int contextId) = 0;
   virtual uint64_t isolateId() = 0;
 
@@ -386,18 +388,18 @@ class V8_EXPORT V8Inspector {
   virtual void externalAsyncTaskFinished(const V8StackTraceId& parent) = 0;
 
   // Exceptions instrumentation.
-  virtual unsigned exceptionThrown(v8::Local<v8::Context>, StringView message,
-                                   v8::Local<v8::Value> exception,
+  virtual unsigned exceptionThrown(::v8::Local<::v8::Context>, StringView message,
+                                   ::v8::Local<::v8::Value> exception,
                                    StringView detailedMessage, StringView url,
                                    unsigned lineNumber, unsigned columnNumber,
                                    std::unique_ptr<V8StackTrace>,
                                    int scriptId) = 0;
-  virtual void exceptionRevoked(v8::Local<v8::Context>, unsigned exceptionId,
+  virtual void exceptionRevoked(::v8::Local<::v8::Context>, unsigned exceptionId,
                                 StringView message) = 0;
-  virtual bool associateExceptionData(v8::Local<v8::Context>,
-                                      v8::Local<v8::Value> exception,
-                                      v8::Local<v8::Name> key,
-                                      v8::Local<v8::Value> value) = 0;
+  virtual bool associateExceptionData(::v8::Local<::v8::Context>,
+                                      ::v8::Local<::v8::Value> exception,
+                                      ::v8::Local<::v8::Name> key,
+                                      ::v8::Local<::v8::Value> value) = 0;
 
   // Connection.
   class V8_EXPORT Channel {
@@ -428,7 +430,7 @@ class V8_EXPORT V8Inspector {
 
   // API methods.
   virtual std::unique_ptr<V8StackTrace> createStackTrace(
-      v8::Local<v8::StackTrace>) = 0;
+      ::v8::Local<::v8::StackTrace>) = 0;
   virtual std::unique_ptr<V8StackTrace> captureStackTrace(bool fullStack) = 0;
 };
 

@@ -10,6 +10,7 @@
 #include "crdtp/protocol_core.h"
 #include "util.h"
 #include "v8-inspector.h"
+#include "inspector-namespace-fix.h"
 
 namespace node::inspector::protocol {
 class Binary;

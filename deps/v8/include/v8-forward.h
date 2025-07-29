@@ -19,7 +19,14 @@ namespace v8 {
 
 // LocalVector template for WASI builds
 template <typename T>
-using LocalVector = std::vector<Local<T>>;
+class LocalVector : public std::vector<Local<T>> {
+ public:
+  LocalVector() = default;
+  explicit LocalVector(Isolate* isolate) : std::vector<Local<T>>() {
+    // Isolate parameter is ignored in WASI build
+  }
+  using std::vector<Local<T>>::vector;
+};
 
 class AccessorSignature;
 class Array;

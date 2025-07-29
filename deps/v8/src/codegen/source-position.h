@@ -138,18 +138,18 @@ class SourcePosition final {
 
   void Print(std::ostream& out, Tagged<SharedFunctionInfo> function) const;
 
-  using IsExternalField = base::BitField64<bool, 0, 1>;
+  using IsExternalField = ::v8::base::BitField64<bool, 0, 1>;
 
   // The two below are only used if IsExternal() is true.
-  using ExternalLineField = base::BitField64<int, 1, 20>;
-  using ExternalFileIdField = base::BitField64<int, 21, 10>;
+  using ExternalLineField = ::v8::base::BitField64<int, 1, 20>;
+  using ExternalFileIdField = ::v8::base::BitField64<int, 21, 10>;
 
   // ScriptOffsetField is only used if IsExternal() is false.
-  using ScriptOffsetField = base::BitField64<int, 1, 30>;
+  using ScriptOffsetField = ::v8::base::BitField64<int, 1, 30>;
 
   // InliningId is in the high bits for better compression in
   // SourcePositionTable.
-  using InliningIdField = base::BitField64<int, 31, 16>;
+  using InliningIdField = ::v8::base::BitField64<int, 31, 16>;
 
   // Leaving the highest bit untouched to allow for signed conversion.
   uint64_t value_;

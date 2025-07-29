@@ -27,7 +27,9 @@
 #include <cmath>
 #include <cstring>
 #include <locale>
+#ifndef __wasi__
 #include <ranges>
+#endif
 #include "node_revert.h"
 #include "util.h"
 
@@ -160,33 +162,33 @@ constexpr ContainerOfHelper<Inner, Outer> ContainerOf(Inner Outer::*field,
   return ContainerOfHelper<Inner, Outer>(field, pointer);
 }
 
-inline v8::Local<v8::String> OneByteString(v8::Isolate* isolate,
+inline ::v8::Local<::v8::String> OneByteString(::v8::Isolate* isolate,
                                            const char* data,
                                            int length) {
-  return v8::String::NewFromOneByte(isolate,
+  return ::v8::String::NewFromOneByte(isolate,
                                     reinterpret_cast<const uint8_t*>(data),
-                                    v8::NewStringType::kNormal,
+                                    ::v8::NewStringType::kNormal,
                                     length).ToLocalChecked();
 }
 
-inline v8::Local<v8::String> OneByteString(v8::Isolate* isolate,
+inline ::v8::Local<::v8::String> OneByteString(::v8::Isolate* isolate,
                                            const signed char* data,
                                            int length) {
-  return v8::String::NewFromOneByte(isolate,
+  return ::v8::String::NewFromOneByte(isolate,
                                     reinterpret_cast<const uint8_t*>(data),
-                                    v8::NewStringType::kNormal,
+                                    ::v8::NewStringType::kNormal,
                                     length).ToLocalChecked();
 }
 
-inline v8::Local<v8::String> OneByteString(v8::Isolate* isolate,
+inline ::v8::Local<::v8::String> OneByteString(::v8::Isolate* isolate,
                                            const unsigned char* data,
                                            int length) {
-  return v8::String::NewFromOneByte(
-             isolate, data, v8::NewStringType::kNormal, length)
+  return ::v8::String::NewFromOneByte(
+             isolate, data, ::v8::NewStringType::kNormal, length)
       .ToLocalChecked();
 }
 
-inline v8::Local<v8::String> OneByteString(v8::Isolate* isolate,
+inline ::v8::Local<::v8::String> OneByteString(::v8::Isolate* isolate,
                                            std::string_view str) {
   return OneByteString(isolate, str.data(), str.size());
 }
@@ -308,106 +310,106 @@ inline char* UncheckedCalloc(size_t n) { return UncheckedCalloc<char>(n); }
 
 // This is a helper in the .cc file so including util-inl.h doesn't include more
 // headers than we really need to.
-void ThrowErrStringTooLong(v8::Isolate* isolate);
+void ThrowErrStringTooLong(::v8::Isolate* isolate);
 
 struct ArrayIterationData {
-  std::vector<v8::Global<v8::Value>>* out;
-  v8::Isolate* isolate = nullptr;
+  std::vector<::v8::Global<::v8::Value>>* out;
+  ::v8::Isolate* isolate = nullptr;
 };
 
-inline v8::Array::CallbackResult PushItemToVector(uint32_t index,
-                                                  v8::Local<v8::Value> element,
+inline ::v8::Array::CallbackResult PushItemToVector(uint32_t index,
+                                                  ::v8::Local<::v8::Value> element,
                                                   void* data) {
   auto vec = static_cast<ArrayIterationData*>(data)->out;
   auto isolate = static_cast<ArrayIterationData*>(data)->isolate;
-  vec->push_back(v8::Global<v8::Value>(isolate, element));
-  return v8::Array::CallbackResult::kContinue;
+  vec->push_back(::v8::Global<::v8::Value>(isolate, element));
+  return ::v8::Array::CallbackResult::kContinue;
 }
 
-v8::Maybe<bool> FromV8Array(v8::Local<v8::Context> context,
-                            v8::Local<v8::Array> js_array,
-                            std::vector<v8::Global<v8::Value>>* out) {
+::v8::Maybe<bool> FromV8Array(::v8::Local<::v8::Context> context,
+                            ::v8::Local<::v8::Array> js_array,
+                            std::vector<::v8::Global<::v8::Value>>* out) {
 #ifdef __wasi__
   // WASI stub implementation
-  return v8::Just(false);
+  return ::v8::Just(false);
 #else
   uint32_t count = js_array->Length();
   out->reserve(count);
   ArrayIterationData data{out, context->GetIsolate()};
   auto result = js_array->Iterate(context, PushItemToVector, &data);
-  return v8::Just(result.IsJust());
+  return ::v8::Just(result.IsJust());
 #endif
 }
 
-v8::MaybeLocal<v8::Value> ToV8Value(v8::Local<v8::Context> context,
+::v8::MaybeLocal<::v8::Value> ToV8Value(::v8::Local<::v8::Context> context,
                                     std::string_view str,
-                                    v8::Isolate* isolate) {
+                                    ::v8::Isolate* isolate) {
   if (isolate == nullptr) isolate = context->GetIsolate();
-  if (str.size() >= static_cast<size_t>(v8::String::kMaxLength)) [[unlikely]] {
+  if (str.size() >= static_cast<size_t>(::v8::String::kMaxLength)) [[unlikely]] {
     // V8 only has a TODO comment about adding an exception when the maximum
     // string size is exceeded.
     ThrowErrStringTooLong(isolate);
-    return v8::MaybeLocal<v8::Value>();
+    return ::v8::MaybeLocal<::v8::Value>();
   }
 
-  return v8::String::NewFromUtf8(
-             isolate, str.data(), v8::NewStringType::kNormal, str.size())
-      .FromMaybe(v8::Local<v8::String>());
+  return ::v8::String::NewFromUtf8(
+             isolate, str.data(), ::v8::NewStringType::kNormal, str.size())
+      .FromMaybe(::v8::Local<::v8::String>());
 }
 
-v8::MaybeLocal<v8::Value> ToV8Value(v8::Local<v8::Context> context,
+::v8::MaybeLocal<::v8::Value> ToV8Value(::v8::Local<::v8::Context> context,
                                     v8_inspector::StringView str,
-                                    v8::Isolate* isolate) {
+                                    ::v8::Isolate* isolate) {
   if (isolate == nullptr) isolate = context->GetIsolate();
-  if (str.length() >= static_cast<size_t>(v8::String::kMaxLength))
+  if (str.length() >= static_cast<size_t>(::v8::String::kMaxLength))
       [[unlikely]] {
     // V8 only has a TODO comment about adding an exception when the maximum
     // string size is exceeded.
     ThrowErrStringTooLong(isolate);
-    return v8::MaybeLocal<v8::Value>();
+    return ::v8::MaybeLocal<::v8::Value>();
   }
 
   if (str.is8Bit()) {
-    return v8::String::NewFromOneByte(isolate,
+    return ::v8::String::NewFromOneByte(isolate,
                                       str.characters8(),
-                                      v8::NewStringType::kNormal,
+                                      ::v8::NewStringType::kNormal,
                                       str.length())
-        .FromMaybe(v8::Local<v8::String>());
+        .FromMaybe(::v8::Local<::v8::String>());
   }
-  return v8::String::NewFromTwoByte(isolate,
+  return ::v8::String::NewFromTwoByte(isolate,
                                     str.characters16(),
-                                    v8::NewStringType::kNormal,
+                                    ::v8::NewStringType::kNormal,
                                     str.length())
-      .FromMaybe(v8::Local<v8::String>());
+      .FromMaybe(::v8::Local<::v8::String>());
 }
 
 template <typename T>
-v8::MaybeLocal<v8::Value> ToV8Value(v8::Local<v8::Context> context,
+::v8::MaybeLocal<::v8::Value> ToV8Value(::v8::Local<::v8::Context> context,
                                     const std::vector<T>& vec,
-                                    v8::Isolate* isolate) {
+                                    ::v8::Isolate* isolate) {
   if (isolate == nullptr) isolate = context->GetIsolate();
-  v8::EscapableHandleScope handle_scope(isolate);
+  ::v8::EscapableHandleScope handle_scope(isolate);
 
-  MaybeStackBuffer<v8::Local<v8::Value>, 128> arr(vec.size());
+  MaybeStackBuffer<::v8::Local<::v8::Value>, 128> arr(vec.size());
   arr.SetLength(vec.size());
   for (size_t i = 0; i < vec.size(); ++i) {
     if (!ToV8Value(context, vec[i], isolate).ToLocal(&arr[i]))
-      return v8::MaybeLocal<v8::Value>();
+      return ::v8::MaybeLocal<::v8::Value>();
   }
 
-  return handle_scope.Escape(v8::Array::New(isolate, arr.out(), arr.length()));
+  return handle_scope.Escape(::v8::Array::New(isolate, arr.out(), arr.length()));
 }
 
 template <typename T>
-v8::MaybeLocal<v8::Value> ToV8Value(v8::Local<v8::Context> context,
+::v8::MaybeLocal<::v8::Value> ToV8Value(::v8::Local<::v8::Context> context,
                                     const std::set<T>& set,
-                                    v8::Isolate* isolate) {
+                                    ::v8::Isolate* isolate) {
   if (isolate == nullptr) isolate = context->GetIsolate();
-  v8::Local<v8::Set> set_js = v8::Set::New(isolate);
-  v8::HandleScope handle_scope(isolate);
+  ::v8::Local<::v8::Set> set_js = ::v8::Set::New(isolate);
+  ::v8::HandleScope handle_scope(isolate);
 
   for (const T& entry : set) {
-    v8::Local<v8::Value> value;
+    ::v8::Local<::v8::Value> value;
     if (!ToV8Value(context, entry, isolate).ToLocal(&value))
       return {};
     if (set_js->Add(context, value).IsEmpty())
@@ -417,39 +419,41 @@ v8::MaybeLocal<v8::Value> ToV8Value(v8::Local<v8::Context> context,
   return set_js;
 }
 
+#ifndef __wasi__
 template <typename T, std::size_t U>
-v8::MaybeLocal<v8::Value> ToV8Value(v8::Local<v8::Context> context,
+::v8::MaybeLocal<::v8::Value> ToV8Value(::v8::Local<::v8::Context> context,
                                     const std::ranges::elements_view<T, U>& vec,
-                                    v8::Isolate* isolate) {
+                                    ::v8::Isolate* isolate) {
   if (isolate == nullptr) isolate = context->GetIsolate();
-  v8::EscapableHandleScope handle_scope(isolate);
+  ::v8::EscapableHandleScope handle_scope(isolate);
 
-  MaybeStackBuffer<v8::Local<v8::Value>, 128> arr(vec.size());
+  MaybeStackBuffer<::v8::Local<::v8::Value>, 128> arr(vec.size());
   arr.SetLength(vec.size());
   auto it = vec.begin();
   for (size_t i = 0; i < vec.size(); ++i) {
     if (!ToV8Value(context, *it, isolate).ToLocal(&arr[i]))
-      return v8::MaybeLocal<v8::Value>();
+      return ::v8::MaybeLocal<::v8::Value>();
     std::advance(it, 1);
   }
 
-  return handle_scope.Escape(v8::Array::New(isolate, arr.out(), arr.length()));
+  return handle_scope.Escape(::v8::Array::New(isolate, arr.out(), arr.length()));
 }
+#endif
 
 template <typename T, typename U>
-v8::MaybeLocal<v8::Value> ToV8Value(v8::Local<v8::Context> context,
+::v8::MaybeLocal<::v8::Value> ToV8Value(::v8::Local<::v8::Context> context,
                                     const std::unordered_map<T, U>& map,
-                                    v8::Isolate* isolate) {
+                                    ::v8::Isolate* isolate) {
   if (isolate == nullptr) isolate = context->GetIsolate();
-  v8::EscapableHandleScope handle_scope(isolate);
+  ::v8::EscapableHandleScope handle_scope(isolate);
 
-  v8::Local<v8::Map> ret = v8::Map::New(isolate);
+  ::v8::Local<::v8::Map> ret = ::v8::Map::New(isolate);
   for (const auto& item : map) {
-    v8::Local<v8::Value> first, second;
+    ::v8::Local<::v8::Value> first, second;
     if (!ToV8Value(context, item.first, isolate).ToLocal(&first) ||
         !ToV8Value(context, item.second, isolate).ToLocal(&second) ||
         ret->Set(context, first, second).IsEmpty()) {
-      return v8::MaybeLocal<v8::Value>();
+      return ::v8::MaybeLocal<::v8::Value>();
     }
   }
 
@@ -457,7 +461,7 @@ v8::MaybeLocal<v8::Value> ToV8Value(v8::Local<v8::Context> context,
 }
 
 template <typename T>
-v8::Local<v8::Value> ConvertNumberToV8Value(v8::Isolate* isolate,
+::v8::Local<::v8::Value> ConvertNumberToV8Value(::v8::Isolate* isolate,
                                             const T& number) {
   using Limits = std::numeric_limits<T>;
   // Choose Uint32, Int32, or Double depending on range checks.
@@ -466,58 +470,58 @@ v8::Local<v8::Value> ConvertNumberToV8Value(v8::Isolate* isolate,
           std::numeric_limits<uint32_t>::max() &&
       static_cast<uint32_t>(Limits::min()) >=
           std::numeric_limits<uint32_t>::min() && Limits::is_exact) {
-    return v8::Integer::NewFromUnsigned(isolate, static_cast<uint32_t>(number));
+    return ::v8::Integer::NewFromUnsigned(isolate, static_cast<uint32_t>(number));
   }
 
   if (static_cast<int32_t>(Limits::max()) <=
           std::numeric_limits<int32_t>::max() &&
       static_cast<int32_t>(Limits::min()) >=
           std::numeric_limits<int32_t>::min() && Limits::is_exact) {
-    return v8::Integer::New(isolate, static_cast<int32_t>(number));
+    return ::v8::Integer::New(isolate, static_cast<int32_t>(number));
   }
 
-  return v8::Number::New(isolate, static_cast<double>(number));
+  return ::v8::Number::New(isolate, static_cast<double>(number));
 }
 
 template <typename T, typename>
-v8::MaybeLocal<v8::Value> ToV8Value(v8::Local<v8::Context> context,
+::v8::MaybeLocal<::v8::Value> ToV8Value(::v8::Local<::v8::Context> context,
                                     const T& number,
-                                    v8::Isolate* isolate) {
+                                    ::v8::Isolate* isolate) {
   if (isolate == nullptr) isolate = context->GetIsolate();
   return ConvertNumberToV8Value(isolate, number);
 }
 
 template <typename T>
-v8::Local<v8::Array> ToV8ValuePrimitiveArray(v8::Local<v8::Context> context,
+::v8::Local<::v8::Array> ToV8ValuePrimitiveArray(::v8::Local<::v8::Context> context,
                                              const std::vector<T>& vec,
-                                             v8::Isolate* isolate) {
+                                             ::v8::Isolate* isolate) {
   static_assert(
       std::is_same_v<T, bool> || std::is_integral_v<T> ||
           std::is_floating_point_v<T>,
       "Only primitive types (bool, integral, floating-point) are supported.");
 
   if (isolate == nullptr) isolate = context->GetIsolate();
-  v8::EscapableHandleScope handle_scope(isolate);
+  ::v8::EscapableHandleScope handle_scope(isolate);
 
-  v8::LocalVector<v8::Value> elements;
+  ::v8::LocalVector<::v8::Value> elements;
   elements.reserve(vec.size());
 
   for (const auto& value : vec) {
     if constexpr (std::is_same_v<T, bool>) {
-      elements.emplace_back(v8::Boolean::New(isolate, value));
+      elements.emplace_back(::v8::Boolean::New(isolate, value));
     } else {
-      v8::Local<v8::Value> v = ConvertNumberToV8Value(isolate, value);
+      ::v8::Local<::v8::Value> v = ConvertNumberToV8Value(isolate, value);
       elements.emplace_back(v);
     }
   }
 
-  v8::Local<v8::Array> arr =
-      v8::Array::New(isolate, elements.data(), elements.size());
+  ::v8::Local<::v8::Array> arr =
+      ::v8::Array::New(isolate, elements.data(), elements.size());
   return handle_scope.Escape(arr);
 }
 
 SlicedArguments::SlicedArguments(
-    const v8::FunctionCallbackInfo<v8::Value>& args, size_t start) {
+    const ::v8::FunctionCallbackInfo<::v8::Value>& args, size_t start) {
   const size_t length = static_cast<size_t>(args.Length());
   if (start >= length) return;
   const size_t size = length - start;
@@ -545,7 +549,7 @@ void MaybeStackBuffer<T, kStackStorageSize>::AllocateSufficientStorage(
 
 template <typename T, size_t S>
 ArrayBufferViewContents<T, S>::ArrayBufferViewContents(
-    v8::Local<v8::Value> value) {
+    ::v8::Local<::v8::Value> value) {
   DCHECK(value->IsArrayBufferView() || value->IsSharedArrayBuffer() ||
          value->IsArrayBuffer());
   ReadValue(value);
@@ -553,19 +557,19 @@ ArrayBufferViewContents<T, S>::ArrayBufferViewContents(
 
 template <typename T, size_t S>
 ArrayBufferViewContents<T, S>::ArrayBufferViewContents(
-    v8::Local<v8::Object> value) {
+    ::v8::Local<::v8::Object> value) {
   CHECK(value->IsArrayBufferView());
-  Read(value.As<v8::ArrayBufferView>());
+  Read(value.As<::v8::ArrayBufferView>());
 }
 
 template <typename T, size_t S>
 ArrayBufferViewContents<T, S>::ArrayBufferViewContents(
-    v8::Local<v8::ArrayBufferView> abv) {
+    ::v8::Local<::v8::ArrayBufferView> abv) {
   Read(abv);
 }
 
 template <typename T, size_t S>
-void ArrayBufferViewContents<T, S>::Read(v8::Local<v8::ArrayBufferView> abv) {
+void ArrayBufferViewContents<T, S>::Read(::v8::Local<::v8::ArrayBufferView> abv) {
   static_assert(sizeof(T) == 1, "Only supports one-byte data at the moment");
   length_ = abv->ByteLength();
   if (length_ > sizeof(stack_storage_) || abv->HasBuffer()) {
@@ -577,30 +581,30 @@ void ArrayBufferViewContents<T, S>::Read(v8::Local<v8::ArrayBufferView> abv) {
 }
 
 template <typename T, size_t S>
-void ArrayBufferViewContents<T, S>::ReadValue(v8::Local<v8::Value> buf) {
+void ArrayBufferViewContents<T, S>::ReadValue(::v8::Local<::v8::Value> buf) {
   static_assert(sizeof(T) == 1, "Only supports one-byte data at the moment");
   DCHECK(buf->IsArrayBufferView() || buf->IsSharedArrayBuffer() ||
          buf->IsArrayBuffer());
 
   if (buf->IsArrayBufferView()) {
-    Read(buf.As<v8::ArrayBufferView>());
+    Read(buf.As<::v8::ArrayBufferView>());
   } else if (buf->IsArrayBuffer()) {
-    auto ab = buf.As<v8::ArrayBuffer>();
+    auto ab = buf.As<::v8::ArrayBuffer>();
     length_ = ab->ByteLength();
     data_ = static_cast<T*>(ab->Data());
     was_detached_ = ab->WasDetached();
   } else {
     CHECK(buf->IsSharedArrayBuffer());
-    auto sab = buf.As<v8::SharedArrayBuffer>();
+    auto sab = buf.As<::v8::SharedArrayBuffer>();
     length_ = sab->ByteLength();
     data_ = static_cast<T*>(sab->Data());
   }
 }
 
 // ECMA-262, 15th edition, 21.1.2.5. Number.isSafeInteger
-inline bool IsSafeJsInt(v8::Local<v8::Value> v) {
+inline bool IsSafeJsInt(::v8::Local<::v8::Value> v) {
   if (!v->IsNumber()) return false;
-  double v_d = v.As<v8::Number>()->Value();
+  double v_d = v.As<::v8::Number>()->Value();
   if (std::isnan(v_d)) return false;
   if (std::isinf(v_d)) return false;
   if (std::trunc(v_d) != v_d) return false;  // not int

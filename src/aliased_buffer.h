@@ -169,7 +169,7 @@ class AliasedBufferBase final : public MemoryRetainer {
   size_t SelfSize() const override;
 
   const char* MemoryInfoName() const override;
-  void MemoryInfo(MemoryTracker* tracker) const override;
+  void MemoryInfo(::node::MemoryTracker* tracker) const override;
 
  private:
   bool is_valid() const;

@@ -81,7 +81,7 @@ void InternalTraceBuffer::Flush(bool blocking) {
 uint64_t InternalTraceBuffer::MakeHandle(
     size_t chunk_index, uint32_t chunk_seq, size_t event_index) const {
   return ((static_cast<uint64_t>(chunk_seq) * Capacity() +
-          chunk_index * TraceBufferChunk::kChunkSize + event_index) << 1) + id_;
+          chunk_index * TraceBufferChunk::kTraceBufferChunkSize + event_index) << 1) + id_;
 }
 
 void InternalTraceBuffer::ExtractHandle(
@@ -91,8 +91,8 @@ void InternalTraceBuffer::ExtractHandle(
   handle >>= 1;
   *chunk_seq = static_cast<uint32_t>(handle / Capacity());
   size_t indices = handle % Capacity();
-  *chunk_index = indices / TraceBufferChunk::kChunkSize;
-  *event_index = indices % TraceBufferChunk::kChunkSize;
+  *chunk_index = indices / TraceBufferChunk::kTraceBufferChunkSize;
+  *event_index = indices % TraceBufferChunk::kTraceBufferChunkSize;
 }
 
 NodeTraceBuffer::NodeTraceBuffer(size_t max_chunks,

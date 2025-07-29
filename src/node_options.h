@@ -426,7 +426,7 @@ inline const std::string NamespaceEnumToString(OptionNamespaces ns) {
 }
 
 inline constexpr auto AllNamespaces() {
-  return std::array{
+  return std::array<OptionNamespaces, 2>{
 #define V(name, _) OptionNamespaces::name,
       OPTION_NAMESPACE_LIST(V)
 #undef V

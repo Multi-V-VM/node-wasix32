@@ -1135,13 +1135,3 @@ Local<Boolean> Boolean::New(Isolate* isolate, bool value) {
 }  // namespace v8
 
 #endif  // INCLUDE_V8_PRIMITIVE_H_
-
-// Additional String methods for WASI compatibility
-namespace v8 {
-  inline MaybeLocal<String> String::NewFromUtf8(Isolate* isolate, 
-                                                 const char* data,
-                                                 NewStringType type,
-                                                 int length) {
-    return MaybeLocal<String>(Local<String>::New(isolate, reinterpret_cast<String*>(const_cast<char*>(data))));
-  }
-}

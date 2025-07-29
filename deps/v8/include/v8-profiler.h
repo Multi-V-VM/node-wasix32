@@ -6,6 +6,8 @@
 
 namespace v8 {
 
+#ifndef V8_EMBEDDER_GRAPH_DEFINED
+#define V8_EMBEDDER_GRAPH_DEFINED
 class EmbedderGraph {
  public:
   class Node {
@@ -35,12 +37,18 @@ class EmbedderGraph {
   virtual Node* AddNode(std::unique_ptr<Node> node) = 0;
   virtual void AddEdge(Node* from, Node* to, const char* name = nullptr) = 0;
 };
+#endif // V8_EMBEDDER_GRAPH_DEFINED
 
+#ifndef V8_HEAP_SNAPSHOT_DEFINED
+#define V8_HEAP_SNAPSHOT_DEFINED
 class HeapSnapshot {
  public:
   ~HeapSnapshot() {}
 };
+#endif // V8_HEAP_SNAPSHOT_DEFINED
 
+#ifndef V8_HEAP_PROFILER_DEFINED
+#define V8_HEAP_PROFILER_DEFINED
 class HeapProfiler {
  public:
   struct HeapSnapshotOptions {
@@ -56,6 +64,7 @@ class HeapProfiler {
     return nullptr;
   }
 };
+#endif // V8_HEAP_PROFILER_DEFINED
 
 } // namespace v8
 

@@ -374,6 +374,11 @@ static void GetGroups(const FunctionCallbackInfo<Value>& args) {
   Environment* env = Environment::GetCurrent(args);
   CHECK(env->has_run_bootstrapping_code());
 
+#ifdef __wasi__
+  // WASI doesn't support getgroups, return empty array
+  args.GetReturnValue().Set(Array::New(env->isolate()));
+  return;
+#else
   int ngroups = getgroups(0, nullptr);
   if (ngroups == -1) return env->ThrowErrnoException(errno, "getgroups");
 
@@ -391,6 +396,7 @@ static void GetGroups(const FunctionCallbackInfo<Value>& args) {
   if (ToV8Value(env->context(), groups).ToLocal(&result)) {
     args.GetReturnValue().Set(result);
   }
+#endif
 }
 
 static void SetGroups(const FunctionCallbackInfo<Value>& args) {

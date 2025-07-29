@@ -9,6 +9,10 @@
 #include "src/base/logging.h"
 #include "src/common/globals.h"
 
+#ifdef __wasi__
+#include "wasi-v8-constants-fix.h"
+#endif
+
 #ifdef ENABLE_SLOW_DCHECKS
 #include "src/flags/flags.h"
 #endif

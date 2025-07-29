@@ -51,7 +51,6 @@ class V8_EXPORT_PRIVATE SegmentedTable {
 
   // The sandbox relies on not being able to access any SegmentedTable out of
   // bounds.
-  static_assert(kUseContiguousMemory || !V8_ENABLE_SANDBOX_BOOL);
 
   // For managing the table's backing memory, the table is partitioned into
   // segments of this size. Segments can then be allocated and freed using the

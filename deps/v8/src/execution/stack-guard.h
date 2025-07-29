@@ -230,43 +230,43 @@ class V8_EXPORT_PRIVATE V8_NODISCARD StackGuard final {
     // jslimit_ and climit_ can be read without any lock.
     // Writing requires the ExecutionAccess lock, or may be updated with a
     // strong compare-and-swap (e.g. for stack-switching).
-    base::AtomicWord jslimit_ = kIllegalLimit;
+    ::v8::base::AtomicWord jslimit_ = kIllegalLimit;
 #ifdef USE_SIMULATOR
-    base::AtomicWord climit_ = kIllegalLimit;
+    ::v8::base::AtomicWord climit_ = kIllegalLimit;
 #else
     // See {padding1_}.
     uintptr_t padding2_;
 #endif
 
     uintptr_t jslimit() {
-      return base::bit_cast<uintptr_t>(base::Relaxed_Load(&jslimit_));
+      return ::v8::base::bit_cast<uintptr_t>(::v8::base::Relaxed_Load(&jslimit_));
     }
     void set_jslimit(uintptr_t limit) {
-      return base::Relaxed_Store(&jslimit_,
-                                 static_cast<base::AtomicWord>(limit));
+      return ::v8::base::Relaxed_Store(&jslimit_,
+                                 static_cast<::v8::base::AtomicWord>(limit));
     }
 #ifdef USE_SIMULATOR
     uintptr_t climit() {
-      return base::bit_cast<uintptr_t>(base::Relaxed_Load(&climit_));
+      return ::v8::base::bit_cast<uintptr_t>(::v8::base::Relaxed_Load(&climit_));
     }
     void set_climit(uintptr_t limit) {
-      return base::Relaxed_Store(&climit_,
-                                 static_cast<base::AtomicWord>(limit));
+      return ::v8::base::Relaxed_Store(&climit_,
+                                 static_cast<::v8::base::AtomicWord>(limit));
     }
 #endif
 
     // Interrupt request bytes can be read without any lock.
     // Writing requires the ExecutionAccess lock.
-    base::Atomic8 interrupt_requested_[kNumberOfInterruptLevels] = {
+    ::v8::base::Atomic8 interrupt_requested_[kNumberOfInterruptLevels] = {
         false, false, false};
 
     void set_interrupt_requested(InterruptLevel level, bool requested) {
-      base::Relaxed_Store(&interrupt_requested_[static_cast<int>(level)],
+      ::v8::base::Relaxed_Store(&interrupt_requested_[static_cast<int>(level)],
                           requested);
     }
 
     bool has_interrupt_requested(InterruptLevel level) {
-      return base::Relaxed_Load(&interrupt_requested_[static_cast<int>(level)]);
+      return ::v8::base::Relaxed_Load(&interrupt_requested_[static_cast<int>(level)]);
     }
 
     InterruptsScope* interrupt_scopes_ = nullptr;

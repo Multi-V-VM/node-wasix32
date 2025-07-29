@@ -112,7 +112,7 @@ class FutexWaitListNode {
         CancelableTaskManager::kInvalidTaskId;
   };
 
-  base::ConditionVariable cond_;
+  ::v8::base::ConditionVariable cond_;
   // prev_ and next_ are protected by FutexEmulationGlobalState::mutex.
   FutexWaitListNode* prev_ = nullptr;
   FutexWaitListNode* next_ = nullptr;

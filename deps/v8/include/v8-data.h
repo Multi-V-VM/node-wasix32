@@ -4,18 +4,24 @@
 #ifndef INCLUDE_V8_DATA_H_
 #define INCLUDE_V8_DATA_H_
 
-#ifdef __wasi__
-#include "v8-local-handle.h"
+#include "v8config.h"
 
 namespace v8 {
-class Data {
-public:
-  Local<Data> Get(Local<Context> context, int i) const { return Local<Data>(); }
-};
-} // namespace v8
 
-#else
-// Include real v8-data.h for non-WASI
-#endif
+// Forward declaration for Local template
+template <typename T> class Local;
+
+/**
+ * The superclass of objects that can be embedded in JavaScript values
+ * or passed to most functions defined in V8.
+ */
+class V8_EXPORT Data {
+ public:
+  // Add base class methods if needed
+ private:
+  Data() = delete;
+};
+
+} // namespace v8
 
 #endif // INCLUDE_V8_DATA_H_

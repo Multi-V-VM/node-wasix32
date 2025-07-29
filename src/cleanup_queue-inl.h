@@ -9,7 +9,7 @@
 namespace node {
 
 inline size_t CleanupQueue::SelfSize() const {
-  return sizeof(CleanupQueue) +
+  return sizeof(::node::CleanupQueue) +
          cleanup_hooks_.size() * sizeof(CleanupHookCallback);
 }
 

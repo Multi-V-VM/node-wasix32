@@ -82,7 +82,9 @@ inline size_t convert_latin1_to_utf8(const char* src, size_t len, char* dst) {
   }
   return written;
 }
-}
+
+}  // namespace simdutf
+}  // namespace v8
 
 #endif // __wasi__
 

@@ -16,6 +16,8 @@
 #define INCLUDE_V8_H_
 
 #ifdef __wasi__
+#include "wasi/v8-namespace-fix.h"
+#include "wasi/v8-handlescope-fix.h"
 #include "wasi/std-namespace-fix.h"
 #endif
 

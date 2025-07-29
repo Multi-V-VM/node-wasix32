@@ -397,7 +397,7 @@ class PropertyDetails {
 
   // Bit fields in value_ (type, shift, size). Must be public so the
   // constants can be embedded in generated code.
-  using KindField = base::BitField<PropertyKind, 0, 1>;
+  using KindField = ::v8::base::BitField<PropertyKind, 0, 1>;
   using ConstnessField = KindField::Next<PropertyConstness, 1>;
   using AttributesField = ConstnessField::Next<PropertyAttributes, 3>;
   static const int kAttributesReadOnlyMask =

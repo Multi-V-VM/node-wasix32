@@ -13,6 +13,11 @@
 // Include deprecation fixes
 #include "v8-deprecation-fix.h"
 
+// Forward declare v8::Isolate early
+namespace v8 {
+class Isolate;
+}  // namespace v8
+
 // Constants needed for VirtualAddressSpace
 constexpr uintptr_t kNoHint = 0;
 
@@ -89,7 +94,7 @@ namespace internal {
 // Import Address into v8::internal namespace
 using ::Address;
 
-// Forward declaration
+// Forward declaration - Isolate is defined elsewhere
 class Isolate;
 
 // Forward declarations and stubs for missing base classes
@@ -104,9 +109,11 @@ constexpr Address kNullAddress = 0;
 // Define complete Internals class
 class Internals {
  public:
-  static constexpr int kJSObjectType = 0;
+  static constexpr int kJSObjectType = 1057;  // Must match JS_OBJECT_TYPE from instance-type.h
   static constexpr int kFirstNonstringType = 0x40;
   static constexpr int kForeignType = 0x45;
+  static constexpr int kFirstJSApiObjectType = 1058;
+  static constexpr int kJSSpecialApiObjectType = 1060;
   
   static constexpr int kUndefinedValueRootIndex = 5;
   static constexpr int kNullValueRootIndex = 6;
@@ -155,7 +162,11 @@ class Internals {
   static void SetNodeClassId(void* obj, uint16_t id) {}
   
   // Additional missing methods  
-  static v8::Isolate* GetIsolateForSandbox(Address obj) { return nullptr; }
+  static v8::Isolate* GetIsolateForSandbox(Address obj) { 
+    // In V8, internal::Isolate and v8::Isolate are different types
+    // This is a stub implementation, so we just return nullptr
+    return static_cast<v8::Isolate*>(nullptr); 
+  }
   static Address ReadExternalPointerField(void* isolate, Address heap_object_ptr, 
                                          int offset, uint64_t tag) { return 0; }
   
@@ -177,6 +188,9 @@ class Internals {
   static constexpr int kEmbedderDataSlotExternalPointerOffset = 8;
   static constexpr uint64_t kEmbedderDataSlotPayloadTag = 0x1;
   
+  // Missing buffer and WASM constants
+  static constexpr size_t kMaxSafeBufferSizeForSandbox = 2147483647; // 2GB - 1
+  
   // Additional methods
   static bool CanHaveInternalField(int instance_type) { return true; }
   
@@ -197,12 +211,36 @@ class Internals {
     return 0; 
   }
   
+  // Additional overload for the call pattern in v8-context.h
+  template<uint64_t tag>
+  static Address ReadExternalPointerField(void* isolate, Address obj, int offset) { 
+    return 0; 
+  }
+  
   // Additional missing methods for Smi handling
   static constexpr bool IsValidSmi(int32_t value) { return true; }
   static Address IntegralToSmi(int32_t value) { return static_cast<Address>(value << 1); }
   static Address* TryIntegralToSmi(int32_t value) { 
     static Address result = static_cast<Address>(value << 1);
     return &result;
+  }
+  
+  // Missing method for LongTaskStats
+  static void IncrementLongTasksStatsCounter(void* isolate) {
+    // No-op implementation for WASI
+  }
+  
+  // SmiValue method for extracting value from Smi-tagged address
+  static int32_t SmiValue(Address value) {
+    // Smi values are stored in the upper 32 bits on 64-bit systems
+    // or use 31 bits on 32-bit systems
+    if constexpr (kSystemPointerSize == 8) {
+      // 64-bit: shift right by 32 to get the value
+      return static_cast<int32_t>(value >> 32);
+    } else {
+      // 32-bit: shift right by 1 (tagged value)
+      return static_cast<int32_t>(value >> 1);
+    }
   }
 };
 
@@ -211,6 +249,7 @@ inline void* IsolateFromNeverReadOnlySpaceObject(Address obj) { return nullptr; 
 
 // ShouldThrowOnError function for v8::internal namespace
 inline bool ShouldThrowOnError(Address args, int mode) { return false; }
+inline bool ShouldThrowOnError(Isolate* isolate) { return false; }
 
 // Missing cast check function
 inline void PerformCastCheck(Address value) { /* no-op for WASI */ }
@@ -220,7 +259,76 @@ inline T* ReadCppHeapPointerField(void* isolate, Address obj, int offset, uint64
   return nullptr;
 }
 
+// Additional WASM constants
+static constexpr uint64_t kWasmWasmStreamingTag = 0x2;
+
+// Make internals constants available directly in v8::internal namespace
+static constexpr size_t kMaxSafeBufferSizeForSandbox = Internals::kMaxSafeBufferSizeForSandbox;
+
+// Add ExternalPointerTag type
+using ExternalPointerTag = uint64_t;
+
+// Add missing external pointer constants
+static constexpr uintptr_t kExternalPointerTagShift = Internals::kExternalPointerTagShift;
+static constexpr uint64_t kExternalPointerTagMask = Internals::kExternalPointerTagMask;
+static constexpr uint64_t kExternalPointerPayloadMask = ~kExternalPointerTagMask;
+
+// Add ExternalPointerTagRange class
+class ExternalPointerTagRange {
+ public:
+  ExternalPointerTagRange(ExternalPointerTag lower, ExternalPointerTag upper)
+      : lower_(lower), upper_(upper) {}
+  
+  explicit ExternalPointerTagRange(ExternalPointerTag tag)
+      : lower_(tag), upper_(tag) {}
+  
+  bool Contains(ExternalPointerTag tag) const {
+    return tag >= lower_ && tag <= upper_;
+  }
+  
+  bool IsEmpty() const { return lower_ > upper_; }
+  
+  ExternalPointerTag lower() const { return lower_; }
+  ExternalPointerTag upper() const { return upper_; }
+  
+ private:
+  ExternalPointerTag lower_;
+  ExternalPointerTag upper_;
+};
+
+// Helper function for ExternalPointerCanBeEmpty
+inline bool ExternalPointerCanBeEmpty(ExternalPointerTagRange tag_range) {
+  // For now, allow all pointers to be empty
+  return true;
+}
+
+// Make SmiValuesAre31Bits available directly
+using ::SmiValuesAre31Bits;
+
 }  // namespace internal
+
+// ResourceConstraints stub
+class ResourceConstraints {
+ public:
+  ResourceConstraints() = default;
+  void ConfigureDefaultsFromHeapSize(size_t initial_heap_size_in_bytes, 
+                                   size_t maximum_heap_size_in_bytes) {}
+  void ConfigureDefaults(uint64_t physical_memory, uint64_t virtual_memory_limit) {}
+  size_t max_heap_size() const { return max_heap_size_; }
+  void set_max_heap_size(size_t value) { max_heap_size_ = value; }
+  size_t initial_heap_size() const { return initial_heap_size_; }
+  void set_initial_heap_size(size_t value) { initial_heap_size_ = value; }
+  size_t code_range_size() const { return code_range_size_; }
+  void set_code_range_size(size_t value) { code_range_size_ = value; }
+  size_t max_zone_pool_size() const { return max_zone_pool_size_; }
+  void set_max_zone_pool_size(size_t value) { max_zone_pool_size_ = value; }
+  
+ private:
+  size_t max_heap_size_ = 0;
+  size_t initial_heap_size_ = 0;
+  size_t code_range_size_ = 0;
+  size_t max_zone_pool_size_ = 0;
+};
 
 // VirtualAddressSpace stub
 class VirtualAddressSpace {
@@ -325,24 +433,60 @@ class Platform;
 class PageAllocator;
 class ThreadIsolatedAllocator;
 
-// SourceLocation stub for V8 API
-class SourceLocation {
- public:
-  SourceLocation() : function_(""), file_(""), line_(0) {}
-  SourceLocation(const char* function, const char* file, int line)
-      : function_(function), file_(file), line_(line) {}
-  
-  const char* function() const { return function_; }
-  const char* file() const { return file_; }
-  int line() const { return line_; }
-  
- private:
-  const char* function_;
-  const char* file_;
-  int line_;
-};
+// SourceLocation stub for V8 API - commented out as it's now defined in v8-source-location.h
+// class SourceLocation {
+//  public:
+//   SourceLocation() : function_(""), file_(""), line_(0) {}
+//   SourceLocation(const char* function, const char* file, int line)
+//       : function_(function), file_(file), line_(line) {}
+//   
+//   const char* function() const { return function_; }
+//   const char* file() const { return file_; }
+//   int line() const { return line_; }
+//   
+//  private:
+//   const char* function_;
+//   const char* file_;
+//   int line_;
+// };
 
 namespace base {
+
+// Add missing base types
+using uc32 = uint32_t;
+
+// Vector template is now defined in v8/src/base/vector.h
+// Remove duplicate definition to avoid conflicts
+
+// AllocationResult template - removed to avoid conflicts with wasi-v8-base-fixes.h
+
+// AddressRegion class - disabled, V8 now provides this
+// #if !defined(V8_BASE_ADDRESS_REGION_H_) && !defined(V8_SRC_BASE_ADDRESS_REGION_H_)
+// class AddressRegion {
+//  public:
+//   AddressRegion() : address_(0), size_(0) {}
+//   AddressRegion(Address address, size_t size) : address_(address), size_(size) {}
+//   
+//   Address begin() const { return address_; }
+//   size_t size() const { return size_; }
+//   
+//  private:
+//   Address address_;
+//   size_t size_;
+// };
+// #endif
+
+// EnumSet template is now defined in v8/src/base/enum-set.h
+// Remove duplicate definition to avoid conflicts
+
+// RecursiveMutex class - disabled, V8 now provides this
+// #if !defined(V8_BASE_PLATFORM_MUTEX_H_) && !defined(V8_SRC_BASE_PLATFORM_MUTEX_H_)
+// class RecursiveMutex {
+//  public:
+//   void Lock() {}
+//   void Unlock() {}
+// };
+// #endif
 
 // AsAtomicPointerImpl template
 template <typename T>
@@ -410,6 +554,16 @@ inline void CallOnce(Once* once, void (*init_func)(Arg*), Arg* arg) {
 }
 
 }  // namespace base
+
+// StackState enum - add to v8 namespace
+enum class StackState {
+  kNoHeapPointers,
+  kMayContainHeapPointers
+};
+
+// Maybe template is now properly defined in v8-maybe.h
+// Remove duplicate definition to avoid conflicts
+// Just function will be available from v8-maybe.h
 
 }  // namespace v8
 

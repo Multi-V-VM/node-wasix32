@@ -5,6 +5,10 @@
 #ifndef V8_CODEGEN_WASM32_REGLIST_WASM32_H_
 #define V8_CODEGEN_WASM32_REGLIST_WASM32_H_
 
+#ifdef __wasi__
+#include "wasi-v8-reglist-fix.h"
+#endif
+
 namespace v8 {
 namespace internal {
 
@@ -14,37 +18,44 @@ namespace internal {
 // Define stub Register class
 class Register {
  public:
-  Register() = default;
+  static constexpr int kNumRegisters = 32;  // Arbitrary value for WASM
+  
+  Register() : code_(0), valid_(false) {}
+  explicit Register(int code) : code_(code), valid_(true) {}
+  
   static Register no_reg() { return Register(); }
+  static Register from_code(int code) { return Register(code); }
+  
+  bool is_valid() const { return valid_; }
+  int code() const { return code_; }
+  
+ private:
+  int code_;
+  bool valid_;
 };
 
 // Define stub DoubleRegister class  
 class DoubleRegister {
  public:
-  DoubleRegister() = default;
+  static constexpr int kNumRegisters = 32;  // Arbitrary value for WASM
+  
+  DoubleRegister() : code_(0), valid_(false) {}
+  explicit DoubleRegister(int code) : code_(code), valid_(true) {}
+  
   static DoubleRegister no_reg() { return DoubleRegister(); }
+  static DoubleRegister from_code(int code) { return DoubleRegister(code); }
+  
+  bool is_valid() const { return valid_; }
+  int code() const { return code_; }
+  
+ private:
+  int code_;
+  bool valid_;
 };
 
-// Define RegList and DoubleRegList for WASM32
-class RegList {
- public:
-  RegList() = default;
-  template<typename... Args>
-  RegList(Args...) {}
-  
-  bool is_empty() const { return true; }
-  int Count() const { return 0; }
-};
-
-class DoubleRegList {
- public:
-  DoubleRegList() = default;
-  template<typename... Args>
-  DoubleRegList(Args...) {}
-  
-  bool is_empty() const { return true; }
-  int Count() const { return 0; }
-};
+// Define RegList and DoubleRegList using RegListBase
+using RegList = RegListBase<Register>;
+using DoubleRegList = RegListBase<DoubleRegister>;
 
 // Define empty macros for register allocation
 #define ALLOCATABLE_GENERAL_REGISTERS(V) 

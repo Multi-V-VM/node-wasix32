@@ -28,6 +28,12 @@
 #include "base_object_types.h"
 #include "memory_tracker.h"
 #include "util.h"
+
+#ifdef __wasi__
+// In WASI builds, MemoryRetainer is in node namespace
+using ::node::MemoryRetainer;
+using ::node::MemoryTracker;
+#endif
 #include "v8.h"
 
 namespace node {
@@ -248,7 +254,7 @@ class BaseObjectList
 
   SET_MEMORY_INFO_NAME(BaseObjectList)
   SET_SELF_SIZE(BaseObjectList)
-  void MemoryInfo(node::MemoryTracker* tracker) const override;
+  void MemoryInfo(::node::MemoryTracker* tracker) const override;
 };
 
 #define ASSIGN_OR_RETURN_UNWRAP(ptr, obj, ...)                                 \

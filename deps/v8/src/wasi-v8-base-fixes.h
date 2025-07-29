@@ -49,7 +49,7 @@ class Vector {
   
   // Constructor for non-const types
   template<typename U = T>
-  Vector(typename std::enable_if<!std::is_const<U>::value, U>::type* data, size_t length) 
+  Vector(typename ::std::enable_if<!::std::is_const<U>::value, U>::type* data, size_t length) 
       : data_(data), length_(length) {}
   
   // Constructor for const types - stores as const pointer
@@ -77,7 +77,7 @@ class Vector {
  private:
   typename std::conditional<
     std::is_const<T>::value,
-    typename std::remove_const<T>::type*,
+    typename ::std::remove_const<T>::type*,
     T*
   >::type data_ = nullptr;
   size_t length_ = 0;
@@ -111,11 +111,8 @@ class Flags {
   Flags() = default;
 };
 
-template<typename T, typename U>
-class EnumSet {
- public:
-  EnumSet() = default;
-};
+// EnumSet is now defined in v8/src/base/enum-set.h
+// Remove duplicate definition to avoid conflicts
 
 class AddressRegion {
  public:
@@ -134,19 +131,30 @@ class AddressRegion {
 enum class PageInitializationMode { kUninitialized, kZeroInitialized };
 enum class PageFreeingMode { kMakeInaccessible, kDiscard };
 
-struct AllocationResult {
-  void* ptr;
-  size_t size;
-  AllocationResult() : ptr(nullptr), size(0) {}
-  AllocationResult(void* p, size_t s) : ptr(p), size(s) {}
-};
+// AllocationResult is already defined in memory.h - don't redefine
+// template <class Pointer>
+// struct AllocationResult {
+//   Pointer ptr = nullptr;
+//   size_t count = 0;
+// };
 
 // Function stubs
 inline void* Malloc(size_t size) { return malloc(size); }
 inline void Free(void* ptr) { free(ptr); }
-inline AllocationResult AllocatePages(size_t size) {
-  return AllocationResult(malloc(size), size);
+
+// Use a simple allocation result structure
+template<typename T>
+struct AllocationResult {
+  T* ptr;
+  size_t count;
+};
+
+template<typename T>
+inline AllocationResult<T*> AllocatePages(size_t size) {
+  T* ptr = static_cast<T*>(malloc(size * sizeof(T)));
+  return {ptr, ptr ? size : 0};
 }
+
 inline void FreePages(void* address, size_t size) { free(address); }
 
 inline size_t hash_combine(size_t seed, size_t hash) {
@@ -166,12 +174,7 @@ namespace bits {
   inline unsigned CountPopulation(uint16_t value) {
     return __builtin_popcount(value);
   }
-  inline unsigned CountTrailingZeros(uint32_t value) {
-    return value ? __builtin_ctz(value) : 32;
-  }
-  inline unsigned CountTrailingZeros(uint64_t value) {
-    return value ? __builtin_ctzll(value) : 64;
-  }
+  // CountTrailingZeros functions removed - using existing V8 implementations
   inline uint32_t RoundUpToPowerOfTwo32(uint32_t value) {
     if (value <= 1) return 1;
     value--;

@@ -190,6 +190,21 @@ class Simd128Register : public RegisterBase<Simd128Register, kFloatAfterLast> {
 using FPRegister = DoubleRegister;
 using VRegister = Simd128Register;
 
+// Required constants for frame layout
+const int kStackFrameExtraParamSlot = 0;
+const int kStackFrameSPAdjustment = 0;
+const int kStackFrameExtraActualArgSlot = 0;
+
+// Required ArgumentPaddingSlots function
+constexpr int ArgumentPaddingSlots(int argument_count) {
+  return 0;  // No padding needed for WASM
+}
+
+// Placeholder definitions for missing types
+constexpr bool kPadArguments = false;
+constexpr bool kSimpleFPAliasing = true;
+constexpr bool kSimdMaskRegisters = false;
+
 // Define special register constants
 constexpr Register kRootRegister = r13();  // Root pointer register
 constexpr Register kScratchRegister = r12();  // Scratch register

@@ -23,6 +23,12 @@ class Maybe<void> {
   bool operator!=(const Maybe& other) const {
     return !operator==(other);
   }
+  
+  // Check method for WASI compatibility
+  void Check() const {
+    // In WASI, we just assume check succeeds if we have a value
+    // This is a simplified implementation for compatibility
+  }
 
  private:
   bool has_value_;

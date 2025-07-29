@@ -8,8 +8,8 @@
 #include "v8-value.h"
 #include "v8-primitive.h"
 
-// Only define these stubs if V8_PROFILER_H_ hasn't been included yet
-#ifndef V8_PROFILER_H_
+// Only define these stubs if V8_V8_PROFILER_H_ hasn't been included yet
+#ifndef V8_V8_PROFILER_H_
 #define V8_WASI_EMBEDDER_GRAPH_STUB_ACTIVE 1
 
 namespace v8 {
@@ -28,6 +28,7 @@ struct HeapStatsUpdate {
 };
 
 // Stub for EmbedderGraph - used for heap snapshots
+#ifndef V8_PROFILER_H_
 #ifndef V8_EMBEDDER_GRAPH_DEFINED
 #define V8_EMBEDDER_GRAPH_DEFINED
 class EmbedderGraph {
@@ -55,8 +56,10 @@ class EmbedderGraph {
   virtual void AddEdge(Node* from, Node* to, const char* name = nullptr) = 0;
 };
 #endif // V8_EMBEDDER_GRAPH_DEFINED
+#endif // V8_PROFILER_H_
 
 // Stub for HeapProfiler
+#ifndef V8_PROFILER_H_
 #ifndef V8_HEAP_PROFILER_DEFINED
 #define V8_HEAP_PROFILER_DEFINED
 class HeapProfiler {
@@ -79,8 +82,10 @@ class HeapProfiler {
   ~HeapProfiler() = default;
 };
 #endif // V8_HEAP_PROFILER_DEFINED
+#endif // V8_PROFILER_H_
 
 // Stub for HeapGraphEdge - defined before HeapGraphNode due to dependency
+#ifndef V8_PROFILER_H_
 class HeapGraphEdge {
  public:
   enum Type {
@@ -99,8 +104,10 @@ class HeapGraphEdge {
   virtual const HeapGraphNode* GetFromNode() const = 0;
   virtual const HeapGraphNode* GetToNode() const = 0;
 };
+#endif // V8_PROFILER_H_
 
 // Stub for HeapGraphNode
+#ifndef V8_PROFILER_H_
 class HeapGraphNode {
  public:
   enum Type {
@@ -129,8 +136,10 @@ class HeapGraphNode {
   virtual int GetChildrenCount() const = 0;
   virtual const HeapGraphEdge* GetChild(int index) const = 0;
 };
+#endif // V8_PROFILER_H_
 
 // Stub for OutputStream
+#ifndef V8_PROFILER_H_
 class OutputStream {
  public:
   enum WriteResult {
@@ -144,6 +153,7 @@ class OutputStream {
   virtual WriteResult WriteAsciiChunk(char* data, int size) = 0;
   virtual WriteResult WriteHeapStatsChunk(HeapStatsUpdate* data, int count) = 0;
 };
+#endif // V8_PROFILER_H_
 
 // Stub for HeapSnapshot
 #ifndef V8_HEAP_SNAPSHOT_DEFINED
@@ -168,6 +178,6 @@ class HeapSnapshot {
 
 }  // namespace v8
 
-#endif // V8_PROFILER_H_
+#endif // V8_V8_PROFILER_H_
 
 #endif  // V8_WASI_EMBEDDER_GRAPH_STUB_H_

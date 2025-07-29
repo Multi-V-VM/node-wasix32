@@ -111,7 +111,7 @@ void* AllocWithRetry(size_t size, MallocFn = base::Malloc);
 
 // Performs a malloc, with retry logic on failure. Returns nullptr on failure.
 // Call free to release memory allocated with this function.
-AllocationResult<void*> AllocAtLeastWithRetry(size_t size);
+::v8::base::AllocationResult<void*> AllocAtLeastWithRetry(size_t size);
 
 V8_EXPORT_PRIVATE void* AlignedAllocWithRetry(size_t size, size_t alignment);
 V8_EXPORT_PRIVATE void AlignedFree(void* ptr);
@@ -251,7 +251,7 @@ class VirtualMemory final {
 
   v8::PageAllocator* page_allocator() { return page_allocator_; }
 
-  const base::AddressRegion& region() const { return region_; }
+  const ::v8::base::AddressRegion& region() const { return region_; }
 
   // Returns the start address of the reserved memory.
   // If the memory was reserved with an alignment, this address is not
@@ -310,7 +310,7 @@ class VirtualMemory final {
  private:
   // Page allocator that controls the virtual memory.
   v8::PageAllocator* page_allocator_ = nullptr;
-  base::AddressRegion region_;
+  ::v8::base::AddressRegion region_;
 };
 
 // Represents a VirtualMemory reservation along with a BoundedPageAllocator that
@@ -378,8 +378,8 @@ class VirtualMemoryCage {
   Address base() const { return base_; }
   size_t size() const { return size_; }
 
-  base::AddressRegion region() const {
-    return base::AddressRegion{base_, size_};
+  ::v8::base::AddressRegion region() const {
+    return ::v8::base::AddressRegion{base_, size_};
   }
 
   base::BoundedPageAllocator* page_allocator() const {
@@ -418,7 +418,7 @@ class VirtualMemoryCage {
   // for keeping the memory reserved during the lifetime of this object.
   bool InitReservation(
       const ReservationParams& params,
-      base::AddressRegion existing_reservation = base::AddressRegion());
+      ::v8::base::AddressRegion existing_reservation = ::v8::base::AddressRegion());
 
   void Free();
 

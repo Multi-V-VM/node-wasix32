@@ -23,9 +23,9 @@ class MemoryRetainer {
   virtual size_t SelfSize() const { return 0; }
   virtual bool IsRootNode() const { return false; }
   virtual bool IsCppgcWrapper() const { return false; }
-  virtual v8::Local<v8::Object> WrappedObject() const { return v8::Local<v8::Object>(); }
-  virtual v8::EmbedderGraph::Node::Detachedness GetDetachedness() const { 
-    return v8::EmbedderGraph::Node::Detachedness::kUnknown; 
+  virtual ::v8::Local<::v8::Object> WrappedObject() const { return ::v8::Local<::v8::Object>(); }
+  virtual ::v8::EmbedderGraph::Node::Detachedness GetDetachedness() const { 
+    return ::v8::EmbedderGraph::Node::Detachedness::kUnknown; 
   }
 };
 
@@ -37,8 +37,8 @@ public:
   void TrackFieldWithSize(const char* edge_name, size_t size, const char* node_name = nullptr) {}
   void TrackInlineFieldWithSize(const char* edge_name, size_t size, const char* node_name = nullptr) {}
   
-  v8::Isolate* isolate() const { return nullptr; }
-  v8::EmbedderGraph* graph() const { return nullptr; }
+  ::v8::Isolate* isolate() const { return nullptr; }
+  ::v8::EmbedderGraph* graph() const { return nullptr; }
 };
 
 // Macro stubs
@@ -50,12 +50,12 @@ public:
   void MemoryInfo(MemoryTracker* tracker) const override {}
 
 }  // namespace node
-#else
-#pragma once
 
-#if defined(NODE_WANT_INTERNALS) && NODE_WANT_INTERNALS
+#else  // __wasi__
 
 #include "v8-profiler.h"
+
+#if defined(NODE_WANT_INTERNALS) && NODE_WANT_INTERNALS
 
 #include <uv.h>
 
@@ -384,6 +384,7 @@ class MemoryTracker {
 }  // namespace node
 
 #endif  // defined(NODE_WANT_INTERNALS) && NODE_WANT_INTERNALS
-#endif // __wasi__
+
+#endif  // __wasi__
 
 #endif  // SRC_MEMORY_TRACKER_H_

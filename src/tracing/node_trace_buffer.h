@@ -36,7 +36,7 @@ class InternalTraceBuffer {
                       size_t event_index) const;
   void ExtractHandle(uint64_t handle, uint32_t* buffer_id, size_t* chunk_index,
                      uint32_t* chunk_seq, size_t* event_index) const;
-  size_t Capacity() const { return max_chunks_ * TraceBufferChunk::kChunkSize; }
+  size_t Capacity() const { return max_chunks_ * TraceBufferChunk::kTraceBufferChunkSize; }
 
   Mutex mutex_;
   bool flushing_;

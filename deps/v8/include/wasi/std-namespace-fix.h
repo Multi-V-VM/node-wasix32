@@ -1,11 +1,34 @@
 #ifndef V8_INCLUDE_WASI_STD_NAMESPACE_FIX_H_
 #define V8_INCLUDE_WASI_STD_NAMESPACE_FIX_H_
 
+// Include ranges compatibility layer first
+#ifdef __wasi__
+#include "wasi/ranges-compat.h"
+#include "wasi/crdtp-namespace-fix.h"
+#endif
+
+// Ensure global std namespace is accessible
+namespace std {}
+
+// Forward declare v8 types to avoid namespace conflicts  
+namespace v8 {
+  class Isolate;
+  template<typename T> class Local;
+  class String;
+  class Object;
+  class Array;
+  class Value;
+  class Context;
+  template<typename T> class Maybe;
+  class EmbedderGraph;
+}
+
 #include <locale>
 #include <iomanip>
 #include <ostream>
 #include <chrono>
 #include <string>
+#include <string_view>
 #include <memory>
 #include <atomic>
 #include <vector>
@@ -41,6 +64,8 @@ using ::std::wstring;
 using ::std::u8string;
 using ::std::u16string;
 using ::std::u32string;
+using ::std::string_view;
+using ::std::size_t;
 
 // Forward use_facet template
 template<typename _Facet>
@@ -60,6 +85,13 @@ __put_character_sequence(::std::basic_ostream<_CharT, _Traits>& __os,
 using ::std::noskipws;
 using ::std::skipws;
 
+// Math functions
+using ::std::signbit;
+using ::std::isnan;
+using ::std::memset;
+using ::std::uninitialized_fill_n;
+using ::std::logical_not;
+
 // Memory utilities
 template<typename T, typename Deleter = ::std::default_delete<T>> using unique_ptr = ::std::unique_ptr<T, Deleter>;
 template<typename T> using shared_ptr = ::std::shared_ptr<T>;
@@ -69,6 +101,24 @@ template<typename T> using enable_shared_from_this = ::std::enable_shared_from_t
 // Atomic types
 template<typename T> using atomic = ::std::atomic<T>;
 using atomic_bool = ::std::atomic_bool;
+using atomic_uint = ::std::atomic_uint;
+
+// Atomic functions
+template<typename T>
+inline T atomic_fetch_add_explicit(::std::atomic<T>* ptr, T value, ::std::memory_order order) {
+    return ::std::atomic_fetch_add_explicit(ptr, value, order);
+}
+
+template<typename T>
+inline T atomic_exchange_explicit(::std::atomic<T>* ptr, T value, ::std::memory_order order) {
+    return ::std::atomic_exchange_explicit(ptr, value, order);
+}
+
+template<typename T>
+inline bool atomic_compare_exchange_strong_explicit(::std::atomic<T>* ptr, T* expected, T desired, 
+                                                   ::std::memory_order success, ::std::memory_order failure) {
+    return ::std::atomic_compare_exchange_strong_explicit(ptr, expected, desired, success, failure);
+}
 
 // Mutex types
 using mutex = ::std::mutex;
@@ -101,6 +151,11 @@ template<typename Key, typename T, typename Hash = ::std::hash<Key>,
          typename KeyEqual = ::std::equal_to<Key>, 
          typename Alloc = ::std::allocator<::std::pair<const Key, T>>>
 using unordered_map = ::std::unordered_map<Key, T, Hash, KeyEqual, Alloc>;
+
+template<typename Key, typename T, typename Hash = ::std::hash<Key>, 
+         typename KeyEqual = ::std::equal_to<Key>, 
+         typename Alloc = ::std::allocator<::std::pair<const Key, T>>>
+using unordered_multimap = ::std::unordered_multimap<Key, T, Hash, KeyEqual, Alloc>;
 
 template<typename T, typename Container = ::std::deque<T>>
 using queue = ::std::queue<T, Container>;
@@ -157,6 +212,10 @@ typename ::std::add_rvalue_reference<T>::type declval() noexcept;
 // nullptr_t type
 using nullptr_t = ::std::nullptr_t;
 
+// nothrow symbols
+using nothrow_t = ::std::nothrow_t;
+inline constexpr nothrow_t nothrow = ::std::nothrow;
+
 // Tuple utilities
 template<size_t I, typename T>
 constexpr auto get(T&& t) -> decltype(::std::get<I>(::std::forward<T>(t))) {
@@ -172,6 +231,9 @@ using index_sequence = ::std::index_sequence<Ints...>;
 
 template<size_t N>
 using make_index_sequence = ::std::make_index_sequence<N>;
+
+template<typename... T>
+using index_sequence_for = ::std::index_sequence_for<T...>;
 
 // Forward is a function template, not a type alias
 template<typename T>
@@ -202,30 +264,52 @@ template<bool B, typename T = void> using enable_if = ::std::enable_if<B, T>;
 template<bool B, typename T = void> using enable_if_t = ::std::enable_if_t<B, T>;
 template<typename From, typename To> using is_convertible = ::std::is_convertible<From, To>;
 template<typename From, typename To> constexpr bool is_convertible_v = ::std::is_convertible_v<From, To>;
+template<typename T, T v> using integral_constant = ::std::integral_constant<T, v>;
 template<typename... Ts> using void_t = ::std::void_t<Ts...>;
 template<typename T> using underlying_type = ::std::underlying_type<T>;
 template<typename T> using underlying_type_t = ::std::underlying_type_t<T>;
+template<std::size_t I, typename T> using tuple_element = ::std::tuple_element<I, T>;
+template<std::size_t I, typename T> using tuple_element_t = ::std::tuple_element_t<I, T>;
 template<typename Base, typename Derived> using is_base_of = ::std::is_base_of<Base, Derived>;
 template<typename T> using is_enum = ::std::is_enum<T>;
 using false_type = ::std::false_type;
 using true_type = ::std::true_type;
+// Add missing conjunction, disjunction, and negation
+template<typename... Args> using conjunction = ::std::conjunction<Args...>;
+template<typename... Args> constexpr bool conjunction_v = ::std::conjunction_v<Args...>;
+template<typename... Args> using disjunction = ::std::disjunction<Args...>;
+template<typename... Args> constexpr bool disjunction_v = ::std::disjunction_v<Args...>;
+template<typename B> using negation = ::std::negation<B>;
+template<typename B> constexpr bool negation_v = ::std::negation_v<B>;
 template<typename T> using is_integral = ::std::is_integral<T>;
+template<typename T> constexpr bool is_integral_v = ::std::is_integral_v<T>;
 template<typename T> using remove_reference = ::std::remove_reference<T>;
 template<typename T> using remove_reference_t = ::std::remove_reference_t<T>;
 template<typename T> using remove_cv = ::std::remove_cv<T>;
 template<typename T> using remove_cv_t = ::std::remove_cv_t<T>;
+template<typename T> using remove_cvref = ::std::remove_cvref<T>;
+template<typename T> using remove_cvref_t = ::std::remove_cvref_t<T>;
 template<typename T> using is_const = ::std::is_const<T>;
+template<typename T> constexpr bool is_const_v = ::std::is_const_v<T>;
 template<typename T> using is_trivial = ::std::is_trivial<T>;
 template<typename T> constexpr bool is_trivial_v = ::std::is_trivial_v<T>;
 template<typename T> using is_standard_layout = ::std::is_standard_layout<T>;
 template<typename T> constexpr bool is_standard_layout_v = ::std::is_standard_layout_v<T>;
 template<typename T> using is_signed = ::std::is_signed<T>;
 template<typename T, typename U> using is_same = ::std::is_same<T, U>;
+template<typename T, typename U> constexpr bool is_same_v = ::std::is_same_v<T, U>;
 template<typename T> using is_floating_point = ::std::is_floating_point<T>;
+template<typename T> constexpr bool is_floating_point_v = ::std::is_floating_point_v<T>;
+template<typename Base, typename Derived> constexpr bool is_base_of_v = ::std::is_base_of_v<Base, Derived>;
+template<typename T> constexpr bool is_copy_assignable_v = ::std::is_copy_assignable_v<T>;
 template<typename T> using is_arithmetic = ::std::is_arithmetic<T>;
 template<typename T> using is_destructible = ::std::is_destructible<T>;
 template<typename T> using is_copy_constructible = ::std::is_copy_constructible<T>;
 template<typename T> using is_copy_assignable = ::std::is_copy_assignable<T>;
+template<typename... T> using is_constructible = ::std::is_constructible<T...>;
+template<typename... T> constexpr bool is_constructible_v = ::std::is_constructible_v<T...>;
+template<typename T> using is_default_constructible = ::std::is_default_constructible<T>;
+template<typename T> constexpr bool is_default_constructible_v = ::std::is_default_constructible_v<T>;
 template<typename T> using is_void = ::std::is_void<T>;
 template<typename T> using make_signed = ::std::make_signed<T>;
 template<typename T> using make_signed_t = ::std::make_signed_t<T>;
@@ -233,6 +317,12 @@ template<typename T> using make_unsigned = ::std::make_unsigned<T>;
 template<typename T> using make_unsigned_t = ::std::make_unsigned_t<T>;
 template<bool B, typename T, typename F> using conditional = ::std::conditional<B, T, F>;
 template<bool B, typename T, typename F> using conditional_t = ::std::conditional_t<B, T, F>;
+template<typename T> using remove_const = ::std::remove_const<T>;
+template<typename T> using remove_const_t = ::std::remove_const_t<T>;
+template<typename T> using is_array = ::std::is_array<T>;
+template<bool B> using bool_constant = ::std::bool_constant<B>;
+template<typename T> using tuple_size = ::std::tuple_size<T>;
+template<typename T> constexpr size_t tuple_size_v = ::std::tuple_size_v<T>;
 
 // bit_cast template
 #if __cplusplus >= 202002L && __has_builtin(__builtin_bit_cast)
@@ -249,6 +339,17 @@ inline To bit_cast(const From& from) {
     return to;
 }
 #endif
+
+// to_address function
+template<typename Ptr>
+inline auto to_address(Ptr const& p) noexcept -> decltype(::std::to_address(p)) {
+    return ::std::to_address(p);
+}
+
+template<typename T>
+inline T* to_address(T* p) noexcept {
+    return p;
+}
 
 // data and size functions for containers
 template<typename C>
@@ -297,6 +398,21 @@ using basic_streambuf = ::std::basic_streambuf<CharT, Traits>;
 // Size type
 using size_t = ::std::size_t;
 using ptrdiff_t = ::std::ptrdiff_t;
+
+// String types  
+template<typename CharT, typename Traits = ::std::char_traits<CharT>, typename Alloc = ::std::allocator<CharT>>
+using basic_string = ::std::basic_string<CharT, Traits, Alloc>;
+
+template<typename CharT, typename Traits = ::std::char_traits<CharT>>
+using basic_string_view = ::std::basic_string_view<CharT, Traits>;
+
+using u8string_view = ::std::u8string_view;
+
+// Endian enum
+using endian = ::std::endian;
+
+// Type traits
+template<typename T> using is_function = ::std::is_function<T>;
 
 // Container types
 template<typename T, typename Hash = ::std::hash<T>, 
@@ -373,10 +489,14 @@ using ::std::swap;
 using ::std::isnan;
 using ::std::isinf;
 using ::std::isfinite;
+using ::std::fmod;
+using ::std::trunc;
+using ::std::abs;
 
 // Iterator functions
 using ::std::next;
 using ::std::prev;
+using ::std::advance;
 
 // IO stream types and constants
 namespace ios {
@@ -440,6 +560,7 @@ inline unsigned long long stoull(const string& str, size_t* pos = nullptr, int b
 using ::std::exit;
 
 // Exception types
+using exception = ::std::exception;
 using invalid_argument = ::std::invalid_argument;
 using out_of_range = ::std::out_of_range;
 using runtime_error = ::std::runtime_error;
@@ -476,14 +597,22 @@ OutputIt transform(InputIt first, InputIt last, OutputIt d_first, UnaryOp op) {
     return ::std::transform(first, last, d_first, op);
 }
 
-template<typename Container>
-auto back_inserter(Container& c) -> decltype(::std::back_inserter(c)) {
-    return ::std::back_inserter(c);
-}
+// back_inserter is causing ambiguity - use the std version directly
+using ::std::back_inserter;
 
 template<typename InputIt, typename OutputIt>
 OutputIt copy(InputIt first, InputIt last, OutputIt d_first) {
     return ::std::copy(first, last, d_first);
+}
+
+template<typename InputIt, typename OutputIt, typename Size>
+OutputIt copy_n(InputIt first, Size count, OutputIt result) {
+    return ::std::copy_n(first, count, result);
+}
+
+template<typename InputIt, typename ForwardIt>
+ForwardIt uninitialized_copy(InputIt first, InputIt last, ForwardIt d_first) {
+    return ::std::uninitialized_copy(first, last, d_first);
 }
 
 template<typename InputIt1, typename InputIt2>
@@ -511,6 +640,27 @@ using ::std::tie;
 using ::std::replace;
 using ::std::copy_if;
 using ::std::sort;
+using ::std::fill;
+using ::std::uninitialized_value_construct_n;
+
+// Memory utilities
+using ::std::addressof;
+
+// Additional type utilities
+template<typename T>
+inline auto __to_unsigned_like(T val) -> decltype(::std::__to_unsigned_like(val)) {
+    return ::std::__to_unsigned_like(val);
+}
+
+// Atomic functions
+using ::std::atomic_fetch_add_explicit;
+using ::std::atomic_exchange_explicit;
+using ::std::atomic_compare_exchange_strong_explicit;
+using ::std::atomic_fetch_and_explicit;
+using ::std::atomic_store_explicit;
+using ::std::atomic_load_explicit;
+using ::std::atomic_thread_fence;
+using ::std::memory_order_seq_cst;
 
 // Stream manipulators
 using ::std::setprecision;
@@ -521,15 +671,55 @@ using ::std::setfill;
 using ::std::setw;
 using ::std::endl;
 
+// Quoted manipulator
+template<typename CharT, typename Traits, typename Allocator>
+inline auto __quoted(const ::std::basic_string<CharT, Traits, Allocator>& s,
+                     CharT delim = CharT('"'), CharT escape = CharT('\\')) {
+    return ::std::quoted(s, delim, escape);
+}
+
+template<typename CharT, typename Traits, typename Allocator>
+inline auto __quoted(::std::basic_string<CharT, Traits, Allocator>& s,
+                     CharT delim = CharT('"'), CharT escape = CharT('\\')) {
+    return ::std::quoted(s, delim, escape);
+}
+
 // Standard streams
 using ::std::cerr;
 using ::std::cout;
 using ::std::cin;
 
+// Tuple utilities
+using ::std::ignore;
+using ::std::make_tuple;
+
+// Character classification functions
+using ::std::isspace;
+using ::std::isalpha;
+using ::std::isalnum;
+using ::std::isxdigit;
+using ::std::toupper;
+using ::std::tolower;
+
+// Locale functions
+using ::std::locale;
+
 // String literals namespace
 namespace string_literals {
     using namespace ::std::string_literals;
 }
+
+// C++20 concepts
+#if __cplusplus >= 202002L
+template<typename T, typename U>
+concept same_as = ::std::same_as<T, U>;
+
+template<typename From, typename To>
+concept convertible_to = ::std::convertible_to<From, To>;
+
+template<typename Derived, typename Base>
+concept derived_from = ::std::derived_from<Derived, Base>;
+#endif
 
 // Smart pointer factories
 template<typename T, typename... Args>
@@ -537,8 +727,16 @@ inline ::std::shared_ptr<T> make_shared(Args&&... args) {
     return ::std::make_shared<T>(::std::forward<Args>(args)...);
 }
 
+// Functional utilities
+template<typename Fn, typename... Args>
+inline auto invoke(Fn&& fn, Args&&... args) -> decltype(::std::invoke(::std::forward<Fn>(fn), ::std::forward<Args>(args)...)) {
+    return ::std::invoke(::std::forward<Fn>(fn), ::std::forward<Args>(args)...);
+}
+
 }  // namespace std
 }  // namespace v8
+
+// Do not create aliases in ::std::ranges to avoid conflicts with standard library
 
 #endif  // V8_INCLUDE_WASI_STD_NAMESPACE_FIX_H_
 

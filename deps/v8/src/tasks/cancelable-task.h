@@ -82,7 +82,7 @@ class V8_EXPORT_PRIVATE CancelableTaskManager {
 
   // Mutex and condition variable enabling concurrent register and removing, as
   // well as waiting for background tasks on {CancelAndWait}.
-  base::ConditionVariable cancelable_tasks_barrier_;
+  ::v8::base::ConditionVariable cancelable_tasks_barrier_;
   base::Mutex mutex_;
 
   bool canceled_;

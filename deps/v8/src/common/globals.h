@@ -410,7 +410,8 @@ constexpr int kShortSize = sizeof(short);  // NOLINT
 constexpr int kInt16Size = sizeof(int16_t);
 constexpr int kUInt16Size = sizeof(uint16_t);
 constexpr int kIntSize = sizeof(int);
-// kInt32Size and kInt64Size already defined in v8-internal.h
+constexpr int kInt32Size = sizeof(int32_t);
+// kInt64Size already defined in v8-internal.h
 constexpr int kUInt32Size = sizeof(uint32_t);
 constexpr int kSizetSize = sizeof(size_t);
 constexpr int kFloat16Size = sizeof(uint16_t);

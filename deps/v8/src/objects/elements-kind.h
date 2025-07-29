@@ -283,27 +283,27 @@ inline bool IsSlowArgumentsElementsKind(ElementsKind kind) {
 }
 
 inline bool IsSloppyArgumentsElementsKind(ElementsKind kind) {
-  return base::IsInRange(kind, FAST_SLOPPY_ARGUMENTS_ELEMENTS,
+  return ::v8::base::IsInRange(kind, FAST_SLOPPY_ARGUMENTS_ELEMENTS,
                          SLOW_SLOPPY_ARGUMENTS_ELEMENTS);
 }
 
 inline bool IsStringWrapperElementsKind(ElementsKind kind) {
-  return base::IsInRange(kind, FAST_STRING_WRAPPER_ELEMENTS,
+  return ::v8::base::IsInRange(kind, FAST_STRING_WRAPPER_ELEMENTS,
                          SLOW_STRING_WRAPPER_ELEMENTS);
 }
 
 inline bool IsTypedArrayElementsKind(ElementsKind kind) {
-  return base::IsInRange(kind, FIRST_FIXED_TYPED_ARRAY_ELEMENTS_KIND,
+  return ::v8::base::IsInRange(kind, FIRST_FIXED_TYPED_ARRAY_ELEMENTS_KIND,
                          LAST_FIXED_TYPED_ARRAY_ELEMENTS_KIND);
 }
 
 inline bool IsRabGsabTypedArrayElementsKind(ElementsKind kind) {
-  return base::IsInRange(kind, FIRST_RAB_GSAB_FIXED_TYPED_ARRAY_ELEMENTS_KIND,
+  return ::v8::base::IsInRange(kind, FIRST_RAB_GSAB_FIXED_TYPED_ARRAY_ELEMENTS_KIND,
                          LAST_RAB_GSAB_FIXED_TYPED_ARRAY_ELEMENTS_KIND);
 }
 
 inline bool IsTypedArrayOrRabGsabTypedArrayElementsKind(ElementsKind kind) {
-  return base::IsInRange(kind, FIRST_FIXED_TYPED_ARRAY_ELEMENTS_KIND,
+  return ::v8::base::IsInRange(kind, FIRST_FIXED_TYPED_ARRAY_ELEMENTS_KIND,
                          LAST_RAB_GSAB_FIXED_TYPED_ARRAY_ELEMENTS_KIND);
 }
 
@@ -364,12 +364,12 @@ inline bool IsTransitionElementsKind(ElementsKind kind) {
 }
 
 constexpr bool IsDoubleElementsKind(ElementsKind kind) {
-  return base::IsInRange(kind, PACKED_DOUBLE_ELEMENTS, HOLEY_DOUBLE_ELEMENTS);
+  return ::v8::base::IsInRange(kind, PACKED_DOUBLE_ELEMENTS, HOLEY_DOUBLE_ELEMENTS);
 }
 
 // This predicate is used for disabling respective functionality in builtins.
 inline bool IsAnyNonextensibleElementsKindUnchecked(ElementsKind kind) {
-  return base::IsInRange(kind, FIRST_ANY_NONEXTENSIBLE_ELEMENTS_KIND,
+  return ::v8::base::IsInRange(kind, FIRST_ANY_NONEXTENSIBLE_ELEMENTS_KIND,
                          LAST_ANY_NONEXTENSIBLE_ELEMENTS_KIND);
 }
 
@@ -378,17 +378,17 @@ inline bool IsAnyNonextensibleElementsKind(ElementsKind kind) {
 }
 
 inline bool IsNonextensibleElementsKind(ElementsKind kind) {
-  return base::IsInRange(kind, PACKED_NONEXTENSIBLE_ELEMENTS,
+  return ::v8::base::IsInRange(kind, PACKED_NONEXTENSIBLE_ELEMENTS,
                          HOLEY_NONEXTENSIBLE_ELEMENTS);
 }
 
 inline bool IsSealedElementsKind(ElementsKind kind) {
   return IsSharedArrayElementsKind(kind) ||
-         base::IsInRange(kind, PACKED_SEALED_ELEMENTS, HOLEY_SEALED_ELEMENTS);
+         ::v8::base::IsInRange(kind, PACKED_SEALED_ELEMENTS, HOLEY_SEALED_ELEMENTS);
 }
 
 inline bool IsFrozenElementsKind(ElementsKind kind) {
-  return base::IsInRange(kind, PACKED_FROZEN_ELEMENTS, HOLEY_FROZEN_ELEMENTS);
+  return ::v8::base::IsInRange(kind, PACKED_FROZEN_ELEMENTS, HOLEY_FROZEN_ELEMENTS);
 }
 
 inline bool IsFastOrNonextensibleOrSealedElementsKind(ElementsKind kind) {
@@ -401,11 +401,11 @@ inline bool IsFastOrNonextensibleOrSealedElementsKind(ElementsKind kind) {
 }
 
 inline bool IsSmiOrObjectElementsKind(ElementsKind kind) {
-  return base::IsInRange(kind, PACKED_SMI_ELEMENTS, HOLEY_ELEMENTS);
+  return ::v8::base::IsInRange(kind, PACKED_SMI_ELEMENTS, HOLEY_ELEMENTS);
 }
 
 constexpr bool IsSmiElementsKind(ElementsKind kind) {
-  return base::IsInRange(kind, PACKED_SMI_ELEMENTS, HOLEY_SMI_ELEMENTS);
+  return ::v8::base::IsInRange(kind, PACKED_SMI_ELEMENTS, HOLEY_SMI_ELEMENTS);
 }
 
 inline bool IsFastNumberElementsKind(ElementsKind kind) {
@@ -413,7 +413,7 @@ inline bool IsFastNumberElementsKind(ElementsKind kind) {
 }
 
 constexpr bool IsObjectElementsKind(ElementsKind kind) {
-  return base::IsInRange(kind, PACKED_ELEMENTS, HOLEY_ELEMENTS);
+  return ::v8::base::IsInRange(kind, PACKED_ELEMENTS, HOLEY_ELEMENTS);
 }
 
 inline bool IsAnyHoleyNonextensibleElementsKind(ElementsKind kind) {

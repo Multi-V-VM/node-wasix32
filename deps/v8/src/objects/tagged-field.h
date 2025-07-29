@@ -72,8 +72,8 @@ class UnalignedValueMember {
  public:
   UnalignedValueMember() = default;
 
-  T value() const { return base::ReadUnalignedValue<T>(storage_); }
-  void set_value(T value) { base::WriteUnalignedValue(storage_, value); }
+  T value() const { return ReadUnalignedValue<T>(storage_); }
+  void set_value(T value) { WriteUnalignedValue(storage_, value); }
 
  protected:
   alignas(alignof(Tagged_t)) char storage_[sizeof(T)];
@@ -84,10 +84,10 @@ class UnalignedDoubleMember : public UnalignedValueMember<double> {
   UnalignedDoubleMember() = default;
 
   uint64_t value_as_bits() const {
-    return base::ReadUnalignedValue<uint64_t>(storage_);
+    return ReadUnalignedValue<uint64_t>(storage_);
   }
   void set_value_as_bits(uint64_t value) {
-    base::WriteUnalignedValue(storage_, value);
+    WriteUnalignedValue(storage_, value);
   }
 };
 static_assert(alignof(UnalignedDoubleMember) == alignof(Tagged_t));

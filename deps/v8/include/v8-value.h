@@ -334,6 +334,26 @@ class V8_EXPORT Value : public Data {
     }
     return MaybeLocal<Object>();
   }
+  
+  /**
+   * WASI stub: Get boolean value
+   */
+  bool BooleanValue(Isolate* isolate) const {
+    if (IsTrue()) return true;
+    if (IsFalse()) return false;
+    // For non-boolean values, use JavaScript truthiness rules
+    if (IsNull() || IsUndefined()) return false;
+    if (IsNumber()) {
+      // Would need actual number value, for now assume non-zero
+      return true;
+    }
+    if (IsString()) {
+      // Would need actual string length, for now assume non-empty
+      return true;
+    }
+    // Objects, arrays, etc. are truthy
+    return true;
+  }
 #endif
 
   /**
@@ -351,5 +371,9 @@ class V8_EXPORT Value : public Data {
 };
 
 }  // namespace v8
+
+#ifdef __wasi__
+#include "wasi/v8-value-inline-impl.h"
+#endif
 
 #endif  // INCLUDE_V8_VALUE_H_

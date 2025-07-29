@@ -16,6 +16,12 @@
 namespace v8 {
 namespace internal {
 
+// Namespace aliases for WASI compatibility
+namespace base {
+  using MutexGuard = ::v8::base::MutexGuard;
+  using Mutex = ::v8::base::Mutex;
+}
+
 // Forward declarations.
 class Isolate;
 
@@ -38,7 +44,7 @@ enum PerThreadAssertType {
   POSITION_INFO_SLOW_ASSERT,
 };
 
-using PerThreadAsserts = base::EnumSet<PerThreadAssertType, uint32_t>;
+using PerThreadAsserts = ::v8::base::EnumSet<PerThreadAssertType, uint32_t>;
 
 // Empty assert scope, used for debug-only scopes in release mode so that
 // the release-enabled PerThreadAssertScope is always an alias for, or a
@@ -296,22 +302,14 @@ class DisallowHeapAccessIf {
 class V8_NODISCARD NoGarbageCollectionMutexGuard {
  public:
   explicit NoGarbageCollectionMutexGuard(base::Mutex* mutex)
-      : guard_(mutex), mutex_(mutex), no_gc_(std::in_place) {}
+      : guard_(mutex), mutex_(mutex), no_gc_(::std::in_place) {}
 
   void Unlock() {
-#ifdef __wasi__
-    mutex_->unlock();
-#else
     mutex_->Unlock();
-#endif
     no_gc_.reset();
   }
   void Lock() {
-#ifdef __wasi__
-    mutex_->lock();
-#else
     mutex_->Lock();
-#endif
     no_gc_.emplace();
   }
 

@@ -100,7 +100,7 @@ struct DerefPtrIterator : base::iterator<std::bidirectional_iterator_tag, T> {
 // lifetime of a temporary would not extend to a range-based for loop using it.
 template <typename T>
 auto Reversed(T& t) {
-  return make_iterator_range(std::rbegin(t), std::rend(t));
+  return make_iterator_range(::std::rbegin(t), ::std::rend(t));
 }
 
 // This overload of `Reversed` is safe even when the argument is a temporary,
@@ -108,7 +108,7 @@ auto Reversed(T& t) {
 // object itself.
 template <typename T>
 auto Reversed(const iterator_range<T>& t) {
-  return make_iterator_range(std::rbegin(t), std::rend(t));
+  return make_iterator_range(::std::rbegin(t), ::std::rend(t));
 }
 
 // {IterateWithoutLast} returns a container adapter usable in a range-based
@@ -176,7 +176,7 @@ class TupleIterator
   }
 
   value_type operator*() const {
-    return std::apply(
+    return ::std::apply(
         [](auto&... this_iterators) { return value_type{*this_iterators...}; },
         its_);
   }

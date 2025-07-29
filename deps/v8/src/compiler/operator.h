@@ -151,6 +151,8 @@ class V8_EXPORT_PRIVATE Operator : public NON_EXPORTED_BASE(ZoneObject) {
   uint32_t control_out_;
 };
 
+// Ensure base namespace is available
+using namespace v8::internal::base;
 DEFINE_OPERATORS_FOR_FLAGS(Operator::Properties)
 
 V8_EXPORT_PRIVATE std::ostream& operator<<(std::ostream& os,

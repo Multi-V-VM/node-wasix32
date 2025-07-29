@@ -61,11 +61,11 @@ String StringUtil::StringViewToUtf8(v8_inspector::StringView view) {
 String StringUtil::fromUTF16(const uint16_t* data, size_t length) {
   auto casted_data = reinterpret_cast<const char16_t*>(data);
   size_t expected_utf8_length =
-      simdutf::utf8_length_from_utf16(casted_data, length);
+      simdutf::utf8_length_from_utf16le(casted_data, length);
   MaybeStackBuffer<char> buffer(expected_utf8_length);
-  // simdutf::convert_utf16_to_utf8 returns zero in case of error.
+  // simdutf::convert_utf16le_to_utf8 returns zero in case of error.
   size_t utf8_length =
-      simdutf::convert_utf16_to_utf8(casted_data, length, buffer.out());
+      simdutf::convert_utf16le_to_utf8(casted_data, length, buffer.out());
   // We have that utf8_length == expected_utf8_length if and only
   // if the input was a valid UTF-16 string. Otherwise, utf8_length
   // must be zero.
