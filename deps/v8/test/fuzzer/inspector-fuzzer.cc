@@ -117,14 +117,13 @@ class UtilsExtension : public InspectorIsolateData::SetupGlobalTask {
     std::vector<uint16_t> details =
         ToVector(info.GetIsolate(), info[2].As<v8::String>());
     int context_group_id = info[0].As<v8::Int32>()->Value();
-    RunSyncTask(backend_runner_,
-                [&context_group_id, &reason,
-                 &details](InspectorIsolateData* data) {
-                  data->SchedulePauseOnNextStatement(
-                      context_group_id,
-                      v8_inspector::StringView(reason.data(), reason.size()),
-                      v8_inspector::StringView(details.data(), details.size()));
-                });
+    RunSyncTask(backend_runner_, [&context_group_id, &reason,
+                                  &details](InspectorIsolateData* data) {
+      data->SchedulePauseOnNextStatement(
+          context_group_id,
+          v8_inspector::StringView(reason.data(), reason.size()),
+          v8_inspector::StringView(details.data(), details.size()));
+    });
   }
 
   static void CancelPauseOnNextStatement(
@@ -568,9 +567,9 @@ class InspectorExtension : public InspectorIsolateData::SetupGlobalTask {
   }
 };
 
-using CharVector = v8::base::Vector<const char>;
+using CharVector = ::v8::base::Vector<const char>;
 
-constexpr auto kMaxExecutionSeconds = v8::base::TimeDelta::FromSeconds(2);
+constexpr auto kMaxExecutionSeconds = ::v8::base::TimeDelta::FromSeconds(2);
 
 class Watchdog final : public base::Thread {
  public:

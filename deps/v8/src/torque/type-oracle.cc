@@ -50,7 +50,7 @@ const Type* TypeOracle::GetGenericTypeInstance(GenericType* generic_type,
     // scope of the code requesting the specialization, not the generic type's
     // parent scope, hence the following block.
     {
-      v8::internal::torque::Scope* requester_scope = CurrentScope::Get();
+      ::v8::internal::torque::Scope* requester_scope = CurrentScope::Get();
       CurrentScope::Scope generic_scope(generic_type->ParentScope());
       type = TypeVisitor::ComputeType(generic_type->declaration(),
                                       {{generic_type, arg_types}},

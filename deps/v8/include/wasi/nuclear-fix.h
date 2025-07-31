@@ -12,6 +12,7 @@
 
 // Include deprecation fixes
 #include "v8-deprecation-fix.h"
+// Removed v8-source-location-fix.h as it causes namespace conflicts
 
 // Forward declare v8::Isolate early
 namespace v8 {
@@ -165,10 +166,10 @@ class Internals {
   static void SetNodeClassId(void* obj, uint16_t id) {}
   
   // Additional missing methods  
-  static v8::Isolate* GetIsolateForSandbox(Address obj) { 
+  static ::v8::Isolate* GetIsolateForSandbox(Address obj) { 
     // In V8, internal::Isolate and v8::Isolate are different types
     // This is a stub implementation, so we just return nullptr
-    return static_cast<v8::Isolate*>(nullptr); 
+    return static_cast<::v8::Isolate*>(nullptr); 
   }
   static Address ReadExternalPointerField(void* isolate, Address heap_object_ptr, 
                                          int offset, uint64_t tag) { return 0; }
@@ -281,8 +282,7 @@ static constexpr int kInt64Size = sizeof(int64_t);
 using ExternalPointerTag = uint64_t;
 using ExternalPointerHandle = uint32_t;
 
-// Add missing external pointer constants
-static constexpr uintptr_t kExternalPointerTagShift = Internals::kExternalPointerTagShift;
+// kExternalPointerTagShift is already defined in wasi-v8-sandbox-stubs.h
 static constexpr uint64_t kExternalPointerTagMask = Internals::kExternalPointerTagMask;
 static constexpr uint64_t kExternalPointerMarkBit = Internals::kExternalPointerMarkBit;
 static constexpr uint64_t kExternalPointerPayloadMask = ~kExternalPointerTagMask;
@@ -324,6 +324,8 @@ inline bool ExternalPointerCanBeEmpty(ExternalPointerTagRange tag_range) {
 using ::SmiValuesAre31Bits;
 
 // CppHeapPointerTagRange for WASI compatibility
+#ifndef V8_CPPHEAP_POINTER_TAG_RANGE_DEFINED
+#define V8_CPPHEAP_POINTER_TAG_RANGE_DEFINED
 struct CppHeapPointerTagRange {
   constexpr CppHeapPointerTagRange(uint16_t lower, uint16_t upper)
       : lower_bound(lower), upper_bound(upper) {}
@@ -342,10 +344,14 @@ struct CppHeapPointerTagRange {
     return actual_tag >= lower && actual_tag <= upper;
   }
 };
+#endif
 
 // CppHeap pointer constants
 constexpr int kCppHeapPointerPayloadShift = 16;  // Shift for payload
 constexpr int kCppHeapPointerTagShift = 0;       // Tag is in lower bits
+
+// External pointer index shift (not defined in wasi-v8-sandbox-stubs.h)
+constexpr uint32_t kExternalPointerIndexShift = 8;  // Common shift value
 
 }  // namespace internal
 

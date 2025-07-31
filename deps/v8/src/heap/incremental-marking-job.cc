@@ -79,7 +79,7 @@ void IncrementalMarkingJob::ScheduleTask(TaskPriority priority) {
   }
 
   pending_task_ = true;
-  scheduled_time_ = v8::base::TimeTicks::Now();
+  scheduled_time_ = ::v8::base::TimeTicks::Now();
   if (V8_UNLIKELY(v8_flags.trace_incremental_marking)) {
     heap_->isolate()->PrintWithTimestamp(
         "[IncrementalMarking] Job: Schedule\n");
@@ -102,7 +102,7 @@ void IncrementalMarkingJob::Task::RunInternal() {
     base::MutexGuard guard(&job_->mutex_);
     heap->tracer()->RecordTimeToIncrementalMarkingTask(
         v8::base::TimeTicks::Now() - job_->scheduled_time_);
-    job_->scheduled_time_ = v8::base::TimeTicks();
+    job_->scheduled_time_ = ::v8::base::TimeTicks();
   }
 
   EmbedderStackStateScope scope(

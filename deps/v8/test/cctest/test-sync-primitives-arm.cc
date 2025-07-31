@@ -273,7 +273,7 @@ int ExecuteMemoryAccess(Isolate* isolate, TestData* test_data,
 
 }  // namespace
 
-class MemoryAccessThread : public v8::base::Thread {
+class MemoryAccessThread : public ::v8::base::Thread {
  public:
   MemoryAccessThread()
       : Thread(Options("MemoryAccessThread")),

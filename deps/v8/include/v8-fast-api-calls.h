@@ -591,9 +591,9 @@ struct CTypeInfoTraits {};
 #define ALL_C_TYPES(V)               \
   PRIMITIVE_C_TYPES(V)               \
   V(void, kVoid)                     \
-  V(v8::Local<v8::Value>, kV8Value)  \
-  V(v8::Local<v8::Object>, kV8Value) \
-  V(v8::Local<v8::Array>, kV8Value)  \
+  V(::v8::Local<::v8::Value>, kV8Value)  \
+  V(::v8::Local<::v8::Object>, kV8Value) \
+  V(::v8::Local<::v8::Array>, kV8Value)  \
   V(AnyCType, kAny)
 
 // ApiObject was a temporary solution to wrap the pointer to the v8::Value.

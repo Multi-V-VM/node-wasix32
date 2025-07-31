@@ -24,9 +24,9 @@ namespace node {
 namespace encoding_binding {
 
 #ifdef __wasi__
-// WASI: simdutf functions are in v8::simdutf namespace
-using v8::simdutf::validate_utf8_with_errors;
-using v8::simdutf::convert_latin1_to_utf8;
+// WASI: simdutf functions are in global simdutf namespace
+using simdutf::validate_utf8_with_errors;
+using simdutf::convert_latin1_to_utf8;
 #endif
 
 using v8::ArrayBuffer;

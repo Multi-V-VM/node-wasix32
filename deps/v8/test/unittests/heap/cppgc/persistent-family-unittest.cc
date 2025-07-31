@@ -986,9 +986,7 @@ namespace {
 
 class TraceCounter final : public GarbageCollected<TraceCounter> {
  public:
-  void Trace(cppgc::Visitor* visitor) const {
-    trace_calls_++;
-  }
+  void Trace(cppgc::Visitor* visitor) const { trace_calls_++; }
 
   size_t trace_calls() const { return trace_calls_; }
 
@@ -1048,7 +1046,7 @@ TEST_F(PersistentTest, ObjectReclaimedAfterClearedPersistent) {
 
 namespace {
 
-class PersistentAccessOnBackgroundThread : public v8::base::Thread {
+class PersistentAccessOnBackgroundThread : public ::v8::base::Thread {
  public:
   explicit PersistentAccessOnBackgroundThread(GCed* raw_gced)
       : v8::base::Thread(v8::base::Thread::Options(

@@ -3,6 +3,9 @@
 #include "util-inl.h"
 #include "v8-profiler.h"
 #include "v8.h"
+#ifdef __wasi__
+#include "wasi-v8-profiler-stubs.h"
+#endif
 
 using v8::Array;
 using v8::Context;

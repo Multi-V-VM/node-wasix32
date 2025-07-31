@@ -289,7 +289,7 @@ class V8_EXPORT_PRIVATE HeapBase : public cppgc::HeapHandle {
 
   // This field should be first so that it is initialized first at heap creation
   // and is available upon initialization of other fields.
-  int heap_thread_id_ = v8::base::OS::GetCurrentThreadId();
+  int heap_thread_id_ = ::v8::base::OS::GetCurrentThreadId();
 
   RawHeap raw_heap_;
   std::shared_ptr<cppgc::Platform> platform_;
@@ -332,7 +332,6 @@ class V8_EXPORT_PRIVATE HeapBase : public cppgc::HeapHandle {
       EmbedderStackState::kNoHeapPointers;
 
   bool in_atomic_pause_ = false;
-
 
   MarkingType marking_support_;
   SweepingType sweeping_support_;

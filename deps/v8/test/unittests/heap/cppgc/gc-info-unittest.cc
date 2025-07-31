@@ -90,7 +90,7 @@ TEST_F(GCInfoTableDeathTest, OldTableAreaIsReadOnly) {
 
 namespace {
 
-class ThreadRegisteringGCInfoObjects final : public v8::base::Thread {
+class ThreadRegisteringGCInfoObjects final : public ::v8::base::Thread {
  public:
   ThreadRegisteringGCInfoObjects(GCInfoTableTest* test,
                                  GCInfoIndex num_registrations)

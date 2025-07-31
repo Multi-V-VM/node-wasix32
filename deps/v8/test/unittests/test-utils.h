@@ -372,7 +372,7 @@ class WithPrintExtensionMixin : public TMixin {
 };
 
 // Run a ScriptStreamingTask in a separate thread.
-class StreamerThread : public v8::base::Thread {
+class StreamerThread : public ::v8::base::Thread {
  public:
   static void StartThreadForTaskAndJoin(
       v8::ScriptCompiler::ScriptStreamingTask* task) {

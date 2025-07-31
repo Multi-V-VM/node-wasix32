@@ -115,7 +115,7 @@ class Deduplicator {
   const T* Add(T x) { return &*(storage_.insert(std::move(x)).first); }
 
  private:
-  std::unordered_set<T, v8::base::hash<T>> storage_;
+  std::unordered_set<T, ::v8::base::hash<T>> storage_;
 };
 
 template <class T>

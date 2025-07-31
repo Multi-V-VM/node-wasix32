@@ -496,9 +496,9 @@ static constexpr v8::base::TimeDelta kDefaultTimerDelay =
     v8::base::TimeDelta::FromMilliseconds(50);
 
 void V8HeapProfilerAgentImpl::onTimerImpl() {
-  v8::base::TimeTicks start = v8::base::TimeTicks::Now();
+  v8::base::TimeTicks start = ::v8::base::TimeTicks::Now();
   requestHeapStatsUpdate();
-  v8::base::TimeDelta elapsed = v8::base::TimeTicks::Now() - start;
+  v8::base::TimeDelta elapsed = ::v8::base::TimeTicks::Now() - start;
   if (m_hasTimer) {
     // requestHeapStatsUpdate can take a long time on large heaps. To ensure
     // that there is still some time for the thread to make progress on running

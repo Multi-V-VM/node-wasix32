@@ -46,7 +46,7 @@ class KytheConsumer {
 };
 inline KytheConsumer::~KytheConsumer() = default;
 
-class KytheData : public v8::base::ContextualClass<KytheData> {
+class KytheData : public ::v8::base::ContextualClass<KytheData> {
  public:
   KytheData() = default;
 

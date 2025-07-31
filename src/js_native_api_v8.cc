@@ -2553,8 +2553,12 @@ napi_status NAPI_CDECL napi_coerce_to_bool(napi_env env,
   CHECK_ARG(env, result);
 
   v8::Isolate* isolate = env->isolate;
+#ifdef __wasi__
+  v8::Local<v8::Boolean> b = v8::Boolean::New(isolate, true);  // Stub for WASI
+#else
   v8::Local<v8::Boolean> b =
       v8impl::V8LocalValueFromJsValue(value)->ToBoolean(isolate);
+#endif
   *result = v8impl::JsValueFromV8LocalValue(b);
   return GET_RETURN_STATUS(env);
 }

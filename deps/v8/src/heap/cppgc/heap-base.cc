@@ -349,7 +349,7 @@ bool HeapBase::IsGCAllowed() const {
 }
 
 bool HeapBase::CurrentThreadIsHeapThread() const {
-  return heap_thread_id_ == v8::base::OS::GetCurrentThreadId();
+  return heap_thread_id_ == ::v8::base::OS::GetCurrentThreadId();
 }
 
 ClassNameAsHeapObjectNameScope::ClassNameAsHeapObjectNameScope(HeapBase& heap)

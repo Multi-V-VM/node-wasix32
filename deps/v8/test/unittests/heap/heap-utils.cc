@@ -21,7 +21,8 @@ namespace internal {
 
 void HeapInternalsBase::SimulateIncrementalMarking(Heap* heap,
                                                    bool force_completion) {
-  static constexpr auto kStepSize = v8::base::TimeDelta::FromMilliseconds(100);
+  static constexpr auto kStepSize =
+      ::v8::base::TimeDelta::FromMilliseconds(100);
   CHECK(v8_flags.incremental_marking);
   i::IncrementalMarking* marking = heap->incremental_marking();
 

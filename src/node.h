@@ -76,6 +76,20 @@
 #ifdef __wasi__
 #include "wasi-node-compat.h"
 #include "wasi-v8-api-fixes.h"
+#include "node_wasi_fixes.h"
+#endif
+
+// Ensure V8_ISOLATE_GET_CURRENT is defined
+#ifndef V8_ISOLATE_GET_CURRENT
+#ifdef __wasi__
+// For WASI builds, these should be defined in wasi-node-compat.h
+// If not defined yet, provide a fallback
+#define V8_ISOLATE_GET_CURRENT() static_cast<v8::Isolate*>(nullptr)
+#define V8_ISOLATE_GET_CURRENT_CONTEXT(isolate) static_cast<v8::Local<v8::Context>>(v8::Local<v8::Context>())
+#else
+#define V8_ISOLATE_GET_CURRENT() v8::Isolate::GetCurrent()
+#define V8_ISOLATE_GET_CURRENT_CONTEXT(isolate) (isolate)->GetCurrentContext()
+#endif
 #endif
 
 #include "v8-platform.h"  // NOLINT(build/include_order)
@@ -1044,7 +1058,7 @@ inline void NODE_SET_METHOD(v8::Local<v8::Object> recv,
                             v8::FunctionCallback callback) {
   v8::Isolate* isolate = V8_ISOLATE_GET_CURRENT();
   v8::HandleScope handle_scope(isolate);
-  v8::Local<v8::Context> context = v8::Isolate_GetCurrentContext(isolate);
+  v8::Local<v8::Context> context = V8_ISOLATE_GET_CURRENT_CONTEXT(isolate);
   v8::Local<v8::FunctionTemplate> t = v8::FunctionTemplate::New(isolate,
                                                                 callback);
   v8::Local<v8::Function> fn = t->GetFunction(context).ToLocalChecked();

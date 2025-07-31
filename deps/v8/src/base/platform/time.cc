@@ -55,10 +55,8 @@ int64_t ComputeThreadTicks() {
   mach_msg_type_number_t thread_info_count = THREAD_BASIC_INFO_COUNT;
   thread_basic_info_data_t thread_info_data;
   kern_return_t kr = thread_info(
-      pthread_mach_thread_np(pthread_self()),
-      THREAD_BASIC_INFO,
-      reinterpret_cast<thread_info_t>(&thread_info_data),
-      &thread_info_count);
+      pthread_mach_thread_np(pthread_self()), THREAD_BASIC_INFO,
+      reinterpret_cast<thread_info_t>(&thread_info_data), &thread_info_count);
   CHECK_EQ(kr, KERN_SUCCESS);
 
   // We can add the seconds into a {int64_t} without overflow.
@@ -107,8 +105,8 @@ V8_INLINE int64_t ClockNow(clockid_t clk_id) {
     if (thread_cputime(-1, &tc) != 0) {
       UNREACHABLE();
     }
-    return (tc.stime / v8::base::Time::kNanosecondsPerMicrosecond)
-           + (tc.utime / v8::base::Time::kNanosecondsPerMicrosecond);
+    return (tc.stime / v8::base::Time::kNanosecondsPerMicrosecond) +
+           (tc.utime / v8::base::Time::kNanosecondsPerMicrosecond);
 #endif  // defined(__PASE__)
   }
 #endif  // defined(V8_OS_AIX)
@@ -126,7 +124,7 @@ V8_INLINE int64_t ClockNow(clockid_t clk_id) {
   int64_t result = int64_t{ts.tv_sec} * v8::base::Time::kMicrosecondsPerSecond;
   result += (ts.tv_nsec / v8::base::Time::kNanosecondsPerMicrosecond);
   return result;
-#else  // Monotonic clock not supported.
+#else   // Monotonic clock not supported.
   return 0;
 #endif
 }
@@ -153,7 +151,7 @@ inline bool IsHighResolutionTimer(clockid_t clk_id) {
     int64_t delta = next - previous;
     if (delta == 0) continue;
     // We expect most systems to take this branch on the first iteration.
-    if (delta <= v8::base::Time::kNanosecondsPerMicrosecond) {
+    if (delta <= ::v8::base::Time::kNanosecondsPerMicrosecond) {
       return true;
     }
     previous = next;
@@ -274,13 +272,12 @@ TimeDelta TimeDelta::FromMachTimespec(struct mach_timespec ts) {
                    ts.tv_nsec / Time::kNanosecondsPerMicrosecond);
 }
 
-
 struct mach_timespec TimeDelta::ToMachTimespec() const {
   struct mach_timespec ts;
   DCHECK_GE(delta_, 0);
   ts.tv_sec = static_cast<unsigned>(delta_ / Time::kMicrosecondsPerSecond);
   ts.tv_nsec = (delta_ % Time::kMicrosecondsPerSecond) *
-      Time::kNanosecondsPerMicrosecond;
+               Time::kNanosecondsPerMicrosecond;
   return ts;
 }
 
@@ -296,17 +293,15 @@ TimeDelta TimeDelta::FromTimespec(struct timespec ts) {
                    ts.tv_nsec / Time::kNanosecondsPerMicrosecond);
 }
 
-
 struct timespec TimeDelta::ToTimespec() const {
   struct timespec ts;
   ts.tv_sec = static_cast<time_t>(delta_ / Time::kMicrosecondsPerSecond);
   ts.tv_nsec = (delta_ % Time::kMicrosecondsPerSecond) *
-      Time::kNanosecondsPerMicrosecond;
+               Time::kNanosecondsPerMicrosecond;
   return ts;
 }
 
 #endif  // V8_OS_POSIX
-
 
 #if V8_OS_WIN
 
@@ -347,9 +342,7 @@ class Clock final {
   }
 
  private:
-  static TimeTicks GetSystemTicks() {
-    return TimeTicks::Now();
-  }
+  static TimeTicks GetSystemTicks() { return TimeTicks::Now(); }
 
   static Time GetSystemTime() {
     FILETIME ft;
@@ -382,10 +375,10 @@ Time Time::FromFiletime(FILETIME ft) {
     return Max();
   }
   int64_t us = (static_cast<uint64_t>(ft.dwLowDateTime) +
-                (static_cast<uint64_t>(ft.dwHighDateTime) << 32)) / 10;
+                (static_cast<uint64_t>(ft.dwHighDateTime) << 32)) /
+               10;
   return Time(us - kTimeToEpochInMicroseconds);
 }
-
 
 FILETIME Time::ToFiletime() const {
   DCHECK_GE(us_, 0);
@@ -416,11 +409,7 @@ Time Time::Now() {
   return FromTimeval(tv);
 }
 
-
-Time Time::NowFromSystemTime() {
-  return Now();
-}
-
+Time Time::NowFromSystemTime() { return Now(); }
 
 Time Time::FromTimespec(struct timespec ts) {
   DCHECK_GE(ts.tv_nsec, 0);
@@ -435,7 +424,6 @@ Time Time::FromTimespec(struct timespec ts) {
   return Time(ts.tv_sec * kMicrosecondsPerSecond +
               ts.tv_nsec / kNanosecondsPerMicrosecond);
 }
-
 
 struct timespec Time::ToTimespec() const {
   struct timespec ts;
@@ -454,7 +442,6 @@ struct timespec Time::ToTimespec() const {
   return ts;
 }
 
-
 Time Time::FromTimeval(struct timeval tv) {
   DCHECK_GE(tv.tv_usec, 0);
   DCHECK(tv.tv_usec < static_cast<suseconds_t>(kMicrosecondsPerSecond));
@@ -467,7 +454,6 @@ Time Time::FromTimeval(struct timeval tv) {
   }
   return Time(tv.tv_sec * kMicrosecondsPerSecond + tv.tv_usec);
 }
-
 
 struct timeval Time::ToTimeval() const {
   struct timeval tv;
@@ -498,7 +484,6 @@ Time Time::FromJsTime(double ms_since_epoch) {
       static_cast<int64_t>(ms_since_epoch * kMicrosecondsPerMillisecond));
 }
 
-
 double Time::ToJsTime() const {
   if (IsNull()) {
     // Preserve 0 so the invalid result doesn't depend on the platform.
@@ -511,11 +496,9 @@ double Time::ToJsTime() const {
   return static_cast<double>(us_) / kMicrosecondsPerMillisecond;
 }
 
-
 std::ostream& operator<<(std::ostream& os, const Time& time) {
   return os << time.ToJsTime();
 }
-
 
 #if V8_OS_WIN
 
@@ -780,7 +763,6 @@ bool TimeTicks::IsHighResolution() {
 
 #endif  // V8_OS_WIN
 
-
 bool ThreadTicks::IsSupported() {
 #if V8_OS_STARBOARD
   return starboard::CurrentMonotonicThreadTime() != 0;
@@ -798,12 +780,10 @@ bool ThreadTicks::IsSupported() {
 #endif
 }
 
-
 ThreadTicks ThreadTicks::Now() {
 #if V8_OS_STARBOARD
   const int64_t now = starboard::CurrentMonotonicThreadTime();
-  if (now != 0)
-    return ThreadTicks(now);
+  if (now != 0) return ThreadTicks(now);
   UNREACHABLE();
 #elif V8_OS_DARWIN
   return ThreadTicks(ComputeThreadTicks());
@@ -823,7 +803,6 @@ ThreadTicks ThreadTicks::Now() {
   UNREACHABLE();
 #endif
 }
-
 
 #if V8_OS_WIN
 ThreadTicks ThreadTicks::GetForThread(const HANDLE& thread_handle) {
@@ -849,8 +828,7 @@ ThreadTicks ThreadTicks::GetForThread(const HANDLE& thread_handle) {
 
   // Get the frequency of the TSC.
   double tsc_ticks_per_second = TSCTicksPerSecond();
-  if (tsc_ticks_per_second == 0)
-    return ThreadTicks();
+  if (tsc_ticks_per_second == 0) return ThreadTicks();
 
   // Return the CPU time of the current thread.
   double thread_time_seconds = thread_cycle_time / tsc_ticks_per_second;
@@ -883,8 +861,7 @@ double ThreadTicks::TSCTicksPerSecond() {
   // The TSC frequency is cached in a static variable because it takes some time
   // to compute it.
   static double tsc_ticks_per_second = 0;
-  if (tsc_ticks_per_second != 0)
-    return tsc_ticks_per_second;
+  if (tsc_ticks_per_second != 0) return tsc_ticks_per_second;
 
   // Increase the thread priority to reduces the chances of having a context
   // switch during a reading of the TSC and the performance counter.
@@ -921,8 +898,7 @@ double ThreadTicks::TSCTicksPerSecond() {
       perf_counter_ticks / static_cast<double>(perf_counter_frequency.QuadPart);
 
   const double kMinimumEvaluationPeriodSeconds = 0.05;
-  if (elapsed_time_seconds < kMinimumEvaluationPeriodSeconds)
-    return 0;
+  if (elapsed_time_seconds < kMinimumEvaluationPeriodSeconds) return 0;
 
   // Compute the frequency of the TSC.
   DCHECK_GE(tsc_now, tsc_initial);

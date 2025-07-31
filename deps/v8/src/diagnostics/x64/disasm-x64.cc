@@ -505,7 +505,7 @@ void DisassemblerX64::AppendToBuffer(const char* format, ...) {
   v8::base::Vector<char> buf = tmp_buffer_ + tmp_buffer_pos_;
   va_list args;
   va_start(args, format);
-  int result = v8::base::VSNPrintF(buf, format, args);
+  int result = ::v8::base::VSNPrintF(buf, format, args);
   va_end(args);
   tmp_buffer_pos_ += result;
 }
@@ -2826,15 +2826,15 @@ int DisassemblerX64::InstructionDecode(v8::base::Vector<char> out_buffer,
   int outp = 0;
   // Instruction bytes.
   for (uint8_t* bp = instr; bp < data; bp++) {
-    outp += v8::base::SNPrintF(out_buffer + outp, "%02x", *bp);
+    outp += ::v8::base::SNPrintF(out_buffer + outp, "%02x", *bp);
   }
   // Indent instruction, leaving space for 10 bytes, i.e. 20 characters in hex.
   // 10-byte mov is (probably) the largest we emit.
   while (outp < 20) {
-    outp += v8::base::SNPrintF(out_buffer + outp, "  ");
+    outp += ::v8::base::SNPrintF(out_buffer + outp, "  ");
   }
 
-  outp += v8::base::SNPrintF(out_buffer + outp, " %s", tmp_buffer_.begin());
+  outp += ::v8::base::SNPrintF(out_buffer + outp, " %s", tmp_buffer_.begin());
   return instr_len;
 }
 

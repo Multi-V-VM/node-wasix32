@@ -27,7 +27,7 @@ TEST_F(SafepointTest, ReachSafepointWithoutLocalHeaps) {
   CHECK(run);
 }
 
-class ParkedThread final : public v8::base::Thread {
+class ParkedThread final : public ::v8::base::Thread {
  public:
   ParkedThread(Heap* heap, base::Mutex* mutex)
       : v8::base::Thread(base::Thread::Options("ThreadWithLocalHeap")),
@@ -84,7 +84,7 @@ TEST_F(SafepointTest, StopParkedThreads) {
 
 static const int kIterations = 10000;
 
-class RunningThread final : public v8::base::Thread {
+class RunningThread final : public ::v8::base::Thread {
  public:
   RunningThread(Heap* heap, std::atomic<int>* counter)
       : v8::base::Thread(base::Thread::Options("ThreadWithLocalHeap")),

@@ -2187,7 +2187,7 @@ std::pair<size_t, size_t> MarkCompactCollector::ProcessMarkingWorklist(
   size_t objects_processed = 0;
   bool is_per_context_mode = local_marking_worklists_->IsPerContextMode();
   Isolate* const isolate = heap_->isolate();
-  const auto start = v8::base::TimeTicks::Now();
+  const auto start = ::v8::base::TimeTicks::Now();
   PtrComprCageBase cage_base(isolate);
 
   if (parallel_marking_ && UseBackgroundThreadsInCycle()) {
@@ -2242,7 +2242,7 @@ std::pair<size_t, size_t> MarkCompactCollector::ProcessMarkingWorklist(
                   "kDeadlineCheckInterval must be power of 2");
     // The below check is an optimized version of
     // `(objects_processed % kDeadlineCheckInterval) == 0`
-    if ((objects_processed & (kDeadlineCheckInterval -1)) == 0 &&
+    if ((objects_processed & (kDeadlineCheckInterval - 1)) == 0 &&
         ((v8::base::TimeTicks::Now() - start) > max_duration)) {
       break;
     }
@@ -3398,8 +3398,8 @@ void MarkCompactCollector::ProcessOldCodeCandidates() {
 
     if (!is_bytecode_live) number_of_flushed_sfis++;
 
-    // Now record the data slots, which have been updated to an uncompiled
-    // data, Baseline code or BytecodeArray which is still alive.
+      // Now record the data slots, which have been updated to an uncompiled
+      // data, Baseline code or BytecodeArray which is still alive.
 #ifndef V8_ENABLE_SANDBOX
     // If the sandbox is enabled, the slot contains an indirect pointer which
     // does not need to be updated during mark-compact (because the pointer in
@@ -3567,32 +3567,32 @@ void MarkCompactCollector::ClearFullMapTransitions() {
   while (local_weak_objects()->transition_arrays_local.Pop(&array)) {
     int num_transitions = array->number_of_transitions();
     if (num_transitions > 0) {
-        Tagged<Map> map;
-        // The array might contain "undefined" elements because it's not yet
-        // filled. Allow it.
-        if (array->GetTargetIfExists(0, isolate, &map)) {
-          DCHECK(!map.is_null());  // Weak pointers aren't cleared yet.
-          Tagged<Object> constructor_or_back_pointer =
-              map->constructor_or_back_pointer();
-          if (IsSmi(constructor_or_back_pointer)) {
-            DCHECK(isolate->has_active_deserializer());
-            DCHECK_EQ(constructor_or_back_pointer,
-                      Smi::uninitialized_deserialization_value());
-            continue;
-          }
-          Tagged<Map> parent = Cast<Map>(map->constructor_or_back_pointer());
-          const bool parent_is_alive = MarkingHelper::IsMarkedOrAlwaysLive(
-              heap_, non_atomic_marking_state_, parent);
-          Tagged<DescriptorArray> descriptors =
-              parent_is_alive ? parent->instance_descriptors(isolate)
-                              : Tagged<DescriptorArray>();
-          bool descriptors_owner_died =
-              CompactTransitionArray(parent, array, descriptors);
-          if (descriptors_owner_died) {
-            TrimDescriptorArray(parent, descriptors);
-          }
+      Tagged<Map> map;
+      // The array might contain "undefined" elements because it's not yet
+      // filled. Allow it.
+      if (array->GetTargetIfExists(0, isolate, &map)) {
+        DCHECK(!map.is_null());  // Weak pointers aren't cleared yet.
+        Tagged<Object> constructor_or_back_pointer =
+            map->constructor_or_back_pointer();
+        if (IsSmi(constructor_or_back_pointer)) {
+          DCHECK(isolate->has_active_deserializer());
+          DCHECK_EQ(constructor_or_back_pointer,
+                    Smi::uninitialized_deserialization_value());
+          continue;
+        }
+        Tagged<Map> parent = Cast<Map>(map->constructor_or_back_pointer());
+        const bool parent_is_alive = MarkingHelper::IsMarkedOrAlwaysLive(
+            heap_, non_atomic_marking_state_, parent);
+        Tagged<DescriptorArray> descriptors =
+            parent_is_alive ? parent->instance_descriptors(isolate)
+                            : Tagged<DescriptorArray>();
+        bool descriptors_owner_died =
+            CompactTransitionArray(parent, array, descriptors);
+        if (descriptors_owner_died) {
+          TrimDescriptorArray(parent, descriptors);
         }
       }
+    }
   }
 }
 
@@ -4566,9 +4566,8 @@ void Evacuator::Finalize() {
   heap_->tracer()->AddCompactionEvent(duration_, bytes_compacted_);
   heap_->IncrementPromotedObjectsSize(new_space_visitor_.promoted_size() +
                                       new_to_old_page_visitor_.moved_bytes());
-  heap_->IncrementYoungSurvivorsCounter(
-      new_space_visitor_.promoted_size() +
-      new_to_old_page_visitor_.moved_bytes());
+  heap_->IncrementYoungSurvivorsCounter(new_space_visitor_.promoted_size() +
+                                        new_to_old_page_visitor_.moved_bytes());
   heap_->pretenuring_handler()->MergeAllocationSitePretenuringFeedback(
       local_pretenuring_feedback_);
 }

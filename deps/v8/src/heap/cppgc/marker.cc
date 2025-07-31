@@ -71,7 +71,7 @@ bool DrainWorklistWithBytesAndTimeDeadline(StatsCollector* stats_collector,
   return DrainWorklistWithPredicate<kDeadlineCheckInterval>(
       [&marking_state, marked_bytes_deadline, time_deadline]() {
         return (marked_bytes_deadline <= marking_state.marked_bytes()) ||
-               (time_deadline <= v8::base::TimeTicks::Now());
+               (time_deadline <= ::v8::base::TimeTicks::Now());
       },
       [stats_collector]() {
         return StatsCollector::DisabledScope(stats_collector, scope_id);
@@ -619,7 +619,7 @@ bool MarkerBase::AdvanceMarkingWithLimits(v8::base::TimeDelta max_duration,
       StatsCollector::kMarkTransitiveClosureWithDeadline, "max_duration_ms",
       max_duration.InMillisecondsF(), "max_bytes", marked_bytes_limit);
   last_bytes_marked_ = 0;
-  const auto deadline = v8::base::TimeTicks::Now() + max_duration;
+  const auto deadline = ::v8::base::TimeTicks::Now() + max_duration;
   if (marked_bytes_limit == 0) {
     marked_bytes_limit = GetNextIncrementalStepDuration(schedule(), heap_);
   }

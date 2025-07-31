@@ -20,6 +20,18 @@
 // should use the format described above.  These constants are declared as
 // global integers so that they'll be present in the generated node binary. They
 // also need to be declared outside any namespace to avoid C++ name-mangling.
+#ifdef __wasi__
+// WASI version - ListNode and ListHead don't have prev_/next_/head_ members
+#define NODE_OFFSET_POSTMORTEM_METADATA(V)                                    \
+  V(BaseObject, persistent_handle_, v8_Persistent_v8_Object,                  \
+    BaseObject::persistent_handle_)                                           \
+  V(Environment, handle_wrap_queue_, Environment_HandleWrapQueue,             \
+    Environment::handle_wrap_queue_)                                          \
+  V(Environment, req_wrap_queue_, Environment_ReqWrapQueue,                   \
+    Environment::req_wrap_queue_)                                             \
+  V(HandleWrap, handle_wrap_queue_, ListNode_HandleWrap,                      \
+    HandleWrap::handle_wrap_queue_)
+#else
 #define NODE_OFFSET_POSTMORTEM_METADATA(V)                                    \
   V(BaseObject, persistent_handle_, v8_Persistent_v8_Object,                  \
     BaseObject::persistent_handle_)                                           \
@@ -37,6 +49,7 @@
     Environment::ReqWrapQueue::head_)                                         \
   V(ListNode_ReqWrap, prev_, uintptr_t, ListNode<ReqWrapBase>::prev_)         \
   V(ListNode_ReqWrap, next_, uintptr_t, ListNode<ReqWrapBase>::next_)
+#endif
 
 extern "C" {
 int nodedbg_const_ContextEmbedderIndex__kEnvironment__int;

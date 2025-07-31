@@ -96,7 +96,7 @@ class StdoutStream : public OFStream {
   friend class StderrStream;
   static V8_EXPORT_PRIVATE base::RecursiveMutex* GetStdoutMutex();
 
-  base::RecursiveMutexGuard mutex_guard_{GetStdoutMutex()};
+  ::v8::base::RecursiveMutexGuard mutex_guard_{GetStdoutMutex()};
 };
 #endif
 

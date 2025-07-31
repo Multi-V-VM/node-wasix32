@@ -73,30 +73,19 @@ void SyncProcessOutputBuffer::OnRead(const uv_buf_t* buf, size_t nread) {
 }
 
 
-size_t SyncProcessOutputBuffer::Copy(char* dest) const {
-  if (dest != nullptr) memcpy(dest, data_, used());
-  return used();
-}
+// Moved to spawn_sync-inl.h
 
 
-unsigned int SyncProcessOutputBuffer::available() const {
-  return sizeof data_ - used();
-}
+// Moved to spawn_sync-inl.h
 
 
-unsigned int SyncProcessOutputBuffer::used() const {
-  return used_;
-}
+// Moved to spawn_sync-inl.h
 
 
-SyncProcessOutputBuffer* SyncProcessOutputBuffer::next() const {
-  return next_;
-}
+// Moved to spawn_sync-inl.h
 
 
-void SyncProcessOutputBuffer::set_next(SyncProcessOutputBuffer* next) {
-  next_ = next;
-}
+// Moved to spawn_sync-inl.h
 
 
 SyncProcessStdioPipe::SyncProcessStdioPipe(SyncProcessRunner* process_handler,

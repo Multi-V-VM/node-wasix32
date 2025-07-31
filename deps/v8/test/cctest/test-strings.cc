@@ -1714,21 +1714,21 @@ TEST(InvalidExternalString) {
   }
 }
 
-#define INVALID_STRING_TEST(FUN, TYPE)                                   \
-  TEST(StringOOM##FUN) {                                                 \
-    CcTest::InitializeVM();                                              \
-    LocalContext context;                                                \
-    Isolate* isolate = CcTest::i_isolate();                              \
-    static_assert(String::kMaxLength < kMaxInt);                         \
-    static const int invalid = String::kMaxLength + 1;                   \
-    HandleScope scope(isolate);                                          \
-    v8::base::Vector<TYPE> dummy = v8::base::Vector<TYPE>::New(invalid); \
-    memset(dummy.begin(), 0x0, dummy.length() * sizeof(TYPE));           \
-    CHECK(isolate->factory()->FUN(dummy).is_null());                     \
-    memset(dummy.begin(), 0x20, dummy.length() * sizeof(TYPE));          \
-    CHECK(isolate->has_exception());                                     \
-    isolate->clear_exception();                                          \
-    dummy.Dispose();                                                     \
+#define INVALID_STRING_TEST(FUN, TYPE)                                     \
+  TEST(StringOOM##FUN) {                                                   \
+    CcTest::InitializeVM();                                                \
+    LocalContext context;                                                  \
+    Isolate* isolate = CcTest::i_isolate();                                \
+    static_assert(String::kMaxLength < kMaxInt);                           \
+    static const int invalid = String::kMaxLength + 1;                     \
+    HandleScope scope(isolate);                                            \
+    v8::base::Vector<TYPE> dummy = ::v8::base::Vector<TYPE>::New(invalid); \
+    memset(dummy.begin(), 0x0, dummy.length() * sizeof(TYPE));             \
+    CHECK(isolate->factory()->FUN(dummy).is_null());                       \
+    memset(dummy.begin(), 0x20, dummy.length() * sizeof(TYPE));            \
+    CHECK(isolate->has_exception());                                       \
+    isolate->clear_exception();                                            \
+    dummy.Dispose();                                                       \
   }
 
 INVALID_STRING_TEST(NewStringFromUtf8, char)
@@ -2145,7 +2145,7 @@ TEST(CheckCachedDataInternalExternalUncachedStringTwoByte) {
 
 TEST(CheckIntlSegmentIteratorTerminateExecutionInterrupt) {
 #if V8_INTL_SUPPORT
-  class WorkerThread : public v8::base::Thread {
+  class WorkerThread : public ::v8::base::Thread {
    public:
     WorkerThread(v8::base::Mutex& m, v8::base::ConditionVariable& cv)
         : Thread(v8::base::Thread::Options("WorkerThread")), m_(m), cv_(cv) {}

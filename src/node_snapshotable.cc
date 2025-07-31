@@ -683,7 +683,7 @@ bool SnapshotData::Check() const {
             "Failed to load the startup snapshot because it was built with"
             "architecture %s and the architecture is %s.\n",
             metadata.node_arch.c_str(),
-            NODE_ARCH);
+            STRINGIFY(NODE_ARCH));
     return false;
   }
 
@@ -692,7 +692,7 @@ bool SnapshotData::Check() const {
             "Failed to load the startup snapshot because it was built with"
             "platform %s and the current platform is %s.\n",
             metadata.node_platform.c_str(),
-            NODE_PLATFORM);
+            STRINGIFY(NODE_PLATFORM));
     return false;
   }
 

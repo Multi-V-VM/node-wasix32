@@ -198,9 +198,9 @@ void IncrementalMarking::Start(GarbageCollector garbage_collector,
                            TRACE_EVENT_FLAG_FLOW_OUT);
   heap_->tracer()->NotifyIncrementalMarkingStart();
 
-  start_time_ = v8::base::TimeTicks::Now();
+  start_time_ = ::v8::base::TimeTicks::Now();
   completion_task_scheduled_ = false;
-  completion_task_timeout_ = v8::base::TimeTicks();
+  completion_task_timeout_ = ::v8::base::TimeTicks();
   main_thread_marked_bytes_ = 0;
   bytes_marked_concurrently_ = 0;
 
@@ -478,7 +478,7 @@ std::pair<v8::base::TimeDelta, size_t> IncrementalMarking::CppHeapStep(
   }
 
   TRACE_GC(heap()->tracer(), GCTracer::Scope::MC_INCREMENTAL_EMBEDDER_TRACING);
-  const auto start = v8::base::TimeTicks::Now();
+  const auto start = ::v8::base::TimeTicks::Now();
   cpp_heap->AdvanceMarking(max_duration, marked_bytes_limit);
   return {v8::base::TimeTicks::Now() - start, cpp_heap->last_bytes_marked()};
 }
@@ -579,7 +579,7 @@ bool IncrementalMarking::ShouldWaitForTask() {
     }
   }
 
-  const auto now = v8::base::TimeTicks::Now();
+  const auto now = ::v8::base::TimeTicks::Now();
   const bool wait_for_task = now < completion_task_timeout_;
   if (V8_UNLIKELY(v8_flags.trace_incremental_marking)) {
     isolate()->PrintWithTimestamp(
@@ -599,7 +599,7 @@ bool IncrementalMarking::TryInitializeTaskTimeout() {
   // when marking was fast.
   constexpr auto kMinAllowedOvershoot =
       v8::base::TimeDelta::FromMilliseconds(50);
-  const auto now = v8::base::TimeTicks::Now();
+  const auto now = ::v8::base::TimeTicks::Now();
   const auto allowed_overshoot = std::max(
       kMinAllowedOvershoot, v8::base::TimeDelta::FromMillisecondsD(
                                 (now - start_time_).InMillisecondsF() *
@@ -756,7 +756,7 @@ void IncrementalMarking::Step(v8::base::TimeDelta max_duration,
       current_trace_id_.value(),
       TRACE_EVENT_FLAG_FLOW_IN | TRACE_EVENT_FLAG_FLOW_OUT);
   DCHECK(IsMajorMarking());
-  const auto start = v8::base::TimeTicks::Now();
+  const auto start = ::v8::base::TimeTicks::Now();
 
   std::optional<SafepointScope> safepoint_scope;
   // Conceptually an incremental marking step (even though it always runs on the
@@ -824,7 +824,7 @@ void IncrementalMarking::Step(v8::base::TimeDelta max_duration,
   if (cpp_heap_duration < max_duration &&
       (!v8_flags.incremental_marking_unified_schedule ||
        (cpp_heap_marked_bytes < marked_bytes_limit))) {
-    const auto v8_start = v8::base::TimeTicks::Now();
+    const auto v8_start = ::v8::base::TimeTicks::Now();
     const size_t v8_marked_bytes_limit =
         v8_flags.incremental_marking_unified_schedule
             ? marked_bytes_limit - cpp_heap_marked_bytes
@@ -832,7 +832,7 @@ void IncrementalMarking::Step(v8::base::TimeDelta max_duration,
     std::tie(v8_marked_bytes, std::ignore) =
         major_collector_->ProcessMarkingWorklist(
             max_duration - cpp_heap_duration, v8_marked_bytes_limit);
-    v8_time = v8::base::TimeTicks::Now() - v8_start;
+    v8_time = ::v8::base::TimeTicks::Now() - v8_start;
     heap_->tracer()->AddIncrementalMarkingStep(v8_time.InMillisecondsF(),
                                                v8_marked_bytes);
   }

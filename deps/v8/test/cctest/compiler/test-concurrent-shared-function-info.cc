@@ -60,7 +60,7 @@ void ExpectSharedFunctionInfoState(Isolate* isolate,
   }
 }
 
-class BackgroundCompilationThread final : public v8::base::Thread {
+class BackgroundCompilationThread final : public ::v8::base::Thread {
  public:
   BackgroundCompilationThread(Isolate* isolate,
                               base::Semaphore* sema_execute_start,

@@ -13,7 +13,8 @@
 namespace heap::base {
 
 // A cached map that speeds up `operator[]` if used in LRU fashion.
-template <typename _Key, typename _Value, typename _Hash = v8::base::hash<_Key>>
+template <typename _Key, typename _Value,
+          typename _Hash = ::v8::base::hash<_Key>>
 class CachedUnorderedMap final {
   using MapT = absl::flat_hash_map<_Key, _Value, _Hash>;
 

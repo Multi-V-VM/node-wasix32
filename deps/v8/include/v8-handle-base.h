@@ -29,26 +29,35 @@ public:
 };
 
 namespace api_internal {
+// Forward declare Address type for api_internal
+using Address = uintptr_t;
+
 // Simplified IndirectHandleBase for WASI
 class IndirectHandleBase {
  protected:
   IndirectHandleBase() : slot_(nullptr) {}
-  explicit IndirectHandleBase(v8::internal::Address* location) : slot_(location) {}
+  explicit IndirectHandleBase(Address* location) : slot_(location) {}
   
-  v8::internal::Address*& slot() { return slot_; }
-  v8::internal::Address* slot() const { return slot_; }
-  v8::internal::Address* const* slot_address() const { return &slot_; }
+  Address*& slot() { return slot_; }
+  Address* slot() const { return slot_; }
+  Address* const* slot_address() const { return &slot_; }
   
  private:
-  v8::internal::Address* slot_;
+  Address* slot_;
 };
 } // namespace api_internal
 
 namespace internal {
+// Define Address type for WASI if not already defined
+#ifndef V8_INTERNAL_ADDRESS_DEFINED
+#define V8_INTERNAL_ADDRESS_DEFINED
+using Address = uintptr_t;
+#endif
+
 // Stub classes needed by v8-persistent-handle.h
 class ValueHelper {
  public:
-  using InternalRepresentationType = v8::internal::Address;
+  using InternalRepresentationType = Address;
   static constexpr InternalRepresentationType kEmpty = 0;
   
   static void* Wrap(void* value) { return value; }

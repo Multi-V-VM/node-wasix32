@@ -850,7 +850,12 @@ void Worker::GetHeapStatistics(const FunctionCallbackInfo<Value>& args) {
     // We create a unique pointer to HeapStatistics so that the actual object
     // it's not copied in the lambda, but only the pointer is.
     auto heap_stats = std::make_unique<v8::HeapStatistics>();
+#ifdef __wasi__
+    // GetHeapStatistics not available in WASI, use default values
+    // heap_stats will have default-initialized values
+#else
     worker_env->isolate()->GetHeapStatistics(heap_stats.get());
+#endif
 
     // Here, the worker thread temporarily owns the WorkerHeapStatisticsTaker
     // object.

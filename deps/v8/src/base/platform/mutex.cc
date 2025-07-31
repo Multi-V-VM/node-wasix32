@@ -9,12 +9,10 @@
 namespace v8 {
 namespace base {
 
-RecursiveMutex::~RecursiveMutex() {
-  DCHECK_EQ(0, level_);
-}
+RecursiveMutex::~RecursiveMutex() { DCHECK_EQ(0, level_); }
 
 void RecursiveMutex::Lock() {
-  int own_id = v8::base::OS::GetCurrentThreadId();
+  int own_id = ::v8::base::OS::GetCurrentThreadId();
   if (thread_id_ == own_id) {
     level_++;
     return;
@@ -27,7 +25,7 @@ void RecursiveMutex::Lock() {
 
 void RecursiveMutex::Unlock() {
 #ifdef DEBUG
-  int own_id = v8::base::OS::GetCurrentThreadId();
+  int own_id = ::v8::base::OS::GetCurrentThreadId();
   CHECK_EQ(thread_id_, own_id);
 #endif
   if ((--level_) == 0) {
@@ -37,7 +35,7 @@ void RecursiveMutex::Unlock() {
 }
 
 bool RecursiveMutex::TryLock() {
-  int own_id = v8::base::OS::GetCurrentThreadId();
+  int own_id = ::v8::base::OS::GetCurrentThreadId();
   if (thread_id_ == own_id) {
     level_++;
     return true;

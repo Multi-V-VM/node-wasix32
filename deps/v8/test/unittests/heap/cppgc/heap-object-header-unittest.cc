@@ -126,7 +126,7 @@ struct Payload {
   volatile size_t value{5};
 };
 
-class ConcurrentGCThread final : public v8::base::Thread {
+class ConcurrentGCThread final : public ::v8::base::Thread {
  public:
   explicit ConcurrentGCThread(HeapObjectHeader* header, Payload* payload)
       : v8::base::Thread(Options("Thread accessing object.")),

@@ -28,7 +28,7 @@ namespace {
 const int kCycles = 1000;
 static std::atomic<bool> all_states_seen{false};
 
-class FeedbackVectorExplorationThread final : public v8::base::Thread {
+class FeedbackVectorExplorationThread final : public ::v8::base::Thread {
  public:
   FeedbackVectorExplorationThread(Heap* heap, base::Semaphore* sema_started,
                                   base::Semaphore* vector_ready,

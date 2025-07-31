@@ -1219,7 +1219,7 @@ WASM_EXPORT auto Module::validate(Store* store_abs, const vec<byte_t>& binary)
   v8::Isolate::Scope isolate_scope(reinterpret_cast<v8::Isolate*>(isolate));
   PtrComprCageAccessScope ptr_compr_cage_access_scope(isolate);
   i::HandleScope scope(isolate);
-  v8::base::Vector<const uint8_t> bytes = v8::base::VectorOf(
+  v8::base::Vector<const uint8_t> bytes = ::v8::base::VectorOf(
       reinterpret_cast<const uint8_t*>(binary.get()), binary.size());
   i::wasm::WasmEnabledFeatures features =
       i::wasm::WasmEnabledFeatures::FromIsolate(isolate);
@@ -1235,7 +1235,7 @@ WASM_EXPORT auto Module::make(Store* store_abs, const vec<byte_t>& binary)
   v8::Isolate::Scope isolate_scope(store->isolate());
   i::HandleScope scope(isolate);
   CheckAndHandleInterrupts(isolate);
-  v8::base::OwnedVector<const uint8_t> bytes = v8::base::OwnedCopyOf(
+  v8::base::OwnedVector<const uint8_t> bytes = ::v8::base::OwnedCopyOf(
       reinterpret_cast<const uint8_t*>(binary.get()), binary.size());
   i::wasm::WasmEnabledFeatures features =
       i::wasm::WasmEnabledFeatures::FromIsolate(isolate);
@@ -1922,7 +1922,7 @@ i::Address FuncData::v8_callback(i::Address host_data_foreign,
         break;
       case ValKind::EXTERNREF:
       case ValKind::FUNCREF: {
-        i::Address raw = v8::base::ReadUnalignedValue<i::Address>(p);
+        i::Address raw = ::v8::base::ReadUnalignedValue<i::Address>(p);
         p += sizeof(raw);
         i::DirectHandle<i::Object> obj(i::Tagged<i::Object>(raw), isolate);
         params[i] = Val(V8RefValueToWasm(store, obj));
@@ -2495,38 +2495,40 @@ struct borrowed_vec {
 
 }  // extern "C++"
 
-#define WASM_DEFINE_OWN(name, Name)                                            \
-  struct wasm_##name##_t : Name {};                                            \
-                                                                               \
-  void wasm_##name##_delete(wasm_##name##_t* x) { delete x; }                  \
-                                                                               \
-  extern "C++" inline auto hide_##name(Name* x)->wasm_##name##_t* {            \
-    return static_cast<wasm_##name##_t*>(x);                                   \
-  }                                                                            \
-  extern "C++" inline auto hide_##name(const Name* x)                          \
-      ->const wasm_##name##_t* {                                               \
-    return static_cast<const wasm_##name##_t*>(x);                             \
-  }                                                                            \
-  extern "C++" inline auto reveal_##name(wasm_##name##_t* x)->Name* {          \
-    return x;                                                                  \
-  }                                                                            \
-  extern "C++" inline auto reveal_##name(const wasm_##name##_t* x)             \
-      ->const Name* {                                                          \
-    return x;                                                                  \
-  }                                                                            \
-  extern "C++" inline auto get_##name(wasm::own<Name>& x)->wasm_##name##_t* {  \
-    return hide_##name(x.get());                                               \
-  }                                                                            \
-  extern "C++" inline auto get_##name(const wasm::own<Name>& x)                \
-      ->const wasm_##name##_t* {                                               \
-    return hide_##name(x.get());                                               \
-  }                                                                            \
-  extern "C++" inline auto release_##name(wasm::own<Name>&& x)                 \
-      ->wasm_##name##_t* {                                                     \
-    return hide_##name(x.release());                                           \
-  }                                                                            \
-  extern "C++" inline auto adopt_##name(wasm_##name##_t* x)->wasm::own<Name> { \
-    return make_own(x);                                                        \
+#define WASM_DEFINE_OWN(name, Name)                                     \
+  struct wasm_##name##_t : Name {};                                     \
+                                                                        \
+  void wasm_##name##_delete(wasm_##name##_t* x) { delete x; }           \
+                                                                        \
+  extern "C++" inline auto hide_##name(Name* x) -> wasm_##name##_t* {   \
+    return static_cast<wasm_##name##_t*>(x);                            \
+  }                                                                     \
+  extern "C++" inline auto hide_##name(const Name* x)                   \
+      -> const wasm_##name##_t* {                                       \
+    return static_cast<const wasm_##name##_t*>(x);                      \
+  }                                                                     \
+  extern "C++" inline auto reveal_##name(wasm_##name##_t* x) -> Name* { \
+    return x;                                                           \
+  }                                                                     \
+  extern "C++" inline auto reveal_##name(const wasm_##name##_t* x)      \
+      -> const Name* {                                                  \
+    return x;                                                           \
+  }                                                                     \
+  extern "C++" inline auto get_##name(wasm::own<Name>& x)               \
+      -> wasm_##name##_t* {                                             \
+    return hide_##name(x.get());                                        \
+  }                                                                     \
+  extern "C++" inline auto get_##name(const wasm::own<Name>& x)         \
+      -> const wasm_##name##_t* {                                       \
+    return hide_##name(x.get());                                        \
+  }                                                                     \
+  extern "C++" inline auto release_##name(wasm::own<Name>&& x)          \
+      -> wasm_##name##_t* {                                             \
+    return hide_##name(x.release());                                    \
+  }                                                                     \
+  extern "C++" inline auto adopt_##name(wasm_##name##_t* x)             \
+      -> wasm::own<Name> {                                              \
+    return make_own(x);                                                 \
   }
 
 // Vectors
@@ -2546,57 +2548,56 @@ struct borrowed_vec {
 #define WASM_DEFINE_VEC_BASE(name, Name, vec, ptr_or_none)                     \
   ASSERT_VEC_BASE_SIZE(name, Name, vec, ptr_or_none)                           \
   extern "C++" inline auto hide_##name##_vec(vec<Name>& v)                     \
-      ->wasm_##name##_vec_t* {                                                 \
+      -> wasm_##name##_vec_t* {                                                \
     return reinterpret_cast<wasm_##name##_vec_t*>(&v);                         \
   }                                                                            \
   extern "C++" inline auto hide_##name##_vec(const vec<Name>& v)               \
-      ->const wasm_##name##_vec_t* {                                           \
+      -> const wasm_##name##_vec_t* {                                          \
     return reinterpret_cast<const wasm_##name##_vec_t*>(&v);                   \
   }                                                                            \
   extern "C++" inline auto hide_##name##_vec(vec<Name>::elem_type* v)          \
-      ->wasm_##name##_t ptr_or_none* {                                         \
+      -> wasm_##name##_t ptr_or_none* {                                        \
     return reinterpret_cast<wasm_##name##_t ptr_or_none*>(v);                  \
   }                                                                            \
   extern "C++" inline auto hide_##name##_vec(const vec<Name>::elem_type* v)    \
-      ->wasm_##name##_t ptr_or_none const* {                                   \
+      -> wasm_##name##_t ptr_or_none const* {                                  \
     return reinterpret_cast<wasm_##name##_t ptr_or_none const*>(v);            \
   }                                                                            \
   extern "C++" inline auto reveal_##name##_vec(wasm_##name##_t ptr_or_none* v) \
-      ->vec<Name>::elem_type* {                                                \
+      -> vec<Name>::elem_type* {                                               \
     return reinterpret_cast<vec<Name>::elem_type*>(v);                         \
   }                                                                            \
   extern "C++" inline auto reveal_##name##_vec(                                \
-      wasm_##name##_t ptr_or_none const* v)                                    \
-      ->const vec<Name>::elem_type* {                                          \
+      wasm_##name##_t ptr_or_none const* v) -> const vec<Name>::elem_type* {   \
     return reinterpret_cast<const vec<Name>::elem_type*>(v);                   \
   }                                                                            \
   extern "C++" inline auto get_##name##_vec(vec<Name>& v)                      \
-      ->wasm_##name##_vec_t {                                                  \
+      -> wasm_##name##_vec_t {                                                 \
     wasm_##name##_vec_t v2 = {v.size(), hide_##name##_vec(v.get())};           \
     return v2;                                                                 \
   }                                                                            \
   extern "C++" inline auto get_##name##_vec(const vec<Name>& v)                \
-      ->const wasm_##name##_vec_t {                                            \
+      -> const wasm_##name##_vec_t {                                           \
     wasm_##name##_vec_t v2 = {                                                 \
         v.size(),                                                              \
         const_cast<wasm_##name##_t ptr_or_none*>(hide_##name##_vec(v.get()))}; \
     return v2;                                                                 \
   }                                                                            \
   extern "C++" inline auto release_##name##_vec(vec<Name>&& v)                 \
-      ->wasm_##name##_vec_t {                                                  \
+      -> wasm_##name##_vec_t {                                                 \
     wasm_##name##_vec_t v2 = {v.size(), hide_##name##_vec(v.release())};       \
     return v2;                                                                 \
   }                                                                            \
   extern "C++" inline auto adopt_##name##_vec(wasm_##name##_vec_t* v)          \
-      ->vec<Name> {                                                            \
+      -> vec<Name> {                                                           \
     return vec<Name>::adopt(v->size, reveal_##name##_vec(v->data));            \
   }                                                                            \
   extern "C++" inline auto adopt_##name##_vec(const wasm_##name##_vec_t* v)    \
-      ->const vec<Name> {                                                      \
+      -> const vec<Name> {                                                     \
     return vec<Name>::adopt(v->size, reveal_##name##_vec(v->data));            \
   }                                                                            \
   extern "C++" inline auto borrow_##name##_vec(const wasm_##name##_vec_t* v)   \
-      ->borrowed_vec<vec<Name>::elem_type> {                                   \
+      -> borrowed_vec<vec<Name>::elem_type> {                                  \
     return borrowed_vec<vec<Name>::elem_type>(                                 \
         vec<Name>::adopt(v->size, reveal_##name##_vec(v->data)));              \
   }                                                                            \

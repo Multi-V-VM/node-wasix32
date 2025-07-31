@@ -210,7 +210,7 @@ inline uintptr_t fast_search_noavx(T* array, uintptr_t array_len,
 #ifdef __SSE3__
   if constexpr (is_uint32) {
 #define MOVEMASK(x) _mm_movemask_ps(_mm_castsi128_ps(x))
-#define EXTRACT(x) base::bits::CountTrailingZeros32(x)
+#define EXTRACT(x) base::bits::CountTrailingZerosNonZero(x)
     VECTORIZED_LOOP_x86(__m128i, __m128i, _mm_set1_epi32, _mm_cmpeq_epi32,
                         MOVEMASK, EXTRACT)
 #undef MOVEMASK
@@ -229,7 +229,7 @@ inline uintptr_t fast_search_noavx(T* array, uintptr_t array_len,
 #undef MOVEMASK
 #undef EXTRACT
   } else if constexpr (is_double) {
-#define EXTRACT(x) base::bits::CountTrailingZeros32(x)
+#define EXTRACT(x) base::bits::CountTrailingZerosNonZero(x)
     VECTORIZED_LOOP_x86(__m128d, __m128d, _mm_set1_pd, _mm_cmpeq_pd,
                         _mm_movemask_pd, EXTRACT)
 #undef EXTRACT
@@ -298,21 +298,21 @@ TARGET_AVX2 inline uintptr_t fast_search_avx(T* array, uintptr_t array_len,
   // Generating vectorized loop
   if constexpr (is_uint32) {
 #define MOVEMASK(x) _mm256_movemask_ps(_mm256_castsi256_ps(x))
-#define EXTRACT(x) base::bits::CountTrailingZeros32(x)
+#define EXTRACT(x) base::bits::CountTrailingZerosNonZero(x)
     VECTORIZED_LOOP_x86(__m256i, __m256i, _mm256_set1_epi32, _mm256_cmpeq_epi32,
                         MOVEMASK, EXTRACT)
 #undef MOVEMASK
 #undef EXTRACT
   } else if constexpr (is_uint64) {
 #define MOVEMASK(x) _mm256_movemask_pd(_mm256_castsi256_pd(x))
-#define EXTRACT(x) base::bits::CountTrailingZeros32(x)
+#define EXTRACT(x) base::bits::CountTrailingZerosNonZero(x)
     VECTORIZED_LOOP_x86(__m256i, __m256i, _mm256_set1_epi64x,
                         _mm256_cmpeq_epi64, MOVEMASK, EXTRACT)
 #undef MOVEMASK
 #undef EXTRACT
   } else if constexpr (is_double) {
 #define CMP(a, b) _mm256_cmp_pd(a, b, _CMP_EQ_OQ)
-#define EXTRACT(x) base::bits::CountTrailingZeros32(x)
+#define EXTRACT(x) base::bits::CountTrailingZerosNonZero(x)
     VECTORIZED_LOOP_x86(__m256d, __m256d, _mm256_set1_pd, CMP,
                         _mm256_movemask_pd, EXTRACT)
 #undef CMP

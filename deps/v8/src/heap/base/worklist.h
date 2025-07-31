@@ -222,7 +222,7 @@ class Worklist<EntryType, MinSegmentSize>::Segment final
       result.ptr = static_cast<char*>(v8::base::Malloc(wanted_bytes));
       result.count = wanted_bytes;
     } else {
-      result = v8::base::AllocateAtLeast<char>(wanted_bytes);
+      result = ::v8::base::AllocateAtLeast<char>(wanted_bytes);
     }
     if (!result.ptr) {
       v8::base::FatalOOM(v8::base::OOMType::kProcess,

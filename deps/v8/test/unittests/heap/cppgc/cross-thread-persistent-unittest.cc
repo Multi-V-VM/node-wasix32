@@ -25,7 +25,7 @@ struct GCed final : GarbageCollected<GCed> {
 };
 size_t GCed::destructor_call_count = 0;
 
-class Runner final : public v8::base::Thread {
+class Runner final : public ::v8::base::Thread {
  public:
   template <typename Callback>
   explicit Runner(Callback callback)

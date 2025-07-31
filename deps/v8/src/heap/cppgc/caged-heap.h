@@ -24,7 +24,7 @@ class TestWithHeap;
 
 class V8_EXPORT_PRIVATE CagedHeap final {
  public:
-  using AllocatorType = v8::base::BoundedPageAllocator;
+  using AllocatorType = ::v8::base::BoundedPageAllocator;
 
   template <typename RetType = uintptr_t>
   static RetType OffsetFromAddress(const void* address) {

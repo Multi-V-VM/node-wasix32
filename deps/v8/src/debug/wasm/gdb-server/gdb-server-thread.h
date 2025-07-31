@@ -19,7 +19,7 @@ class GdbServer;
 
 // class GdbServerThread spawns a thread where all communication with a debugger
 // happens.
-class GdbServerThread : public v8::base::Thread {
+class GdbServerThread : public ::v8::base::Thread {
  public:
   explicit GdbServerThread(GdbServer* gdb_server);
   GdbServerThread(const GdbServerThread&) = delete;

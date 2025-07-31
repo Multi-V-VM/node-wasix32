@@ -177,7 +177,7 @@ void CompileJumpTableThunk(Address thunk, Address jump_target) {
 #endif
 }
 
-class JumpTableRunner : public v8::base::Thread {
+class JumpTableRunner : public ::v8::base::Thread {
  public:
   JumpTableRunner(Address slot_address, int runner_id)
       : Thread(Options("JumpTableRunner")),
@@ -196,7 +196,7 @@ class JumpTableRunner : public v8::base::Thread {
   int runner_id_;
 };
 
-class JumpTablePatcher : public v8::base::Thread {
+class JumpTablePatcher : public ::v8::base::Thread {
  public:
   JumpTablePatcher(Address slot_start, uint32_t slot_index, Address thunk1,
                    Address thunk2, base::Mutex* jump_table_mutex)

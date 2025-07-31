@@ -63,7 +63,7 @@ class TestTwoByteResource : public v8::String::ExternalStringResource {
   size_t length_;
 };
 
-class ConcurrentStringThread final : public v8::base::Thread {
+class ConcurrentStringThread final : public ::v8::base::Thread {
  public:
   ConcurrentStringThread(Isolate* isolate, Handle<String> str,
                          std::unique_ptr<PersistentHandles> ph,

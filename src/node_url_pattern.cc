@@ -15,14 +15,9 @@ template <>
 struct MemoryRetainerTraits<ada::url_pattern<URLPatternRegexProvider>> {
   using Type = ada::url_pattern<URLPatternRegexProvider>;
   static void MemoryInfo(MemoryTracker* tracker, const Type& value) {
-    tracker->TraitTrackInline(value.protocol_component, "protocol_component");
-    tracker->TraitTrackInline(value.username_component, "username_component");
-    tracker->TraitTrackInline(value.password_component, "password_component");
-    tracker->TraitTrackInline(value.hostname_component, "hostname_component");
-    tracker->TraitTrackInline(value.port_component, "port_component");
-    tracker->TraitTrackInline(value.pathname_component, "pathname_component");
-    tracker->TraitTrackInline(value.search_component, "search_component");
-    tracker->TraitTrackInline(value.hash_component, "hash_component");
+    // WASI stub - no memory tracking implementation
+    (void)tracker;
+    (void)value;
   }
 
   static const char* MemoryInfoName(const Type& value) {
@@ -32,21 +27,7 @@ struct MemoryRetainerTraits<ada::url_pattern<URLPatternRegexProvider>> {
   static size_t SelfSize(const Type& value) { return sizeof(value); }
 };
 
-template <>
-struct MemoryRetainerTraits<
-    ada::url_pattern_component<URLPatternRegexProvider>> {
-  using Type = ada::url_pattern_component<URLPatternRegexProvider>;
-  static void MemoryInfo(MemoryTracker* tracker, const Type& value) {
-    tracker->TrackField("pattern", value.pattern);
-    tracker->TrackField("group_name_list", value.group_name_list);
-  }
-
-  static const char* MemoryInfoName(const Type& value) {
-    return "ada::url_pattern_component";
-  }
-
-  static size_t SelfSize(const Type& value) { return sizeof(value); }
-};
+// WASI stub - removed duplicate MemoryRetainerTraits
 
 }  // namespace node
 

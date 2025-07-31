@@ -25,8 +25,11 @@ constexpr CodePointerHandle kNullCodePointerHandle = 0;
 } // namespace v8
 
 namespace v8 {
-// LocalVector template
+// Forward declarations
+class Isolate;
 template<typename T> class Local;
+
+// LocalVector template
 template<typename T>
 class LocalVector : public std::vector<Local<T>> {
  public:

@@ -512,9 +512,7 @@ CppHeap::CppHeap(
 #endif  // V8_ENABLE_ALLOCATION_TIMEOUT
 }
 
-CppHeap::~CppHeap() {
-  Terminate();
-}
+CppHeap::~CppHeap() { Terminate(); }
 
 void CppHeap::Terminate() {
   // TODO(ahaas): Remove `already_terminated_` once the V8 API
@@ -643,7 +641,7 @@ void CppHeap::StartDetachingIsolate() {
 
   // Store the last thread that owned the isolate, as it is the thread CppHeap
   // should also get terminated with.
-  heap_thread_id_ = v8::base::OS::GetCurrentThreadId();
+  heap_thread_id_ = ::v8::base::OS::GetCurrentThreadId();
 
   // Finish any ongoing garbage collection.
   if (isolate_->heap()->incremental_marking()->IsMarking()) {

@@ -21,6 +21,7 @@
 
 #ifdef __wasi__
 #include "../wasi-node-compat.h"
+#include "../wasi-simdutf-stubs.h"
 #endif
 #include "node_buffer.h"
 #include "node.h"

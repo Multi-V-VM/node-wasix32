@@ -102,9 +102,7 @@ namespace bits {
   inline unsigned CountTrailingZeros(uint32_t value) {
     return value ? __builtin_ctz(value) : 32;
   }
-  inline unsigned CountTrailingZeros32(uint32_t value) {
-    return value ? __builtin_ctz(value) : 32;
-  }
+  // CountTrailingZeros32 is deprecated, use CountTrailingZerosNonZero instead
 }
 
 // Iterator type for std::iterator usage
@@ -174,7 +172,7 @@ namespace base {
         using ::v8::base::bits::CountPopulation;
         using ::v8::base::bits::CountTrailingZerosNonZero;
         using ::v8::base::bits::CountTrailingZeros;
-        using ::v8::base::bits::CountTrailingZeros32;
+        // CountTrailingZeros32 is deprecated, use CountTrailingZerosNonZero instead
     }
 
     // Iterator type for std::iterator usage

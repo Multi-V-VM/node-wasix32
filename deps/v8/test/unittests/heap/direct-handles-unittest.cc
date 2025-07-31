@@ -158,7 +158,7 @@ TEST_F(DirectHandlesTest, DirectHandleOutOfStackFailsCopyHeteroIndirect) {
 }
 
 namespace {
-class BackgroundThread final : public v8::base::Thread {
+class BackgroundThread final : public ::v8::base::Thread {
  public:
   explicit BackgroundThread(i::Isolate* isolate, bool park_and_wait)
       : v8::base::Thread(base::Thread::Options("BackgroundThread")),

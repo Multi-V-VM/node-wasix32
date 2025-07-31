@@ -31,7 +31,7 @@
 #include "node.h"
 #ifdef __wasi__
 // Include WASI fixes after V8 headers to avoid redefinitions
-#include "wasi-v8-complete-missing.h"
+#include "../wasi-v8-complete-missing.h"
 #endif
 #include "node_exit_code.h"
 

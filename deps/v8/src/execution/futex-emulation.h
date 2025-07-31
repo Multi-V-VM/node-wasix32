@@ -71,8 +71,8 @@ class FutexWaitListNode {
   struct AsyncState {
     AsyncState(Isolate* isolate, std::shared_ptr<TaskRunner> task_runner,
                std::weak_ptr<BackingStore> backing_store,
-               v8::Global<v8::Promise> promise,
-               v8::Global<v8::Context> native_context)
+               ::v8::Global<::v8::Promise> promise,
+               ::v8::Global<::v8::Context> native_context)
         : isolate_for_async_waiters(isolate),
           task_runner(std::move(task_runner)),
           backing_store(std::move(backing_store)),
@@ -97,10 +97,10 @@ class FutexWaitListNode {
 
     // Weak Global handle. Must not be synchronously resolved by a non-owner
     // Isolate.
-    v8::Global<v8::Promise> const promise;
+    ::v8::Global<::v8::Promise> const promise;
 
     // Weak Global handle.
-    v8::Global<v8::Context> const native_context;
+    ::v8::Global<::v8::Context> const native_context;
 
     // If timeout_time_ is base::TimeTicks(), this async waiter doesn't have a
     // timeout or has already been notified. Values other than base::TimeTicks()

@@ -61,7 +61,7 @@ class BasicSlotSet {
     // for checking bounds for the heap sandbox.
     const size_t buckets_size = buckets * sizeof(Bucket*);
     const size_t size = kNumBucketsSize + buckets_size;
-    void* allocation = v8::base::AlignedAlloc(size, kSystemPointerSize);
+    void* allocation = ::v8::base::AlignedAlloc(size, kSystemPointerSize);
     CHECK(allocation);
     BasicSlotSet* slot_set = reinterpret_cast<BasicSlotSet*>(
         reinterpret_cast<uint8_t*>(allocation) + kNumBucketsSize);
@@ -354,7 +354,7 @@ class BasicSlotSet {
             uint32_t old_cell = cell;
             uint32_t mask = 0;
             while (cell) {
-              int bit_offset = v8::base::bits::CountTrailingZeros(cell);
+              int bit_offset = ::v8::base::bits::CountTrailingZeros(cell);
               uint32_t bit_mask = 1u << bit_offset;
               Address slot = (cell_offset + bit_offset) * SlotGranularity;
               if (callback(chunk_start + slot) == KEEP_SLOT) {

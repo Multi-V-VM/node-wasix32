@@ -64,6 +64,8 @@ inline Address ReadExternalPointerField(Address field_address,
 } // namespace internal
 
 // CppHeap related types - these are missing in WASI builds
+#ifndef V8_CPPHEAP_DEFINED
+#define V8_CPPHEAP_DEFINED
 struct CppHeapCreateParams {
   std::vector<std::unique_ptr<cppgc::CustomSpaceBase>> custom_spaces;
   cppgc::Heap::MarkingType marking_support = 
@@ -78,6 +80,7 @@ class CppHeap {
       v8::Platform* platform,
       const CppHeapCreateParams& params) { return nullptr; }
 };
+#endif // V8_CPPHEAP_DEFINED
 
 // HandleScope types - only if truly missing
 class HandleScope {

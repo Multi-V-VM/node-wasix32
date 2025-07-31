@@ -12,7 +12,7 @@ using i::SamplingCircularQueue;
 using CircularQueueTest = ::testing::Test;
 
 TEST_F(CircularQueueTest, SamplingCircularQueue) {
-  using Record = v8::base::AtomicWord;
+  using Record = ::v8::base::AtomicWord;
   const int kMaxRecordsInQueue = 4;
   SamplingCircularQueue<Record, kMaxRecordsInQueue> scq;
 
@@ -74,10 +74,10 @@ TEST_F(CircularQueueTest, SamplingCircularQueue) {
 
 namespace {
 
-using Record = v8::base::AtomicWord;
+using Record = ::v8::base::AtomicWord;
 using TestSampleQueue = SamplingCircularQueue<Record, 12>;
 
-class ProducerThread : public v8::base::Thread {
+class ProducerThread : public ::v8::base::Thread {
  public:
   ProducerThread(TestSampleQueue* scq, int records_per_chunk, Record value,
                  v8::base::Semaphore* finished)

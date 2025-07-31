@@ -73,7 +73,7 @@ void AllocateSomeObjects(LocalHeap* local_heap) {
 }
 }  // namespace
 
-class ConcurrentAllocationThread final : public v8::base::Thread {
+class ConcurrentAllocationThread final : public ::v8::base::Thread {
  public:
   explicit ConcurrentAllocationThread(Heap* heap,
                                       std::atomic<int>* pending = nullptr)
@@ -258,7 +258,7 @@ UNINITIALIZED_TEST(ConcurrentAllocationWhileMainThreadRunsWithSafepoints) {
   isolate->Dispose();
 }
 
-class LargeObjectConcurrentAllocationThread final : public v8::base::Thread {
+class LargeObjectConcurrentAllocationThread final : public ::v8::base::Thread {
  public:
   explicit LargeObjectConcurrentAllocationThread(Heap* heap,
                                                  std::atomic<int>* pending)
@@ -327,7 +327,7 @@ UNINITIALIZED_TEST(ConcurrentAllocationInLargeSpace) {
 
 const int kWhiteIterations = 1000;
 
-class ConcurrentBlackAllocationThread final : public v8::base::Thread {
+class ConcurrentBlackAllocationThread final : public ::v8::base::Thread {
  public:
   explicit ConcurrentBlackAllocationThread(
       Heap* heap, std::vector<Address>* objects, base::Semaphore* sema_white,
@@ -420,7 +420,7 @@ UNINITIALIZED_TEST(ConcurrentBlackAllocation) {
   isolate->Dispose();
 }
 
-class ConcurrentWriteBarrierThread final : public v8::base::Thread {
+class ConcurrentWriteBarrierThread final : public ::v8::base::Thread {
  public:
   ConcurrentWriteBarrierThread(Heap* heap, Tagged<FixedArray> fixed_array,
                                Tagged<HeapObject> value)
@@ -486,7 +486,7 @@ UNINITIALIZED_TEST(ConcurrentWriteBarrier) {
   isolate->Dispose();
 }
 
-class ConcurrentRecordRelocSlotThread final : public v8::base::Thread {
+class ConcurrentRecordRelocSlotThread final : public ::v8::base::Thread {
  public:
   ConcurrentRecordRelocSlotThread(Heap* heap, Tagged<Code> code,
                                   Tagged<HeapObject> value)

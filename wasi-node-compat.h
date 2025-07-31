@@ -30,27 +30,7 @@
 // #include "wasi-v8-missing-methods.h"
 
 // Additional WASI compatibility definitions
-
-// Missing list node structures for Node.js
-namespace node {
-
-template<typename T>
-struct ListNode {
-  ListNode* prev_;
-  ListNode* next_;
-  T* container;
-  
-  ListNode() : prev_(nullptr), next_(nullptr), container(nullptr) {}
-};
-
-template<typename T, ListNode<T> T::*member>
-struct ListHead {
-  ListNode<T>* head_;
-  
-  ListHead() : head_(nullptr) {}
-};
-
-} // namespace node
+// Note: ListNode and ListHead are already defined in src/util.h
 
 #endif // __wasi__
 

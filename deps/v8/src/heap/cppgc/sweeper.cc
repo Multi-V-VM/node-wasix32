@@ -1097,7 +1097,7 @@ class Sweeper::SweeperImpl final {
         stats_collector_, StatsCollector::kSweepOnAllocation);
     MutatorThreadSweepingScope sweeping_in_progress(*this);
 
-    const auto deadline = v8::base::TimeTicks::Now() + max_duration;
+    const auto deadline = ::v8::base::TimeTicks::Now() + max_duration;
 
     SweepFinalizer finalizer(
         platform_, stats_collector_, space, &unused_destroyed_normal_pages_,
@@ -1151,7 +1151,7 @@ class Sweeper::SweeperImpl final {
         stats_collector_, StatsCollector::kSweepOnAllocation);
     MutatorThreadSweepingScope sweeping_in_progress(*this);
 
-    const auto deadline = v8::base::TimeTicks::Now() + max_duration;
+    const auto deadline = ::v8::base::TimeTicks::Now() + max_duration;
 
     SweepFinalizer finalizer(
         platform_, stats_collector_, space, &unused_destroyed_normal_pages_,
@@ -1367,7 +1367,7 @@ class Sweeper::SweeperImpl final {
             stats_collector_, internal_scope_id, "max_duration_ms",
             max_duration.InMillisecondsF(), "sweeping_mode",
             ToString(sweeping_mode));
-        const auto deadline = v8::base::TimeTicks::Now() + max_duration;
+        const auto deadline = ::v8::base::TimeTicks::Now() + max_duration;
         if (!sweeper.FinalizeAndSweepWithDeadline(
                 StatsCollector::kSweepFinalizeEmptyPages, empty_normal_pages_,
                 deadline, sweeping_mode)) {
@@ -1515,7 +1515,7 @@ class Sweeper::SweeperImpl final {
                                         StatsCollector::ScopeId scope) {
     // First round of sweeping.
     bool concurrent_sweep_complete = IsConcurrentSweepingDone();
-    const auto start = v8::base::TimeTicks::Now();
+    const auto start = ::v8::base::TimeTicks::Now();
     bool main_thread_sweep_complete = PerformSweepOnMutatorThread(
         max_duration, scope,
         concurrent_sweep_complete ? MutatorThreadSweepingMode::kAll

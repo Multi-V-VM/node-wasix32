@@ -39,7 +39,7 @@
 
 namespace {
 
-class DeoptimizeCodeThread : public v8::base::Thread {
+class DeoptimizeCodeThread : public ::v8::base::Thread {
  public:
   DeoptimizeCodeThread(v8::Isolate* isolate, v8::Local<v8::Context> context,
                        const char* trigger)
@@ -286,7 +286,7 @@ TEST(EagerDeoptimizationMultithread) {
 }
 
 // Migrating an isolate
-class KangarooThread : public v8::base::Thread {
+class KangarooThread : public ::v8::base::Thread {
  public:
   KangarooThread(v8::Isolate* isolate, v8::Local<v8::Context> context)
       : Thread(Options("KangarooThread")),
@@ -324,7 +324,6 @@ class KangarooThread : public v8::base::Thread {
   v8::Persistent<v8::Context> context_;
 };
 
-
 // Migrates an isolate from one thread to another
 TEST(KangarooIsolates) {
   v8::Isolate::CreateParams create_params;
@@ -344,13 +343,13 @@ TEST(KangarooIsolates) {
   thread1->Join();
 }
 
-
 static void CalcFibAndCheck(v8::Local<v8::Context> context) {
-  Local<Value> v = CompileRun("function fib(n) {"
-                              "  if (n <= 2) return 1;"
-                              "  return fib(n-1) + fib(n-2);"
-                              "}"
-                              "fib(10)");
+  Local<Value> v = CompileRun(
+      "function fib(n) {"
+      "  if (n <= 2) return 1;"
+      "  return fib(n-1) + fib(n-2);"
+      "}"
+      "fib(10)");
   CHECK(v->IsNumber());
   CHECK_EQ(55, static_cast<int>(v->NumberValue(context).FromJust()));
 }
@@ -358,10 +357,7 @@ static void CalcFibAndCheck(v8::Local<v8::Context> context) {
 class JoinableThread {
  public:
   explicit JoinableThread(const char* name)
-    : name_(name),
-      semaphore_(0),
-      thread_(this) {
-  }
+      : name_(name), semaphore_(0), thread_(this) {}
 
   virtual ~JoinableThread() = default;
   JoinableThread(const JoinableThread&) = delete;
@@ -377,7 +373,7 @@ class JoinableThread {
   virtual void Run() = 0;
 
  private:
-  class ThreadWithSemaphore : public v8::base::Thread {
+  class ThreadWithSemaphore : public ::v8::base::Thread {
    public:
     explicit ThreadWithSemaphore(JoinableThread* joinable_thread)
         : Thread(Options(joinable_thread->name_)),
@@ -399,13 +395,10 @@ class JoinableThread {
   friend class ThreadWithSemaphore;
 };
 
-
 class IsolateLockingThreadWithLocalContext : public JoinableThread {
  public:
   explicit IsolateLockingThreadWithLocalContext(v8::Isolate* isolate)
-    : JoinableThread("IsolateLockingThread"),
-      isolate_(isolate) {
-  }
+      : JoinableThread("IsolateLockingThread"), isolate_(isolate) {}
 
   void Run() override {
     v8::Locker locker(isolate_);
@@ -414,6 +407,7 @@ class IsolateLockingThreadWithLocalContext : public JoinableThread {
     LocalContext local_context(isolate_);
     CalcFibAndCheck(local_context.local());
   }
+
  private:
   v8::Isolate* isolate_;
 };
@@ -430,7 +424,6 @@ static void StartJoinAndDeleteThreads(
     delete thread;
   }
 }
-
 
 // Run many threads all locking on the same isolate
 TEST(IsolateLockingStress) {
@@ -452,12 +445,10 @@ TEST(IsolateLockingStress) {
   isolate->Dispose();
 }
 
-
 class IsolateNestedLockingThread : public JoinableThread {
  public:
   explicit IsolateNestedLockingThread(v8::Isolate* isolate)
-    : JoinableThread("IsolateNestedLocking"), isolate_(isolate) {
-  }
+      : JoinableThread("IsolateNestedLocking"), isolate_(isolate) {}
   void Run() override {
     v8::Locker lock(isolate_);
     v8::Isolate::Scope isolate_scope(isolate_);
@@ -472,10 +463,10 @@ class IsolateNestedLockingThread : public JoinableThread {
       CalcFibAndCheck(local_context.local());
     }
   }
+
  private:
   v8::Isolate* isolate_;
 };
-
 
 // Run  many threads with nested locks
 TEST(IsolateNestedLocking) {
@@ -497,14 +488,13 @@ TEST(IsolateNestedLocking) {
   isolate->Dispose();
 }
 
-
 class SeparateIsolatesLocksNonexclusiveThread : public JoinableThread {
  public:
   SeparateIsolatesLocksNonexclusiveThread(v8::Isolate* isolate1,
                                           v8::Isolate* isolate2)
-    : JoinableThread("SeparateIsolatesLocksNonexclusiveThread"),
-      isolate1_(isolate1), isolate2_(isolate2) {
-  }
+      : JoinableThread("SeparateIsolatesLocksNonexclusiveThread"),
+        isolate1_(isolate1),
+        isolate2_(isolate2) {}
 
   void Run() override {
     v8::Locker lock(isolate1_);
@@ -517,11 +507,11 @@ class SeparateIsolatesLocksNonexclusiveThread : public JoinableThread {
     CalcFibAndCheck(local_context.local());
     threadB.Join();
   }
+
  private:
   v8::Isolate* isolate1_;
   v8::Isolate* isolate2_;
 };
-
 
 // Run parallel threads that lock and access different isolates in parallel
 TEST(SeparateIsolatesLocksNonexclusive) {
@@ -563,6 +553,7 @@ class LockIsolateAndCalculateFibSharedContextThread : public JoinableThread {
     v8::Context::Scope context_scope(context);
     CalcFibAndCheck(context);
   }
+
  private:
   v8::Isolate* isolate_;
   v8::Persistent<v8::Context> context_;
@@ -571,9 +562,7 @@ class LockIsolateAndCalculateFibSharedContextThread : public JoinableThread {
 class LockerUnlockerThread : public JoinableThread {
  public:
   explicit LockerUnlockerThread(v8::Isolate* isolate)
-    : JoinableThread("LockerUnlockerThread"),
-      isolate_(isolate) {
-  }
+      : JoinableThread("LockerUnlockerThread"), isolate_(isolate) {}
 
   void Run() override {
     isolate_->DiscardThreadSpecificMetadata();  // No-op
@@ -607,7 +596,6 @@ class LockerUnlockerThread : public JoinableThread {
   v8::Isolate* isolate_;
 };
 
-
 // Use unlocker inside of a Locker, multiple threads.
 TEST(LockerUnlocker) {
   v8_flags.always_turbofan = false;
@@ -631,9 +619,7 @@ TEST(LockerUnlocker) {
 class LockTwiceAndUnlockThread : public JoinableThread {
  public:
   explicit LockTwiceAndUnlockThread(v8::Isolate* isolate)
-    : JoinableThread("LockTwiceAndUnlockThread"),
-      isolate_(isolate) {
-  }
+      : JoinableThread("LockTwiceAndUnlockThread"), isolate_(isolate) {}
 
   void Run() override {
     v8::Locker lock(isolate_);
@@ -665,7 +651,6 @@ class LockTwiceAndUnlockThread : public JoinableThread {
   v8::Isolate* isolate_;
 };
 
-
 // Use Unlocker inside two Lockers.
 TEST(LockTwiceAndUnlock) {
   v8_flags.always_turbofan = false;
@@ -690,10 +675,9 @@ class LockAndUnlockDifferentIsolatesThread : public JoinableThread {
  public:
   LockAndUnlockDifferentIsolatesThread(v8::Isolate* isolate1,
                                        v8::Isolate* isolate2)
-    : JoinableThread("LockAndUnlockDifferentIsolatesThread"),
-      isolate1_(isolate1),
-      isolate2_(isolate2) {
-  }
+      : JoinableThread("LockAndUnlockDifferentIsolatesThread"),
+        isolate1_(isolate1),
+        isolate2_(isolate2) {}
 
   void Run() override {
     std::unique_ptr<LockIsolateAndCalculateFibSharedContextThread> thread;
@@ -736,7 +720,6 @@ class LockAndUnlockDifferentIsolatesThread : public JoinableThread {
   v8::Isolate* isolate1_;
   v8::Isolate* isolate2_;
 };
-
 
 // Lock two isolates and unlock one of them.
 TEST(LockAndUnlockDifferentIsolates) {
@@ -792,7 +775,6 @@ class LockUnlockLockThread : public JoinableThread {
   v8::Isolate* isolate_;
   v8::Persistent<v8::Context> context_;
 };
-
 
 // Locker inside an Unlocker inside a Locker.
 TEST(LockUnlockLockMultithreaded) {
@@ -853,7 +835,6 @@ class LockUnlockLockDefaultIsolateThread : public JoinableThread {
   v8::Persistent<v8::Context> context_;
 };
 
-
 // Locker inside an Unlocker inside a Locker for default isolate.
 TEST(LockUnlockLockDefaultIsolateMultithreaded) {
 #if V8_TARGET_ARCH_MIPS
@@ -877,7 +858,6 @@ TEST(LockUnlockLockDefaultIsolateMultithreaded) {
   CcTest::isolate()->Enter();
 }
 
-
 TEST(Regress1433) {
   for (int i = 0; i < 10; i++) {
     v8::Isolate::CreateParams create_params;
@@ -899,19 +879,17 @@ TEST(Regress1433) {
   }
 }
 
-
 static const char* kSimpleExtensionSource =
-  "(function Foo() {"
-  "  return 4;"
-  "})() ";
+    "(function Foo() {"
+    "  return 4;"
+    "})() ";
 
 class IsolateGenesisThread : public JoinableThread {
  public:
   IsolateGenesisThread(int count, const char* extension_names[])
-    : JoinableThread("IsolateGenesisThread"),
-      count_(count),
-      extension_names_(extension_names)
-  {}
+      : JoinableThread("IsolateGenesisThread"),
+        count_(count),
+        extension_names_(extension_names) {}
 
   void Run() override {
     v8::Isolate::CreateParams create_params;
@@ -930,7 +908,6 @@ class IsolateGenesisThread : public JoinableThread {
   int count_;
   const char** extension_names_;
 };
-
 
 // Test installing extensions in separate isolates concurrently.
 // http://code.google.com/p/v8/issues/detail?id=1821

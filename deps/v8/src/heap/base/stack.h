@@ -36,7 +36,7 @@ class V8_EXPORT_PRIVATE Stack final {
  public:
   // Sets the start of the stack to the current stack start.
   void SetStackStart() {
-    current_segment_.start = v8::base::Stack::GetStackStart();
+    current_segment_.start = ::v8::base::Stack::GetStackStart();
 #ifdef V8_USE_ADDRESS_SANITIZER
     current_segment_.asan_fake_stack = __asan_get_current_fake_stack();
 #endif  // V8_USE_ADDRESS_SANITIZER

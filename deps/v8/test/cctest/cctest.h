@@ -118,17 +118,17 @@ class JSHeapBroker;
       CcTest(Test##Name, kTestFileName, #Name, true, true, nullptr); \
   static void Test##Name()
 
-#define EXTENSION_LIST(V)                                                      \
-  V(GC_EXTENSION,       "v8/gc")                                               \
-  V(PRINT_EXTENSION,    "v8/print")                                            \
-  V(PROFILER_EXTENSION, "v8/profiler")                                         \
-  V(TRACE_EXTENSION,    "v8/trace")
+#define EXTENSION_LIST(V)              \
+  V(GC_EXTENSION, "v8/gc")             \
+  V(PRINT_EXTENSION, "v8/print")       \
+  V(PROFILER_EXTENSION, "v8/profiler") \
+  V(TRACE_EXTENSION, "v8/trace")
 
 #define DEFINE_EXTENSION_ID(Name, Ident) Name##_ID,
 enum CcTestExtensionId { EXTENSION_LIST(DEFINE_EXTENSION_ID) kMaxExtensions };
 #undef DEFINE_EXTENSION_ID
 
-using CcTestExtensionFlags = v8::base::EnumSet<CcTestExtensionId>;
+using CcTestExtensionFlags = ::v8::base::EnumSet<CcTestExtensionId>;
 
 #define DEFINE_EXTENSION_NAME(Name, Ident) Ident,
 static constexpr const char* kExtensionName[kMaxExtensions] = {
@@ -233,7 +233,7 @@ class CcTest {
 // thread fuzzing test.  In the thread fuzzing test it will
 // pseudorandomly select a successor thread and switch execution
 // to that thread, suspending the current test.
-class ApiTestFuzzer: public v8::base::Thread {
+class ApiTestFuzzer : public ::v8::base::Thread {
  public:
   ~ApiTestFuzzer() override = default;
 
@@ -297,9 +297,9 @@ class ApiTestFuzzer: public v8::base::Thread {
 // 2.  cannot rely on the assumption that garbage collection will reclaim all
 //     non-live objects.
 
-#define THREADED_TEST(Name)                                          \
-  static void Test##Name();                                          \
-  RegisterThreadedTest register_##Name(Test##Name, #Name);           \
+#define THREADED_TEST(Name)                                \
+  static void Test##Name();                                \
+  RegisterThreadedTest register_##Name(Test##Name, #Name); \
   /* */ TEST(Name)
 
 class RegisterThreadedTest {
@@ -363,7 +363,6 @@ class LocalContext {
   v8::Isolate* isolate_;
 };
 
-
 static inline uint16_t* AsciiToTwoByteString(const char* source) {
   size_t array_length = strlen(source) + 1;
   uint16_t* converted = i::NewArray<uint16_t>(array_length);
@@ -416,17 +415,14 @@ static inline v8::Local<v8::String> v8_str(const char* x) {
   return v8::String::NewFromUtf8(v8::Isolate::GetCurrent(), x).ToLocalChecked();
 }
 
-
 static inline v8::Local<v8::String> v8_str(v8::Isolate* isolate,
                                            const char* x) {
   return v8::String::NewFromUtf8(isolate, x).ToLocalChecked();
 }
 
-
 static inline v8::Local<v8::Symbol> v8_symbol(const char* name) {
   return v8::Symbol::New(v8::Isolate::GetCurrent(), v8_str(name));
 }
-
 
 static inline v8::Local<v8::Script> v8_compile(v8::Local<v8::String> x) {
   v8::Local<v8::Script> result;
@@ -484,7 +480,6 @@ static inline v8::MaybeLocal<v8::Value> CompileRun(
       ->Run(context);
 }
 
-
 static inline v8::Local<v8::Value> CompileRunChecked(v8::Isolate* isolate,
                                                      const char* source) {
   v8::Local<v8::String> source_string =
@@ -494,7 +489,6 @@ static inline v8::Local<v8::Value> CompileRunChecked(v8::Isolate* isolate,
       v8::Script::Compile(context, source_string).ToLocalChecked();
   return script->Run(context).ToLocalChecked();
 }
-
 
 static inline v8::Local<v8::Value> CompileRun(v8::Local<v8::String> source) {
   v8::Local<v8::Value> result;
@@ -506,12 +500,10 @@ static inline v8::Local<v8::Value> CompileRun(v8::Local<v8::String> source) {
   return v8::Local<v8::Value>();
 }
 
-
 // Helper functions that compile and run the source.
 static inline v8::Local<v8::Value> CompileRun(const char* source) {
   return CompileRun(v8_str(source));
 }
-
 
 static inline v8::Local<v8::Value> CompileRun(
     v8::Local<v8::Context> context, v8::ScriptCompiler::Source* script_source,
@@ -526,7 +518,6 @@ static inline v8::Local<v8::Value> CompileRun(
   return v8::Local<v8::Value>();
 }
 
-
 // Helper functions that compile and run the source with given origin.
 static inline v8::Local<v8::Value> CompileRunWithOrigin(const char* source,
                                                         const char* origin_url,
@@ -540,7 +531,6 @@ static inline v8::Local<v8::Value> CompileRunWithOrigin(const char* source,
                     v8::ScriptCompiler::CompileOptions());
 }
 
-
 static inline v8::Local<v8::Value> CompileRunWithOrigin(
     v8::Local<v8::String> source, const char* origin_url) {
   v8::Isolate* isolate = v8::Isolate::GetCurrent();
@@ -551,14 +541,13 @@ static inline v8::Local<v8::Value> CompileRunWithOrigin(
                     v8::ScriptCompiler::CompileOptions());
 }
 
-
 static inline v8::Local<v8::Value> CompileRunWithOrigin(
     const char* source, const char* origin_url) {
   return CompileRunWithOrigin(v8_str(source), origin_url);
 }
 
 // Run a ScriptStreamingTask in a separate thread.
-class StreamerThread : public v8::base::Thread {
+class StreamerThread : public ::v8::base::Thread {
  public:
   static void StartThreadForTaskAndJoin(
       v8::ScriptCompiler::ScriptStreamingTask* task) {
@@ -598,23 +587,15 @@ static inline void ExpectInt32(const char* code, int expected) {
                .FromJust());
 }
 
-
 static inline void ExpectBoolean(const char* code, bool expected) {
   v8::Local<v8::Value> result = CompileRun(code);
   CHECK(result->IsBoolean());
   CHECK_EQ(expected, result->BooleanValue(v8::Isolate::GetCurrent()));
 }
 
+static inline void ExpectTrue(const char* code) { ExpectBoolean(code, true); }
 
-static inline void ExpectTrue(const char* code) {
-  ExpectBoolean(code, true);
-}
-
-
-static inline void ExpectFalse(const char* code) {
-  ExpectBoolean(code, false);
-}
-
+static inline void ExpectFalse(const char* code) { ExpectBoolean(code, false); }
 
 static inline void ExpectObject(const char* code,
                                 v8::Local<v8::Value> expected) {
@@ -622,18 +603,15 @@ static inline void ExpectObject(const char* code,
   CHECK(result->SameValue(expected));
 }
 
-
 static inline void ExpectUndefined(const char* code) {
   v8::Local<v8::Value> result = CompileRun(code);
   CHECK(result->IsUndefined());
 }
 
-
 static inline void ExpectNull(const char* code) {
   v8::Local<v8::Value> result = CompileRun(code);
   CHECK(result->IsNull());
 }
-
 
 static inline void CheckDoubleEquals(double expected, double actual) {
   const double kEpsilon = 1e-10;
@@ -647,11 +625,9 @@ static inline void EnableDebugger(v8::Isolate* isolate) {
   v8::debug::SetDebugDelegate(isolate, &dummy_delegate);
 }
 
-
 static inline void DisableDebugger(v8::Isolate* isolate) {
   v8::debug::SetDebugDelegate(isolate, nullptr);
 }
-
 
 static inline void EmptyMessageQueues(v8::Isolate* isolate) {
   while (v8::platform::PumpMessageLoop(CcTest::default_platform(), isolate)) {
@@ -712,15 +688,15 @@ class TestPlatform : public v8::Platform {
   int NumberOfWorkerThreads() override;
   std::shared_ptr<v8::TaskRunner> GetForegroundTaskRunner(
       v8::Isolate* isolate, v8::TaskPriority priority) override;
-  void PostTaskOnWorkerThreadImpl(v8::TaskPriority priority,
-                                  std::unique_ptr<v8::Task> task,
-                                  const v8::SourceLocation& location) override;
+  void PostTaskOnWorkerThreadImpl(
+      v8::TaskPriority priority, std::unique_ptr<v8::Task> task,
+      const ::v8::SourceLocation& location) override;
   void PostDelayedTaskOnWorkerThreadImpl(
       v8::TaskPriority priority, std::unique_ptr<v8::Task> task,
-      double delay_in_seconds, const v8::SourceLocation& location) override;
+      double delay_in_seconds, const ::v8::SourceLocation& location) override;
   std::unique_ptr<v8::JobHandle> CreateJobImpl(
       v8::TaskPriority priority, std::unique_ptr<v8::JobTask> job_task,
-      const v8::SourceLocation& location) override;
+      const ::v8::SourceLocation& location) override;
   double MonotonicallyIncreasingTime() override;
   double CurrentClockTimeMillis() override;
   bool IdleTasksEnabled(v8::Isolate* isolate) override;
@@ -809,7 +785,7 @@ enum class ApiCheckerResult : uint8_t {
   kSlowCalled = 1 << 0,
   kFastCalled = 1 << 1,
 };
-using ApiCheckerResultFlags = v8::base::Flags<ApiCheckerResult>;
+using ApiCheckerResultFlags = ::v8::base::Flags<ApiCheckerResult>;
 DEFINE_OPERATORS_FOR_FLAGS(ApiCheckerResultFlags)
 
 bool IsValidUnwrapObject(v8::Object* object);

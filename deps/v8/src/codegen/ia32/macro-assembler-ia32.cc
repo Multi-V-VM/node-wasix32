@@ -1693,7 +1693,7 @@ void MacroAssembler::Move(XMMRegister dst, uint32_t src) {
   } else {
     unsigned cnt = base::bits::CountPopulation(src);
     unsigned nlz = base::bits::CountLeadingZeros32(src);
-    unsigned ntz = base::bits::CountTrailingZeros32(src);
+    unsigned ntz = base::bits::CountTrailingZerosNonZero(src);
     if (nlz + cnt + ntz == 32) {
       pcmpeqd(dst, dst);
       if (ntz == 0) {

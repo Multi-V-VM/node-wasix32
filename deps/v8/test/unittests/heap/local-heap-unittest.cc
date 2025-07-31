@@ -49,7 +49,7 @@ TEST_F(LocalHeapTest, Current) {
 }
 
 namespace {
-class BackgroundThread final : public v8::base::Thread {
+class BackgroundThread final : public ::v8::base::Thread {
  public:
   explicit BackgroundThread(Heap* heap)
       : v8::base::Thread(base::Thread::Options("BackgroundThread")),
@@ -123,7 +123,7 @@ class GCEpilogue {
   base::ConditionVariable cv_;
 };
 
-class BackgroundThreadForGCEpilogue final : public v8::base::Thread {
+class BackgroundThreadForGCEpilogue final : public ::v8::base::Thread {
  public:
   explicit BackgroundThreadForGCEpilogue(Heap* heap, bool parked,
                                          GCEpilogue* epilogue)

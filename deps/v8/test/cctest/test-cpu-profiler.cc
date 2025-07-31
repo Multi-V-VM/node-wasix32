@@ -3395,7 +3395,7 @@ void ProfileSomeCode(v8::Isolate* isolate) {
   profiler->Dispose();
 }
 
-class IsolateThread : public v8::base::Thread {
+class IsolateThread : public ::v8::base::Thread {
  public:
   IsolateThread() : Thread(Options("IsolateThread")) {}
 
@@ -3455,7 +3455,7 @@ const char* varying_frame_size_script = R"(
     }
   )";
 
-class UnlockingThread : public v8::base::Thread {
+class UnlockingThread : public ::v8::base::Thread {
  public:
   explicit UnlockingThread(v8::Local<v8::Context> env, int32_t threadNumber)
       : Thread(Options("UnlockingThread")),

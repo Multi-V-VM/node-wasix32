@@ -646,7 +646,7 @@ TEST_P(TrapHandlerTest, TestCrashInWasmWrongCrashType) {
 }
 #endif
 
-class CodeRunner : public v8::base::Thread {
+class CodeRunner : public ::v8::base::Thread {
  public:
   CodeRunner(TrapHandlerTest* test, TestingAssemblerBuffer* buffer)
       : Thread(Options("CodeRunner")), test_(test), buffer_(buffer) {}

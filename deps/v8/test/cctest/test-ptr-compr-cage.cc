@@ -95,7 +95,7 @@ UNINITIALIZED_TEST(SharedPtrComprCageCodeRange) {
 namespace {
 constexpr int kIsolatesToAllocate = 25;
 
-class IsolateAllocatingThread final : public v8::base::Thread {
+class IsolateAllocatingThread final : public ::v8::base::Thread {
  public:
   IsolateAllocatingThread()
       : v8::base::Thread(base::Thread::Options("IsolateAllocatingThread")) {}

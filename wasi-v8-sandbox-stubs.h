@@ -13,11 +13,14 @@ namespace v8 {
 namespace internal {
 
 // Missing sandbox constants
+#ifndef EXTERNAL_POINTER_TABLE_CONSTANTS_DEFINED
+#define EXTERNAL_POINTER_TABLE_CONSTANTS_DEFINED
 constexpr size_t kExternalPointerTableReservationSize = 1024 * 1024;  // 1MB
+constexpr size_t kMaxExternalPointers = 65536;
+constexpr size_t kMaxCapacity = 65536;
+#endif
 constexpr size_t kCodePointerTableReservationSize = 1024 * 1024;      // 1MB
-constexpr uint32_t kMaxExternalPointers = 65536;
 constexpr uint32_t kMaxCodePointers = 65536;
-constexpr uint32_t kMaxCapacity = 65536;
 constexpr size_t kCodePointerTableEntrySize = 8;
 constexpr int kExternalPointerTagShift = 48;
 

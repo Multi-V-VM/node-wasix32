@@ -36,7 +36,7 @@ class MockPlatform final : public TestPlatform {
 
   std::unique_ptr<v8::JobHandle> CreateJobImpl(
       v8::TaskPriority priority, std::unique_ptr<v8::JobTask> job_task,
-      const v8::SourceLocation& location) override {
+      const ::v8::SourceLocation& location) override {
     auto orig_job_handle = v8::platform::NewDefaultJobHandle(
         this, priority, std::move(job_task), 1);
     auto job_handle =
@@ -50,9 +50,9 @@ class MockPlatform final : public TestPlatform {
     return task_runner_;
   }
 
-  void PostTaskOnWorkerThreadImpl(v8::TaskPriority priority,
-                                  std::unique_ptr<v8::Task> task,
-                                  const v8::SourceLocation& location) override {
+  void PostTaskOnWorkerThreadImpl(
+      v8::TaskPriority priority, std::unique_ptr<v8::Task> task,
+      const ::v8::SourceLocation& location) override {
     task_runner_->PostTask(std::move(task));
   }
 

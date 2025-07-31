@@ -104,13 +104,11 @@ TEST(ProfileNodeFindOrAddChildForSameFunction) {
   CHECK_EQ(childNode1, node->FindOrAddChild(&entry3));
 }
 
-
 namespace {
 
 class ProfileTreeTestHelper {
  public:
-  explicit ProfileTreeTestHelper(const ProfileTree* tree)
-      : tree_(tree) { }
+  explicit ProfileTreeTestHelper(const ProfileTree* tree) : tree_(tree) {}
 
   ProfileNode* Walk(CodeEntry* entry1, CodeEntry* entry2 = nullptr,
                     CodeEntry* entry3 = nullptr) {
@@ -132,7 +130,6 @@ class ProfileTreeTestHelper {
 };
 
 }  // namespace
-
 
 TEST(ProfileTreeAddPathFromEnd) {
   CcTest::InitializeVM();
@@ -496,7 +493,7 @@ TEST(SampleIds) {
   // (root)#1 -> aaa #2 -> bbb #4 -> ccc #5 - sample2
   //                    -> ccc #6 -> aaa #7 - sample3
   TickSample sample1;
-  sample1.timestamp = v8::base::TimeTicks::Now();
+  sample1.timestamp = ::v8::base::TimeTicks::Now();
   sample1.pc = ToPointer(0x1600);
   sample1.stack[0] = ToPointer(0x1510);
   sample1.frames_count = 1;
@@ -507,7 +504,7 @@ TEST(SampleIds) {
       kNullAddress, 1);
 
   TickSample sample2;
-  sample2.timestamp = v8::base::TimeTicks::Now();
+  sample2.timestamp = ::v8::base::TimeTicks::Now();
   sample2.pc = ToPointer(0x1925);
   sample2.stack[0] = ToPointer(0x1780);
   sample2.stack[1] = ToPointer(0x10000);  // non-existent.
@@ -520,7 +517,7 @@ TEST(SampleIds) {
       kNullAddress, 2);
 
   TickSample sample3;
-  sample3.timestamp = v8::base::TimeTicks::Now();
+  sample3.timestamp = ::v8::base::TimeTicks::Now();
   sample3.pc = ToPointer(0x1510);
   sample3.stack[0] = ToPointer(0x1910);
   sample3.stack[1] = ToPointer(0x1610);
@@ -662,7 +659,7 @@ TEST_WITH_PLATFORM(MaxSamplesCallback, MockPlatform) {
   InstructionStreamMap instruction_stream_map(storage);
   Symbolizer symbolizer(&instruction_stream_map);
   TickSample sample1;
-  sample1.timestamp = v8::base::TimeTicks::Now();
+  sample1.timestamp = ::v8::base::TimeTicks::Now();
   sample1.pc = ToPointer(0x1600);
   sample1.stack[0] = ToPointer(0x1510);
   sample1.frames_count = 1;
@@ -672,7 +669,7 @@ TEST_WITH_PLATFORM(MaxSamplesCallback, MockPlatform) {
       base::TimeDelta(), StateTag::JS, EmbedderStateTag::EMPTY);
   CHECK_EQ(0, platform.posted_count());
   TickSample sample2;
-  sample2.timestamp = v8::base::TimeTicks::Now();
+  sample2.timestamp = ::v8::base::TimeTicks::Now();
   sample2.pc = ToPointer(0x1925);
   sample2.stack[0] = ToPointer(0x1780);
   sample2.stack[1] = ToPointer(0x1760);
@@ -683,7 +680,7 @@ TEST_WITH_PLATFORM(MaxSamplesCallback, MockPlatform) {
       base::TimeDelta(), StateTag::JS, EmbedderStateTag::EMPTY);
   CHECK_EQ(1, platform.posted_count());
   TickSample sample3;
-  sample3.timestamp = v8::base::TimeTicks::Now();
+  sample3.timestamp = ::v8::base::TimeTicks::Now();
   sample3.pc = ToPointer(0x1510);
   sample3.stack[0] = ToPointer(0x1780);
   sample3.stack[1] = ToPointer(0x1760);
@@ -741,7 +738,6 @@ static const ProfileNode* PickChild(const ProfileNode* parent,
   return nullptr;
 }
 
-
 TEST(RecordStackTraceAtStartProfiling) {
   // This test does not pass with inlining enabled since inlined functions
   // don't appear in the stack trace.
@@ -789,7 +785,6 @@ TEST(RecordStackTraceAtStartProfiling) {
   }
 }
 
-
 TEST(Issue51919) {
   CpuProfilesCollection collection(CcTest::i_isolate());
   CpuProfiler profiler(CcTest::i_isolate());
@@ -797,7 +792,7 @@ TEST(Issue51919) {
   base::EmbeddedVector<char*, CpuProfilesCollection::kMaxSimultaneousProfiles>
       titles;
   for (int i = 0; i < CpuProfilesCollection::kMaxSimultaneousProfiles; ++i) {
-    base::Vector<char> title = v8::base::Vector<char>::New(16);
+    base::Vector<char> title = ::v8::base::Vector<char>::New(16);
     base::SNPrintF(title, "%d", i);
     CHECK_EQ(CpuProfilingStatus::kStarted,
              collection.StartProfiling(title.begin()).status);
@@ -819,7 +814,6 @@ static const v8::CpuProfileNode* PickChild(const v8::CpuProfileNode* parent,
   }
   return nullptr;
 }
-
 
 TEST(ProfileNodeScriptId) {
   // This test does not pass with inlining enabled since inlined functions
@@ -843,8 +837,8 @@ TEST(ProfileNodeScriptId) {
   CHECK_EQ(1, iprofiler->GetProfilesCount());
   const v8::CpuProfile* profile = i::ProfilerExtension::last_profile;
   const v8::CpuProfileNode* current = profile->GetTopDownRoot();
-  reinterpret_cast<ProfileNode*>(
-      const_cast<v8::CpuProfileNode*>(current))->Print(0);
+  reinterpret_cast<ProfileNode*>(const_cast<v8::CpuProfileNode*>(current))
+      ->Print(0);
   // The tree should look like this:
   //  (root)
   //   ""
@@ -866,18 +860,18 @@ TEST(ProfileNodeScriptId) {
 }
 
 static const char* line_number_test_source_existing_functions =
-"function foo_at_the_first_line() {\n"
-"}\n"
-"foo_at_the_first_line();\n"
-"function lazy_func_at_forth_line() {}\n";
+    "function foo_at_the_first_line() {\n"
+    "}\n"
+    "foo_at_the_first_line();\n"
+    "function lazy_func_at_forth_line() {}\n";
 
 static const char* line_number_test_source_profile_time_functions =
-"// Empty first line\n"
-"function bar_at_the_second_line() {\n"
-"  foo_at_the_first_line();\n"
-"}\n"
-"bar_at_the_second_line();\n"
-"function lazy_func_at_6th_line() {}";
+    "// Empty first line\n"
+    "function bar_at_the_second_line() {\n"
+    "  foo_at_the_first_line();\n"
+    "}\n"
+    "bar_at_the_second_line();\n"
+    "function lazy_func_at_6th_line() {}";
 
 int GetFunctionLineNumber(CpuProfiler* profiler, LocalContext* env,
                           i::Isolate* isolate, const char* name) {
@@ -955,8 +949,8 @@ TEST(BailoutReason) {
   const v8::CpuProfile* profile = i::ProfilerExtension::last_profile;
   CHECK(profile);
   const v8::CpuProfileNode* current = profile->GetTopDownRoot();
-  reinterpret_cast<ProfileNode*>(
-      const_cast<v8::CpuProfileNode*>(current))->Print(0);
+  reinterpret_cast<ProfileNode*>(const_cast<v8::CpuProfileNode*>(current))
+      ->Print(0);
   // The tree should look like this:
   //  (root)
   //   ""

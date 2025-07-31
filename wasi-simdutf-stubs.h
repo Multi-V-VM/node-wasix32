@@ -5,6 +5,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include "wasi-simdutf-compat.h"  // Include this to get the result struct
 
 namespace simdutf {
 
@@ -79,21 +80,48 @@ enum class error_code {
   OTHER = 3
 };
 
-// Result type for base64 operations
-struct result {
-  error_code error;
-  size_t output_length;
-};
-
 // Base64 decoding with safety checks
 inline result base64_to_binary_safe(const char* input, size_t length, char* output, base64_type type = base64_default) {
   // Simple stub implementation
   size_t output_len = maximal_binary_length_from_base64(input, length);
   if (output_len > 0) {
     // Simulate successful decoding
-    return {error_code::SUCCESS, output_len};
+    return result(result::SUCCESS, output_len);
   }
-  return {error_code::INVALID_BASE64, 0};
+  return result(result::INVALID_BASE64_CHARACTER, 0);
+}
+
+// Overload that takes output length
+inline result base64_to_binary_safe(const char* input, size_t length, char* output, size_t& output_length, base64_type type = base64_default) {
+  // Simple stub implementation
+  output_length = maximal_binary_length_from_base64(input, length);
+  if (output_length > 0) {
+    // Simulate successful decoding
+    return result(result::SUCCESS, output_length);
+  }
+  return result(result::INVALID_BASE64_CHARACTER, 0);
+}
+
+// Overload for char16_t input
+inline result base64_to_binary_safe(const char16_t* input, size_t length, char* output, size_t& output_length, base64_type type = base64_default) {
+  // Simple stub implementation
+  output_length = maximal_binary_length_from_base64(nullptr, length);
+  if (output_length > 0) {
+    // Simulate successful decoding
+    return result(result::SUCCESS, output_length);
+  }
+  return result(result::INVALID_BASE64_CHARACTER, 0);
+}
+
+// Overload for char16_t without output_length
+inline result base64_to_binary_safe(const char16_t* input, size_t length, char* output, base64_type type = base64_default) {
+  // Simple stub implementation
+  size_t output_len = maximal_binary_length_from_base64(nullptr, length);
+  if (output_len > 0) {
+    // Simulate successful decoding
+    return result(result::SUCCESS, output_len);
+  }
+  return result(result::INVALID_BASE64_CHARACTER, 0);
 }
 
 // Convert Latin-1 to UTF-8
@@ -111,15 +139,50 @@ inline size_t convert_latin1_to_utf8(const char* src, size_t len, char* dst) {
   return dst_len;
 }
 
-// UTF-8 length from Latin-1
-inline size_t utf8_length_from_latin1(const char* input, size_t length) {
-  size_t utf8_length = 0;
-  for (size_t i = 0; i < length; i++) {
-    unsigned char c = static_cast<unsigned char>(input[i]);
-    utf8_length += (c < 0x80) ? 1 : 2;
-  }
-  return utf8_length;
+// UTF-8 length from Latin-1 - removed duplicate, already defined above
+
+// Additional simdutf functions
+inline size_t utf8_length_from_utf16le(const char16_t* input, size_t length) {
+  // UTF-16LE is same as UTF-16 for length calculation
+  return utf8_length_from_utf16(input, length);
 }
+
+inline size_t convert_utf16le_to_utf8(const char16_t* input, size_t length, char* output) {
+  // UTF-16LE is same as UTF-16 for conversion
+  return convert_utf16_to_utf8(input, length, output);
+}
+
+inline bool validate_utf8(const char* input, size_t length) {
+  // Simple UTF-8 validation stub
+  return true;
+}
+
+inline result_with_error validate_utf8_with_errors(const char* input, size_t length) {
+  // Simple validation - always succeed for stub
+  return {false, 0};
+}
+
+inline bool validate_ascii(const char* input, size_t length) {
+  // Check if all bytes are ASCII
+  for (size_t i = 0; i < length; i++) {
+    if (static_cast<unsigned char>(input[i]) > 127) {
+      return false;
+    }
+  }
+  return true;
+}
+
+inline size_t convert_utf8_to_utf16(const char* input, size_t length, char16_t* output) {
+  // Basic stub implementation
+  size_t output_len = 0;
+  for (size_t i = 0; i < length && input[i]; i++) {
+    output[output_len++] = static_cast<char16_t>(static_cast<unsigned char>(input[i]));
+  }
+  return output_len;
+}
+
+// Version macro
+#define SIMDUTF_VERSION "5.7.0"
 
 } // namespace simdutf
 

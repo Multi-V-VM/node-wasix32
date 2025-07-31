@@ -218,8 +218,11 @@ void GarbageCollectionCleanupHook(void* data) {
   Environment* env = static_cast<Environment*>(data);
   // Reset current_gc_type to 0
   env->performance_state()->current_gc_type = 0;
+#ifndef __wasi__
+  // GC callbacks not available in WASI
   env->isolate()->RemoveGCPrologueCallback(MarkGarbageCollectionStart, data);
   env->isolate()->RemoveGCEpilogueCallback(MarkGarbageCollectionEnd, data);
+#endif
 }
 
 static void InstallGarbageCollectionTracking(
@@ -227,10 +230,13 @@ static void InstallGarbageCollectionTracking(
   Environment* env = Environment::GetCurrent(args);
   // Reset current_gc_type to 0
   env->performance_state()->current_gc_type = 0;
+#ifndef __wasi__
+  // GC callbacks not available in WASI
   env->isolate()->AddGCPrologueCallback(MarkGarbageCollectionStart,
                                         static_cast<void*>(env));
   env->isolate()->AddGCEpilogueCallback(MarkGarbageCollectionEnd,
                                         static_cast<void*>(env));
+#endif
   env->AddCleanupHook(GarbageCollectionCleanupHook, env);
 }
 

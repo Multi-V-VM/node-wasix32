@@ -134,32 +134,31 @@ class PerIsolatePlatformData
 
   // v8::TaskRunner implementation - public interface
   void PostTask(std::unique_ptr<v8::Task> task) override {
-    PostTaskImpl(std::move(task), v8::SourceLocation::Current());
+    PostTaskImpl(std::move(task), ::v8::SourceLocation::Current());
   }
-  void PostDelayedTask(std::unique_ptr<v8::Task> task, 
-                      double delay_in_seconds) override {
-    PostDelayedTaskImpl(std::move(task), delay_in_seconds, 
-                       v8::SourceLocation::Current());
+  void PostDelayedTask(std::unique_ptr<v8::Task> task,
+                       double delay_in_seconds) override {
+    PostDelayedTaskImpl(
+        std::move(task), delay_in_seconds, ::v8::SourceLocation::Current());
   }
   void PostIdleTask(std::unique_ptr<v8::IdleTask> task) override {
-    PostIdleTaskImpl(std::move(task), v8::SourceLocation::Current());
+    PostIdleTaskImpl(std::move(task), ::v8::SourceLocation::Current());
   }
 
  private:
   // v8::TaskRunner implementation.
   void PostTaskImpl(std::unique_ptr<v8::Task> task,
-                    const v8::SourceLocation& location);
+                    const ::v8::SourceLocation& location);
   void PostDelayedTaskImpl(std::unique_ptr<v8::Task> task,
                            double delay_in_seconds,
-                           const v8::SourceLocation& location);
+                           const ::v8::SourceLocation& location);
   void PostIdleTaskImpl(std::unique_ptr<v8::IdleTask> task,
-                        const v8::SourceLocation& location);
+                        const ::v8::SourceLocation& location);
   void PostNonNestableTaskImpl(std::unique_ptr<v8::Task> task,
-                               const v8::SourceLocation& location);
-  void PostNonNestableDelayedTaskImpl(
-      std::unique_ptr<v8::Task> task,
-      double delay_in_seconds,
-      const v8::SourceLocation& location);
+                               const ::v8::SourceLocation& location);
+  void PostNonNestableDelayedTaskImpl(std::unique_ptr<v8::Task> task,
+                                      double delay_in_seconds,
+                                      const ::v8::SourceLocation& location);
 
   void DeleteFromScheduledTasks(DelayedTask* task);
   void DecreaseHandleCount();
@@ -203,10 +202,10 @@ class WorkerThreadsTaskRunner {
 
   void PostTask(v8::TaskPriority priority,
                 std::unique_ptr<v8::Task> task,
-                const v8::SourceLocation& location);
+                const ::v8::SourceLocation& location);
   void PostDelayedTask(v8::TaskPriority priority,
                        std::unique_ptr<v8::Task> task,
-                       const v8::SourceLocation& location,
+                       const ::v8::SourceLocation& location,
                        double delay_in_seconds);
 
   void BlockingDrain();
@@ -246,12 +245,11 @@ class NodePlatform : public MultiIsolatePlatform {
   int NumberOfWorkerThreads() override;
   void PostTaskOnWorkerThreadImpl(v8::TaskPriority priority,
                                   std::unique_ptr<v8::Task> task,
-                                  const v8::SourceLocation& location);
-  void PostDelayedTaskOnWorkerThreadImpl(
-      v8::TaskPriority priority,
-      std::unique_ptr<v8::Task> task,
-      double delay_in_seconds,
-      const v8::SourceLocation& location);
+                                  const ::v8::SourceLocation& location);
+  void PostDelayedTaskOnWorkerThreadImpl(v8::TaskPriority priority,
+                                         std::unique_ptr<v8::Task> task,
+                                         double delay_in_seconds,
+                                         const ::v8::SourceLocation& location);
   void CallDelayedOnWorkerThread(std::unique_ptr<v8::Task> task,
                                  double delay_in_seconds) override;
   bool IdleTasksEnabled(v8::Isolate* isolate) override;
@@ -262,7 +260,7 @@ class NodePlatform : public MultiIsolatePlatform {
   std::unique_ptr<v8::JobHandle> CreateJobImpl(
       v8::TaskPriority priority,
       std::unique_ptr<v8::JobTask> job_task,
-      const v8::SourceLocation& location);
+      const ::v8::SourceLocation& location);
 
   void RegisterIsolate(v8::Isolate* isolate, uv_loop_t* loop) override;
   void RegisterIsolate(v8::Isolate* isolate,
@@ -276,20 +274,21 @@ class NodePlatform : public MultiIsolatePlatform {
   // Override base method
   std::shared_ptr<v8::TaskRunner> GetForegroundTaskRunner(
       v8::Isolate* isolate) override;
-      
+
   // Additional method with priority
   std::shared_ptr<v8::TaskRunner> GetForegroundTaskRunner(
       v8::Isolate* isolate, v8::TaskPriority priority);
 
   v8::StackTracePrinter GetStackTracePrinter() override;
   v8::PageAllocator* GetPageAllocator() override;
-  
+
   // Additional pure virtual methods from v8::Platform
   void CallOnWorkerThread(std::unique_ptr<v8::Task> task) override;
-  std::unique_ptr<v8::JobHandle> PostJob(v8::TaskPriority priority,
-                                         std::unique_ptr<v8::JobTask> job_task) override;
+  std::unique_ptr<v8::JobHandle> PostJob(
+      v8::TaskPriority priority,
+      std::unique_ptr<v8::JobTask> job_task) override;
   void PostTaskOnWorkerThread(v8::TaskPriority priority,
-                             std::unique_ptr<v8::Task> task) override;
+                              std::unique_ptr<v8::Task> task) override;
 
  private:
   IsolatePlatformDelegate* ForIsolate(v8::Isolate* isolate);

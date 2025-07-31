@@ -328,7 +328,7 @@ MaybeLocal<Value> GetPeerCert(
           issuer_chain,
           env);
 
-  issuer_chain.Clear();
+  issuer_chain = Local<Object>();
   if (!maybe_issuer_chain.ToLocal(&issuer_chain)) return {};
 
   // Last certificate should be self-signed.

@@ -24,7 +24,7 @@ namespace internal {
 namespace {
 
 // Background search thread class
-class ConcurrentSearchThread : public v8::base::Thread {
+class ConcurrentSearchThread : public ::v8::base::Thread {
  public:
   ConcurrentSearchThread(Heap* heap, base::Semaphore* background_thread_started,
                          std::unique_ptr<PersistentHandles> ph,

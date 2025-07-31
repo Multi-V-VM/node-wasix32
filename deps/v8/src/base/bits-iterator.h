@@ -9,7 +9,7 @@
 
 #include "src/base/bits.h"
 #ifdef __wasi__
-#include "../../../../wasi-v8-bits-fixes.h"
+#include "../../../../node/wasi-v8-bits-fixes.h"
 #endif
 #include "src/base/iterator.h"
 

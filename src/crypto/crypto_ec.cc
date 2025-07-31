@@ -340,13 +340,13 @@ bool ECDH::IsKeyValidForCurve(const BignumPointer& private_key) {
   CHECK(private_key);
   // Private keys must be in the range [1, n-1].
   // Ref: Section 3.2.1 - http://www.secg.org/sec1-v2.pdf
-  if (private_key < BignumPointer::One()) {
+  if (private_key.operator_spaceship(BignumPointer::One()) < 0) {
     return false;
   }
   auto order = BignumPointer::New();
   CHECK(order);
   return EC_GROUP_get_order(group_, order.get(), nullptr) &&
-         private_key < order;
+         private_key.operator_spaceship(order) < 0;
 }
 
 bool ECDH::IsKeyPairValid() {

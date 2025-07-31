@@ -78,7 +78,7 @@
 #ifdef __wasi__
 #include "wasi/v8-wasi-helpers.h"
 #include "wasi/v8-wasi-compat.h"
-#include "../../../out/Release/obj/gen/wasi-v8-complete-missing.h"
+// wasi-v8-complete-missing.h removed - should be included before V8 headers, not after
 #include "../../../wasi-v8-namespace-fix.h"
 #include "../../../wasi-v8-flags-fix.h"
 // wasi-v8-internals-constants.h removed - causes redefinition errors

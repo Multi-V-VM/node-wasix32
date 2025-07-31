@@ -416,7 +416,7 @@ IncludeObjectMacrosScope::~IncludeObjectMacrosScope() {
 size_t ResidueClass::AlignmentLog2() const {
   if (value_ == 0) return modulus_log_2_;
   // Use the correct namespace for WASI
-  return v8::base::bits::CountTrailingZerosNonZero(value_);
+  return ::v8::base::bits::CountTrailingZerosNonZero(value_);
 }
 
 const size_t ResidueClass::kMaxModulusLog2;

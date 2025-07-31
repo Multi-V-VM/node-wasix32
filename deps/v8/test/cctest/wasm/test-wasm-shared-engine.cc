@@ -11,7 +11,6 @@
 #include "src/wasm/wasm-module-builder.h"
 #include "src/wasm/wasm-module.h"
 #include "src/wasm/wasm-objects-inl.h"
-
 #include "test/cctest/cctest.h"
 #include "test/common/wasm/test-signatures.h"
 #include "test/common/wasm/wasm-macro-gen.h"
@@ -83,7 +82,7 @@ class SharedEngineIsolate {
 
 // Helper class representing a Thread running its own instance of an Isolate
 // with a shared WebAssembly engine available at construction time.
-class SharedEngineThread : public v8::base::Thread {
+class SharedEngineThread : public ::v8::base::Thread {
  public:
   explicit SharedEngineThread(
       std::function<void(SharedEngineIsolate*)> callback)

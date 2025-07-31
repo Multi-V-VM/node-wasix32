@@ -2105,7 +2105,7 @@ class WakeupTask : public CancelableTask {
   int& wakeup_counter_;
 };
 
-class WorkerIsolateThread : public v8::base::Thread {
+class WorkerIsolateThread : public ::v8::base::Thread {
  public:
   WorkerIsolateThread(const char* name, MultiClientIsolateTest* test)
       : v8::base::Thread(base::Thread::Options(name)), test_(test) {}
@@ -2167,7 +2167,7 @@ UNINITIALIZED_TEST(SharedStringInClientGlobalHandle) {
   thread.Join();
 }
 
-class ClientIsolateThreadForPagePromotions : public v8::base::Thread {
+class ClientIsolateThreadForPagePromotions : public ::v8::base::Thread {
  public:
   // Expects a ManualGCScope to be in scope while `Run()` is executed.
   ClientIsolateThreadForPagePromotions(const char* name,
@@ -2330,7 +2330,8 @@ UNINITIALIZED_TEST(
   thread.Join();
 }
 
-class ClientIsolateThreadForRetainingByRememberedSet : public v8::base::Thread {
+class ClientIsolateThreadForRetainingByRememberedSet
+    : public ::v8::base::Thread {
  public:
   // Expects a ManualGCScope to be in scope while `Run()` is executed.
   ClientIsolateThreadForRetainingByRememberedSet(
@@ -2510,7 +2511,7 @@ UNINITIALIZED_TEST(SharedObjectRetainedByClientRememberedSet) {
   thread.Join();
 }
 
-class Regress1424955ClientIsolateThread : public v8::base::Thread {
+class Regress1424955ClientIsolateThread : public ::v8::base::Thread {
  public:
   Regress1424955ClientIsolateThread(const char* name,
                                     MultiClientIsolateTest* test)
@@ -2625,7 +2626,7 @@ UNINITIALIZED_TEST(Regress1424955) {
 }
 
 class ProtectExternalStringTableAddStringClientIsolateThread
-    : public v8::base::Thread {
+    : public ::v8::base::Thread {
  public:
   ProtectExternalStringTableAddStringClientIsolateThread(
       const char* name, MultiClientIsolateTest* test, v8::Isolate* isolate)

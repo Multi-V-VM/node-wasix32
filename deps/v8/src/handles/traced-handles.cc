@@ -54,7 +54,7 @@ TracedNodeBlock* TracedNodeBlock::Create(TracedHandles& traced_handles) {
   const size_t min_wanted_size =
       sizeof(TracedNodeBlock) +
       sizeof(TracedNode) * TracedNodeBlock::kMinCapacity;
-  const auto raw_result = v8::base::AllocateAtLeast<char>(min_wanted_size);
+  const auto raw_result = ::v8::base::AllocateAtLeast<char>(min_wanted_size);
   const size_t capacity = std::min(
       (raw_result.count - sizeof(TracedNodeBlock)) / sizeof(TracedNode),
       kMaxCapacity);

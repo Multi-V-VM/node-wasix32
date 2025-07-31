@@ -25,7 +25,7 @@ using LocalHandlesTest = TestWithIsolate;
 
 namespace {
 
-class LocalHandlesThread final : public v8::base::Thread {
+class LocalHandlesThread final : public ::v8::base::Thread {
  public:
   LocalHandlesThread(Heap* heap, Address object, base::Semaphore* sema_started,
                      base::Semaphore* sema_gc_finished)

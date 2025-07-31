@@ -464,7 +464,7 @@ Response V8DebuggerAgentImpl::enable(std::optional<double> maxScriptsCacheSize,
                                      String16* outDebuggerId) {
   if (m_enableState == kStopping)
     return Response::ServerError("Debugger is stopping");
-  m_maxScriptCacheSize = v8::base::saturated_cast<size_t>(
+  m_maxScriptCacheSize = ::v8::base::saturated_cast<size_t>(
       maxScriptsCacheSize.value_or(std::numeric_limits<double>::max()));
   m_state->setDouble(DebuggerAgentState::maxScriptCacheSize,
                      static_cast<double>(m_maxScriptCacheSize));
@@ -535,7 +535,7 @@ void V8DebuggerAgentImpl::restore() {
   double maxScriptCacheSize = 0;
   m_state->getDouble(DebuggerAgentState::maxScriptCacheSize,
                      &maxScriptCacheSize);
-  m_maxScriptCacheSize = v8::base::saturated_cast<size_t>(maxScriptCacheSize);
+  m_maxScriptCacheSize = ::v8::base::saturated_cast<size_t>(maxScriptCacheSize);
 
   int pauseState = v8::debug::NoBreakOnException;
   m_state->getInteger(DebuggerAgentState::pauseOnExceptionsState, &pauseState);
@@ -992,8 +992,8 @@ bool V8DebuggerAgentImpl::isFunctionBlackboxed(const String16& scriptId,
     return true;
   }
   const String16& scriptSourceURL = it->second->sourceURL();
-  if (m_blackboxPattern && !scriptSourceURL.isEmpty()
-      && m_blackboxPattern->match(scriptSourceURL) != -1) {
+  if (m_blackboxPattern && !scriptSourceURL.isEmpty() &&
+      m_blackboxPattern->match(scriptSourceURL) != -1) {
     return true;
   }
   if (m_skipAnonymousScripts && scriptSourceURL.isEmpty()) {

@@ -581,7 +581,7 @@ void UDPWrap::DoSend(const FunctionCallbackInfo<Value>& args, int family) {
 
     err = static_cast<int>(wrap->Send(*bufs, count, addr));
 
-    wrap->current_send_req_wrap_.Clear();
+    wrap->current_send_req_wrap_ = v8::Local<v8::Object>();
     wrap->current_send_has_callback_ = false;
   }
 

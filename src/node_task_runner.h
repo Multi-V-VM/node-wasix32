@@ -77,7 +77,7 @@ class ProcessRunner {
 // if the current directory is `/anonrig`:
 // `/anonrig/node_modules/.bin:/node_modules/.bin`
 std::optional<std::tuple<std::filesystem::path, std::string, std::string>>
-FindPackageJson(const std::filesystem::path& cwd);
+FindPackageJson(const ::std::filesystem::path& cwd);
 
 void RunTask(const std::shared_ptr<InitializationResultImpl>& result,
              std::string_view command_id,

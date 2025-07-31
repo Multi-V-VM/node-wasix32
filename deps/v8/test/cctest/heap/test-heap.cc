@@ -2696,7 +2696,8 @@ TEST(InstanceOfStubWriteBarrier) {
 
   MarkingState* marking_state = CcTest::heap()->marking_state();
 
-  static constexpr auto kStepSize = v8::base::TimeDelta::FromMilliseconds(100);
+  static constexpr auto kStepSize =
+      ::v8::base::TimeDelta::FromMilliseconds(100);
   while (!marking_state->IsMarked(f->code(isolate))) {
     // Discard any pending GC requests otherwise we will get GC when we enter
     // code below.
@@ -3742,7 +3743,7 @@ TEST(ContextDisposeDoesntClearPolymorphicIC) {
 class SourceResource : public v8::String::ExternalOneByteStringResource {
  public:
   explicit SourceResource(const char* data)
-    : data_(data), length_(strlen(data)) { }
+      : data_(data), length_(strlen(data)) {}
 
   void Dispose() override {
     i::DeleteArray(data_);
@@ -4731,7 +4732,6 @@ TEST(ObjectsInEagerlyDeoptimizedCodeAreWeak) {
     code = scope.CloseAndEscape(code);
   }
 
-
   // Now make sure that a gc should get rid of the function
   for (int i = 0; i < 4; i++) {
     // We need to invoke GC without stack, otherwise some objects may not be
@@ -5193,7 +5193,7 @@ TEST(CEntryStubOOM) {
 
 #endif  // DEBUG
 
-static void InterruptCallback357137(v8::Isolate* isolate, void* data) { }
+static void InterruptCallback357137(v8::Isolate* isolate, void* data) {}
 
 static void RequestInterrupt(const v8::FunctionCallbackInfo<v8::Value>& info) {
   CHECK(i::ValidateCallbackInfo(info));
@@ -6134,7 +6134,8 @@ TEST(Regress615489) {
     v8::HandleScope inner(CcTest::isolate());
     isolate->factory()->NewFixedArray(500, AllocationType::kOld)->Size();
   }
-  static constexpr auto kStepSize = v8::base::TimeDelta::FromMilliseconds(100);
+  static constexpr auto kStepSize =
+      ::v8::base::TimeDelta::FromMilliseconds(100);
   while (!marking->IsMajorMarkingComplete()) {
     marking->AdvanceForTesting(kStepSize);
   }
@@ -6192,7 +6193,8 @@ TEST(Regress631969) {
   heap::SimulateIncrementalMarking(heap, false);
 
   // Finish incremental marking.
-  static constexpr auto kStepSize = v8::base::TimeDelta::FromMilliseconds(100);
+  static constexpr auto kStepSize =
+      ::v8::base::TimeDelta::FromMilliseconds(100);
   IncrementalMarking* marking = heap->incremental_marking();
   while (!marking->IsMajorMarkingComplete()) {
     marking->AdvanceForTesting(kStepSize);

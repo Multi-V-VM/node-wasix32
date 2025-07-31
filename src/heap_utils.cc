@@ -6,6 +6,10 @@
 #include "permission/permission.h"
 #include "stream_base-inl.h"
 #include "util-inl.h"
+#ifdef __wasi__
+#include "wasi-v8-profiler-stubs.h"
+#include "wasi-v8-value-methods.h"
+#endif
 
 // Copied from https://github.com/nodejs/node/blob/b07dc4d19fdbc15b4f76557dc45b3ce3a43ad0c3/src/util.cc#L36-L41.
 #ifdef _WIN32
@@ -230,7 +234,7 @@ class FileOutputStream : public v8::OutputStream {
 
   void EndOfStream() override {}
 
-  WriteResult WriteAsciiChunk(char* data, const int size) override {
+  v8::OutputStream::WriteResult WriteAsciiChunk(char* data, const int size) override {
     DCHECK_EQ(status_, 0);
     int offset = 0;
     while (offset < size) {
@@ -288,7 +292,7 @@ class HeapSnapshotStream : public AsyncWrap,
     snapshot_.reset();
   }
 
-  WriteResult WriteAsciiChunk(char* data, int size) override {
+  v8::OutputStream::WriteResult WriteAsciiChunk(char* data, int size) override {
     int len = size;
     while (len != 0) {
       uv_buf_t buf = EmitAlloc(size);

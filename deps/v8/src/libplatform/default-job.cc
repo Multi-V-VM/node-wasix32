@@ -5,10 +5,9 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-#include "src/libplatform/default-job.h"
-
 #include "src/base/bits.h"
 #include "src/base/macros.h"
+#include "src/libplatform/default-job.h"
 
 namespace v8 {
 namespace platform {
@@ -79,7 +78,7 @@ uint8_t DefaultJobState::AcquireTaskId() {
   do {
     // Count trailing one bits. This is the id of the right-most 0-bit in
     // |assigned_task_ids|.
-    task_id = v8::base::bits::CountTrailingZeros32(~assigned_task_ids);
+    task_id = ::v8::base::bits::CountTrailingZerosNonZero(~assigned_task_ids);
     new_assigned_task_ids = assigned_task_ids | (uint32_t(1) << task_id);
   } while (!assigned_task_ids_.compare_exchange_weak(
       assigned_task_ids, new_assigned_task_ids, std::memory_order_acquire,

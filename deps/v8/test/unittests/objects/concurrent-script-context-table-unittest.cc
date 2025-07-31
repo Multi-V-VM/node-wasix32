@@ -24,7 +24,7 @@ namespace {
 
 std::atomic<int> g_initialized_entries;
 
-class ScriptContextTableAccessUsedThread final : public v8::base::Thread {
+class ScriptContextTableAccessUsedThread final : public ::v8::base::Thread {
  public:
   ScriptContextTableAccessUsedThread(
       Isolate* isolate, Heap* heap, base::Semaphore* sema_started,
@@ -57,7 +57,7 @@ class ScriptContextTableAccessUsedThread final : public v8::base::Thread {
   Handle<ScriptContextTable> script_context_table_;
 };
 
-class AccessScriptContextTableThread final : public v8::base::Thread {
+class AccessScriptContextTableThread final : public ::v8::base::Thread {
  public:
   AccessScriptContextTableThread(Isolate* isolate, Heap* heap,
                                  base::Semaphore* sema_started,

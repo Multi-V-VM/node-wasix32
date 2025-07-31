@@ -340,7 +340,7 @@ class Item {
   }
 
   friend size_t hash_value(const Item& i) {
-    return v8::base::hash_combine(i.rule_, i.mark_, i.start_, i.pos_);
+    return ::v8::base::hash_combine(i.rule_, i.mark_, i.start_, i.pos_);
   }
 
   const Rule* rule() const { return rule_; }
@@ -368,11 +368,11 @@ inline std::optional<ParseResult> Symbol::RunAction(const Item* item,
 
 V8_EXPORT_PRIVATE const Item* RunEarleyAlgorithm(
     Symbol* start, const LexerResult& tokens,
-    std::unordered_set<Item, v8::base::hash<Item>>* processed);
+    std::unordered_set<Item, ::v8::base::hash<Item>>* processed);
 
 inline std::optional<ParseResult> ParseTokens(Symbol* start,
                                               const LexerResult& tokens) {
-  std::unordered_set<Item, v8::base::hash<Item>> table;
+  std::unordered_set<Item, ::v8::base::hash<Item>> table;
   const Item* final_item = RunEarleyAlgorithm(start, tokens, &table);
   return start->RunAction(final_item, tokens);
 }
@@ -541,5 +541,26 @@ class Grammar {
 };
 
 }  // namespace v8::internal::torque
+
+// Provide std::hash specializations for types used in unordered containers
+namespace std {
+
+template <>
+struct hash<v8::internal::torque::Item> {
+  size_t operator()(const v8::internal::torque::Item& item) const {
+    return hash_value(item);
+  }
+};
+
+template <typename T1, typename T2>
+struct hash<std::pair<T1, T2>> {
+  size_t operator()(const std::pair<T1, T2>& p) const {
+    return ::v8::base::hash_combine(
+        std::hash<T1>{}(p.first),
+        std::hash<T2>{}(p.second));
+  }
+};
+
+}  // namespace std
 
 #endif  // V8_TORQUE_EARLEY_PARSER_H_

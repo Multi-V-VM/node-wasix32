@@ -501,7 +501,7 @@ TEST(MemoryGrowZero) {
   Cleanup();
 }
 
-class InterruptThread : public v8::base::Thread {
+class InterruptThread : public ::v8::base::Thread {
  public:
   explicit InterruptThread(Isolate* isolate, std::atomic<int32_t>* memory)
       : Thread(Options("TestInterruptLoop")),

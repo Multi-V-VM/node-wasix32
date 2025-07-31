@@ -9,6 +9,9 @@
 #include "node_worker.h"
 #include "permission/permission.h"
 #include "util.h"
+#ifdef __wasi__
+#include "wasi-v8-value-methods.h"
+#endif
 
 #ifdef _WIN32
 #include <Windows.h>

@@ -49,14 +49,14 @@ void IncrementalMarkingSchedule::NotifyIncrementalMarkingStart() {
   if (!incremental_marking_start_time_.IsNull()) {
     return;
   }
-  incremental_marking_start_time_ = v8::base::TimeTicks::Now();
+  incremental_marking_start_time_ = ::v8::base::TimeTicks::Now();
 }
 
 void IncrementalMarkingSchedule::NotifyConcurrentMarkingStart() {
   if (!last_concurrently_marked_bytes_update_.IsNull()) {
     return;
   }
-  last_concurrently_marked_bytes_update_ = v8::base::TimeTicks::Now();
+  last_concurrently_marked_bytes_update_ = ::v8::base::TimeTicks::Now();
 }
 
 void IncrementalMarkingSchedule::AddMutatorThreadMarkedBytes(
@@ -145,7 +145,7 @@ IncrementalMarkingSchedule::GetTimeSinceLastConcurrentMarkingUpdate() {
   const size_t current_concurrently_marked_bytes = GetConcurrentlyMarkedBytes();
   if (current_concurrently_marked_bytes > last_concurrently_marked_bytes_) {
     last_concurrently_marked_bytes_ = current_concurrently_marked_bytes;
-    last_concurrently_marked_bytes_update_ = v8::base::TimeTicks::Now();
+    last_concurrently_marked_bytes_update_ = ::v8::base::TimeTicks::Now();
     return {};
   }
   // In case `NotifyConcurrentMarkingStart()` was not called we just return an

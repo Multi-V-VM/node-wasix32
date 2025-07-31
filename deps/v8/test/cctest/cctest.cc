@@ -88,9 +88,9 @@ CcTest::CcTest(TestFunction* callback, const char* file, const char* name,
       initialize_(initialize),
       test_platform_factory_(test_platform_factory) {
   // Find the base name of this test (const_cast required on Windows).
-  char *basename = strrchr(const_cast<char *>(file), '/');
+  char* basename = strrchr(const_cast<char*>(file), '/');
   if (!basename) {
-    basename = strrchr(const_cast<char *>(file), '\\');
+    basename = strrchr(const_cast<char*>(file), '\\');
   }
   if (!basename) {
     basename = v8::internal::StrDup(file);
@@ -98,7 +98,7 @@ CcTest::CcTest(TestFunction* callback, const char* file, const char* name,
     basename = v8::internal::StrDup(basename + 1);
   }
   // Drop the extension, if there is one.
-  char *extension = strrchr(basename, '.');
+  char* extension = strrchr(basename, '.');
   if (extension) *extension = 0;
   // Install this test in the list of tests
 
@@ -429,20 +429,20 @@ std::shared_ptr<v8::TaskRunner> TestPlatform::GetForegroundTaskRunner(
 
 void TestPlatform::PostTaskOnWorkerThreadImpl(
     v8::TaskPriority priority, std::unique_ptr<v8::Task> task,
-    const v8::SourceLocation& location) {
+    const ::v8::SourceLocation& location) {
   CcTest::default_platform()->PostTaskOnWorkerThread(priority, std::move(task));
 }
 
 void TestPlatform::PostDelayedTaskOnWorkerThreadImpl(
     v8::TaskPriority priority, std::unique_ptr<v8::Task> task,
-    double delay_in_seconds, const v8::SourceLocation& location) {
+    double delay_in_seconds, const ::v8::SourceLocation& location) {
   CcTest::default_platform()->PostDelayedTaskOnWorkerThread(
       priority, std::move(task), delay_in_seconds);
 }
 
 std::unique_ptr<v8::JobHandle> TestPlatform::CreateJobImpl(
     v8::TaskPriority priority, std::unique_ptr<v8::JobTask> job_task,
-    const v8::SourceLocation& location) {
+    const ::v8::SourceLocation& location) {
   return CcTest::default_platform()->CreateJob(priority, std::move(job_task),
                                                location);
 }

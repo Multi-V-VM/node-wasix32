@@ -21,8 +21,8 @@
 
 // WASI 兼容性修复
 #ifdef __wasi__
-#include "wasi/concepts-fix.h"
 #include "../../../../wasi-v8-essential-constants.h"
+#include "wasi/concepts-fix.h"
 #endif
 
 namespace v8 {
@@ -44,7 +44,7 @@ namespace internal {
 #undef jmpbuf
 #endif
 class RecursiveMutex;
-}  // namespace base
+}  // namespace internal
 
 namespace internal {
 
@@ -536,7 +536,6 @@ static_assert(kSystemPointerSize == (1 << kSystemPointerSizeLog2));
 // TurboFan graphs or not.
 static constexpr bool kCompressGraphZone = COMPRESS_ZONES_BOOL;
 
-
 // kTaggedSize and kTaggedSizeLog2 already defined in v8-internal.h
 
 // These types define raw and atomic storage types for tagged values stored
@@ -545,7 +544,7 @@ using Tagged_t = Address;
 #ifdef __wasi__
 // AtomicTagged_t is already defined in nuclear-fix.h for WASI
 #else
-using AtomicTagged_t = v8::base::AtomicWord;
+using AtomicTagged_t = ::v8::base::AtomicWord;
 #endif
 
 //
@@ -553,7 +552,8 @@ using AtomicTagged_t = v8::base::AtomicWord;
 //
 // A JSDispatchHandle represents a 32-bit index into a JSDispatchTable.
 struct JSDispatchHandleAliasTag {};
-using JSDispatchHandle = v8::base::StrongAlias<JSDispatchHandleAliasTag, uint32_t>;
+using JSDispatchHandle =
+    ::v8::base::StrongAlias<JSDispatchHandleAliasTag, uint32_t>;
 
 constexpr JSDispatchHandle kNullJSDispatchHandle(0);
 
@@ -1472,8 +1472,8 @@ enum class GarbageCollectionReason : int {
 };
 
 // static_assert(kGarbageCollectionReasonMaxValue ==
-                  // static_cast<int>(GarbageCollectionReason::NUM_REASONS) - 1,
-              // "The value of kGarbageCollectionReasonMaxValue is inconsistent.");
+// static_cast<int>(GarbageCollectionReason::NUM_REASONS) - 1,
+// "The value of kGarbageCollectionReasonMaxValue is inconsistent.");
 
 constexpr const char* ToString(GarbageCollectionReason reason) {
   switch (reason) {
@@ -1626,7 +1626,8 @@ enum class NewJSObjectType : uint8_t {
   kAPIWrapper,
 };
 
-bool inline IsBaselineCodeFlushingEnabled(::v8::base::EnumSet<CodeFlushMode> mode) {
+bool inline IsBaselineCodeFlushingEnabled(
+    ::v8::base::EnumSet<CodeFlushMode> mode) {
   return mode.contains(CodeFlushMode::kFlushBaselineCode);
 }
 
@@ -1698,9 +1699,13 @@ enum class InlineCacheState {
 };
 
 #ifdef __wasi__
-inline size_t hash_value(InlineCacheState mode) { return static_cast<size_t>(mode); }
+inline size_t hash_value(InlineCacheState mode) {
+  return static_cast<size_t>(mode);
+}
 #else
-inline size_t hash_value(InlineCacheState mode) { return static_cast<int>(mode); }
+inline size_t hash_value(InlineCacheState mode) {
+  return static_cast<int>(mode);
+}
 #endif
 
 // Printing support.
@@ -1736,7 +1741,7 @@ using ShouldThrow = int;
 #else
 enum ShouldThrow {
   kDontThrow = Internals::kDontThrow,
-  kThrowOnError = 1, // Internals::kThrowOnError,
+  kThrowOnError = 1,  // Internals::kThrowOnError,
 };
 #endif
 
@@ -2470,7 +2475,8 @@ enum class DefineKeyedOwnPropertyFlag {
   kNoFlags = 0,
   kSetFunctionName = 1 << 0
 };
-using DefineKeyedOwnPropertyFlags = ::v8::base::Flags<DefineKeyedOwnPropertyFlag>;
+using DefineKeyedOwnPropertyFlags =
+    ::v8::base::Flags<DefineKeyedOwnPropertyFlag>;
 DEFINE_OPERATORS_FOR_FLAGS(DefineKeyedOwnPropertyFlags)
 
 enum ExternalArrayType {

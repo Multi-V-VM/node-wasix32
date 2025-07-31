@@ -94,8 +94,7 @@ class V8_EXPORT_PRIVATE StatsCollector final {
 
   enum ScopeId {
 #define CPPGC_DECLARE_ENUM(name) k##name,
-    CPPGC_FOR_ALL_HISTOGRAM_SCOPES(CPPGC_DECLARE_ENUM)
-        kNumHistogramScopeIds,
+    CPPGC_FOR_ALL_HISTOGRAM_SCOPES(CPPGC_DECLARE_ENUM) kNumHistogramScopeIds,
     CPPGC_FOR_ALL_SCOPES(CPPGC_DECLARE_ENUM)
 #undef CPPGC_DECLARE_ENUM
         kNumScopeIds,
@@ -359,7 +358,8 @@ class V8_EXPORT_PRIVATE StatsCollector final {
   // an object was explicitly freed that was marked as live in the previous
   // cycle.
   int64_t allocated_bytes_since_end_of_marking_ = 0;
-  v8::base::TimeTicks time_of_last_end_of_marking_ = v8::base::TimeTicks::Now();
+  v8::base::TimeTicks time_of_last_end_of_marking_ =
+      ::v8::base::TimeTicks::Now();
   // Counters for allocation and free. The individual values are never negative
   // but their delta may be because of the same reason the overall
   // allocated_bytes_since_end_of_marking_ may be negative. Keep integer
@@ -503,7 +503,7 @@ void StatsCollector::InternalScope<trace_category,
            ? static_cast<int>(kNumHistogramScopeIds)
            : static_cast<int>(kNumHistogramConcurrentScopeIds)))
     return;
-  v8::base::TimeDelta time = v8::base::TimeTicks::Now() - start_time_;
+  v8::base::TimeDelta time = ::v8::base::TimeTicks::Now() - start_time_;
   if (scope_category == StatsCollector::ScopeContext::kMutatorThread) {
     stats_collector_->current_.scope_data[scope_id_] += time;
     if (stats_collector_->metric_recorder_)
@@ -511,7 +511,7 @@ void StatsCollector::InternalScope<trace_category,
     return;
   }
   // scope_category == StatsCollector::ScopeContext::kConcurrentThread
-  using AtomicWord = v8::base::AtomicWord;
+  using AtomicWord = ::v8::base::AtomicWord;
   const int64_t us = time.InMicroseconds();
   v8::base::Relaxed_AtomicIncrement(
       &stats_collector_->current_.concurrent_scope_data[scope_id_],

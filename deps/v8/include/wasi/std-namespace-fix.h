@@ -241,16 +241,8 @@ using make_index_sequence = ::std::make_index_sequence<N>;
 template<typename... T>
 using index_sequence_for = ::std::index_sequence_for<T...>;
 
-// Forward is a function template, not a type alias
-template<typename T>
-constexpr T&& forward(typename ::std::remove_reference<T>::type& t) noexcept {
-    return ::std::forward<T>(t);
-}
-
-template<typename T>
-constexpr T&& forward(typename ::std::remove_reference<T>::type&& t) noexcept {
-    return ::std::forward<T>(t);
-}
+// Forward is a function template - use the standard library version
+using ::std::forward;
 
 // Additional utility functions
 template<typename T, typename... Args>
@@ -258,11 +250,8 @@ inline ::std::unique_ptr<T> make_unique(Args&&... args) {
     return ::std::make_unique<T>(::std::forward<Args>(args)...);
 }
 
-// move function
-template<typename T>
-constexpr typename ::std::remove_reference<T>::type&& move(T&& t) noexcept {
-    return ::std::move(t);
-}
+// move function - use the standard library version
+using ::std::move;
 
 // Type traits
 template<typename T> using is_unsigned = ::std::is_unsigned<T>;

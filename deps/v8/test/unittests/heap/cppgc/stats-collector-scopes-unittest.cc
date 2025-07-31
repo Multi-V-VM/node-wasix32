@@ -253,8 +253,8 @@ TEST_F(CppgcTracingScopesTest, TestIndividualScopes) {
       StatsCollector::EnabledScope scope(
           Heap::From(GetHeap())->stats_collector(),
           static_cast<StatsCollector::ScopeId>(scope_id));
-      v8::base::TimeTicks time = v8::base::TimeTicks::Now();
-      while (time == v8::base::TimeTicks::Now()) {
+      v8::base::TimeTicks time = ::v8::base::TimeTicks::Now();
+      while (time == ::v8::base::TimeTicks::Now()) {
         // Force time to progress before destroying scope.
       }
     }
@@ -287,8 +287,8 @@ TEST_F(CppgcTracingScopesTest, TestIndividualConcurrentScopes) {
       StatsCollector::EnabledConcurrentScope scope(
           Heap::From(GetHeap())->stats_collector(),
           static_cast<StatsCollector::ConcurrentScopeId>(scope_id));
-      v8::base::TimeTicks time = v8::base::TimeTicks::Now();
-      while (time == v8::base::TimeTicks::Now()) {
+      v8::base::TimeTicks time = ::v8::base::TimeTicks::Now();
+      while (time == ::v8::base::TimeTicks::Now()) {
         // Force time to progress before destroying scope.
       }
     }

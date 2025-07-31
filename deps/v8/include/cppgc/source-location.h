@@ -12,7 +12,7 @@
 
 namespace cppgc {
 
-using SourceLocation = v8::SourceLocation;
+using SourceLocation = ::v8::SourceLocation;
 
 }  // namespace cppgc
 

@@ -10,7 +10,7 @@ namespace v8::internal::wasm {
 namespace {
 
 template <typename FunctionType>
-class BackgroundThread final : public v8::base::Thread {
+class BackgroundThread final : public ::v8::base::Thread {
  public:
   explicit BackgroundThread(FunctionType function)
       : v8::base::Thread(base::Thread::Options("BackgroundThread")),

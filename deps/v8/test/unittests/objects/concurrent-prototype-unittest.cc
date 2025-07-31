@@ -24,7 +24,7 @@ static constexpr int kNumHandles = kHandleBlockSize * 2 + kHandleBlockSize / 2;
 
 namespace {
 
-class ConcurrentSearchThread final : public v8::base::Thread {
+class ConcurrentSearchThread final : public ::v8::base::Thread {
  public:
   ConcurrentSearchThread(Heap* heap,
                          std::vector<IndirectHandle<JSObject>> handles,

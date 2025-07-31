@@ -19,6 +19,7 @@
 #include <functional>
 #include <type_traits>
 #include <utility>
+#include <vector>
 
 #include "src/base/base-export.h"
 #include "src/base/bits.h"
@@ -292,6 +293,12 @@ hash_value(T v) {
 template <typename T>
 auto hash_value(const T& v) -> decltype(v.hash_value()) {
   return v.hash_value();
+}
+
+// Provide hash_value for std::vector
+template <typename T>
+V8_INLINE size_t hash_value(const std::vector<T>& v) {
+  return Hasher{}.AddRange(v).hash();
 }
 
 // Hashable trait for WASI compatibility

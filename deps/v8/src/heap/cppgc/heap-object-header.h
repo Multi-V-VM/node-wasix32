@@ -126,11 +126,11 @@ class HeapObjectHeader {
   enum class EncodedHalf : uint8_t { kLow, kHigh };
 
   // Used in |encoded_high_|.
-  using FullyConstructedField = v8::base::BitField16<bool, 0, 1>;
+  using FullyConstructedField = ::v8::base::BitField16<bool, 0, 1>;
   using UnusedField1 = FullyConstructedField::Next<bool, 1>;
   using GCInfoIndexField = UnusedField1::Next<GCInfoIndex, 14>;
   // Used in |encoded_low_|.
-  using MarkBitField = v8::base::BitField16<bool, 0, 1>;
+  using MarkBitField = ::v8::base::BitField16<bool, 0, 1>;
   using SizeField =
       MarkBitField::Next<size_t, 15>;  // Use EncodeSize/DecodeSize instead.
 
@@ -281,7 +281,7 @@ void HeapObjectHeader::Unmark() {
 }
 
 bool HeapObjectHeader::TryMarkAtomic() {
-  auto* atomic_encoded = v8::base::AsAtomicPtr(&encoded_low_);
+  auto* atomic_encoded = ::v8::base::AsAtomicPtr(&encoded_low_);
   uint16_t old_value = atomic_encoded->load(std::memory_order_relaxed);
   const uint16_t new_value = old_value | MarkBitField::encode(true);
   if (new_value == old_value) {
@@ -371,7 +371,7 @@ void HeapObjectHeader::StoreEncoded(uint16_t bits, uint16_t mask) {
   }
   // We don't perform CAS loop here assuming that only none of the info that
   // shares the same encoded halfs change at the same time.
-  auto* atomic_encoded = v8::base::AsAtomicPtr(&half);
+  auto* atomic_encoded = ::v8::base::AsAtomicPtr(&half);
   uint16_t value = atomic_encoded->load(std::memory_order_relaxed);
   value = (value & ~mask) | bits;
   atomic_encoded->store(value, memory_order);

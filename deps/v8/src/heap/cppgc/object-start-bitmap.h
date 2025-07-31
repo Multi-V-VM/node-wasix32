@@ -129,7 +129,7 @@ HeapObjectHeader* ObjectStartBitmap::FindHeader(
     DCHECK_LT(0u, cell_index);
     byte = load<mode>(--cell_index);
   }
-  const int leading_zeroes = v8::base::bits::CountLeadingZeros(byte);
+  const int leading_zeroes = ::v8::base::bits::CountLeadingZeros(byte);
   object_start_number =
       (cell_index * kBitsPerCell) + (kBitsPerCell - 1) - leading_zeroes;
   object_offset = object_start_number * kAllocationGranularity;
@@ -200,7 +200,7 @@ inline void ObjectStartBitmap::Iterate(Callback callback) const {
 
     uint8_t value = object_start_bit_map_[cell_index];
     while (value) {
-      const int trailing_zeroes = v8::base::bits::CountTrailingZeros(value);
+      const int trailing_zeroes = ::v8::base::bits::CountTrailingZeros(value);
       const size_t object_start_number =
           (cell_index * kBitsPerCell) + trailing_zeroes;
       const Address object_address =

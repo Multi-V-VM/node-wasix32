@@ -363,7 +363,7 @@ int TLSExtStatusCallback(SSL* s, void* arg) {
 
 void ConfigureSecureContext(SecureContext* sc) {
   // OCSP stapling
-  sc->ctx().setStatusCallback(TLSExtStatusCallback);
+  sc->ctx().setStatusCallback(reinterpret_cast<void*>(TLSExtStatusCallback));
 }
 
 inline bool Set(

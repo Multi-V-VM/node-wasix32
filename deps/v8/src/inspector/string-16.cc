@@ -70,7 +70,7 @@ String16::String16(std::basic_string<UChar>&& impl) : m_impl(impl) {}
 // static
 String16 String16::fromInteger(int number) {
   char arr[50];
-  v8::base::Vector<char> buffer = v8::base::ArrayVector(arr);
+  v8::base::Vector<char> buffer = ::v8::base::ArrayVector(arr);
   std::string_view str = v8::internal::IntToStringView(number, buffer);
   return String16(str);
 }
@@ -97,7 +97,7 @@ String16 String16::fromInteger64(int64_t number) {
 // static
 String16 String16::fromDouble(double number) {
   char arr[50];
-  v8::base::Vector<char> buffer = v8::base::ArrayVector(arr);
+  v8::base::Vector<char> buffer = ::v8::base::ArrayVector(arr);
   std::string_view str = v8::internal::DoubleToStringView(number, buffer);
   return String16(str);
 }
@@ -105,7 +105,7 @@ String16 String16::fromDouble(double number) {
 // static
 String16 String16::fromDouble(double number, int precision) {
   char arr[v8::internal::kDoubleToPrecisionMaxChars];
-  v8::base::Vector<char> buffer = v8::base::ArrayVector(arr);
+  v8::base::Vector<char> buffer = ::v8::base::ArrayVector(arr);
   std::string_view str =
       v8::internal::DoubleToPrecisionStringView(number, precision, buffer);
   return String16(str);
@@ -176,7 +176,7 @@ void String16Builder::append(const char* characters, size_t length) {
 void String16Builder::appendNumber(int number) {
   constexpr int kBufferSize = 11;
   char buffer[kBufferSize];
-  int chars = v8::base::OS::SNPrintF(buffer, kBufferSize, "%d", number);
+  int chars = ::v8::base::OS::SNPrintF(buffer, kBufferSize, "%d", number);
   DCHECK_LE(0, chars);
   m_buffer.insert(m_buffer.end(), buffer, buffer + chars);
 }
@@ -185,9 +185,9 @@ void String16Builder::appendNumber(size_t number) {
   constexpr int kBufferSize = 20;
   char buffer[kBufferSize];
 #if defined(V8_OS_WIN)
-  int chars = v8::base::OS::SNPrintF(buffer, kBufferSize, "%Iu", number);
+  int chars = ::v8::base::OS::SNPrintF(buffer, kBufferSize, "%Iu", number);
 #else
-  int chars = v8::base::OS::SNPrintF(buffer, kBufferSize, "%zu", number);
+  int chars = ::v8::base::OS::SNPrintF(buffer, kBufferSize, "%zu", number);
 #endif
   DCHECK_LE(0, chars);
   m_buffer.insert(m_buffer.end(), buffer, buffer + chars);
@@ -205,7 +205,8 @@ void String16Builder::appendUnsignedAsHex(uint64_t number) {
 void String16Builder::appendUnsignedAsHex(uint32_t number) {
   constexpr int kBufferSize = 9;
   char buffer[kBufferSize];
-  int chars = v8::base::OS::SNPrintF(buffer, kBufferSize, "%08" PRIx32, number);
+  int chars =
+      ::v8::base::OS::SNPrintF(buffer, kBufferSize, "%08" PRIx32, number);
   DCHECK_LE(0, chars);
   m_buffer.insert(m_buffer.end(), buffer, buffer + chars);
 }
@@ -213,7 +214,8 @@ void String16Builder::appendUnsignedAsHex(uint32_t number) {
 void String16Builder::appendUnsignedAsHex(uint8_t number) {
   constexpr int kBufferSize = 3;
   char buffer[kBufferSize];
-  int chars = v8::base::OS::SNPrintF(buffer, kBufferSize, "%02" PRIx8, number);
+  int chars =
+      ::v8::base::OS::SNPrintF(buffer, kBufferSize, "%02" PRIx8, number);
   DCHECK_LE(0, chars);
   m_buffer.insert(m_buffer.end(), buffer, buffer + chars);
 }

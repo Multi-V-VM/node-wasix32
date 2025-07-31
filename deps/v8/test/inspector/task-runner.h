@@ -24,7 +24,7 @@ enum CatchExceptions {
   kSuppressUncaughtExceptions
 };
 
-class TaskRunner : public v8::base::Thread {
+class TaskRunner : public ::v8::base::Thread {
  public:
   class Task {
    public:

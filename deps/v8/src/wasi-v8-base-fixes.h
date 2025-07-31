@@ -132,18 +132,19 @@ class Flags {
   
   constexpr Flags() : value_(0) {}
   constexpr explicit Flags(T value) : value_(static_cast<U>(value)) {}
-  constexpr explicit Flags(U value) : value_(value) {}
+  // Add a private constructor for internal use with mask values
+  constexpr Flags(U value, int) : value_(value) {}
   
   bool operator==(const Flags& other) const { return value_ == other.value_; }
   bool operator!=(const Flags& other) const { return value_ != other.value_; }
   
-  constexpr Flags operator&(T flag) const { return Flags(value_ & static_cast<U>(flag)); }
-  constexpr Flags operator|(T flag) const { return Flags(value_ | static_cast<U>(flag)); }
-  constexpr Flags operator^(T flag) const { return Flags(value_ ^ static_cast<U>(flag)); }
+  constexpr Flags operator&(T flag) const { return Flags(value_ & static_cast<U>(flag), 0); }
+  constexpr Flags operator|(T flag) const { return Flags(value_ | static_cast<U>(flag), 0); }
+  constexpr Flags operator^(T flag) const { return Flags(value_ ^ static_cast<U>(flag), 0); }
   
-  constexpr Flags operator&(const Flags& other) const { return Flags(value_ & other.value_); }
-  constexpr Flags operator|(const Flags& other) const { return Flags(value_ | other.value_); }
-  constexpr Flags operator^(const Flags& other) const { return Flags(value_ ^ other.value_); }
+  constexpr Flags operator&(const Flags& other) const { return Flags(value_ & other.value_, 0); }
+  constexpr Flags operator|(const Flags& other) const { return Flags(value_ | other.value_, 0); }
+  constexpr Flags operator^(const Flags& other) const { return Flags(value_ ^ other.value_, 0); }
   
   Flags& operator&=(T flag) { value_ &= static_cast<U>(flag); return *this; }
   Flags& operator|=(T flag) { value_ |= static_cast<U>(flag); return *this; }
@@ -154,15 +155,15 @@ class Flags {
   
   // Friend operators for combining flags
   friend constexpr Flags operator|(const Flags& lhs, const Flags& rhs) {
-    return Flags(static_cast<T>(lhs.value_ | rhs.value_));
+    return Flags(lhs.value_ | rhs.value_, 0);
   }
   
   friend constexpr Flags operator&(const Flags& lhs, const Flags& rhs) {
-    return Flags(static_cast<T>(lhs.value_ & rhs.value_));
+    return Flags(lhs.value_ & rhs.value_, 0);
   }
   
   friend constexpr Flags operator^(const Flags& lhs, const Flags& rhs) {
-    return Flags(static_cast<T>(lhs.value_ ^ rhs.value_));
+    return Flags(lhs.value_ ^ rhs.value_, 0);
   }
   
  private:

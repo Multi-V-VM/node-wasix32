@@ -24,7 +24,7 @@ struct BytesAndDuration final {
   v8::base::TimeDelta duration;
 };
 
-using BytesAndDurationBuffer = v8::base::RingBuffer<BytesAndDuration>;
+using BytesAndDurationBuffer = ::v8::base::RingBuffer<BytesAndDuration>;
 
 // Returns the average speed of events recorded in `buffer` including an
 // `initial` event in Bytes/ms. If provided, `selected_duration` will bound the

@@ -131,26 +131,7 @@ class EscapableHandleScope : public HandleScope {
 
 #endif // HANDLESCOPE_STUBS_DEFINED
 
-// CppHeap stub - prevent redefinition, only define if V8 headers haven't been included
-#if !defined(CPPHEAP_STUBS_DEFINED) && !defined(INCLUDE_V8_CPPGC_H_)
-#define CPPHEAP_STUBS_DEFINED
-
-struct CppHeapCreateParams {
-  std::vector<std::unique_ptr<cppgc::CustomSpaceBase>> custom_spaces;
-  cppgc::Heap::MarkingType marking_support = 
-      cppgc::Heap::MarkingType::kIncrementalAndConcurrent;
-  cppgc::Heap::SweepingType sweeping_support =
-      cppgc::Heap::SweepingType::kIncrementalAndConcurrent;
-};
-
-class CppHeap {
- public:
-  static std::unique_ptr<CppHeap> Create(
-      v8::Platform* platform,
-      const CppHeapCreateParams& params) { return nullptr; }
-};
-
-#endif // CPPHEAP_STUBS_DEFINED
+// Note: CppHeap and CppHeapCreateParams are provided by V8 headers
 
 // Context methods are defined inline in V8 headers
 
@@ -180,21 +161,17 @@ using Address = uintptr_t;
 // - ShouldThrowOnError is defined in nuclear-fix.h
 // - PointerCompressionIsEnabled and SandboxIsEnabled are defined in wasi-v8-initialization-functions.h
 
-// Stub HeapProfiler class for internal_only_v8.cc
-class HeapProfiler {
- public:
-  void QueryObjects(Local<Context> context, QueryObjectPredicate* predicate, 
-                   std::vector<Local<Object>>* objects) {
-    // Do nothing for WASI build
-  }
-};
+// Note: HeapProfiler class is provided by V8 headers
 
 // Note: External pointer tags are defined in nuclear-fix.h to avoid conflicts
 
 // External pointer table constants for WASI
+#ifndef EXTERNAL_POINTER_TABLE_CONSTANTS_DEFINED
+#define EXTERNAL_POINTER_TABLE_CONSTANTS_DEFINED
 constexpr size_t kExternalPointerTableReservationSize = 1024 * 1024; // 1MB
 constexpr size_t kMaxExternalPointers = kExternalPointerTableReservationSize / 8;
 constexpr size_t kMaxCapacity = kMaxExternalPointers;
+#endif
 
 // V8 slot and smi value operations
 #ifndef kApiSystemPointerSize
@@ -230,8 +207,8 @@ inline int SmiValue(Address value) {
 // SmiValuesAre31Bits and SmiValuesAre32Bits are already defined in v8-wasi-compat.h
 
 // Embedder slot operations  
-inline void IncrementLongTasksStatsCounter(v8::Isolate* isolate) {}
-inline v8::Isolate* TryGetCurrent() { return nullptr; }
+inline void IncrementLongTasksStatsCounter(::v8::Isolate* isolate) {}
+inline ::v8::Isolate* TryGetCurrent() { return nullptr; }
 
 // ReadExternalPointerField - stub implementation
 template <bool check_statically_enabled>

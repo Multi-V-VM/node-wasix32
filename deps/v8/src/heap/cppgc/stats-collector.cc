@@ -156,11 +156,11 @@ void StatsCollector::NotifyMarkingCompleted(size_t marked_bytes) {
   // HeapGrowing would use the below fields to estimate allocation rate during
   // execution of ResetAllocatedObjectSize.
   allocated_bytes_since_end_of_marking_ = 0;
-  time_of_last_end_of_marking_ = v8::base::TimeTicks::Now();
+  time_of_last_end_of_marking_ = ::v8::base::TimeTicks::Now();
 }
 
 double StatsCollector::GetRecentAllocationSpeedInBytesPerMs() const {
-  v8::base::TimeTicks current_time = v8::base::TimeTicks::Now();
+  v8::base::TimeTicks current_time = ::v8::base::TimeTicks::Now();
   DCHECK_LE(time_of_last_end_of_marking_, current_time);
   if (time_of_last_end_of_marking_ == current_time) return 0;
   return allocated_bytes_since_end_of_marking_ /

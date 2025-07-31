@@ -3751,7 +3751,7 @@ void CodeGenerator::FinishFrame(Frame* frame) {
     // Save callee-saved FP registers.
     static_assert(DwVfpRegister::kNumRegisters == 32);
     uint32_t last = base::bits::CountLeadingZeros32(saves_fp.bits()) - 1;
-    uint32_t first = base::bits::CountTrailingZeros32(saves_fp.bits());
+    uint32_t first = base::bits::CountTrailingZerosNonZero(saves_fp.bits());
     DCHECK_EQ((last - first + 1), saves_fp.Count());
     frame->AllocateSavedCalleeRegisterSlots((last - first + 1) *
                                             (kDoubleSize / kSystemPointerSize));

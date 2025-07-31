@@ -144,7 +144,7 @@ bool DependentCode::MarkCodeForDeoptimization(
       // Pick a single group out of the applicable deopt groups, to use as the
       // deopt reason. Only one group is reported to avoid string concatenation.
       DependencyGroup first_group = static_cast<DependencyGroup>(
-          1 << base::bits::CountTrailingZeros32(groups & deopt_groups));
+          1 << base::bits::CountTrailingZerosNonZero(groups & deopt_groups));
       code->SetMarkedForDeoptimization(
           isolate,
           DependentCode::DependencyGroupToLazyDeoptReason(first_group));

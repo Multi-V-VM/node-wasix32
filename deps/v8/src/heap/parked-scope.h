@@ -194,7 +194,7 @@ class V8_NODISCARD ParkingSemaphore final : public base::Semaphore {
   using base::Semaphore::WaitFor;
 };
 
-class ParkingThread : public v8::base::Thread {
+class ParkingThread : public ::v8::base::Thread {
  public:
   explicit ParkingThread(const Options& options) : v8::base::Thread(options) {}
 

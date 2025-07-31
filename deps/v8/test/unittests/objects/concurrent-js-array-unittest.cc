@@ -27,7 +27,7 @@ static constexpr int kNumArrays = 1024;
 
 namespace {
 
-class BackgroundThread final : public v8::base::Thread {
+class BackgroundThread final : public ::v8::base::Thread {
  public:
   BackgroundThread(Heap* heap, std::vector<Handle<JSArray>> handles,
                    std::unique_ptr<PersistentHandles> ph,

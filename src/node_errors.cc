@@ -1,5 +1,6 @@
 #ifdef __wasi__
 #include "../wasi-node-compat.h"
+#include "wasi-v8-value-methods.h"
 #endif
 
 #include <cerrno>

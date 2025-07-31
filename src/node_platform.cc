@@ -1,14 +1,14 @@
 #ifdef __wasi__
 #include "../wasi-node-compat.h"
 #endif
-#include "node_platform.h"
 #include "node_internals.h"
+#include "node_platform.h"
 
-#include "env-inl.h"
-#include "debug_utils-inl.h"
 #include <algorithm>  // find_if(), find(), move()
-#include <cmath>  // llround()
-#include <memory>  // unique_ptr(), shared_ptr(), make_shared()
+#include <cmath>      // llround()
+#include <memory>     // unique_ptr(), shared_ptr(), make_shared()
+#include "debug_utils-inl.h"
+#include "env-inl.h"
 
 namespace node {
 
@@ -42,7 +42,7 @@ const char* GetTaskPriorityName(TaskPriority priority) {
   }
 }
 
-static void PrintSourceLocation(const v8::SourceLocation& location) {
+static void PrintSourceLocation(const ::v8::SourceLocation& location) {
 #ifdef __wasi__
   const char* loc = location.ToString();
   if (loc && *loc) {
@@ -62,12 +62,12 @@ static void PrintSourceLocation(const v8::SourceLocation& location) {
 
 static void PlatformWorkerThread(void* data) {
   uv_thread_setname("V8Worker");
-  std::unique_ptr<PlatformWorkerData>
-      worker_data(static_cast<PlatformWorkerData*>(data));
+  std::unique_ptr<PlatformWorkerData> worker_data(
+      static_cast<PlatformWorkerData*>(data));
 
   TaskQueue<TaskQueueEntry>* pending_worker_tasks = worker_data->task_queue;
-  TRACE_EVENT_METADATA1("__metadata", "thread_name", "name",
-                        "PlatformWorkerThread");
+  TRACE_EVENT_METADATA1(
+      "__metadata", "thread_name", "name", "PlatformWorkerThread");
 
   // Notify the main thread that the platform worker is ready.
   {
@@ -115,7 +115,7 @@ class WorkerThreadsTaskRunner::DelayedTaskScheduler {
     auto start_thread = [](void* data) {
       static_cast<DelayedTaskScheduler*>(data)->Run();
     };
-    std::unique_ptr<uv_thread_t> t { new uv_thread_t() };
+    std::unique_ptr<uv_thread_t> t{new uv_thread_t()};
     uv_sem_init(&ready_, 0);
     CHECK_EQ(0, uv_thread_create(t.get(), start_thread, this));
     uv_sem_wait(&ready_);
@@ -149,7 +149,9 @@ class WorkerThreadsTaskRunner::DelayedTaskScheduler {
 
  private:
   void Run() {
-    TRACE_EVENT_METADATA1("__metadata", "thread_name", "name",
+    TRACE_EVENT_METADATA1("__metadata",
+                          "thread_name",
+                          "name",
                           "WorkerThreadsTaskRunner::DelayedTaskScheduler");
     loop_.data = this;
     CHECK_EQ(0, uv_loop_init(&loop_));
@@ -181,20 +183,19 @@ class WorkerThreadsTaskRunner::DelayedTaskScheduler {
 
   class StopTask : public Task {
    public:
-    explicit StopTask(DelayedTaskScheduler* scheduler): scheduler_(scheduler) {}
+    explicit StopTask(DelayedTaskScheduler* scheduler)
+        : scheduler_(scheduler) {}
 
     void Run() override {
       std::vector<uv_timer_t*> timers;
-      for (uv_timer_t* timer : scheduler_->timers_)
-        timers.push_back(timer);
-      for (uv_timer_t* timer : timers)
-        scheduler_->TakeTimerTask(timer);
+      for (uv_timer_t* timer : scheduler_->timers_) timers.push_back(timer);
+      for (uv_timer_t* timer : timers) scheduler_->TakeTimerTask(timer);
       uv_close(reinterpret_cast<uv_handle_t*>(&scheduler_->flush_tasks_),
                [](uv_handle_t* handle) {});
     }
 
    private:
-     DelayedTaskScheduler* scheduler_;
+    DelayedTaskScheduler* scheduler_;
   };
 
   class ScheduleTask : public Task {
@@ -263,8 +264,8 @@ WorkerThreadsTaskRunner::WorkerThreadsTaskRunner(
   Mutex::ScopedLock lock(platform_workers_mutex);
   int pending_platform_workers = thread_pool_size;
 
-  delayed_task_scheduler_ = std::make_unique<DelayedTaskScheduler>(
-      &pending_worker_tasks_);
+  delayed_task_scheduler_ =
+      std::make_unique<DelayedTaskScheduler>(&pending_worker_tasks_);
   threads_.push_back(delayed_task_scheduler_->Start());
 
   for (int i = 0; i < thread_pool_size; i++) {
@@ -275,9 +276,8 @@ WorkerThreadsTaskRunner::WorkerThreadsTaskRunner(
                                &pending_platform_workers,
                                i,
                                debug_log_level_};
-    std::unique_ptr<uv_thread_t> t { new uv_thread_t() };
-    if (uv_thread_create(t.get(), PlatformWorkerThread,
-                         worker_data) != 0) {
+    std::unique_ptr<uv_thread_t> t{new uv_thread_t()};
+    if (uv_thread_create(t.get(), PlatformWorkerThread, worker_data) != 0) {
       break;
     }
     threads_.push_back(std::move(t));
@@ -292,7 +292,7 @@ WorkerThreadsTaskRunner::WorkerThreadsTaskRunner(
 
 void WorkerThreadsTaskRunner::PostTask(v8::TaskPriority priority,
                                        std::unique_ptr<v8::Task> task,
-                                       const v8::SourceLocation& location) {
+                                       const ::v8::SourceLocation& location) {
   auto entry = std::make_unique<TaskQueueEntry>(std::move(task), priority);
   bool is_outstanding = entry->is_outstanding();
   pending_worker_tasks_.Lock().Push(std::move(entry), is_outstanding);
@@ -301,7 +301,7 @@ void WorkerThreadsTaskRunner::PostTask(v8::TaskPriority priority,
 void WorkerThreadsTaskRunner::PostDelayedTask(
     v8::TaskPriority priority,
     std::unique_ptr<v8::Task> task,
-    const v8::SourceLocation& location,
+    const ::v8::SourceLocation& location,
     double delay_in_seconds) {
   delayed_task_scheduler_->PostDelayedTask(
       priority, std::move(task), delay_in_seconds);
@@ -343,12 +343,12 @@ void PerIsolatePlatformData::FlushTasks(uv_async_t* handle) {
 }
 
 void PerIsolatePlatformData::PostIdleTaskImpl(
-    std::unique_ptr<v8::IdleTask> task, const v8::SourceLocation& location) {
+    std::unique_ptr<v8::IdleTask> task, const ::v8::SourceLocation& location) {
   UNREACHABLE();
 }
 
-void PerIsolatePlatformData::PostTaskImpl(std::unique_ptr<Task> task,
-                                          const v8::SourceLocation& location) {
+void PerIsolatePlatformData::PostTaskImpl(
+    std::unique_ptr<Task> task, const ::v8::SourceLocation& location) {
   // The task can be posted from any V8 background worker thread, even when
   // the foreground task runner is being cleaned up by Shutdown(). In that
   // case, make sure we wait until the shutdown is completed (which leads
@@ -373,7 +373,7 @@ void PerIsolatePlatformData::PostTaskImpl(std::unique_ptr<Task> task,
 void PerIsolatePlatformData::PostDelayedTaskImpl(
     std::unique_ptr<Task> task,
     double delay_in_seconds,
-    const v8::SourceLocation& location) {
+    const ::v8::SourceLocation& location) {
   if (debug_log_level_ != PlatformDebugLogLevel::kNone) {
     fprintf(stderr,
             "\nPerIsolatePlatformData::PostDelayedTaskImpl %p %f",
@@ -399,14 +399,14 @@ void PerIsolatePlatformData::PostDelayedTaskImpl(
 }
 
 void PerIsolatePlatformData::PostNonNestableTaskImpl(
-    std::unique_ptr<Task> task, const v8::SourceLocation& location) {
+    std::unique_ptr<Task> task, const ::v8::SourceLocation& location) {
   PostTaskImpl(std::move(task), location);
 }
 
 void PerIsolatePlatformData::PostNonNestableDelayedTaskImpl(
     std::unique_ptr<Task> task,
     double delay_in_seconds,
-    const v8::SourceLocation& location) {
+    const ::v8::SourceLocation& location) {
   PostDelayedTaskImpl(std::move(task), delay_in_seconds, location);
 }
 
@@ -416,7 +416,7 @@ PerIsolatePlatformData::~PerIsolatePlatformData() {
 
 void PerIsolatePlatformData::AddShutdownCallback(void (*callback)(void*),
                                                  void* data) {
-  shutdown_callbacks_.emplace_back(ShutdownCallback { callback, data });
+  shutdown_callbacks_.emplace_back(ShutdownCallback{callback, data});
 }
 
 void PerIsolatePlatformData::Shutdown() {
@@ -449,8 +449,7 @@ void PerIsolatePlatformData::Shutdown() {
 void PerIsolatePlatformData::DecreaseHandleCount() {
   CHECK_GE(uv_handle_count_, 1);
   if (--uv_handle_count_ == 0) {
-    for (const auto& callback : shutdown_callbacks_)
-      callback.cb(callback.data);
+    for (const auto& callback : shutdown_callbacks_) callback.cb(callback.data);
   }
 }
 
@@ -496,9 +495,8 @@ void NodePlatform::RegisterIsolate(Isolate* isolate, uv_loop_t* loop) {
   auto delegate =
       std::make_shared<PerIsolatePlatformData>(isolate, loop, debug_log_level_);
   IsolatePlatformDelegate* ptr = delegate.get();
-  auto insertion = per_isolate_.emplace(
-    isolate,
-    std::make_pair(ptr, std::move(delegate)));
+  auto insertion =
+      per_isolate_.emplace(isolate, std::make_pair(ptr, std::move(delegate)));
   CHECK(insertion.second);
 }
 
@@ -506,8 +504,8 @@ void NodePlatform::RegisterIsolate(Isolate* isolate,
                                    IsolatePlatformDelegate* delegate) {
   Mutex::ScopedLock lock(per_isolate_mutex_);
   auto insertion = per_isolate_.emplace(
-    isolate,
-    std::make_pair(delegate, std::shared_ptr<PerIsolatePlatformData>{}));
+      isolate,
+      std::make_pair(delegate, std::shared_ptr<PerIsolatePlatformData>{}));
   CHECK(insertion.second);
 }
 
@@ -523,7 +521,8 @@ void NodePlatform::UnregisterIsolate(Isolate* isolate) {
 }
 
 void NodePlatform::AddIsolateFinishedCallback(Isolate* isolate,
-                                              void (*cb)(void*), void* data) {
+                                              void (*cb)(void*),
+                                              void* data) {
   Mutex::ScopedLock lock(per_isolate_mutex_);
   auto it = per_isolate_.find(isolate);
   if (it == per_isolate_.end()) {
@@ -555,8 +554,8 @@ void PerIsolatePlatformData::RunForegroundTask(std::unique_ptr<Task> task) {
   Environment* env = Environment::GetCurrent(isolate_);
   if (env != nullptr) {
     v8::HandleScope scope(isolate_);
-    InternalCallbackScope cb_scope(env, Object::New(isolate_), { 0, 0 },
-                                   InternalCallbackScope::kNoFlags);
+    InternalCallbackScope cb_scope(
+        env, Object::New(isolate_), {0, 0}, InternalCallbackScope::kNoFlags);
     task->Run();
   } else {
     // When the Environment was freed, the tasks of the Isolate should also be
@@ -566,7 +565,8 @@ void PerIsolatePlatformData::RunForegroundTask(std::unique_ptr<Task> task) {
 
     // The task is moved out of InternalCallbackScope if env is not available.
     // This is a required else block, and should not be removed.
-    // See comment: https://github.com/nodejs/node/pull/34688#pullrequestreview-463867489
+    // See comment:
+    // https://github.com/nodejs/node/pull/34688#pullrequestreview-463867489
     task->Run();
   }
 }
@@ -575,8 +575,8 @@ void PerIsolatePlatformData::DeleteFromScheduledTasks(DelayedTask* task) {
   auto it = std::find_if(scheduled_delayed_tasks_.begin(),
                          scheduled_delayed_tasks_.end(),
                          [task](const DelayedTaskPointer& delayed) -> bool {
-          return delayed.get() == task;
-      });
+                           return delayed.get() == task;
+                         });
   CHECK_NE(it, scheduled_delayed_tasks_.end());
   scheduled_delayed_tasks_.erase(it);
 }
@@ -669,18 +669,17 @@ bool PerIsolatePlatformData::FlushForegroundTasksInternal() {
 }
 
 // Implementation required by v8::Platform interface
-void NodePlatform::PostTaskOnWorkerThread(
-    v8::TaskPriority priority,
-    std::unique_ptr<v8::Task> task) {
+void NodePlatform::PostTaskOnWorkerThread(v8::TaskPriority priority,
+                                          std::unique_ptr<v8::Task> task) {
   // Use default SourceLocation for the v8::Platform interface method
-  v8::SourceLocation location;
+  ::v8::SourceLocation location;
   PostTaskOnWorkerThreadImpl(priority, std::move(task), location);
 }
 
 void NodePlatform::PostTaskOnWorkerThreadImpl(
     v8::TaskPriority priority,
     std::unique_ptr<v8::Task> task,
-    const v8::SourceLocation& location) {
+    const ::v8::SourceLocation& location) {
   if (debug_log_level_ != PlatformDebugLogLevel::kNone) {
     fprintf(stderr,
             "\nNodePlatform::PostTaskOnWorkerThreadImpl %s %p",
@@ -699,7 +698,7 @@ void NodePlatform::PostDelayedTaskOnWorkerThreadImpl(
     v8::TaskPriority priority,
     std::unique_ptr<v8::Task> task,
     double delay_in_seconds,
-    const v8::SourceLocation& location) {
+    const ::v8::SourceLocation& location) {
   if (debug_log_level_ != PlatformDebugLogLevel::kNone) {
     fprintf(stderr,
             "\nNodePlatform::PostDelayedTaskOnWorkerThreadImpl %s %p %f",
@@ -717,13 +716,13 @@ void NodePlatform::PostDelayedTaskOnWorkerThreadImpl(
 }
 
 void NodePlatform::CallDelayedOnWorkerThread(std::unique_ptr<v8::Task> task,
-                                            double delay_in_seconds) {
-  // Use default priority and source location for the v8::Platform interface method
-  PostDelayedTaskOnWorkerThreadImpl(
-      v8::TaskPriority::kUserVisible,
-      std::move(task),
-      delay_in_seconds,
-      v8::SourceLocation());
+                                             double delay_in_seconds) {
+  // Use default priority and source location for the v8::Platform interface
+  // method
+  PostDelayedTaskOnWorkerThreadImpl(v8::TaskPriority::kUserVisible,
+                                    std::move(task),
+                                    delay_in_seconds,
+                                    ::v8::SourceLocation());
 }
 
 IsolatePlatformDelegate* NodePlatform::ForIsolate(Isolate* isolate) {
@@ -733,8 +732,8 @@ IsolatePlatformDelegate* NodePlatform::ForIsolate(Isolate* isolate) {
   return data.first;
 }
 
-std::shared_ptr<PerIsolatePlatformData>
-NodePlatform::ForNodeIsolate(Isolate* isolate) {
+std::shared_ptr<PerIsolatePlatformData> NodePlatform::ForNodeIsolate(
+    Isolate* isolate) {
   Mutex::ScopedLock lock(per_isolate_mutex_);
   auto data = per_isolate_[isolate];
   CHECK_NOT_NULL(data.first);
@@ -750,7 +749,7 @@ bool NodePlatform::FlushForegroundTasks(Isolate* isolate) {
 std::unique_ptr<v8::JobHandle> NodePlatform::CreateJobImpl(
     v8::TaskPriority priority,
     std::unique_ptr<v8::JobTask> job_task,
-    const v8::SourceLocation& location) {
+    const ::v8::SourceLocation& location) {
   if (debug_log_level_ != PlatformDebugLogLevel::kNone) {
     fprintf(stderr,
             "\nNodePlatform::CreateJobImpl %s %p",
@@ -810,23 +809,20 @@ void NodePlatform::CallOnWorkerThread(std::unique_ptr<v8::Task> task) {
   PostTaskOnWorkerThread(v8::TaskPriority::kUserVisible, std::move(task));
 }
 
-void NodePlatform::CallDelayedOnWorkerThread(
-    std::unique_ptr<v8::Task> task,
-    double delay_in_seconds) {
+void NodePlatform::CallDelayedOnWorkerThread(std::unique_ptr<v8::Task> task,
+                                             double delay_in_seconds) {
   // Use default priority and source location
-  v8::SourceLocation location;
-  PostDelayedTaskOnWorkerThreadImpl(
-      v8::TaskPriority::kUserVisible, 
-      std::move(task), 
-      delay_in_seconds, 
-      location);
+  ::v8::SourceLocation location;
+  PostDelayedTaskOnWorkerThreadImpl(v8::TaskPriority::kUserVisible,
+                                    std::move(task),
+                                    delay_in_seconds,
+                                    location);
 }
 
 std::unique_ptr<v8::JobHandle> NodePlatform::PostJob(
-    v8::TaskPriority priority,
-    std::unique_ptr<v8::JobTask> job_task) {
+    v8::TaskPriority priority, std::unique_ptr<v8::JobTask> job_task) {
   // Use default source location for the v8::Platform interface method
-  v8::SourceLocation location;
+  ::v8::SourceLocation location;
   return CreateJobImpl(priority, std::move(job_task), location);
 }
 

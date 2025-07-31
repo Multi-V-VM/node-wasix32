@@ -8,11 +8,13 @@
 #include <sys/stat.h>
 #include <unistd.h>
 #include <limits.h>
+#include <errno.h>
+#include <stdlib.h>
 
-namespace std {
-namespace filesystem {
+// Add our stub implementations to std::filesystem
+namespace std::filesystem {
 
-// WASI stub for status function
+// WASI stub for status function  
 inline file_status status(const path& p, std::error_code& ec) noexcept {
   ec = std::make_error_code(std::errc::function_not_supported);
   return file_status(file_type::unknown);
@@ -149,6 +151,171 @@ inline bool create_directory(const path& p) {
   return result;
 }
 
+// WASI stub for create_directories function
+inline bool create_directories(const path& p, std::error_code& ec) noexcept {
+  // Simple implementation - doesn't handle parent directories
+  return create_directory(p, ec);
+}
+
+inline bool create_directories(const path& p) {
+  std::error_code ec;
+  auto result = create_directories(p, ec);
+  if (ec) {
+    throw filesystem_error("create_directories failed", p, ec);
+  }
+  return result;
+}
+
+// WASI stub for remove function
+inline bool remove(const path& p, std::error_code& ec) noexcept {
+  if (::remove(p.c_str()) == 0) {
+    ec.clear();
+    return true;
+  }
+  ec = std::error_code(errno, std::system_category());
+  return false;
+}
+
+inline bool remove(const path& p) {
+  std::error_code ec;
+  auto result = remove(p, ec);
+  if (ec) {
+    throw filesystem_error("remove failed", p, ec);
+  }
+  return result;
+}
+
+// WASI stub for exists function
+inline bool exists(const path& p, std::error_code& ec) noexcept {
+  struct stat st;
+  if (::stat(p.c_str(), &st) == 0) {
+    ec.clear();
+    return true;
+  }
+  if (errno == ENOENT) {
+    ec.clear();
+    return false;
+  }
+  ec = std::error_code(errno, std::system_category());
+  return false;
+}
+
+inline bool exists(const path& p) {
+  std::error_code ec;
+  auto result = exists(p, ec);
+  if (ec) {
+    throw filesystem_error("exists failed", p, ec);
+  }
+  return result;
+}
+
+// WASI stub for absolute function
+inline path absolute(const path& p, std::error_code& ec) {
+  char* abs_path = ::realpath(p.c_str(), nullptr);
+  if (abs_path) {
+    path result(abs_path);
+    ::free(abs_path);
+    ec.clear();
+    return result;
+  }
+  ec = std::error_code(errno, std::system_category());
+  return path();
+}
+
+inline path absolute(const path& p) {
+  std::error_code ec;
+  auto result = absolute(p, ec);
+  if (ec) {
+    throw filesystem_error("absolute failed", p, ec);
+  }
+  return result;
+}
+
+// WASI stub for weakly_canonical function
+inline path weakly_canonical(const path& p, std::error_code& ec) {
+  // Simple implementation - just returns absolute path
+  return absolute(p, ec);
+}
+
+inline path weakly_canonical(const path& p) {
+  std::error_code ec;
+  auto result = weakly_canonical(p, ec);
+  if (ec) {
+    throw filesystem_error("weakly_canonical failed", p, ec);
+  }
+  return result;
+}
+
+// WASI stub for is_directory function
+inline bool is_directory(const path& p, std::error_code& ec) noexcept {
+  struct stat st;
+  if (::stat(p.c_str(), &st) != 0) {
+    ec = std::error_code(errno, std::system_category());
+    return false;
+  }
+  ec.clear();
+  return S_ISDIR(st.st_mode);
+}
+
+inline bool is_directory(const path& p) {
+  std::error_code ec;
+  auto result = is_directory(p, ec);
+  if (ec) {
+    throw filesystem_error("is_directory failed", p, ec);
+  }
+  return result;
+}
+
+// WASI stub for copy_symlink function
+inline void copy_symlink(const path& from, const path& to, std::error_code& ec) noexcept {
+  char buffer[PATH_MAX];
+  ssize_t len = ::readlink(from.c_str(), buffer, sizeof(buffer) - 1);
+  if (len != -1) {
+    buffer[len] = '\0';
+    if (::symlink(buffer, to.c_str()) == 0) {
+      ec.clear();
+      return;
+    }
+  }
+  ec = std::error_code(errno, std::system_category());
+}
+
+inline void copy_symlink(const path& from, const path& to) {
+  std::error_code ec;
+  copy_symlink(from, to, ec);
+  if (ec) {
+    throw filesystem_error("copy_symlink failed", from, to, ec);
+  }
+}
+
+// WASI stub for directory_iterator
+class directory_iterator {
+public:
+  directory_iterator() noexcept = default;
+  explicit directory_iterator(const path& p) {
+    // WASI stub - no directory iteration support
+  }
+  directory_iterator(const path& p, std::error_code& ec) noexcept {
+    // WASI stub - no directory iteration support
+    ec = std::make_error_code(std::errc::not_supported);
+  }
+  
+  bool operator==(const directory_iterator& rhs) const noexcept {
+    return true; // Always equal in stub
+  }
+  
+  bool operator!=(const directory_iterator& rhs) const noexcept {
+    return false; // Never different in stub
+  }
+  
+  directory_iterator& operator++() {
+    return *this;
+  }
+  
+  directory_iterator begin() const { return directory_iterator(); }
+  directory_iterator end() const { return directory_iterator(); }
+};
+
 // WASI stub for create_symlink function
 inline void create_symlink(const path& target, const path& link, std::error_code& ec) noexcept {
   if (::symlink(target.c_str(), link.c_str()) != 0) {
@@ -180,8 +347,7 @@ inline void create_directory_symlink(const path& target, const path& link) {
   }
 }
 
-} // namespace filesystem
-} // namespace std
+} // namespace std::filesystem
 
 #endif // __wasi__
 

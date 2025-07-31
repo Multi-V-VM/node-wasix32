@@ -67,26 +67,26 @@ class Accessors : public AllStatic {
  public:
 #define ACCESSOR_GETTER_DECLARATION(_, accessor_name, AccessorName, ...) \
   static void AccessorName##Getter(                                      \
-      v8::Local<v8::Name> name,                                          \
-      const v8::PropertyCallbackInfo<v8::Value>& info);
+      ::v8::Local<::v8::Name> name,                                          \
+      const ::v8::PropertyCallbackInfo<::v8::Value>& info);
   ACCESSOR_INFO_LIST_GENERATOR(ACCESSOR_GETTER_DECLARATION, /* not used */)
 #undef ACCESSOR_GETTER_DECLARATION
 
 #define ACCESSOR_GETTER_DECLARATION(AccessorName)    \
-  static void AccessorName(v8::Local<v8::Name> name, \
-                           const v8::PropertyCallbackInfo<v8::Value>& info);
+  static void AccessorName(::v8::Local<::v8::Name> name, \
+                           const ::v8::PropertyCallbackInfo<::v8::Value>& info);
   ACCESSOR_GETTER_LIST(ACCESSOR_GETTER_DECLARATION)
 #undef ACCESSOR_GETTER_DECLARATION
 
 #define ACCESSOR_SETTER_DECLARATION(AccessorName)      \
-  static void AccessorName(v8::Local<v8::Name> name,   \
-                           v8::Local<v8::Value> value, \
-                           const v8::PropertyCallbackInfo<v8::Boolean>& info);
+  static void AccessorName(::v8::Local<::v8::Name> name,   \
+                           ::v8::Local<::v8::Value> value, \
+                           const ::v8::PropertyCallbackInfo<::v8::Boolean>& info);
   ACCESSOR_SETTER_LIST(ACCESSOR_SETTER_DECLARATION)
 #undef ACCESSOR_SETTER_DECLARATION
 
 #define ACCESSOR_CALLBACK_DECLARATION(_, AccessorName, ...) \
-  static void AccessorName(const v8::FunctionCallbackInfo<v8::Value>& info);
+  static void AccessorName(const ::v8::FunctionCallbackInfo<::v8::Value>& info);
   ACCESSOR_CALLBACK_LIST_GENERATOR(ACCESSOR_CALLBACK_DECLARATION,
                                    /* not used */)
 #undef ACCESSOR_CALLBACK_DECLARATION

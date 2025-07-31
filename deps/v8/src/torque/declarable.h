@@ -498,7 +498,7 @@ class Builtin : public Callable {
  public:
   enum Kind { kStub, kFixedArgsJavaScript, kVarArgsJavaScript };
   enum class Flag { kNone = 0, kCustomInterfaceDescriptor = 1 << 0 };
-  using Flags = v8::base::Flags<Flag>;
+  using Flags = ::v8::base::Flags<Flag>;
   DECLARE_DECLARABLE_BOILERPLATE(Builtin, builtin)
   Kind kind() const { return kind_; }
   Flags flags() const { return flags_; }
@@ -583,7 +583,7 @@ template <class SpecializationType, class DeclarationType>
 class GenericDeclarable : public Declarable {
  private:
   using Map = std::unordered_map<TypeVector, SpecializationType,
-                                 v8::base::hash<TypeVector>>;
+                                 ::v8::base::hash<TypeVector>>;
 
  public:
   void AddSpecialization(const TypeVector& type_arguments,

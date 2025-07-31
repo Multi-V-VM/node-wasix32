@@ -113,7 +113,7 @@ TEST_F(PersistentHandlesTest, Iterate) {
 
 static constexpr int kNumHandles = kHandleBlockSize * 2 + kHandleBlockSize / 2;
 
-class PersistentHandlesThread final : public v8::base::Thread {
+class PersistentHandlesThread final : public ::v8::base::Thread {
  public:
   PersistentHandlesThread(Heap* heap, std::vector<Handle<HeapNumber>> handles,
                           std::unique_ptr<PersistentHandles> ph,

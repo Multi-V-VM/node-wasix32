@@ -394,7 +394,7 @@ class V8_NODISCARD HandleScope {
                                          uintptr_t value = kHandleZapValue);
 #endif
 
-  friend class v8::HandleScope;
+  friend class ::v8::HandleScope;
   friend class HandleScopeImplementer;
   friend class Isolate;
   friend class LocalHandles;

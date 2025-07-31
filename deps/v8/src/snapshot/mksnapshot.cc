@@ -117,7 +117,7 @@ class SnapshotFileWriter {
   }
 
   static FILE* GetFileDescriptorOrDie(const char* filename) {
-    FILE* fp = v8::base::OS::FOpen(filename, "wb");
+    FILE* fp = ::v8::base::OS::FOpen(filename, "wb");
     if (fp == nullptr) {
       i::PrintF("Unable to open file \"%s\" for writing.\n", filename);
       exit(1);
@@ -132,7 +132,7 @@ class SnapshotFileWriter {
 std::unique_ptr<char[]> GetExtraCode(char* filename, const char* description) {
   if (filename == nullptr || strlen(filename) == 0) return nullptr;
   ::printf("Loading script for %s: %s\n", description, filename);
-  FILE* file = v8::base::OS::FOpen(filename, "rb");
+  FILE* file = ::v8::base::OS::FOpen(filename, "rb");
   if (file == nullptr) {
     fprintf(stderr, "Failed to open '%s': errno %d\n", filename, errno);
     exit(1);

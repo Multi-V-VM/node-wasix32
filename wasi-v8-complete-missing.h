@@ -85,6 +85,8 @@ struct StartupData {
 };
 
 // CppHeap types
+#ifndef V8_CPPHEAP_DEFINED
+#define V8_CPPHEAP_DEFINED
 struct CppHeapCreateParams {
   std::vector<std::unique_ptr<cppgc::CustomSpaceBase>> custom_spaces;
   cppgc::Heap::MarkingType marking_support = 
@@ -99,6 +101,7 @@ class CppHeap {
       Platform* platform,
       const CppHeapCreateParams& params) { return nullptr; }
 };
+#endif // V8_CPPHEAP_DEFINED
 
 // ArrayBuffer::Allocator 
 class ArrayBuffer {

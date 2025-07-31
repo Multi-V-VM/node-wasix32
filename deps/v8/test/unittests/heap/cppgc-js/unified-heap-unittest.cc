@@ -869,7 +869,7 @@ using UnifiedHeapMinimalTest = WithIsolateMixin<  //
         WithDefaultPlatformMixin<                 //
             ::testing::Test>>>;
 
-class ThreadUsingV8Locker final : public v8::base::Thread {
+class ThreadUsingV8Locker final : public ::v8::base::Thread {
  public:
   ThreadUsingV8Locker(v8::Isolate* isolate, CppHeap* heap,
                       cppgc::Persistent<Wrappable>& holder)
