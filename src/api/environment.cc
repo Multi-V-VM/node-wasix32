@@ -22,6 +22,10 @@
 #endif
 #include "v8-cppgc.h"
 
+#ifdef __wasi__
+#include "../wasi-v8-missing-methods.h"
+#endif
+
 namespace node {
 using errors::TryCatchScope;
 using v8::Array;

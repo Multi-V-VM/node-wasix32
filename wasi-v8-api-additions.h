@@ -21,10 +21,15 @@ namespace v8 {
 
 // Fix for LocalVector constructor issues
 template<typename T>
-inline std::vector<Local<T>> MakeLocalVector(Isolate* isolate, 
-                                            std::initializer_list<Local<T>> init) {
-    // Ignore isolate parameter for WASI builds
-    return std::vector<Local<T>>(init);
+inline LocalVector<T> MakeLocalVector(Isolate* isolate, 
+                                     std::initializer_list<Local<T>> init) {
+    // Create LocalVector and populate it
+    LocalVector<T> result(isolate);
+    result.reserve(init.size());
+    for (const auto& item : init) {
+        result.push_back(item);
+    }
+    return result;
 }
 
 // Value inline methods are now defined in wasi/v8-value-inline-impl.h

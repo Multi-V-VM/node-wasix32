@@ -1,3 +1,6 @@
+#ifdef __wasi__
+#include "../wasi-node-compat.h"
+#endif
 #include "node_metadata.h"
 #include "acorn_version.h"
 #include "ada.h"
@@ -10,7 +13,11 @@
 #include "nghttp2/nghttp2ver.h"
 #include "node.h"
 #include "simdjson.h"
+#ifdef __wasi__
+#include "../wasi-simdutf-stubs.h"
+#else
 #include "simdutf.h"
+#endif
 #if HAVE_SQLITE
 #include "sqlite3.h"
 #endif  // HAVE_SQLITE

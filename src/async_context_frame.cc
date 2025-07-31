@@ -10,6 +10,10 @@
 
 #include "v8.h"
 
+#ifdef __wasi__
+#include "../wasi-v8-missing-methods.h"
+#endif
+
 using v8::Context;
 using v8::Isolate;
 using v8::Local;

@@ -1,3 +1,6 @@
+#ifdef __wasi__
+#include "../wasi-node-compat.h"
+#endif
 #include "debug_utils-inl.h"  // NOLINT(build/include)
 #include "env-inl.h"
 #include "node_internals.h"
@@ -22,8 +25,10 @@
 
 #if HAVE_EXECINFO_H
 #include <cxxabi.h>
+#ifndef __wasi__
 #include <dlfcn.h>
 #include <execinfo.h>
+#endif
 #include <unistd.h>
 #include <sys/mman.h>
 #include <cstdio>
@@ -97,6 +102,11 @@ class PosixSymbolDebuggingContext final : public NativeSymbolDebuggingContext {
   PosixSymbolDebuggingContext() : pagesize_(getpagesize()) { }
 
   SymbolInfo LookupSymbol(void* address) override {
+#ifdef __wasi__
+    // WASI doesn't support dladdr, return empty symbol info
+    SymbolInfo ret;
+    return ret;
+#else
     Dl_info info;
     const bool have_info = dladdr(address, &info);
     SymbolInfo ret;
@@ -118,6 +128,7 @@ class PosixSymbolDebuggingContext final : public NativeSymbolDebuggingContext {
     }
 
     return ret;
+#endif
   }
 
   bool IsMapped(void* address) override {
@@ -127,7 +138,12 @@ class PosixSymbolDebuggingContext final : public NativeSymbolDebuggingContext {
   }
 
   int GetStackTrace(void** frames, int count) override {
+#ifdef __wasi__
+    // WASI doesn't support backtrace
+    return 0;
+#else
     return backtrace(frames, count);
+#endif
   }
 
  private:

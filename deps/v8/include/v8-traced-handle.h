@@ -29,6 +29,12 @@ class TracedHandle {
 
   bool IsEmpty() const { return true; }
   void Reset() {}
+  
+  // Reset with isolate and handle
+  template <class S>
+  void Reset(Isolate* isolate, Local<S> handle) {
+    // WASI stub - no-op
+  }
 
   T* operator->() const { return nullptr; }
   T* operator*() const { return nullptr; }

@@ -1,7 +1,11 @@
 #include "node_string.h"
 #include "crdtp/json.h"
 #include "node/inspector/protocol/Protocol.h"
+#ifdef __wasi__
+#include "../../wasi-simdutf-stubs.h"
+#else
 #include "simdutf.h"
+#endif
 #include "util-inl.h"
 
 namespace crdtp {

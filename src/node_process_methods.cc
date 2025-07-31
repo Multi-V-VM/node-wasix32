@@ -1,3 +1,6 @@
+#ifdef __wasi__
+#include "../wasi-node-compat.h"
+#endif
 #include "async_wrap-inl.h"
 #include "base_object-inl.h"
 #include "debug_utils-inl.h"
@@ -14,6 +17,10 @@
 #include "uv.h"
 #include "v8-fast-api-calls.h"
 #include "v8.h"
+
+#ifdef __wasi__
+#include "../wasi-v8-missing-methods.h"
+#endif
 
 #include <vector>
 

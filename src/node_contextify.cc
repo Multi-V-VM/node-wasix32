@@ -19,9 +19,15 @@
 // OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE
 // USE OR OTHER DEALINGS IN THE SOFTWARE.
 
+#ifdef __wasi__
+#include "../wasi-node-compat.h"
+#endif
 #include "node_contextify.h"
 
 #include "base_object-inl.h"
+#ifdef __wasi__
+#include "../wasi-cppgc-stubs.h"
+#endif
 #include "cppgc/allocation.h"
 #include "memory_tracker-inl.h"
 #include "module_wrap.h"

@@ -1,3 +1,6 @@
+#ifdef __wasi__
+#include "../wasi-node-compat.h"
+#endif
 #include "node_platform.h"
 #include "node_internals.h"
 

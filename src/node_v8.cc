@@ -19,6 +19,9 @@
 // OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE
 // USE OR OTHER DEALINGS IN THE SOFTWARE.
 
+#ifdef __wasi__
+#include "../wasi-node-compat.h"
+#endif
 #include "node_v8.h"
 #include "aliased_buffer-inl.h"
 #include "base_object-inl.h"
@@ -28,6 +31,10 @@
 #include "node_external_reference.h"
 #include "util-inl.h"
 #include "v8.h"
+
+#ifdef __wasi__
+#include "../wasi-v8-missing-methods.h"
+#endif
 
 namespace node {
 namespace v8_utils {
@@ -203,7 +210,12 @@ void SetHeapSnapshotNearHeapLimit(const FunctionCallbackInfo<Value>& args) {
 void UpdateHeapStatisticsBuffer(const FunctionCallbackInfo<Value>& args) {
   BindingData* data = Realm::GetBindingData<BindingData>(args);
   HeapStatistics s;
+#ifdef __wasi__
+  // WASI stub - initialize with zeros
+  s = HeapStatistics();
+#else
   args.GetIsolate()->GetHeapStatistics(&s);
+#endif
   AliasedFloat64Array& buffer = data->heap_statistics_buffer;
 #define V(index, name, _) buffer[index] = static_cast<double>(s.name());
   HEAP_STATISTICS_PROPERTIES(V)
@@ -217,7 +229,12 @@ void UpdateHeapSpaceStatisticsBuffer(const FunctionCallbackInfo<Value>& args) {
   Isolate* const isolate = args.GetIsolate();
   CHECK(args[0]->IsUint32());
   size_t space_index = static_cast<size_t>(args[0].As<v8::Uint32>()->Value());
+#ifdef __wasi__
+  // WASI stub - initialize with zeros
+  s = HeapSpaceStatistics();
+#else
   isolate->GetHeapSpaceStatistics(&s, space_index);
+#endif
 
   AliasedFloat64Array& buffer = data->heap_space_statistics_buffer;
 
@@ -229,7 +246,12 @@ void UpdateHeapSpaceStatisticsBuffer(const FunctionCallbackInfo<Value>& args) {
 void UpdateHeapCodeStatisticsBuffer(const FunctionCallbackInfo<Value>& args) {
   BindingData* data = Realm::GetBindingData<BindingData>(args);
   HeapCodeStatistics s;
+#ifdef __wasi__
+  // WASI stub - initialize with zeros
+  s = HeapCodeStatistics();
+#else
   args.GetIsolate()->GetHeapCodeAndMetadataStatistics(&s);
+#endif
   AliasedFloat64Array& buffer = data->heap_code_statistics_buffer;
 
 #define V(index, name, _) buffer[index] = static_cast<double>(s.name());
@@ -263,7 +285,12 @@ CFunction fast_is_string_one_byte_representation_(
 
 void GetHashSeed(const FunctionCallbackInfo<Value>& args) {
   Isolate* isolate = args.GetIsolate();
+#ifdef __wasi__
+  // WASI stub - return fixed seed
+  uint64_t hash_seed = 0x12345678;
+#else
   uint64_t hash_seed = isolate->GetHashSeed();
+#endif
   args.GetReturnValue().Set(BigInt::NewFromUnsigned(isolate, hash_seed));
 }
 
@@ -284,7 +311,12 @@ static const char* GetGCTypeName(v8::GCType gc_type) {
 
 static void SetHeapStatistics(JSONWriter* writer, Isolate* isolate) {
   HeapStatistics heap_statistics;
+#ifdef __wasi__
+  // WASI stub - initialize with zeros
+  heap_statistics = HeapStatistics();
+#else
   isolate->GetHeapStatistics(&heap_statistics);
+#endif
   writer->json_objectstart("heapStatistics");
   writer->json_keyvalue("totalHeapSize", heap_statistics.total_heap_size());
   writer->json_keyvalue("totalHeapSizeExecutable",
@@ -305,6 +337,11 @@ static void SetHeapStatistics(JSONWriter* writer, Isolate* isolate) {
                         heap_statistics.peak_malloced_memory());
   writer->json_objectend();
 
+#ifdef __wasi__
+  // WASI stub - no heap spaces in WASI
+  writer->json_arraystart("heapSpaceStatistics");
+  writer->json_arrayend();
+#else
   int space_count = isolate->NumberOfHeapSpaces();
   writer->json_arraystart("heapSpaceStatistics");
   for (int i = 0; i < space_count; i++) {
@@ -322,6 +359,7 @@ static void SetHeapStatistics(JSONWriter* writer, Isolate* isolate) {
     writer->json_end();
   }
   writer->json_arrayend();
+#endif
 }
 
 static MaybeLocal<Object> ConvertHeapStatsToJSObject(
@@ -488,6 +526,12 @@ static void GetCppHeapStatistics(const FunctionCallbackInfo<Value>& args) {
   CHECK_EQ(args.Length(), 1);
   CHECK(args[0]->IsInt32());
 
+#ifdef __wasi__
+  // WASI stub - return empty statistics
+  cppgc::HeapStatistics stats;
+  Local<Object> result = Object::New(isolate);
+  args.GetReturnValue().Set(result);
+#else
   cppgc::HeapStatistics stats = isolate->GetCppHeap()->CollectStatistics(
       static_cast<cppgc::HeapStatistics::DetailLevel>(
           args[0].As<Int32>()->Value()));
@@ -497,6 +541,7 @@ static void GetCppHeapStatistics(const FunctionCallbackInfo<Value>& args) {
     return;
   }
   args.GetReturnValue().Set(result);
+#endif
 }
 
 static void BeforeGCCallback(Isolate* isolate,

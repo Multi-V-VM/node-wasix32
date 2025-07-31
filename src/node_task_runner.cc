@@ -1,3 +1,6 @@
+#ifdef __wasi__
+#include "../wasi-node-compat.h"
+#endif
 #include "node_task_runner.h"
 #include "util-inl.h"
 

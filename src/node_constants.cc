@@ -19,6 +19,9 @@
 // OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE
 // USE OR OTHER DEALINGS IN THE SOFTWARE.
 
+#ifdef __wasi__
+#include "../wasi-node-compat.h"
+#endif
 #include "env-inl.h"
 #include "node_constants.h"
 #include "node_internals.h"
@@ -44,7 +47,7 @@
 #endif  // !OPENSSL_NO_ENGINE
 #endif  // HAVE_OPENSSL
 
-#if defined(__POSIX__)
+#if defined(__POSIX__) && !defined(__wasi__)
 #include <dlfcn.h>
 #endif
 

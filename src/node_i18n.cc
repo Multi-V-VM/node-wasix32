@@ -40,9 +40,16 @@
  */
 
 
+#ifdef __wasi__
+#include "../wasi-node-compat.h"
+#endif
 #include "node_i18n.h"
 #include "node_external_reference.h"
+#ifdef __wasi__
+#include "../wasi-simdutf-stubs.h"
+#else
 #include "simdutf.h"
+#endif
 
 #if defined(NODE_HAVE_I18N_SUPPORT)
 

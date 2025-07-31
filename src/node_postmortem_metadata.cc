@@ -1,3 +1,6 @@
+#ifdef __wasi__
+#include "../wasi-node-compat.h"
+#endif
 #include "base_object-inl.h"
 #include "env.h"
 #include "handle_wrap.h"

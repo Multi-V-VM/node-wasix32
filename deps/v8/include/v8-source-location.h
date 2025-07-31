@@ -24,9 +24,9 @@ class SourceLocation final {
  public:
   static constexpr SourceLocation Current() { return SourceLocation(); }
   constexpr SourceLocation() = default;
-  constexpr const char* Function() const { return nullptr; }
-  constexpr const char* FileName() const { return nullptr; }
-  constexpr size_t Line() const { return 0; }
+  constexpr const char* Function() const { return function_; }
+  constexpr const char* FileName() const { return file_; }
+  constexpr size_t Line() const { return line_; }
   
 #ifdef __wasi__
   // Simplified for WASI

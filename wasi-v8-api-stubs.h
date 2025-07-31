@@ -9,7 +9,7 @@
 
 // Additional cppgc namespace stubs (must be before v8 namespace)
 // Only define if V8 headers haven't been included
-#if !defined(CPPGC_STUBS_DEFINED) && !defined(V8_CPPGC_H_)
+#if !defined(CPPGC_STUBS_DEFINED) && !defined(INCLUDE_V8_CPPGC_H_)
 #define CPPGC_STUBS_DEFINED
 
 namespace cppgc {
@@ -132,7 +132,7 @@ class EscapableHandleScope : public HandleScope {
 #endif // HANDLESCOPE_STUBS_DEFINED
 
 // CppHeap stub - prevent redefinition, only define if V8 headers haven't been included
-#if !defined(CPPHEAP_STUBS_DEFINED) && !defined(V8_CPPGC_H_)
+#if !defined(CPPHEAP_STUBS_DEFINED) && !defined(INCLUDE_V8_CPPGC_H_)
 #define CPPHEAP_STUBS_DEFINED
 
 struct CppHeapCreateParams {

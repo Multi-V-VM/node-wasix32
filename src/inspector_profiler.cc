@@ -1,4 +1,7 @@
 #ifdef __wasi__
+#ifdef __wasi__
+#include "../wasi-node-compat.h"
+#endif
 #include "../wasi-v8-api-additions.h"
 #endif
 
@@ -17,7 +20,11 @@
 #include <cinttypes>
 #include <limits>
 #include <sstream>
+#ifdef __wasi__
+#include "../wasi-simdutf-stubs.h"
+#else
 #include "simdutf.h"
+#endif
 
 namespace node {
 namespace profiler {

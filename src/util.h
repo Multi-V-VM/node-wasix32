@@ -304,11 +304,21 @@ class ListNode {
 template <typename T, ListNode<T> (T::*M)>
 class ListHead {
  public:
+  class Iterator {
+   public:
+    Iterator(ListNode<T>* node) {}
+    T* operator*() const { return nullptr; }
+    const Iterator& operator++() { return *this; }
+    bool operator!=(const Iterator& that) const { return false; }
+  };
+  
   ListHead() = default;
   bool IsEmpty() const { return true; }
   void PushBack(T* element) {}
   void PushFront(T* element) {}
   T* PopFront() { return nullptr; }
+  Iterator begin() const { return Iterator(nullptr); }
+  Iterator end() const { return Iterator(nullptr); }
 };
 #else
 // TAILQ-style intrusive list node.

@@ -132,6 +132,19 @@ class PerIsolatePlatformData
 
   const uv_loop_t* event_loop() const { return loop_; }
 
+  // v8::TaskRunner implementation - public interface
+  void PostTask(std::unique_ptr<v8::Task> task) override {
+    PostTaskImpl(std::move(task), v8::SourceLocation::Current());
+  }
+  void PostDelayedTask(std::unique_ptr<v8::Task> task, 
+                      double delay_in_seconds) override {
+    PostDelayedTaskImpl(std::move(task), delay_in_seconds, 
+                       v8::SourceLocation::Current());
+  }
+  void PostIdleTask(std::unique_ptr<v8::IdleTask> task) override {
+    PostIdleTaskImpl(std::move(task), v8::SourceLocation::Current());
+  }
+
  private:
   // v8::TaskRunner implementation.
   void PostTaskImpl(std::unique_ptr<v8::Task> task,

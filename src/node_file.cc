@@ -20,6 +20,10 @@
 // USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 #ifdef __wasi__
+#ifdef __wasi__
+#include "../wasi-node-compat.h"
+#endif
+#include "../wasi-filesystem-stubs.h"
 #endif
 
 #include "node_file.h"  // NOLINT(build/include_inline)

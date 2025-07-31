@@ -1,3 +1,6 @@
+#ifdef __wasi__
+#include "../wasi-node-compat.h"
+#endif
 #include "encoding_binding.h"
 #ifdef __wasi__
 #include "wasi-v8-api-fixes.h"
@@ -7,7 +10,11 @@
 #include "node_buffer.h"
 #include "node_errors.h"
 #include "node_external_reference.h"
+#ifdef __wasi__
+#include "../wasi-simdutf-stubs.h"
+#else
 #include "simdutf.h"
+#endif
 #include "string_bytes.h"
 #include "v8.h"
 
@@ -15,6 +22,12 @@
 
 namespace node {
 namespace encoding_binding {
+
+#ifdef __wasi__
+// WASI: simdutf functions are in v8::simdutf namespace
+using v8::simdutf::validate_utf8_with_errors;
+using v8::simdutf::convert_latin1_to_utf8;
+#endif
 
 using v8::ArrayBuffer;
 using v8::BackingStore;
@@ -170,7 +183,7 @@ void BindingData::DecodeUTF8(const FunctionCallbackInfo<Value>& args) {
   if (has_fatal) {
     auto result = simdutf::validate_utf8_with_errors(data, length);
 
-    if (result.error) {
+    if (!result.valid) {
       return node::THROW_ERR_ENCODING_INVALID_ENCODED_DATA(
           env->isolate(), "The encoded data was not valid for encoding utf-8");
     }

@@ -35,6 +35,7 @@ class Value;
 class StackTrace;
 class String;
 class Isolate;
+class HeapProfiler;
 
 // Type definitions that need to be before Isolate class
 using AbortOnUncaughtExceptionCallback = bool (*)(Isolate*);
@@ -80,6 +81,30 @@ class V8_EXPORT Isolate {
   void SetData(uint32_t slot, void* data) {}
   Local<Context> GetCurrentContext() { return Local<Context>(); }
   
+  // Execution termination methods
+  bool IsExecutionTerminating() { return false; }
+  void CancelTerminateExecution() {}
+  void TerminateExecution() {
+    // WASI stub - no-op
+  }
+  
+  // Other missing Isolate methods
+  enum class TimeZoneDetection { kSkip, kRedetect };
+  
+  std::string GetDefaultLocale() { return "en-US"; }
+  void DateTimeConfigurationChangeNotification(
+      TimeZoneDetection detection = TimeZoneDetection::kRedetect) {}
+  
+  // Host callback methods
+  void SetHostImportModuleDynamicallyCallback(HostImportModuleDynamicallyCallback callback) {}
+  void SetHostImportModuleWithPhaseDynamicallyCallback(
+      HostImportModuleWithPhaseDynamicallyCallback callback) {}
+  void SetHostInitializeImportMetaObjectCallback(
+      HostInitializeImportMetaObjectCallback callback) {}
+  
+  // Heap profiler
+  HeapProfiler* GetHeapProfiler() { return nullptr; }
+  
   // Scope class
   class Scope {
    public:
@@ -109,6 +134,18 @@ class V8_EXPORT Isolate {
     }
     
     ~DisallowJavascriptExecutionScope() {
+      // WASI stub - no-op
+    }
+  };
+  
+  // AllowJavascriptExecutionScope for WASI
+  class AllowJavascriptExecutionScope {
+  public:
+    explicit AllowJavascriptExecutionScope(Isolate* isolate) {
+      // WASI stub - no-op
+    }
+    
+    ~AllowJavascriptExecutionScope() {
       // WASI stub - no-op
     }
   };
@@ -164,6 +201,29 @@ class V8_EXPORT Isolate {
     return new Isolate();
   }
   
+  // Interrupt handling
+  using InterruptCallback = void (*)(Isolate* isolate, void* data);
+  void RequestInterrupt(InterruptCallback callback, void* data) {
+    // WASI stub - no-op
+    // In a real implementation, this would queue the callback to be called
+  }
+  
+  // Heap statistics methods
+  size_t NumberOfHeapSpaces() { return 0; }
+  
+  struct HeapSpaceStatistics {
+    const char* space_name() { return ""; }
+    size_t space_size() { return 0; }
+    size_t space_used_size() { return 0; }
+    size_t space_available_size() { return 0; }
+    size_t physical_space_size() { return 0; }
+  };
+  
+  bool GetHeapSpaceStatistics(HeapSpaceStatistics* space_statistics, size_t index) {
+    // WASI stub - no-op
+    return false;
+  }
+  
   static void Free(Isolate* isolate) {
     delete isolate;
   }
@@ -207,6 +267,19 @@ class V8_EXPORT Isolate {
   template<typename T>
   MaybeLocal<T> GetDataFromSnapshotOnce(size_t index) {
     return MaybeLocal<T>();
+  }
+  
+  // Missing methods for heap management
+  void AutomaticallyRestoreInitialHeapLimit(double threshold) {
+    // WASI stub - no-op
+  }
+  
+  void ClearKeptObjects() {
+    // WASI stub - no-op
+  }
+  
+  void LowMemoryNotification() {
+    // WASI stub - no-op
   }
 };
 

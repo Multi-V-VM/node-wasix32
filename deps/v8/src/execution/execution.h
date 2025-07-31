@@ -59,7 +59,7 @@ class Execution final : public AllStatic {
   V8_EXPORT_PRIVATE static MaybeDirectHandle<Object> TryCall(
       Isolate* isolate, DirectHandle<Object> callable,
       DirectHandle<Object> receiver,
-      ::v8::::v8::base::Vector<const DirectHandle<Object>> args,
+      ::v8::base::Vector<const DirectHandle<Object>> args,
       MessageHandling message_handling,
       MaybeDirectHandle<Object>* exception_out);
   // Same as Execute::TryCall but for scripts which need an explicit

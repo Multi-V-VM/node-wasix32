@@ -1,7 +1,14 @@
+#ifdef __wasi__
+#include "../wasi-node-compat.h"
+#endif
 #include "main_thread_interface.h"
 
 #include "env-inl.h"
+#ifdef __wasi__
+#include "../../wasi-simdutf-stubs.h"
+#else
 #include "simdutf.h"
+#endif
 #include "v8-inspector.h"
 
 #include <functional>

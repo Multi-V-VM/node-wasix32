@@ -19,6 +19,9 @@
 // OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE
 // USE OR OTHER DEALINGS IN THE SOFTWARE.
 
+#ifdef __wasi__
+#include "../wasi-node-compat.h"
+#endif
 #include "node_buffer.h"
 #include "node.h"
 #include "node_blob.h"
@@ -29,12 +32,20 @@
 #include "node_internals.h"
 
 #include "env-inl.h"
+#ifdef __wasi__
+#include "../wasi-simdutf-stubs.h"
+#else
 #include "simdutf.h"
+#endif
 #include "string_bytes.h"
 
 #include "util-inl.h"
 #include "v8-fast-api-calls.h"
 #include "v8.h"
+
+#ifdef __wasi__
+#include "../wasi-v8-missing-methods.h"
+#endif
 
 #include <stdint.h>
 #include <climits>

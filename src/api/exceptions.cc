@@ -7,6 +7,10 @@
 #include "uv.h"
 #include "v8.h"
 
+#ifdef __wasi__
+#include "../wasi-v8-missing-methods.h"
+#endif
+
 #include <cstring>
 
 namespace node {

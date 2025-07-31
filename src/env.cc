@@ -1,3 +1,6 @@
+#ifdef __wasi__
+#include "../wasi-node-compat.h"
+#endif
 #include "env.h"
 #include "async_wrap.h"
 #include "base_object-inl.h"
@@ -24,6 +27,10 @@
 #include "v8-cppgc.h"
 #include "v8-profiler.h"
 #include "v8-sandbox.h"  // v8::Object::Wrap(), v8::Object::Unwrap()
+
+#ifdef __wasi__
+#include "../wasi-v8-missing-methods.h"
+#endif
 
 #include <algorithm>
 #include <atomic>
@@ -2148,7 +2155,7 @@ size_t Environment::NearHeapLimitCallback(void* data,
   Debug(env, DebugCategory::DIAGNOSTICS, "Start generating %s...\n", *name);
 
   HeapProfiler::HeapSnapshotOptions options;
-  options.numerics_mode = HeapProfiler::NumericsMode::kExposeNumericValues;
+  options.numerics_mode = HeapProfiler::HeapSnapshotOptions::NumericsMode::kExposeNumericValues;
   options.snapshot_mode = HeapProfiler::HeapSnapshotMode::kExposeInternals;
   heap::WriteSnapshot(env, filename.c_str(), options);
   env->heap_limit_snapshot_taken_ += 1;

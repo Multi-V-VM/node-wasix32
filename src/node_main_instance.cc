@@ -1,3 +1,6 @@
+#ifdef __wasi__
+#include "../wasi-node-compat.h"
+#endif
 #include "node_main_instance.h"
 #include <memory>
 #if HAVE_OPENSSL

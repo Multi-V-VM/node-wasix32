@@ -1,3 +1,6 @@
+#ifdef __wasi__
+#include "../wasi-node-compat.h"
+#endif
 #include "compile_cache.h"
 #include <string>
 #include "debug_utils-inl.h"
@@ -47,7 +50,7 @@ std::string GetCacheVersionTag() {
   // On platforms where uids are not available, bare with the cache miss.
   // This should be fine on Windows, as there local directories tend to be
   // user-specific.
-  std::string tag = std::string(NODE_VERSION) + '-' + std::string(NODE_ARCH) +
+  std::string tag = std::string(NODE_VERSION) + '-' + std::string(STRINGIFY(NODE_ARCH)) +
                     '-' + Uint32ToHex(ScriptCompiler::CachedDataVersionTag());
 #ifdef NODE_IMPLEMENTS_POSIX_CREDENTIALS
   tag += '-' + std::to_string(getuid());

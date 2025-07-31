@@ -59,21 +59,21 @@ inline constexpr bool CodeKindIsBaselinedJSFunction(CodeKind kind) {
 inline constexpr bool CodeKindIsUnoptimizedJSFunction(CodeKind kind) {
   static_assert(static_cast<int>(CodeKind::INTERPRETED_FUNCTION) + 1 ==
                 static_cast<int>(CodeKind::BASELINE));
-  return base::IsInRange(kind, CodeKind::INTERPRETED_FUNCTION,
-                         CodeKind::BASELINE);
+  return ::v8::base::IsInRange(kind, CodeKind::INTERPRETED_FUNCTION,
+                               CodeKind::BASELINE);
 }
 
 inline constexpr bool CodeKindIsOptimizedJSFunction(CodeKind kind) {
   static_assert(static_cast<int>(CodeKind::MAGLEV) + 1 ==
                 static_cast<int>(CodeKind::TURBOFAN_JS));
-  return base::IsInRange(kind, CodeKind::MAGLEV, CodeKind::TURBOFAN_JS);
+  return ::v8::base::IsInRange(kind, CodeKind::MAGLEV, CodeKind::TURBOFAN_JS);
 }
 
 inline constexpr bool CodeKindIsJSFunction(CodeKind kind) {
   static_assert(static_cast<int>(CodeKind::BASELINE) + 1 ==
                 static_cast<int>(CodeKind::MAGLEV));
-  return base::IsInRange(kind, CodeKind::INTERPRETED_FUNCTION,
-                         CodeKind::TURBOFAN_JS);
+  return ::v8::base::IsInRange(kind, CodeKind::INTERPRETED_FUNCTION,
+                               CodeKind::TURBOFAN_JS);
 }
 
 inline constexpr bool CodeKindIsBuiltinOrJSFunction(CodeKind kind) {

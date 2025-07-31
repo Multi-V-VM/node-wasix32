@@ -6,7 +6,6 @@
 
 #include "v8-local-handle.h"
 #include "v8-value.h"
-#include "v8-primitive.h"
 
 // Only define these stubs if V8_V8_PROFILER_H_ hasn't been included yet
 #ifndef V8_V8_PROFILER_H_
@@ -58,12 +57,28 @@ class EmbedderGraph {
 #endif // V8_EMBEDDER_GRAPH_DEFINED
 #endif // V8_PROFILER_H_
 
+// QueryObjectPredicate class for WASI
+#ifndef V8_QUERY_OBJECT_PREDICATE_DEFINED
+#define V8_QUERY_OBJECT_PREDICATE_DEFINED
+class QueryObjectPredicate {
+ public:
+  virtual ~QueryObjectPredicate() = default;
+  virtual bool Filter(Local<Object> object) = 0;
+};
+#endif // V8_QUERY_OBJECT_PREDICATE_DEFINED
+
 // Stub for HeapProfiler
 #ifndef V8_PROFILER_H_
 #ifndef V8_HEAP_PROFILER_DEFINED
 #define V8_HEAP_PROFILER_DEFINED
 class HeapProfiler {
  public:
+  // HeapSnapshotMode enum for WASI
+  enum class HeapSnapshotMode {
+    kRegular = 0,
+    kExposeInternals = 1,
+  };
+  
   struct HeapSnapshotOptions {
     enum class ControlOption {
       kDefault = 0,
@@ -77,7 +92,24 @@ class HeapProfiler {
     ControlOption control = ControlOption::kDefault;
     NumericsMode numerics_mode = NumericsMode::kHideNumericValues;
     bool capture_numeric_value = false;
+    HeapSnapshotMode snapshot_mode = HeapSnapshotMode::kRegular;  // WASI: Add missing field with correct type
   };
+  
+  // Callback types
+  using BuildEmbedderGraphCallback = void (*)(v8::Isolate* isolate, EmbedderGraph* graph, void* data);
+  
+  // WASI: Add missing methods
+  void RemoveBuildEmbedderGraphCallback(BuildEmbedderGraphCallback callback, void* data) {
+    // WASI stub - no-op
+  }
+  
+  void QueryObjects(Local<Context> context,
+                    QueryObjectPredicate* predicate,
+                    std::vector<Global<Object>>* objects) {
+    // WASI stub - no-op
+    // In a real implementation, this would search the heap for objects
+    // matching the predicate
+  }
   
   ~HeapProfiler() = default;
 };
@@ -163,6 +195,9 @@ class HeapSnapshot {
   enum class SerializationFormat {
     kJSON = 0,
   };
+  
+  // WASI: Provide direct access to kJSON for backward compatibility
+  static constexpr SerializationFormat kJSON = SerializationFormat::kJSON;
   
   virtual ~HeapSnapshot() = default;
   virtual const HeapGraphNode* GetRoot() const = 0;

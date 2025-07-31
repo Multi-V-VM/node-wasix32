@@ -22,6 +22,9 @@
 #ifdef __wasi__
 #endif
 
+#ifdef __wasi__
+#include "../wasi-node-compat.h"
+#endif
 #include "util.h"  // NOLINT(build/include_inline)
 #include <cmath>
 #include <cstdint>
@@ -51,7 +54,11 @@
 #include <sys/types.h>
 #endif
 
+#ifdef __wasi__
+#include "../wasi-simdutf-stubs.h"
+#else
 #include <simdutf.h>
+#endif
 
 #include <atomic>
 #include <cstdio>

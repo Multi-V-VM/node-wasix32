@@ -1,6 +1,9 @@
 #ifdef __wasi__
 #endif
 
+#ifdef __wasi__
+#include "../wasi-node-compat.h"
+#endif
 #include "node_sqlite.h"
 
 #ifdef __wasi__

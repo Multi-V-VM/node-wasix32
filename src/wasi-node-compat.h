@@ -20,7 +20,10 @@ inline Isolate* GetCurrent() { return nullptr; }
 // Compatibility for node.h
 #define NODE_V8_UNIXTIME(date) 0.0
 
-// std::filesystem compatibility for WASI
+// Include filesystem stubs header for WASI instead of duplicating
+#include "../wasi-filesystem-stubs.h"
+
+// Additional std::filesystem functions not in wasi-filesystem-stubs.h
 #include <filesystem>
 #include <system_error>
 #include <sys/stat.h>
@@ -30,7 +33,7 @@ inline Isolate* GetCurrent() { return nullptr; }
 namespace std {
 namespace filesystem {
 
-// Add missing filesystem functions for WASI
+// Add missing filesystem functions for WASI not already in wasi-filesystem-stubs.h
 inline path absolute(const path& p) {
   // Simple implementation - just return the path as-is
   // In WASI, all paths are already absolute or relative to the preopened directories
@@ -89,47 +92,6 @@ inline bool remove(const path& p, std::error_code& ec) {
   }
   ec = std::error_code(errno, std::system_category());
   return false;
-}
-
-// Copy a file - declare the error_code version first
-inline void copy_file(const path& from, const path& to, std::error_code& ec) {
-  FILE* src = ::fopen(from.c_str(), "rb");
-  if (!src) {
-    ec = std::error_code(errno, std::system_category());
-    return;
-  }
-  
-  FILE* dst = ::fopen(to.c_str(), "wb");
-  if (!dst) {
-    ::fclose(src);
-    ec = std::error_code(errno, std::system_category());
-    return;
-  }
-  
-  // Copy file contents
-  char buffer[8192];
-  size_t n;
-  while ((n = ::fread(buffer, 1, sizeof(buffer), src)) > 0) {
-    if (::fwrite(buffer, 1, n, dst) != n) {
-      ec = std::error_code(errno, std::system_category());
-      ::fclose(src);
-      ::fclose(dst);
-      return;
-    }
-  }
-  
-  ::fclose(src);
-  ::fclose(dst);
-  ec.clear();
-}
-
-// Copy a file - throwing version
-inline void copy_file(const path& from, const path& to) {
-  std::error_code ec;
-  copy_file(from, to, ec);
-  if (ec) {
-    throw filesystem_error("cannot copy file", from, to, ec);
-  }
 }
 
 // Check if path is a directory

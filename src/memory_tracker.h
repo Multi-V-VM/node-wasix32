@@ -4,6 +4,7 @@
 #ifdef __wasi__
 // WASI stub for memory_tracker.h
 #include <cstddef>
+#include "v8-forward.h"  // For LocalVector
 #include "v8-local-handle.h"
 #include "v8-object.h"
 // embedder-graph-stub.h removed - v8-profiler.h already has the definitions
@@ -32,10 +33,23 @@ class MemoryRetainer {
 // MemoryTracker class
 class MemoryTracker {
 public:
+  // Constructor needed by env.cc
+  MemoryTracker(::v8::Isolate* isolate, ::v8::EmbedderGraph* graph) {}
   template<typename T> void TrackField(const char* name, const T& value) {}
   template<typename T> void TrackFieldWithSize(const char* name, const T& value, size_t size = 0) {}
   void TrackFieldWithSize(const char* edge_name, size_t size, const char* node_name = nullptr) {}
   void TrackInlineFieldWithSize(const char* edge_name, size_t size, const char* node_name = nullptr) {}
+  
+  // Add Track method for base_object.cc
+  void Track(const MemoryRetainer* retainer) {}
+  
+  // Add overloaded TrackField for env.cc
+  template<typename T, typename U>
+  void TrackField(const char* name, const T& value, const U& arg) {}
+  
+  // Add TrackInlineField for node_watchdog.h
+  template<typename T>
+  void TrackInlineField(const char* name, const T& value) {}
   
   ::v8::Isolate* isolate() const { return nullptr; }
   ::v8::EmbedderGraph* graph() const { return nullptr; }

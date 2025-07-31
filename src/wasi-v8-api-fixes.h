@@ -73,12 +73,7 @@ inline bool ToLocalHelper(MaybeLocal<S> maybe, Local<T>* out) {
 #endif
 #define UNREACHABLE(...) \
   do { \
-    fprintf(stderr, "UNREACHABLE at %s:%d", __FILE__, __LINE__); \
-    if (sizeof((const char*[]){__VA_ARGS__}) > sizeof(const char*[])) { \
-      fprintf(stderr, ": "); \
-      fprintf(stderr, __VA_ARGS__); \
-    } \
-    fprintf(stderr, "\n"); \
+    fprintf(stderr, "UNREACHABLE at %s:%d\n", __FILE__, __LINE__); \
     __builtin_unreachable(); \
   } while (0)
 

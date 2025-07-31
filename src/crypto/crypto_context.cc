@@ -1,3 +1,6 @@
+#ifdef __wasi__
+#include "../wasi-node-compat.h"
+#endif
 #include "crypto/crypto_context.h"
 #include "base_object-inl.h"
 #include "crypto/crypto_bio.h"
@@ -77,7 +80,11 @@ static const char* const root_certs[] = {
 #include "node_root_certs.h"  // NOLINT(build/include_order)
 };
 
+#ifdef NODE_OPENSSL_SYSTEM_CERT_PATH
 static const char system_cert_path[] = NODE_OPENSSL_SYSTEM_CERT_PATH;
+#else
+static const char system_cert_path[] = "";
+#endif
 
 static std::string extra_root_certs_file;  // NOLINT(runtime/string)
 

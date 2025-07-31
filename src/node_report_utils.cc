@@ -1,3 +1,6 @@
+#ifdef __wasi__
+#include "../wasi-node-compat.h"
+#endif
 #include "json_utils.h"
 #include "node_internals.h"
 #include "node_report.h"

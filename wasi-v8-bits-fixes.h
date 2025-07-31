@@ -8,6 +8,36 @@ namespace v8 {
 namespace base {
 namespace bits {
 
+// Add missing CountPopulation (population count) functions
+template <typename T>
+inline int CountPopulation(T value) {
+  int count = 0;
+  while (value) {
+    count += value & 1;
+    value >>= 1;
+  }
+  return count;
+}
+
+// Specialized versions for better performance
+inline int CountPopulation(uint32_t value) {
+#ifdef __has_builtin
+#if __has_builtin(__builtin_popcount)
+  return __builtin_popcount(value);
+#endif
+#endif
+  return CountPopulation<uint32_t>(value);
+}
+
+inline int CountPopulation(uint64_t value) {
+#ifdef __has_builtin
+#if __has_builtin(__builtin_popcountll)
+  return __builtin_popcountll(value);
+#endif
+#endif
+  return CountPopulation<uint64_t>(value);
+}
+
 // Add missing CountTrailingZeros functions that complement what's in nuclear-fix.h
 template <typename T>
 constexpr unsigned CountTrailingZeros(T value) {

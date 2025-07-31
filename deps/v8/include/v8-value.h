@@ -377,6 +377,14 @@ class V8_EXPORT Value : public Data {
 #ifdef __wasi__
   // WASI: Add missing ToString method
   MaybeLocal<String> ToString(Local<Context> context) const;
+  
+  // WASI: Add missing StrictEquals method
+  bool StrictEquals(Local<Value> that) const {
+    // For WASI, we implement strict equality following ECMAScript semantics
+    // Two values are strictly equal if they are the same type and have the same value
+    // For now, just do pointer comparison
+    return this == *that;
+  }
 #endif
 
  private:

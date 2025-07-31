@@ -16,7 +16,7 @@ const char* GetBailoutReason(BailoutReason reason) {
   // Currently, the BailoutReason is read from the SharedFunctionInfo object
   // inside the sandbox and must therefore be considered untrusted. As such, it
   // needs to be validated here.
-  static_assert(std::is_unsigned<std::underlying_type_t<BailoutReason>::value>);
+  static_assert(std::is_unsigned<std::underlying_type_t<BailoutReason>>::value);
   SBXCHECK_LT(reason, BailoutReason::kLastErrorMessage);
   DCHECK_GE(reason, BailoutReason::kNoReason);
   static const char* error_messages_[] = {

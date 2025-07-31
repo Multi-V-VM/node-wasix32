@@ -1,10 +1,17 @@
+#ifdef __wasi__
+#include "../wasi-node-compat.h"
+#endif
 #include "node_builtins.h"
 #include "debug_utils-inl.h"
 #include "env-inl.h"
 #include "node_external_reference.h"
 #include "node_internals.h"
 #include "node_threadsafe_cow-inl.h"
+#ifdef __wasi__
+#include "../wasi-simdutf-stubs.h"
+#else
 #include "simdutf.h"
+#endif
 #include "util-inl.h"
 
 namespace node {

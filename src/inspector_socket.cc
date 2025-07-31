@@ -1,8 +1,15 @@
+#ifdef __wasi__
+#include "../wasi-node-compat.h"
+#endif
 #include "inspector_socket.h"
 #include "llhttp.h"
 
 #include "nbytes.h"
+#ifdef __wasi__
+#include "../wasi-simdutf-stubs.h"
+#else
 #include "simdutf.h"
+#endif
 #include "util-inl.h"
 
 #include "openssl/sha.h"  // Sha-1 hash

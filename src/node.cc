@@ -19,6 +19,9 @@
 // OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE
 // USE OR OTHER DEALINGS IN THE SOFTWARE.
 
+#ifdef __wasi__
+#include "../wasi-node-compat.h"
+#endif
 #include "node.h"
 #include "node_config_file.h"
 #include "node_dotenv.h"
@@ -90,6 +93,10 @@
 #else
 #include <atomic>
 #include "v8-wasm-trap-handler-posix.h"
+
+#ifdef __wasi__
+#include "../wasi-v8-missing-methods.h"
+#endif
 #endif
 #endif  // NODE_USE_V8_WASM_TRAP_HANDLER
 
@@ -238,10 +245,19 @@ void Environment::InitializeDiagnostics() {
   if (heap_snapshot_near_heap_limit_ > 0) {
     AddHeapSnapshotNearHeapLimitCallback();
   }
-  if (options_->trace_uncaught)
+  if (options_->trace_uncaught) {
+#ifdef __wasi__
+    // WASI stub - no-op
+#else
     isolate_->SetCaptureStackTraceForUncaughtExceptions(true);
+#endif
+  }
   if (options_->trace_promises) {
+#ifdef __wasi__
+    // WASI stub - no-op
+#else
     isolate_->SetPromiseHook(TracePromises);
+#endif
   }
 }
 

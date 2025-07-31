@@ -15,6 +15,7 @@
 #ifndef INCLUDE_V8_OBJECT_H_
 #define INCLUDE_V8_OBJECT_H_
 
+#include "v8-forward.h"            // NOLINT(build/include_directory) - for LocalVector
 #include "v8-internal.h"           // NOLINT(build/include_directory)
 #include "v8-local-handle.h"       // NOLINT(build/include_directory)
 #include "v8-maybe.h"              // NOLINT(build/include_directory)
@@ -837,6 +838,17 @@ class V8_EXPORT Object : public Value {
   static Local<Object> New(Isolate* isolate, Local<Value> prototype_or_null,
                            Local<Name>* names, Local<Value>* values,
                            size_t length);
+  
+  // Overload to accept LocalVector parameters
+  static inline Local<Object> New(Isolate* isolate, Local<Value> prototype_or_null,
+                                  LocalVector<Name>& names, LocalVector<Value>& values,
+                                  size_t length) {
+    // LocalVector stores Local<T> objects, so we need to get pointers to them
+    if (names.empty() || values.empty()) {
+      return New(isolate, prototype_or_null, nullptr, nullptr, 0);
+    }
+    return New(isolate, prototype_or_null, &names[0], &values[0], length);
+  }
 
   V8_INLINE static Object* Cast(Value* obj);
 

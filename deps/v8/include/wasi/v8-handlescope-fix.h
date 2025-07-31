@@ -4,6 +4,8 @@
 // This file ensures HandleScope is properly available in the v8 namespace
 // and prevents v8::v8:: double namespace issues
 #include <cstdint>
+#include "../v8-local-handle.h"
+#include "../v8-maybe-local.h"
 
 namespace v8 {
 
@@ -42,6 +44,19 @@ class EscapableHandleScope : public HandleScope {
   
   template <class T>
   T* Escape(T* value);
+  
+  // WASI: Add EscapeMaybe method
+  template <class T>
+  MaybeLocal<T> EscapeMaybe(MaybeLocal<T> value) {
+    if (value.IsEmpty()) {
+      return MaybeLocal<T>();
+    }
+    Local<T> local;
+    if (value.ToLocal(&local)) {
+      return MaybeLocal<T>(Escape(local));
+    }
+    return MaybeLocal<T>();
+  }
 
  private:
   void* escape_slot_;

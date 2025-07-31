@@ -30,14 +30,20 @@ namespace cppgc {
 
 #ifdef __wasi__
 // WASI stub definitions for missing cppgc types
+#ifndef CPPGC_HEAP_DEFINED
+#define CPPGC_HEAP_DEFINED
 class Heap {
  public:
   enum class MarkingType { kAtomic, kIncremental, kIncrementalAndConcurrent };
   enum class SweepingType { kAtomic, kIncremental, kIncrementalAndConcurrent };
 };
+#endif
 
+#ifndef CPPGC_CUSTOM_SPACE_BASE_DEFINED
+#define CPPGC_CUSTOM_SPACE_BASE_DEFINED
 class CustomSpaceBase {};
-using CustomSpaceIndex = size_t;
+#endif
+// Note: CustomSpaceIndex is already defined in cppgc/custom-space.h
 
 class HeapStatistics {
  public:

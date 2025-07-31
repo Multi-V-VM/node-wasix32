@@ -1,3 +1,7 @@
+#ifdef __wasi__
+#include "../wasi-node-compat.h"
+#endif
+
 #include <cerrno>
 #include <cstdarg>
 #include <filesystem>
@@ -207,9 +211,16 @@ MaybeLocal<StackTrace> GetCurrentStackTrace(Isolate* isolate, int frame_count) {
 
   // Can not capture the stacktrace when the isolate is in a OOM state or no
   // context is entered.
+#ifdef __wasi__
+  // WASI stub - assume we're always in context
+  if (is_in_oom.load()) {
+    return MaybeLocal<StackTrace>();
+  }
+#else
   if (is_in_oom.load() || !isolate->InContext()) {
     return MaybeLocal<StackTrace>();
   }
+#endif
 
   constexpr StackTrace::StackTraceOptions options =
       static_cast<StackTrace::StackTraceOptions>(
@@ -1195,7 +1206,11 @@ void TriggerUncaughtException(Isolate* isolate,
 
   if (message.IsEmpty()) message = Exception::CreateMessage(isolate, error);
 
+#ifdef __wasi__
+  // WASI stub - assume we're in context
+#else
   CHECK(isolate->InContext());
+#endif
   Local<Context> context = isolate->GetCurrentContext();
   Environment* env = Environment::GetCurrent(context);
   if (env == nullptr) {

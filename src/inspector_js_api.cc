@@ -1,4 +1,7 @@
 #ifdef __wasi__
+#ifdef __wasi__
+#include "../wasi-node-compat.h"
+#endif
 #include "../wasi-v8-api-additions.h"
 #endif
 
@@ -298,7 +301,7 @@ void SetupNetworkTracking(const FunctionCallbackInfo<Value>& args) {
 
 void IsEnabled(const FunctionCallbackInfo<Value>& args) {
   Environment* env = Environment::GetCurrent(args);
-  args.GetReturnValue().Set(env->inspector_agent()->IsListening());
+  args.GetReturnValue().Set(Boolean::New(env->isolate(), env->inspector_agent()->IsListening()));
 }
 
 void Open(const FunctionCallbackInfo<Value>& args) {

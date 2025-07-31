@@ -323,6 +323,30 @@ inline bool ExternalPointerCanBeEmpty(ExternalPointerTagRange tag_range) {
 // Make SmiValuesAre31Bits available directly
 using ::SmiValuesAre31Bits;
 
+// CppHeapPointerTagRange for WASI compatibility
+struct CppHeapPointerTagRange {
+  constexpr CppHeapPointerTagRange(uint16_t lower, uint16_t upper)
+      : lower_bound(lower), upper_bound(upper) {}
+  
+  uint16_t lower_bound;
+  uint16_t upper_bound;
+  
+  // Check whether the tag of the given CppHeapPointerTable entry is within
+  // this range. This method encodes implementation details of the
+  // CppHeapPointerTable.
+  bool CheckTagOf(uint64_t entry) const {
+    // Extract the tag from the entry (assuming tag is in lower 16 bits)
+    uint32_t actual_tag = static_cast<uint16_t>(entry);
+    uint32_t lower = static_cast<uint32_t>(lower_bound);
+    uint32_t upper = static_cast<uint32_t>(upper_bound);
+    return actual_tag >= lower && actual_tag <= upper;
+  }
+};
+
+// CppHeap pointer constants
+constexpr int kCppHeapPointerPayloadShift = 16;  // Shift for payload
+constexpr int kCppHeapPointerTagShift = 0;       // Tag is in lower bits
+
 }  // namespace internal
 
 // ResourceConstraints stub

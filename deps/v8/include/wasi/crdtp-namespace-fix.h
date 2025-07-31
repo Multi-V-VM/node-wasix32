@@ -14,7 +14,7 @@ namespace crdtp {}  // Ensure global crdtp exists
 namespace crdtp {
   // Forward declarations to establish namespace in global scope
   class DeserializerState;
-  template<typename T> struct ProtocolTypeTraits;
+  template<typename T, typename> struct ProtocolTypeTraits;
   namespace detail {
     template<typename T> struct MaybeTypedef;
   }
