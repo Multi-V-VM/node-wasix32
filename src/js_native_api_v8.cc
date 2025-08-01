@@ -2986,9 +2986,12 @@ napi_status NAPI_CDECL napi_instanceof(napi_env env,
   napi_status status = napi_generic_failure;
 
   v8::Local<v8::Value> val = v8impl::V8LocalValueFromJsValue(object);
-  auto maybe_result = val->InstanceOf(context, ctor);
-  CHECK_MAYBE_NOTHING(env, maybe_result, status);
-  *result = maybe_result.FromJust();
+  auto maybe_local = val->InstanceOf(context, ctor);
+  v8::Local<v8::Boolean> local_result;
+  if (!maybe_local.ToLocal(&local_result)) {
+    return status;
+  }
+  *result = local_result->Value();
   return GET_RETURN_STATUS(env);
 }
 

@@ -86,6 +86,11 @@ class Eternal : public api_internal::IndirectHandleBase {
       slot() = api_internal::Eternalize(isolate,
                                         handle.template UnsafeAs<Value>().operator->());
 }
+
+#ifdef __wasi__
+  // WASI compatibility: Add IsEmpty() method
+  V8_INLINE bool IsEmpty() const { return slot() == nullptr; }
+#endif
 };  // namespace v8
 
 namespace api_internal {

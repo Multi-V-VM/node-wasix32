@@ -14,7 +14,7 @@
   do { /* No-op */ } while(0)
 
 // Redefine problematic method calls
-#define AddNearHeapLimitCallback(...) WASI_STUB_ISOLATE_METHOD(this, AddNearHeapLimitCallback, __VA_ARGS__)
+// Note: AddNearHeapLimitCallback is handled in v8-isolate-wasi-stub.h
 #define RemoveNearHeapLimitCallback(...) WASI_STUB_ISOLATE_METHOD(this, RemoveNearHeapLimitCallback, __VA_ARGS__)
 #define SetCaptureStackTraceForUncaughtExceptions(...) WASI_STUB_ISOLATE_METHOD(this, SetCaptureStackTraceForUncaughtExceptions, __VA_ARGS__)
 

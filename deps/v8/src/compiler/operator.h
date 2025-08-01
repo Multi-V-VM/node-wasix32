@@ -112,15 +112,15 @@ class V8_EXPORT_PRIVATE Operator : public NON_EXPORTED_BASE(ZoneObject) {
   int ControlOutputCount() const { return control_out_; }
 
   static size_t ZeroIfEliminatable(Properties properties) {
-    return (properties & kEliminatable) == kEliminatable ? 0 : 1;
+    return (properties & kEliminatable) == Properties(kEliminatable) ? 0 : 1;
   }
 
   static size_t ZeroIfNoThrow(Properties properties) {
-    return (properties & kNoThrow) == kNoThrow ? 0 : 2;
+    return (properties & kNoThrow) == Properties(kNoThrow) ? 0 : 2;
   }
 
   static size_t ZeroIfPure(Properties properties) {
-    return (properties & kPure) == kPure ? 0 : 1;
+    return (properties & kPure) == Properties(kPure) ? 0 : 1;
   }
 
   // TODO(titzer): API for input and output types, for typechecking graph.

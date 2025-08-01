@@ -14,6 +14,9 @@
 #include "v8-deprecation-fix.h"
 // Removed v8-source-location-fix.h as it causes namespace conflicts
 
+// Include WASM32 architecture definitions
+#include "wasm32-arch-fix.h"
+
 // Forward declare v8::Isolate early
 namespace v8 {
 class Isolate;
@@ -349,9 +352,61 @@ struct CppHeapPointerTagRange {
 // CppHeap pointer constants
 constexpr int kCppHeapPointerPayloadShift = 16;  // Shift for payload
 constexpr int kCppHeapPointerTagShift = 0;       // Tag is in lower bits
+constexpr uint32_t kCppHeapPointerMarkBit = 0x80000000;  // Mark bit for GC
 
-// External pointer index shift (not defined in wasi-v8-sandbox-stubs.h)
+// External pointer constants
 constexpr uint32_t kExternalPointerIndexShift = 8;  // Common shift value
+
+#ifndef V8_EXTERNAL_POINTER_TAG_SHIFT
+#define V8_EXTERNAL_POINTER_TAG_SHIFT
+constexpr int kExternalPointerTagShift = 48;  // Tag is in upper 16 bits
+#endif
+
+#ifndef V8_EXTERNAL_POINTER_TABLE_SIZE
+#define V8_EXTERNAL_POINTER_TABLE_SIZE
+constexpr size_t kExternalPointerTableReservationSize = 1024 * 1024;  // 1MB reservation
+constexpr size_t kCppHeapPointerTableReservationSize = 1024 * 1024;   // 1MB reservation
+#endif
+
+#ifndef V8_NULL_EXTERNAL_POINTER_HANDLE
+#define V8_NULL_EXTERNAL_POINTER_HANDLE
+using ExternalPointerHandle = uint32_t;
+using CodePointerHandle = uint32_t;
+using CppHeapPointerHandle = uint32_t;
+constexpr ExternalPointerHandle kNullExternalPointerHandle = 0;
+constexpr CodePointerHandle kNullCodePointerHandle = 0;
+constexpr CppHeapPointerHandle kNullCppHeapPointerHandle = 0;
+#endif
+
+// Code pointer constants
+#ifndef V8_CODE_POINTER_TABLE_ENTRY_SIZE
+#define V8_CODE_POINTER_TABLE_ENTRY_SIZE
+// Check if already defined elsewhere with correct type
+#if !defined(kCodePointerTableEntrySize)
+constexpr size_t kCodePointerTableEntrySize = 8;  // 64-bit entries
+#endif
+#endif
+
+#ifndef V8_MAX_EXTERNAL_POINTERS
+#define V8_MAX_EXTERNAL_POINTERS
+// Check if already defined elsewhere, use uint32_t to match existing definitions
+#if !defined(kMaxExternalPointers)
+constexpr uint32_t kMaxExternalPointers = 65536;  // Match existing type
+#endif
+#endif
+
+#ifndef V8_MAX_CODE_POINTERS
+#define V8_MAX_CODE_POINTERS
+// Check if already defined elsewhere, use uint32_t to match existing definitions  
+#if !defined(kMaxCodePointers)
+constexpr uint32_t kMaxCodePointers = 65536;  // Match existing type
+#endif
+#endif
+
+#ifndef V8_MAX_CAPACITY
+#define V8_MAX_CAPACITY
+constexpr size_t kMaxCapacity = kMaxExternalPointers;  // For table capacity assertions
+#endif
 
 }  // namespace internal
 
@@ -371,11 +426,28 @@ class ResourceConstraints {
   size_t max_zone_pool_size() const { return max_zone_pool_size_; }
   void set_max_zone_pool_size(size_t value) { max_zone_pool_size_ = value; }
   
+  // Worker constraints methods
+  void set_stack_limit(uint32_t* value) { stack_limit_ = value; }
+  uint32_t* stack_limit() const { return stack_limit_; }
+  
+  void set_max_young_generation_size_in_bytes(size_t value) { max_young_generation_size_in_bytes_ = value; }
+  size_t max_young_generation_size_in_bytes() const { return max_young_generation_size_in_bytes_; }
+  
+  void set_max_old_generation_size_in_bytes(size_t value) { max_old_generation_size_in_bytes_ = value; }
+  size_t max_old_generation_size_in_bytes() const { return max_old_generation_size_in_bytes_; }
+  
+  void set_code_range_size_in_bytes(size_t value) { code_range_size_in_bytes_ = value; }
+  size_t code_range_size_in_bytes() const { return code_range_size_in_bytes_; }
+  
  private:
   size_t max_heap_size_ = 0;
   size_t initial_heap_size_ = 0;
   size_t code_range_size_ = 0;
   size_t max_zone_pool_size_ = 0;
+  uint32_t* stack_limit_ = nullptr;
+  size_t max_young_generation_size_in_bytes_ = 0;
+  size_t max_old_generation_size_in_bytes_ = 0;
+  size_t code_range_size_in_bytes_ = 0;
 };
 
 // VirtualAddressSpace stub
@@ -540,7 +612,7 @@ using uc32 = uint32_t;
 template <typename T>
 class AsAtomicPointerImpl {
  public:
-  using type = std::atomic<T>;
+  using type = ::std::atomic<T>;
 };
 
 namespace bits {

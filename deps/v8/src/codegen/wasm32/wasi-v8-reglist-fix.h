@@ -13,7 +13,8 @@ namespace internal {
 
 // Forward declare register types
 class Register;
-class DoubleRegister;
+// Note: DoubleRegister is defined as a type alias in ia32/register-ia32.h
+// Don't forward declare it here to avoid conflicts
 
 // Basic RegListBase template definition for WASI
 template <typename RegisterT>
@@ -49,7 +50,10 @@ class RegListBase {
 
   constexpr bool is_empty() const { return bits_ == 0; }
 
-  constexpr int Count() const { return v8::base::bits::CountPopulation(bits_); }
+  constexpr int Count() const { 
+    // Cast to uint32_t since our CountPopulation implementation expects that
+    return __builtin_popcount(static_cast<uint32_t>(bits_)); 
+  }
 
   constexpr storage_t bits() const { return bits_; }
 
@@ -78,7 +82,7 @@ class RegListBase {
    public:
     Iterator(storage_t bits) : bits_(bits) {
       if (bits_ != 0) {
-        int code = ::v8::base::bits::CountTrailingZeros(bits_);
+        int code = __builtin_ctzll(bits_);
         current_ = RegisterT::from_code(code);
       }
     }
@@ -88,7 +92,7 @@ class RegListBase {
     Iterator& operator++() {
       bits_ &= bits_ - 1;  // Clear lowest set bit
       if (bits_ != 0) {
-        int code = ::v8::base::bits::CountTrailingZeros(bits_);
+        int code = __builtin_ctzll(bits_);
         current_ = RegisterT::from_code(code);
       }
       return *this;

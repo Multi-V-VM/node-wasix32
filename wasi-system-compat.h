@@ -9,6 +9,8 @@
 #include <sys/types.h>
 #include <stdint.h>
 #include <limits.h>
+#include <vector>
+#include <unordered_map>
 
 // Check if we need to include sys/resource.h or define our own types
 #include <sys/resource.h>
@@ -55,6 +57,8 @@ namespace cppgc {
 // Forward declarations to fix ordering issues
 class ObjectStatsEntry;
 class PageStatistics;
+class SpaceStatistics;
+class HeapStatistics;
 
 class ObjectStatsEntry {
  public:
@@ -67,7 +71,16 @@ class PageStatistics {
  public:
   size_t physical_size_bytes;
   size_t used_size_bytes;
+  size_t committed_size_bytes;
+  size_t resident_size_bytes;
   std::vector<ObjectStatsEntry> object_statistics;
+};
+
+// FreeListStats for SpaceStatistics
+struct FreeListStats {
+  std::vector<size_t> bucket_size;
+  std::vector<size_t> free_count;
+  std::vector<size_t> free_size;
 };
 
 class SpaceStatistics {
@@ -75,8 +88,34 @@ class SpaceStatistics {
   const char* name;
   size_t physical_size_bytes;
   size_t used_size_bytes;
+  size_t committed_size_bytes;
+  size_t resident_size_bytes;
   std::vector<PageStatistics> page_stats;
+  FreeListStats free_list_stats;
 };
+
+// HeapStatistics extension - only define if not already defined
+#ifndef CPPGC_HEAP_STATISTICS_DEFINED
+#define CPPGC_HEAP_STATISTICS_DEFINED
+class HeapStatistics {
+ public:
+  enum class DetailLevel { kBrief, kDetailed };
+  
+  // Re-export nested types for compatibility
+  using PageStatistics = ::cppgc::PageStatistics;
+  using ObjectStatsEntry = ::cppgc::ObjectStatsEntry;
+  using SpaceStatistics = ::cppgc::SpaceStatistics;
+  
+  DetailLevel detail_level;
+  size_t used_size_bytes;
+  size_t committed_size_bytes;
+  size_t resident_size_bytes;
+  size_t pooled_memory_size_bytes;
+  
+  std::vector<SpaceStatistics> space_stats;
+  std::unordered_map<const void*, size_t> type_names;
+};
+#endif
 
 } // namespace cppgc
 

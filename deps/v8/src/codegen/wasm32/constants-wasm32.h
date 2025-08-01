@@ -245,11 +245,11 @@ inline constexpr uint32_t EncodeBType(Opcode op, int rs1, int rs2, int32_t offse
 
 // Stack frame constants
 constexpr int kStackFrameExtraParamSlot = 0;
-constexpr int kStackFrameTypeOffset = 1 * kPointerSize;
-constexpr int kStackFrameSPOffset = 0 * kPointerSize;
-constexpr int kStackFrameFPOffset = 1 * kPointerSize;
-constexpr int kStackFrameLROffset = 2 * kPointerSize;
-constexpr int kStackFrameContextOffset = 3 * kPointerSize;
+constexpr int kStackFrameTypeOffset = 1 * kWasm32PointerSize;
+constexpr int kStackFrameSPOffset = 0 * kWasm32PointerSize;
+constexpr int kStackFrameFPOffset = 1 * kWasm32PointerSize;
+constexpr int kStackFrameLROffset = 2 * kWasm32PointerSize;
+constexpr int kStackFrameContextOffset = 3 * kWasm32PointerSize;
 
 // Safepoint constants
 constexpr int kSafepointTableAlignment = 8;

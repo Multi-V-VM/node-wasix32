@@ -63,7 +63,7 @@ class SandboxedArrayBufferAllocator {
   // Returns page allocator that's supposed to be used for allocating pages
   // for V8 heap. In case pointer compression is enabled it allocates pages
   // within the pointer compression cage.
-  v8::PageAllocator* page_allocator();
+  ::v8::PageAllocator* page_allocator();
 
   ~SandboxedArrayBufferAllocator();
 
@@ -149,7 +149,7 @@ class V8_EXPORT_PRIVATE IsolateGroup final {
   // resources.
   void Release();
 
-  v8::PageAllocator* page_allocator() const { return page_allocator_; }
+  ::v8::PageAllocator* page_allocator() const { return page_allocator_; }
 
 #ifdef V8_COMPRESS_POINTERS
   VirtualMemoryCage* GetPtrComprCage() const {
@@ -187,9 +187,7 @@ class V8_EXPORT_PRIVATE IsolateGroup final {
     return shared_space_isolate_ != nullptr;
   }
 
-  Isolate* shared_space_isolate() const {
-    return shared_space_isolate_;
-  }
+  Isolate* shared_space_isolate() const { return shared_space_isolate_; }
 
   void init_shared_space_isolate(Isolate* isolate) {
     DCHECK(!has_shared_space_isolate());
@@ -304,7 +302,7 @@ class V8_EXPORT_PRIVATE IsolateGroup final {
 
   std::atomic<int> reference_count_{1};
   int isolate_count_{0};
-  v8::PageAllocator* page_allocator_ = nullptr;
+  ::v8::PageAllocator* page_allocator_ = nullptr;
 
 #ifdef V8_COMPRESS_POINTERS
   VirtualMemoryCage* trusted_pointer_compression_cage_ = nullptr;

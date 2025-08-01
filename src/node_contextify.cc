@@ -27,6 +27,7 @@
 #include "base_object-inl.h"
 #ifdef __wasi__
 #include "../wasi-cppgc-stubs.h"
+#include "../wasi-v8-api-additions.h"
 #endif
 #include "cppgc/allocation.h"
 #include "memory_tracker-inl.h"
@@ -302,8 +303,7 @@ ContextifyContext* ContextifyContext::New(Local<Context> v8_context,
     Context::Scope context_scope(v8_context);
     if (!sandbox_obj.IsEmpty()) {
       Local<String> ctor_name = sandbox_obj->GetConstructorName();
-      if (!ctor_name->Equals(v8_context, env->object_string())
-               .FromMaybe(false) &&
+      if (!v8::StringEquals(ctor_name, v8_context, env->object_string()).FromMaybe(false) &&
           new_context_global
               ->DefineOwnProperty(
                   v8_context,

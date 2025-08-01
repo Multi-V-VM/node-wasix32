@@ -138,9 +138,9 @@ PageMemoryRegion* NormalPageMemoryPool::Take() {
   if (entry.is_decommitted) {
     // Also need to make the pages accessible.
     CHECK(entry.region->allocator().RecommitPages(
-        base, size, v8::PageAllocator::kReadWrite));
+        base, size, ::v8::PageAllocator::kReadWrite));
     bool ok = entry.region->allocator().SetPermissions(
-        base, size, v8::PageAllocator::kReadWrite);
+        base, size, ::v8::PageAllocator::kReadWrite);
     if (!ok) {
 #if V8_OS_POSIX
       // Changing permissions can return ENOMEM in several cases, including

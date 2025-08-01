@@ -7,8 +7,7 @@
 #include "v8-local-handle.h"
 #include "v8-value.h"
 
-// Only define these stubs if V8_V8_PROFILER_H_ hasn't been included yet
-#ifndef V8_V8_PROFILER_H_
+// Define WASI stubs for profiler
 #define V8_WASI_EMBEDDER_GRAPH_STUB_ACTIVE 1
 
 namespace v8 {
@@ -16,18 +15,52 @@ namespace v8 {
 // Forward declarations
 class HeapGraphNode;
 class HeapGraphEdge;
-class OutputStream;
-class HeapSnapshot;
 using SnapshotObjectId = uint32_t;
 
+// HeapStatsUpdate struct definition
 struct HeapStatsUpdate {
   uint32_t index;
   uint32_t count;
   uint32_t size;
 };
 
+// OutputStream class definition
+class OutputStream {
+ public:
+  enum WriteResult {
+    kAbort = 0,
+    kContinue = 1
+  };
+  
+  virtual ~OutputStream() = default;
+  virtual void EndOfStream() = 0;
+  virtual int GetChunkSize() = 0;
+  virtual WriteResult WriteAsciiChunk(char* data, int size) = 0;
+  virtual void WriteHeapStatsChunk(const HeapStatsUpdate* data, int count) = 0;
+};
+
+// SerializationFormat enum
+enum class SerializationFormat {
+  kJSON = 0  // Only JSON format for WASI
+};
+
+// HeapSnapshot base class definition
+class HeapSnapshot {
+ public:
+  static const SerializationFormat kJSON = SerializationFormat::kJSON;
+  
+  virtual ~HeapSnapshot() = default;
+  virtual void Delete() = 0;
+  virtual void Serialize(OutputStream* stream, SerializationFormat format) const = 0;
+  virtual const HeapGraphNode* GetRoot() const = 0;
+  virtual const HeapGraphNode* GetNodeById(SnapshotObjectId id) const = 0;
+  virtual int GetNodesCount() const = 0;
+  virtual const HeapGraphNode* GetNode(int index) const = 0;
+  virtual SnapshotObjectId GetMaxSnapshotJSObjectId() const = 0;
+};
+
+
 // Stub for EmbedderGraph - used for heap snapshots
-#ifndef V8_PROFILER_H_
 #ifndef V8_EMBEDDER_GRAPH_DEFINED
 #define V8_EMBEDDER_GRAPH_DEFINED
 class EmbedderGraph {
@@ -45,7 +78,9 @@ class EmbedderGraph {
     virtual const char* NamePrefix() = 0;
     virtual size_t SizeInBytes() = 0;
     virtual Node* JSWrapperNode() { return nullptr; }
+    virtual Node* WrapperNode() { return JSWrapperNode(); }  // Alias for compatibility
     virtual bool IsRootNode() { return false; }
+    virtual bool IsEmbedderNode() { return true; }
     virtual Detachedness GetDetachedness() { return Detachedness::kUnknown; }
   };
   
@@ -55,7 +90,6 @@ class EmbedderGraph {
   virtual void AddEdge(Node* from, Node* to, const char* name = nullptr) = 0;
 };
 #endif // V8_EMBEDDER_GRAPH_DEFINED
-#endif // V8_PROFILER_H_
 
 // QueryObjectPredicate class for WASI
 #ifndef V8_QUERY_OBJECT_PREDICATE_DEFINED
@@ -68,7 +102,6 @@ class QueryObjectPredicate {
 #endif // V8_QUERY_OBJECT_PREDICATE_DEFINED
 
 // Stub for HeapProfiler
-#ifndef V8_PROFILER_H_
 #ifndef V8_HEAP_PROFILER_DEFINED
 #define V8_HEAP_PROFILER_DEFINED
 class HeapProfiler {
@@ -89,10 +122,17 @@ class HeapProfiler {
       kExposeNumericValues = 1,
     };
     
-    ControlOption control = ControlOption::kDefault;
-    NumericsMode numerics_mode = NumericsMode::kHideNumericValues;
-    bool capture_numeric_value = false;
-    HeapSnapshotMode snapshot_mode = HeapSnapshotMode::kRegular;  // WASI: Add missing field with correct type
+    ControlOption control;
+    NumericsMode numerics_mode;
+    bool capture_numeric_value;
+    HeapSnapshotMode snapshot_mode;
+    
+    // Constructor with default values
+    HeapSnapshotOptions() 
+      : control(ControlOption::kDefault),
+        numerics_mode(NumericsMode::kHideNumericValues),
+        capture_numeric_value(false),
+        snapshot_mode(HeapSnapshotMode::kRegular) {}
   };
   
   // Callback types
@@ -111,13 +151,49 @@ class HeapProfiler {
     // matching the predicate
   }
   
+  const HeapSnapshot* TakeHeapSnapshot(
+      const HeapSnapshotOptions& options = HeapSnapshotOptions()) {
+    // WASI stub - return a minimal heap snapshot
+    static struct MinimalHeapSnapshot : public HeapSnapshot {
+      void Delete() override {}
+      void Serialize(OutputStream* stream, SerializationFormat format) const override {
+        // Write minimal JSON output
+        const char* json = "{}";
+        stream->WriteAsciiChunk(const_cast<char*>(json), 2);
+        stream->EndOfStream();
+      }
+      const HeapGraphNode* GetRoot() const override { return nullptr; }
+      const HeapGraphNode* GetNodeById(SnapshotObjectId id) const override { return nullptr; }
+      int GetNodesCount() const override { return 0; }
+      const HeapGraphNode* GetNode(int index) const override { return nullptr; }
+      SnapshotObjectId GetMaxSnapshotJSObjectId() const override { return 0; }
+    } snapshot;
+    return &snapshot;
+  }
+  
+  void DeleteAllHeapSnapshots() {
+    // WASI stub - no-op
+  }
+  
+  void StartTrackingHeapObjects(bool track_allocations = false) {
+    // WASI stub - no-op
+  }
+  
+  void StopTrackingHeapObjects() {
+    // WASI stub - no-op
+  }
+  
+  void AddBuildEmbedderGraphCallback(BuildEmbedderGraphCallback callback, void* data) {
+    // WASI stub - no-op
+  }
+  
   ~HeapProfiler() = default;
 };
 #endif // V8_HEAP_PROFILER_DEFINED
-#endif // V8_PROFILER_H_
 
 // Stub for HeapGraphEdge - defined before HeapGraphNode due to dependency
-#ifndef V8_PROFILER_H_
+#ifndef V8_HEAP_GRAPH_EDGE_DEFINED
+#define V8_HEAP_GRAPH_EDGE_DEFINED
 class HeapGraphEdge {
  public:
   enum Type {
@@ -136,10 +212,11 @@ class HeapGraphEdge {
   virtual const HeapGraphNode* GetFromNode() const = 0;
   virtual const HeapGraphNode* GetToNode() const = 0;
 };
-#endif // V8_PROFILER_H_
+#endif // V8_HEAP_GRAPH_EDGE_DEFINED
 
 // Stub for HeapGraphNode
-#ifndef V8_PROFILER_H_
+#ifndef V8_HEAP_GRAPH_NODE_DEFINED
+#define V8_HEAP_GRAPH_NODE_DEFINED
 class HeapGraphNode {
  public:
   enum Type {
@@ -168,51 +245,13 @@ class HeapGraphNode {
   virtual int GetChildrenCount() const = 0;
   virtual const HeapGraphEdge* GetChild(int index) const = 0;
 };
-#endif // V8_PROFILER_H_
+#endif // V8_HEAP_GRAPH_NODE_DEFINED
 
 // Stub for OutputStream
-#ifndef V8_PROFILER_H_
-class OutputStream {
- public:
-  enum WriteResult {
-    kContinue = 0,
-    kAbort = 1,
-  };
-  
-  virtual ~OutputStream() = default;
-  virtual void EndOfStream() = 0;
-  virtual int GetChunkSize() = 0;
-  virtual WriteResult WriteAsciiChunk(char* data, int size) = 0;
-  virtual WriteResult WriteHeapStatsChunk(HeapStatsUpdate* data, int count) = 0;
-};
-#endif // V8_PROFILER_H_
+// OutputStream is defined above
 
-// Stub for HeapSnapshot
-#ifndef V8_HEAP_SNAPSHOT_DEFINED
-#define V8_HEAP_SNAPSHOT_DEFINED
-class HeapSnapshot {
- public:
-  enum class SerializationFormat {
-    kJSON = 0,
-  };
-  
-  // WASI: Provide direct access to kJSON for backward compatibility
-  static constexpr SerializationFormat kJSON = SerializationFormat::kJSON;
-  
-  virtual ~HeapSnapshot() = default;
-  virtual const HeapGraphNode* GetRoot() const = 0;
-  virtual const HeapGraphNode* GetNodeById(SnapshotObjectId id) const = 0;
-  virtual int GetNodesCount() const = 0;
-  virtual const HeapGraphNode* GetNode(int index) const = 0;
-  virtual SnapshotObjectId GetMaxSnapshotJSObjectId() const = 0;
-  virtual void Delete() = 0;
-  virtual void Serialize(OutputStream* stream,
-                        SerializationFormat format) const = 0;
-};
-#endif // V8_HEAP_SNAPSHOT_DEFINED
+// HeapSnapshot is defined above
 
 }  // namespace v8
-
-#endif // V8_V8_PROFILER_H_
 
 #endif  // V8_WASI_EMBEDDER_GRAPH_STUB_H_

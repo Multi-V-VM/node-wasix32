@@ -111,7 +111,8 @@ void OffHeapInstructionStream::CreateOffHeapOffHeapInstructionStream(
   // Allocate the backing store that will contain the embedded blob in this
   // Isolate. The backing store is on the native heap, *not* on V8's garbage-
   // collected heap.
-  v8::PageAllocator* page_allocator = v8::internal::GetPlatformPageAllocator();
+  ::v8::PageAllocator* page_allocator =
+      v8::internal::GetPlatformPageAllocator();
   const uint32_t alignment =
       static_cast<uint32_t>(page_allocator->AllocatePageSize());
 
@@ -161,7 +162,8 @@ void OffHeapInstructionStream::CreateOffHeapOffHeapInstructionStream(
 // static
 void OffHeapInstructionStream::FreeOffHeapOffHeapInstructionStream(
     uint8_t* code, uint32_t code_size, uint8_t* data, uint32_t data_size) {
-  v8::PageAllocator* page_allocator = v8::internal::GetPlatformPageAllocator();
+  ::v8::PageAllocator* page_allocator =
+      v8::internal::GetPlatformPageAllocator();
   const uint32_t page_size =
       static_cast<uint32_t>(page_allocator->AllocatePageSize());
   FreePages(page_allocator, code, RoundUp(code_size, page_size));

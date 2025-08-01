@@ -71,7 +71,7 @@ class V8_BASE_EXPORT MemoryProtectionKey {
   // key, use {SetPermissionsForKey()} instead.
   static bool SetPermissionsAndKey(
       base::AddressRegion region,
-      v8::PageAllocator::Permission page_permissions, int key);
+      ::v8::PageAllocator::Permission page_permissions, int key);
 
   // Set the key's permissions. {key} must be valid, i.e. not
   // {kNoMemoryProtectionKey}.

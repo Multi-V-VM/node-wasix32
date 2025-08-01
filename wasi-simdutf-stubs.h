@@ -9,21 +9,15 @@
 
 namespace simdutf {
 
-// Result type for validation with errors
-struct result_with_error {
-  bool error;
-  size_t position;
-};
-
 // Character encoding validation functions
 inline result_with_error validate_ascii_with_errors(const char* buf, size_t len) {
   // Simple ASCII validation
   for (size_t i = 0; i < len; i++) {
     if (static_cast<unsigned char>(buf[i]) > 127) {
-      return {true, i};
+      return result_with_error(false, error_code::INVALID_BASE64_CHARACTER);
     }
   }
-  return {false, 0};
+  return result_with_error(true, error_code::SUCCESS);
 }
 
 // UTF conversion length calculation functions
@@ -51,11 +45,32 @@ inline size_t convert_utf16_to_utf8(const char16_t* input, size_t length, char* 
   return length;
 }
 
+// Convert UTF16 to Latin1
+inline size_t convert_utf16_to_latin1(const char16_t* input, size_t length, char* output) {
+  // Simple conversion - just copy lower bytes (Latin1 is 8-bit)
+  for (size_t i = 0; i < length; i++) {
+    output[i] = static_cast<char>(input[i] & 0xFF);
+  }
+  return length;
+}
+
+// Convert Latin1 to UTF16 little-endian
+inline size_t convert_latin1_to_utf16le(const char* input, size_t length, char16_t* output) {
+  // Latin1 maps directly to first 256 Unicode code points
+  for (size_t i = 0; i < length; i++) {
+    output[i] = static_cast<char16_t>(static_cast<unsigned char>(input[i]));
+  }
+  return length;
+}
+
+// Convert UTF8 to UTF16 little-endian
+inline size_t convert_utf8_to_utf16le(const char* input, size_t length, char16_t* output) {
+  // Simple stub - just treat as Latin1
+  return convert_latin1_to_utf16le(input, length, output);
+}
+
 // Base64 encoding/decoding functions
-enum base64_type {
-  base64_default = 0,
-  base64_url = 1
-};
+// base64_type is defined in wasi-simdutf-compat.h
 
 inline size_t base64_length_from_binary(size_t length, base64_type type = base64_default) {
   // Base64 encoding: 4 characters for every 3 bytes, rounded up
@@ -67,18 +82,17 @@ inline size_t maximal_binary_length_from_base64(const char* input, size_t length
   return (length / 4) * 3;
 }
 
+inline size_t maximal_binary_length_from_base64(const char16_t* input, size_t length) {
+  // Base64 decoding: 3 bytes for every 4 characters (same as char version)
+  return (length / 4) * 3;
+}
+
 inline size_t binary_to_base64(const char* input, size_t length, char* output, base64_type type = base64_default) {
   // Stub implementation - just return expected length
   return base64_length_from_binary(length, type);
 }
 
-// Error codes
-enum class error_code {
-  SUCCESS = 0,
-  INVALID_BASE64 = 1,
-  INSUFFICIENT_OUTPUT = 2,
-  OTHER = 3
-};
+// Error codes are defined in wasi-simdutf-compat.h
 
 // Base64 decoding with safety checks
 inline result base64_to_binary_safe(const char* input, size_t length, char* output, base64_type type = base64_default) {
@@ -86,9 +100,9 @@ inline result base64_to_binary_safe(const char* input, size_t length, char* outp
   size_t output_len = maximal_binary_length_from_base64(input, length);
   if (output_len > 0) {
     // Simulate successful decoding
-    return result(result::SUCCESS, output_len);
+    return result(error_code::SUCCESS, output_len);
   }
-  return result(result::INVALID_BASE64_CHARACTER, 0);
+  return result(error_code::INVALID_BASE64_CHARACTER, 0);
 }
 
 // Overload that takes output length
@@ -97,31 +111,31 @@ inline result base64_to_binary_safe(const char* input, size_t length, char* outp
   output_length = maximal_binary_length_from_base64(input, length);
   if (output_length > 0) {
     // Simulate successful decoding
-    return result(result::SUCCESS, output_length);
+    return result(error_code::SUCCESS, output_length);
   }
-  return result(result::INVALID_BASE64_CHARACTER, 0);
+  return result(error_code::INVALID_BASE64_CHARACTER, 0);
 }
 
 // Overload for char16_t input
 inline result base64_to_binary_safe(const char16_t* input, size_t length, char* output, size_t& output_length, base64_type type = base64_default) {
   // Simple stub implementation
-  output_length = maximal_binary_length_from_base64(nullptr, length);
+  output_length = maximal_binary_length_from_base64(static_cast<const char*>(nullptr), length);
   if (output_length > 0) {
     // Simulate successful decoding
-    return result(result::SUCCESS, output_length);
+    return result(error_code::SUCCESS, output_length);
   }
-  return result(result::INVALID_BASE64_CHARACTER, 0);
+  return result(error_code::INVALID_BASE64_CHARACTER, 0);
 }
 
 // Overload for char16_t without output_length
 inline result base64_to_binary_safe(const char16_t* input, size_t length, char* output, base64_type type = base64_default) {
   // Simple stub implementation
-  size_t output_len = maximal_binary_length_from_base64(nullptr, length);
+  size_t output_len = maximal_binary_length_from_base64(static_cast<const char*>(nullptr), length);
   if (output_len > 0) {
     // Simulate successful decoding
-    return result(result::SUCCESS, output_len);
+    return result(error_code::SUCCESS, output_len);
   }
-  return result(result::INVALID_BASE64_CHARACTER, 0);
+  return result(error_code::INVALID_BASE64_CHARACTER, 0);
 }
 
 // Convert Latin-1 to UTF-8
@@ -159,7 +173,7 @@ inline bool validate_utf8(const char* input, size_t length) {
 
 inline result_with_error validate_utf8_with_errors(const char* input, size_t length) {
   // Simple validation - always succeed for stub
-  return {false, 0};
+  return result_with_error(true, error_code::SUCCESS);
 }
 
 inline bool validate_ascii(const char* input, size_t length) {

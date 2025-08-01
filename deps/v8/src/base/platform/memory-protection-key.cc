@@ -62,8 +62,8 @@ int MemoryProtectionKey::AllocateKey() {
 
 // static
 bool MemoryProtectionKey::SetPermissionsAndKey(
-    base::AddressRegion region, v8::PageAllocator::Permission page_permissions,
-    int key) {
+    base::AddressRegion region,
+    ::v8::PageAllocator::Permission page_permissions, int key) {
   DCHECK_NE(key, kNoMemoryProtectionKey);
   CHECK_NOT_NULL(pkey_mprotect);
 

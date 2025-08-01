@@ -147,7 +147,8 @@ TEST_F(PointerAuthArm64Test, ReplacePC) {
 }
 
 TEST_F(PointerAuthArm64Test, ReplacePCAfterGC) {
-  v8::PageAllocator* page_allocator = v8::internal::GetPlatformPageAllocator();
+  ::v8::PageAllocator* page_allocator =
+      v8::internal::GetPlatformPageAllocator();
   size_t page_size = v8::internal::AllocatePageSize();
 
   // Allocate a page and mark it inaccessible, to simulate a code address to a

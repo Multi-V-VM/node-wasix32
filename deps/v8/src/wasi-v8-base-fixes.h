@@ -59,6 +59,7 @@ template<typename T, typename... Ts>
 inline constexpr bool has_type_v = has_type<T, Ts...>::value;
 
 // Vector type (simple wrapper that doesn't use std::vector to avoid const issues)
+#define WASI_V8_VECTOR_CLASS_DEFINED
 template<typename T>
 class Vector {
  public:
@@ -132,11 +133,17 @@ class Flags {
   
   constexpr Flags() : value_(0) {}
   constexpr explicit Flags(T value) : value_(static_cast<U>(value)) {}
+  // Add implicit constructor from int for operator~ compatibility
+  constexpr Flags(int value) : value_(static_cast<U>(value)) {}
   // Add a private constructor for internal use with mask values
   constexpr Flags(U value, int) : value_(value) {}
   
   bool operator==(const Flags& other) const { return value_ == other.value_; }
   bool operator!=(const Flags& other) const { return value_ != other.value_; }
+  
+  // Add comparison with enum type to fix ambiguity
+  bool operator==(T flag) const { return value_ == static_cast<U>(flag); }
+  bool operator!=(T flag) const { return value_ != static_cast<U>(flag); }
   
   constexpr Flags operator&(T flag) const { return Flags(value_ & static_cast<U>(flag), 0); }
   constexpr Flags operator|(T flag) const { return Flags(value_ | static_cast<U>(flag), 0); }
@@ -154,16 +161,22 @@ class Flags {
   U value() const { return value_; }
   
   // Friend operators for combining flags
-  friend constexpr Flags operator|(const Flags& lhs, const Flags& rhs) {
-    return Flags(lhs.value_ | rhs.value_, 0);
-  }
+  // Commented out to avoid ambiguity with member operator|
+  // friend constexpr Flags operator|(Flags lhs, Flags rhs) {
+  //   return Flags(lhs.value_ | rhs.value_, 0);
+  // }
   
-  friend constexpr Flags operator&(const Flags& lhs, const Flags& rhs) {
+  friend constexpr Flags operator&(Flags lhs, Flags rhs) {
     return Flags(lhs.value_ & rhs.value_, 0);
   }
   
-  friend constexpr Flags operator^(const Flags& lhs, const Flags& rhs) {
+  friend constexpr Flags operator^(Flags lhs, Flags rhs) {
     return Flags(lhs.value_ ^ rhs.value_, 0);
+  }
+  
+  // Add operator~ for completeness
+  constexpr Flags operator~() const {
+    return Flags(~value_, 0);
   }
   
  private:
@@ -302,6 +315,7 @@ namespace std {
   using ::std::is_bounded_array_v;
   using ::std::multiset;
   using ::std::deque;
+  using ::std::is_invocable_v;
 }  // namespace std
 
 // Note: RoundUpToPowerOfTwo functions are already defined in base/bits.h

@@ -11,6 +11,10 @@
 namespace node {
 using node::url_pattern::URLPatternRegexProvider;
 
+// Forward declaration of MemoryRetainerTraits template
+template <typename T>
+struct MemoryRetainerTraits;
+
 template <>
 struct MemoryRetainerTraits<ada::url_pattern<URLPatternRegexProvider>> {
   using Type = ada::url_pattern<URLPatternRegexProvider>;
@@ -148,7 +152,7 @@ URLPattern::URLPattern(Environment* env,
 }
 
 void URLPattern::MemoryInfo(MemoryTracker* tracker) const {
-  tracker->TraitTrackInline(url_pattern_, "url_pattern");
+  tracker->TrackField("url_pattern", url_pattern_);
 #define URL_PATTERN_CACHED_VALUES(_, lowercase)                                \
   tracker->TrackField(#lowercase, lowercase);
   URL_PATTERN_COMPONENTS(URL_PATTERN_CACHED_VALUES)

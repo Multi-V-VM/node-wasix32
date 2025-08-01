@@ -10,6 +10,9 @@
 namespace v8 {
 namespace internal {
 
+// Invalid register code constant
+static constexpr int kInvalid = -1;
+
 // WASM32 register definitions
 // Note: WASM32 is a virtual ISA, so these are virtual registers
 // that will be mapped to actual registers by the WASM runtime
@@ -41,12 +44,13 @@ namespace internal {
   V(f8)  V(f9)  V(f10) V(f11) \
   V(f12) V(f13) V(f14) V(f15)
 
-// Double precision registers (64-bit)
+// Double precision registers share the same codes as float registers
+// since they're the same physical registers in WASM32
 #define DOUBLE_REGISTER_LIST(V) \
-  V(d0)  V(d1)  V(d2)  V(d3)  \
-  V(d4)  V(d5)  V(d6)  V(d7)  \
-  V(d8)  V(d9)  V(d10) V(d11) \
-  V(d12) V(d13) V(d14) V(d15)
+  V(f0)  V(f1)  V(f2)  V(f3)  \
+  V(f4)  V(f5)  V(f6)  V(f7)  \
+  V(f8)  V(f9)  V(f10) V(f11) \
+  V(f12) V(f13) V(f14) V(f15)
 
 // SIMD registers (128-bit)
 #define SIMD128_REGISTER_LIST(V) \
@@ -156,14 +160,22 @@ class DoubleRegister : public RegisterBase<DoubleRegister, kFloatAfterLast> {
   }
 };
 
+// Define SIMD128 register codes
+enum Simd128RegisterCode {
+#define SIMD128_REGISTER_CODE(R) kSimd128Code_##R,
+  SIMD128_REGISTER_LIST(SIMD128_REGISTER_CODE)
+#undef SIMD128_REGISTER_CODE
+  kSimd128AfterLast
+};
+
 // SIMD128 registers
-class Simd128Register : public RegisterBase<Simd128Register, kFloatAfterLast> {
+class Simd128Register : public RegisterBase<Simd128Register, kSimd128AfterLast> {
  public:
-  static constexpr int kNumRegisters = kFloatAfterLast;
+  static constexpr int kNumRegisters = kSimd128AfterLast;
 
 #define DEFINE_SIMD128_REGISTER(R) \
   static constexpr Simd128Register R() { \
-    return Simd128Register(kFloatCode_##R); \
+    return Simd128Register(kSimd128Code_##R); \
   }
   SIMD128_REGISTER_LIST(DEFINE_SIMD128_REGISTER)
 #undef DEFINE_SIMD128_REGISTER
@@ -191,7 +203,7 @@ using FPRegister = DoubleRegister;
 using VRegister = Simd128Register;
 
 // Required constants for frame layout
-const int kStackFrameExtraParamSlot = 0;
+constexpr int kStackFrameExtraParamSlot = 0;
 const int kStackFrameSPAdjustment = 0;
 const int kStackFrameExtraActualArgSlot = 0;
 
@@ -206,51 +218,51 @@ constexpr bool kSimpleFPAliasing = true;
 constexpr bool kSimdMaskRegisters = false;
 
 // Define special register constants
-constexpr Register kRootRegister = r13();  // Root pointer register
-constexpr Register kScratchRegister = r12();  // Scratch register
-constexpr Register kStackPointerRegister = sp();
-constexpr Register kFramePointerRegister = fp();
-constexpr Register kLinkRegister = link();
+constexpr Register kRootRegister = Register::r13();  // Root pointer register
+constexpr Register kScratchRegister = Register::r12();  // Scratch register
+constexpr Register kStackPointerRegister = Register::sp();
+constexpr Register kFramePointerRegister = Register::fp();
+constexpr Register kLinkRegister = Register::link();
 
 // Zero register (always returns 0 when read, writes are ignored)
-constexpr Register kZeroRegister = r15();  
+constexpr Register kZeroRegister = Register::r15();  
 
 // JavaScript argument registers
-constexpr Register kJSFunctionRegister = r1();
-constexpr Register kContextRegister = r2();
-constexpr Register kAllocateSizeRegister = r0();
+constexpr Register kJSFunctionRegister = Register::r1();
+constexpr Register kContextRegister = Register::r2();
+constexpr Register kAllocateSizeRegister = Register::r0();
 
 // Return value registers
-constexpr Register kReturnRegister0 = r0();
-constexpr Register kReturnRegister1 = r1();
-constexpr Register kReturnRegister2 = r2();
+constexpr Register kReturnRegister0 = Register::r0();
+constexpr Register kReturnRegister1 = Register::r1();
+constexpr Register kReturnRegister2 = Register::r2();
 
 // Calling convention argument registers
-constexpr Register kArgumentRegister0 = r0();
-constexpr Register kArgumentRegister1 = r1();
-constexpr Register kArgumentRegister2 = r2();
-constexpr Register kArgumentRegister3 = r3();
+constexpr Register kArgumentRegister0 = Register::r0();
+constexpr Register kArgumentRegister1 = Register::r1();
+constexpr Register kArgumentRegister2 = Register::r2();
+constexpr Register kArgumentRegister3 = Register::r3();
 
 // C calling convention argument registers
-constexpr Register kCArgument0 = r0();
-constexpr Register kCArgument1 = r1();
-constexpr Register kCArgument2 = r2();
-constexpr Register kCArgument3 = r3();
+constexpr Register kCArgument0 = Register::r0();
+constexpr Register kCArgument1 = Register::r1();
+constexpr Register kCArgument2 = Register::r2();
+constexpr Register kCArgument3 = Register::r3();
 
 // Floating point return and argument registers
-constexpr DoubleRegister kFPReturnRegister0 = d0();
-constexpr DoubleRegister kFPReturnRegister1 = d1();
-constexpr DoubleRegister kFPArgumentRegister0 = d0();
-constexpr DoubleRegister kFPArgumentRegister1 = d1();
-constexpr DoubleRegister kFPArgumentRegister2 = d2();
-constexpr DoubleRegister kFPArgumentRegister3 = d3();
+constexpr DoubleRegister kFPReturnRegister0 = DoubleRegister::d0();
+constexpr DoubleRegister kFPReturnRegister1 = DoubleRegister::d1();
+constexpr DoubleRegister kFPArgumentRegister0 = DoubleRegister::d0();
+constexpr DoubleRegister kFPArgumentRegister1 = DoubleRegister::d1();
+constexpr DoubleRegister kFPArgumentRegister2 = DoubleRegister::d2();
+constexpr DoubleRegister kFPArgumentRegister3 = DoubleRegister::d3();
 
 // SIMD return and argument registers
-constexpr Simd128Register kSimd128ReturnRegister0 = s0();
-constexpr Simd128Register kSimd128ArgumentRegister0 = s0();
-constexpr Simd128Register kSimd128ArgumentRegister1 = s1();
-constexpr Simd128Register kSimd128ArgumentRegister2 = s2();
-constexpr Simd128Register kSimd128ArgumentRegister3 = s3();
+constexpr Simd128Register kSimd128ReturnRegister0 = Simd128Register::s0();
+constexpr Simd128Register kSimd128ArgumentRegister0 = Simd128Register::s0();
+constexpr Simd128Register kSimd128ArgumentRegister1 = Simd128Register::s1();
+constexpr Simd128Register kSimd128ArgumentRegister2 = Simd128Register::s2();
+constexpr Simd128Register kSimd128ArgumentRegister3 = Simd128Register::s3();
 
 // Register aliases
 constexpr Register no_reg = Register::no_reg();

@@ -18,7 +18,7 @@
 namespace v8 {
 namespace internal {
 
-// This is a v8::PageAllocator implementation that decorates provided page
+// This is a ::v8::PageAllocator implementation that decorates provided page
 // allocator object with page tracking functionality.
 class TrackingPageAllocator : public ::v8::PageAllocator {
  public:
@@ -269,7 +269,7 @@ class TrackingPageAllocator : public ::v8::PageAllocator {
     });
   }
 
-  v8::PageAllocator* const page_allocator_;
+  ::v8::PageAllocator* const page_allocator_;
   const size_t allocate_page_size_;
   const size_t commit_page_size_;
   // Region allocator tracks page allocation/deallocation requests.
@@ -330,7 +330,7 @@ class PoolTest : public                                     //
     i::v8_flags.concurrent_sweeping = old_sweeping_flag_;
     CHECK(tracking_page_allocator_->IsEmpty());
 
-    // Restore the original v8::PageAllocator and delete the tracking one.
+    // Restore the original ::v8::PageAllocator and delete the tracking one.
     CHECK_EQ(tracking_page_allocator_,
              SetPlatformPageAllocatorForTesting(old_page_allocator_));
     delete tracking_page_allocator_;
@@ -349,7 +349,7 @@ class PoolTest : public                                     //
 
  private:
   static TrackingPageAllocator* tracking_page_allocator_;
-  static v8::PageAllocator* old_page_allocator_;
+  static ::v8::PageAllocator* old_page_allocator_;
   static bool old_sweeping_flag_;
 };
 

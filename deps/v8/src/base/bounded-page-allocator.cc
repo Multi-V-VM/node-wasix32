@@ -3,13 +3,14 @@
 // found in the LICENSE file.
 
 #include "src/base/bounded-page-allocator.h"
+
 #include "src/base/logging.h"
 
 namespace v8 {
 namespace base {
 
 BoundedPageAllocator::BoundedPageAllocator(
-    v8::PageAllocator* page_allocator, Address start, size_t size,
+    ::v8::PageAllocator* page_allocator, Address start, size_t size,
     size_t allocate_page_size, PageInitializationMode page_initialization_mode,
     PageFreeingMode page_freeing_mode)
     : allocate_page_size_(allocate_page_size),
@@ -113,9 +114,9 @@ bool BoundedPageAllocator::AllocatePagesAt(Address address, size_t size,
   return true;
 }
 
-bool BoundedPageAllocator::ResizeAllocationAt(
-    void* address, size_t old_size, size_t new_size,
-    v8::PagePermissions access) {
+bool BoundedPageAllocator::ResizeAllocationAt(void* address, size_t old_size,
+                                              size_t new_size,
+                                              v8::PagePermissions access) {
   MutexGuard guard(&mutex_);
 
   const Address address_at = reinterpret_cast<Address>(address);
@@ -208,8 +209,8 @@ bool BoundedPageAllocator::FreePages(void* raw_address, size_t size) {
       case PageFreeingMode::kMakeInaccessible:
         DCHECK_EQ(page_initialization_mode_,
                   PageInitializationMode::kAllocatedPagesCanBeUninitialized);
-        success = page_allocator_->SetPermissions(raw_address, size,
-                                                  v8::PagePermissions::kNoAccess);
+        success = page_allocator_->SetPermissions(
+            raw_address, size, v8::PagePermissions::kNoAccess);
         break;
 
       case PageFreeingMode::kDiscard:

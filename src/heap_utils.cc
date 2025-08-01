@@ -53,6 +53,7 @@ namespace heap {
 class JSGraphJSNode : public EmbedderGraph::Node {
  public:
   const char* Name() override { return "<JS Node>"; }
+  const char* NamePrefix() override { return nullptr; }
   size_t SizeInBytes() override { return 0; }
   bool IsEmbedderNode() override { return false; }
   Local<Data> V8Value() { return PersistentToLocal::Strong(persistent_); }
@@ -83,7 +84,17 @@ class JSGraph : public EmbedderGraph {
  public:
   explicit JSGraph(Isolate* isolate) : isolate_(isolate) {}
 
-  Node* V8Node(const Local<v8::Data>& value) override {
+  Node* V8Node(Local<Value> value) override {
+    std::unique_ptr<JSGraphJSNode> n { new JSGraphJSNode(isolate_, value.As<v8::Data>()) };
+    auto it = engine_nodes_.find(n.get());
+    if (it != engine_nodes_.end())
+      return *it;
+    engine_nodes_.insert(n.get());
+    return AddNode(std::unique_ptr<Node>(n.release()));
+  }
+
+  // Additional helper methods (not overrides)
+  Node* V8Node(const Local<v8::Data>& value) {
     std::unique_ptr<JSGraphJSNode> n { new JSGraphJSNode(isolate_, value) };
     auto it = engine_nodes_.find(n.get());
     if (it != engine_nodes_.end())
@@ -92,7 +103,7 @@ class JSGraph : public EmbedderGraph {
     return AddNode(std::unique_ptr<Node>(n.release()));
   }
 
-  Node* V8Node(const Local<v8::Value>& value) override {
+  Node* V8Node(const Local<v8::Value>& value) {
     return V8Node(value.As<v8::Data>());
   }
 
@@ -232,7 +243,7 @@ class FileOutputStream : public v8::OutputStream {
     return 65536;  // big chunks == faster
   }
 
-  void EndOfStream() override {}
+  void EndOfStream() override { /* No-op for file output */ }
 
   v8::OutputStream::WriteResult WriteAsciiChunk(char* data, const int size) override {
     DCHECK_EQ(status_, 0);
@@ -256,6 +267,10 @@ class FileOutputStream : public v8::OutputStream {
     }
     DCHECK_EQ(offset, size);
     return kContinue;
+  }
+
+  void WriteHeapStatsChunk(const v8::HeapStatsUpdate* data, int count) override {
+    // Not implemented for file output - heap stats are not written to files
   }
 
   int status() const { return status_; }
@@ -326,6 +341,10 @@ class HeapSnapshotStream : public AsyncWrap,
               size_t count,
               uv_stream_t* send_handle) override {
     UNREACHABLE();
+  }
+
+  void WriteHeapStatsChunk(const v8::HeapStatsUpdate* data, int count) override {
+    // Not implemented for snapshot stream - heap stats are separate from snapshots
   }
 
   bool IsAlive() override { return snapshot_ != nullptr; }
@@ -431,8 +450,8 @@ HeapProfiler::HeapSnapshotOptions GetHeapSnapshotOptions(
                              ? HeapProfiler::HeapSnapshotMode::kExposeInternals
                              : HeapProfiler::HeapSnapshotMode::kRegular;
   result.numerics_mode = options[1]
-                             ? HeapProfiler::NumericsMode::kExposeNumericValues
-                             : HeapProfiler::NumericsMode::kHideNumericValues;
+                             ? HeapProfiler::HeapSnapshotOptions::NumericsMode::kExposeNumericValues
+                             : HeapProfiler::HeapSnapshotOptions::NumericsMode::kHideNumericValues;
   return result;
 }
 

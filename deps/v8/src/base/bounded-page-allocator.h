@@ -44,7 +44,7 @@ enum class PageFreeingMode {
   kDiscard,
 };
 
-// This is a v8::PageAllocator implementation that allocates pages within the
+// This is a ::v8::PageAllocator implementation that allocates pages within the
 // pre-reserved region of virtual space. This class requires the virtual space
 // to be kept reserved during the lifetime of this object.
 // The main application of bounded page allocator are
@@ -55,7 +55,7 @@ enum class PageFreeingMode {
 // Bounded page allocator uses other page allocator instance for doing actual
 // page allocations.
 // The implementation is thread-safe.
-class V8_BASE_EXPORT BoundedPageAllocator : public v8::PageAllocator {
+class V8_BASE_EXPORT BoundedPageAllocator : public ::v8::PageAllocator {
  public:
   enum class AllocationStatus {
     kSuccess,
@@ -113,7 +113,8 @@ class V8_BASE_EXPORT BoundedPageAllocator : public v8::PageAllocator {
 
   bool ReleasePages(void* address, size_t size) override;
 
-  bool SetPermissions(void* address, size_t size, PagePermissions access) override;
+  bool SetPermissions(void* address, size_t size,
+                      PagePermissions access) override;
 
   bool RecommitPages(void* address, size_t size,
                      PagePermissions access) override;
@@ -132,7 +133,7 @@ class V8_BASE_EXPORT BoundedPageAllocator : public v8::PageAllocator {
   v8::base::Mutex mutex_;
   const size_t allocate_page_size_;
   const size_t commit_page_size_;
-  v8::PageAllocator* const page_allocator_;
+  ::v8::PageAllocator* const page_allocator_;
   v8::base::RegionAllocator region_allocator_;
   const PageInitializationMode page_initialization_mode_;
   const PageFreeingMode page_freeing_mode_;

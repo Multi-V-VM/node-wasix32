@@ -375,7 +375,7 @@ void ZoneChunkList<T>::push_front(const T& item) {
   DCHECK(!front_->full());
 
   T* end = front_->items() + front_->position_;
-  std::move_backward(front_->items(), end, end + 1);
+  ::std::move_backward(front_->items(), end, end + 1);
   front_->items()[0] = item;
   ++front_->position_;
   ++size_;

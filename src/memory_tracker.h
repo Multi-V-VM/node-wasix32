@@ -51,6 +51,10 @@ public:
   template<typename T>
   void TrackInlineField(const char* name, const T& value) {}
   
+  // Add TraitTrackInline for node_url_pattern.cc
+  template<typename T>
+  void TraitTrackInline(const T& value, const char* edge_name) {}
+  
   ::v8::Isolate* isolate() const { return nullptr; }
   ::v8::EmbedderGraph* graph() const { return nullptr; }
 };

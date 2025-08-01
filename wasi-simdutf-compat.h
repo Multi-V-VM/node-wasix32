@@ -7,25 +7,44 @@
 #ifdef __wasi__
 
 #include <cstring>  // for strchr
+#include <vector>   // for std::vector
 
 namespace simdutf {
+
+// Error codes for simdutf compatibility
+enum class error_code {
+  SUCCESS = 0,
+  INVALID_BASE64_CHARACTER,
+  BASE64_INPUT_REMAINDER,
+  // Add other error codes as needed
+};
 
 // Result type for WASI compatibility
 struct result {
   // Success/error status
-  enum error_code {
-    SUCCESS = 0,
-    INVALID_BASE64_CHARACTER,
-    BASE64_INPUT_REMAINDER,
-    // Add other error codes as needed
-  } error;
+  error_code error;
   
   // Number of bytes processed
   size_t count;
   
-  result(error_code e = SUCCESS, size_t c = 0) : error(e), count(c) {}
+  result(error_code e = error_code::SUCCESS, size_t c = 0) : error(e), count(c) {}
   
-  operator bool() const { return error == SUCCESS; }
+  operator bool() const { return error == error_code::SUCCESS; }
+};
+
+// Result with error type for validation functions
+struct result_with_error {
+  bool valid;
+  error_code error;
+  
+  result_with_error(bool v = true, error_code e = error_code::SUCCESS) 
+    : valid(v), error(e) {}
+};
+
+// Base64 types
+enum base64_type {
+  base64_default = 0,
+  base64_url = 1
 };
 
 // Base64 decoding for WASI
@@ -38,7 +57,7 @@ inline result base64_to_binary(const char* input, size_t length, char* output) {
   
   for (size_t i = 0; i < length; i += 4) {
     if (i + 4 > length) {
-      return result(result::BASE64_INPUT_REMAINDER, output_length);
+      return result(error_code::BASE64_INPUT_REMAINDER, output_length);
     }
     
     // Decode 4 base64 characters to 3 bytes
@@ -50,7 +69,7 @@ inline result base64_to_binary(const char* input, size_t length, char* output) {
       } else {
         const char* pos = strchr(base64_chars, c);
         if (!pos) {
-          return result(result::INVALID_BASE64_CHARACTER, output_length);
+          return result(error_code::INVALID_BASE64_CHARACTER, output_length);
         }
         val = (val << 6) | (pos - base64_chars);
       }
@@ -67,7 +86,29 @@ inline result base64_to_binary(const char* input, size_t length, char* output) {
     }
   }
   
-  return result(result::SUCCESS, output_length);
+  return result(error_code::SUCCESS, output_length);
+}
+
+// Overloaded version that accepts base64_type parameter
+inline result base64_to_binary(const char* input, size_t length, char* output, base64_type type) {
+  // For now, ignore the type parameter and use the same implementation
+  return base64_to_binary(input, length, output);
+}
+
+// Overloaded version for char16_t* input
+inline result base64_to_binary(const char16_t* input, size_t length, char* output) {
+  // Convert char16_t to char for processing (assumes ASCII base64 chars)
+  std::vector<char> temp(length);
+  for (size_t i = 0; i < length; ++i) {
+    temp[i] = static_cast<char>(input[i] & 0xFF);
+  }
+  return base64_to_binary(temp.data(), length, output);
+}
+
+// Overloaded version for char16_t* input with base64_type
+inline result base64_to_binary(const char16_t* input, size_t length, char* output, base64_type type) {
+  // For now, ignore the type parameter
+  return base64_to_binary(input, length, output);
 }
 
 // Latin1 to UTF8 conversion for WASI

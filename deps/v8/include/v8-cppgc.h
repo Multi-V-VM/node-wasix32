@@ -45,10 +45,13 @@ class CustomSpaceBase {};
 #endif
 // Note: CustomSpaceIndex is already defined in cppgc/custom-space.h
 
+#ifndef CPPGC_HEAP_STATISTICS_DEFINED
+#define CPPGC_HEAP_STATISTICS_DEFINED
 class HeapStatistics {
  public:
   enum class DetailLevel { kBrief, kDetailed };
 };
+#endif
 
 // Forward declarations for Visitor dependencies
 // TraceDescriptor is defined in cppgc/trace-trait.h

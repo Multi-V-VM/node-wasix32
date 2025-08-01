@@ -2,82 +2,11 @@
 #define V8_V8_PROFILER_H_
 
 #ifdef __wasi__
-// WASI stubs for profiler
-
-namespace v8 {
-
-#ifndef V8_EMBEDDER_GRAPH_DEFINED
-#define V8_EMBEDDER_GRAPH_DEFINED
-class EmbedderGraph {
- public:
-  class Node {
-   public:
-    enum class Detachedness { kUnknown, kAttached, kDetached };
-    
-    virtual ~Node() = default;
-    virtual const char* Name() = 0;
-    virtual const char* NamePrefix() { return nullptr; }
-    virtual size_t SizeInBytes() = 0;
-    virtual Node* WrapperNode() { return nullptr; }
-    virtual bool IsRootNode() { return false; }
-    virtual bool IsEmbedderNode() { return true; }
-    virtual Detachedness GetDetachedness() { return Detachedness::kUnknown; }
-  };
-  
-  class Edge {
-   public:
-    virtual ~Edge() = default;
-    virtual Node* GetFrom() = 0;
-    virtual Node* GetTo() = 0;
-    virtual const char* GetName() = 0;
-  };
-  
-  virtual ~EmbedderGraph() = default;
-  virtual Node* V8Node(const v8::Local<v8::Object>& value) = 0;
-  virtual Node* AddNode(std::unique_ptr<Node> node) = 0;
-  virtual void AddEdge(Node* from, Node* to, const char* name = nullptr) = 0;
-};
-#endif // V8_EMBEDDER_GRAPH_DEFINED
-
-#ifndef V8_HEAP_SNAPSHOT_DEFINED
-#define V8_HEAP_SNAPSHOT_DEFINED
-class HeapSnapshot {
- public:
-  ~HeapSnapshot() {}
-};
-#endif // V8_HEAP_SNAPSHOT_DEFINED
-
-#ifndef V8_HEAP_PROFILER_DEFINED
-#define V8_HEAP_PROFILER_DEFINED
-class HeapProfiler {
- public:
-  struct HeapSnapshotOptions {
-    bool capture_numeric_value;
-    bool is_brief;
-    
-    HeapSnapshotOptions() : capture_numeric_value(false), is_brief(false) {}
-  };
-  
-  void DeleteAllHeapSnapshots() {}
-  const HeapSnapshot* TakeHeapSnapshot(
-      const HeapSnapshotOptions& options = HeapSnapshotOptions()) {
-    return nullptr;
-  }
-};
-#endif // V8_HEAP_PROFILER_DEFINED
-
-#ifndef V8_CPU_PROFILER_DEFINED
-#define V8_CPU_PROFILER_DEFINED
-class CpuProfiler {
- public:
-  static void UseDetailedSourcePositionsForProfiling(Isolate* isolate) {
-    // WASI stub - no-op
-  }
-};
-#endif // V8_CPU_PROFILER_DEFINED
-
-} // namespace v8
-
+// For WASI builds, just include the stub file
+#include "wasi/embedder-graph-stub.h"
+#else
+// Include the real V8 profiler header for non-WASI builds
+// This would be where the actual V8 profiler definitions go
 #endif // __wasi__
 
 #endif // V8_V8_PROFILER_H_

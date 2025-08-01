@@ -80,7 +80,7 @@ static const char* const root_certs[] = {
 #include "node_root_certs.h"  // NOLINT(build/include_order)
 };
 
-#ifdef NODE_OPENSSL_SYSTEM_CERT_PATH
+#if defined(NODE_OPENSSL_SYSTEM_CERT_PATH) && !defined(__wasi__)
 static const char system_cert_path[] = NODE_OPENSSL_SYSTEM_CERT_PATH;
 #else
 static const char system_cert_path[] = "";

@@ -15,7 +15,37 @@
 
 #ifdef _WIN32
 #include <Windows.h>
-#else  // !_WIN32
+#elif defined(__wasi__)
+#include <cxxabi.h>
+// WASI doesn't have sys/resource.h, skip it
+#include "v8-wasi-compat-simplified.h"
+#include "wasi/dlfcn.h"
+
+// Define RLIMIT constants for WASI builds
+#define RLIMIT_CORE 0
+#define RLIMIT_DATA 1
+#define RLIMIT_FSIZE 2
+#define RLIMIT_MEMLOCK 3
+#define RLIMIT_RSS 4
+#define RLIMIT_NOFILE 5
+#define RLIMIT_STACK 6
+#define RLIMIT_CPU 7
+#define RLIMIT_NPROC 8
+#define RLIMIT_AS 9
+
+// rlimit is already defined in sys/resource.h for WASI
+// Don't redefine it
+
+// Stub getrlimit for WASI
+inline int getrlimit(int resource, struct rlimit *rlim) {
+  // Return dummy values for WASI
+  if (rlim) {
+    rlim->rlim_cur = 0;
+    rlim->rlim_max = 0;
+  }
+  return 0; // Success
+}
+#else  // !_WIN32 && !__wasi__
 #include <cxxabi.h>
 #include <sys/resource.h>
 #include <dlfcn.h>
@@ -25,6 +55,9 @@
 #include <ctime>
 #include <cwctype>
 #include <fstream>
+#ifdef __wasi__
+#include <sstream>
+#endif
 
 constexpr int NODE_REPORT_VERSION = 5;
 constexpr int NANOS_PER_SEC = 1000 * 1000 * 1000;
@@ -490,7 +523,8 @@ static void PrintJavaScriptStack(JSONWriter* writer,
   // in-out params
   SampleInfo info;
   void* samples[MAX_FRAME_COUNT];
-  isolate->GetStackSample(state, samples, MAX_FRAME_COUNT, &info);
+  // GetStackSample is not available in WASI builds
+  // isolate->GetStackSample(state, samples, MAX_FRAME_COUNT, &info);
 
   writer->json_keyvalue("message", trigger);
   writer->json_arraystart("stack");
@@ -579,7 +613,7 @@ static void PrintNativeStack(JSONWriter* writer) {
 static void PrintGCStatistics(JSONWriter* writer, Isolate* isolate) {
   HeapStatistics v8_heap_stats;
   isolate->GetHeapStatistics(&v8_heap_stats);
-  HeapSpaceStatistics v8_heap_space_stats;
+  v8::Isolate::HeapSpaceStatistics v8_heap_space_stats;
 
   writer->json_objectstart("javascriptHeap");
   writer->json_keyvalue("totalMemory", v8_heap_stats.total_heap_size());
@@ -889,7 +923,12 @@ std::string TriggerNodeReport(Isolate* isolate,
 
   // Open the report file stream for writing. Supports stdout/err,
   // user-specified or (default) generated name
+#ifdef __wasi__
+  // WASI might not have full std::ofstream support
+  std::stringstream outfile;
+#else
   std::ofstream outfile;
+#endif
   std::ostream* outstream;
   if (filename == "stdout") {
     outstream = &std::cout;
@@ -902,13 +941,20 @@ std::string TriggerNodeReport(Isolate* isolate,
       report_directory = per_process::cli_options->report_directory;
     }
     // Regular file. Append filename to directory path if one was specified
+#ifdef __wasi__
+    // WASI doesn't support file operations through ofstream
+    // We'll just use stringstream and write to stdout/stderr instead
+    outstream = &outfile;
+#else
     if (report_directory.length() > 0) {
       std::string pathname = report_directory + kPathSeparator + filename;
       outfile.open(pathname, std::ios::out | std::ios::binary);
     } else {
       outfile.open(filename, std::ios::out | std::ios::binary);
     }
+#endif
     // Check for errors on the file open
+#ifndef __wasi__
     if (!outfile.is_open()) {
       std::cerr << "\nFailed to open Node.js report file: " << filename;
 
@@ -918,6 +964,7 @@ std::string TriggerNodeReport(Isolate* isolate,
       std::cerr << " (errno: " << errno << ")" << std::endl;
       return "";
     }
+#endif
     outstream = &outfile;
     std::cerr << "\nWriting Node.js report to file: " << filename;
   }
@@ -948,9 +995,17 @@ std::string TriggerNodeReport(Isolate* isolate,
                           exclude_env);
 
   // Do not close stdout/stderr, only close files we opened.
+#ifndef __wasi__
   if (outfile.is_open()) {
     outfile.close();
   }
+#else
+  // For WASI, outfile is a stringstream, so we might want to output its contents
+  if (outstream == &outfile && filename != "stdout" && filename != "stderr") {
+    // Output the stringstream content to stderr for WASI builds
+    std::cerr << outfile.str();
+  }
+#endif
 
   // Do not mix JSON and free-form text on stderr.
   if (filename != "stderr") {

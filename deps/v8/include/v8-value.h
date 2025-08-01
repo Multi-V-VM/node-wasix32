@@ -385,6 +385,19 @@ class V8_EXPORT Value : public Data {
     // For now, just do pointer comparison
     return this == *that;
   }
+  
+  // WASI: Add missing SameValue method
+  bool SameValue(Local<Value> that) const {
+    // SameValue is similar to strict equality but treats NaN as equal to itself
+    // and +0 and -0 as not equal. For WASI stub, use pointer comparison.
+    return this == *that;
+  }
+  
+  // WASI: Add missing methods
+  MaybeLocal<Number> ToNumber(Local<Context> context) const;
+  MaybeLocal<String> ToDetailString(Local<Context> context) const;
+  Local<String> TypeOf(Isolate* isolate) const;
+  MaybeLocal<Boolean> InstanceOf(Local<Context> context, Local<Object> object) const;
 #endif
 
  private:

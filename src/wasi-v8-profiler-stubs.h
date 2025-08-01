@@ -3,48 +3,26 @@
 
 #ifdef __wasi__
 
+// Include the V8 profiler header which includes embedder-graph-stub.h
+// That file already has all the profiler type definitions we need
+#include "v8-profiler.h"
+
 namespace v8 {
 
-// Stub for QueryObjectPredicate
-class QueryObjectPredicate {
+// Forward declarations
+class Isolate;
+
+// CpuProfiler stub for WASI builds
+class CpuProfiler {
  public:
-  virtual ~QueryObjectPredicate() = default;
-  virtual bool Filter(Local<Object> object) = 0;
-};
-
-// Note: HeapProfiler class is provided by V8 headers
-
-// Stub for OutputStream
-class OutputStream {
- public:
-  enum WriteResult {
-    kContinue = 0,
-    kAbort = 1
-  };
-
-  virtual ~OutputStream() = default;
-  virtual int GetChunkSize() = 0;
-  virtual void EndOfStream() = 0;
-  virtual WriteResult WriteAsciiChunk(char* data, int size) = 0;
-  virtual WriteResult WriteHeapStatsChunk(HeapStatsUpdate* data, int count) { 
-    return kContinue; 
+  static void UseDetailedSourcePositionsForProfiling(Isolate* isolate) {
+    // WASI stub - no-op implementation
+    (void)isolate;
   }
 };
 
-// Forward declaration
-struct HeapStatsUpdate;
-
-// Additional V8 API methods
-namespace internal {
-
-// Value methods
-template<>
-struct ApiCheck<Value> {
-  static bool IsValue(Data* data) { return true; }
-};
-
-} // namespace internal
-
+// Additional V8 API method extensions that may be missing in WASI builds
+// can be added here if needed
 } // namespace v8
 
 #endif // __wasi__

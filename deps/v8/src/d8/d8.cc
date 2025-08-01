@@ -191,7 +191,7 @@ class ShellArrayBufferAllocator : public ArrayBufferAllocatorBase {
 
   void* AllocateVM(size_t length) {
     DCHECK_LE(kVMThreshold, length);
-    v8::PageAllocator* page_allocator = GetPageAllocator();
+    ::v8::PageAllocator* page_allocator = GetPageAllocator();
     size_t page_size = page_allocator->AllocatePageSize();
     size_t allocated = RoundUp(length, page_size);
     return i::AllocatePages(page_allocator, nullptr, allocated, page_size,
@@ -199,7 +199,7 @@ class ShellArrayBufferAllocator : public ArrayBufferAllocatorBase {
   }
 
   void FreeVM(void* data, size_t length) {
-    v8::PageAllocator* page_allocator = GetPageAllocator();
+    ::v8::PageAllocator* page_allocator = GetPageAllocator();
     size_t page_size = page_allocator->AllocatePageSize();
     size_t allocated = RoundUp(length, page_size);
     i::FreePages(page_allocator, data, allocated);

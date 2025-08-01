@@ -92,11 +92,14 @@ class Platform;
 // SourceLocation is now defined in v8-source-location.h
 
 // Missing QueryObjectPredicate for internal_only_v8.cc
+#ifndef V8_QUERY_OBJECT_PREDICATE_DEFINED
+#define V8_QUERY_OBJECT_PREDICATE_DEFINED
 class QueryObjectPredicate {
  public:
   virtual ~QueryObjectPredicate() = default;
   virtual bool Filter(Local<Object> object) = 0;
 };
+#endif // V8_QUERY_OBJECT_PREDICATE_DEFINED
 
 // Note: Local and MaybeLocal are template classes that should be defined
 // by V8 headers. We only provide stub implementations if they're missing.
@@ -166,10 +169,18 @@ using Address = uintptr_t;
 // Note: External pointer tags are defined in nuclear-fix.h to avoid conflicts
 
 // External pointer table constants for WASI
-#ifndef EXTERNAL_POINTER_TABLE_CONSTANTS_DEFINED
-#define EXTERNAL_POINTER_TABLE_CONSTANTS_DEFINED
+#ifndef V8_EXTERNAL_POINTER_TABLE_SIZE
+#define V8_EXTERNAL_POINTER_TABLE_SIZE
 constexpr size_t kExternalPointerTableReservationSize = 1024 * 1024; // 1MB
+#endif
+
+#ifndef V8_MAX_EXTERNAL_POINTERS
+#define V8_MAX_EXTERNAL_POINTERS
 constexpr size_t kMaxExternalPointers = kExternalPointerTableReservationSize / 8;
+#endif
+
+#ifndef V8_MAX_CAPACITY
+#define V8_MAX_CAPACITY
 constexpr size_t kMaxCapacity = kMaxExternalPointers;
 #endif
 

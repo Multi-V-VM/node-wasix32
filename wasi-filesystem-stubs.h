@@ -89,6 +89,12 @@ inline bool copy_file(const path& from, const path& to) {
   return result;
 }
 
+// Overload with copy_options
+inline bool copy_file(const path& from, const path& to, copy_options options, std::error_code& ec) noexcept {
+  ec = std::make_error_code(std::errc::function_not_supported);
+  return false;
+}
+
 // WASI stub for read_symlink function
 inline path read_symlink(const path& p, std::error_code& ec) {
   // Use POSIX readlink
@@ -288,6 +294,29 @@ inline void copy_symlink(const path& from, const path& to) {
   }
 }
 
+// WASI stub for directory_entry
+class directory_entry {
+public:
+  directory_entry() noexcept = default;
+  
+  const path& path() const noexcept {
+    static std::filesystem::path empty_path;
+    return empty_path;
+  }
+  
+  bool is_symlink() const {
+    return false;  // WASI stub - no symlink support
+  }
+  
+  bool is_directory() const {
+    return false;  // WASI stub
+  }
+  
+  bool is_regular_file() const {
+    return false;  // WASI stub
+  }
+};
+
 // WASI stub for directory_iterator
 class directory_iterator {
 public:
@@ -310,6 +339,12 @@ public:
   
   directory_iterator& operator++() {
     return *this;
+  }
+  
+  // operator* to dereference the iterator
+  directory_entry operator*() const {
+    // Return an empty directory_entry for WASI stub
+    return directory_entry();
   }
   
   directory_iterator begin() const { return directory_iterator(); }

@@ -37,8 +37,8 @@ size_t MemoryAllocator::commit_page_size_ = 0;
 size_t MemoryAllocator::commit_page_size_bits_ = 0;
 
 MemoryAllocator::MemoryAllocator(Isolate* isolate,
-                                 v8::PageAllocator* code_page_allocator,
-                                 v8::PageAllocator* trusted_page_allocator,
+                                 ::v8::PageAllocator* code_page_allocator,
+                                 ::v8::PageAllocator* trusted_page_allocator,
                                  size_t capacity)
     : isolate_(isolate),
       data_page_allocator_(isolate->page_allocator()),
@@ -96,7 +96,7 @@ Address MemoryAllocator::AllocateAlignedMemory(
     VirtualMemory* controller) {
   DCHECK_EQ(space == CODE_SPACE || space == CODE_LO_SPACE,
             executable == EXECUTABLE);
-  v8::PageAllocator* page_allocator = this->page_allocator(space);
+  ::v8::PageAllocator* page_allocator = this->page_allocator(space);
   DCHECK_LT(area_size, chunk_size);
 
   PageAllocator::Permission permissions =
@@ -301,7 +301,7 @@ void MemoryAllocator::FreeReadOnlyPage(ReadOnlyPageMetadata* chunk) {
 
   UnregisterSharedMemoryChunk(chunk);
 
-  v8::PageAllocator* allocator = page_allocator(RO_SPACE);
+  ::v8::PageAllocator* allocator = page_allocator(RO_SPACE);
   VirtualMemory* reservation = chunk->reserved_memory();
   if (reservation->IsReserved()) {
     reservation->Free();

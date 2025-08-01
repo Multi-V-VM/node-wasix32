@@ -12,6 +12,10 @@
 
 #include <sys/stat.h>  // S_IFDIR
 
+#ifdef __wasi__
+#include "../wasi-v8-api-additions.h"
+#endif
+
 #include <algorithm>
 
 namespace node {
@@ -1224,7 +1228,11 @@ MaybeLocal<Module> LinkRequireFacadeWithOriginal(
     Local<Module> referrer) {
   Environment* env = Environment::GetCurrent(context);
   Isolate* isolate = context->GetIsolate();
+#ifdef __wasi__
+  CHECK(v8::StringEquals(context, specifier, env->original_string()).ToChecked());
+#else
   CHECK(specifier->Equals(context, env->original_string()).ToChecked());
+#endif
   CHECK(!env->temporary_required_module_facade_original.IsEmpty());
   return env->temporary_required_module_facade_original.Get(isolate);
 }

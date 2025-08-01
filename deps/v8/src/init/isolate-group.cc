@@ -127,16 +127,16 @@ void IsolateGroup::Initialize(bool process_wide, Sandbox* sandbox) {
   process_wide_ = process_wide;
   PtrComprCageReservationParams params;
   Address base = sandbox->address_space()->AllocatePages(
-    sandbox->base(), params.reservation_size, params.base_alignment,
-    PagePermissions::kNoAccess);
+      sandbox->base(), params.reservation_size, params.base_alignment,
+      PagePermissions::kNoAccess);
   CHECK_EQ(sandbox->base(), base);
   base::AddressRegion existing_reservation(base, params.reservation_size);
   params.page_allocator = sandbox->page_allocator();
   if (!reservation_.InitReservation(params, existing_reservation)) {
     V8::FatalProcessOutOfMemory(
-      nullptr,
-      "Failed to reserve virtual memory for process-wide V8 "
-      "pointer compression cage");
+        nullptr,
+        "Failed to reserve virtual memory for process-wide V8 "
+        "pointer compression cage");
   }
   page_allocator_ = reservation_.page_allocator();
   pointer_compression_cage_ = &reservation_;
@@ -228,8 +228,8 @@ void IsolateGroup::Release() {
 
 namespace {
 void InitCodeRangeOnce(std::unique_ptr<CodeRange>* code_range_member,
-                       v8::PageAllocator* page_allocator, size_t requested_size,
-                       bool immutable) {
+                       ::v8::PageAllocator* page_allocator,
+                       size_t requested_size, bool immutable) {
   CodeRange* code_range = new CodeRange();
   if (!code_range->InitReservation(page_allocator, requested_size, immutable)) {
     V8::FatalProcessOutOfMemory(

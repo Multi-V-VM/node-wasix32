@@ -1024,7 +1024,7 @@ void Sweeper::ZeroOrDiscardUnusedMemory(PageMetadata* page, Address addr,
 
   if (kDiscardEmptyPages && discard_area) {
     {
-      v8::PageAllocator* page_allocator =
+      ::v8::PageAllocator* page_allocator =
           heap_->memory_allocator()->page_allocator(page->owner_identity());
       DiscardSealedMemoryScope discard_scope("Discard unused memory");
       CHECK(page_allocator->DiscardSystemPages(

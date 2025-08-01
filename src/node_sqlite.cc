@@ -1999,7 +1999,7 @@ void StatementSync::All(const FunctionCallbackInfo<Value>& args) {
       rows.emplace_back(row_array);
     }
   } else {
-    LocalVector<Value> row_keys;
+    LocalVector<Name> row_keys;
 
     while ((r = sqlite3_step(stmt->statement_)) == SQLITE_ROW) {
       if (row_keys.size() == 0) {
@@ -2021,7 +2021,7 @@ void StatementSync::All(const FunctionCallbackInfo<Value>& args) {
 
       DCHECK_EQ(row_keys.size(), row_values.size());
       Local<Object> row_obj = Object::New(
-          isolate, Null(isolate), row_keys.data(), row_values.data(), num_cols);
+          isolate, Null(isolate), row_keys, row_values, num_cols);
       rows.emplace_back(row_obj);
     }
   }
@@ -2110,7 +2110,7 @@ void StatementSync::Get(const FunctionCallbackInfo<Value>& args) {
         Array::New(isolate, array_values.data(), array_values.size());
     args.GetReturnValue().Set(result);
   } else {
-    LocalVector<Value> keys;
+    LocalVector<Name> keys;
     keys.reserve(num_cols);
     LocalVector<Value> values;
     values.reserve(num_cols);
@@ -2126,7 +2126,7 @@ void StatementSync::Get(const FunctionCallbackInfo<Value>& args) {
 
     DCHECK_EQ(keys.size(), values.size());
     Local<Object> result = Object::New(
-        isolate, Null(isolate), keys.data(), values.data(), num_cols);
+        isolate, Null(isolate), keys, values, num_cols);
 
     args.GetReturnValue().Set(result);
   }
@@ -2474,7 +2474,7 @@ void StatementSyncIterator::Next(const FunctionCallbackInfo<Value>& args) {
                               {Boolean::New(isolate, true), Null(isolate)});
     DCHECK_EQ(values.size(), keys.size());
     Local<Object> result = Object::New(
-        isolate, Null(isolate), keys.data(), values.data(), keys.size());
+        isolate, Null(isolate), keys, values, keys.size());
     args.GetReturnValue().Set(result);
     return;
   }
@@ -2488,7 +2488,7 @@ void StatementSyncIterator::Next(const FunctionCallbackInfo<Value>& args) {
                               {Boolean::New(isolate, true), Null(isolate)});
     DCHECK_EQ(values.size(), keys.size());
     Local<Object> result = Object::New(
-        isolate, Null(isolate), keys.data(), values.data(), keys.size());
+        isolate, Null(isolate), keys, values, keys.size());
     args.GetReturnValue().Set(result);
     return;
   }
@@ -2506,7 +2506,7 @@ void StatementSyncIterator::Next(const FunctionCallbackInfo<Value>& args) {
     }
     row_value = Array::New(isolate, array_values.data(), array_values.size());
   } else {
-    LocalVector<Value> row_keys;
+    LocalVector<Name> row_keys;
     LocalVector<Value> row_values;
     row_keys.reserve(num_cols);
     row_values.reserve(num_cols);
@@ -2521,13 +2521,13 @@ void StatementSyncIterator::Next(const FunctionCallbackInfo<Value>& args) {
 
     DCHECK_EQ(row_keys.size(), row_values.size());
     row_value = Object::New(
-        isolate, Null(isolate), row_keys.data(), row_values.data(), num_cols);
+        isolate, Null(isolate), row_keys, row_values, num_cols);
   }
 
   LocalVector<Value> values = MakeLocalVector<Value>(isolate, {Boolean::New(isolate, false), row_value});
   DCHECK_EQ(keys.size(), values.size());
   Local<Object> result = Object::New(
-      isolate, Null(isolate), keys.data(), values.data(), keys.size());
+      isolate, Null(isolate), keys, values, keys.size());
   args.GetReturnValue().Set(result);
 }
 
@@ -2547,7 +2547,7 @@ void StatementSyncIterator::Return(const FunctionCallbackInfo<Value>& args) {
 
   DCHECK_EQ(keys.size(), values.size());
   Local<Object> result = Object::New(
-      isolate, Null(isolate), keys.data(), values.data(), keys.size());
+      isolate, Null(isolate), keys, values, keys.size());
   args.GetReturnValue().Set(result);
 }
 

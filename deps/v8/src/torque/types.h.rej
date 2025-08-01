@@ -1,0 +1,12 @@
+@@ -826,8 +826,8 @@
+ std::ostream& operator<<(std::ostream& os, const Type& type);
+ 
+ // TODO: Remove with C++20
+-inline v8::base::CheckMessageStream& operator<<(v8::base::CheckMessageStream& os, const Type* t) {
+-  std::stringstream ss;
++inline ::v8::base::CheckMessageStream& operator<<(::v8::base::CheckMessageStream& os, const Type* t) {
++  ::std::stringstream ss;
+   ss << *t;
+   return os << ss.str();
+ }
+\ No newline at end of line

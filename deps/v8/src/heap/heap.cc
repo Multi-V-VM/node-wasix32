@@ -753,7 +753,7 @@ void Heap::DumpJSONHeapStatistics(std::stringstream& stream) {
   HeapStatistics stats;
   reinterpret_cast<v8::Isolate*>(isolate())->GetHeapStatistics(&stats);
 
-// clang-format off
+  // clang-format off
 #define DICT(s) "{" << s << "}"
 #define LIST(s) "[" << s << "]"
 #define QUOTE(s) "\"" << s << "\""
@@ -4610,27 +4610,26 @@ bool ClearStaleLeftTrimmedPointerVisitor::IsLeftTrimmed(FullObjectSlot p) {
   if (!current->map_word(cage_base(), kRelaxedLoad).IsForwardingAddress() &&
       IsFreeSpaceOrFiller(current, cage_base())) {
 #ifdef DEBUG
-      // We need to find a FixedArrayBase map after walking the fillers.
-      while (
-          !current->map_word(cage_base(), kRelaxedLoad).IsForwardingAddress() &&
-          IsFreeSpaceOrFiller(current, cage_base())) {
-        Address next = current.ptr();
-        if (current->map(cage_base()) ==
-            ReadOnlyRoots(heap_).one_pointer_filler_map()) {
-          next += kTaggedSize;
-        } else if (current->map(cage_base()) ==
-                   ReadOnlyRoots(heap_).two_pointer_filler_map()) {
-          next += 2 * kTaggedSize;
-        } else {
-          next += current->Size();
-        }
-        current = Cast<HeapObject>(Tagged<Object>(next));
+    // We need to find a FixedArrayBase map after walking the fillers.
+    while (
+        !current->map_word(cage_base(), kRelaxedLoad).IsForwardingAddress() &&
+        IsFreeSpaceOrFiller(current, cage_base())) {
+      Address next = current.ptr();
+      if (current->map(cage_base()) ==
+          ReadOnlyRoots(heap_).one_pointer_filler_map()) {
+        next += kTaggedSize;
+      } else if (current->map(cage_base()) ==
+                 ReadOnlyRoots(heap_).two_pointer_filler_map()) {
+        next += 2 * kTaggedSize;
+      } else {
+        next += current->Size();
       }
-      DCHECK(
-          current->map_word(cage_base(), kRelaxedLoad).IsForwardingAddress() ||
-          IsFixedArrayBase(current, cage_base()));
+      current = Cast<HeapObject>(Tagged<Object>(next));
+    }
+    DCHECK(current->map_word(cage_base(), kRelaxedLoad).IsForwardingAddress() ||
+           IsFixedArrayBase(current, cage_base()));
 #endif  // DEBUG
-      return true;
+    return true;
   } else {
     return false;
   }
@@ -5582,7 +5581,7 @@ void Heap::SetUp(LocalHeap* main_thread_local_heap) {
       reinterpret_cast<uintptr_t>(v8::internal::GetRandomMmapAddr()) &
       ~kMmapRegionMask;
 
-  v8::PageAllocator* code_page_allocator;
+  ::v8::PageAllocator* code_page_allocator;
   if (isolate_->RequiresCodeRange() || code_range_size_ != 0) {
     const size_t requested_size =
         code_range_size_ == 0 ? kMaximalCodeRangeSize : code_range_size_;
@@ -5615,7 +5614,7 @@ void Heap::SetUp(LocalHeap* main_thread_local_heap) {
     code_page_allocator = isolate_->page_allocator();
   }
 
-  v8::PageAllocator* trusted_page_allocator;
+  ::v8::PageAllocator* trusted_page_allocator;
 #ifdef V8_ENABLE_SANDBOX
   trusted_page_allocator =
       TrustedRange::GetProcessWideTrustedRange()->page_allocator();

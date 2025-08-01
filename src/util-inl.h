@@ -460,6 +460,32 @@ template <typename T, typename U>
   return handle_scope.Escape(ret);
 }
 
+// Specialization for std::unordered_map<const void*, size_t>
+// This is needed for cppgc::HeapStatistics::type_names
+inline ::v8::MaybeLocal<::v8::Value> ToV8Value(::v8::Local<::v8::Context> context,
+                                    const std::unordered_map<const void*, size_t>& map,
+                                    ::v8::Isolate* isolate) {
+  if (isolate == nullptr) isolate = context->GetIsolate();
+  ::v8::EscapableHandleScope handle_scope(isolate);
+
+  ::v8::Local<::v8::Map> ret = ::v8::Map::New(isolate);
+  for (const auto& item : map) {
+    // Convert const void* to string representation
+    char buffer[32];
+    snprintf(buffer, sizeof(buffer), "%p", item.first);
+    ::v8::Local<::v8::Value> first = 
+        ::v8::String::NewFromUtf8(isolate, buffer, ::v8::NewStringType::kNormal)
+            .ToLocalChecked();
+    ::v8::Local<::v8::Value> second = ::v8::Number::New(isolate, static_cast<double>(item.second));
+    
+    if (ret->Set(context, first, second).IsEmpty()) {
+      return ::v8::MaybeLocal<::v8::Value>();
+    }
+  }
+
+  return handle_scope.Escape(ret);
+}
+
 template <typename T>
 ::v8::Local<::v8::Value> ConvertNumberToV8Value(::v8::Isolate* isolate,
                                             const T& number) {

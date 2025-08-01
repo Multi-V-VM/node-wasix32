@@ -521,7 +521,7 @@ MaybeLocal<Value> StringBytes::Encode(Isolate* isolate,
 
     case ASCII:
       buflen = keep_buflen_in_range(buflen);
-      if (simdutf::validate_ascii_with_errors(buf, buflen).error) {
+      if (!simdutf::validate_ascii_with_errors(buf, buflen).valid) {
         // The input contains non-ASCII bytes.
         char* out = node::UncheckedMalloc(buflen);
         if (out == nullptr) {

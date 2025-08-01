@@ -40,20 +40,17 @@ inline bool StringEquals(Local<String> lhs, Local<Context> context, Local<String
   return lhs == rhs;  // Simple comparison
 }
 
+// Add missing Value methods as extension functions
+inline Local<Boolean> ValueToBoolean(Local<Value> value, Isolate* isolate) {
+  return Boolean::New(isolate, true);  // Stub implementation
+}
+
 // Add missing Isolate methods as free functions
 inline int64_t IsolateAdjustAmountOfExternalAllocatedMemory(Isolate* isolate, int64_t change_in_bytes) {
   return 0;  // Stub implementation
 }
 
-// FixedArray stub
-class FixedArray : public Data {
- public:
-  int Length() const { return 0; }
-  Local<Data> Get(Local<Context> context, int index) const { 
-    return Local<Data>(); 
-  }
-};
-
+// Note: FixedArray is defined in v8-wasi-compat.h
 // Note: Eternal class is provided by V8 headers
 
 } // namespace v8

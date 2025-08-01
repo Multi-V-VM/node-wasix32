@@ -31,7 +31,7 @@ class ExceptionHandlerFallbackTest : public v8::TestWithPlatform {
     registered_handler_ = AddVectoredExceptionHandler(/*first=*/0, TestHandler);
     CHECK_NOT_NULL(registered_handler_);
 
-    v8::PageAllocator* page_allocator = i::GetPlatformPageAllocator();
+    ::v8::PageAllocator* page_allocator = i::GetPlatformPageAllocator();
     // We only need a single page.
     size_t size = page_allocator->AllocatePageSize();
     void* hint = page_allocator->GetRandomMmapAddr();
@@ -39,7 +39,7 @@ class ExceptionHandlerFallbackTest : public v8::TestWithPlatform {
     g_start_address = mem.address();
     // Set the permissions of the memory to no-access.
     CHECK(mem.SetPermissions(g_start_address, size,
-                             v8::PageAllocator::kNoAccess));
+                             ::v8::PageAllocator::kNoAccess));
     mem_ = std::move(mem);
   }
 
@@ -60,12 +60,12 @@ class ExceptionHandlerFallbackTest : public v8::TestWithPlatform {
  private:
   static LONG WINAPI TestHandler(EXCEPTION_POINTERS* exception) {
     g_handler_got_executed = true;
-    v8::PageAllocator* page_allocator = i::GetPlatformPageAllocator();
+    ::v8::PageAllocator* page_allocator = i::GetPlatformPageAllocator();
     // Make the allocated memory accessible so that from now on memory accesses
     // do not cause an exception anymore.
     EXPECT_TRUE(i::SetPermissions(page_allocator, g_start_address,
                                   page_allocator->AllocatePageSize(),
-                                  v8::PageAllocator::kReadWrite));
+                                  ::v8::PageAllocator::kReadWrite));
     // The memory access should work now, we can continue execution.
     return EXCEPTION_CONTINUE_EXECUTION;
   }

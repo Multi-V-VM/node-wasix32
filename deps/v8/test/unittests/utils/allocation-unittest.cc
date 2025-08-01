@@ -100,7 +100,7 @@ class MemoryAllocationPermissionsTest : public TestWithPlatform {
 
   void TestPermissions(PageAllocator::Permission permission, bool can_read,
                        bool can_write) {
-    v8::PageAllocator* page_allocator =
+    ::v8::PageAllocator* page_allocator =
         v8::internal::GetPlatformPageAllocator();
     const size_t page_size = page_allocator->AllocatePageSize();
     int* buffer = static_cast<int*>(AllocatePages(
@@ -138,7 +138,8 @@ TEST_F(AllocationTest, AllocateAndFree) {
   size_t page_size = v8::internal::AllocatePageSize();
   CHECK_NE(0, page_size);
 
-  v8::PageAllocator* page_allocator = v8::internal::GetPlatformPageAllocator();
+  ::v8::PageAllocator* page_allocator =
+      v8::internal::GetPlatformPageAllocator();
 
   // A large allocation, aligned at native allocation granularity.
   const size_t kAllocationSize = 1 * v8::internal::MB;
@@ -160,7 +161,8 @@ TEST_F(AllocationTest, AllocateAndFree) {
 }
 
 TEST_F(AllocationTest, ReserveMemory) {
-  v8::PageAllocator* page_allocator = v8::internal::GetPlatformPageAllocator();
+  ::v8::PageAllocator* page_allocator =
+      v8::internal::GetPlatformPageAllocator();
   size_t page_size = v8::internal::AllocatePageSize();
   const size_t kAllocationSize = 1 * v8::internal::MB;
   void* mem_addr = v8::internal::AllocatePages(
@@ -180,7 +182,8 @@ TEST_F(AllocationTest, ReserveMemory) {
 }
 
 TEST_F(AllocationTest, ResizeMemory) {
-  v8::PageAllocator* page_allocator = v8::internal::GetPlatformPageAllocator();
+  ::v8::PageAllocator* page_allocator =
+      v8::internal::GetPlatformPageAllocator();
   constexpr size_t kReservationSize = 10 * PageMetadata::kPageSize;
   size_t page_size = v8::internal::AllocatePageSize();
 

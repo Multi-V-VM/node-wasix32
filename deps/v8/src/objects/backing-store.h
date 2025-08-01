@@ -248,7 +248,7 @@ class V8_EXPORT_PRIVATE BackingStore : public BackingStoreBase {
   // (reported by the inspector as [[ArrayBufferData]] internal property)
   const uint32_t id_;
 
-  v8::PageAllocator* page_allocator_ = nullptr;
+  ::v8::PageAllocator* page_allocator_ = nullptr;
 
   union TypeSpecificData {
     TypeSpecificData() : v8_api_array_buffer_allocator(nullptr) {}

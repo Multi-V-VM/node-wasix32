@@ -5,6 +5,7 @@
 
 #include "v8-wasi-compat.h"
 #include "../v8-local-handle.h"
+#include <cstring>  // for memset
 
 // V8_EXPORT macro for WASI
 #ifndef V8_EXPORT
@@ -15,6 +16,7 @@
 #include "../v8-callbacks.h"
 #include "../v8-promise.h"
 #include "../v8-microtask.h"
+#include "../v8-statistics.h"  // For MeasureMemoryMode
 // Don't include v8-snapshot.h here to avoid circular dependency
 
 // SnapshotBlobRef stub if not defined elsewhere
@@ -36,6 +38,7 @@ class StackTrace;
 class String;
 class Isolate;
 class HeapProfiler;
+class HeapStatistics;
 
 // Type definitions that need to be before Isolate class
 using AbortOnUncaughtExceptionCallback = bool (*)(Isolate*);
@@ -48,12 +51,7 @@ class V8_EXPORT Isolate {
     CreateParams() = default;
     
     // Node.js required fields
-    struct {
-      size_t max_old_generation_size_in_bytes() const { return 0; }
-      void ConfigureDefaults(size_t physical_memory, size_t virtual_memory_limit) {
-        // WASI stub - no-op
-      }
-    } constraints;
+    v8::ResourceConstraints constraints;
     
     int embedder_wrapper_object_index = -1;
     int embedder_wrapper_type_index = -1;
@@ -104,6 +102,43 @@ class V8_EXPORT Isolate {
   
   // Heap profiler
   HeapProfiler* GetHeapProfiler() { return nullptr; }
+  
+  // Additional methods for Node.js worker support
+  void AddNearHeapLimitCallback_WASI(size_t (*callback)(void* data, size_t current_heap_limit, size_t initial_heap_limit), void* data) {
+    // WASI stub - no-op
+  }
+  // Provide the original name via inline wrapper to avoid macro conflicts
+  inline void AddNearHeapLimitCallback(size_t (*callback)(void* data, size_t current_heap_limit, size_t initial_heap_limit), void* data) {
+    AddNearHeapLimitCallback_WASI(callback, data);
+  }
+  
+  void SetStackLimit(uintptr_t stack_limit) {
+    // WASI stub - no-op
+  }
+  
+  // Use the v8::MeasureMemoryDelegate from v8-statistics.h
+  void MeasureMemory(std::unique_ptr<v8::MeasureMemoryDelegate> delegate,
+                     v8::MeasureMemoryExecution execution = v8::MeasureMemoryExecution::kDefault) {
+    // WASI stub - no-op
+    // Can't call delegate methods without proper implementation
+  }
+  
+  // GC callbacks - updated to match V8 API signature
+  // Note: The standard V8 signature uses GCType and GCCallbackFlags enums, 
+  // but the callback expects (Isolate*, GCType, GCCallbackFlags, void*)
+  using GCCallback = void (*)(Isolate* isolate, v8::GCType gc_type, v8::GCCallbackFlags gc_flags, void* data);
+  void AddGCPrologueCallback(GCCallback callback, void* data = nullptr, v8::GCType gc_type = v8::GCType::kGCTypeAll) {
+    // WASI stub - no-op
+  }
+  void RemoveGCPrologueCallback(GCCallback callback, void* data = nullptr) {
+    // WASI stub - no-op
+  }
+  void AddGCEpilogueCallback(GCCallback callback, void* data = nullptr, v8::GCType gc_type = v8::GCType::kGCTypeAll) {
+    // WASI stub - no-op
+  }
+  void RemoveGCEpilogueCallback(GCCallback callback, void* data = nullptr) {
+    // WASI stub - no-op
+  }
   
   // Scope class
   class Scope {
@@ -224,6 +259,16 @@ class V8_EXPORT Isolate {
     return false;
   }
   
+  void GetHeapStatistics(HeapStatistics* heap_statistics) {
+    // WASI stub - no-op
+    // Cannot initialize here as HeapStatistics is not fully defined yet
+  }
+  
+  int64_t AdjustAmountOfExternalAllocatedMemory(int64_t change_in_bytes) {
+    // WASI stub - return 0
+    return 0;
+  }
+  
   static void Free(Isolate* isolate) {
     delete isolate;
   }
@@ -285,6 +330,9 @@ class V8_EXPORT Isolate {
 
 // StackTracePrinter function type
 using StackTracePrinter = void (*)();
+
+// MeasureMemoryDelegate is already defined in v8-statistics.h
+// Don't redefine it here
 
 }  // namespace v8
 

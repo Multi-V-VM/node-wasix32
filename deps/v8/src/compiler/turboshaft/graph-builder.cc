@@ -7,6 +7,9 @@
 namespace v8 {
 namespace internal {
 
+// Forward declaration
+class Isolate;
+
 // Missing sandbox constants
 constexpr size_t kExternalPointerTableReservationSize = 1024 * 1024;
 constexpr size_t kCodePointerTableReservationSize = 1024 * 1024;

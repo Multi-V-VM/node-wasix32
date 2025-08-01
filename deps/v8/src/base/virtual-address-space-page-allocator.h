@@ -18,7 +18,7 @@ namespace base {
 // This class bridges a VirtualAddressSpace, the future memory management API,
 // to a PageAllocator, the current API.
 class V8_BASE_EXPORT VirtualAddressSpacePageAllocator
-    : public v8::PageAllocator {
+    : public ::v8::PageAllocator {
  public:
   using Address = uintptr_t;
 
@@ -47,7 +47,8 @@ class V8_BASE_EXPORT VirtualAddressSpacePageAllocator
 
   bool ReleasePages(void* address, size_t size) override;
 
-  bool SetPermissions(void* address, size_t size, PagePermissions access) override;
+  bool SetPermissions(void* address, size_t size,
+                      PagePermissions access) override;
 
   bool RecommitPages(void* address, size_t size,
                      PagePermissions access) override;

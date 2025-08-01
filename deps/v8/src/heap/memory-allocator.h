@@ -81,8 +81,8 @@ class MemoryAllocator {
   }
 
   V8_EXPORT_PRIVATE MemoryAllocator(Isolate* isolate,
-                                    v8::PageAllocator* code_page_allocator,
-                                    v8::PageAllocator* trusted_page_allocator,
+                                    ::v8::PageAllocator* code_page_allocator,
+                                    ::v8::PageAllocator* trusted_page_allocator,
                                     size_t max_capacity);
 
   V8_EXPORT_PRIVATE void TearDown();
@@ -161,22 +161,22 @@ class MemoryAllocator {
 
   // Page allocator instance for allocating non-executable pages.
   // Guaranteed to be a valid pointer.
-  v8::PageAllocator* data_page_allocator() { return data_page_allocator_; }
+  ::v8::PageAllocator* data_page_allocator() { return data_page_allocator_; }
 
   // Page allocator instance for allocating executable pages.
   // Guaranteed to be a valid pointer.
-  v8::PageAllocator* code_page_allocator() { return code_page_allocator_; }
+  ::v8::PageAllocator* code_page_allocator() { return code_page_allocator_; }
 
   // Page allocator instance for allocating "trusted" pages. When the sandbox is
   // enabled, these pages are guaranteed to be allocated outside of the sandbox,
   // so their content cannot be corrupted by an attacker.
   // Guaranteed to be a valid pointer.
-  v8::PageAllocator* trusted_page_allocator() {
+  ::v8::PageAllocator* trusted_page_allocator() {
     return trusted_page_allocator_;
   }
 
   // Returns page allocator suitable for allocating pages for the given space.
-  v8::PageAllocator* page_allocator(AllocationSpace space) {
+  ::v8::PageAllocator* page_allocator(AllocationSpace space) {
     switch (space) {
       case CODE_SPACE:
       case CODE_LO_SPACE:
@@ -363,20 +363,20 @@ class MemoryAllocator {
   // Page allocator used for allocating data pages. Depending on the
   // configuration it may be a page allocator instance provided by v8::Platform
   // or a BoundedPageAllocator (when pointer compression is enabled).
-  v8::PageAllocator* data_page_allocator_;
+  ::v8::PageAllocator* data_page_allocator_;
 
   // Page allocator used for allocating code pages. Depending on the
   // configuration it may be a page allocator instance provided by v8::Platform
   // or a BoundedPageAllocator from Heap::code_range_ (when pointer compression
   // is enabled or on those 64-bit architectures where pc-relative 32-bit
   // displacement can be used for call and jump instructions).
-  v8::PageAllocator* code_page_allocator_;
+  ::v8::PageAllocator* code_page_allocator_;
 
   // Page allocator used for allocating trusted pages. When the sandbox is
   // enabled, trusted pages are allocated outside of the sandbox so that their
   // content cannot be corrupted by an attacker. When the sandbox is disabled,
   // this is the same as data_page_allocator_.
-  v8::PageAllocator* trusted_page_allocator_;
+  ::v8::PageAllocator* trusted_page_allocator_;
 
   // Maximum space size in bytes.
   size_t capacity_;

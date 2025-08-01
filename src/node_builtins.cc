@@ -664,8 +664,13 @@ void BuiltinLoader::BuiltinIdsGetter(Local<Name> property,
   Isolate* isolate = env->isolate();
 
   auto ids = env->builtin_loader()->GetBuiltinIds();
+  // Convert keys_view to vector for ToV8Value
+  std::vector<std::string> id_vector;
+  for (const auto& id : ids) {
+    id_vector.push_back(id);
+  }
   Local<Value> ret;
-  if (ToV8Value(isolate->GetCurrentContext(), ids).ToLocal(&ret)) {
+  if (ToV8Value(isolate->GetCurrentContext(), id_vector).ToLocal(&ret)) {
     info.GetReturnValue().Set(ret);
   }
 }

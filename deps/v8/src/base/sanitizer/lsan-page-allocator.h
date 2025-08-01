@@ -17,10 +17,10 @@
 namespace v8 {
 namespace base {
 
-// This is a v8::PageAllocator implementation that decorates provided page
+// This is a ::v8::PageAllocator implementation that decorates provided page
 // allocator object with leak sanitizer notifications when LEAK_SANITIZER
 // is defined.
-class V8_BASE_EXPORT LsanPageAllocator : public v8::PageAllocator {
+class V8_BASE_EXPORT LsanPageAllocator : public ::v8::PageAllocator {
  public:
   explicit LsanPageAllocator(v8::PageAllocator* page_allocator);
   ~LsanPageAllocator() override = default;
@@ -69,13 +69,13 @@ class V8_BASE_EXPORT LsanPageAllocator : public v8::PageAllocator {
   bool DecommitPages(void* address, size_t size) override {
     return page_allocator_->DecommitPages(address, size);
   }
-  
+
   bool SealPages(void* address, size_t size) override {
     return page_allocator_->SealPages(address, size);
   }
 
  private:
-  v8::PageAllocator* const page_allocator_;
+  ::v8::PageAllocator* const page_allocator_;
   const size_t allocate_page_size_;
   const size_t commit_page_size_;
 #if defined(LEAK_SANITIZER)

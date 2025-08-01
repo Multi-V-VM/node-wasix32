@@ -162,17 +162,17 @@ CONDITIONAL_TEST(TestFlushICacheOfExecutable) {
     auto f = GeneratedCode<F0>::FromBuffer(isolate, buffer->start());
 
     CHECK(SetPermissions(GetPlatformPageAllocator(), buffer->start(),
-                         buffer->size(), v8::PageAllocator::kReadWrite));
+                         buffer->size(), ::v8::PageAllocator::kReadWrite));
     FloodWithInc(isolate, buffer.get());
     CHECK(SetPermissions(GetPlatformPageAllocator(), buffer->start(),
-                         buffer->size(), v8::PageAllocator::kReadExecute));
+                         buffer->size(), ::v8::PageAllocator::kReadExecute));
     FlushInstructionCache(buffer->start(), buffer->size());
     CHECK_EQ(23 + kNumInstr, f.Call(23));  // Call into generated code.
     CHECK(SetPermissions(GetPlatformPageAllocator(), buffer->start(),
-                         buffer->size(), v8::PageAllocator::kReadWrite));
+                         buffer->size(), ::v8::PageAllocator::kReadWrite));
     FloodWithNop(isolate, buffer.get());
     CHECK(SetPermissions(GetPlatformPageAllocator(), buffer->start(),
-                         buffer->size(), v8::PageAllocator::kReadExecute));
+                         buffer->size(), ::v8::PageAllocator::kReadExecute));
     FlushInstructionCache(buffer->start(), buffer->size());
     CHECK_EQ(23, f.Call(23));  // Call into generated code.
   }

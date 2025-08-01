@@ -163,7 +163,7 @@ class V8_EXPORT_PRIVATE Sandbox {
   /**
    * Returns a PageAllocator instance that allocates pages inside the sandbox.
    */
-  v8::PageAllocator* page_allocator() const {
+  ::v8::PageAllocator* page_allocator() const {
     return sandbox_page_allocator_.get();
   }
 

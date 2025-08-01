@@ -87,8 +87,8 @@ v8::PageAllocator* GetSandboxPageAllocator() {
 #endif
 
 v8::PageAllocator* SetPlatformPageAllocatorForTesting(
-    v8::PageAllocator* new_page_allocator) {
-  v8::PageAllocator* old_page_allocator = GetPlatformPageAllocator();
+    ::v8::PageAllocator* new_page_allocator) {
+  ::v8::PageAllocator* old_page_allocator = GetPlatformPageAllocator();
   GetPageAllocatorInitializer()->SetPageAllocatorForTesting(new_page_allocator);
   return old_page_allocator;
 }
@@ -290,7 +290,7 @@ void VirtualMemory::Free() {
   DCHECK(IsReserved());
   // Notice: Order is important here. The VirtualMemory object might live
   // inside the allocated region.
-  v8::PageAllocator* page_allocator = page_allocator_;
+  ::v8::PageAllocator* page_allocator = page_allocator_;
   base::AddressRegion region = region_;
   Reset();
   // FreePages expects size to be aligned to allocation granularity however

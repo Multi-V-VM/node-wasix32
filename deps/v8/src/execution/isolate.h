@@ -196,7 +196,7 @@ class WasmExecutionTimer;
 #endif  // V8_ENABLE_DRUMBRAKE
 class WasmCodeLookupCache;
 class WasmOrphanedGlobalHandle;
-}
+}  // namespace wasm
 
 namespace detail {
 class WaiterQueueNode;
@@ -492,7 +492,7 @@ V8_EXPORT_PRIVATE void FreeCurrentEmbeddedBlob();
 
 #ifdef DEBUG
 
-#define ISOLATE_INIT_DEBUG_ARRAY_LIST(V)               \
+#define ISOLATE_INIT_DEBUG_ARRAY_LIST(V) \
   V(int, code_kind_statistics, kCodeKindCount)
 #else
 
@@ -671,7 +671,7 @@ class V8_EXPORT_PRIVATE Isolate final : private HiddenFactory {
   void set_read_only_heap(ReadOnlyHeap* ro_heap) { read_only_heap_ = ro_heap; }
 
   // Page allocator that must be used for allocating V8 heap pages.
-  v8::PageAllocator* page_allocator() const;
+  ::v8::PageAllocator* page_allocator() const;
 
   // Returns the PerIsolateThreadData for the current thread (or nullptr if one
   // is not currently set).
@@ -1353,11 +1353,10 @@ class V8_EXPORT_PRIVATE Isolate final : private HiddenFactory {
   }
 
   constexpr static uint32_t context_offset() {
-    return static_cast<uint32_t>(
-        OFFSET_OF(Isolate, isolate_data_) +
-        OFFSET_OF(IsolateData, thread_local_top_) +
-        OFFSET_OF(ThreadLocalTop, context_) -
-        isolate_root_bias());
+    return static_cast<uint32_t>(OFFSET_OF(Isolate, isolate_data_) +
+                                 OFFSET_OF(IsolateData, thread_local_top_) +
+                                 OFFSET_OF(ThreadLocalTop, context_) -
+                                 isolate_root_bias());
   }
 
   constexpr static uint32_t central_stack_sp_offset() {

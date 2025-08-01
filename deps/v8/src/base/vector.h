@@ -167,8 +167,16 @@ class Vector {
                      input.size() * sizeof(S) / sizeof(T));
   }
 
+  // Equality comparison
   bool operator==(const Vector<T>& other) const {
-    return std::equal(begin(), end(), other.begin(), other.end());
+    if (length_ != other.length_) return false;
+    if (start_ == other.start_) return true;
+    if (start_ == nullptr || other.start_ == nullptr) return false;
+    return std::equal(start_, start_ + length_, other.start_);
+  }
+
+  bool operator!=(const Vector<T>& other) const {
+    return !(*this == other);
   }
 
   template <typename TT = T,

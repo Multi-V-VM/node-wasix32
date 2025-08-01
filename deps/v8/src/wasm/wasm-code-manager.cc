@@ -2225,7 +2225,7 @@ void WasmCodeManager::AssignRange(base::AddressRegion region,
 }
 
 VirtualMemory WasmCodeManager::TryAllocate(size_t size) {
-  v8::PageAllocator* page_allocator = GetPlatformPageAllocator();
+  ::v8::PageAllocator* page_allocator = GetPlatformPageAllocator();
   DCHECK_GT(size, 0);
   size_t allocate_page_size = page_allocator->AllocatePageSize();
   size = RoundUp(size, allocate_page_size);
@@ -2534,9 +2534,8 @@ std::shared_ptr<NativeModule> WasmCodeManager::NewNativeModule(
 
   std::shared_ptr<NativeModule> ret;
   new NativeModule(enabled_features, detected_features,
-                   std::move(compile_imports),
-                   std::move(code_space), std::move(module),
-                   isolate->async_counters(), &ret);
+                   std::move(compile_imports), std::move(code_space),
+                   std::move(module), isolate->async_counters(), &ret);
   // The constructor initialized the shared_ptr.
   DCHECK_NOT_NULL(ret);
   TRACE_HEAP("New NativeModule %p: Mem: 0x%" PRIxPTR ",+%zu\n", ret.get(),

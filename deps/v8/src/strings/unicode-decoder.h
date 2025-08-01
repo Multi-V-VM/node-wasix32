@@ -15,6 +15,9 @@
 namespace v8 {
 namespace internal {
 
+// WASI fix: Define missing constant
+constexpr uintptr_t kUintptrAllBitsSet = ~uintptr_t{0};
+
 // The return value may point to the first aligned word containing the first
 // non-one-byte character, rather than directly to the non-one-byte character.
 // If the return value is >= the passed length, the entire string was

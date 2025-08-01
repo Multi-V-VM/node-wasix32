@@ -9,6 +9,14 @@
 #include "wasi/v8-wasi-helpers.h"
 #include "wasi/chrono-compat.h"
 
+// Define V8_INLINE if not already defined
+#ifndef V8_INLINE
+#define V8_INLINE inline
+#endif
+
+// Note: FixedArray is defined in v8-fixed-array-stub.h which should be included
+// after v8-data.h to ensure proper type definitions
+
 // Include embedder-graph-stub.h last to ensure V8 types are defined
 // This needs to be included after v8-value.h and v8-primitive.h have been included
 // by the main v8 headers

@@ -64,8 +64,8 @@
 // the cheaper intrin0.h is not available for all build configurations. That is
 // why we declare this intrinsic.
 extern "C" unsigned long __readfsdword(unsigned long);  // NOLINT(runtime/int)
-#endif                                       // V8_CC_MSVC && V8_HOST_ARCH_IA32
-#endif                                       // V8_NO_FAST_TLS
+#endif  // V8_CC_MSVC && V8_HOST_ARCH_IA32
+#endif  // V8_NO_FAST_TLS
 
 #if V8_OS_OPENBSD
 #define PERMISSION_MUTABLE_SECTION __attribute__((section(".openbsd.mutable")))
@@ -171,7 +171,7 @@ class V8_BASE_EXPORT OS {
   // can be used for profiling. The implementation should
   // strive for high-precision timer resolution, preferable
   // micro-second resolution.
-  static int GetUserTime(uint32_t* secs,  uint32_t* usecs);
+  static int GetUserTime(uint32_t* secs, uint32_t* usecs);
 
   // Obtain the peak memory usage in kilobytes
   static int GetPeakMemoryUsageKb();
@@ -215,7 +215,7 @@ class V8_BASE_EXPORT OS {
   static PRINTF_FORMAT(1, 0) void VPrintError(const char* format, va_list args);
 
   // Memory permissions. These should be kept in sync with the ones in
-  // v8::PageAllocator and v8::PagePermissions.
+  // ::v8::PageAllocator and v8::PagePermissions.
   enum class MemoryPermission {
     kNoAccess,
     kRead,
@@ -592,9 +592,7 @@ class V8_BASE_EXPORT Thread {
   // Wait until thread terminates.
   void Join();
 
-  inline const char* name() const {
-    return name_;
-  }
+  inline const char* name() const { return name_; }
 
   // Abstract method for run handler.
   virtual void Run() = 0;

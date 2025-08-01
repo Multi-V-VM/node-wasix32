@@ -98,7 +98,7 @@ class V8_NODISCARD TestMemoryAllocatorScope {
 class V8_NODISCARD TestCodePageAllocatorScope {
  public:
   TestCodePageAllocatorScope(Isolate* isolate,
-                             v8::PageAllocator* code_page_allocator)
+                             ::v8::PageAllocator* code_page_allocator)
       : isolate_(isolate),
         old_code_page_allocator_(
             isolate->heap()->memory_allocator()->code_page_allocator()) {
@@ -116,11 +116,11 @@ class V8_NODISCARD TestCodePageAllocatorScope {
 
  private:
   Isolate* isolate_;
-  v8::PageAllocator* old_code_page_allocator_;
+  ::v8::PageAllocator* old_code_page_allocator_;
 };
 
 static void VerifyMemoryChunk(Isolate* isolate, Heap* heap,
-                              v8::PageAllocator* code_page_allocator,
+                              ::v8::PageAllocator* code_page_allocator,
                               size_t area_size, Executability executable,
                               PageSize page_size, LargeObjectSpace* space) {
   TestMemoryAllocatorScope test_allocator_scope(isolate, heap->MaxReserved());
@@ -128,7 +128,7 @@ static void VerifyMemoryChunk(Isolate* isolate, Heap* heap,
   TestCodePageAllocatorScope test_code_page_allocator_scope(
       isolate, code_page_allocator);
 
-  v8::PageAllocator* page_allocator =
+  ::v8::PageAllocator* page_allocator =
       memory_allocator->page_allocator(space->identity());
 
   size_t allocatable_memory_area_offset =
@@ -164,7 +164,7 @@ TEST(MutablePageMetadata) {
   Heap* heap = isolate->heap();
   IsolateSafepointScope safepoint(heap);
 
-  v8::PageAllocator* page_allocator = GetPlatformPageAllocator();
+  ::v8::PageAllocator* page_allocator = GetPlatformPageAllocator();
   size_t area_size;
 
   for (int i = 0; i < 100; i++) {
@@ -606,7 +606,7 @@ HEAP_TEST(Regress791582) {
 
 namespace {
 // PageAllocator that always fails.
-class FailingPageAllocator : public v8::PageAllocator {
+class FailingPageAllocator : public ::v8::PageAllocator {
  public:
   size_t AllocatePageSize() override { return 1024; }
   size_t CommitPageSize() override { return 1024; }

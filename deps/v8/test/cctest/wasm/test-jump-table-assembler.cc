@@ -173,7 +173,7 @@ void CompileJumpTableThunk(Address thunk, Address jump_target) {
   // and non-writable for the JumpTableRunner.
 #else
   CHECK(SetPermissions(GetPlatformPageAllocator(), thunk, kThunkBufferSize,
-                       v8::PageAllocator::kReadExecute));
+                       ::v8::PageAllocator::kReadExecute));
 #endif
 }
 

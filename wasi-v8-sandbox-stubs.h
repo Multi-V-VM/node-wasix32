@@ -13,23 +13,50 @@ namespace v8 {
 namespace internal {
 
 // Missing sandbox constants
-#ifndef EXTERNAL_POINTER_TABLE_CONSTANTS_DEFINED
-#define EXTERNAL_POINTER_TABLE_CONSTANTS_DEFINED
+#ifndef V8_EXTERNAL_POINTER_TABLE_SIZE
+#define V8_EXTERNAL_POINTER_TABLE_SIZE
 constexpr size_t kExternalPointerTableReservationSize = 1024 * 1024;  // 1MB
+#endif
+
+#ifndef V8_MAX_EXTERNAL_POINTERS
+#define V8_MAX_EXTERNAL_POINTERS
 constexpr size_t kMaxExternalPointers = 65536;
+#endif
+
+#ifndef V8_MAX_CAPACITY
+#define V8_MAX_CAPACITY
 constexpr size_t kMaxCapacity = 65536;
 #endif
+
 constexpr size_t kCodePointerTableReservationSize = 1024 * 1024;      // 1MB
-constexpr uint32_t kMaxCodePointers = 65536;
+
+#ifndef V8_MAX_CODE_POINTERS
+#define V8_MAX_CODE_POINTERS
+constexpr size_t kMaxCodePointers = 65536;
+#endif
+
+#ifndef V8_CODE_POINTER_TABLE_ENTRY_SIZE
+#define V8_CODE_POINTER_TABLE_ENTRY_SIZE
 constexpr size_t kCodePointerTableEntrySize = 8;
+#endif
+
+#ifndef V8_EXTERNAL_POINTER_TAG_SHIFT
+#define V8_EXTERNAL_POINTER_TAG_SHIFT
 constexpr int kExternalPointerTagShift = 48;
+#endif
 
 // External pointer handle type
 using ExternalPointerHandle = uint32_t;
 using CodePointerHandle = uint32_t;
+using CppHeapPointerHandle = uint32_t;
 
+#ifndef V8_NULL_EXTERNAL_POINTER_HANDLE
+#define V8_NULL_EXTERNAL_POINTER_HANDLE
 constexpr ExternalPointerHandle kNullExternalPointerHandle = 0;
+#endif
+
 constexpr CodePointerHandle kNullCodePointerHandle = 0;
+constexpr CppHeapPointerHandle kNullCppHeapPointerHandle = 0;
 
 } // namespace internal
 } // namespace v8

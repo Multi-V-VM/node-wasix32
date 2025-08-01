@@ -30,7 +30,7 @@ namespace {
 class CompressedZones final {
  public:
   static VirtualMemory ReserveAddressSpace(
-      v8::PageAllocator* platform_allocator) {
+      ::v8::PageAllocator* platform_allocator) {
     DCHECK(IsAligned(ZoneCompression::kReservationSize,
                      platform_allocator->AllocatePageSize()));
 
@@ -52,7 +52,7 @@ class CompressedZones final {
   }
 
   static std::unique_ptr<v8::base::BoundedPageAllocator> CreateBoundedAllocator(
-      v8::PageAllocator* platform_allocator, Address reservation_start) {
+      ::v8::PageAllocator* platform_allocator, Address reservation_start) {
     CHECK(reservation_start);
     CHECK(IsAligned(reservation_start, ZoneCompression::kReservationAlignment));
 
@@ -65,14 +65,14 @@ class CompressedZones final {
     // Exclude first page from allocation to ensure that accesses through
     // decompressed null pointer will seg-fault.
     allocator->AllocatePagesAt(reservation_start, kZonePageSize,
-                               v8::PageAllocator::kNoAccess);
+                               ::v8::PageAllocator::kNoAccess);
     return allocator;
   }
 
   static std::pair<std::unique_ptr<VirtualMemory>,
                    std::unique_ptr<base::BoundedPageAllocator>>
   Initialize() {
-    v8::PageAllocator* platform_page_allocator = GetPlatformPageAllocator();
+    ::v8::PageAllocator* platform_page_allocator = GetPlatformPageAllocator();
     VirtualMemory memory =
         CompressedZones::ReserveAddressSpace(platform_page_allocator);
 
@@ -117,9 +117,10 @@ class ManagedZones final {
       }
     }
 
-    v8::PageAllocator* platform_page_allocator = GetPlatformPageAllocator();
+    ::v8::PageAllocator* platform_page_allocator = GetPlatformPageAllocator();
     VirtualMemory memory(platform_page_allocator, bytes, nullptr,
-                         kMinZonePageAlignment, v8::PageAllocator::kReadWrite);
+                         kMinZonePageAlignment,
+                         ::v8::PageAllocator::kReadWrite);
     if (V8_UNLIKELY(!memory.IsReserved())) {
       return std::nullopt;
     }

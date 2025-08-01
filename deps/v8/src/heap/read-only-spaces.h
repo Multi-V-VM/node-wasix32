@@ -140,7 +140,7 @@ class ReadOnlyArtifacts final {
   // any.
   std::optional<uint32_t> read_only_blob_checksum_;
 #endif  // DEBUG
-  v8::PageAllocator* page_allocator_ = nullptr;
+  ::v8::PageAllocator* page_allocator_ = nullptr;
 };
 
 // -----------------------------------------------------------------------------

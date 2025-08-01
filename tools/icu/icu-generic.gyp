@@ -476,6 +476,11 @@
       'sources': [
         '<@(icu_src_genrb)'
       ],
+      'include_dirs': [
+        '<(icu_path)/source/common',
+        '<(icu_path)/source/i18n',
+        '<(icu_path)/source/tools/toolutil',
+      ],
       # derb is a separate executable
       # (which is not currently built)
       'sources!': [
@@ -498,6 +503,11 @@
       'sources': [
         'iculslocs.cc',
         'no-op.cc',
+      ],
+      'include_dirs': [
+        '<(icu_path)/source/common',
+        '<(icu_path)/source/i18n',
+        '<(icu_path)/source/tools/toolutil',
       ],
       'conditions': [
         # Avoid excessive LTO

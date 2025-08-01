@@ -48,9 +48,21 @@ constexpr size_t kSandboxSizeLog2 = 0;
 constexpr size_t kSandboxMinimumReservationSize = 0;
 
 // External pointer table constants
-constexpr uint32_t kExternalPointerTableReservationSize = 1024;
+constexpr size_t kExternalPointerTableReservationSize = 1024 * 1024;  // 1MB
 constexpr uint32_t kExternalPointerTableEntrySize = 8;
 constexpr int kExternalPointerTableEntrySizeLog2 = 3;
+constexpr size_t kMaxExternalPointers = 65536;
+constexpr uint32_t kNullExternalPointerHandle = 0;
+constexpr size_t kMaxCapacity = 65536;
+constexpr int kExternalPointerTagShift = 48;
+
+// CppHeap pointer table constants
+constexpr size_t kCppHeapPointerTableReservationSize = 1024 * 1024;  // 1MB
+constexpr uint64_t kCppHeapPointerMarkBit = 1ULL << 63;  // MSB for mark bit
+
+// Code pointer table constants  
+using CodePointerHandle = uint32_t;
+constexpr size_t kMaxCodePointers = 65536;
 
 // Memory constants
 constexpr int kStackAlignment = 16;  

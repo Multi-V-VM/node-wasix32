@@ -225,13 +225,13 @@ void UpdateHeapStatisticsBuffer(const FunctionCallbackInfo<Value>& args) {
 
 void UpdateHeapSpaceStatisticsBuffer(const FunctionCallbackInfo<Value>& args) {
   BindingData* data = Realm::GetBindingData<BindingData>(args);
-  HeapSpaceStatistics s;
+  v8::Isolate::HeapSpaceStatistics s;
   Isolate* const isolate = args.GetIsolate();
   CHECK(args[0]->IsUint32());
   size_t space_index = static_cast<size_t>(args[0].As<v8::Uint32>()->Value());
 #ifdef __wasi__
   // WASI stub - initialize with zeros
-  s = HeapSpaceStatistics();
+  // s is already default-initialized
 #else
   isolate->GetHeapSpaceStatistics(&s, space_index);
 #endif
@@ -695,7 +695,7 @@ void Initialize(Local<Object> target,
 
   // Heap space names are extracted once and exposed to JavaScript to
   // avoid excessive creation of heap space name Strings.
-  HeapSpaceStatistics s;
+  v8::Isolate::HeapSpaceStatistics s;
   MaybeStackBuffer<Local<Value>, 16> heap_spaces(number_of_heap_spaces);
   for (size_t i = 0; i < number_of_heap_spaces; i++) {
     env->isolate()->GetHeapSpaceStatistics(&s, i);

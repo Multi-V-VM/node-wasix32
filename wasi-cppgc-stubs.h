@@ -8,37 +8,35 @@ namespace cppgc {
 // Forward declarations
 class AllocationHandle;
 
-// Check if CustomSpace is already defined
-#ifndef CPPGC_CUSTOM_SPACE_H_
+// CustomSpaceBase is already defined in v8-cppgc.h
+// We only need to extend it for WASI if necessary
+
+// Define a template for custom spaces that matches the v8 internal usage
+// In cppgc/custom-space.h, internal::CustomSpace is defined as size_t
+// So we need to provide a compatible definition for template usage
+template <typename T>
+struct CustomSpaceForType {
+  static constexpr size_t kSpaceIndex = 0;
+  static constexpr bool kSupportsCompaction = false;
+};
+
+// Default CustomSpace using size_t as per v8's internal definition
+using DefaultCustomSpace = size_t;
+
 namespace internal {
-// CustomSpace type for memory allocation
-using CustomSpace = size_t;
-constexpr CustomSpace kNone = 0;
+// Define kNone constant
+constexpr size_t kNone = 0;
 } // namespace internal
-#endif
 
 // SpaceTrait template for WASI
 template <typename T>
 struct SpaceTrait {
-  using Space = size_t;
-  static constexpr Space value = 0;
+  // Default to no custom space - this will use the default allocation
+  using Space = void;
 };
 
-// TraceTrait template for WASI - only if not already defined
-#ifndef CPPGC_TRACE_TRAIT_H_
-template <typename T>
-struct TraceTrait {
-  using Type = T;
-  static constexpr bool kIsGarbageCollectedMixinType = false;
-  
-  // The Space typedef that was missing
-  using Space = internal::CustomSpace;
-  
-  static void Trace(Visitor* visitor, const void* object) {
-    // WASI stub - no-op
-  }
-};
-#endif // CPPGC_TRACE_TRAIT_H_
+// Note: TraceTrait is already defined in cppgc/trace-trait.h
+// No need to redefine it here for WASI builds
 
 } // namespace cppgc
 

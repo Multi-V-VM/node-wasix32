@@ -39,7 +39,9 @@ class SafepointEntry : public SafepointEntryBase {
   bool operator==(const SafepointEntry& other) const {
     return this->SafepointEntryBase::operator==(other) &&
            tagged_register_indexes_ == other.tagged_register_indexes_ &&
-           tagged_slots_ == other.tagged_slots_;
+           tagged_slots_.size() == other.tagged_slots_.size() &&
+           (tagged_slots_.size() == 0 || 
+            memcmp(tagged_slots_.data(), other.tagged_slots_.data(), tagged_slots_.size()) == 0);
   }
 
   uint32_t tagged_register_indexes() const {

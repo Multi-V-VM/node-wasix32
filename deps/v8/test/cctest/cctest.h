@@ -683,7 +683,7 @@ class TestPlatform : public v8::Platform {
   ~TestPlatform() override = default;
 
   // v8::Platform implementation.
-  v8::PageAllocator* GetPageAllocator() override;
+  ::v8::PageAllocator* GetPageAllocator() override;
   void OnCriticalMemoryPressure() override;
   int NumberOfWorkerThreads() override;
   std::shared_ptr<v8::TaskRunner> GetForegroundTaskRunner(

@@ -42,7 +42,13 @@ struct CppHeapPointerTagRange {
 
 // Simplified CppHeapPointerTag
 enum CppHeapPointerTag : uint32_t {
-  kDefaultTag = 0
+  kFirstTag = 0,
+  kNullTag = 0,
+  kDefaultTag = 0x7000,
+  kZappedEntryTag = 0x7ffd,
+  kEvacuationEntryTag = 0x7ffe,
+  kFreeEntryTag = 0x7fff,
+  kLastTag = 0x7fff
 };
 
 }  // namespace v8

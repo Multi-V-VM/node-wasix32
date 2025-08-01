@@ -22,7 +22,7 @@ using IdleTask = v8::IdleTask;
 using JobHandle = v8::JobHandle;
 using JobDelegate = v8::JobDelegate;
 using JobTask = v8::JobTask;
-using PageAllocator = v8::PageAllocator;
+using PageAllocator = ::v8::PageAllocator;
 using Task = v8::Task;
 using TaskPriority = v8::TaskPriority;
 using TaskRunner = v8::TaskRunner;
@@ -128,7 +128,6 @@ class V8_EXPORT Platform {
    */
   virtual std::unique_ptr<JobHandle> PostJob(
       TaskPriority priority, std::unique_ptr<JobTask> job_task) {
-    
 #ifdef __wasi__
     class WASIJobHandle : public JobHandle {
      public:

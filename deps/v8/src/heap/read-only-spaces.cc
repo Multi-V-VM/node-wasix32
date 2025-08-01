@@ -161,7 +161,7 @@ void ReadOnlySpace::SetPermissionsForPages(MemoryAllocator* memory_allocator,
   for (MemoryChunkMetadata* chunk : pages_) {
     // Read only pages don't have valid reservation object so we get proper
     // page allocator manually.
-    v8::PageAllocator* page_allocator =
+    ::v8::PageAllocator* page_allocator =
         memory_allocator->page_allocator(RO_SPACE);
     CHECK(SetPermissions(page_allocator, chunk->ChunkAddress(), chunk->size(),
                          access));

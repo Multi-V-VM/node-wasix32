@@ -25,8 +25,8 @@ class TestingAssemblerBuffer : public AssemblerBuffer {
     reservation_ = VirtualMemory(
         GetPlatformPageAllocator(), alloc_size, address, page_size,
         jit_permission == JitPermission::kNoJit
-            ? v8::PageAllocator::Permission::kNoAccess
-            : v8::PageAllocator::Permission::kNoAccessWillJitLater);
+            ? ::v8::PageAllocator::Permission::kNoAccess
+            : ::v8::PageAllocator::Permission::kNoAccessWillJitLater);
     CHECK(reservation_.IsReserved());
     MakeWritable();
   }
@@ -57,7 +57,7 @@ class TestingAssemblerBuffer : public AssemblerBuffer {
 
     if (protection_reconfiguration_is_allowed_) {
       bool result = SetPermissions(GetPlatformPageAllocator(), start(), size(),
-                                   v8::PageAllocator::kReadExecute);
+                                   ::v8::PageAllocator::kReadExecute);
       CHECK(result);
     }
   }
@@ -65,14 +65,14 @@ class TestingAssemblerBuffer : public AssemblerBuffer {
   void MakeWritable() {
     if (protection_reconfiguration_is_allowed_) {
       bool result = SetPermissions(GetPlatformPageAllocator(), start(), size(),
-                                   v8::PageAllocator::kReadWrite);
+                                   ::v8::PageAllocator::kReadWrite);
       CHECK(result);
     }
   }
 
   void MakeWritableAndExecutable() {
     bool result = SetPermissions(GetPlatformPageAllocator(), start(), size(),
-                                 v8::PageAllocator::kReadWriteExecute);
+                                 ::v8::PageAllocator::kReadWriteExecute);
     CHECK(result);
     // Once buffer protection is set to RWX it might not be allowed to be
     // changed anymore.

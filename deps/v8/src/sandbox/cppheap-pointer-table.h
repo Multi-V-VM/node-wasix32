@@ -15,6 +15,10 @@
 #include "src/sandbox/tagged-payload.h"
 #include "src/utils/allocation.h"
 
+#ifdef __wasi__
+#include "wasi-cppheap-pointer-table-stub.h"
+#endif
+
 #ifdef V8_COMPRESS_POINTERS
 
 namespace v8 {
@@ -36,6 +40,7 @@ class Counters;
  *    the address of the CppHeapPointerSlot referencing the entry that will be
  *    evacuated into this entry.
  */
+#ifndef __wasi__
 struct CppHeapPointerTableEntry {
   // Make this entry a cpp heap pointer entry containing the given pointer
   // tagged with the given tag.
@@ -195,6 +200,7 @@ struct CppHeapPointerTableEntry {
 
 //  We expect CppHeapPointerTable entries to consist of a single 64-bit word.
 static_assert(sizeof(CppHeapPointerTableEntry) == 8);
+#endif // !__wasi__
 
 /**
  * A table storing pointers to objects in the CppHeap

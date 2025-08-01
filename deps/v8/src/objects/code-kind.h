@@ -146,6 +146,20 @@ using CodeKinds = base::Flags<CodeKindFlag, uint32_t>;
 namespace v8 {
 namespace internal {
 using CodeKindsType = CodeKinds;
+
+// Define operators manually for WASI to avoid ambiguity
+inline constexpr CodeKinds operator|(CodeKindFlag lhs, CodeKindFlag rhs) {
+  return CodeKinds(lhs) | CodeKinds(rhs);
+}
+
+inline constexpr CodeKinds operator|(CodeKindFlag lhs, const CodeKinds& rhs) {
+  return CodeKinds(lhs) | rhs;
+}
+
+inline constexpr CodeKinds operator|(const CodeKinds& lhs, CodeKindFlag rhs) {
+  return lhs | CodeKinds(rhs);
+}
+
 } // namespace internal
 } // namespace v8
 #else

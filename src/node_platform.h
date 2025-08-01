@@ -235,7 +235,7 @@ class NodePlatform : public MultiIsolatePlatform {
  public:
   NodePlatform(int thread_pool_size,
                v8::TracingController* tracing_controller,
-               v8::PageAllocator* page_allocator = nullptr);
+               ::v8::PageAllocator* page_allocator = nullptr);
   ~NodePlatform() override;
 
   void DrainTasks(v8::Isolate* isolate) override;
@@ -280,7 +280,7 @@ class NodePlatform : public MultiIsolatePlatform {
       v8::Isolate* isolate, v8::TaskPriority priority);
 
   v8::StackTracePrinter GetStackTracePrinter() override;
-  v8::PageAllocator* GetPageAllocator() override;
+  ::v8::PageAllocator* GetPageAllocator() override;
 
   // Additional pure virtual methods from v8::Platform
   void CallOnWorkerThread(std::unique_ptr<v8::Task> task) override;
@@ -300,7 +300,7 @@ class NodePlatform : public MultiIsolatePlatform {
   std::unordered_map<v8::Isolate*, DelegatePair> per_isolate_;
 
   v8::TracingController* tracing_controller_;
-  v8::PageAllocator* page_allocator_;
+  ::v8::PageAllocator* page_allocator_;
   std::shared_ptr<WorkerThreadsTaskRunner> worker_thread_task_runner_;
   bool has_shut_down_ = false;
   PlatformDebugLogLevel debug_log_level_ = PlatformDebugLogLevel::kNone;

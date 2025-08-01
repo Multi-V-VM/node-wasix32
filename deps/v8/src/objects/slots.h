@@ -16,6 +16,10 @@
 
 namespace v8::internal {
 
+// Import base memory functions
+using v8::base::ReadUnalignedValue;
+using v8::base::WriteUnalignedValue;
+
 class Object;
 class ExposedTrustedObject;
 using TaggedBase = TaggedImpl<HeapObjectReferenceType::STRONG, Address>;

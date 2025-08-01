@@ -18,6 +18,14 @@ template <typename T> class Local;
 class V8_EXPORT Data {
  public:
   // Add base class methods if needed
+#ifdef __wasi__
+  // WASI: Add missing IsValue method
+  bool IsValue() const {
+    // In the V8 hierarchy, Value inherits from Data
+    // For WASI stub, we assume all Data objects are Values
+    return true;
+  }
+#endif
  private:
   Data() = delete;
 };

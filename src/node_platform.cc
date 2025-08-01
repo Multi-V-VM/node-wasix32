@@ -1,5 +1,6 @@
 #ifdef __wasi__
 #include "../wasi-node-compat.h"
+#include "../wasi-v8-api-additions.h"
 #endif
 #include "node_internals.h"
 #include "node_platform.h"
@@ -455,7 +456,7 @@ void PerIsolatePlatformData::DecreaseHandleCount() {
 
 NodePlatform::NodePlatform(int thread_pool_size,
                            v8::TracingController* tracing_controller,
-                           v8::PageAllocator* page_allocator) {
+                           ::v8::PageAllocator* page_allocator) {
   if (per_process::enabled_debug_list.enabled(
           DebugCategory::PLATFORM_VERBOSE)) {
     debug_log_level_ = PlatformDebugLogLevel::kVerbose;
@@ -469,7 +470,46 @@ NodePlatform::NodePlatform(int thread_pool_size,
   if (tracing_controller != nullptr) {
     tracing_controller_ = tracing_controller;
   } else {
+#ifdef V8_USE_PERFETTO
     tracing_controller_ = new v8::TracingController();
+#else
+    // For WASI builds or builds without perfetto, use a stub implementation
+    class StubTracingController : public v8::TracingController {
+     public:
+      const uint8_t* GetCategoryGroupEnabled(const char* name) override {
+        static uint8_t enabled = 0;
+        return &enabled;
+      }
+      
+      uint64_t AddTraceEvent(
+          char phase, const uint8_t* category_enabled_flag, const char* name,
+          const char* scope, uint64_t id, uint64_t bind_id, int32_t num_args,
+          const char** arg_names, const uint8_t* arg_types,
+          const uint64_t* arg_values,
+          std::unique_ptr<v8::ConvertableToTraceFormat>* arg_convertables,
+          unsigned int flags) override {
+        return 0;
+      }
+      
+      uint64_t AddTraceEventWithTimestamp(
+          char phase, const uint8_t* category_enabled_flag, const char* name,
+          const char* scope, uint64_t id, uint64_t bind_id, int32_t num_args,
+          const char** arg_names, const uint8_t* arg_types,
+          const uint64_t* arg_values,
+          std::unique_ptr<v8::ConvertableToTraceFormat>* arg_convertables,
+          unsigned int flags, int64_t timestamp) override {
+        return 0;
+      }
+      
+      void UpdateTraceEventDuration(
+          const uint8_t* category_enabled_flag, const char* name, uint64_t handle) override {
+      }
+      
+      void AddTraceStateObserver(TraceStateObserver* observer) override {}
+      void RemoveTraceStateObserver(TraceStateObserver* observer) override {}
+    };
+    tracing_controller_ = new StubTracingController();
+#endif
   }
 
   // V8 will default to its built in allocator if none is provided.
@@ -761,8 +801,8 @@ std::unique_ptr<v8::JobHandle> NodePlatform::CreateJobImpl(
     }
     fflush(stderr);
   }
-  return v8::platform::NewDefaultJobHandle(
-      this, priority, std::move(job_task), NumberOfWorkerThreads());
+  // WASI: NewDefaultJobHandle not available - return empty handle
+  return std::unique_ptr<v8::JobHandle>();
 }
 
 bool NodePlatform::IdleTasksEnabled(Isolate* isolate) {
@@ -795,7 +835,7 @@ v8::TracingController* NodePlatform::GetTracingController() {
   return tracing_controller_;
 }
 
-Platform::StackTracePrinter NodePlatform::GetStackTracePrinter() {
+v8::StackTracePrinter NodePlatform::GetStackTracePrinter() {
   return []() {
     fprintf(stderr, "\n");
     DumpNativeBacktrace(stderr);
@@ -809,15 +849,6 @@ void NodePlatform::CallOnWorkerThread(std::unique_ptr<v8::Task> task) {
   PostTaskOnWorkerThread(v8::TaskPriority::kUserVisible, std::move(task));
 }
 
-void NodePlatform::CallDelayedOnWorkerThread(std::unique_ptr<v8::Task> task,
-                                             double delay_in_seconds) {
-  // Use default priority and source location
-  ::v8::SourceLocation location;
-  PostDelayedTaskOnWorkerThreadImpl(v8::TaskPriority::kUserVisible,
-                                    std::move(task),
-                                    delay_in_seconds,
-                                    location);
-}
 
 std::unique_ptr<v8::JobHandle> NodePlatform::PostJob(
     v8::TaskPriority priority, std::unique_ptr<v8::JobTask> job_task) {

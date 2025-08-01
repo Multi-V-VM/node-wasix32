@@ -5,18 +5,17 @@
 #ifndef V8_LIBPLATFORM_DEFAULT_PLATFORM_H_
 #define V8_LIBPLATFORM_DEFAULT_PLATFORM_H_
 
-#include "src/base/platform/platform-thread.h"
-
 #include <map>
 #include <memory>
-#include "default-platform-namespace-fix.h"
 
+#include "default-platform-namespace-fix.h"
 #include "include/libplatform/libplatform-export.h"
 #include "include/libplatform/libplatform.h"
 #include "include/libplatform/v8-tracing.h"
 #include "include/v8-platform.h"
 #include "src/base/compiler-specific.h"
 #include "src/base/platform/mutex.h"
+#include "src/base/platform/platform-thread.h"
 #include "src/libplatform/default-thread-isolated-allocator.h"
 
 namespace v8 {
@@ -74,7 +73,7 @@ class V8_PLATFORM_EXPORT DefaultPlatform : public NON_EXPORTED_BASE(Platform) {
   double CurrentClockTimeMillis() override;
   v8::TracingController* GetTracingController() override;
   StackTracePrinter GetStackTracePrinter() override;
-  v8::PageAllocator* GetPageAllocator() override;
+  ::v8::PageAllocator* GetPageAllocator() override;
   v8::ThreadIsolatedAllocator* GetThreadIsolatedAllocator() override;
 
   void NotifyIsolateShutdown(Isolate* isolate);
@@ -123,6 +122,5 @@ class V8_PLATFORM_EXPORT DefaultPlatform : public NON_EXPORTED_BASE(Platform) {
 
 }  // namespace platform
 }  // namespace v8
-
 
 #endif  // V8_LIBPLATFORM_DEFAULT_PLATFORM_H_

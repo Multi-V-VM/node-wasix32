@@ -12,6 +12,9 @@
 #include "stream_wrap.h"
 
 #include <v8.h>
+#ifdef __wasi__
+#include "../wasi-v8-missing-methods.h"
+#endif
 #include <atomic>
 #include <sstream>
 
@@ -84,7 +87,7 @@ static void SetCompact(const FunctionCallbackInfo<Value>& info) {
   Mutex::ScopedLock lock(per_process::cli_options_mutex);
   Environment* env = Environment::GetCurrent(info);
   Isolate* isolate = env->isolate();
-  bool compact = info[0]->ToBoolean(isolate)->Value();
+  bool compact = v8::ValueToBoolean(info[0], isolate)->Value();
   per_process::cli_options->report_compact = compact;
 }
 

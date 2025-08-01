@@ -2075,7 +2075,7 @@ size_t Environment::NearHeapLimitCallback(void* data,
   size_t young_gen_size = 0;
   size_t old_gen_size = 0;
 
-  HeapSpaceStatistics stats;
+  v8::Isolate::HeapSpaceStatistics stats;
   size_t num_heap_spaces = env->isolate()->NumberOfHeapSpaces();
   for (size_t i = 0; i < num_heap_spaces; ++i) {
     env->isolate()->GetHeapSpaceStatistics(&stats, i);

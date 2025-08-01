@@ -129,7 +129,7 @@ void ThreadIsolation::Initialize(
   // TODO(sroettger): make this immutable once there's OS support.
   base::MemoryProtectionKey::SetPermissionsAndKey(
       {reinterpret_cast<Address>(&trusted_data_), sizeof(trusted_data_)},
-      v8::PageAllocator::Permission::kRead,
+      ::v8::PageAllocator::Permission::kRead,
       base::MemoryProtectionKey::kDefaultProtectionKey);
 #endif
 }

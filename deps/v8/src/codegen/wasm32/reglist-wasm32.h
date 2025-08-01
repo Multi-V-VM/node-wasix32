@@ -9,13 +9,18 @@
 #include "wasi-v8-reglist-fix.h"
 #endif
 
+// Only define WASM32 register types when targeting WASM32 architecture
+#if defined(V8_TARGET_ARCH_WASM32) && defined(__wasi__)
+
 namespace v8 {
 namespace internal {
 
 // WebAssembly doesn't have traditional registers like native architectures
 // These are stub definitions for compilation compatibility
 
-// Define stub Register class
+// Define stub Register class (only if not already defined)
+#ifndef V8_WASM32_REGISTER_DEFINED
+#define V8_WASM32_REGISTER_DEFINED
 class Register {
  public:
   static constexpr int kNumRegisters = 32;  // Arbitrary value for WASM
@@ -33,6 +38,7 @@ class Register {
   int code_;
   bool valid_;
 };
+#endif // V8_WASM32_REGISTER_DEFINED
 
 // Define stub DoubleRegister class  
 class DoubleRegister {
@@ -63,5 +69,7 @@ using DoubleRegList = RegListBase<DoubleRegister>;
 
 }  // namespace internal
 }  // namespace v8
+
+#endif  // defined(V8_TARGET_ARCH_WASM32) && defined(__wasi__)
 
 #endif  // V8_CODEGEN_WASM32_REGLIST_WASM32_H_

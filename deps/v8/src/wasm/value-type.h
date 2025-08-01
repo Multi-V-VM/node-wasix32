@@ -932,7 +932,7 @@ class ValueType : public ValueTypeBase {
   // has shipped by default and the flag is removed.
   ValueType AsExactIfProposalEnabled(
       Exactness exact = Exactness::kExact) const {
-    if V8_LIKELY (!v8_flags.experimental_wasm_custom_descriptors) return *this;
+    if (V8_LIKELY(!v8_flags.experimental_wasm_custom_descriptors)) return *this;
     return AsExact(exact);
   }
 
@@ -1050,7 +1050,7 @@ class CanonicalValueType : public ValueTypeBase {
   // has shipped by default and the flag is removed.
   CanonicalValueType AsExactIfProposalEnabled(
       Exactness exact = Exactness::kExact) const {
-    if V8_LIKELY (!v8_flags.experimental_wasm_custom_descriptors) return *this;
+    if (V8_LIKELY(!v8_flags.experimental_wasm_custom_descriptors)) return *this;
     return AsExact(exact);
   }
 

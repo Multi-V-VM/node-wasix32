@@ -1,7 +1,7 @@
 
 #include "node_snapshotable.h"
-#include <fstream>
 #include <iostream>
+#include <fstream>
 #include <sstream>
 #include <vector>
 #include "aliased_buffer-inl.h"
@@ -871,8 +871,11 @@ void SnapshotBuilder::InitializeIsolateParams(const SnapshotData* data,
   if (params->external_references == nullptr) {
     params->external_references = CollectExternalReferences().data();
   }
-  params->snapshot_blob =
-      const_cast<v8::StartupData*>(&(data->v8_snapshot_blob_data));
+  // WASI uses SnapshotBlobRef instead of StartupData
+  static SnapshotBlobRef snapshot_ref;
+  snapshot_ref.data = reinterpret_cast<const uint8_t*>(data->v8_snapshot_blob_data.data);
+  snapshot_ref.raw_size = data->v8_snapshot_blob_data.raw_size;
+  params->snapshot_blob = &snapshot_ref;
 }
 
 SnapshotFlags operator|(SnapshotFlags x, SnapshotFlags y) {
@@ -1208,6 +1211,33 @@ ExitCode SnapshotBuilder::GenerateAsSource(
     builder_script_optional = builder_script_content;
   }
 
+#ifdef __wasi__
+  // WASI workaround - use stringstream and then write to file
+  std::stringstream out;
+  
+  SnapshotData data;
+  ExitCode exit_code =
+      Generate(&data, args, exec_args, builder_script_optional, config);
+  if (exit_code != ExitCode::kNoFailure) {
+    return exit_code;
+  }
+  FormatBlob(out, &data, use_array_literals);
+  
+  // Write to file using C FILE API
+  FILE* file = fopen(out_path, "wb");
+  if (!file) {
+    FPrintF(stderr, "Cannot open %s for output.\n", out_path);
+    return ExitCode::kGenericUserError;
+  }
+  std::string content = out.str();
+  size_t written = fwrite(content.c_str(), 1, content.size(), file);
+  fclose(file);
+  
+  if (written != content.size()) {
+    std::cerr << "Failed to write to " << out_path << "\n";
+    exit_code = node::ExitCode::kGenericUserError;
+  }
+#else
   std::ofstream out(out_path, std::ios::out | std::ios::binary);
   if (!out) {
     FPrintF(stderr, "Cannot open %s for output.\n", out_path);
@@ -1226,6 +1256,7 @@ ExitCode SnapshotBuilder::GenerateAsSource(
     std::cerr << "Failed to write to " << out_path << "\n";
     exit_code = node::ExitCode::kGenericUserError;
   }
+#endif
 
   return exit_code;
 }

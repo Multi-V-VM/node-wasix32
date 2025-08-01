@@ -272,7 +272,7 @@ struct is_trivially_copyable {
       // Trivial non-deleted destructor.
       std::is_trivially_destructible<T>::value;
 #else
-  static constexpr bool value = std::is_trivially_copyable<T>::value;
+  static constexpr bool value = ::std::is_trivially_copyable<T>::value;
 #endif
 };
 #define ASSERT_TRIVIALLY_COPYABLE(T)                         \
@@ -285,7 +285,7 @@ struct is_trivially_copyable {
 // Be aware that base::is_trivially_destructible will differ from
 // std::is_trivially_destructible for cases like DirectHandle<T>.
 template <typename T>
-struct is_trivially_destructible : public std::is_trivially_destructible<T> {};
+struct is_trivially_destructible : public ::std::is_trivially_destructible<T> {};
 
 #define ASSERT_TRIVIALLY_DESTRUCTIBLE(T)                         \
   static_assert(::v8::base::is_trivially_destructible<T>::value, \

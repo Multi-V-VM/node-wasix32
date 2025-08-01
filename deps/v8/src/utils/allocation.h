@@ -29,9 +29,9 @@ namespace internal {
 using ::v8::base::is_trivially_copyable;
 
 using ::v8::base::BoundedPageAllocator;
-using ::v8::base::PageInitializationMode;
-using ::v8::base::PageFreeingMode;
 using ::v8::base::Malloc;
+using ::v8::base::PageFreeingMode;
+using ::v8::base::PageInitializationMode;
 
 class Isolate;
 
@@ -117,7 +117,7 @@ V8_EXPORT_PRIVATE void* AlignedAllocWithRetry(size_t size, size_t alignment);
 V8_EXPORT_PRIVATE void AlignedFree(void* ptr);
 
 // Returns platfrom page allocator instance. Guaranteed to be a valid pointer.
-V8_EXPORT_PRIVATE v8::PageAllocator* GetPlatformPageAllocator();
+V8_EXPORT_PRIVATE ::v8::PageAllocator* GetPlatformPageAllocator();
 
 // Returns platfrom virtual memory space instance. Guaranteed to be a valid
 // pointer.
@@ -126,14 +126,14 @@ V8_EXPORT_PRIVATE v8::VirtualAddressSpace* GetPlatformVirtualAddressSpace();
 #ifdef V8_ENABLE_SANDBOX
 // Returns the page allocator instance for allocating pages inside the sandbox.
 // Guaranteed to be a valid pointer.
-V8_EXPORT_PRIVATE v8::PageAllocator* GetSandboxPageAllocator();
+V8_EXPORT_PRIVATE ::v8::PageAllocator* GetSandboxPageAllocator();
 #endif
 
 // Returns the appropriate page allocator to use for ArrayBuffer backing
 // stores. If the sandbox is enabled, these must be allocated inside the
 // sandbox and so this will be the SandboxPageAllocator. Otherwise it will be
 // the PlatformPageAllocator.
-inline v8::PageAllocator* GetArrayBufferPageAllocator() {
+inline ::v8::PageAllocator* GetArrayBufferPageAllocator() {
 #ifdef V8_ENABLE_SANDBOX
   return GetSandboxPageAllocator();
 #else
@@ -145,8 +145,8 @@ inline v8::PageAllocator* GetArrayBufferPageAllocator() {
 // the current one. This function *must* be used only for testing purposes.
 // It is not thread-safe and the testing infrastructure should ensure that
 // the tests do not modify the value simultaneously.
-V8_EXPORT_PRIVATE v8::PageAllocator* SetPlatformPageAllocatorForTesting(
-    v8::PageAllocator* page_allocator);
+V8_EXPORT_PRIVATE ::v8::PageAllocator* SetPlatformPageAllocatorForTesting(
+    ::v8::PageAllocator* page_allocator);
 
 // Gets the page granularity for AllocatePages and FreePages. Addresses returned
 // by AllocatePages are aligned to this size.
@@ -214,7 +214,7 @@ class VirtualMemory final {
   // size. The |size| must be aligned with |page_allocator|'s commit page size.
   // This may not be at the position returned by address().
   V8_EXPORT_PRIVATE VirtualMemory(
-      v8::PageAllocator* page_allocator, size_t size, void* hint,
+      ::v8::PageAllocator* page_allocator, size_t size, void* hint,
       size_t alignment = 1,
       PageAllocator::Permission permissions = PageAllocator::kNoAccess);
 
@@ -249,7 +249,7 @@ class VirtualMemory final {
   // Initialize or resets an embedded VirtualMemory object.
   V8_EXPORT_PRIVATE void Reset();
 
-  v8::PageAllocator* page_allocator() { return page_allocator_; }
+  ::v8::PageAllocator* page_allocator() { return page_allocator_; }
 
   const ::v8::base::AddressRegion& region() const { return region_; }
 
@@ -309,7 +309,7 @@ class VirtualMemory final {
 
  private:
   // Page allocator that controls the virtual memory.
-  v8::PageAllocator* page_allocator_ = nullptr;
+  ::v8::PageAllocator* page_allocator_ = nullptr;
   ::v8::base::AddressRegion region_;
 };
 
@@ -397,7 +397,7 @@ class VirtualMemoryCage {
 
   struct ReservationParams {
     // The allocator to use to reserve the virtual memory.
-    v8::PageAllocator* page_allocator;
+    ::v8::PageAllocator* page_allocator;
     // See diagram above.
     size_t reservation_size;
     size_t base_alignment;
@@ -416,9 +416,9 @@ class VirtualMemoryCage {
   // If an existing reservation is provided, it will be used for this cage
   // instead. The caller retains ownership of the reservation and is responsible
   // for keeping the memory reserved during the lifetime of this object.
-  bool InitReservation(
-      const ReservationParams& params,
-      ::v8::base::AddressRegion existing_reservation = ::v8::base::AddressRegion());
+  bool InitReservation(const ReservationParams& params,
+                       ::v8::base::AddressRegion existing_reservation =
+                           ::v8::base::AddressRegion());
 
   void Free();
 

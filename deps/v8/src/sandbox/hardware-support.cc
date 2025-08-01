@@ -20,7 +20,7 @@ int SandboxHardwareSupport::pkey_ =
 bool SandboxHardwareSupport::TryEnable(Address addr, size_t size) {
   if (pkey_ != base::MemoryProtectionKey::kNoMemoryProtectionKey) {
     return base::MemoryProtectionKey::SetPermissionsAndKey(
-        {addr, size}, v8::PageAllocator::Permission::kNoAccess, pkey_);
+        {addr, size}, ::v8::PageAllocator::Permission::kNoAccess, pkey_);
   }
   return false;
 }

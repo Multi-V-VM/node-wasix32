@@ -10,6 +10,10 @@
 #include "src/objects/property-details.h"
 #include "src/utils/utils.h"
 
+#ifdef __wasi__
+#include "wasi/bitfield64-stub.h"
+#endif
+
 namespace v8 {
 namespace internal {
 

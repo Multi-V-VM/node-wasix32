@@ -106,10 +106,9 @@
 #include <sys/types.h>
 
 #if defined(NODE_HAVE_I18N_SUPPORT)
-#include <unicode/uvernum.h>
 #include <unicode/utypes.h>
+#include <unicode/uvernum.h>
 #endif
-
 
 #if defined(LEAK_SANITIZER)
 #include <sanitizer/lsan_interface.h>
@@ -261,8 +260,8 @@ void Environment::InitializeDiagnostics() {
   }
 }
 
-static
-MaybeLocal<Value> StartExecution(Environment* env, const char* main_script_id) {
+static MaybeLocal<Value> StartExecution(Environment* env,
+                                        const char* main_script_id) {
   EscapableHandleScope scope(env->isolate());
   CHECK_NOT_NULL(main_script_id);
   Realm* realm = env->principal_realm();
@@ -302,11 +301,10 @@ std::optional<StartExecutionCallbackInfo> CallbackInfoFromArray(
 }
 
 MaybeLocal<Value> StartExecution(Environment* env, StartExecutionCallback cb) {
-  InternalCallbackScope callback_scope(
-      env,
-      Object::New(env->isolate()),
-      { 1, 0 },
-      InternalCallbackScope::kSkipAsyncHooks);
+  InternalCallbackScope callback_scope(env,
+                                       Object::New(env->isolate()),
+                                       {1, 0},
+                                       InternalCallbackScope::kSkipAsyncHooks);
 
   // Only snapshot builder or embedder applications set the
   // callback.
@@ -516,8 +514,7 @@ void ResetSignalHandlers() {
   // it evaluates to 32, 34 or 64, depending on whether RT signals are enabled.
   // Counting up to SIGRTMIN doesn't work for the same reason.
   for (unsigned nr = 1; nr < kMaxSignal; nr += 1) {
-    if (nr == SIGKILL || nr == SIGSTOP)
-      continue;
+    if (nr == SIGKILL || nr == SIGSTOP) continue;
     act.sa_handler = (nr == SIGPIPE || nr == SIGXFSZ) ? SIG_IGN : SIG_DFL;
     if (act.sa_handler == SIG_DFL) {
       // The only bad handler value we can inherit from before exec is SIG_IGN
@@ -696,8 +693,7 @@ void ResetStdio() {
     if (!is_same_file) continue;  // Program reopened file descriptor.
 
     int flags;
-    do
-      flags = fcntl(fd, F_GETFL);
+    do flags = fcntl(fd, F_GETFL);
     while (flags == -1 && errno == EINTR);  // NOLINT
     CHECK_NE(flags, -1);
 
@@ -707,8 +703,7 @@ void ResetStdio() {
       flags |= s.flags & O_NONBLOCK;
 
       int err;
-      do
-        err = fcntl(fd, F_SETFL, flags);
+      do err = fcntl(fd, F_SETFL, flags);
       while (err == -1 && errno == EINTR);  // NOLINT
       CHECK_NE(err, -1);
     }
@@ -723,8 +718,7 @@ void ResetStdio() {
       sigaddset(&sa, SIGTTOU);
 
       CHECK_EQ(0, pthread_sigmask(SIG_BLOCK, &sa, nullptr));
-      do
-        err = tcsetattr(fd, TCSANOW, &s.termios);
+      do err = tcsetattr(fd, TCSANOW, &s.termios);
       while (err == -1 && errno == EINTR);  // NOLINT
       CHECK_EQ(0, pthread_sigmask(SIG_UNBLOCK, &sa, nullptr));
 
@@ -746,13 +740,12 @@ static ExitCode ProcessGlobalArgsInternal(std::vector<std::string>* args,
   std::vector<std::string> v8_args;
 
   Mutex::ScopedLock lock(per_process::cli_options_mutex);
-  options_parser::Parse(
-      args,
-      exec_args,
-      &v8_args,
-      per_process::cli_options.get(),
-      settings,
-      errors);
+  options_parser::Parse(args,
+                        exec_args,
+                        &v8_args,
+                        per_process::cli_options.get(),
+                        settings,
+                        errors);
 
   if (!errors->empty()) return ExitCode::kInvalidCommandLineArgument;
 
@@ -783,9 +776,11 @@ static ExitCode ProcessGlobalArgsInternal(std::vector<std::string>* args,
   }
 
   auto env_opts = per_process::cli_options->per_isolate->per_env;
-  if (std::find(v8_args.begin(), v8_args.end(),
+  if (std::find(v8_args.begin(),
+                v8_args.end(),
                 "--abort-on-uncaught-exception") != v8_args.end() ||
-      std::find(v8_args.begin(), v8_args.end(),
+      std::find(v8_args.begin(),
+                v8_args.end(),
                 "--abort_on_uncaught_exception") != v8_args.end()) {
     env_opts->abort_on_uncaught_exception = true;
   }
@@ -1033,12 +1028,12 @@ static ExitCode InitializeNodeWithArgsInternal(
     per_process::metadata.versions.InitializeIntlVersions();
   }
 
-# ifndef __POSIX__
+#ifndef __POSIX__
   std::string tz;
   if (credentials::SafeGetenv("TZ", &tz) && !tz.empty()) {
     i18n::SetDefaultTimeZone(tz.c_str());
   }
-# endif
+#endif
 
 #endif  // defined(NODE_HAVE_I18N_SUPPORT)
 
@@ -1231,7 +1226,7 @@ InitializeOncePerProcessInternal(const std::vector<std::string>& args,
   }
 
   if (!(flags & ProcessInitializationFlags::kNoInitializeCppgc)) {
-    v8::PageAllocator* allocator = nullptr;
+    ::v8::PageAllocator* allocator = nullptr;
     if (result->platform_ != nullptr) {
       allocator = result->platform_->GetPageAllocator();
     }
