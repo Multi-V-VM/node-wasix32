@@ -2037,11 +2037,11 @@ DirectHandle<Map> Map::TransitionToDataProperty(
   if (!maybe_map.ToHandle(&result)) {
     const char* reason = "TooManyFastProperties";
 #if V8_TRACE_MAPS
-    std::unique_ptr<base::ScopedVector<char>> buffer;
+    std::unique_ptr<base::Scoped::v8::base::Vector<char>> buffer;
     if (v8_flags.log_maps) {
-      base::ScopedVector<char> name_buffer(100);
+      base::Scoped::v8::base::Vector<char> name_buffer(100);
       name->NameShortPrint(name_buffer);
-      buffer.reset(new base::ScopedVector<char>(128));
+      buffer.reset(new base::Scoped::v8::base::Vector<char>(128));
       SNPrintF(*buffer, "TooManyFastProperties %s", name_buffer.begin());
       reason = buffer->begin();
     }

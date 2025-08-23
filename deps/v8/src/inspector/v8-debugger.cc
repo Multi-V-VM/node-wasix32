@@ -930,8 +930,8 @@ v8::MaybeLocal<v8::Array> V8Debugger::privateMethods(
     return v8::MaybeLocal<v8::Array>();
   }
   v8::Isolate* isolate = context->GetIsolate();
-  v8::LocalVector<v8::Value> names(isolate);
-  v8::LocalVector<v8::Value> values(isolate);
+  v8::Local::v8::base::Vector<v8::Value> names(isolate);
+  v8::Local::v8::base::Vector<v8::Value> values(isolate);
   int filter =
       static_cast<int>(v8::debug::PrivateMemberFilter::kPrivateMethods);
   if (!v8::debug::GetPrivateMembers(context, receiver.As<v8::Object>(), filter,

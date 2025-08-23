@@ -5,14 +5,26 @@
 #ifndef V8_OBJECTS_UNION_H_
 #define V8_OBJECTS_UNION_H_
 
-#ifdef __wasi__
-#include "src/wasi-v8-base-fixes.h"
-#endif
-
 #include "src/base/template-utils.h"
 #include "src/common/globals.h"
 
 namespace v8::internal {
+
+// Add necessary base namespace helpers directly here
+namespace base {
+template<typename T, typename... Ts>
+struct has_type;
+
+template<typename T>
+struct has_type<T> : std::false_type {};
+
+template<typename T, typename Head, typename... Tail>
+struct has_type<T, Head, Tail...> 
+    : std::conditional_t<std::is_same_v<T, Head>, std::true_type, has_type<T, Tail...>> {};
+
+template<typename T, typename... Ts>
+inline constexpr bool has_type_v = has_type<T, Ts...>::value;
+}  // namespace base
 
 // Union<Ts...> represents a union of multiple V8 types.
 //
@@ -149,3 +161,4 @@ static_assert(std::is_same_v<typename Union<Smi, HeapObject>::template Without<H
 }  // namespace v8::internal
 
 #endif  // V8_OBJECTS_UNION_H_
+

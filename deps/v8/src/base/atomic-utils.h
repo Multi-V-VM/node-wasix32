@@ -262,15 +262,19 @@ struct AtomicTypeFromByteWidth<8> {
 
 // This is similar to AsAtomicWord but it explicitly deletes functionality
 // provided atomic access to bit representation of stored values.
+#ifndef WASI_ATOMIC_POINTER_IMPL_DEFINED
 template <typename TAtomicStorageType>
 class AsAtomicPointerImpl : public AsAtomicImpl<TAtomicStorageType> {
  public:
   template <typename T>
   static bool SetBits(T* addr, T bits, T mask) = delete;
 };
+#define WASI_ATOMIC_POINTER_IMPL_DEFINED
+#endif
 
-using AsAtomicPointer = AsAtomicPointerImpl<base::AtomicWord>;
+using AsAtomicPointer = AsAtomicPointerImpl<::v8::base::AtomicWord>;
 
+#ifndef __wasi__
 template <typename T>
 inline void CheckedIncrement(
     std::atomic<T>* number, T amount,
@@ -281,7 +285,9 @@ inline void CheckedIncrement(
   DCHECK_GE(old + amount, old);
   USE(old);
 }
+#endif
 
+#ifndef V8_TARGET_ARCH_WASM32
 template <typename T>
 inline void CheckedDecrement(
     std::atomic<T>* number, T amount,
@@ -292,6 +298,7 @@ inline void CheckedDecrement(
   DCHECK_GE(old, amount);
   USE(old);
 }
+#endif
 
 template <typename T>
 V8_INLINE std::atomic<T>* AsAtomicPtr(T* t) {

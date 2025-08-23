@@ -5122,7 +5122,7 @@ void CodeGenerator::PopTempStackSlots() {
   }
 }
 
-void CodeGenerator::AssembleJumpTable(base::Vector<Label*> targets) {
+void CodeGenerator::AssembleJumpTable(::v8::base::Vector<Label*> targets) {
   // On 64-bit RISC-V we emit the jump tables inline.
   UNREACHABLE();
 }

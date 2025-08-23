@@ -1,3 +1,6 @@
+#ifdef __wasi__
+#define V8_TARGET_ARCH_WASM32 1
+#endif
 // Copyright 2023 the V8 project authors. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
@@ -311,7 +314,7 @@ struct TurboshaftAdapter : public turboshaft::OperationMatcher {
     return RpoNumber::FromInt(block->index().id());
   }
 
-  const ZoneVector<turboshaft::Block*>& rpo_order(turboshaft::Graph* schedule) {
+  const ::v8::base::Vector<turboshaft::Block*>& rpo_order(turboshaft::Graph* schedule) {
     return schedule->blocks_vector();
   }
 
@@ -384,7 +387,7 @@ struct TurboshaftAdapter : public turboshaft::OperationMatcher {
   turboshaft::OpIndex input_at(turboshaft::OpIndex node, size_t index) const {
     return graph_->Get(node).input(index);
   }
-  base::Vector<const turboshaft::OpIndex> inputs(
+  ::v8::base::Vector<const turboshaft::OpIndex> inputs(
       turboshaft::OpIndex node) const {
     return graph_->Get(node).inputs();
   }

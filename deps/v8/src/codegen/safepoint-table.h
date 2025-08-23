@@ -29,7 +29,7 @@ class SafepointEntry : public SafepointEntryBase {
   SafepointEntry() = default;
 
   SafepointEntry(int pc, int deopt_index, uint32_t tagged_register_indexes,
-                 base::Vector<uint8_t> tagged_slots, int trampoline_pc)
+                 ::v8::base::Vector<uint8_t> tagged_slots, int trampoline_pc)
       : SafepointEntryBase(pc, deopt_index, trampoline_pc),
         tagged_register_indexes_(tagged_register_indexes),
         tagged_slots_(tagged_slots) {
@@ -49,7 +49,7 @@ class SafepointEntry : public SafepointEntryBase {
     return tagged_register_indexes_;
   }
 
-  base::Vector<const uint8_t> tagged_slots() const {
+  ::v8::base::Vector<const uint8_t> tagged_slots() const {
     DCHECK(is_initialized());
     DCHECK_NOT_NULL(tagged_slots_.data());
     return tagged_slots_;
@@ -57,7 +57,7 @@ class SafepointEntry : public SafepointEntryBase {
 
  private:
   uint32_t tagged_register_indexes_ = 0;
-  base::Vector<uint8_t> tagged_slots_;
+  ::v8::base::Vector<uint8_t> tagged_slots_;
 };
 
 // A wrapper class for accessing the safepoint table embedded into the
@@ -112,7 +112,7 @@ class SafepointTable {
     // the non-existing entry after the last one).
     uint8_t* tagged_slots_start = reinterpret_cast<uint8_t*>(
         safepoint_table_address_ + kHeaderSize + length_ * entry_size());
-    base::Vector<uint8_t> tagged_slots(
+    ::v8::base::Vector<uint8_t> tagged_slots(
         tagged_slots_start + index * tagged_slots_bytes(),
         tagged_slots_bytes());
 

@@ -123,7 +123,9 @@ class Builtins {
       kFirstExtraWideBytecodeHandler + kNumberOfWideBytecodeHandlers;
   static constexpr bool kBytecodeHandlersAreSortedLast =
       kLastBytecodeHandlerPlusOne == kBuiltinCount;
+#ifndef __wasi__
   static_assert(kBytecodeHandlersAreSortedLast);
+#endif
 
   static constexpr bool IsBuiltinId(Builtin builtin) {
     return builtin != Builtin::kNoBuiltinId;
@@ -288,7 +290,7 @@ class Builtins {
       Isolate* isolate, bool is_construct,
       DirectHandle<FunctionTemplateInfo> function,
       DirectHandle<Object> receiver,
-      base::Vector<const DirectHandle<Object>> args,
+      ::v8::base::Vector<const DirectHandle<Object>> args,
       DirectHandle<HeapObject> new_target);
 
   static void Generate_Adaptor(MacroAssembler* masm, int formal_parameter_count,

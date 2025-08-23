@@ -1,3 +1,6 @@
+#ifdef __wasi__
+#define V8_TARGET_ARCH_WASM32 1
+#endif
 // Copyright 2023 the V8 project authors. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
@@ -32,7 +35,7 @@ inline size_t ContentSize(const std::vector<T>& vector) {
 }
 
 template <typename T>
-inline size_t ContentSize(const base::OwnedVector<T>& vector) {
+inline size_t ContentSize(const base::Owned::v8::base::Vector<T>& vector) {
   return vector.size() * sizeof(T);
 }
 

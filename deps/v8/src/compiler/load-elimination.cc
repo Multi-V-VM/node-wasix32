@@ -1366,7 +1366,7 @@ LoadElimination::AbstractState const* LoadElimination::ComputeLoopState(
   // Allocate zone data structures in a temporary zone with a lifetime limited
   // to this function to avoid blowing up the size of the stage-global zone.
   Zone temp_zone(zone()->allocator(), "Temporary scoped zone");
-  ZoneVector<TransitionElementsKindInfo> element_transitions_(&temp_zone);
+  ::v8::base::Vector<TransitionElementsKindInfo> element_transitions_(&temp_zone);
   ZoneQueue<Node*> queue(&temp_zone);
   ZoneSet<Node*> visited(&temp_zone);
   visited.insert(node);

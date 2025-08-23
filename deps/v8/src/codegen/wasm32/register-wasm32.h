@@ -1,9 +1,16 @@
+#ifdef V8_TARGET_ARCH_IA32
+// Skip WASM32 register definitions when building for IA32
+#else
 // Copyright 2024 the V8 project authors. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
 #ifndef V8_CODEGEN_WASM32_REGISTER_WASM32_H_
 #define V8_CODEGEN_WASM32_REGISTER_WASM32_H_
+
+// Define that we have proper Register and DoubleRegister class definitions
+#define V8_WASM32_REGISTER_DEFINED
+#define V8_WASM32_DOUBLEREGISTER_DEFINED
 
 #include "src/codegen/register-base.h"
 
@@ -72,6 +79,10 @@ class Register : public RegisterBase<Register, kRegAfterLast> {
  public:
   static constexpr int kNumRegisters = kRegAfterLast;
   
+  // Constexpr constructors
+  constexpr Register() : RegisterBase(-1) {}
+  explicit constexpr Register(int code) : RegisterBase(code) {}
+  
 #define DEFINE_REGISTER(R) \
   static constexpr Register R() { return Register(kRegCode_##R); }
   GENERAL_REGISTER_LIST(DEFINE_REGISTER)
@@ -133,6 +144,10 @@ class FloatRegister : public RegisterBase<FloatRegister, kFloatAfterLast> {
 class DoubleRegister : public RegisterBase<DoubleRegister, kFloatAfterLast> {
  public:
   static constexpr int kNumRegisters = kFloatAfterLast;
+  
+  // Constexpr constructors
+  constexpr DoubleRegister() : RegisterBase(-1) {}
+  explicit constexpr DoubleRegister(int code) : RegisterBase(code) {}
 
 #define DEFINE_DOUBLE_REGISTER(R) \
   static constexpr DoubleRegister R() { \
@@ -273,4 +288,4 @@ constexpr Simd128Register no_vreg = Simd128Register::no_reg();
 }  // namespace internal
 }  // namespace v8
 
-#endif  // V8_CODEGEN_WASM32_REGISTER_WASM32_H_
+#endif  // V8_CODEGEN_WASM32_REGISTER_WASM32_H_#endif // V8_TARGET_ARCH_IA32

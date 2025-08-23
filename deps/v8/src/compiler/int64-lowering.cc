@@ -396,7 +396,7 @@ void Int64Lowering::LowerNode(Node* node) {
           // We access the additional return values through projections.
           ReplaceNodeWithProjections(node);
         } else {
-          ZoneVector<Node*> projections(return_arity, zone());
+          ::v8::base::Vector<Node*> projections(return_arity, zone());
           NodeProperties::CollectValueProjections(node, projections.data(),
                                                   return_arity);
           for (size_t old_index = 0, new_index = 0; old_index < return_arity;

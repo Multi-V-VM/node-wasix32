@@ -20,7 +20,7 @@ class ProfileGenerator {
         type_feedback_mutex_guard_(&module->type_feedback.mutex),
         tiering_budget_array_(tiering_budget_array) {}
 
-  base::OwnedVector<uint8_t> GetProfileData() {
+  base::Owned::v8::base::Vector<uint8_t> GetProfileData() {
     ZoneBuffer buffer{&zone_};
 
     SerializeTypeFeedback(buffer);
@@ -116,7 +116,7 @@ void DeserializeTypeFeedback(Decoder& decoder, const WasmModule* module) {
     uint32_t feedback_vector_size =
         decoder.consume_u32v("feedback vector size");
     function_feedback.feedback_vector =
-        base::OwnedVector<CallSiteFeedback>::NewForOverwrite(
+        base::Owned::v8::base::Vector<CallSiteFeedback>::NewForOverwrite(
             feedback_vector_size);
     for (CallSiteFeedback& feedback : function_feedback.feedback_vector) {
       int num_cases = decoder.consume_i32v("num cases");
@@ -139,7 +139,7 @@ void DeserializeTypeFeedback(Decoder& decoder, const WasmModule* module) {
     // Deserialize {call_targets}.
     uint32_t num_call_targets = decoder.consume_u32v("num call targets");
     function_feedback.call_targets =
-        base::OwnedVector<uint32_t>::NewForOverwrite(num_call_targets);
+        base::Owned::v8::base::Vector<uint32_t>::NewForOverwrite(num_call_targets);
     for (uint32_t& call_target : function_feedback.call_targets) {
       call_target = decoder.consume_u32v("call target");
     }
@@ -180,7 +180,7 @@ std::unique_ptr<ProfileInformation> DeserializeTieringInformation(
 }
 
 std::unique_ptr<ProfileInformation> RestoreProfileData(
-    const WasmModule* module, base::Vector<uint8_t> profile_data) {
+    const WasmModule* module, ::v8::base::Vector<uint8_t> profile_data) {
   Decoder decoder{profile_data.begin(), profile_data.end()};
 
   DeserializeTypeFeedback(decoder, module);
@@ -194,18 +194,18 @@ std::unique_ptr<ProfileInformation> RestoreProfileData(
 }
 
 void DumpProfileToFile(const WasmModule* module,
-                       base::Vector<const uint8_t> wire_bytes,
+                       ::v8::base::Vector<const uint8_t> wire_bytes,
                        std::atomic<uint32_t>* tiering_budget_array) {
   CHECK(!wire_bytes.empty());
   // File are named `profile-wasm-<hash>`.
   // We use the same hash as for reported scripts, to make it easier to
   // correlate files to wasm modules (see {CreateWasmScript}).
   uint32_t hash = static_cast<uint32_t>(GetWireBytesHash(wire_bytes));
-  base::EmbeddedVector<char, 32> filename;
+  base::Embedded::v8::base::Vector<char, 32> filename;
   SNPrintF(filename, "profile-wasm-%08x", hash);
 
   ProfileGenerator profile_generator{module, tiering_budget_array};
-  base::OwnedVector<uint8_t> profile_data = profile_generator.GetProfileData();
+  base::Owned::v8::base::Vector<uint8_t> profile_data = profile_generator.GetProfileData();
 
   PrintF(
       "Dumping Wasm PGO data to file '%s' (module size %zu, %u declared "
@@ -220,13 +220,13 @@ void DumpProfileToFile(const WasmModule* module,
 }
 
 std::unique_ptr<ProfileInformation> LoadProfileFromFile(
-    const WasmModule* module, base::Vector<const uint8_t> wire_bytes) {
+    const WasmModule* module, ::v8::base::Vector<const uint8_t> wire_bytes) {
   CHECK(!wire_bytes.empty());
   // File are named `profile-wasm-<hash>`.
   // We use the same hash as for reported scripts, to make it easier to
   // correlate files to wasm modules (see {CreateWasmScript}).
   uint32_t hash = static_cast<uint32_t>(GetWireBytesHash(wire_bytes));
-  base::EmbeddedVector<char, 32> filename;
+  base::Embedded::v8::base::Vector<char, 32> filename;
   SNPrintF(filename, "profile-wasm-%08x", hash);
 
   FILE* file = base::OS::FOpen(filename.begin(), "rb");
@@ -241,8 +241,8 @@ std::unique_ptr<ProfileInformation> LoadProfileFromFile(
 
   PrintF("Loading Wasm PGO data from file '%s' (%zu bytes)\n", filename.begin(),
          size);
-  base::OwnedVector<uint8_t> profile_data =
-      base::OwnedVector<uint8_t>::NewForOverwrite(size);
+  base::Owned::v8::base::Vector<uint8_t> profile_data =
+      base::Owned::v8::base::Vector<uint8_t>::NewForOverwrite(size);
   for (size_t read = 0; read < size;) {
     read += fread(profile_data.begin() + read, 1, size - read, file);
     CHECK(!ferror(file));

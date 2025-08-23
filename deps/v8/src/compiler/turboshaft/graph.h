@@ -660,7 +660,7 @@ class Graph {
     return result;
   }
   BlockIndex BlockOf(OpIndex index) const {
-    ZoneVector<Block*>::const_iterator it;
+    ::v8::base::Vector<Block*>::const_iterator it;
     if (block_permutation_.empty()) {
       it = std::upper_bound(
           bound_blocks_.begin(), bound_blocks_.end(), index,
@@ -991,7 +991,7 @@ class Graph {
             base::DerefPtrIterator<const Block>(bound_blocks_.data() +
                                                 bound_blocks_.size())};
   }
-  const ZoneVector<Block*>& blocks_vector() const { return bound_blocks_; }
+  const ::v8::base::Vector<Block*>& blocks_vector() const { return bound_blocks_; }
 
   bool IsLoopBackedge(const GotoOp& op) const {
     DCHECK(op.destination->IsBound());
@@ -1033,7 +1033,7 @@ class Graph {
   }
 #endif  // DEBUG
 
-  void ReorderBlocks(base::Vector<uint32_t> permutation) {
+  void ReorderBlocks(::v8::base::Vector<uint32_t> permutation) {
     DCHECK_EQ(permutation.size(), bound_blocks_.size());
     block_permutation_.resize(bound_blocks_.size());
     std::swap(block_permutation_, bound_blocks_);
@@ -1154,10 +1154,10 @@ class Graph {
     size_t next_capacity = std::max(kMinCapacity, all_blocks_.size() * 2);
     size_t new_block_count = next_capacity - all_blocks_.size();
     DCHECK_GT(new_block_count, 0);
-    base::Vector<Block> block_storage =
-        graph_zone_->AllocateVector<Block>(new_block_count);
-    base::Vector<Block*> new_all_blocks =
-        graph_zone_->AllocateVector<Block*>(next_capacity);
+    ::v8::base::Vector<Block> block_storage =
+        graph_zone_->Allocate::v8::base::Vector<Block>(new_block_count);
+    ::v8::base::Vector<Block*> new_all_blocks =
+        graph_zone_->Allocate::v8::base::Vector<Block*>(next_capacity);
     DCHECK_EQ(new_all_blocks.size(), all_blocks_.size() + new_block_count);
     std::copy(all_blocks_.begin(), all_blocks_.end(), new_all_blocks.begin());
     Block** insert_begin = new_all_blocks.begin() + all_blocks_.size();
@@ -1165,7 +1165,7 @@ class Graph {
     for (size_t i = 0; i < new_block_count; ++i) {
       insert_begin[i] = &block_storage[i];
     }
-    base::Vector<Block*> old_all_blocks = all_blocks_;
+    ::v8::base::Vector<Block*> old_all_blocks = all_blocks_;
     all_blocks_ = new_all_blocks;
     if (!old_all_blocks.empty()) {
       graph_zone_->DeleteArray(old_all_blocks.data(), old_all_blocks.length());
@@ -1177,19 +1177,19 @@ class Graph {
   }
 
   OperationBuffer operations_;
-  ZoneVector<Block*> bound_blocks_;
+  ::v8::base::Vector<Block*> bound_blocks_;
   // The next two fields essentially form a `ZoneVector` but with pointer
   // stability for the `Block` elements. That is, `all_blocks_` contains
   // pointers to (potentially non-contiguous) Zone-allocated `Block`s.
   // Each pointer in `all_blocks_` points to already allocated space, but they
   // are only properly value-initialized up to index `next_block_`.
-  base::Vector<Block*> all_blocks_;
+  ::v8::base::Vector<Block*> all_blocks_;
   size_t next_block_ = 0;
   GrowingOpIndexSidetable<BlockIndex> op_to_block_;
   // When `ReorderBlocks` is called, `block_permutation_` contains the original
   // order of blocks in order to provide a proper OpIndex->Block mapping for
   // `BlockOf`. In non-reordered graphs, this vector is empty.
-  ZoneVector<Block*> block_permutation_;
+  ::v8::base::Vector<Block*> block_permutation_;
   Zone* graph_zone_;
   GrowingOpIndexSidetable<SourcePosition> source_positions_;
   GrowingOpIndexSidetable<OpIndex> operation_origins_;

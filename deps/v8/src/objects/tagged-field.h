@@ -147,7 +147,7 @@ static_assert(sizeof(UnalignedDoubleMember) == sizeof(double));
   template <typename Class>                                                \
   static constexpr auto OffsetOfDataStart() {                              \
     /* Produce a compiler error if {Class} is not this class */            \
-    static_assert(base::tmp::lazy_true<                                    \
+    static_assert(::v8::base::tmp::lazy_true<                              \
                   decltype(std::declval<Class>()                           \
                                .flexible_array_member_data_)>::value);     \
     return static_cast<int>(offsetof(Class, flexible_array_member_data_)); \

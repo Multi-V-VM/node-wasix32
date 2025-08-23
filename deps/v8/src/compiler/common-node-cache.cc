@@ -21,7 +21,7 @@ Node** CommonNodeCache::FindHeapConstant(Handle<HeapObject> value) {
 }
 
 
-void CommonNodeCache::GetCachedNodes(ZoneVector<Node*>* nodes) {
+void CommonNodeCache::GetCachedNodes(::v8::base::Vector<Node*>* nodes) {
   int32_constants_.GetCachedNodes(nodes);
   int64_constants_.GetCachedNodes(nodes);
   tagged_index_constants_.GetCachedNodes(nodes);

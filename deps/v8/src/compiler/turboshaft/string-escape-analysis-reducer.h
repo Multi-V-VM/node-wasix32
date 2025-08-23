@@ -94,9 +94,9 @@ class StringEscapeAnalyzer {
   // {maybe_non_escaping_string_concats_}, which we revisit after having visited
   // the whole graph, and only after this revisit do we know for sure that
   // StringConcat that are not in {escaping_operations_} do not indeed escape.
-  ZoneVector<V<String>> maybe_non_escaping_string_concats_;
+  ::v8::base::Vector<V<String>> maybe_non_escaping_string_concats_;
 
-  ZoneVector<V<FrameState>> maybe_to_reconstruct_frame_states_;
+  ::v8::base::Vector<V<FrameState>> maybe_to_reconstruct_frame_states_;
 
   uint32_t max_frame_state_input_count_ = 0;
 };
@@ -232,12 +232,12 @@ class StringEscapeAnalysisReducer : public Next {
     }
 
    private:
-    explicit Deduplicator(const ZoneVector<ElidedStringPart>& string_ids)
+    explicit Deduplicator(const ::v8::base::Vector<ElidedStringPart>& string_ids)
         : string_ids_(string_ids) {}
 
     // TODO(dmercadier): consider using a linked list for {string_ids_} so that
     // we don't ever need to clone it.
-    ZoneVector<ElidedStringPart> string_ids_;
+    ::v8::base::Vector<ElidedStringPart> string_ids_;
 
     friend class i::Zone;  // For access to private constructor.
   };

@@ -25,9 +25,7 @@
 // Don't redefine these if v8config.h already defined them
 // V8_NOINLINE, V8_WARN_UNUSED_RESULT, V8_INLINE, V8_NODISCARD
 // are defined in v8config.h with proper attributes
-#ifndef NON_EXPORTED_BASE
-#define NON_EXPORTED_BASE(x) x
-#endif
+// NON_EXPORTED_BASE is already defined in compiler-specific.h
 #ifndef V8_PLATFORM_NON_EXPORTED_BASE
 #define V8_PLATFORM_NON_EXPORTED_BASE(x) \
  public                                  \

@@ -33,7 +33,7 @@ class SmallUnsignedOperand : public OperandBase {
   explicit SmallUnsignedOperand(uint32_t value) : OperandBase(value) {
     DCHECK_LE(value, base::kDataMask);
   }
-  void WriteVLQ(ZoneVector<uint8_t>* buffer) { buffer->push_back(value()); }
+  void WriteVLQ(::v8::base::Vector<uint8_t>* buffer) { buffer->push_back(value()); }
   bool IsSigned() const { return false; }
 };
 
@@ -44,7 +44,7 @@ class UnsignedOperand : public OperandBase {
     DCHECK_GE(value, 0);
   }
   explicit UnsignedOperand(uint32_t value) : OperandBase(value) {}
-  void WriteVLQ(ZoneVector<uint8_t>* buffer) {
+  void WriteVLQ(::v8::base::Vector<uint8_t>* buffer) {
     base::VLQEncodeUnsigned(
         [buffer](uint8_t value) { buffer->push_back(value); }, value());
   }
@@ -56,7 +56,7 @@ class SignedOperand : public OperandBase {
   explicit SignedOperand(int32_t value) : OperandBase(value) {}
   // Use UnsignedOperand for unsigned values.
   explicit SignedOperand(uint32_t value) = delete;
-  void WriteVLQ(ZoneVector<uint8_t>* buffer) {
+  void WriteVLQ(::v8::base::Vector<uint8_t>* buffer) {
     base::VLQEncode(
         [buffer](uint8_t value) {
           buffer->push_back(value);
@@ -212,7 +212,7 @@ FrameTranslationBuilder::ToFrameTranslation(LocalFactory* factory) {
     const int input_size = SizeInBytes();
     uLongf compressed_data_size = compressBound(input_size);
 
-    ZoneVector<uint8_t> compressed_data(compressed_data_size, zone());
+    ::v8::base::Vector<uint8_t> compressed_data(compressed_data_size, zone());
 
     CHECK_EQ(
         zlib_internal::CompressHelper(
@@ -249,10 +249,10 @@ FrameTranslationBuilder::ToFrameTranslation(LocalFactory* factory) {
   return result;
 }
 
-base::Vector<const uint8_t> FrameTranslationBuilder::ToFrameTranslationWasm() {
+Vector<const uint8_t> FrameTranslationBuilder::ToFrameTranslationWasm() {
   DCHECK(!v8_flags.turbo_compress_frame_translations);
   FinishPendingInstructionIfNeeded();
-  base::Vector<const uint8_t> result = base::VectorOf(contents_);
+  ::v8::base::Vector<const uint8_t> result = base::VectorOf(contents_);
 #ifdef ENABLE_SLOW_DCHECKS
   DeoptTranslationIterator iter(result, 0);
   ValidateBytes(iter);

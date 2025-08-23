@@ -218,7 +218,7 @@ class V8_EXPORT_PRIVATE Utf8 {
     size_t characters_processed;
   };
   template <typename Char>
-  static EncodingResult Encode(v8::base::Vector<const Char> string,
+  static EncodingResult Encode(::v8::base::Vector<const Char> string,
                                char* buffer, size_t capacity, bool write_null,
                                bool replace_invalid_utf8);
 };
@@ -238,7 +238,7 @@ class V8_EXPORT_PRIVATE Wtf8 {
   // additional constraint that surrogate pairs are not allowed.
   static bool ValidateEncoding(const uint8_t* str, size_t length);
 
-  static void ScanForSurrogates(v8::base::Vector<const uint8_t> wtf8,
+  static void ScanForSurrogates(::v8::base::Vector<const uint8_t> wtf8,
                                 std::vector<size_t>* surrogate_offsets);
 };
 #endif  // V8_ENABLE_WEBASSEMBLY

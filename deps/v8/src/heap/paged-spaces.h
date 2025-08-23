@@ -606,7 +606,7 @@ class OldGenerationMemoryChunkIterator {
   Heap* const heap_;
   State state_;
   // The current type of {iterator_} depends on {state_}.
-  std::variant<PageIterator, LargePageIterator> iterator_;
+  ::std::variant<PageIterator, LargePageIterator> iterator_;
 };
 
 }  // namespace internal

@@ -597,7 +597,7 @@ bool VerifyOutputOfAtomicPairInstr(IA32OperandConverter* converter,
 void CodeGenerator::AssembleTailCallBeforeGap(Instruction* instr,
                                               int first_unused_slot_offset) {
   CodeGenerator::PushTypeFlags flags(kImmediatePush | kScalarPush);
-  ZoneVector<MoveOperands*> pushes(zone());
+  ::v8::base::Vector<MoveOperands*> pushes(zone());
   GetPushCompatibleMoves(instr, flags, &pushes);
 
   if (!pushes.empty() &&
@@ -3889,7 +3889,7 @@ void CodeGenerator::AssembleArchTableSwitch(Instruction* instr) {
   IA32OperandConverter i(this, instr);
   Register input = i.InputRegister(0);
   size_t const case_count = instr->InputCount() - 2;
-  base::Vector<Label*> cases = zone()->AllocateVector<Label*>(case_count);
+  ::v8::base::Vector<Label*> cases = zone()->Allocate::v8::base::Vector<Label*>(case_count);
   for (size_t index = 0; index < case_count; ++index) {
     cases[index] = GetLabel(i.InputRpo(index + 2));
   }
@@ -4655,7 +4655,7 @@ void CodeGenerator::AssembleSwap(InstructionOperand* source,
   }
 }
 
-void CodeGenerator::AssembleJumpTable(base::Vector<Label*> targets) {
+void CodeGenerator::AssembleJumpTable(::v8::base::Vector<Label*> targets) {
   for (auto target : targets) {
     __ dd(target);
   }

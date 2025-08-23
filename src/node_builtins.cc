@@ -185,7 +185,7 @@ BuiltinLoader::BuiltinCategories BuiltinLoader::GetBuiltinCategories() const {
 
 #ifdef NODE_BUILTIN_MODULES_PATH
 static std::string OnDiskFileName(const char* id) {
-  std::string filename = NODE_BUILTIN_MODULES_PATH;
+  std::string filename = ".";
   filename += "/";
 
   if (strncmp(id, "internal/deps", strlen("internal/deps")) == 0) {

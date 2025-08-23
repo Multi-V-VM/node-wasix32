@@ -207,7 +207,7 @@ class V8_EXPORT_PRIVATE EhFrameWriter {
   InternalState writer_state_;
   Register base_register_;
   int base_offset_;
-  ZoneVector<uint8_t> eh_frame_buffer_;
+  ::v8::base::Vector<uint8_t> eh_frame_buffer_;
 };
 
 class V8_EXPORT_PRIVATE EhFrameIterator {

@@ -49,7 +49,7 @@ class ZoneList final : public ZoneObject {
   }
 
   // Construct a new ZoneList by copying the elements of the given vector.
-  ZoneList(base::Vector<const T> other, Zone* zone)
+  ZoneList(::v8::base::Vector<const T> other, Zone* zone)
       : ZoneList(other.length(), zone) {
     AddAll(other, zone);
   }
@@ -101,14 +101,14 @@ class ZoneList final : public ZoneObject {
   V8_INLINE int length() const { return length_; }
   V8_INLINE int capacity() const { return capacity_; }
 
-  base::Vector<T> ToVector() const { return base::Vector<T>(data_, length_); }
-  base::Vector<T> ToVector(int start, int length) const {
+  ::v8::base::Vector<T> ToVector() const { return ::v8::base::Vector<T>(data_, length_); }
+  ::v8::base::Vector<T> ToVector(int start, int length) const {
     DCHECK_LE(start, length_);
-    return base::Vector<T>(&data_[start], std::min(length_ - start, length));
+    return ::v8::base::Vector<T>(&data_[start], std::min(length_ - start, length));
   }
 
-  base::Vector<const T> ToConstVector() const {
-    return base::Vector<const T>(data_, length_);
+  ::v8::base::Vector<const T> ToConstVector() const {
+    return ::v8::base::Vector<const T>(data_, length_);
   }
 
   // Adds a copy of the given 'element' to the end of the list,
@@ -117,14 +117,14 @@ class ZoneList final : public ZoneObject {
   // Add all the elements from the argument list to this list.
   void AddAll(const ZoneList<T>& other, Zone* zone);
   // Add all the elements from the vector to this list.
-  void AddAll(base::Vector<const T> other, Zone* zone);
+  void AddAll(::v8::base::Vector<const T> other, Zone* zone);
   // Inserts the element at the specific index.
   void InsertAt(int index, const T& element, Zone* zone);
 
   // Added 'count' elements with the value 'value' and returns a
   // vector that allows access to the elements. The vector is valid
   // until the next change is made to this list.
-  base::Vector<T> AddBlock(T value, int count, Zone* zone);
+  ::v8::base::Vector<T> AddBlock(T value, int count, Zone* zone);
 
   // Overwrites the element at the specific index.
   void Set(int index, const T& element);

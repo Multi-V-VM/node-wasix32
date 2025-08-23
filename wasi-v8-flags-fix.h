@@ -5,8 +5,8 @@
 namespace v8 {
 namespace base {
 
-// Forward declare the template class
-template <typename EnumT, typename BitfieldT, typename BitfieldStorageT> class Flags;
+// Note: Flags template is already defined in wasi-v8-template-utils.h with one parameter
+// Don't redeclare it here
 
 } // namespace base
 } // namespace v8

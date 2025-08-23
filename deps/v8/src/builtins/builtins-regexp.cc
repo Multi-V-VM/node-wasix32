@@ -215,9 +215,9 @@ constexpr const uint8_t kAsciiEscapes[128]{
 
 template <typename CharT>
 MaybeDirectHandle<String> RegExpEscapeImpl(Isolate* isolate,
-                                           base::OwnedVector<CharT> source) {
+                                           base::Owned::v8::base::Vector<CharT> source) {
   char double_to_radix_chars[kDoubleToRadixMaxChars];
-  base::Vector<char> double_to_radix_buffer =
+  ::v8::base::Vector<char> double_to_radix_buffer =
       base::ArrayVector(double_to_radix_chars);
 
   // 2. Let escaped be the empty String.
@@ -365,7 +365,7 @@ BUILTIN(RegExpEscape) {
   // the escaped string using IncrementalStringBuilder, which may allocate.
   str = String::Flatten(isolate, str);
   if (str->IsOneByteRepresentation()) {
-    base::OwnedVector<const uint8_t> copy;
+    base::Owned::v8::base::Vector<const uint8_t> copy;
     {
       DisallowGarbageCollection no_gc;
       copy = base::OwnedCopyOf(str->GetFlatContent(no_gc).ToOneByteVector());
@@ -373,7 +373,7 @@ BUILTIN(RegExpEscape) {
     ASSIGN_RETURN_FAILURE_ON_EXCEPTION(
         isolate, escaped, RegExpEscapeImpl(isolate, std::move(copy)));
   } else {
-    base::OwnedVector<const base::uc16> copy;
+    base::Owned::v8::base::Vector<const base::uc16> copy;
     {
       DisallowGarbageCollection no_gc;
       copy = base::OwnedCopyOf(str->GetFlatContent(no_gc).ToUC16Vector());

@@ -1,3 +1,6 @@
+#ifdef __wasi__
+#define V8_TARGET_ARCH_WASM32 1
+#endif
 // Copyright 2013 the V8 project authors. All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without

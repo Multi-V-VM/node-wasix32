@@ -57,7 +57,7 @@ bool CanInlinePropertyAccess(MapRef map, AccessMode access_mode) {
 
 #ifdef DEBUG
 bool HasFieldRepresentationDependenciesOnMap(
-    ZoneVector<CompilationDependency const*>& dependencies,
+    ::v8::base::Vector<CompilationDependency const*>& dependencies,
     Handle<Map> const& field_owner_map) {
   for (auto dep : dependencies) {
     if (CompilationDependencies::IsFieldRepresentationDependencyOnMap(
@@ -88,7 +88,7 @@ std::ostream& operator<<(std::ostream& os, AccessMode access_mode) {
 }
 
 ElementAccessInfo::ElementAccessInfo(
-    ZoneVector<MapRef>&& lookup_start_object_maps, ElementsKind elements_kind,
+    ::v8::base::Vector<MapRef>&& lookup_start_object_maps, ElementsKind elements_kind,
     Zone* zone)
     : elements_kind_(elements_kind),
       lookup_start_object_maps_(lookup_start_object_maps),
@@ -110,7 +110,7 @@ PropertyAccessInfo PropertyAccessInfo::NotFound(Zone* zone, MapRef receiver_map,
 // static
 PropertyAccessInfo PropertyAccessInfo::DataField(
     JSHeapBroker* broker, Zone* zone, MapRef receiver_map,
-    ZoneVector<CompilationDependency const*>&& dependencies,
+    ::v8::base::Vector<CompilationDependency const*>&& dependencies,
     FieldIndex field_index, Representation field_representation,
     Type field_type, MapRef field_owner_map, OptionalMapRef field_map,
     OptionalJSObjectRef holder, OptionalMapRef transition_map) {
@@ -130,7 +130,7 @@ PropertyAccessInfo PropertyAccessInfo::DataField(
 // static
 PropertyAccessInfo PropertyAccessInfo::FastDataConstant(
     Zone* zone, MapRef receiver_map,
-    ZoneVector<CompilationDependency const*>&& dependencies,
+    ::v8::base::Vector<CompilationDependency const*>&& dependencies,
     FieldIndex field_index, Representation field_representation,
     Type field_type, MapRef field_owner_map, OptionalMapRef field_map,
     OptionalJSObjectRef holder, OptionalMapRef transition_map) {
@@ -207,7 +207,7 @@ PropertyAccessInfo::PropertyAccessInfo(Zone* zone)
 
 PropertyAccessInfo::PropertyAccessInfo(
     Zone* zone, Kind kind, OptionalJSObjectRef holder,
-    ZoneVector<MapRef>&& lookup_start_object_maps)
+    ::v8::base::Vector<MapRef>&& lookup_start_object_maps)
     : kind_(kind),
       lookup_start_object_maps_(lookup_start_object_maps),
       holder_(holder),
@@ -219,7 +219,7 @@ PropertyAccessInfo::PropertyAccessInfo(
 PropertyAccessInfo::PropertyAccessInfo(
     Zone* zone, Kind kind, OptionalJSObjectRef holder,
     OptionalObjectRef constant, OptionalJSObjectRef api_holder,
-    OptionalNameRef name, ZoneVector<MapRef>&& lookup_start_object_maps)
+    OptionalNameRef name, ::v8::base::Vector<MapRef>&& lookup_start_object_maps)
     : kind_(kind),
       lookup_start_object_maps_(lookup_start_object_maps),
       constant_(constant),
@@ -237,8 +237,8 @@ PropertyAccessInfo::PropertyAccessInfo(
     Kind kind, OptionalJSObjectRef holder, OptionalMapRef transition_map,
     FieldIndex field_index, Representation field_representation,
     Type field_type, MapRef field_owner_map, OptionalMapRef field_map,
-    ZoneVector<MapRef>&& lookup_start_object_maps,
-    ZoneVector<CompilationDependency const*>&& unrecorded_dependencies)
+    ::v8::base::Vector<MapRef>&& lookup_start_object_maps,
+    ::v8::base::Vector<CompilationDependency const*>&& unrecorded_dependencies)
     : kind_(kind),
       lookup_start_object_maps_(lookup_start_object_maps),
       holder_(holder),
@@ -256,7 +256,7 @@ PropertyAccessInfo::PropertyAccessInfo(
 
 PropertyAccessInfo::PropertyAccessInfo(
     Zone* zone, Kind kind, OptionalJSObjectRef holder,
-    ZoneVector<MapRef>&& lookup_start_object_maps,
+    ::v8::base::Vector<MapRef>&& lookup_start_object_maps,
     InternalIndex dictionary_index, NameRef name)
     : kind_(kind),
       lookup_start_object_maps_(lookup_start_object_maps),
@@ -277,7 +277,7 @@ bool OptionalRefEquals(OptionalRef<RefT> lhs, OptionalRef<RefT> rhs) {
 }
 
 template <class T>
-void AppendVector(ZoneVector<T>* dst, const ZoneVector<T>& src) {
+void AppendVector(::v8::base::Vector<T>* dst, const ::v8::base::Vector<T>& src) {
   dst->insert(dst->end(), src.begin(), src.end());
 }
 
@@ -392,7 +392,7 @@ std::optional<ElementAccessInfo> AccessInfoFactory::ComputeElementAccessInfo(
 
 bool AccessInfoFactory::ComputeElementAccessInfos(
     ElementAccessFeedback const& feedback,
-    ZoneVector<ElementAccessInfo>* access_infos) const {
+    ::v8::base::Vector<ElementAccessInfo>* access_infos) const {
   AccessMode access_mode = feedback.keyed_mode().access_mode();
   if (access_mode == AccessMode::kLoad || access_mode == AccessMode::kHas) {
     // For polymorphic loads of similar elements kinds (i.e. all tagged or all
@@ -450,7 +450,7 @@ PropertyAccessInfo AccessInfoFactory::ComputeDataFieldAccessInfo(
                                                     : Type::NonInternal();
   OptionalMapRef field_map;
 
-  ZoneVector<CompilationDependency const*> unrecorded_dependencies(zone());
+  ::v8::base::Vector<CompilationDependency const*> unrecorded_dependencies(zone());
 
   Handle<FieldType> descriptors_field_type =
       broker()->CanonicalPersistentHandle(
@@ -971,8 +971,8 @@ PropertyAccessInfo AccessInfoFactory::ComputePropertyAccessInfo(
 }
 
 PropertyAccessInfo AccessInfoFactory::FinalizePropertyAccessInfosAsOne(
-    ZoneVector<PropertyAccessInfo> access_infos, AccessMode access_mode) const {
-  ZoneVector<PropertyAccessInfo> merged_access_infos(zone());
+    ::v8::base::Vector<PropertyAccessInfo> access_infos, AccessMode access_mode) const {
+  ::v8::base::Vector<PropertyAccessInfo> merged_access_infos(zone());
   MergePropertyAccessInfos(access_infos, access_mode, &merged_access_infos);
   if (merged_access_infos.size() == 1) {
     PropertyAccessInfo& result = merged_access_infos.front();
@@ -993,8 +993,8 @@ void PropertyAccessInfo::RecordDependencies(
 }
 
 bool AccessInfoFactory::FinalizePropertyAccessInfos(
-    ZoneVector<PropertyAccessInfo> access_infos, AccessMode access_mode,
-    ZoneVector<PropertyAccessInfo>* result) const {
+    ::v8::base::Vector<PropertyAccessInfo> access_infos, AccessMode access_mode,
+    ::v8::base::Vector<PropertyAccessInfo>* result) const {
   if (access_infos.empty()) return false;
   MergePropertyAccessInfos(access_infos, access_mode, result);
   for (PropertyAccessInfo const& info : *result) {
@@ -1007,8 +1007,8 @@ bool AccessInfoFactory::FinalizePropertyAccessInfos(
 }
 
 void AccessInfoFactory::MergePropertyAccessInfos(
-    ZoneVector<PropertyAccessInfo> infos, AccessMode access_mode,
-    ZoneVector<PropertyAccessInfo>* result) const {
+    ::v8::base::Vector<PropertyAccessInfo> infos, AccessMode access_mode,
+    ::v8::base::Vector<PropertyAccessInfo>* result) const {
   DCHECK(result->empty());
   for (auto it = infos.begin(), end = infos.end(); it != end; ++it) {
     bool merged = false;
@@ -1060,7 +1060,7 @@ std::optional<ElementAccessInfo> AccessInfoFactory::ConsolidateElementLoad(
   InstanceType instance_type = first_map.instance_type();
   ElementsKind elements_kind = first_map.elements_kind();
 
-  ZoneVector<MapRef> maps(zone());
+  ::v8::base::Vector<MapRef> maps(zone());
   for (auto const& group : feedback.transition_groups()) {
     for (MapRef map : group) {
       if (map.instance_type() != instance_type ||
@@ -1173,7 +1173,7 @@ PropertyAccessInfo AccessInfoFactory::LookupTransition(
 
   DCHECK_EQ(transition_map, transition_map.FindFieldOwner(broker(), number));
 
-  ZoneVector<CompilationDependency const*> unrecorded_dependencies(zone());
+  ::v8::base::Vector<CompilationDependency const*> unrecorded_dependencies(zone());
   if (details_representation.IsSmi()) {
     field_type = Type::SignedSmall();
     unrecorded_dependencies.push_back(

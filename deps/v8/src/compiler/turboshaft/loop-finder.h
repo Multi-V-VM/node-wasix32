@@ -108,7 +108,7 @@ class V8_EXPORT_PRIVATE LoopFinder {
 
   // {queue_} is used in `VisitLoop`, but is declared as a class variable to
   // reuse memory.
-  ZoneVector<const Block*> queue_;
+  ::v8::base::Vector<const Block*> queue_;
 };
 
 }  // namespace v8::internal::compiler::turboshaft

@@ -73,14 +73,14 @@ class V8_EXPORT_PRIVATE SnapshotData : public SerializedData {
   explicit SnapshotData(const Serializer* serializer);
 
   // Used when consuming.
-  explicit SnapshotData(const base::Vector<const uint8_t> snapshot)
+  explicit SnapshotData(const ::v8::base::Vector<const uint8_t> snapshot)
       : SerializedData(const_cast<uint8_t*>(snapshot.begin()),
                        snapshot.length()) {}
 
-  virtual base::Vector<const uint8_t> Payload() const;
+  virtual ::v8::base::Vector<const uint8_t> Payload() const;
 
-  base::Vector<const uint8_t> RawData() const {
-    return base::Vector<const uint8_t>(data_, size_);
+  ::v8::base::Vector<const uint8_t> RawData() const {
+    return ::v8::base::Vector<const uint8_t>(data_, size_);
   }
 
  protected:

@@ -1,3 +1,6 @@
+#ifdef __wasi__
+#define V8_TARGET_ARCH_WASM32 1
+#endif
 // Copyright 2022 the V8 project authors. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
@@ -374,7 +377,7 @@ using index_type_for_t = typename IndexTypeFor<T>::type;
 inline bool SuppressUnusedWarning(bool b) { return b; }
 template <typename T>
 auto unwrap_unary_tuple(std::tuple<T>&& tpl) {
-  return std::get<0>(std::forward<std::tuple<T>>(tpl));
+  return ::std::get<0>(std::forward<std::tuple<T>>(tpl));
 }
 template <typename T1, typename T2, typename... Rest>
 auto unwrap_unary_tuple(std::tuple<T1, T2, Rest...>&& tpl) {
@@ -480,7 +483,7 @@ class LabelBase {
                                std::index_sequence<indices...>) {
 #ifdef DEBUG
     std::initializer_list<size_t> sizes{
-        std::get<indices>(data.recorded_values).size()...};
+        ::std::get<indices>(data.recorded_values).size()...};
     // There a -1 on the PredecessorCounts below, because we've emitted the
     // Goto/Branch before calling RecordValues (which we do because the
     // condition of the Goto might have been constant-folded, resulting in the
@@ -489,8 +492,8 @@ class LabelBase {
         sizes, static_cast<size_t>(data.block->PredecessorCount() - 1)));
     DCHECK_EQ(data.block->PredecessorCount() - 1, data.predecessors.size());
 #endif
-    (std::get<indices>(data.recorded_values)
-         .push_back(std::get<indices>(values)),
+    (::std::get<indices>(data.recorded_values)
+         .push_back(::std::get<indices>(values)),
      ...);
     data.predecessors.push_back(source);
   }
@@ -513,13 +516,13 @@ class LabelBase {
     DCHECK_LT(0, predecessor_count);
     // With 1 predecessor, we don't need any Phis.
     if (predecessor_count == 1) {
-      return values_t{std::get<indices>(data.recorded_values)[0]...};
+      return values_t{::std::get<indices>(data.recorded_values)[0]...};
     }
     DCHECK_LT(1, predecessor_count);
 
     // Construct Phis.
     return values_t{assembler.Phi(
-        base::VectorOf(std::get<indices>(data.recorded_values)))...};
+        base::VectorOf(::std::get<indices>(data.recorded_values)))...};
   }
 
   BlockData data_;
@@ -648,7 +651,7 @@ class LoopLabel : public LabelBase<true, Ts...> {
     // `Bind` returns a tuple with a `bool` as first entry that indicates
     // whether the block was bound. The rest of the tuple contains the phi
     // values. Check if this block was bound (aka is reachable).
-    if (std::get<0>(bind_result)) {
+    if (::std::get<0>(bind_result)) {
       // The block is bound.
       DCHECK_EQ(assembler.current_block(), this->super::block());
       // Now we build a jump from this block to the loop header.
@@ -679,7 +682,7 @@ class LoopLabel : public LabelBase<true, Ts...> {
 
     DCHECK_EQ(predecessor_count, 1);
     auto phis = typename super::values_t{assembler.PendingLoopPhi(
-        std::get<indices>(data.recorded_values)[0])...};
+        ::std::get<indices>(data.recorded_values)[0])...};
     return phis;
   }
 
@@ -695,17 +698,17 @@ class LoopLabel : public LabelBase<true, Ts...> {
   template <size_t I, typename A>
   void FixLoopPhi(A& assembler, const typename super::values_t& values) {
     if constexpr (I < std::tuple_size_v<typename super::values_t>) {
-      OpIndex phi_index = std::get<I>(*pending_loop_phis_);
+      OpIndex phi_index = ::std::get<I>(*pending_loop_phis_);
       PendingLoopPhiOp& pending_loop_phi =
           assembler.output_graph()
               .Get(phi_index)
               .template Cast<PendingLoopPhiOp>();
       DCHECK_EQ(pending_loop_phi.first(),
-                std::get<I>(loop_header_data_.recorded_values)[0]);
+                ::std::get<I>(loop_header_data_.recorded_values)[0]);
       assembler.output_graph().template Replace<PhiOp>(
           phi_index,
           base::VectorOf<OpIndex>(
-              {pending_loop_phi.first(), std::get<I>(values)}),
+              {pending_loop_phi.first(), ::std::get<I>(values)}),
           pending_loop_phi.rep);
       FixLoopPhi<I + 1>(assembler, values);
     }
@@ -1049,11 +1052,11 @@ inline ShadowyOpIndex MakeShadowy(V<T> value) {
   return ShadowyOpIndex{value};
 }
 inline ShadowyOpIndexVectorWrapper MakeShadowy(
-    base::Vector<const OpIndex> value) {
+    ::v8::base::Vector<const OpIndex> value) {
   return ShadowyOpIndexVectorWrapper{value};
 }
 template <typename T>
-inline ShadowyOpIndexVectorWrapper MakeShadowy(base::Vector<const V<T>> value) {
+inline ShadowyOpIndexVectorWrapper MakeShadowy(::v8::base::Vector<const V<T>> value) {
   return ShadowyOpIndexVectorWrapper{value};
 }
 }  // namespace detail
@@ -1135,7 +1138,7 @@ class GenericReducerBase : public ReducerBaseForwarder<Next> {
         input_phi.rep);
   }
 
-  OpIndex REDUCE(Phi)(base::Vector<const OpIndex> inputs,
+  OpIndex REDUCE(Phi)(::v8::base::Vector<const OpIndex> inputs,
                       RegisterRepresentation rep) {
     DCHECK(Asm().current_block()->IsMerge() &&
            inputs.size() == Asm().current_block()->Predecessors().size());
@@ -1201,7 +1204,7 @@ class GenericReducerBase : public ReducerBaseForwarder<Next> {
                      RegisterRepresentation::Tagged());
   }
 
-  V<None> REDUCE(Switch)(V<Word32> input, base::Vector<SwitchOp::Case> cases,
+  V<None> REDUCE(Switch)(V<Word32> input, ::v8::base::Vector<SwitchOp::Case> cases,
                          Block* default_case, BranchHint default_hint) {
 #ifdef DEBUG
     // Making sure that all cases and {default_case} are different. If we ever
@@ -1226,7 +1229,7 @@ class GenericReducerBase : public ReducerBaseForwarder<Next> {
 
   V<Any> REDUCE(Call)(V<CallTarget> callee,
                       OptionalV<turboshaft::FrameState> frame_state,
-                      base::Vector<const OpIndex> arguments,
+                      ::v8::base::Vector<const OpIndex> arguments,
                       const TSCallDescriptor* descriptor, OpEffects effects) {
     V<Any> raw_call =
         Base::ReduceCall(callee, frame_state, arguments, descriptor, effects);
@@ -1245,9 +1248,9 @@ class GenericReducerBase : public ReducerBaseForwarder<Next> {
 
   OpIndex REDUCE(FastApiCall)(
       V<FrameState> frame_state, V<Object> data_argument, V<Context> context,
-      base::Vector<const OpIndex> arguments,
+      ::v8::base::Vector<const OpIndex> arguments,
       const FastApiCallParameters* parameters,
-      base::Vector<const RegisterRepresentation> out_reps) {
+      ::v8::base::Vector<const RegisterRepresentation> out_reps) {
     OpIndex raw_call = Base::ReduceFastApiCall(
         frame_state, data_argument, context, arguments, parameters, out_reps);
     bool has_catch_block = CatchIfInCatchScope(raw_call);
@@ -1314,7 +1317,7 @@ auto BuildResultTupleImpl(bool bound, Iterable&& iterable,
   return std::make_tuple(bound, std::forward<Iterable>(iterable),
                          std::forward<LoopLabel>(loop_header),
                          std::move(loop_exit), current_iterator,
-                         std::get<Indices>(current_values)...);
+                         ::std::get<Indices>(current_values)...);
 }
 
 template <typename LoopLabel, typename Iterable, typename Iterator,
@@ -3291,7 +3294,7 @@ class TurboshaftAssemblerOpInterface
                   V<std::common_type_t<T, U>>::rep, hint,
                   SelectOp::Implementation::kBranch);
   }
-  void Switch(V<Word32> input, base::Vector<SwitchOp::Case> cases,
+  void Switch(V<Word32> input, ::v8::base::Vector<SwitchOp::Case> cases,
               Block* default_case,
               BranchHint default_hint = BranchHint::kNone) {
     ReduceIfReachableSwitch(input, cases, default_case, default_hint);
@@ -3322,7 +3325,7 @@ class TurboshaftAssemblerOpInterface
     return Parameter(index, V<T>::rep, debug_name);
   }
   V<Object> OsrValue(int index) { return ReduceIfReachableOsrValue(index); }
-  void Return(V<Word32> pop_count, base::Vector<const OpIndex> return_values,
+  void Return(V<Word32> pop_count, ::v8::base::Vector<const OpIndex> return_values,
               bool spill_caller_frame_slots = false) {
     ReduceIfReachableReturn(pop_count, return_values, spill_caller_frame_slots);
   }
@@ -3332,7 +3335,7 @@ class TurboshaftAssemblerOpInterface
 
   template <typename R = AnyOrNone>
   V<R> Call(V<CallTarget> callee, OptionalV<turboshaft::FrameState> frame_state,
-            base::Vector<const OpIndex> arguments,
+            ::v8::base::Vector<const OpIndex> arguments,
             const TSCallDescriptor* descriptor,
             OpEffects effects = OpEffects().CanCallAnything()) {
     return ReduceIfReachableCall(callee, frame_state, arguments, descriptor,
@@ -3510,7 +3513,7 @@ class TurboshaftAssemblerOpInterface
 
   V<Any> CallBuiltinImpl(Isolate* isolate, Builtin builtin,
                          OptionalV<turboshaft::FrameState> frame_state,
-                         base::Vector<const OpIndex> arguments,
+                         ::v8::base::Vector<const OpIndex> arguments,
                          const TSCallDescriptor* desc, OpEffects effects) {
     Callable callable = Builtins::CallableFor(isolate, builtin);
     return Call(HeapConstant(callable.code()), frame_state, arguments, desc,
@@ -3740,7 +3743,7 @@ class TurboshaftAssemblerOpInterface
                                         Builtin builtin,
                                         V<turboshaft::FrameState> frame_state,
                                         int num_stack_args,
-                                        base::Vector<OpIndex> arguments,
+                                        ::v8::base::Vector<OpIndex> arguments,
                                         LazyDeoptOnThrow lazy_deopt_on_throw) {
     Callable callable = Builtins::CallableFor(isolate, builtin);
     const CallInterfaceDescriptor& descriptor = callable.descriptor();
@@ -3759,7 +3762,7 @@ class TurboshaftAssemblerOpInterface
                                        V<turboshaft::FrameState> frame_state,
                                        V<Context> context, V<Object> function,
                                        int num_args_no_spread, V<Object> spread,
-                                       base::Vector<V<Object>> args_no_spread,
+                                       ::v8::base::Vector<V<Object>> args_no_spread,
                                        LazyDeoptOnThrow lazy_deopt_on_throw) {
     base::SmallVector<OpIndex, 16> arguments;
     arguments.push_back(function);
@@ -3794,7 +3797,7 @@ class TurboshaftAssemblerOpInterface
       Isolate* isolate, Zone* graph_zone, Builtin builtin,
       V<turboshaft::FrameState> frame_state, V<Context> context,
       V<JSFunction> function, int num_args, int start_index,
-      base::Vector<V<Object>> args, LazyDeoptOnThrow lazy_deopt_on_throw) {
+      ::v8::base::Vector<V<Object>> args, LazyDeoptOnThrow lazy_deopt_on_throw) {
     DCHECK(builtin == Builtin::kCallFunctionForwardVarargs ||
            builtin == Builtin::kCallForwardVarargs);
     base::SmallVector<OpIndex, 16> arguments;
@@ -4028,12 +4031,12 @@ class TurboshaftAssemblerOpInterface
         {object, prototype});
   }
 
-  void TailCall(V<CallTarget> callee, base::Vector<const OpIndex> arguments,
+  void TailCall(V<CallTarget> callee, ::v8::base::Vector<const OpIndex> arguments,
                 const TSCallDescriptor* descriptor) {
     ReduceIfReachableTailCall(callee, arguments, descriptor);
   }
 
-  V<turboshaft::FrameState> FrameState(base::Vector<const OpIndex> inputs,
+  V<turboshaft::FrameState> FrameState(::v8::base::Vector<const OpIndex> inputs,
                                        bool inlined,
                                        const FrameStateData* data) {
     return ReduceIfReachableFrameState(inputs, inlined, data);
@@ -4112,7 +4115,7 @@ class TurboshaftAssemblerOpInterface
     ReduceIfReachableStaticAssert(condition, source);
   }
 
-  OpIndex Phi(base::Vector<const OpIndex> inputs, RegisterRepresentation rep) {
+  OpIndex Phi(::v8::base::Vector<const OpIndex> inputs, RegisterRepresentation rep) {
     return ReduceIfReachablePhi(inputs, rep);
   }
   OpIndex Phi(std::initializer_list<OpIndex> inputs,
@@ -4120,7 +4123,7 @@ class TurboshaftAssemblerOpInterface
     return Phi(base::VectorOf(inputs), rep);
   }
   template <typename T>
-  V<T> Phi(const base::Vector<V<T>>& inputs) {
+  V<T> Phi(const ::v8::base::Vector<V<T>>& inputs) {
     if (V8_UNLIKELY(Asm().generating_unreachable_operations())) {
       return OpIndex::Invalid();
     }
@@ -4137,7 +4140,7 @@ class TurboshaftAssemblerOpInterface
     return PendingLoopPhi(first, V<T>::rep);
   }
 
-  V<Any> Tuple(base::Vector<const V<Any>> indices) {
+  V<Any> Tuple(::v8::base::Vector<const V<Any>> indices) {
     return ReduceIfReachableTuple(indices);
   }
   V<Any> Tuple(std::initializer_list<V<Any>> indices) {
@@ -4379,7 +4382,7 @@ class TurboshaftAssemblerOpInterface
   }
 
   OpIndex CallBuiltin(Builtin builtin, V<turboshaft::FrameState> frame_state,
-                      base::Vector<OpIndex> arguments, CanThrow can_throw,
+                      ::v8::base::Vector<OpIndex> arguments, CanThrow can_throw,
                       Isolate* isolate) {
     if (V8_UNLIKELY(Asm().generating_unreachable_operations())) {
       return OpIndex::Invalid();
@@ -4439,8 +4442,8 @@ class TurboshaftAssemblerOpInterface
     // We use 256 characters as a buffer size. This can be increased if
     // necessary.
     static constexpr size_t kMaxAssertCommentLength = 256;
-    base::Vector<char> buffer =
-        Asm().data()->compilation_zone()->template AllocateVector<char>(
+    ::v8::base::Vector<char> buffer =
+        Asm().data()->compilation_zone()->template Allocate::v8::base::Vector<char>(
             kMaxAssertCommentLength);
     int result = base::SNPrintF(buffer, "Assert: %s    [%s:%d]",
                                 condition_string, file, line);
@@ -4727,9 +4730,9 @@ class TurboshaftAssemblerOpInterface
 
   OpIndex FastApiCall(V<turboshaft::FrameState> frame_state,
                       V<Object> data_argument, V<Context> context,
-                      base::Vector<const OpIndex> arguments,
+                      ::v8::base::Vector<const OpIndex> arguments,
                       const FastApiCallParameters* parameters,
-                      base::Vector<const RegisterRepresentation> out_reps) {
+                      ::v8::base::Vector<const RegisterRepresentation> out_reps) {
     return ReduceIfReachableFastApiCall(frame_state, data_argument, context,
                                         arguments, parameters, out_reps);
   }

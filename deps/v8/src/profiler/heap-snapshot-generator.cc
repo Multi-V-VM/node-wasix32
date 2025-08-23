@@ -342,7 +342,7 @@ void HeapEntry::Print(const char* prefix, const char* edge_name, int max_depth,
   for (auto i = children_begin(); i != children_end(); ++i) {
     HeapGraphEdge& edge = **i;
     const char* edge_prefix = "";
-    base::EmbeddedVector<char, 64> index;
+    base::Embedded::v8::base::Vector<char, 64> index;
     edge_name = index.begin();
     switch (edge.type()) {
       case HeapGraphEdge::kContextVariable:
@@ -2055,7 +2055,7 @@ void V8HeapExplorer::ExtractNumberReference(HeapEntry* entry,
 
   // Must be large enough to fit any double, int, or size_t.
   char arr[32];
-  base::Vector<char> buffer = base::ArrayVector(arr);
+  ::v8::base::Vector<char> buffer = base::ArrayVector(arr);
 
   std::string_view string;
   if (IsSmi(number)) {
@@ -3694,7 +3694,7 @@ void HeapSnapshotJSONSerializer::SerializeString(const unsigned char* s) {
 }
 
 void HeapSnapshotJSONSerializer::SerializeStrings() {
-  base::ScopedVector<const unsigned char*> sorted_strings(strings_.occupancy() +
+  base::Scoped::v8::base::Vector<const unsigned char*> sorted_strings(strings_.occupancy() +
                                                           1);
   for (base::HashMap::Entry* entry = strings_.Start(); entry != nullptr;
        entry = strings_.Next(entry)) {

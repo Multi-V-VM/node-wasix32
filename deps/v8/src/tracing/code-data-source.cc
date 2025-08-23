@@ -248,7 +248,7 @@ uint64_t CodeDataSourceIncrementalState::InternWasmScript(
   script->set_script_id(script_id);
   script->set_url(url);
   if (log_script_sources()) {
-    base::Vector<const uint8_t> bytes_vec = native_module->wire_bytes();
+    ::v8::base::Vector<const uint8_t> bytes_vec = native_module->wire_bytes();
     script->set_wire_bytes(bytes_vec.begin(), bytes_vec.size());
     // TODO(carlscab): Log script source if needed.
   }

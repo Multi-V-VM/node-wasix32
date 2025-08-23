@@ -128,7 +128,7 @@ void LogFile::MessageBuilder::AppendString(Tagged<String> str,
   }
 }
 
-void LogFile::MessageBuilder::AppendString(base::Vector<const char> str) {
+void LogFile::MessageBuilder::AppendString(::v8::base::Vector<const char> str) {
   for (auto i = str.begin(); i < str.end(); i++) AppendCharacter(*i);
 }
 
@@ -223,7 +223,7 @@ void LogFile::MessageBuilder::AppendSymbolNameDetails(Tagged<String> str,
 
 int LogFile::MessageBuilder::FormatStringIntoBuffer(const char* format,
                                                     va_list args) {
-  base::Vector<char> buf(log_->format_buffer_.get(),
+  ::v8::base::Vector<char> buf(log_->format_buffer_.get(),
                          LogFile::kMessageBufferSize);
   int length = base::VSNPrintF(buf, format, args);
   // |length| is -1 if output was truncated.

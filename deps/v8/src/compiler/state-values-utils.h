@@ -75,7 +75,7 @@ class V8_EXPORT_PRIVATE StateValuesCache {
 
   JSGraph* js_graph_;
   CustomMatcherZoneHashMap hash_map_;
-  ZoneVector<WorkingBuffer> working_space_;  // One working space per level.
+  ::v8::base::Vector<WorkingBuffer> working_space_;  // One working space per level.
   Node* empty_state_values_;
 };
 

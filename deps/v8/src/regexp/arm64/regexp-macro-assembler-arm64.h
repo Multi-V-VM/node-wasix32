@@ -31,7 +31,7 @@ class V8_EXPORT_PRIVATE RegExpMacroAssemblerARM64
                               Label* on_equal) override;
   void CheckCharacterGT(base::uc16 limit, Label* on_greater) override;
   void CheckCharacterLT(base::uc16 limit, Label* on_less) override;
-  void CheckCharacters(base::Vector<const base::uc16> str, int cp_offset,
+  void CheckCharacters(::v8::base::Vector<const base::uc16> str, int cp_offset,
                        Label* on_failure, bool check_end_of_string);
   // A "greedy loop" is a loop that is both greedy and with a simple
   // body. It has a particularly simple implementation.

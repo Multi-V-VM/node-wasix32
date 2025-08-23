@@ -107,8 +107,8 @@ class ValueSerializer {
   void WriteVarint(T value);
   template <typename T>
   void WriteZigZag(T value);
-  void WriteOneByteString(base::Vector<const uint8_t> chars);
-  void WriteTwoByteString(base::Vector<const base::uc16> chars);
+  void WriteOneByteString(::v8::base::Vector<const uint8_t> chars);
+  void WriteTwoByteString(::v8::base::Vector<const base::uc16> chars);
   void WriteBigIntContents(Tagged<BigInt> bigint);
   Maybe<uint8_t*> ReserveRawBytes(size_t bytes);
 
@@ -202,7 +202,7 @@ class ValueSerializer {
  */
 class ValueDeserializer {
  public:
-  ValueDeserializer(Isolate* isolate, base::Vector<const uint8_t> data,
+  ValueDeserializer(Isolate* isolate, ::v8::base::Vector<const uint8_t> data,
                     v8::ValueDeserializer::Delegate* delegate);
   ValueDeserializer(Isolate* isolate, const uint8_t* data, size_t size);
   ~ValueDeserializer();
@@ -265,9 +265,9 @@ class ValueDeserializer {
   template <typename T>
   Maybe<T> ReadZigZag() V8_WARN_UNUSED_RESULT;
   Maybe<double> ReadDouble() V8_WARN_UNUSED_RESULT;
-  Maybe<base::Vector<const uint8_t>> ReadRawBytes(size_t size)
+  Maybe<::v8::base::Vector<const uint8_t>> ReadRawBytes(size_t size)
       V8_WARN_UNUSED_RESULT;
-  Maybe<base::Vector<const base::uc16>> ReadRawTwoBytes(size_t size)
+  Maybe<::v8::base::Vector<const base::uc16>> ReadRawTwoBytes(size_t size)
       V8_WARN_UNUSED_RESULT;
   MaybeDirectHandle<Object> ReadObject() V8_WARN_UNUSED_RESULT;
 

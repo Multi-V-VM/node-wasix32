@@ -168,7 +168,7 @@ class V8_EXPORT_PRIVATE PreparseDataBuilder : public ZoneObject,
       };
       // Once the data is finalized, it lives in a Zone, this implies
       // is_finalized_ == true.
-      base::Vector<uint8_t> zone_byte_data_;
+      ::v8::base::Vector<uint8_t> zone_byte_data_;
     };
     uint8_t free_quarters_in_last_byte_;
 
@@ -228,7 +228,7 @@ class V8_EXPORT_PRIVATE PreparseDataBuilder : public ZoneObject,
   ByteData byte_data_;
   union {
     ScopedPtrList<PreparseDataBuilder> children_buffer_;
-    base::Vector<PreparseDataBuilder*> children_;
+    ::v8::base::Vector<PreparseDataBuilder*> children_;
   };
 
   DeclarationScope* function_scope_;

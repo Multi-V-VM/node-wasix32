@@ -1,3 +1,6 @@
+#ifdef __wasi__
+#define V8_TARGET_ARCH_WASM32 1
+#endif
 // Copyright 2018 the V8 project authors. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
@@ -80,10 +83,10 @@ struct WasmCompilationResult {
   uint32_t frame_slot_count = 0;
   uint32_t ool_spill_count = 0;
   uint32_t tagged_parameter_slots = 0;
-  base::OwnedVector<uint8_t> source_positions;
-  base::OwnedVector<uint8_t> inlining_positions;
-  base::OwnedVector<uint8_t> protected_instructions_data;
-  base::OwnedVector<uint8_t> deopt_data;
+  base::Owned::v8::base::Vector<uint8_t> source_positions;
+  base::Owned::v8::base::Vector<uint8_t> inlining_positions;
+  base::Owned::v8::base::Vector<uint8_t> protected_instructions_data;
+  base::Owned::v8::base::Vector<uint8_t> deopt_data;
   std::unique_ptr<AssumptionsJournal> assumptions;
   std::unique_ptr<LiftoffFrameDescriptionForDeopt> liftoff_frame_descriptions;
   int func_index = kAnonymousFuncIndex;

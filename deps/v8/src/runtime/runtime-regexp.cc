@@ -161,7 +161,7 @@ class CompiledReplacement {
   };
 
   template <typename Char>
-  bool ParseReplacementPattern(base::Vector<Char> characters,
+  bool ParseReplacementPattern(::v8::base::Vector<Char> characters,
                                Tagged<FixedArray> capture_name_map,
                                int capture_count, int subject_length) {
     // Equivalent to String::GetSubstitution, except that this method converts
@@ -286,7 +286,7 @@ class CompiledReplacement {
                   ReplacementPart::ReplacementSubString(last, i));
             }
 
-            base::Vector<Char> requested_name =
+            ::v8::base::Vector<Char> requested_name =
                 characters.SubVector(name_start_index, closing_bracket_index);
 
             // If capture is undefined or does not exist, replace the text
@@ -435,7 +435,7 @@ void CompiledReplacement::Apply(ReplacementStringBuilder* builder,
   }
 }
 
-void FindOneByteStringIndices(base::Vector<const uint8_t> subject,
+void FindOneByteStringIndices(::v8::base::Vector<const uint8_t> subject,
                               uint8_t pattern, std::vector<int>* indices,
                               unsigned int limit) {
   DCHECK_LT(0, limit);
@@ -454,7 +454,7 @@ void FindOneByteStringIndices(base::Vector<const uint8_t> subject,
   }
 }
 
-void FindTwoByteStringIndices(const base::Vector<const base::uc16> subject,
+void FindTwoByteStringIndices(const ::v8::base::Vector<const base::uc16> subject,
                               base::uc16 pattern, std::vector<int>* indices,
                               unsigned int limit) {
   DCHECK_LT(0, limit);
@@ -471,8 +471,8 @@ void FindTwoByteStringIndices(const base::Vector<const base::uc16> subject,
 
 template <typename SubjectChar, typename PatternChar>
 void FindStringIndices(Isolate* isolate,
-                       base::Vector<const SubjectChar> subject,
-                       base::Vector<const PatternChar> pattern,
+                       ::v8::base::Vector<const SubjectChar> subject,
+                       ::v8::base::Vector<const PatternChar> pattern,
                        std::vector<int>* indices, unsigned int limit) {
   DCHECK_LT(0, limit);
   // Collect indices of pattern in subject.
@@ -499,10 +499,10 @@ void FindStringIndicesDispatch(Isolate* isolate, Tagged<String> subject,
     DCHECK(subject_content.IsFlat());
     DCHECK(pattern_content.IsFlat());
     if (subject_content.IsOneByte()) {
-      base::Vector<const uint8_t> subject_vector =
+      ::v8::base::Vector<const uint8_t> subject_vector =
           subject_content.ToOneByteVector();
       if (pattern_content.IsOneByte()) {
-        base::Vector<const uint8_t> pattern_vector =
+        ::v8::base::Vector<const uint8_t> pattern_vector =
             pattern_content.ToOneByteVector();
         if (pattern_vector.length() == 1) {
           FindOneByteStringIndices(subject_vector, pattern_vector[0], indices,
@@ -516,10 +516,10 @@ void FindStringIndicesDispatch(Isolate* isolate, Tagged<String> subject,
                           pattern_content.ToUC16Vector(), indices, limit);
       }
     } else {
-      base::Vector<const base::uc16> subject_vector =
+      ::v8::base::Vector<const base::uc16> subject_vector =
           subject_content.ToUC16Vector();
       if (pattern_content.IsOneByte()) {
-        base::Vector<const uint8_t> pattern_vector =
+        ::v8::base::Vector<const uint8_t> pattern_vector =
             pattern_content.ToOneByteVector();
         if (pattern_vector.length() == 1) {
           FindTwoByteStringIndices(subject_vector, pattern_vector[0], indices,
@@ -529,7 +529,7 @@ void FindStringIndicesDispatch(Isolate* isolate, Tagged<String> subject,
                             limit);
         }
       } else {
-        base::Vector<const base::uc16> pattern_vector =
+        ::v8::base::Vector<const base::uc16> pattern_vector =
             pattern_content.ToUC16Vector();
         if (pattern_vector.length() == 1) {
           FindTwoByteStringIndices(subject_vector, pattern_vector[0], indices,
@@ -1122,7 +1122,7 @@ class VectorBackedMatch : public String::Match {
  public:
   VectorBackedMatch(Isolate* isolate, DirectHandle<String> subject,
                     DirectHandle<String> match, uint32_t match_position,
-                    base::Vector<DirectHandle<Object>> captures,
+                    ::v8::base::Vector<DirectHandle<Object>> captures,
                     DirectHandle<Object> groups_obj)
       : isolate_(isolate),
         match_(match),
@@ -1198,7 +1198,7 @@ class VectorBackedMatch : public String::Match {
   DirectHandle<String> subject_;
   DirectHandle<String> match_;
   const uint32_t match_position_;
-  base::Vector<DirectHandle<Object>> captures_;
+  ::v8::base::Vector<DirectHandle<Object>> captures_;
 
   bool has_named_captures_;
   DirectHandle<JSReceiver> groups_obj_;
@@ -1660,7 +1660,7 @@ RUNTIME_FUNCTION(Runtime_StringReplaceNonGlobalRegExpWithFunction) {
     THROW_NEW_ERROR_RETURN_FAILURE(
         isolate, NewRangeError(MessageTemplate::kTooManyArguments));
   }
-  DirectHandleVector<Object> arguments(isolate, argc);
+  DirectHandle<::v8::base::Vector<Object> arguments(isolate, argc);
 
   int cursor = 0;
   for (int j = 0; j < m; j++) {
@@ -1883,7 +1883,7 @@ RUNTIME_FUNCTION(Runtime_RegExpSplit) {
 namespace {
 
 template <typename Char>
-inline bool IsContainFlagImpl(Isolate* isolate, base::Vector<const Char> flags,
+inline bool IsContainFlagImpl(Isolate* isolate, ::v8::base::Vector<const Char> flags,
                               const char* target,
                               DisallowGarbageCollection& no_gc) {
   StringSearch<uint8_t, Char> search(isolate, base::OneByteVector(target));
@@ -2082,7 +2082,7 @@ RUNTIME_FUNCTION(Runtime_RegExpReplaceRT) {
             isolate, NewRangeError(MessageTemplate::kTooManyArguments));
       }
 
-      DirectHandleVector<Object> call_args(isolate, argc);
+      DirectHandle<::v8::base::Vector<Object> call_args(isolate, argc);
 
       int cursor = 0;
       for (uint32_t j = 0; j < captures.size(); j++) {
@@ -2161,7 +2161,7 @@ namespace {
 
 template <typename SChar, typename PChar>
 inline void RegExpMatchGlobalAtom_OneCharPattern(
-    Isolate* isolate, base::Vector<const SChar> subject, const PChar pattern,
+    Isolate* isolate, ::v8::base::Vector<const SChar> subject, const PChar pattern,
     int start_index, int* number_of_matches, int* last_match_index,
     const DisallowGarbageCollection& no_gc) {
   for (int i = start_index; i < subject.length(); i++) {
@@ -2177,12 +2177,12 @@ inline void RegExpMatchGlobalAtom_OneCharPattern(
 // Unimplemented.
 template <>
 inline void RegExpMatchGlobalAtom_OneCharPattern(
-    Isolate* isolate, base::Vector<const uint8_t> subject,
+    Isolate* isolate, ::v8::base::Vector<const uint8_t> subject,
     const base::uc16 pattern, int start_index, int* number_of_matches,
     int* last_match_index, const DisallowGarbageCollection& no_gc) = delete;
 
 template <typename Char>
-inline int AdvanceStringIndex(base::Vector<const Char> subject, int index,
+inline int AdvanceStringIndex(::v8::base::Vector<const Char> subject, int index,
                               bool is_unicode) {
   // Taken from RegExpUtils::AdvanceStringIndex:
 
@@ -2203,8 +2203,8 @@ inline int AdvanceStringIndex(base::Vector<const Char> subject, int index,
 
 template <typename SChar, typename PChar>
 inline void RegExpMatchGlobalAtom_Generic(
-    Isolate* isolate, base::Vector<const SChar> subject,
-    base::Vector<const PChar> pattern, bool is_unicode, int start_index,
+    Isolate* isolate, ::v8::base::Vector<const SChar> subject,
+    ::v8::base::Vector<const PChar> pattern, bool is_unicode, int start_index,
     int* number_of_matches, int* last_match_index,
     const DisallowGarbageCollection& no_gc) {
   const int pattern_length = pattern.length();

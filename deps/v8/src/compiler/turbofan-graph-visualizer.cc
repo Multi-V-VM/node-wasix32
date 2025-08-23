@@ -1,3 +1,6 @@
+#ifdef __wasi__
+#define V8_TARGET_ARCH_WASM32 1
+#endif
 // Copyright 2013 the V8 project authors. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
@@ -247,7 +250,7 @@ void JsonPrintAllSourceWithPositions(std::ostream& os,
 void JsonPrintAllSourceWithPositionsWasm(
     std::ostream& os, const wasm::WasmModule* module,
     const wasm::WireBytesStorage* wire_bytes,
-    base::Vector<WasmInliningPosition> positions) {
+    ::v8::base::Vector<WasmInliningPosition> positions) {
   // Filter out duplicate sources. (A single wasm function might be inlined more
   // than once.)
   std::vector<int /*function id*/> sources;
@@ -271,7 +274,7 @@ void JsonPrintAllSourceWithPositionsWasm(
     const wasm::WasmFunction& fct = module->functions[function_id];
     os << '"' << i << "\": {\"sourceId\": " << i << ", \"functionName\": \""
        << fct.func_index << "\", \"sourceName\": \"\", \"sourceText\": \"";
-    base::Vector<const uint8_t> module_bytes{nullptr, 0};
+    ::v8::base::Vector<const uint8_t> module_bytes{nullptr, 0};
     std::optional<wasm::ModuleWireBytes> maybe_wire_bytes =
         wire_bytes->GetModuleBytes();
     if (maybe_wire_bytes) module_bytes = maybe_wire_bytes->module_bytes();
@@ -302,7 +305,7 @@ std::unique_ptr<char[]> GetVisualizerLogFileName(OptimizedCompilationInfo* info,
                                                  const char* optional_base_dir,
                                                  const char* phase,
                                                  const char* suffix) {
-  base::EmbeddedVector<char, 256> filename(0);
+  base::Embedded::v8::base::Vector<char, 256> filename(0);
   std::unique_ptr<char[]> debug_name = info->GetDebugName();
   const char* file_prefix = v8_flags.trace_turbo_file_prefix.value();
   int optimization_id = info->IsOptimizing() ? info->optimization_id() : 0;
@@ -321,7 +324,7 @@ std::unique_ptr<char[]> GetVisualizerLogFileName(OptimizedCompilationInfo* info,
   } else {
     SNPrintF(filename, "%s-none-%i", file_prefix, optimization_id);
   }
-  base::EmbeddedVector<char, 256> source_file(0);
+  base::Embedded::v8::base::Vector<char, 256> source_file(0);
   bool source_available = false;
   if (v8_flags.trace_file_names && info->has_shared_info() &&
       IsScript(info->shared_info()->script())) {
@@ -348,7 +351,7 @@ std::unique_ptr<char[]> GetVisualizerLogFileName(OptimizedCompilationInfo* info,
                '}');
 #endif  // V8_OS_WIN
 
-  base::EmbeddedVector<char, 256> base_dir;
+  base::Embedded::v8::base::Vector<char, 256> base_dir;
   if (optional_base_dir != nullptr) {
     SNPrintF(base_dir, "%s%c", optional_base_dir,
              base::OS::DirectorySeparator());
@@ -356,7 +359,7 @@ std::unique_ptr<char[]> GetVisualizerLogFileName(OptimizedCompilationInfo* info,
     base_dir[0] = '\0';
   }
 
-  base::EmbeddedVector<char, 256> full_filename;
+  base::Embedded::v8::base::Vector<char, 256> full_filename;
   if (phase == nullptr && !source_available) {
     SNPrintF(full_filename, "%s%s.%s", base_dir.begin(), filename.begin(),
              suffix);
@@ -934,7 +937,7 @@ std::ostream& operator<<(std::ostream& os, const AsRPO& ar) {
   // the node itself, if there are no cycles. Any cycles are broken
   // arbitrarily.
 
-  ZoneVector<uint8_t> state(ar.graph.NodeCount(), kUnvisited, &local_zone);
+  ::v8::base::Vector<uint8_t> state(ar.graph.NodeCount(), kUnvisited, &local_zone);
   ZoneStack<Node*> stack(&local_zone);
 
   stack.push(ar.graph.end());
@@ -1139,7 +1142,7 @@ std::ostream& operator<<(
 }
 
 void PrintTopLevelLiveRanges(std::ostream& os,
-                             const ZoneVector<TopLevelLiveRange*> ranges,
+                             const ::v8::base::Vector<TopLevelLiveRange*> ranges,
                              const InstructionSequence& code) {
   bool first = true;
   os << "{";

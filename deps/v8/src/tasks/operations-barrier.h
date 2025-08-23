@@ -105,7 +105,7 @@ class V8_EXPORT_PRIVATE OperationsBarrier {
   // Mutex and condition variable enabling concurrent register and removing, as
   // well as waiting for background tasks on {CancelAndWait}.
   base::Mutex mutex_;
-  base::ConditionVariable release_condition_;
+  ::v8::base::ConditionVariable release_condition_;
   bool cancelled_ = false;
   size_t operations_count_{0};
 };

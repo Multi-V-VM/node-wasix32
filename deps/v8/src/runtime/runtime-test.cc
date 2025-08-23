@@ -1113,7 +1113,7 @@ void call_as_function(const v8::FunctionCallbackInfo<v8::Value>& info) {
     target = result.As<Function>();
   }
   int argc = info.Length();
-  v8::LocalVector<v8::Value> args(isolate, argc);
+  v8::Local::v8::base::Vector<v8::Value> args(isolate, argc);
   for (int i = 0; i < argc; i++) {
     args[i] = info[i];
   }
@@ -1407,12 +1407,12 @@ RUNTIME_FUNCTION(Runtime_DebugPrintFloat) {
 
   if (!IsSmi(args[4]) || (Cast<Smi>(args[4]).value() == fileno(stderr))) {
     StderrStream os;
-    std::streamsize precision = os.precision();
+    streamsize precision = os.precision();
     os << std::setprecision(20) << base::bit_cast<double>(value) << std::endl;
     os.precision(precision);
   } else {
     StdoutStream os;
-    std::streamsize precision = os.precision();
+    streamsize precision = os.precision();
     os << std::setprecision(20) << base::bit_cast<double>(value) << std::endl;
     os.precision(precision);
   }

@@ -114,13 +114,13 @@ Reduction PairLoadStoreReducer::Reduce(Node* cur) {
   auto pairing = CanBePaired(prev, cur, mcgraph_->machine(), isolate_);
   if (!pairing) return Reduction();
 
-  if (std::get<int>(*pairing) > 0) {
+  if (::std::get<int>(*pairing) > 0) {
     prev->InsertInput(mcgraph_->zone(), 3, cur->InputAt(2));
   } else {
     NodeProperties::ReplaceValueInput(prev, cur->InputAt(1), 1);
     prev->InsertInput(mcgraph_->zone(), 2, cur->InputAt(2));
   }
-  NodeProperties::ChangeOp(prev, std::get<const Operator*>(*pairing));
+  NodeProperties::ChangeOp(prev, ::std::get<const Operator*>(*pairing));
   Replace(cur, prev);
   cur->Kill();
   return Reduction(prev);

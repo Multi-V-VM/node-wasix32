@@ -28,7 +28,7 @@ class V8_EXPORT_PRIVATE MemoryChunkConstants final : public AllStatic {
   static constexpr size_t kCodeRangeMetadataOffset =
       kTrustedSpaceMetadataOffset + kPagesInTrustedCage;
 
-  static constexpr size_t kMetadataPointerTableSizeLog2 = base::bits::BitWidth(
+  static constexpr size_t kMetadataPointerTableSizeLog2 = ::v8::base::bits::BitWidth(
       kPagesInMainCage + kPagesInCodeCage + kPagesInTrustedCage);
   static constexpr size_t kMetadataPointerTableSize =
       1 << kMetadataPointerTableSizeLog2;

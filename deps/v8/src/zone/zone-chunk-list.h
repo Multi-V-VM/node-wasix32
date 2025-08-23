@@ -459,7 +459,7 @@ ZoneChunkList<T> ZoneChunkList<T>::SplitAt(iterator split_begin) {
   uint32_t new_chunk_size =
       static_cast<uint32_t>(chunk_split_end - chunk_split_begin);
   uint32_t new_chunk_capacity = std::max(
-      kInitialChunkCapacity, base::bits::RoundUpToPowerOfTwo32(new_chunk_size));
+      kInitialChunkCapacity, ::v8::base::bits::RoundUpToPowerOfTwo32(new_chunk_size));
   CHECK_LE(new_chunk_size, new_chunk_capacity);
   Chunk* new_chunk = NewChunk(new_chunk_capacity);
   std::copy(chunk_split_begin, chunk_split_end, new_chunk->items());

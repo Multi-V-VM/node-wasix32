@@ -13,14 +13,8 @@
 #include <vector>
 
 // Constants for memory sizes
-#ifndef KB
-constexpr size_t KB = 1024;
-#endif
-#ifndef MB  
-constexpr size_t MB = 1024 * KB;
-#endif
 #ifndef GB
-constexpr size_t WASI_GB = 1024 * MB;
+constexpr size_t WASI_GB = 1024 * 1024 * 1024;
 #endif
 
 // Debug and utility macros for WASI
@@ -58,59 +52,12 @@ constexpr size_t WASI_GB = 1024 * MB;
 // Forward declarations  
 namespace v8 {
 namespace base {
-  // USE utility struct to avoid macro conflicts
-  struct Use {
-    template<typename T>
-    Use(const T&) {}
-  };
   
   // Atomic types for WASI
-  using Atomic32 = uint32_t;
+  using Atomic32 = int32_t;
   
-  template<typename T>
-  class AsAtomicPointerImpl {
-  public:
-    using Type = T;
-  };
   
-  // Mutex stub for WASI
-  class Mutex {
-  public:
-    Mutex() = default;
-    ~Mutex() = default;
-    void Lock() {}
-    void Unlock() {}
-  };
   
-  template<typename MutexType>
-  class LockGuard {
-  public:
-    explicit LockGuard(MutexType* mutex) : mutex_(mutex) {
-      if (mutex_) mutex_->Lock();
-    }
-    ~LockGuard() {
-      if (mutex_) mutex_->Unlock();
-    }
-  private:
-    MutexType* mutex_;
-  };
-  
-  using MutexGuard = LockGuard<Mutex>;
-  
-  namespace bits {
-    inline int64_t SignedSaturatedAdd64(int64_t a, int64_t b) {
-      return a + b;
-    }
-    inline int64_t SignedSaturatedSub64(int64_t a, int64_t b) {
-      return a - b;
-    }
-    inline int CountTrailingZerosNonZero(uint32_t value) {
-      return __builtin_ctz(value);
-    }
-    inline uint32_t RotateRight32(uint32_t value, int shift) {
-      return (value >> shift) | (value << (32 - shift));
-    }
-  }
 }
 
 // V8 internal namespace constants for WASI
@@ -147,7 +94,6 @@ namespace std {
 // ensure std namespace resolution works properly in WASI
 //   // Commented out to avoid conflicts
 #endif
-class Platform;
 class Isolate;
 
 // Task classes for V8
@@ -162,6 +108,9 @@ public:
   virtual ~IdleTask() = default;
   virtual void Run(double deadline_in_seconds) = 0;
 };
+
+// Forward declaration
+class JobDelegate;
 
 class JobTask {
 public:
@@ -407,12 +356,6 @@ class TracingController {
 }  // namespace tracing
 }  // namespace platform
 
-// ConvertableToTraceFormat 类型定义
-class ConvertableToTraceFormat {
- public:
-  virtual ~ConvertableToTraceFormat() = default;
-  virtual std::string ToString() const = 0;
-};
 
 }  // namespace v8
 

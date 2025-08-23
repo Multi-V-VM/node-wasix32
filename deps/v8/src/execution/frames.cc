@@ -1,3 +1,6 @@
+#ifdef __wasi__
+#define V8_TARGET_ARCH_WASM32 1
+#endif
 // Copyright 2012 the V8 project authors. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
@@ -1597,7 +1600,7 @@ void VisitSpillSlot(Isolate* isolate, RootVisitor* v,
 
 void VisitSpillSlots(Isolate* isolate, RootVisitor* v,
                      FullObjectSlot first_slot_offset,
-                     base::Vector<const uint8_t> tagged_slots) {
+                     ::v8::base::Vector<const uint8_t> tagged_slots) {
   FullObjectSlot slot_offset = first_slot_offset;
   for (uint8_t bits : tagged_slots) {
     while (bits) {
@@ -3401,7 +3404,7 @@ void WasmFrame::Print(StringStream* accumulator, PrintMode mode,
   accumulator->Add(is_wasm_to_js() ? "Wasm-to-JS [" : "Wasm [");
   accumulator->PrintName(script()->name());
   Address instruction_start = wasm_code()->instruction_start();
-  base::Vector<const uint8_t> raw_func_name =
+  ::v8::base::Vector<const uint8_t> raw_func_name =
       module_object()->GetRawFunctionName(function_index());
   const int kMaxPrintedFunctionName = 64;
   char func_name[kMaxPrintedFunctionName + 1];

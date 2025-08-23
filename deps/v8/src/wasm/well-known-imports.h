@@ -139,7 +139,7 @@ class WellKnownImportsList {
   }
 
   // Intended for deserialization. Does not check consistency with code.
-  void Initialize(base::Vector<const WellKnownImport> entries);
+  void Initialize(::v8::base::Vector<const WellKnownImport> entries);
 
   WellKnownImport get(int index) const {
     DCHECK_LT(index, size_);
@@ -149,7 +149,7 @@ class WellKnownImportsList {
   // Note: you probably want to be holding the associated NativeModule's
   // {allocation_lock_} when calling this method.
   V8_WARN_UNUSED_RESULT UpdateResult
-  Update(base::Vector<WellKnownImport> entries);
+  Update(::v8::base::Vector<WellKnownImport> entries);
 
  private:
   // Operations that need to ensure that they see a consistent view of

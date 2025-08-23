@@ -152,9 +152,9 @@ enum ConversionFlag {
 };
 
 // Converts a string into a double value according to ECMA-262 9.3.1
-double StringToDouble(base::Vector<const uint8_t> str, ConversionFlag flag,
+double StringToDouble(::v8::base::Vector<const uint8_t> str, ConversionFlag flag,
                       double empty_string_val = 0);
-double StringToDouble(base::Vector<const ::v8::base::uc16> str, ConversionFlag flag,
+double StringToDouble(::v8::base::Vector<const ::v8::base::uc16> str, ConversionFlag flag,
                       double empty_string_val = 0);
 // This version expects a zero-terminated character array.
 double V8_EXPORT_PRIVATE StringToDouble(const char* str, ConversionFlag flag,
@@ -162,21 +162,21 @@ double V8_EXPORT_PRIVATE StringToDouble(const char* str, ConversionFlag flag,
 
 // Converts a binary string (of the form `0b[0-1]*`) into a double value
 // according to https://tc39.es/ecma262/#sec-numericvalue
-double V8_EXPORT_PRIVATE BinaryStringToDouble(base::Vector<const uint8_t> str);
+double V8_EXPORT_PRIVATE BinaryStringToDouble(::v8::base::Vector<const uint8_t> str);
 
 // Converts an octal string (of the form `0o[0-8]*`) into a double value
 // according to https://tc39.es/ecma262/#sec-numericvalue
-double V8_EXPORT_PRIVATE OctalStringToDouble(base::Vector<const uint8_t> str);
+double V8_EXPORT_PRIVATE OctalStringToDouble(::v8::base::Vector<const uint8_t> str);
 
 // Converts a hex string (of the form `0x[0-9a-f]*`) into a double value
 // according to https://tc39.es/ecma262/#sec-numericvalue
-double V8_EXPORT_PRIVATE HexStringToDouble(base::Vector<const uint8_t> str);
+double V8_EXPORT_PRIVATE HexStringToDouble(::v8::base::Vector<const uint8_t> str);
 
 // Converts an implicit octal string (a.k.a. LegacyOctalIntegerLiteral, of the
 // form `0[0-7]*`) into a double value according to
 // https://tc39.es/ecma262/#sec-numericvalue
 double V8_EXPORT_PRIVATE
-ImplicitOctalStringToDouble(base::Vector<const uint8_t> str);
+ImplicitOctalStringToDouble(::v8::base::Vector<const uint8_t> str);
 
 double StringToInt(Isolate* isolate, DirectHandle<String> string, int radix);
 
@@ -202,24 +202,24 @@ constexpr int kDoubleToStringMinBufferSize = 100;
 // Note: The returned string_view is not necessarily pointing inside the
 // provided buffer.
 V8_EXPORT_PRIVATE std::string_view DoubleToStringView(
-    double value, base::Vector<char> buffer);
+    double value, ::v8::base::Vector<char> buffer);
 
 V8_EXPORT_PRIVATE std::unique_ptr<char[]> BigIntLiteralToDecimal(
-    LocalIsolate* isolate, base::Vector<const uint8_t> literal);
+    LocalIsolate* isolate, ::v8::base::Vector<const uint8_t> literal);
 // Convert an int to string value. The returned string is located inside the
 // buffer, but not necessarily at the start.
 V8_EXPORT_PRIVATE std::string_view IntToStringView(int n,
-                                                   base::Vector<char> buffer);
+                                                   ::v8::base::Vector<char> buffer);
 
 // Additional number to string conversions for the number type.
 std::string_view DoubleToFixedStringView(double value, int f,
-                                         base::Vector<char> buffer);
+                                         ::v8::base::Vector<char> buffer);
 std::string_view DoubleToExponentialStringView(double value, int f,
-                                               base::Vector<char> buffer);
+                                               ::v8::base::Vector<char> buffer);
 std::string_view DoubleToPrecisionStringView(double value, int f,
-                                             base::Vector<char> buffer);
+                                             ::v8::base::Vector<char> buffer);
 std::string_view DoubleToRadixStringView(double value, int radix,
-                                         base::Vector<char> buffer);
+                                         ::v8::base::Vector<char> buffer);
 
 static inline bool IsMinusZero(double value) {
   return bit_cast<int64_t>(value) == bit_cast<int64_t>(-0.0);

@@ -7,6 +7,11 @@
 
 #include "include/v8config.h"
 
+// Include WASI fixes first to ensure proper macro definitions
+#ifdef __wasi__
+#include "../../include/wasi/wasm32-arch-fix.h"
+#endif
+
 #if defined(__ARM_ARCH_7A__) || defined(__ARM_ARCH_7R__) || \
     defined(__ARM_ARCH_7__)
 #define CAN_USE_ARMV7_INSTRUCTIONS 1
@@ -49,10 +54,12 @@
 #define V8_HAS_PKU_JIT_WRITE_PROTECT 0
 #endif
 
+#ifndef V8_TARGET_ARCH_STORES_RETURN_ADDRESS_ON_STACK
 #if defined(V8_TARGET_ARCH_IA32) || defined(V8_TARGET_ARCH_X64)
 #define V8_TARGET_ARCH_STORES_RETURN_ADDRESS_ON_STACK true
 #else
 #define V8_TARGET_ARCH_STORES_RETURN_ADDRESS_ON_STACK false
+#endif
 #endif
 constexpr int kReturnAddressStackSlotCount =
     V8_TARGET_ARCH_STORES_RETURN_ADDRESS_ON_STACK ? 1 : 0;

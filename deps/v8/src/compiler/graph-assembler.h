@@ -661,14 +661,14 @@ class V8_EXPORT_PRIVATE GraphAssembler {
 
   // Inline reducers enable reductions to be performed to nodes as they are
   // added to the graph with the graph assembler.
-  ZoneVector<Reducer*> inline_reducers_;
+  ::v8::base::Vector<Reducer*> inline_reducers_;
   bool inline_reductions_blocked_;
 
   // Track loop information in order to properly mark loop exits with
   // {LoopExit,LoopExitEffect,LoopExitValue} nodes. The outermost level has
   // a nesting level of 0. See also GraphAssembler::LoopScope.
   int loop_nesting_level_ = 0;
-  ZoneVector<Node**> loop_headers_;
+  ::v8::base::Vector<Node**> loop_headers_;
 
   // Feature configuration. As more features are added, this should be turned
   // into a bitfield.

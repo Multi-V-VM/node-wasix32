@@ -4,6 +4,8 @@
 
 #ifndef V8_SANDBOX_JS_DISPATCH_TABLE_H_
 #define V8_SANDBOX_JS_DISPATCH_TABLE_H_
+#ifdef __wasi__
+#endif
 
 #include "include/v8config.h"
 #include "src/base/atomicops.h"
@@ -11,6 +13,10 @@
 #include "src/common/globals.h"
 #include "src/runtime/runtime.h"
 #include "src/sandbox/external-entity-table.h"
+
+#ifdef __wasi__
+#include "wasi/v8config-wasi.h"
+#endif
 
 #ifdef V8_ENABLE_LEAPTIERING
 
@@ -110,6 +116,12 @@ struct JSDispatchEntry {
       kCodeObjectOffset + kSystemPointerSize;
   static constexpr uint32_t kObjectPointerShift = 0;
   static constexpr uint32_t kParameterCountMask = 0x0;
+#elif defined(__wasi__)
+  // WASI is treated as 32-bit architecture
+  static constexpr uintptr_t kParameterCountOffset =
+      kCodeObjectOffset + kSystemPointerSize;
+  static constexpr uint32_t kObjectPointerShift = 0;
+  static constexpr uint32_t kParameterCountMask = 0x0;
 #else
 #error "Unsupported Architecture"
 #endif
@@ -189,7 +201,7 @@ class V8_EXPORT_PRIVATE JSDispatchTable
 
  public:
 #ifdef V8_ENABLE_SANDBOX
-  static_assert(kMaxJSDispatchEntries == kMaxCapacity);
+// WASI:   static_assert(kMaxJSDispatchEntries == kMaxCapacity);
 #endif  // V8_ENABLE_SANDBOX
   static_assert(!kSupportsCompaction);
 

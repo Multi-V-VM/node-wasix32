@@ -51,7 +51,7 @@ enum class WasmDetectedFeature {
 };
 
 // Set of enabled features. This only includes features that have a flag.
-class WasmEnabledFeatures : public base::EnumSet<WasmEnabledFeature> {
+class WasmEnabledFeatures : public ::v8::base::EnumSet<WasmEnabledFeature> {
  public:
   constexpr WasmEnabledFeatures() = default;
   explicit constexpr WasmEnabledFeatures(
@@ -84,13 +84,13 @@ class WasmEnabledFeatures : public base::EnumSet<WasmEnabledFeature> {
 
 // Set of detected features. This includes features that have a flag plus
 // features in FOREACH_WASM_NON_FLAG_FEATURE.
-class WasmDetectedFeatures : public base::EnumSet<WasmDetectedFeature> {
+class WasmDetectedFeatures : public ::v8::base::EnumSet<WasmDetectedFeature> {
  public:
   constexpr WasmDetectedFeatures() = default;
   // Construct from an enum set.
   // NOLINTNEXTLINE(runtime/explicit)
-  constexpr WasmDetectedFeatures(base::EnumSet<WasmDetectedFeature> features)
-      : base::EnumSet<WasmDetectedFeature>(features) {}
+  constexpr WasmDetectedFeatures(::v8::base::EnumSet<WasmDetectedFeature> features)
+      : ::v8::base::EnumSet<WasmDetectedFeature>(features) {}
 
   // Simplified getters and setters. Use {add_foo()} and {has_foo()} instead of
   // {Add(WasmDetectedFeature::foo)} or {contains(WasmDetectedFeature::foo)}.
@@ -144,7 +144,7 @@ inline std::ostream& operator<<(std::ostream& os, CompileTimeImport imp) {
   return os << static_cast<int>(imp);
 }
 
-using CompileTimeImportFlags = base::EnumSet<CompileTimeImport, int>;
+using CompileTimeImportFlags = ::v8::base::EnumSet<CompileTimeImport, int>;
 
 class CompileTimeImports {
  public:
@@ -163,7 +163,7 @@ class CompileTimeImports {
   }
   static CompileTimeImports FromSerialized(
       CompileTimeImportFlags::StorageType flags,
-      base::Vector<const char> constants_module) {
+      ::v8::base::Vector<const char> constants_module) {
     CompileTimeImports result;
     result.bits_ = CompileTimeImportFlags::FromIntegral(flags);
     result.constants_module_.assign(constants_module.begin(),
@@ -172,7 +172,7 @@ class CompileTimeImports {
   }
 
   bool empty() const { return bits_.empty(); }
-  bool has_string_constants(base::Vector<const uint8_t> name) const {
+  bool has_string_constants(::v8::base::Vector<const uint8_t> name) const {
     return bits_.contains(CompileTimeImport::kStringConstants) &&
            constants_module_.size() == name.size() &&
            std::equal(name.begin(), name.end(), constants_module_.begin());

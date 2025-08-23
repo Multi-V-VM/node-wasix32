@@ -54,7 +54,7 @@ size_t PersistentRegionBase::NodesInUse() const {
 #ifdef DEBUG
   const size_t accumulated_nodes_in_use_ = std::accumulate(
       nodes_.cbegin(), nodes_.cend(), 0u, [](size_t acc, const auto& slots) {
-        return acc + std::count_if(slots->cbegin(), slots->cend(),
+        return acc + ::std::count_if(slots->cbegin(), slots->cend(),
                                    [](const PersistentNode& node) {
                                      return node.IsUsed();
                                    });

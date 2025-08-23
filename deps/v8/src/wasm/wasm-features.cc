@@ -1,4 +1,7 @@
 // Copyright 2018 the V8 project authors. All rights reserved.
+#ifdef __wasi__
+#include "src/wasm/wasm-features-fix.h"
+#endif
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 

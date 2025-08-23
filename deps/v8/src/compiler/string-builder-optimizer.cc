@@ -357,7 +357,7 @@ bool StringBuilderOptimizer::BlockShouldFinalizeStringBuilders(
   return blocks_to_trimmings_map_[block->id().ToInt()].has_value();
 }
 
-ZoneVector<Node*> StringBuilderOptimizer::GetStringBuildersToFinalize(
+::v8::base::Vector<Node*> StringBuilderOptimizer::GetStringBuildersToFinalize(
     BasicBlock* block) {
   DCHECK(BlockShouldFinalizeStringBuilders(block));
   return blocks_to_trimmings_map_[block->id().ToInt()].value();
@@ -570,7 +570,7 @@ bool OpcodeIsAllowed(IrOpcode::Value op) {
 bool ValidControlFlowForStringBuilder(BasicBlock* sb_child_block,
                                       BasicBlock* other_child_block,
                                       BasicBlock* previous_block,
-                                      ZoneVector<BasicBlock*> loop_headers) {
+                                      ::v8::base::Vector<BasicBlock*> loop_headers) {
   if (loop_headers.empty()) return true;
   // Due to how we visit the graph, {sb_child_block} is the block that
   // VisitGraph is currently visiting, which means that it has to be in all the
@@ -1058,8 +1058,8 @@ void StringBuilderOptimizer::FinalizeStringBuilders() {
   // bit early, and we .clear() them at the beginning of each iteration (which
   // shouldn't free their memory), rather than allocating new memory for each
   // string builder.
-  ZoneVector<Node*> to_visit(temp_zone());
-  ZoneVector<Node*> ends(temp_zone());
+  ::v8::base::Vector<Node*> to_visit(temp_zone());
+  ::v8::base::Vector<Node*> ends(temp_zone());
 
   bool one_string_builder_or_more_valid = false;
   for (unsigned int string_builder_id = 0;
@@ -1164,7 +1164,7 @@ void StringBuilderOptimizer::FinalizeStringBuilders() {
           if (phi_block->LoopContains(block)) continue;
           if (!blocks_to_trimmings_map_[block->id().ToInt()].has_value()) {
             blocks_to_trimmings_map_[block->id().ToInt()] =
-                ZoneVector<Node*>(temp_zone());
+                ::v8::base::Vector<Node*>(temp_zone());
           }
           blocks_to_trimmings_map_[block->id().ToInt()]->push_back(end);
         }

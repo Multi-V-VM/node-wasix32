@@ -3069,7 +3069,7 @@ VisitResult ImplementationVisitor::GenerateCall(
       const Type* type = specialization_types[0];
       std::string size_string;
       if (std::optional<std::tuple<size_t, std::string>> size = SizeOf(type)) {
-        size_string = std::get<1>(*size);
+        size_string = ::std::get<1>(*size);
       } else {
         Error("size of ", *type, " is not known.");
       }
@@ -4047,7 +4047,7 @@ class ClassFieldOffsetGenerator : public FieldOffsetsGenerator {
     getter.PrintDeclaration(hdr_);
     getter.PrintDefinition(inl_, [&](std::ostream& stream) {
       // Item 1 in a flattened slice is the offset.
-      stream << "  return static_cast<int>(std::get<1>("
+      stream << "  return static_cast<int>(::std::get<1>("
              << Callable::PrefixNameForCCOutput(type_->GetSliceMacroName(f))
              << "(*static_cast<const D*>(this))));\n";
     });
@@ -4253,7 +4253,7 @@ void CppClassGenerator::GenerateClass() {
 
     const Field& last_field = type_->LastField();
     std::string last_field_item_size =
-        std::get<1>(*SizeOf(last_field.name_and_type.type));
+        ::std::get<1>(*SizeOf(last_field.name_and_type.type));
 
     // int AllocatedSize() const
     {
@@ -4266,9 +4266,9 @@ void CppClassGenerator::GenerateClass() {
                << Callable::PrefixNameForCCOutput(
                       type_->GetSliceMacroName(last_field))
                << "(*static_cast<const D*>(this));\n";
-        stream << "  return static_cast<int>(std::get<1>(slice)) + "
+        stream << "  return static_cast<int>(::std::get<1>(slice)) + "
                << last_field_item_size
-               << " * static_cast<int>(std::get<2>(slice));\n";
+               << " * static_cast<int>(::std::get<2>(slice));\n";
       });
     }
   } else if (type_->ShouldGenerateBodyDescriptor() ||
@@ -4292,7 +4292,7 @@ void CppClassGenerator::GenerateClass() {
           auto index_name_and_type =
               *ExtractSimpleFieldArraySize(*type_, field.index->expr);
           stream << "    size += " << index_name_and_type.name << " * "
-                 << std::get<0>(field.GetFieldSizeInformation()) << ";\n";
+                 << ::std::get<0>(field.GetFieldSizeInformation()) << ";\n";
         }
       }
       if (type_->size().Alignment() < TargetArchitecture::TaggedSize()) {
@@ -4485,7 +4485,7 @@ void GenerateBoundsDCheck(std::ostream& os, const std::string& index,
   } else {
     // The length is element 2 in the flattened field slice.
     length_expression =
-        "static_cast<int>(std::get<2>(" +
+        "static_cast<int>(::std::get<2>(" +
         Callable::PrefixNameForCCOutput(type->GetSliceMacroName(f)) +
         "(*static_cast<const D*>(this))))";
   }
@@ -4655,7 +4655,7 @@ void CppClassGenerator::EmitLoadFieldStatement(
   const Type* field_type = innermost_field.name_and_type.type;
   std::string type_name = GetTypeNameForAccessor(innermost_field);
   const std::string class_field_size =
-      std::get<1>(class_field.GetFieldSizeInformation());
+      ::std::get<1>(class_field.GetFieldSizeInformation());
 
   // field_offset contains both the offset from the beginning of the object to
   // the class field and the combined offsets of any nested struct fields
@@ -4727,7 +4727,7 @@ void CppClassGenerator::EmitStoreFieldStatement(
   const Type* field_type = innermost_field.name_and_type.type;
   std::string type_name = GetTypeNameForAccessor(innermost_field);
   const std::string class_field_size =
-      std::get<1>(class_field.GetFieldSizeInformation());
+      ::std::get<1>(class_field.GetFieldSizeInformation());
 
   // field_offset contains both the offset from the beginning of the object to
   // the class field and the combined offsets of any nested struct fields

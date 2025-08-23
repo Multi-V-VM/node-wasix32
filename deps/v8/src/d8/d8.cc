@@ -1897,7 +1897,7 @@ void PerIsolateData::RemoveUnhandledPromise(Local<Promise> promise) {
   DCHECK_EQ(promise->GetIsolate(), isolate_);
   for (auto it = unhandled_promises_.begin(); it != unhandled_promises_.end();
        ++it) {
-    v8::Local<v8::Promise> unhandled_promise = std::get<0>(*it).Get(isolate_);
+    v8::Local<v8::Promise> unhandled_promise = ::std::get<0>(*it).Get(isolate_);
     if (unhandled_promise == promise) {
       unhandled_promises_.erase(it--);
     }
@@ -1924,8 +1924,8 @@ int PerIsolateData::HandleUnhandledPromiseRejections() {
   size_t i = 0;
   for (; i < unhandled_promises_.size(); i++) {
     const auto& tuple = unhandled_promises_[i];
-    Local<v8::Message> message = std::get<1>(tuple).Get(isolate_);
-    Local<v8::Value> value = std::get<2>(tuple).Get(isolate_);
+    Local<v8::Message> message = ::std::get<1>(tuple).Get(isolate_);
+    Local<v8::Value> value = ::std::get<2>(tuple).Get(isolate_);
     Shell::ReportException(isolate_, message, value);
   }
   unhandled_promises_.clear();

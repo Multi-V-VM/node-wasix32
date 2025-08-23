@@ -1,3 +1,6 @@
+#ifdef __wasi__
+#define V8_TARGET_ARCH_WASM32 1
+#endif
 // Copyright 2021 the V8 project authors. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
@@ -854,42 +857,42 @@ inline std::ostream& operator<<(
   }
 }
 
-inline bool HasOnlyJSTypedArrayMaps(base::Vector<const compiler::MapRef> maps) {
+inline bool HasOnlyJSTypedArrayMaps(::v8::base::Vector<const compiler::MapRef> maps) {
   for (compiler::MapRef map : maps) {
     if (!map.IsJSTypedArrayMap()) return false;
   }
   return true;
 }
 
-inline bool HasOnlyJSArrayMaps(base::Vector<const compiler::MapRef> maps) {
+inline bool HasOnlyJSArrayMaps(::v8::base::Vector<const compiler::MapRef> maps) {
   for (compiler::MapRef map : maps) {
     if (!map.IsJSArrayMap()) return false;
   }
   return true;
 }
 
-inline bool HasOnlyJSObjectMaps(base::Vector<const compiler::MapRef> maps) {
+inline bool HasOnlyJSObjectMaps(::v8::base::Vector<const compiler::MapRef> maps) {
   for (compiler::MapRef map : maps) {
     if (!map.IsJSObjectMap()) return false;
   }
   return true;
 }
 
-inline bool HasOnlyStringMaps(base::Vector<const compiler::MapRef> maps) {
+inline bool HasOnlyStringMaps(::v8::base::Vector<const compiler::MapRef> maps) {
   for (compiler::MapRef map : maps) {
     if (!map.IsStringMap()) return false;
   }
   return true;
 }
 
-inline bool HasOnlyNumberMaps(base::Vector<const compiler::MapRef> maps) {
+inline bool HasOnlyNumberMaps(::v8::base::Vector<const compiler::MapRef> maps) {
   for (compiler::MapRef map : maps) {
     if (map.instance_type() != HEAP_NUMBER_TYPE) return false;
   }
   return true;
 }
 
-inline bool HasNumberMap(base::Vector<const compiler::MapRef> maps) {
+inline bool HasNumberMap(::v8::base::Vector<const compiler::MapRef> maps) {
   for (compiler::MapRef map : maps) {
     if (map.instance_type() == HEAP_NUMBER_TYPE) return true;
   }
@@ -1336,7 +1339,7 @@ class DeoptFrame {
     const MaglevCompilationUnit& unit;
     const BytecodeOffset bytecode_position;
     ValueNode* closure;
-    const base::Vector<ValueNode*> arguments;
+    const ::v8::base::Vector<ValueNode*> arguments;
   };
 
   struct ConstructInvokeStubFrameData {
@@ -1348,7 +1351,7 @@ class DeoptFrame {
 
   struct BuiltinContinuationFrameData {
     const Builtin builtin_id;
-    const base::Vector<ValueNode*> parameters;
+    const ::v8::base::Vector<ValueNode*> parameters;
     ValueNode* context;
     compiler::OptionalJSFunctionRef maybe_js_target;
   };
@@ -1444,7 +1447,7 @@ class InlinedArgumentsDeoptFrame : public DeoptFrame {
   InlinedArgumentsDeoptFrame(const MaglevCompilationUnit& unit,
                              BytecodeOffset bytecode_position,
                              ValueNode* closure,
-                             base::Vector<ValueNode*> arguments,
+                             ::v8::base::Vector<ValueNode*> arguments,
                              DeoptFrame* parent)
       : DeoptFrame(InlinedArgumentsFrameData{unit, bytecode_position, closure,
                                              arguments},
@@ -1454,7 +1457,7 @@ class InlinedArgumentsDeoptFrame : public DeoptFrame {
   BytecodeOffset bytecode_position() const { return data().bytecode_position; }
   ValueNode*& closure() { return data().closure; }
   ValueNode* closure() const { return data().closure; }
-  base::Vector<ValueNode*> arguments() const { return data().arguments; }
+  ::v8::base::Vector<ValueNode*> arguments() const { return data().arguments; }
 
  private:
   InlinedArgumentsFrameData& data() {
@@ -1521,7 +1524,7 @@ inline ConstructInvokeStubDeoptFrame& DeoptFrame::as_construct_stub() {
 class BuiltinContinuationDeoptFrame : public DeoptFrame {
  public:
   BuiltinContinuationDeoptFrame(Builtin builtin_id,
-                                base::Vector<ValueNode*> parameters,
+                                ::v8::base::Vector<ValueNode*> parameters,
                                 ValueNode* context,
                                 compiler::OptionalJSFunctionRef maybe_js_target,
                                 DeoptFrame* parent)
@@ -1530,7 +1533,7 @@ class BuiltinContinuationDeoptFrame : public DeoptFrame {
                    parent) {}
 
   const Builtin& builtin_id() const { return data().builtin_id; }
-  base::Vector<ValueNode*> parameters() const { return data().parameters; }
+  ::v8::base::Vector<ValueNode*> parameters() const { return data().parameters; }
   ValueNode*& context() { return data().context; }
   ValueNode* context() const { return data().context; }
   bool is_javascript() const { return data().maybe_js_target.has_value(); }
@@ -6510,7 +6513,7 @@ class CheckMaps : public FixedInputNodeT<1, CheckMaps> {
                      CheckType check_type)
       : Base(CheckTypeBitField::update(bitfield, check_type)), maps_(maps) {}
   explicit CheckMaps(uint64_t bitfield,
-                     base::Vector<const compiler::MapRef> maps,
+                     ::v8::base::Vector<const compiler::MapRef> maps,
                      CheckType check_type, Zone* zone)
       : Base(CheckTypeBitField::update(bitfield, check_type)),
         maps_(maps.begin(), maps.end(), zone) {}
@@ -6547,7 +6550,7 @@ class CheckMapsWithMigrationAndDeopt
                                           CheckType check_type)
       : Base(CheckTypeBitField::update(bitfield, check_type)), maps_(maps) {}
   explicit CheckMapsWithMigrationAndDeopt(
-      uint64_t bitfield, base::Vector<const compiler::MapRef> maps,
+      uint64_t bitfield, ::v8::base::Vector<const compiler::MapRef> maps,
       CheckType check_type, Zone* zone)
       : Base(CheckTypeBitField::update(bitfield, check_type)),
         maps_(maps.begin(), maps.end(), zone) {}
@@ -6587,7 +6590,7 @@ class CheckMapsWithAlreadyLoadedMap
                                          const compiler::ZoneRefSet<Map>& maps)
       : Base(bitfield), maps_(maps) {}
   explicit CheckMapsWithAlreadyLoadedMap(
-      uint64_t bitfield, base::Vector<const compiler::MapRef> maps, Zone* zone)
+      uint64_t bitfield, ::v8::base::Vector<const compiler::MapRef> maps, Zone* zone)
       : Base(bitfield), maps_(maps.begin(), maps.end(), zone) {}
 
   static constexpr OpProperties kProperties =
@@ -7579,37 +7582,37 @@ class PolymorphicAccessInfo {
   };
 
   static PolymorphicAccessInfo NotFound(
-      const ZoneVector<compiler::MapRef>& maps) {
+      const ::v8::base::Vector<compiler::MapRef>& maps) {
     return PolymorphicAccessInfo(kNotFound, maps, Representation::Tagged());
   }
   static PolymorphicAccessInfo Constant(
-      const ZoneVector<compiler::MapRef>& maps, compiler::ObjectRef constant) {
+      const ::v8::base::Vector<compiler::MapRef>& maps, compiler::ObjectRef constant) {
     return PolymorphicAccessInfo(kConstant, maps, Representation::Tagged(),
                                  constant);
   }
   static PolymorphicAccessInfo ConstantDouble(
-      const ZoneVector<compiler::MapRef>& maps, Float64 constant) {
+      const ::v8::base::Vector<compiler::MapRef>& maps, Float64 constant) {
     return PolymorphicAccessInfo(kConstantDouble, maps, constant);
   }
   static PolymorphicAccessInfo DataLoad(
-      const ZoneVector<compiler::MapRef>& maps, Representation representation,
+      const ::v8::base::Vector<compiler::MapRef>& maps, Representation representation,
       compiler::OptionalJSObjectRef holder, FieldIndex field_index) {
     return PolymorphicAccessInfo(kDataLoad, maps, representation, holder,
                                  field_index);
   }
   static PolymorphicAccessInfo ModuleExport(
-      const ZoneVector<compiler::MapRef>& maps, compiler::CellRef cell) {
+      const ::v8::base::Vector<compiler::MapRef>& maps, compiler::CellRef cell) {
     return PolymorphicAccessInfo(kModuleExport, maps, Representation::Tagged(),
                                  cell);
   }
   static PolymorphicAccessInfo StringLength(
-      const ZoneVector<compiler::MapRef>& maps) {
+      const ::v8::base::Vector<compiler::MapRef>& maps) {
     return PolymorphicAccessInfo(kStringLength, maps, Representation::Smi());
   }
 
   Kind kind() const { return kind_; }
 
-  const ZoneVector<compiler::MapRef>& maps() const { return maps_; }
+  const ::v8::base::Vector<compiler::MapRef>& maps() const { return maps_; }
 
   DirectHandle<Object> constant() const {
     DCHECK_EQ(kind_, kConstant);
@@ -7694,13 +7697,13 @@ class PolymorphicAccessInfo {
 
  private:
   explicit PolymorphicAccessInfo(Kind kind,
-                                 const ZoneVector<compiler::MapRef>& maps,
+                                 const ::v8::base::Vector<compiler::MapRef>& maps,
                                  Representation representation)
       : kind_(kind), maps_(maps), representation_(representation) {
     DCHECK(kind == kNotFound || kind == kStringLength);
   }
 
-  PolymorphicAccessInfo(Kind kind, const ZoneVector<compiler::MapRef>& maps,
+  PolymorphicAccessInfo(Kind kind, const ::v8::base::Vector<compiler::MapRef>& maps,
                         Representation representation,
                         compiler::ObjectRef constant)
       : kind_(kind),
@@ -7710,7 +7713,7 @@ class PolymorphicAccessInfo {
     DCHECK(kind == kConstant || kind == kModuleExport);
   }
 
-  PolymorphicAccessInfo(Kind kind, const ZoneVector<compiler::MapRef>& maps,
+  PolymorphicAccessInfo(Kind kind, const ::v8::base::Vector<compiler::MapRef>& maps,
                         Float64 constant)
       : kind_(kind),
         maps_(maps),
@@ -7719,7 +7722,7 @@ class PolymorphicAccessInfo {
     DCHECK_EQ(kind, kConstantDouble);
   }
 
-  PolymorphicAccessInfo(Kind kind, const ZoneVector<compiler::MapRef>& maps,
+  PolymorphicAccessInfo(Kind kind, const ::v8::base::Vector<compiler::MapRef>& maps,
                         Representation representation,
                         compiler::OptionalJSObjectRef holder,
                         FieldIndex field_index)
@@ -7732,7 +7735,7 @@ class PolymorphicAccessInfo {
 
   const Kind kind_;
   // TODO(victorgomes): Create a PolymorphicMapChecks and avoid the maps here.
-  const ZoneVector<compiler::MapRef> maps_;
+  const ::v8::base::Vector<compiler::MapRef> maps_;
   const Representation representation_;
   union {
     const compiler::ObjectRef constant_;
@@ -10724,7 +10727,7 @@ class TransitionElementsKind
 
  public:
   explicit TransitionElementsKind(
-      uint64_t bitfield, const ZoneVector<compiler::MapRef>& transition_sources,
+      uint64_t bitfield, const ::v8::base::Vector<compiler::MapRef>& transition_sources,
       compiler::MapRef transition_target)
       : Base(bitfield),
         transition_sources_(transition_sources),
@@ -10744,7 +10747,7 @@ class TransitionElementsKind
   void GenerateCode(MaglevAssembler*, const ProcessingState&);
   void PrintParams(std::ostream&, MaglevGraphLabeller*) const {}
 
-  const ZoneVector<compiler::MapRef>& transition_sources() const {
+  const ::v8::base::Vector<compiler::MapRef>& transition_sources() const {
     return transition_sources_;
   }
   const compiler::MapRef transition_target() const {
@@ -10752,7 +10755,7 @@ class TransitionElementsKind
   }
 
  private:
-  ZoneVector<compiler::MapRef> transition_sources_;
+  ::v8::base::Vector<compiler::MapRef> transition_sources_;
   const compiler::MapRef transition_target_;
 };
 
@@ -10762,7 +10765,7 @@ class TransitionElementsKindOrCheckMap
 
  public:
   explicit TransitionElementsKindOrCheckMap(
-      uint64_t bitfield, const ZoneVector<compiler::MapRef>& transition_sources,
+      uint64_t bitfield, const ::v8::base::Vector<compiler::MapRef>& transition_sources,
       compiler::MapRef transition_target)
       : Base(bitfield),
         transition_sources_(transition_sources),
@@ -10783,7 +10786,7 @@ class TransitionElementsKindOrCheckMap
   void GenerateCode(MaglevAssembler*, const ProcessingState&);
   void PrintParams(std::ostream&, MaglevGraphLabeller*) const;
 
-  const ZoneVector<compiler::MapRef>& transition_sources() const {
+  const ::v8::base::Vector<compiler::MapRef>& transition_sources() const {
     return transition_sources_;
   }
   const compiler::MapRef transition_target() const {
@@ -10791,7 +10794,7 @@ class TransitionElementsKindOrCheckMap
   }
 
  private:
-  ZoneVector<compiler::MapRef> transition_sources_;
+  ::v8::base::Vector<compiler::MapRef> transition_sources_;
   const compiler::MapRef transition_target_;
 };
 
@@ -10985,13 +10988,13 @@ class JumpLoop : public UnconditionalControlNodeT<JumpLoop> {
   void GenerateCode(MaglevAssembler*, const ProcessingState&);
   void PrintParams(std::ostream&, MaglevGraphLabeller*) const {}
 
-  base::Vector<Input> used_nodes() { return used_node_locations_; }
-  void set_used_nodes(base::Vector<Input> locations) {
+  ::v8::base::Vector<Input> used_nodes() { return used_node_locations_; }
+  void set_used_nodes(::v8::base::Vector<Input> locations) {
     used_node_locations_ = locations;
   }
 
  private:
-  base::Vector<Input> used_node_locations_;
+  ::v8::base::Vector<Input> used_node_locations_;
 };
 
 class Abort : public TerminalControlNodeT<0, Abort> {

@@ -3769,7 +3769,7 @@ void CodeGenerator::AssembleArchTableSwitch(Instruction* instr) {
   Register input = i.InputRegister64(0);
   size_t const case_count = instr->InputCount() - 2;
 
-  base::Vector<Label*> cases = zone()->AllocateVector<Label*>(case_count);
+  ::v8::base::Vector<Label*> cases = zone()->Allocate::v8::base::Vector<Label*>(case_count);
   for (size_t index = 0; index < case_count; ++index) {
     cases[index] = GetLabel(i.InputRpo(index + 2));
   }
@@ -3789,7 +3789,7 @@ void CodeGenerator::AssembleArchTableSwitch(Instruction* instr) {
   __ Br(addr);
 }
 
-void CodeGenerator::AssembleJumpTable(base::Vector<Label*> targets) {
+void CodeGenerator::AssembleJumpTable(::v8::base::Vector<Label*> targets) {
   const size_t jump_table_size = targets.size() * kInt32Size;
   MacroAssembler::BlockPoolsScope no_pool_inbetween(masm(), jump_table_size);
   int table_pos = __ pc_offset();

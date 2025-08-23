@@ -90,7 +90,7 @@ class PretenuringHandler final {
   // forwarding pointers.
   PretenuringFeedbackMap global_pretenuring_feedback_;
 
-  std::unique_ptr<GlobalHandleVector<AllocationSite>>
+  std::unique_ptr<GlobalHandle::v8::base::Vector<AllocationSite>>
       allocation_sites_to_pretenure_;
 };
 

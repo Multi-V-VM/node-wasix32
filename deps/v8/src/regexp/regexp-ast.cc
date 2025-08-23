@@ -263,7 +263,7 @@ void* RegExpUnparser::VisitAssertion(RegExpAssertion* that, void* data) {
 
 void* RegExpUnparser::VisitAtom(RegExpAtom* that, void* data) {
   os_ << "'";
-  base::Vector<const base::uc16> chardata = that->data();
+  ::v8::base::Vector<const base::uc16> chardata = that->data();
   for (int i = 0; i < chardata.length(); i++) {
     os_ << AsUC16(chardata[i]);
   }

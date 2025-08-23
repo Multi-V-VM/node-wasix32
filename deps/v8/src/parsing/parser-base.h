@@ -3542,7 +3542,7 @@ ParserBase<Impl>::ParseConditionalChainExpression(ExpressionT condition,
   ExpressionT expr = impl()->NullExpression();
   ExpressionT else_expression = impl()->NullExpression();
   bool else_found = false;
-  ZoneVector<int> else_ranges_beg_pos(impl()->zone());
+  ::v8::base::Vector<int> else_ranges_beg_pos(impl()->zone());
   do {
     SourceRange then_range;
     ExpressionT then_expression;

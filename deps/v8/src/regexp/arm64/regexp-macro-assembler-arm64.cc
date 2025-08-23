@@ -1,3 +1,6 @@
+#ifdef __wasi__
+#define V8_TARGET_ARCH_WASM32 1
+#endif
 // Copyright 2013 the V8 project authors. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
@@ -254,7 +257,7 @@ void RegExpMacroAssemblerARM64::CheckCharacterLT(base::uc16 limit,
 }
 
 void RegExpMacroAssemblerARM64::CheckCharacters(
-    base::Vector<const base::uc16> str, int cp_offset, Label* on_failure,
+    ::v8::base::Vector<const base::uc16> str, int cp_offset, Label* on_failure,
     bool check_end_of_string) {
   // This method is only ever called from the cctests.
 

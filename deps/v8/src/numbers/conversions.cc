@@ -46,7 +46,7 @@ class SimpleStringBuilder final {
   // buffer is allocated through NewArray<char> and must be
   // deallocated by the caller of Finalize().
   explicit SimpleStringBuilder(size_t size) {
-    buffer_ = base::Vector<char>::New(size);
+    buffer_ = ::v8::base::Vector<char>::New(size);
     cursor_ = buffer_.begin();
   }
 
@@ -140,7 +140,7 @@ class SimpleStringBuilder final {
   }
 
  private:
-  base::Vector<char> buffer_;
+  ::v8::base::Vector<char> buffer_;
   char* cursor_;
 
   bool is_finalized() const { return cursor_ == nullptr; }
@@ -346,18 +346,18 @@ class StringToIntHelper {
            String::IsOneByteRepresentationUnderneath(*subject_);
   }
 
-  base::Vector<const uint8_t> GetOneByteVector(
+  ::v8::base::Vector<const uint8_t> GetOneByteVector(
       const DisallowGarbageCollection& no_gc) {
     if (raw_one_byte_subject_ != nullptr) {
-      return base::Vector<const uint8_t>(raw_one_byte_subject_, length_);
+      return ::v8::base::Vector<const uint8_t>(raw_one_byte_subject_, length_);
     }
     return subject_->GetFlatContent(no_gc).ToOneByteVector();
   }
 
-  base::Vector<const base::uc16> GetTwoByteVector(
+  ::v8::base::Vector<const base::uc16> GetTwoByteVector(
       const DisallowGarbageCollection& no_gc) {
     if (raw_two_byte_subject_ != nullptr) {
-      return base::Vector<const base::uc16>(raw_two_byte_subject_, length_);
+      return ::v8::base::Vector<const base::uc16>(raw_two_byte_subject_, length_);
     }
     return subject_->GetFlatContent(no_gc).ToUC16Vector();
   }
@@ -390,12 +390,12 @@ class StringToIntHelper {
 void StringToIntHelper::ParseInt() {
   DisallowGarbageCollection no_gc;
   if (IsOneByte()) {
-    base::Vector<const uint8_t> vector = GetOneByteVector(no_gc);
+    ::v8::base::Vector<const uint8_t> vector = GetOneByteVector(no_gc);
     DetectRadixInternal(vector.begin(), vector.size());
     if (state_ != State::kRunning) return;
     ParseOneByte(vector.begin());
   } else {
-    base::Vector<const base::uc16> vector = GetTwoByteVector(no_gc);
+    ::v8::base::Vector<const base::uc16> vector = GetTwoByteVector(no_gc);
     DetectRadixInternal(vector.begin(), vector.size());
     if (state_ != State::kRunning) return;
     ParseTwoByte(vector.begin());
@@ -585,7 +585,7 @@ class NumberParseIntHelper : public StringToIntHelper {
 
     SLOW_DCHECK(buffer_pos < kBufferSize);
     buffer[buffer_pos] = '\0';
-    base::Vector<const char> buffer_vector(buffer, buffer_pos);
+    ::v8::base::Vector<const char> buffer_vector(buffer, buffer_pos);
     result_ = Strtod(buffer_vector, 0);
     set_state(State::kDone);
   }
@@ -767,37 +767,37 @@ double StringToDouble(const char* str, ConversionFlag flags,
   return StringToDouble(base::OneByteVector(str), flags, empty_string_val);
 }
 
-double StringToDouble(base::Vector<const uint8_t> str, ConversionFlag flags,
+double StringToDouble(::v8::base::Vector<const uint8_t> str, ConversionFlag flags,
                       double empty_string_val) {
   return InternalStringToDouble(str.begin(), str.end(), flags,
                                 empty_string_val);
 }
 
-double StringToDouble(base::Vector<const base::uc16> str, ConversionFlag flags,
+double StringToDouble(::v8::base::Vector<const base::uc16> str, ConversionFlag flags,
                       double empty_string_val) {
   return InternalStringToDouble(str.begin(), str.end(), flags,
                                 empty_string_val);
 }
 
-double BinaryStringToDouble(base::Vector<const uint8_t> str) {
+double BinaryStringToDouble(::v8::base::Vector<const uint8_t> str) {
   DCHECK_EQ(str[0], '0');
   DCHECK_EQ(tolower(str[1]), 'b');
   return InternalStringToIntDouble<1>(str.begin() + 2, str.end(), false, false);
 }
 
-double OctalStringToDouble(base::Vector<const uint8_t> str) {
+double OctalStringToDouble(::v8::base::Vector<const uint8_t> str) {
   DCHECK_EQ(str[0], '0');
   DCHECK_EQ(tolower(str[1]), 'o');
   return InternalStringToIntDouble<3>(str.begin() + 2, str.end(), false, false);
 }
 
-double HexStringToDouble(base::Vector<const uint8_t> str) {
+double HexStringToDouble(::v8::base::Vector<const uint8_t> str) {
   DCHECK_EQ(str[0], '0');
   DCHECK_EQ(tolower(str[1]), 'x');
   return InternalStringToIntDouble<4>(str.begin() + 2, str.end(), false, false);
 }
 
-double ImplicitOctalStringToDouble(base::Vector<const uint8_t> str) {
+double ImplicitOctalStringToDouble(::v8::base::Vector<const uint8_t> str) {
   return InternalStringToIntDouble<3>(str.begin(), str.end(), false, false);
 }
 
@@ -935,13 +935,13 @@ template EXPORT_TEMPLATE_DEFINE(V8_EXPORT_PRIVATE)
                                       const char* string);
 
 std::unique_ptr<char[]> BigIntLiteralToDecimal(
-    LocalIsolate* isolate, base::Vector<const uint8_t> literal) {
+    LocalIsolate* isolate, ::v8::base::Vector<const uint8_t> literal) {
   StringToBigIntHelper<LocalIsolate> helper(nullptr, literal.begin(),
                                             literal.size());
   return helper.DecimalString(isolate->bigint_processor());
 }
 
-std::string_view DoubleToStringView(double v, base::Vector<char> buffer) {
+std::string_view DoubleToStringView(double v, ::v8::base::Vector<char> buffer) {
   switch (FPCLASSIFY_NAMESPACE::fpclassify(v)) {
     case FP_NAN:
       return "NaN";
@@ -964,7 +964,7 @@ std::string_view DoubleToStringView(double v, base::Vector<char> buffer) {
 
       base::DoubleToAscii(
           v, base::DTOA_SHORTEST, 0,
-          base::Vector<char>(decimal_rep, kV8DtoaBufferCapacity), &sign,
+          ::v8::base::Vector<char>(decimal_rep, kV8DtoaBufferCapacity), &sign,
           &length, &decimal_point);
 
       if (sign) builder.AddCharacter('-');
@@ -1004,7 +1004,7 @@ std::string_view DoubleToStringView(double v, base::Vector<char> buffer) {
   }
 }
 
-std::string_view IntToStringView(int n, base::Vector<char> buffer) {
+std::string_view IntToStringView(int n, ::v8::base::Vector<char> buffer) {
   bool negative = true;
   if (n >= 0) {
     n = -n;
@@ -1022,7 +1022,7 @@ std::string_view IntToStringView(int n, base::Vector<char> buffer) {
 }
 
 std::string_view DoubleToFixedStringView(double value, int f,
-                                         base::Vector<char> buffer) {
+                                         ::v8::base::Vector<char> buffer) {
   const double kFirstNonFixed = 1e21;
   DCHECK_GE(f, 0);
   DCHECK_LE(f, kMaxFractionDigits);
@@ -1049,7 +1049,7 @@ std::string_view DoubleToFixedStringView(double value, int f,
   char decimal_rep[kDecimalRepCapacity];
   int decimal_rep_length;
   base::DoubleToAscii(value, base::DTOA_FIXED, f,
-                      base::Vector<char>(decimal_rep, kDecimalRepCapacity),
+                      ::v8::base::Vector<char>(decimal_rep, kDecimalRepCapacity),
                       &sign, &decimal_rep_length, &decimal_point);
 
   // Create a representation that is padded with zeros if needed.
@@ -1069,7 +1069,7 @@ std::string_view DoubleToFixedStringView(double value, int f,
   unsigned rep_length =
       zero_prefix_length + decimal_rep_length + zero_postfix_length;
   // TODO(pthier): Get rid of this intermediate string builder.
-  base::Vector<char> rep_buffer = base::Vector<char>::New(rep_length + 1);
+  ::v8::base::Vector<char> rep_buffer = ::v8::base::Vector<char>::New(rep_length + 1);
   SimpleStringBuilder rep_builder(rep_buffer.begin(), rep_buffer.size());
   rep_builder.AddPadding('0', zero_prefix_length);
   rep_builder.AddString(decimal_rep, decimal_rep_length);
@@ -1093,7 +1093,7 @@ std::string_view DoubleToFixedStringView(double value, int f,
 
 static std::string_view CreateExponentialRepresentation(
     char* decimal_rep, int rep_length, int exponent, bool negative,
-    int significant_digits, base::Vector<char> buffer) {
+    int significant_digits, ::v8::base::Vector<char> buffer) {
   bool negative_exponent = false;
   if (exponent < 0) {
     negative_exponent = true;
@@ -1119,7 +1119,7 @@ static std::string_view CreateExponentialRepresentation(
 }
 
 std::string_view DoubleToExponentialStringView(double value, int f,
-                                               base::Vector<char> buffer) {
+                                               ::v8::base::Vector<char> buffer) {
   // f might be -1 to signal that f was undefined in JavaScript.
   DCHECK(f >= -1 && f <= kMaxFractionDigits);
 
@@ -1144,12 +1144,12 @@ std::string_view DoubleToExponentialStringView(double value, int f,
 
   if (f == -1) {
     base::DoubleToAscii(value, base::DTOA_SHORTEST, 0,
-                        base::Vector<char>(decimal_rep, kV8DtoaBufferCapacity),
+                        ::v8::base::Vector<char>(decimal_rep, kV8DtoaBufferCapacity),
                         &sign, &decimal_rep_length, &decimal_point);
     f = decimal_rep_length - 1;
   } else {
     base::DoubleToAscii(value, base::DTOA_PRECISION, f + 1,
-                        base::Vector<char>(decimal_rep, kV8DtoaBufferCapacity),
+                        ::v8::base::Vector<char>(decimal_rep, kV8DtoaBufferCapacity),
                         &sign, &decimal_rep_length, &decimal_point);
   }
   DCHECK_GT(decimal_rep_length, 0);
@@ -1161,7 +1161,7 @@ std::string_view DoubleToExponentialStringView(double value, int f,
 }
 
 std::string_view DoubleToPrecisionStringView(double value, int p,
-                                             base::Vector<char> buffer) {
+                                             ::v8::base::Vector<char> buffer) {
   constexpr int kMinimalDigits = 1;
   DCHECK(p >= kMinimalDigits && p <= kMaxFractionDigits);
   USE(kMinimalDigits);
@@ -1181,7 +1181,7 @@ std::string_view DoubleToPrecisionStringView(double value, int p,
   int decimal_rep_length;
 
   base::DoubleToAscii(value, base::DTOA_PRECISION, p,
-                      base::Vector<char>(decimal_rep, kV8DtoaBufferCapacity),
+                      ::v8::base::Vector<char>(decimal_rep, kV8DtoaBufferCapacity),
                       &sign, &decimal_rep_length, &decimal_point);
   DCHECK(decimal_rep_length <= p);
 
@@ -1228,7 +1228,7 @@ std::string_view DoubleToPrecisionStringView(double value, int p,
 }
 
 std::string_view DoubleToRadixStringView(double value, int radix,
-                                         base::Vector<char> buffer) {
+                                         ::v8::base::Vector<char> buffer) {
   // We don't expect to see zero here (callers should handle it).
   DCHECK_NE(0.0, value);
 
@@ -1352,7 +1352,7 @@ std::optional<double> TryStringToDouble(LocalIsolate* isolate,
   auto buffer = std::make_unique<base::uc16[]>(max_length_for_conversion);
   SharedStringAccessGuardIfNeeded access_guard(isolate);
   String::WriteToFlat(*object, buffer.get(), 0, length, access_guard);
-  base::Vector<const base::uc16> v(buffer.get(), length);
+  ::v8::base::Vector<const base::uc16> v(buffer.get(), length);
   return StringToDouble(v, ALLOW_NON_DECIMAL_PREFIX);
 }
 
@@ -1433,12 +1433,12 @@ bool IsSpecialIndex(Tagged<String> string,
     }
   }
   // Slow path: test DoubleToString(StringToDouble(string)) == string.
-  base::Vector<const uint16_t> vector(buffer, length);
+  ::v8::base::Vector<const uint16_t> vector(buffer, length);
   double d = StringToDouble(vector, NO_CONVERSION_FLAG);
   if (std::isnan(d)) return false;
   // Compute reverse string.
   char reverse_buffer[kBufferSize + 1];  // Result will be /0 terminated.
-  base::Vector<char> reverse_vector(reverse_buffer, arraysize(reverse_buffer));
+  ::v8::base::Vector<char> reverse_vector(reverse_buffer, arraysize(reverse_buffer));
   std::string_view reverse_string = DoubleToStringView(d, reverse_vector);
 
   if (reverse_string.length() != length) return false;

@@ -995,3 +995,8 @@ static_assert(sizeof(unsigned) == sizeof(uint32_t),
 
 #define TQ_CPP_OBJECT_DEFINITION_ASSERTS(_class, parent) \
   template class TorqueGenerated##_class##Asserts<_class, parent>;
+
+#ifndef DEFINE_BIT_FIELDS
+#define DEFINE_BIT_FIELDS(BitField) \
+  enum { BitField };
+#endif

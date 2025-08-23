@@ -19,7 +19,34 @@
 #include "src/base/macros.h"
 #include "src/base/numerics/safe_conversions.h"
 #include "src/base/vector.h"
+#include "src/utils/vector-alias.h"
 #include "src/common/globals.h"
+
+#ifdef __wasi__
+// Ensure base types are available in WASI builds
+namespace v8 {
+namespace internal {
+// Don't create namespace conflicts in WASI - these are already defined
+// in wasi-v8-base-fixes.h and wasi-v8-namespace-fix.h
+// Just bring v8::base functions into v8::internal scope
+// using v8::base::Semaphore;  // Not available in WASI builds
+using v8::base::WriteUnalignedValue;
+using v8::base::ReadUnalignedValue;
+using v8::base::bit_cast;
+// For bits namespace, we need to use what's already defined in base
+namespace bits {
+  using namespace ::v8::base::bits;
+  // Additional using declarations for any v8::internal specific bits functions
+  // can be added here if needed
+}  // namespace bits
+}
+// Fix std namespace resolution for WASI
+namespace std {
+using ::std::is_enum_v;
+using ::std::is_pointer_v;
+}
+}
+#endif
 
 #if defined(V8_USE_SIPHASH)
 #include "third_party/siphash/halfsiphash.h"
@@ -52,6 +79,7 @@
 
 namespace v8 {
 namespace internal {
+
 
 // ----------------------------------------------------------------------------
 // General helper functions
@@ -467,7 +495,7 @@ V8_INLINE bool SimdMemEqual(const Char* lhs, const Char* rhs, size_t count) {
     return *lhs == *rhs;
   }
   const size_t order =
-      sizeof(count) * CHAR_BIT - base::bits::CountLeadingZeros(count - 1);
+      sizeof(count) * CHAR_BIT - ::v8::base::bits::CountLeadingZeros(static_cast<uint32_t>(count - 1));
   switch (order) {
     case 1:  // count: [2, 2]
       return *reinterpret_cast<const uint16_t*>(lhs) ==
@@ -829,8 +857,8 @@ inline Float16 FpOpWorkaround(Float16 input, Float16 value) {
 
 #endif
 
-V8_EXPORT_PRIVATE bool PassesFilter(base::Vector<const char> name,
-                                    base::Vector<const char> filter);
+V8_EXPORT_PRIVATE bool PassesFilter(::v8::base::Vector<const char> name,
+                                    ::v8::base::Vector<const char> filter);
 
 // Zap the specified area with a specific byte pattern. This currently defaults
 // to int3 on x64 and ia32. On other architectures this will produce unspecified

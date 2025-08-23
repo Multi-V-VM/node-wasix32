@@ -220,7 +220,7 @@ class PersistentValueMapBase {
   **/
   void Clear() {
     typedef typename Traits::Iterator It;
-    HandleScope handle_scope(isolate_);
+    v8::HandleScope handle_scope(isolate_);
     // TODO(dcarney): figure out if this swap and loop is necessary.
     while (!Traits::Empty(&impl_)) {
       typename Traits::Impl impl;

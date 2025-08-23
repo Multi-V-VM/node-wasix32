@@ -32,14 +32,14 @@ std::ostream& operator<<(std::ostream&, AccessMode);
 // This class encapsulates all information required to access a certain element.
 class ElementAccessInfo final {
  public:
-  ElementAccessInfo(ZoneVector<MapRef>&& lookup_start_object_maps,
+  ElementAccessInfo(::v8::base::Vector<MapRef>&& lookup_start_object_maps,
                     ElementsKind elements_kind, Zone* zone);
 
   ElementsKind elements_kind() const { return elements_kind_; }
-  ZoneVector<MapRef> const& lookup_start_object_maps() const {
+  ::v8::base::Vector<MapRef> const& lookup_start_object_maps() const {
     return lookup_start_object_maps_;
   }
-  ZoneVector<MapRef> const& transition_sources() const {
+  ::v8::base::Vector<MapRef> const& transition_sources() const {
     return transition_sources_;
   }
 
@@ -50,8 +50,8 @@ class ElementAccessInfo final {
 
  private:
   ElementsKind elements_kind_;
-  ZoneVector<MapRef> lookup_start_object_maps_;
-  ZoneVector<MapRef> transition_sources_;
+  ::v8::base::Vector<MapRef> lookup_start_object_maps_;
+  ::v8::base::Vector<MapRef> transition_sources_;
 };
 
 // This class encapsulates all information required to access a certain
@@ -76,13 +76,13 @@ class PropertyAccessInfo final {
                                      OptionalJSObjectRef holder);
   static PropertyAccessInfo DataField(
       JSHeapBroker* broker, Zone* zone, MapRef receiver_map,
-      ZoneVector<CompilationDependency const*>&& unrecorded_dependencies,
+      ::v8::base::Vector<CompilationDependency const*>&& unrecorded_dependencies,
       FieldIndex field_index, Representation field_representation,
       Type field_type, MapRef field_owner_map, OptionalMapRef field_map,
       OptionalJSObjectRef holder, OptionalMapRef transition_map);
   static PropertyAccessInfo FastDataConstant(
       Zone* zone, MapRef receiver_map,
-      ZoneVector<CompilationDependency const*>&& unrecorded_dependencies,
+      ::v8::base::Vector<CompilationDependency const*>&& unrecorded_dependencies,
       FieldIndex field_index, Representation field_representation,
       Type field_type, MapRef field_owner_map, OptionalMapRef field_map,
       OptionalJSObjectRef holder, OptionalMapRef transition_map);
@@ -169,7 +169,7 @@ class PropertyAccessInfo final {
     DCHECK(!HasDictionaryHolder());
     return field_map_;
   }
-  ZoneVector<MapRef> const& lookup_start_object_maps() const {
+  ::v8::base::Vector<MapRef> const& lookup_start_object_maps() const {
     return lookup_start_object_maps_;
   }
 
@@ -191,30 +191,30 @@ class PropertyAccessInfo final {
  private:
   explicit PropertyAccessInfo(Zone* zone);
   PropertyAccessInfo(Zone* zone, Kind kind, OptionalJSObjectRef holder,
-                     ZoneVector<MapRef>&& lookup_start_object_maps);
+                     ::v8::base::Vector<MapRef>&& lookup_start_object_maps);
   PropertyAccessInfo(Zone* zone, Kind kind, OptionalJSObjectRef holder,
                      OptionalObjectRef constant, OptionalJSObjectRef api_holder,
                      OptionalNameRef name,
-                     ZoneVector<MapRef>&& lookup_start_object_maps);
+                     ::v8::base::Vector<MapRef>&& lookup_start_object_maps);
   PropertyAccessInfo(Kind kind, OptionalJSObjectRef holder,
                      OptionalMapRef transition_map, FieldIndex field_index,
                      Representation field_representation, Type field_type,
                      MapRef field_owner_map, OptionalMapRef field_map,
-                     ZoneVector<MapRef>&& lookup_start_object_maps,
-                     ZoneVector<CompilationDependency const*>&& dependencies);
+                     ::v8::base::Vector<MapRef>&& lookup_start_object_maps,
+                     ::v8::base::Vector<CompilationDependency const*>&& dependencies);
   PropertyAccessInfo(Zone* zone, Kind kind, OptionalJSObjectRef holder,
-                     ZoneVector<MapRef>&& lookup_start_object_maps,
+                     ::v8::base::Vector<MapRef>&& lookup_start_object_maps,
                      InternalIndex dictionary_index, NameRef name);
 
   // Members used for fast and dictionary mode holders:
   Kind kind_;
-  ZoneVector<MapRef> lookup_start_object_maps_;
+  ::v8::base::Vector<MapRef> lookup_start_object_maps_;
   OptionalObjectRef constant_;
   OptionalJSObjectRef holder_;
   OptionalJSObjectRef api_holder_;
 
   // Members only used for fast mode holders:
-  ZoneVector<CompilationDependency const*> unrecorded_dependencies_;
+  ::v8::base::Vector<CompilationDependency const*> unrecorded_dependencies_;
   OptionalMapRef transition_map_;
   FieldIndex field_index_;
   Representation field_representation_;
@@ -239,7 +239,7 @@ class AccessInfoFactory final {
       MapRef map, AccessMode access_mode) const;
   bool ComputeElementAccessInfos(
       ElementAccessFeedback const& feedback,
-      ZoneVector<ElementAccessInfo>* access_infos) const;
+      ::v8::base::Vector<ElementAccessInfo>* access_infos) const;
 
   PropertyAccessInfo ComputePropertyAccessInfo(MapRef map, NameRef name,
                                                AccessMode access_mode) const;
@@ -254,14 +254,14 @@ class AccessInfoFactory final {
   // recorded.
   // TODO(neis): Make access_mode part of access info?
   bool FinalizePropertyAccessInfos(
-      ZoneVector<PropertyAccessInfo> infos, AccessMode access_mode,
-      ZoneVector<PropertyAccessInfo>* result) const;
+      ::v8::base::Vector<PropertyAccessInfo> infos, AccessMode access_mode,
+      ::v8::base::Vector<PropertyAccessInfo>* result) const;
 
   // Merge the given {infos} to a single one and record any dependencies. If the
   // merge is not possible, the result has kind {kInvalid} and no dependencies
   // are recorded.
   PropertyAccessInfo FinalizePropertyAccessInfosAsOne(
-      ZoneVector<PropertyAccessInfo> infos, AccessMode access_mode) const;
+      ::v8::base::Vector<PropertyAccessInfo> infos, AccessMode access_mode) const;
 
  private:
   std::optional<ElementAccessInfo> ConsolidateElementLoad(
@@ -283,9 +283,9 @@ class AccessInfoFactory final {
     return PropertyAccessInfo::Invalid(zone());
   }
 
-  void MergePropertyAccessInfos(ZoneVector<PropertyAccessInfo> infos,
+  void MergePropertyAccessInfos(::v8::base::Vector<PropertyAccessInfo> infos,
                                 AccessMode access_mode,
-                                ZoneVector<PropertyAccessInfo>* result) const;
+                                ::v8::base::Vector<PropertyAccessInfo>* result) const;
 
   bool TryLoadPropertyDetails(MapRef map, OptionalJSObjectRef maybe_holder,
                               NameRef name, InternalIndex* index_out,

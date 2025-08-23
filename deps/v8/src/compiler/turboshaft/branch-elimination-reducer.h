@@ -601,7 +601,7 @@ class BranchEliminationReducer : public Next {
   // TODO(dmercadier): use the SnapshotTable to replace {dominator_path_} and
   // {known_conditions_}, and to reuse the existing merging/replay logic of the
   // SnapshotTable.
-  ZoneVector<Block*> dominator_path_{__ phase_zone()};
+  ::v8::base::Vector<Block*> dominator_path_{__ phase_zone()};
   LayeredHashMap<V<Word32>, bool> known_conditions_{
       __ phase_zone(), __ input_graph().DominatorTreeDepth() * 2};
 };

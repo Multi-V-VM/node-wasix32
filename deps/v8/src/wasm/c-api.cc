@@ -1,4 +1,7 @@
 // Copyright 2019 the V8 project authors. All rights reserved.
+#ifdef __wasi__
+#include "src/wasm/wasm-features-fix.h"
+#endif
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
@@ -162,7 +165,7 @@ i::wasm::ValueType WasmValKindToV8(ValKind kind) {
 }
 
 Name GetNameFromWireBytes(const i::wasm::WireBytesRef& ref,
-                          v8::base::Vector<const uint8_t> wire_bytes) {
+                          v8::Vector<const uint8_t> wire_bytes) {
   DCHECK_LE(ref.offset(), wire_bytes.length());
   DCHECK_LE(ref.end_offset(), wire_bytes.length());
   if (ref.length() == 0) return Name::make();
@@ -1219,7 +1222,7 @@ WASM_EXPORT auto Module::validate(Store* store_abs, const vec<byte_t>& binary)
   v8::Isolate::Scope isolate_scope(reinterpret_cast<v8::Isolate*>(isolate));
   PtrComprCageAccessScope ptr_compr_cage_access_scope(isolate);
   i::HandleScope scope(isolate);
-  v8::base::Vector<const uint8_t> bytes = ::v8::base::VectorOf(
+  v8::Vector<const uint8_t> bytes = ::v8::base::VectorOf(
       reinterpret_cast<const uint8_t*>(binary.get()), binary.size());
   i::wasm::WasmEnabledFeatures features =
       i::wasm::WasmEnabledFeatures::FromIsolate(isolate);
@@ -1235,7 +1238,7 @@ WASM_EXPORT auto Module::make(Store* store_abs, const vec<byte_t>& binary)
   v8::Isolate::Scope isolate_scope(store->isolate());
   i::HandleScope scope(isolate);
   CheckAndHandleInterrupts(isolate);
-  v8::base::OwnedVector<const uint8_t> bytes = ::v8::base::OwnedCopyOf(
+  v8::base::Owned::v8::base::Vector<const uint8_t> bytes = ::v8::base::OwnedCopyOf(
       reinterpret_cast<const uint8_t*>(binary.get()), binary.size());
   i::wasm::WasmEnabledFeatures features =
       i::wasm::WasmEnabledFeatures::FromIsolate(isolate);
@@ -1256,7 +1259,7 @@ WASM_EXPORT auto Module::imports() const -> ownvec<ImportType> {
   const i::wasm::NativeModule* native_module =
       impl(this)->v8_object()->native_module();
   const i::wasm::WasmModule* module = native_module->module();
-  const v8::base::Vector<const uint8_t> wire_bytes =
+  const v8::Vector<const uint8_t> wire_bytes =
       native_module->wire_bytes();
   const std::vector<i::wasm::WasmImport>& import_table = module->import_table;
   size_t size = import_table.size();
@@ -1276,7 +1279,7 @@ ownvec<ExportType> ExportsImpl(
     i::DirectHandle<i::WasmModuleObject> module_obj) {
   const i::wasm::NativeModule* native_module = module_obj->native_module();
   const i::wasm::WasmModule* module = native_module->module();
-  const v8::base::Vector<const uint8_t> wire_bytes =
+  const v8::Vector<const uint8_t> wire_bytes =
       native_module->wire_bytes();
   const std::vector<i::wasm::WasmExport>& export_table = module->export_table;
   size_t size = export_table.size();
@@ -1307,7 +1310,7 @@ WASM_EXPORT auto Module::serialize() const -> vec<byte_t> {
   i::wasm::NativeModule* native_module =
       impl(this)->v8_object()->native_module();
   native_module->compilation_state()->TierUpAllFunctions();
-  v8::base::Vector<const uint8_t> wire_bytes = native_module->wire_bytes();
+  v8::Vector<const uint8_t> wire_bytes = native_module->wire_bytes();
   size_t binary_size = wire_bytes.size();
   i::wasm::WasmSerializer serializer(native_module);
   size_t serial_size = serializer.GetSerializedNativeModuleSize();

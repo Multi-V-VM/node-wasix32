@@ -1,3 +1,6 @@
+#ifdef __wasi__
+#define V8_TARGET_ARCH_WASM32 1
+#endif
 // Copyright 2012 the V8 project authors. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
@@ -373,7 +376,7 @@ class Heap final {
   //
   // Thread-safe.
   void WeakenDescriptorArrays(
-      GlobalHandleVector<DescriptorArray> strong_descriptor_arrays);
+      GlobalHandle::v8::base::Vector<DescriptorArray> strong_descriptor_arrays);
 
   void NotifyBootstrapComplete();
 
@@ -594,7 +597,7 @@ class Heap final {
       v8::MeasureMemoryMode mode);
 
   void IncrementDeferredCounts(
-      base::Vector<const v8::Isolate::UseCounterFeature> features);
+      ::v8::base::Vector<const v8::Isolate::UseCounterFeature> features);
 
   int NextScriptId();
   int NextDebuggingId();
@@ -629,7 +632,7 @@ class Heap final {
   void CompactWeakArrayLists();
 
   V8_EXPORT_PRIVATE void AddRetainedMaps(DirectHandle<NativeContext> context,
-                                         GlobalHandleVector<Map> maps);
+                                         GlobalHandle::v8::base::Vector<Map> maps);
 
   // This event is triggered after object is moved to a new place.
   void OnMoveEvent(Tagged<HeapObject> source, Tagged<HeapObject> target,

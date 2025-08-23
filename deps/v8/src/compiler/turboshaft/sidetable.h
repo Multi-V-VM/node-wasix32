@@ -68,7 +68,7 @@ class GrowingSidetable {
   GrowingSidetable(size_t size, const T& initial_value, Zone* zone)
       : table_(size, initial_value, zone) {}
 
-  mutable ZoneVector<T> table_;
+  mutable ::v8::base::Vector<T> table_;
 
   size_t NextSize(size_t out_of_bounds_index) const {
     DCHECK_GE(out_of_bounds_index, table_.size());
@@ -101,7 +101,7 @@ class FixedSidetable {
   FixedSidetable(size_t size, const T& default_value, Zone* zone)
       : table_(size, default_value, zone) {}
 
-  ZoneVector<T> table_;
+  ::v8::base::Vector<T> table_;
 };
 
 }  // namespace detail

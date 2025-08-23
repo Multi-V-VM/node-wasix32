@@ -211,7 +211,7 @@ void CodeStubAssembler::FailAssert(
     const char* message, const std::vector<FileAndLine>& files_and_lines,
     std::initializer_list<ExtraNode> extra_nodes) {
   DCHECK_NOT_NULL(message);
-  base::EmbeddedVector<char, 1024> chars;
+  base::Embedded::v8::base::Vector<char, 1024> chars;
   std::stringstream stream;
   for (auto it = files_and_lines.rbegin(); it != files_and_lines.rend(); ++it) {
     if (it->first != nullptr) {
@@ -18111,7 +18111,7 @@ TNode<String> CodeStubAssembler::TaggedToDirectString(TNode<Object> value,
 PrototypeCheckAssembler::PrototypeCheckAssembler(
     compiler::CodeAssemblerState* state, Flags flags,
     TNode<NativeContext> native_context, TNode<Map> initial_prototype_map,
-    base::Vector<DescriptorIndexNameValue> properties)
+    ::v8::base::Vector<DescriptorIndexNameValue> properties)
     : CodeStubAssembler(state),
       flags_(flags),
       native_context_(native_context),

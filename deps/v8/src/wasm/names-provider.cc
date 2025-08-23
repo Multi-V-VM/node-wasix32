@@ -17,7 +17,7 @@ namespace internal {
 namespace wasm {
 
 NamesProvider::NamesProvider(const WasmModule* module,
-                             base::Vector<const uint8_t> wire_bytes)
+                             ::v8::base::Vector<const uint8_t> wire_bytes)
     : module_(module), wire_bytes_(wire_bytes) {}
 
 NamesProvider::~NamesProvider() = default;
@@ -129,7 +129,7 @@ static constexpr char kIdentifierChar[] = {
 void SanitizeUnicodeName(StringBuilder& out, const uint8_t* utf8_src,
                          size_t length) {
   if (length == 0) return;  // Illegal nullptrs arise below when length == 0.
-  base::Vector<const uint8_t> utf8_data(utf8_src, length);
+  ::v8::base::Vector<const uint8_t> utf8_data(utf8_src, length);
   Utf8Decoder decoder(utf8_data);
   std::vector<uint16_t> utf16(decoder.utf16_length());
   decoder.Decode(utf16.data(), utf8_data);
@@ -473,7 +473,7 @@ void CanonicalTypeNamesProvider::DecodeNames(NativeModule* native_module) {
   const WasmModule* module = native_module->module();
   if (module->canonical_typenames_decoded) return;
   module->canonical_typenames_decoded = true;
-  base::Vector<const uint8_t> wire_bytes = native_module->wire_bytes();
+  ::v8::base::Vector<const uint8_t> wire_bytes = native_module->wire_bytes();
   WireBytesRef name_section = module->name_section;
   if (name_section.is_empty()) return;
   size_t added_size = 0;

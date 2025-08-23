@@ -609,7 +609,7 @@ class V8_EXPORT_PRIVATE WasmInterpreter {
     Zone* zone_;
     Isolate* isolate_;
     const WasmModule* module_;
-    ZoneVector<InterpreterCode> interpreter_code_;
+    ::v8::base::Vector<InterpreterCode> interpreter_code_;
 
     base::TimeDelta bytecode_generation_time_;
     std::atomic<size_t> generated_code_size_;
@@ -658,7 +658,7 @@ class V8_EXPORT_PRIVATE WasmInterpreter {
 
   // Create a copy of the module bytes for the interpreter, since the passed
   // pointer might be invalidated after constructing the interpreter.
-  const ZoneVector<uint8_t> module_bytes_;
+  const ::v8::base::Vector<uint8_t> module_bytes_;
 
   CodeMap codemap_;
 
@@ -2193,7 +2193,7 @@ class InterpreterTracer final : public Malloced {
   static bool ShouldRedirect() { return v8_flags.redirect_drumbrake_traces; }
 
   int isolate_id_;
-  base::EmbeddedVector<char, 128> filename_;
+  base::Embedded::v8::base::Vector<char, 128> filename_;
   FILE* file_;
   std::unordered_set<int> traced_functions_;
   int current_chunk_index_;

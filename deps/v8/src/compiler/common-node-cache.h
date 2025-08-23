@@ -76,7 +76,7 @@ class CommonNodeCache final {
   }
 
   // Return all nodes from the cache.
-  void GetCachedNodes(ZoneVector<Node*>* nodes);
+  void GetCachedNodes(::v8::base::Vector<Node*>* nodes);
 
  private:
   Int32NodeCache int32_constants_;

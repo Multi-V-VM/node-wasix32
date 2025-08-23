@@ -87,8 +87,8 @@ class SourceTextModule
   };
 
   V8_EXPORT_PRIVATE
-  std::pair<DirectHandleVector<SourceTextModule>,
-            DirectHandleVector<JSMessageObject>>
+  std::pair<DirectHandle<::v8::base::Vector<SourceTextModule>,
+            DirectHandle<::v8::base::Vector<JSMessageObject>>
   GetStalledTopLevelAwaitMessages(Isolate* isolate);
 
  private:
@@ -229,7 +229,7 @@ class SourceTextModule
 
   V8_EXPORT_PRIVATE void InnerGetStalledTopLevelAwaitModule(
       Isolate* isolate, UnorderedModuleSet* visited,
-      DirectHandleVector<SourceTextModule>* result);
+      DirectHandle<::v8::base::Vector<SourceTextModule>* result);
 
   TQ_OBJECT_CONSTRUCTORS(SourceTextModule)
 };

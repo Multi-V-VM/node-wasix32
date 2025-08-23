@@ -162,7 +162,7 @@ class AsmFroundType final : public AsmCallableType {
   AsmFroundType() : AsmCallableType() {}
 
   bool CanBeInvokedWith(AsmType* return_type,
-                        const ZoneVector<AsmType*>& args) override;
+                        const ::v8::base::Vector<AsmType*>& args) override;
 
   std::string Name() override { return "fround"; }
 };
@@ -174,7 +174,7 @@ AsmType* AsmType::FroundType(Zone* zone) {
 }
 
 bool AsmFroundType::CanBeInvokedWith(AsmType* return_type,
-                                     const ZoneVector<AsmType*>& args) {
+                                     const ::v8::base::Vector<AsmType*>& args) {
   if (args.size() != 1) {
     return false;
   }
@@ -198,7 +198,7 @@ class AsmMinMaxType final : public AsmCallableType {
       : AsmCallableType(), return_type_(dest), arg_(src) {}
 
   bool CanBeInvokedWith(AsmType* return_type,
-                        const ZoneVector<AsmType*>& args) override {
+                        const ::v8::base::Vector<AsmType*>& args) override {
     if (!AsmType::IsExactly(return_type_, return_type)) {
       return false;
     }
@@ -256,7 +256,7 @@ bool AsmFunctionType::IsA(AsmType* other) {
 }
 
 bool AsmFunctionType::CanBeInvokedWith(AsmType* return_type,
-                                       const ZoneVector<AsmType*>& args) {
+                                       const ::v8::base::Vector<AsmType*>& args) {
   if (!AsmType::IsExactly(return_type_, return_type)) {
     return false;
   }
@@ -288,7 +288,7 @@ std::string AsmOverloadedFunctionType::Name() {
 }
 
 bool AsmOverloadedFunctionType::CanBeInvokedWith(
-    AsmType* return_type, const ZoneVector<AsmType*>& args) {
+    AsmType* return_type, const ::v8::base::Vector<AsmType*>& args) {
   for (size_t ii = 0; ii < overloads_.size(); ++ii) {
     if (overloads_[ii]->AsCallableType()->CanBeInvokedWith(return_type, args)) {
       return true;

@@ -134,8 +134,8 @@ class Accessors : public AllStatic {
   // - The return value is unset iff there was an exception.
   // - If the ShouldThrow argument is true, the return value must not be false.
   using AccessorNameBooleanSetterCallback =
-      void (*)(Local<v8::Name> property, Local<v8::Value> value,
-               const PropertyCallbackInfo<v8::Boolean>& info);
+      void (*)(Local<::v8::Name> property, Local<::v8::Value> value,
+               const PropertyCallbackInfo<::v8::Boolean>& info);
 
   V8_EXPORT_PRIVATE static DirectHandle<AccessorInfo> MakeAccessor(
       Isolate* isolate, DirectHandle<Name> name,

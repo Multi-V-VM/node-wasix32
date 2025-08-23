@@ -1,3 +1,6 @@
+#ifdef __wasi__
+#define V8_TARGET_ARCH_WASM32 1
+#endif
 // Copyright 2010 the V8 project authors. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
@@ -1984,7 +1987,7 @@ static void AddJITCodeEntry(CodeMap* map, const base::AddressRegion region,
     static const int kMaxFileNameSize = 64;
     char file_name[64];
 
-    SNPrintF(base::Vector<char>(file_name, kMaxFileNameSize),
+    SNPrintF(::v8::base::Vector<char>(file_name, kMaxFileNameSize),
              "/tmp/elfdump%s%d.o", (name_hint != nullptr) ? name_hint : "",
              file_num++);
     WriteBytes(file_name, reinterpret_cast<uint8_t*>(entry->symfile_addr_),

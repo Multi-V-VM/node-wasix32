@@ -1,3 +1,6 @@
+#ifdef __wasi__
+#define V8_TARGET_ARCH_WASM32 1
+#endif
 // Copyright 2014 the V8 project authors. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
@@ -116,7 +119,7 @@ InstructionSelectorT::InstructionSelectorT(
 
 std::optional<BailoutReason> InstructionSelectorT::SelectInstructions() {
   // Mark the inputs of all phis in loop headers as used.
-  ZoneVector<Block*> blocks = rpo_order(schedule());
+  ::v8::base::Vector<Block*> blocks = rpo_order(schedule());
   for (const Block* block : blocks) {
     if (!IsLoopHeader(block)) continue;
     DCHECK_LE(2u, PredecessorCount(block));
@@ -1086,10 +1089,10 @@ struct CallBufferT {
 
   const CallDescriptor* descriptor;
   FrameStateDescriptor* frame_state_descriptor;
-  ZoneVector<PushParameterT> output_nodes;
+  ::v8::base::Vector<PushParameterT> output_nodes;
   InstructionOperandVector outputs;
   InstructionOperandVector instruction_args;
-  ZoneVector<PushParameterT> pushed_nodes;
+  ::v8::base::Vector<PushParameterT> pushed_nodes;
 
   size_t input_count() const { return descriptor->InputCount(); }
 
@@ -1107,7 +1110,7 @@ struct CallBufferT {
 // InstructionSelector::VisitCall platform independent instead.
 void InstructionSelectorT::InitializeCallBuffer(
     OpIndex node, CallBuffer* buffer, CallBufferFlags flags, OpIndex callee,
-    OptionalOpIndex frame_state_opt, base::Vector<const OpIndex> arguments,
+    OptionalOpIndex frame_state_opt, ::v8::base::Vector<const OpIndex> arguments,
     int return_count, int stack_param_delta) {
   OperandGenerator g(this);
   size_t ret_count = buffer->descriptor->ReturnCount();
@@ -2634,7 +2637,7 @@ void InstructionSelectorT::VisitControl(const Block* block) {
       int32_t min_value = std::numeric_limits<int32_t>::max();
       int32_t max_value = std::numeric_limits<int32_t>::min();
 
-      ZoneVector<CaseInfo> cases(swtch.cases.size(), zone());
+      ::v8::base::Vector<CaseInfo> cases(swtch.cases.size(), zone());
       for (size_t i = 0; i < swtch.cases.size(); ++i) {
         const SwitchOp::Case& c = swtch.cases[i];
         cases[i] = CaseInfo{c.value, 0, c.destination};
@@ -3861,7 +3864,7 @@ bool InstructionSelectorT::ZeroExtendsWord32ToWord64(OpIndex node,
       if (phi_states_.empty()) {
         // This vector is lazily allocated because the majority of compilations
         // never use it.
-        phi_states_ = ZoneVector<Upper32BitsState>(
+        phi_states_ = ::v8::base::Vector<Upper32BitsState>(
             node_count_, Upper32BitsState::kNotYetChecked, zone());
       }
     }
@@ -3898,7 +3901,7 @@ bool InstructionSelectorT::ZeroExtendsWord32ToWord64(OpIndex node,
 void InstructionSelectorT::MarkNodeAsNotZeroExtended(OpIndex node) {
   if (phi_states_[node.id()] == Upper32BitsState::kMayBeNonZero) return;
   phi_states_[node.id()] = Upper32BitsState::kMayBeNonZero;
-  ZoneVector<OpIndex> worklist(zone_);
+  ::v8::base::Vector<OpIndex> worklist(zone_);
   worklist.push_back(node);
   while (!worklist.empty()) {
     node = worklist.back();
@@ -4009,7 +4012,7 @@ bool InstructionSelector::IsSupported(CpuFeature feature) const {
   DISPATCH_TO_IMPL(IsSupported(feature))
 }
 
-const ZoneVector<std::pair<int, int>>& InstructionSelector::instr_origins()
+const ::v8::base::Vector<std::pair<int, int>>& InstructionSelector::instr_origins()
     const {
   DISPATCH_TO_IMPL(instr_origins())
 }

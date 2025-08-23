@@ -2043,7 +2043,7 @@ void JSDate::JSDatePrint(std::ostream& os) {
     os << "\n - time = NaN\n";
   } else {
     // TODO(svenpanne) Add some basic formatting to our streams.
-    base::ScopedVector<char> buf(100);
+    base::Scoped::v8::base::Vector<char> buf(100);
     SNPrintF(buf, "\n - time = %s %04d/%02d/%02d %02d:%02d:%02d\n",
              weekdays[IsSmi(weekday()) ? Smi::ToInt(weekday()) + 1 : 0],
              IsSmi(year()) ? Smi::ToInt(year()) : -1,
@@ -3919,7 +3919,7 @@ void Name::NameShortPrint() {
 }
 
 // TODO(cbruni): remove once the new maptracer is in place.
-int Name::NameShortPrint(base::Vector<char> str) {
+int Name::NameShortPrint(::v8::base::Vector<char> str) {
   if (IsString(this)) {
     return SNPrintF(str, "%s", Cast<String>(this)->ToCString().get());
   } else {

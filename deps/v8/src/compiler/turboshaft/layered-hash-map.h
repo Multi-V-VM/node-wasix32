@@ -66,8 +66,8 @@ class LayeredHashMap {
 
   size_t mask_;
   size_t entry_count_;
-  base::Vector<Entry> table_;
-  ZoneVector<Entry*> depths_heads_;
+  ::v8::base::Vector<Entry> table_;
+  ::v8::base::Vector<Entry*> depths_heads_;
   Zone* zone_;
 
   static constexpr double kNeedResizePercentage = 0.75;
@@ -85,7 +85,7 @@ LayeredHashMap<Key, Value>::LayeredHashMap(Zone* zone,
   initial_capacity = base::bits::RoundUpToPowerOfTwo32(initial_capacity);
   mask_ = initial_capacity - 1;
   // Allocating the table_
-  table_ = zone_->NewVector<Entry>(initial_capacity);
+  table_ = zone_->New::v8::base::Vector<Entry>(initial_capacity);
 }
 
 template <class Key, class Value>
@@ -141,7 +141,7 @@ template <class Key, class Value>
 void LayeredHashMap<Key, Value>::ResizeIfNeeded() {
   if (table_.size() * kNeedResizePercentage > entry_count_) return;
   CHECK_LE(table_.size(), std::numeric_limits<size_t>::max() / kGrowthFactor);
-  table_ = zone_->NewVector<Entry>(table_.size() * kGrowthFactor);
+  table_ = zone_->New::v8::base::Vector<Entry>(table_.size() * kGrowthFactor);
   mask_ = table_.size() - 1;
   DCHECK_EQ(base::bits::CountPopulation(mask_),
             sizeof(mask_) * 8 - base::bits::CountLeadingZeros(mask_));

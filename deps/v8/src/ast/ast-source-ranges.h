@@ -172,8 +172,8 @@ class ConditionalChainSourceRanges final : public AstNodeSourceRanges {
   bool HasRange(SourceRangeKind kind) override { return false; }
 
  private:
-  ZoneVector<SourceRange> then_ranges_;
-  ZoneVector<SourceRange> else_ranges_;
+  ::v8::base::Vector<SourceRange> then_ranges_;
+  ::v8::base::Vector<SourceRange> else_ranges_;
 };
 
 class ConditionalSourceRanges final : public AstNodeSourceRanges {
@@ -313,7 +313,7 @@ class NaryOperationSourceRanges final : public AstNodeSourceRanges {
   bool HasRange(SourceRangeKind kind) override { return false; }
 
  private:
-  ZoneVector<SourceRange> ranges_;
+  ::v8::base::Vector<SourceRange> ranges_;
 };
 
 class ExpressionSourceRanges final : public AstNodeSourceRanges {

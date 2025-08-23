@@ -37,7 +37,7 @@ void PretenuringPropagationAnalyzer::ProcessStore(const StoreOp& store) {
     return;
   }
 
-  ZoneVector<OpIndex>* stored_in_base = FindOrCreate(base_idx);
+  ::v8::base::Vector<OpIndex>* stored_in_base = FindOrCreate(base_idx);
   stored_in_base->push_back(value_idx);
 }
 
@@ -63,7 +63,7 @@ void PretenuringPropagationAnalyzer::ProcessPhi(const PhiOp& phi) {
   }
   if (interesting_inputs.empty()) return;
 
-  ZoneVector<OpIndex>* stored_in_phi = Create(input_graph_.Index(phi));
+  ::v8::base::Vector<OpIndex>* stored_in_phi = Create(input_graph_.Index(phi));
   for (OpIndex input : interesting_inputs) {
     stored_in_phi->push_back(input);
   }
@@ -83,7 +83,7 @@ bool PretenuringPropagationAnalyzer::PushContainedValues(OpIndex base) {
   // Push into {queue_} all of the values that are "contained" into {base}:
   // values that are stored to {base} if {base} is an AllocateOp, or Phi inputs
   // if {base} is a Phi.
-  ZoneVector<OpIndex>* contained = TryFind(base);
+  ::v8::base::Vector<OpIndex>* contained = TryFind(base);
   if (contained == nullptr) return false;
   for (OpIndex index : *contained) {
     queue_.push_back(index);

@@ -67,9 +67,9 @@ class ApiFunction;
 
 namespace internal {
 
-using base::Memory;
-using base::ReadUnalignedValue;
-using base::WriteUnalignedValue;
+using ::v8::base::Memory;
+using ::v8::base::ReadUnalignedValue;
+using ::v8::base::WriteUnalignedValue;
 
 // Forward declarations.
 class EmbeddedData;
@@ -259,7 +259,7 @@ struct V8_EXPORT_PRIVATE AssemblerOptions {
 // This is useful for assemblers that want to Zone-allocate temporay data,
 // without forcing all users to have to create a Zone before using the
 // assembler.
-using MaybeAssemblerZone = std::variant<Zone*, AccountingAllocator*>;
+using MaybeAssemblerZone = ::std::variant<Zone*, AccountingAllocator*>;
 
 class AssemblerBuffer {
  public:
@@ -423,7 +423,7 @@ class V8_EXPORT_PRIVATE AssemblerBase : public Malloced {
     if (options().emit_code_comments) {
       std::string comment_str(comment);
       if (loc.FileName()) {
-        comment_str += " - " + loc.ToString();
+        comment_str += " - "; comment_str += loc.ToString();
       }
       code_comments_writer_.Add(pc_offset(), comment_str);
     }
@@ -438,7 +438,7 @@ class V8_EXPORT_PRIVATE AssemblerBase : public Malloced {
     if (options().emit_code_comments) {
       std::string comment_str(comment);
       if (loc.FileName()) {
-        comment_str += " - " + loc.ToString();
+        comment_str += " - "; comment_str += loc.ToString();
       }
       code_comments_writer_.Add(pc_offset(), comment_str);
     }
@@ -504,7 +504,7 @@ class V8_EXPORT_PRIVATE AssemblerBase : public Malloced {
   std::unique_ptr<AssemblerBuffer> buffer_;
   // Cached from {buffer_->start()}, for faster access.
   uint8_t* buffer_start_;
-  std::forward_list<HeapNumberRequest> heap_number_requests_;
+  forward_list<HeapNumberRequest> heap_number_requests_;
   // The program counter, which points into the buffer above and moves forward.
   // TODO(jkummerow): This should probably have type {Address}.
   uint8_t* pc_;

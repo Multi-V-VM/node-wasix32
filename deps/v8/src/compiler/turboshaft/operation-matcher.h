@@ -34,7 +34,7 @@ struct ValueMatch {
   inline bool matches(OpIndex matched, const OperationMatcher* matcher);
   inline void bind(OpIndex matched, const OperationMatcher* matcher);
 
-  std::variant<Wildcard, OpIndex, OpIndex*, constexpr_type> v_;
+  ::std::variant<Wildcard, OpIndex, OpIndex*, constexpr_type> v_;
 };
 
 template <typename T>
@@ -47,16 +47,16 @@ struct ValueMatch<T, false> {
   ValueMatch(V<T>* index) : v_(index) {}     // NOLINT(runtime/explicit)
 
   inline bool matches(OpIndex matched, const OperationMatcher* matcher) {
-    if (v_.index() == 1) return std::get<1>(v_) == matched;
+    if (v_.index() == 1) return ::std::get<1>(v_) == matched;
     return true;
   }
 
   inline void bind(OpIndex matched, const OperationMatcher* matcher) {
     DCHECK(matches(matched, matcher));
-    if (v_.index() == 2) *std::get<2>(v_) = matched;
+    if (v_.index() == 2) *::std::get<2>(v_) = matched;
   }
 
-  std::variant<Wildcard, OpIndex, OpIndex*> v_;
+  ::std::variant<Wildcard, OpIndex, OpIndex*> v_;
 };
 
 template <typename T>
@@ -67,16 +67,16 @@ struct OptionMatch {
   OptionMatch(const T& value) : v_(value) {}  // NOLINT(runtime/explicit)
   OptionMatch(T* value) : v_(value) {}        // NOLINT(runtime/explicit)
 
-  std::variant<Wildcard, T, T*> v_;
+  ::std::variant<Wildcard, T, T*> v_;
 
   bool matches(const T& matched) {
-    if (v_.index() == 1) return std::get<1>(v_) == matched;
+    if (v_.index() == 1) return ::std::get<1>(v_) == matched;
     return true;
   }
 
   void bind(const T& matched) {
     DCHECK(matches(matched));
-    if (v_.index() == 2) *std::get<2>(v_) = matched;
+    if (v_.index() == 2) *::std::get<2>(v_) = matched;
   }
 };
 
@@ -611,7 +611,7 @@ bool detail::ValueMatch<T, HasConstexpr>::matches(
     case 0:
       return true;
     case 1:
-      return std::get<1>(v_) == matched;
+      return ::std::get<1>(v_) == matched;
     case 2:
       return true;
     case 3: {
@@ -620,7 +620,7 @@ bool detail::ValueMatch<T, HasConstexpr>::matches(
       if (c->rep != v_traits<T>::rep) return false;
       // TODO: Need to fix this for handles and such...
       return c->storage.integral ==
-             (ConstantOp::Storage{static_cast<uint64_t>(std::get<3>(v_))}
+             (ConstantOp::Storage{static_cast<uint64_t>(::std::get<3>(v_))}
                   .integral);
     }
   }
@@ -632,7 +632,7 @@ template <typename T, bool HasConstexpr>
 void detail::ValueMatch<T, HasConstexpr>::bind(
     OpIndex matched, const OperationMatcher* matcher) {
   DCHECK(matches(matched, matcher));
-  if (v_.index() == 2) *std::get<2>(v_) = matched;
+  if (v_.index() == 2) *::std::get<2>(v_) = matched;
 }
 
 }  // namespace v8::internal::compiler::turboshaft

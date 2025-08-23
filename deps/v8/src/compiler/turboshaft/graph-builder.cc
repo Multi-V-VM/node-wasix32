@@ -133,7 +133,7 @@ struct GraphBuilder {
     OpIndex final_frame_state;
   };
   NodeAuxData<OpIndex> op_mapping{phase_zone};
-  ZoneVector<BlockData> block_mapping{schedule.RpoBlockCount(), phase_zone};
+  ::v8::base::Vector<BlockData> block_mapping{schedule.RpoBlockCount(), phase_zone};
   bool inside_region = false;
 
   std::optional<BailoutReason> Run();
@@ -2285,8 +2285,8 @@ OpIndex GraphBuilder::Process(
 
       // Allocate the out_reps vector in the zone, so that it lives through the
       // whole compilation.
-      const base::Vector<RegisterRepresentation> out_reps =
-          graph_zone->AllocateVector<RegisterRepresentation>(return_count);
+      const ::v8::base::Vector<RegisterRepresentation> out_reps =
+          graph_zone->Allocate::v8::base::Vector<RegisterRepresentation>(return_count);
       out_reps[0] = RegisterRepresentation::Word32();
       out_reps[1] = RegisterRepresentation::FromCTypeInfo(
           return_type, parameters->c_signature()->GetInt64Representation());

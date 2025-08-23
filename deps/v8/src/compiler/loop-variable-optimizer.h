@@ -34,8 +34,8 @@ class InductionVariable : public ZoneObject {
     ConstraintKind kind;
   };
 
-  const ZoneVector<Bound>& lower_bounds() { return lower_bounds_; }
-  const ZoneVector<Bound>& upper_bounds() { return upper_bounds_; }
+  const ::v8::base::Vector<Bound>& lower_bounds() { return lower_bounds_; }
+  const ::v8::base::Vector<Bound>& upper_bounds() { return upper_bounds_; }
 
   ArithmeticType Type() { return arithmeticType_; }
 
@@ -62,8 +62,8 @@ class InductionVariable : public ZoneObject {
   Node* arith_;
   Node* increment_;
   Node* init_value_;
-  ZoneVector<Bound> lower_bounds_;
-  ZoneVector<Bound> upper_bounds_;
+  ::v8::base::Vector<Bound> lower_bounds_;
+  ::v8::base::Vector<Bound> upper_bounds_;
   ArithmeticType arithmeticType_;
 };
 

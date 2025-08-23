@@ -31,4 +31,10 @@ class Internals {
 }  // namespace v8
 #endif
 
+#ifdef V8_TARGET_ARCH_WASM32
+// Adjust for WASI 32-bit pointers
+#undef kFixedArrayHeaderSize
+static constexpr int kFixedArrayHeaderSize = sizeof(void*) * 2;  // 8 bytes on 32-bit
+#endif
+
 #endif // INCLUDE_V8_INTERNAL_H_

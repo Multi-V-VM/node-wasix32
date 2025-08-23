@@ -1365,7 +1365,7 @@ void SetupSimd256ImmediateInRegister(MacroAssembler* assembler, uint32_t* imms,
 void CodeGenerator::AssembleTailCallBeforeGap(Instruction* instr,
                                               int first_unused_slot_offset) {
   CodeGenerator::PushTypeFlags flags(kImmediatePush | kScalarPush);
-  ZoneVector<MoveOperands*> pushes(zone());
+  ::v8::base::Vector<MoveOperands*> pushes(zone());
   GetPushCompatibleMoves(instr, flags, &pushes);
 
   if (!pushes.empty() &&
@@ -7579,7 +7579,7 @@ void CodeGenerator::AssembleArchTableSwitch(Instruction* instr) {
   X64OperandConverter i(this, instr);
   Register input = i.InputRegister(0);
   int32_t const case_count = static_cast<int32_t>(instr->InputCount() - 2);
-  base::Vector<Label*> cases = zone()->AllocateVector<Label*>(case_count);
+  ::v8::base::Vector<Label*> cases = zone()->Allocate::v8::base::Vector<Label*>(case_count);
   for (int32_t index = 0; index < case_count; ++index) {
     cases[index] = GetLabel(i.InputRpo(index + 2));
   }
@@ -8511,7 +8511,7 @@ void CodeGenerator::AssembleSwap(InstructionOperand* source,
   }
 }
 
-void CodeGenerator::AssembleJumpTable(base::Vector<Label*> targets) {
+void CodeGenerator::AssembleJumpTable(::v8::base::Vector<Label*> targets) {
 #ifdef V8_ENABLE_BUILTIN_JUMP_TABLE_SWITCH
   // For builtins, the value in table is `target_address - table_address`.
   // The reason is that the builtins code position may be changed so the table

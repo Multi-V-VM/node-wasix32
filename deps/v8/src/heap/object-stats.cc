@@ -202,7 +202,7 @@ V8_NOINLINE static void PrintJSONArray(size_t* array, const int len) {
 
 V8_NOINLINE static void DumpJSONArray(std::stringstream& stream, size_t* array,
                                       const int len) {
-  stream << PrintCollection(base::Vector<size_t>(array, len));
+  stream << PrintCollection(::v8::base::Vector<size_t>(array, len));
 }
 
 void ObjectStats::PrintKeyAndId(const char* key, int gc_count) {

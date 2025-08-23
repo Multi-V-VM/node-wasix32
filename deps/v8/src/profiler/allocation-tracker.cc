@@ -79,7 +79,7 @@ AllocationTraceTree::AllocationTraceTree()
 }
 
 AllocationTraceNode* AllocationTraceTree::AddPathFromEnd(
-    base::Vector<const unsigned> path) {
+    ::v8::base::Vector<const unsigned> path) {
   AllocationTraceNode* node = root();
   for (const unsigned* entry = path.begin() + path.length() - 1;
        entry != path.begin() - 1; --entry) {
@@ -214,7 +214,7 @@ void AllocationTracker::AllocationEvent(Address addr, int size) {
     }
   }
   AllocationTraceNode* top_node = trace_tree_.AddPathFromEnd(
-      base::Vector<unsigned>(allocation_trace_buffer_, length));
+      ::v8::base::Vector<unsigned>(allocation_trace_buffer_, length));
   top_node->AddAllocation(size);
 
   address_to_trace_.AddRange(addr, size, top_node->id());

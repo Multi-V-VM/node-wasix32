@@ -52,7 +52,7 @@ class WasmValue {
   explicit WasmValue(ctype v) : type_(localtype), bit_pattern_{} {            \
     static_assert(sizeof(ctype) <= sizeof(bit_pattern_),                      \
                   "size too big for WasmValue");                              \
-    base::WriteUnalignedValue<ctype>(reinterpret_cast<Address>(bit_pattern_), \
+    ::v8::base::WriteUnalignedValue<ctype>(reinterpret_cast<Address>(bit_pattern_), \
                                      v);                                      \
   }                                                                           \
   ctype to_##name() const {                                                   \
@@ -60,7 +60,7 @@ class WasmValue {
     return to_##name##_unchecked();                                           \
   }                                                                           \
   ctype to_##name##_unchecked() const {                                       \
-    return base::ReadUnalignedValue<ctype>(                                   \
+    return ::v8::base::ReadUnalignedValue<ctype>(                                   \
         reinterpret_cast<Address>(bit_pattern_));                             \
   }
 
@@ -78,13 +78,13 @@ class WasmValue {
     static_assert(sizeof(DirectHandle<Object>) <= sizeof(bit_pattern_),
                   "bit_pattern_ must be large enough to fit a Handle");
     DCHECK(type.is_reference());
-    base::WriteUnalignedValue<DirectHandle<Object>>(
+    ::v8::base::WriteUnalignedValue<DirectHandle<Object>>(
         reinterpret_cast<Address>(bit_pattern_), ref);
   }
 
   DirectHandle<Object> to_ref() const {
     DCHECK(type_.is_reference());
-    return base::ReadUnalignedValue<DirectHandle<Object>>(
+    return ::v8::base::ReadUnalignedValue<DirectHandle<Object>>(
         reinterpret_cast<Address>(bit_pattern_));
   }
 
@@ -136,19 +136,19 @@ class WasmValue {
   inline std::string to_string() const {
     switch (type_.kind()) {
       case kI8:
-        return std::to_string(to_i8());
+        return ::std::to_string(to_i8());
       case kI16:
-        return std::to_string(to_i16());
+        return ::std::to_string(to_i16());
       case kI32:
-        return std::to_string(to_i32());
+        return ::std::to_string(to_i32());
       case kI64:
-        return std::to_string(to_i64());
+        return ::std::to_string(to_i64());
       case kF16:
-        return std::to_string(fp16_ieee_to_fp32_value(to_f16()));
+        return ::std::to_string(fp16_ieee_to_fp32_value(to_f16()));
       case kF32:
-        return std::to_string(to_f32());
+        return ::std::to_string(to_f32());
       case kF64:
-        return std::to_string(to_f64());
+        return ::std::to_string(to_f64());
       case kS128: {
         std::stringstream stream;
         stream << "0x" << std::hex;
@@ -171,7 +171,7 @@ class WasmValue {
   bool zero_byte_representation() {
     DCHECK(type().is_numeric());
     uint32_t byte_count = type().value_kind_size();
-    return static_cast<uint32_t>(std::count(
+    return static_cast<uint32_t>(::std::count(
                bit_pattern_, bit_pattern_ + byte_count, 0)) == byte_count;
   }
 

@@ -233,13 +233,13 @@ std::ostream& operator<<(std::ostream&, ObjectStateInfo const&);
 size_t hash_value(ObjectStateInfo const& p);
 
 struct TypedObjectStateInfo final
-    : std::pair<uint32_t, const ZoneVector<MachineType>*> {
+    : std::pair<uint32_t, const ::v8::base::Vector<MachineType>*> {
   TypedObjectStateInfo(uint32_t object_id,
-                       const ZoneVector<MachineType>* machine_types)
-      : std::pair<uint32_t, const ZoneVector<MachineType>*>(object_id,
+                       const ::v8::base::Vector<MachineType>* machine_types)
+      : std::pair<uint32_t, const ::v8::base::Vector<MachineType>*>(object_id,
                                                             machine_types) {}
   uint32_t object_id() const { return first; }
-  const ZoneVector<MachineType>* machine_types() const { return second; }
+  const ::v8::base::Vector<MachineType>* machine_types() const { return second; }
 };
 std::ostream& operator<<(std::ostream&, TypedObjectStateInfo const&);
 size_t hash_value(TypedObjectStateInfo const& p);
@@ -373,17 +373,17 @@ bool operator!=(SparseInputMask const& lhs, SparseInputMask const& rhs);
 
 class TypedStateValueInfo final {
  public:
-  TypedStateValueInfo(ZoneVector<MachineType> const* machine_types,
+  TypedStateValueInfo(::v8::base::Vector<MachineType> const* machine_types,
                       SparseInputMask sparse_input_mask)
       : machine_types_(machine_types), sparse_input_mask_(sparse_input_mask) {}
 
-  ZoneVector<MachineType> const* machine_types() const {
+  ::v8::base::Vector<MachineType> const* machine_types() const {
     return machine_types_;
   }
   SparseInputMask sparse_input_mask() const { return sparse_input_mask_; }
 
  private:
-  ZoneVector<MachineType> const* machine_types_;
+  ::v8::base::Vector<MachineType> const* machine_types_;
   SparseInputMask sparse_input_mask_;
 };
 
@@ -407,7 +407,7 @@ RegionObservability RegionObservabilityOf(Operator const*)
     V8_WARN_UNUSED_RESULT;
 
 std::ostream& operator<<(std::ostream& os,
-                         const ZoneVector<MachineType>* types);
+                         const ::v8::base::Vector<MachineType>* types);
 
 Type TypeGuardTypeOf(Operator const*) V8_WARN_UNUSED_RESULT;
 
@@ -415,7 +415,7 @@ int OsrValueIndexOf(Operator const*) V8_WARN_UNUSED_RESULT;
 
 SparseInputMask SparseInputMaskOf(Operator const*) V8_WARN_UNUSED_RESULT;
 
-ZoneVector<MachineType> const* MachineTypesOf(Operator const*)
+::v8::base::Vector<MachineType> const* MachineTypesOf(Operator const*)
     V8_WARN_UNUSED_RESULT;
 
 // The ArgumentsElementsState and ArgumentsLengthState can describe the layout
@@ -639,13 +639,13 @@ class V8_EXPORT_PRIVATE CommonOperatorBuilder final
   const Operator* BeginRegion(RegionObservability);
   const Operator* FinishRegion();
   const Operator* StateValues(int arguments, SparseInputMask bitmask);
-  const Operator* TypedStateValues(const ZoneVector<MachineType>* types,
+  const Operator* TypedStateValues(const ::v8::base::Vector<MachineType>* types,
                                    SparseInputMask bitmask);
   const Operator* ArgumentsElementsState(ArgumentsStateType type);
   const Operator* ArgumentsLengthState();
   const Operator* ObjectState(uint32_t object_id, int pointer_slots);
   const Operator* TypedObjectState(uint32_t object_id,
-                                   const ZoneVector<MachineType>* types);
+                                   const ::v8::base::Vector<MachineType>* types);
   const Operator* FrameState(BytecodeOffset bailout_id,
                              OutputFrameStateCombine state_combine,
                              const FrameStateFunctionInfo* function_info);

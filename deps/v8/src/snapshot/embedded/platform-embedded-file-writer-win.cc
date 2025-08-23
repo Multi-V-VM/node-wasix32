@@ -1,3 +1,6 @@
+#ifdef __wasi__
+#define V8_TARGET_ARCH_WASM32 1
+#endif
 // Copyright 2019 the V8 project authors. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
@@ -186,7 +189,7 @@ void EmitUnwindData(PlatformEmbeddedFileWriterWin* w,
 
   // Fairly arbitrary but should fit all symbol names.
   static constexpr int kTemporaryStringLength = 256;
-  base::EmbeddedVector<char, kTemporaryStringLength> unwind_info_full_symbol;
+  base::Embedded::v8::base::Vector<char, kTemporaryStringLength> unwind_info_full_symbol;
 
   // Emit a RUNTIME_FUNCTION (PDATA) entry for each builtin function, as
   // documented here:

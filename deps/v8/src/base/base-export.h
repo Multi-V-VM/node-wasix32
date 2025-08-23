@@ -7,6 +7,12 @@
 
 #include "include/v8config.h"
 
+// Include WASI fixes first to prevent macro redefinition
+#ifdef __wasi__
+#include "../../include/wasi/macro-fixes.h"
+#endif
+
+#ifndef V8_BASE_EXPORT
 #if V8_OS_WIN
 
 #ifdef BUILDING_V8_BASE_SHARED
@@ -27,5 +33,6 @@
 #endif  // defined(BUILDING_V8_BASE_SHARED) || ...
 
 #endif  // V8_OS_WIN
+#endif  // V8_BASE_EXPORT
 
 #endif  // V8_BASE_BASE_EXPORT_H_

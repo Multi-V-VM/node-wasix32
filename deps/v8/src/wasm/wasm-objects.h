@@ -189,7 +189,7 @@ class WasmModuleObject
   // given index.
   // Meant to be used for debugging or frame printing.
   // Does not allocate, hence gc-safe.
-  base::Vector<const uint8_t> GetRawFunctionName(int func_index);
+  ::v8::base::Vector<const uint8_t> GetRawFunctionName(int func_index);
 
   // Extract a portion of the wire bytes as UTF-8 string, optionally
   // internalized. (Prefer to internalize early if the string will be used for a
@@ -198,7 +198,7 @@ class WasmModuleObject
       Isolate*, DirectHandle<WasmModuleObject>, wasm::WireBytesRef,
       InternalizeString);
   static DirectHandle<String> ExtractUtf8StringFromModuleBytes(
-      Isolate*, base::Vector<const uint8_t> wire_byte, wasm::WireBytesRef,
+      Isolate*, ::v8::base::Vector<const uint8_t> wire_byte, wasm::WireBytesRef,
       InternalizeString);
 
   TQ_OBJECT_CONSTRUCTORS(WasmModuleObject)

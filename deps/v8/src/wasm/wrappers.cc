@@ -339,8 +339,8 @@ class WasmWrapperTSGraphBuilder : public WasmGraphBuilderBase {
   void BuildCallWasmFromWrapper(Zone* zone, const CanonicalSig* sig,
                                 V<Word32> callee,
                                 V<HeapObject> implicit_first_arg,
-                                const base::Vector<OpIndex> args,
-                                base::Vector<OpIndex> returns) {
+                                const ::v8::base::Vector<OpIndex> args,
+                                ::v8::base::Vector<OpIndex> returns) {
     const TSCallDescriptor* descriptor = TSCallDescriptor::Create(
         compiler::GetWasmCallDescriptor(
             __ graph_zone(), sig,
@@ -363,7 +363,7 @@ class WasmWrapperTSGraphBuilder : public WasmGraphBuilderBase {
   }
 
   OpIndex BuildCallAndReturn(V<Context> js_context, V<HeapObject> function_data,
-                             base::Vector<OpIndex> args, bool do_conversion,
+                             ::v8::base::Vector<OpIndex> args, bool do_conversion,
                              bool set_in_wasm_flag) {
     const int rets_count = static_cast<int>(sig_->return_count());
     base::SmallVector<OpIndex, 1> rets(rets_count);
@@ -1109,7 +1109,7 @@ class WasmWrapperTSGraphBuilder : public WasmGraphBuilderBase {
   }
 
   // Must be called in the first block to emit the Parameter ops.
-  int AddArgumentNodes(base::Vector<OpIndex> args, int pos,
+  int AddArgumentNodes(::v8::base::Vector<OpIndex> args, int pos,
                        base::SmallVector<OpIndex, 16> wasm_params,
                        const CanonicalSig* sig, V<Context> context) {
     // Convert wasm numbers to JS values.

@@ -1250,7 +1250,7 @@ void BigInt::SerializeDigits(uint8_t* storage, size_t storage_length) {
 // version in value-serializer.cc!
 MaybeDirectHandle<BigInt> BigInt::FromSerializedDigits(
     Isolate* isolate, uint32_t bitfield,
-    base::Vector<const uint8_t> digits_storage) {
+    ::v8::base::Vector<const uint8_t> digits_storage) {
   uint32_t bytelength = LengthBits::decode(bitfield);
   DCHECK_EQ(static_cast<uint32_t>(digits_storage.length()), bytelength);
   bool sign = SignBits::decode(bitfield);

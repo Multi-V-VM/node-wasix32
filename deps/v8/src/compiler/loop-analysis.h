@@ -45,7 +45,7 @@ class LoopTree : public ZoneObject {
   class Loop {
    public:
     Loop* parent() const { return parent_; }
-    const ZoneVector<Loop*>& children() const { return children_; }
+    const ::v8::base::Vector<Loop*>& children() const { return children_; }
     uint32_t HeaderSize() const { return body_start_ - header_start_; }
     uint32_t BodySize() const { return exits_start_ - body_start_; }
     uint32_t ExitsSize() const { return exits_end_ - exits_start_; }
@@ -66,7 +66,7 @@ class LoopTree : public ZoneObject {
           exits_end_(-1) {}
     Loop* parent_;
     int depth_;
-    ZoneVector<Loop*> children_;
+    ::v8::base::Vector<Loop*> children_;
     int header_start_;
     int body_start_;
     int exits_start_;
@@ -90,11 +90,11 @@ class LoopTree : public ZoneObject {
   }
 
   // Return the list of outer loops.
-  const ZoneVector<Loop*>& outer_loops() const { return outer_loops_; }
+  const ::v8::base::Vector<Loop*>& outer_loops() const { return outer_loops_; }
 
   // Return a new vector containing the inner loops.
-  ZoneVector<const Loop*> inner_loops() const {
-    ZoneVector<const Loop*> inner_loops(zone_);
+  ::v8::base::Vector<const Loop*> inner_loops() const {
+    ::v8::base::Vector<const Loop*> inner_loops(zone_);
     for (const Loop& loop : all_loops_) {
       if (loop.children().empty()) {
         inner_loops.push_back(&loop);
@@ -166,10 +166,10 @@ class LoopTree : public ZoneObject {
   }
 
   Zone* zone_;
-  ZoneVector<Loop*> outer_loops_;
-  ZoneVector<Loop> all_loops_;
-  ZoneVector<int> node_to_loop_num_;
-  ZoneVector<Node*> loop_nodes_;
+  ::v8::base::Vector<Loop*> outer_loops_;
+  ::v8::base::Vector<Loop> all_loops_;
+  ::v8::base::Vector<int> node_to_loop_num_;
+  ::v8::base::Vector<Node*> loop_nodes_;
 };
 
 class V8_EXPORT_PRIVATE LoopFinder {

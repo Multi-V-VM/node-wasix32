@@ -499,8 +499,8 @@ class WasmLoadEliminationAnalyzer {
   // {predecessor_alias_napshots_}, {predecessor_maps_snapshots_} and
   // {predecessor_memory_snapshots_} are used as temporary vectors when starting
   // to process a block. We store them as members to avoid reallocation.
-  ZoneVector<AliasSnapshot> predecessor_alias_snapshots_;
-  ZoneVector<MemorySnapshot> predecessor_memory_snapshots_;
+  ::v8::base::Vector<AliasSnapshot> predecessor_alias_snapshots_;
+  ::v8::base::Vector<MemorySnapshot> predecessor_memory_snapshots_;
 };
 
 template <class Next>
@@ -920,7 +920,7 @@ void WasmLoadEliminationAnalyzer::ProcessAllocate(OpIndex op_idx,
 void WasmLoadEliminationAnalyzer::ProcessPhi(OpIndex op_idx, const PhiOp& phi) {
   InvalidateAllNonAliasingInputs(phi);
 
-  base::Vector<const OpIndex> inputs = phi.inputs();
+  ::v8::base::Vector<const OpIndex> inputs = phi.inputs();
   // This copies some of the functionality of {RequiredOptimizationReducer}:
   // Phis whose inputs are all the same value can be replaced by that value.
   // We need to have this logic here because interleaving it with other cases
@@ -1014,7 +1014,7 @@ bool WasmLoadEliminationAnalyzer::BeginBlock(const Block* block) {
   // Start a new snapshot for this block by merging information from
   // predecessors.
   auto merge_aliases = [&](AliasKey key,
-                           base::Vector<const bool> predecessors) -> bool {
+                           ::v8::base::Vector<const bool> predecessors) -> bool {
     if (for_loop_revisit && predecessors[kForwardEdgeOffset] &&
         !predecessors[kBackedgeOffset]) {
       // The backedge doesn't think that {key} is no-alias, but the loop
@@ -1033,7 +1033,7 @@ bool WasmLoadEliminationAnalyzer::BeginBlock(const Block* block) {
   // rather than a reducer. Still, we could "prepare" the insertion now and then
   // really insert them during the Reduce phase of the CopyingPhase.
   auto merge_memory = [&](MemoryKey key,
-                          base::Vector<const OpIndex> predecessors) -> OpIndex {
+                          ::v8::base::Vector<const OpIndex> predecessors) -> OpIndex {
     if (for_loop_revisit && predecessors[kForwardEdgeOffset].valid() &&
         predecessors[kBackedgeOffset] != predecessors[kForwardEdgeOffset]) {
       // {key} had a value in the loop header, but the backedge and the forward

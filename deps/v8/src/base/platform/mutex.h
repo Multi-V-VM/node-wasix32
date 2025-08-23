@@ -6,6 +6,7 @@
 #define V8_BASE_PLATFORM_MUTEX_H_
 
 #include <optional>
+#include <mutex>
 
 #include "absl/synchronization/mutex.h"
 #include "include/v8config.h"
@@ -14,6 +15,13 @@
 #include "src/base/base-export.h"
 #include "src/base/lazy-instance.h"
 #include "src/base/logging.h"
+
+// Define DISALLOW_COPY_AND_ASSIGN if not already defined
+#ifndef DISALLOW_COPY_AND_ASSIGN
+#define DISALLOW_COPY_AND_ASSIGN(TypeName) \
+  TypeName(const TypeName&) = delete;      \
+  TypeName& operator=(const TypeName&) = delete
+#endif
 
 namespace v8 {
 namespace base {
@@ -246,3 +254,4 @@ class V8_NODISCARD MutexGuardIf final {
 }  // namespace v8
 
 #endif  // V8_BASE_PLATFORM_MUTEX_H_
+

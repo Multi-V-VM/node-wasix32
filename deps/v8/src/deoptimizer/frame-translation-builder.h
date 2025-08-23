@@ -31,7 +31,7 @@ class FrameTranslationBuilder {
 
   DirectHandle<DeoptimizationFrameTranslation> ToFrameTranslation(
       LocalFactory* factory);
-  base::Vector<const uint8_t> ToFrameTranslationWasm();
+  ::v8::base::Vector<const uint8_t> ToFrameTranslationWasm();
 
   int BeginTranslation(int frame_count, int jsframe_count,
                        bool update_feedback);
@@ -152,8 +152,8 @@ class FrameTranslationBuilder {
   void FinishPendingInstructionIfNeeded();
   void ValidateBytes(DeoptTranslationIterator& iter) const;
 
-  ZoneVector<uint8_t> contents_;
-  ZoneVector<int32_t> contents_for_compression_;
+  ::v8::base::Vector<uint8_t> contents_;
+  ::v8::base::Vector<int32_t> contents_for_compression_;
   // If match_previous_allowed_ is false, then this vector contains the
   // instructions written so far in the current translation (since the last
   // BEGIN). If match_previous_allowed_ is true, then this vector contains the
@@ -161,7 +161,7 @@ class FrameTranslationBuilder {
   // !match_previous_allowed_). This allows Add() to easily check whether a
   // newly added instruction matches the corresponding one from the basis
   // translation.
-  ZoneVector<Instruction> basis_instructions_;
+  ::v8::base::Vector<Instruction> basis_instructions_;
 #ifdef ENABLE_SLOW_DCHECKS
   std::vector<Instruction> all_instructions_;
 #endif

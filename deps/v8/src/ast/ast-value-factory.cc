@@ -45,14 +45,14 @@ namespace {
 // For using StringToIndex.
 class OneByteStringStream {
  public:
-  explicit OneByteStringStream(base::Vector<const uint8_t> lb)
+  explicit OneByteStringStream(::v8::base::Vector<const uint8_t> lb)
       : literal_bytes_(lb), pos_(0) {}
 
   bool HasMore() { return pos_ < literal_bytes_.length(); }
   uint16_t GetNext() { return literal_bytes_[pos_++]; }
 
  private:
-  base::Vector<const uint8_t> literal_bytes_;
+  ::v8::base::Vector<const uint8_t> literal_bytes_;
   int pos_;
 };
 
@@ -68,7 +68,7 @@ void AstRawString::Internalize(IsolateT* isolate) {
     set_string(isolate->factory()->InternalizeStringWithKey(&key));
   } else {
     TwoByteStringKey key(raw_hash_field_,
-                         base::Vector<const uint16_t>::cast(literal_bytes_));
+                         ::v8::base::Vector<const uint16_t>::cast(literal_bytes_));
     set_string(isolate->factory()->InternalizeStringWithKey(&key));
   }
 }
@@ -278,8 +278,8 @@ template EXPORT_TEMPLATE_DEFINE(V8_EXPORT_PRIVATE)
     Handle<String> AstConsString::AllocateFlat<LocalIsolate>(
         LocalIsolate* isolate) const;
 
-std::forward_list<const AstRawString*> AstConsString::ToRawStrings() const {
-  std::forward_list<const AstRawString*> result;
+forward_list<const AstRawString*> AstConsString::ToRawStrings() const {
+  forward_list<const AstRawString*> result;
   if (IsEmpty()) {
     return result;
   }
@@ -300,7 +300,7 @@ AstStringConstants::AstStringConstants(Isolate* isolate, uint64_t hash_seed)
 #define F(name, str)                                                  \
   {                                                                   \
     static const char data[] = str;                                   \
-    base::Vector<const uint8_t> literal(                              \
+    ::v8::base::Vector<const uint8_t> literal(                              \
         reinterpret_cast<const uint8_t*>(data),                       \
         static_cast<int>(arraysize(data) - 1));                       \
     IndirectHandle<String> handle = isolate->factory()->name();       \
@@ -320,7 +320,7 @@ AstStringConstants::AstStringConstants(Isolate* isolate, uint64_t hash_seed)
 }
 
 const AstRawString* AstValueFactory::GetOneByteStringInternal(
-    base::Vector<const uint8_t> literal) {
+    ::v8::base::Vector<const uint8_t> literal) {
   if (literal.length() == 1) {
     uint8_t key = literal[0];
     if (key < AstStringConstants::kMaxOneCharStringValue) {
@@ -333,11 +333,11 @@ const AstRawString* AstValueFactory::GetOneByteStringInternal(
 }
 
 const AstRawString* AstValueFactory::GetTwoByteStringInternal(
-    base::Vector<const uint16_t> literal) {
+    ::v8::base::Vector<const uint16_t> literal) {
   uint32_t raw_hash_field = StringHasher::HashSequentialString<uint16_t>(
       literal.begin(), literal.length(), hash_seed_);
   return GetString(raw_hash_field, false,
-                   base::Vector<const uint8_t>::cast(literal));
+                   ::v8::base::Vector<const uint8_t>::cast(literal));
 }
 
 const AstRawString* AstValueFactory::GetString(
@@ -389,7 +389,7 @@ template EXPORT_TEMPLATE_DEFINE(
 
 const AstRawString* AstValueFactory::GetString(
     uint32_t raw_hash_field, bool is_one_byte,
-    base::Vector<const uint8_t> literal_bytes) {
+    ::v8::base::Vector<const uint8_t> literal_bytes) {
   // literal_bytes here points to whatever the user passed, and this is OK
   // because we use vector_compare (which checks the contents) to compare
   // against the AstRawStrings which are in the string_table_. We should not
@@ -404,7 +404,7 @@ const AstRawString* AstValueFactory::GetString(
             ast_raw_string_zone()->AllocateArray<uint8_t>(length);
         memcpy(new_literal_bytes, literal_bytes.begin(), length);
         AstRawString* new_string = ast_raw_string_zone()->New<AstRawString>(
-            is_one_byte, base::Vector<const uint8_t>(new_literal_bytes, length),
+            is_one_byte, ::v8::base::Vector<const uint8_t>(new_literal_bytes, length),
             raw_hash_field);
         CHECK_NOT_NULL(new_string);
         AddString(new_string);

@@ -821,41 +821,41 @@ class ShadowyOpIndex : public OpIndex {
 
 // Similarly to how `ShadowyOpIndex` is a wrapper around `OpIndex` that allows
 // arbitrary conversion to `V<>`, `ShadowyOpIndexVectorWrapper` is a wrapper
-// around `base::Vector<const OpIndex>` that allows implicit conversion to
-// `base::Vector<const V<U>>` for any `U`.
+// around `::v8::base::Vector<const OpIndex>` that allows implicit conversion to
+// `::v8::base::Vector<const V<U>>` for any `U`.
 class ShadowyOpIndexVectorWrapper {
  public:
   template <typename T>
   ShadowyOpIndexVectorWrapper(
-      base::Vector<const V<T>> indices)  // NOLINT(runtime/explicit)
+      ::v8::base::Vector<const V<T>> indices)  // NOLINT(runtime/explicit)
       : indices_(indices.data(), indices.size()) {}
   ShadowyOpIndexVectorWrapper(
-      base::Vector<const OpIndex> indices)  // NOLINT(runtime/explicit)
+      ::v8::base::Vector<const OpIndex> indices)  // NOLINT(runtime/explicit)
       : indices_(indices) {}
   template <typename T>
   ShadowyOpIndexVectorWrapper(
-      base::Vector<V<T>> indices)  // NOLINT(runtime/explicit)
+      ::v8::base::Vector<V<T>> indices)  // NOLINT(runtime/explicit)
       : indices_(indices.data(), indices.size()) {}
   ShadowyOpIndexVectorWrapper(
-      base::Vector<OpIndex> indices)  // NOLINT(runtime/explicit)
+      ::v8::base::Vector<OpIndex> indices)  // NOLINT(runtime/explicit)
       : indices_(indices) {}
 
-  operator base::Vector<const OpIndex>() const {  // NOLINT(runtime/explicit)
+  operator ::v8::base::Vector<const OpIndex>() const {  // NOLINT(runtime/explicit)
     return indices_;
   }
   template <typename U>
-  operator base::Vector<V<U>>() const {  // NOLINT(runtime/explicit)
-    return base::Vector<V<U>>{indices_.data(), indices_.size()};
+  operator ::v8::base::Vector<V<U>>() const {  // NOLINT(runtime/explicit)
+    return ::v8::base::Vector<V<U>>{indices_.data(), indices_.size()};
   }
   template <typename U>
-  operator base::Vector<const V<U>>() const {  // NOLINT(runtime/explicit)
+  operator ::v8::base::Vector<const V<U>>() const {  // NOLINT(runtime/explicit)
     return {static_cast<const V<U>*>(indices_.data()), indices_.size()};
   }
 
   size_t size() const noexcept { return indices_.size(); }
 
  private:
-  base::Vector<const OpIndex> indices_;
+  ::v8::base::Vector<const OpIndex> indices_;
 };
 
 // `BlockIndex` is the index of a bound block.

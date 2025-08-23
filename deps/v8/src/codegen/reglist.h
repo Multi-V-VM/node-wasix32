@@ -1,3 +1,6 @@
+#ifdef __wasi__
+#define V8_TARGET_ARCH_WASM32 1
+#endif
 // Copyright 2017 the V8 project authors. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
@@ -30,8 +33,6 @@
 #include "src/codegen/s390/reglist-s390.h"
 #elif V8_TARGET_ARCH_RISCV32 || V8_TARGET_ARCH_RISCV64
 #include "src/codegen/riscv/reglist-riscv.h"
-#elif defined(V8_TARGET_ARCH_WASM32)
-#include "src/codegen/wasm32/reglist-wasm32.h"
 #else
 #error Unknown architecture.
 #endif
@@ -42,14 +43,14 @@ namespace internal {
 static constexpr RegList kEmptyRegList = {};
 
 #define LIST_REG(V) V,
-static constexpr RegList kAllocatableGeneralRegisters = {
+static const RegList kAllocatableGeneralRegisters = {
     ALLOCATABLE_GENERAL_REGISTERS(LIST_REG) Register::no_reg()};
 #undef LIST_REG
 
 static constexpr DoubleRegList kEmptyDoubleRegList = {};
 
 #define LIST_REG(V) V,
-static constexpr DoubleRegList kAllocatableDoubleRegisters = {
+static const DoubleRegList kAllocatableDoubleRegisters = {
     ALLOCATABLE_DOUBLE_REGISTERS(LIST_REG) DoubleRegister::no_reg()};
 #undef LIST_REG
 

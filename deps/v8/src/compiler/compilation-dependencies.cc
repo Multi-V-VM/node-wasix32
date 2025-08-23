@@ -1550,7 +1550,7 @@ DEPENDENCY_LIST(V)
 #undef V
 
 void CompilationDependencies::DependOnStablePrototypeChains(
-    ZoneVector<MapRef> const& receiver_maps, WhereToStart start,
+    ::v8::base::Vector<MapRef> const& receiver_maps, WhereToStart start,
     OptionalJSObjectRef last_prototype) {
   for (MapRef receiver_map : receiver_maps) {
     DependOnStablePrototypeChain(receiver_map, start, last_prototype);

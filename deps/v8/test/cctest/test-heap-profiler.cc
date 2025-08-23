@@ -66,7 +66,7 @@ using i::heap::GrowNewSpaceToMaximumCapacity;
 using std::optional;
 using v8::base::ArrayVector;
 using v8::base::OS;
-using v8::base::Vector;
+
 using v8::base::VectorOf;
 
 namespace {

@@ -69,9 +69,9 @@ class V8_EXPORT_PRIVATE SourcePositionTableBuilder {
   void AddEntry(const PositionTableEntry& entry);
 
   RecordingMode mode_;
-  ZoneVector<uint8_t> bytes_;
+  ::v8::base::Vector<uint8_t> bytes_;
 #ifdef ENABLE_SLOW_DCHECKS
-  ZoneVector<PositionTableEntry> raw_entries_;
+  ::v8::base::Vector<PositionTableEntry> raw_entries_;
 #endif
   PositionTableEntry previous_;  // Previously written entry, to compute delta.
 };
@@ -118,7 +118,7 @@ class V8_EXPORT_PRIVATE SourcePositionTableIterator {
   // Handle-safe iterator based on an a vector located outside the garbage
   // collected heap, allows allocation during its lifetime.
   explicit SourcePositionTableIterator(
-      base::Vector<const uint8_t> bytes,
+      ::v8::base::Vector<const uint8_t> bytes,
       IterationFilter iteration_filter = kJavaScriptOnly,
       FunctionEntryFilter function_entry_filter = kSkipFunctionEntry);
 
@@ -160,7 +160,7 @@ class V8_EXPORT_PRIVATE SourcePositionTableIterator {
 
   static const int kDone = -1;
 
-  base::Vector<const uint8_t> raw_table_;
+  ::v8::base::Vector<const uint8_t> raw_table_;
   Handle<TrustedByteArray> table_;
   int index_ = 0;
   PositionTableEntry current_;

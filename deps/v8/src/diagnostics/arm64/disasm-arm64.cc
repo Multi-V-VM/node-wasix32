@@ -1,3 +1,6 @@
+#ifdef __wasi__
+#define V8_TARGET_ARCH_WASM32 1
+#endif
 // Copyright 2013 the V8 project authors. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
@@ -4600,7 +4603,7 @@ const char* NameConverter::NameInCode(uint8_t* addr) const {
 
 class BufferDisassembler : public v8::internal::DisassemblingDecoder {
  public:
-  explicit BufferDisassembler(v8::base::Vector<char> out_buffer)
+  explicit BufferDisassembler(v8::Vector<char> out_buffer)
       : out_buffer_(out_buffer) {}
 
   ~BufferDisassembler() {}
@@ -4611,10 +4614,10 @@ class BufferDisassembler : public v8::internal::DisassemblingDecoder {
   }
 
  private:
-  v8::base::Vector<char> out_buffer_;
+  v8::Vector<char> out_buffer_;
 };
 
-int Disassembler::InstructionDecode(v8::base::Vector<char> buffer,
+int Disassembler::InstructionDecode(v8::Vector<char> buffer,
                                     uint8_t* instr) {
   USE(converter_);  // avoid unused field warning
   v8::internal::Decoder<v8::internal::DispatchingDecoderVisitor> decoder;

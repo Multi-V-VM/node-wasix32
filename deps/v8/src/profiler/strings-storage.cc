@@ -33,7 +33,7 @@ const char* StringsStorage::GetCopy(const char* src) {
   int len = static_cast<int>(strlen(src));
   base::HashMap::Entry* entry = GetEntry(src, len);
   if (entry->value == nullptr) {
-    base::Vector<char> dst = base::Vector<char>::New(len + 1);
+    ::v8::base::Vector<char> dst = ::v8::base::Vector<char>::New(len + 1);
     base::StrNCpy(dst, src, len);
     dst[len] = '\0';
     entry->key = dst.begin();
@@ -68,7 +68,7 @@ const char* StringsStorage::AddOrDisposeString(char* str, size_t len) {
 }
 
 const char* StringsStorage::GetVFormatted(const char* format, va_list args) {
-  base::Vector<char> str = base::Vector<char>::New(1024);
+  ::v8::base::Vector<char> str = ::v8::base::Vector<char>::New(1024);
   int len = base::VSNPrintF(str, format, args);
   if (len == -1) {
     DeleteArray(str.begin());

@@ -205,7 +205,7 @@ class V8_EXPORT_PRIVATE Factory : public FactoryBase<Factory> {
 
   // Finds the internalized copy for string in the string table.
   // If not found, a new string is added to the table and returned.
-  Handle<String> InternalizeUtf8String(base::Vector<const char> str);
+  Handle<String> InternalizeUtf8String(::v8::base::Vector<const char> str);
   Handle<String> InternalizeUtf8String(const char* str) {
     return InternalizeUtf8String(base::CStrVector(str));
   }
@@ -213,9 +213,9 @@ class V8_EXPORT_PRIVATE Factory : public FactoryBase<Factory> {
   // Import InternalizeString overloads from base class.
   using FactoryBase::InternalizeString;
 
-  Handle<String> InternalizeString(base::Vector<const char> str,
+  Handle<String> InternalizeString(::v8::base::Vector<const char> str,
                                    bool convert_encoding = false) {
-    return InternalizeString(base::Vector<const uint8_t>::cast(str),
+    return InternalizeString(::v8::base::Vector<const uint8_t>::cast(str),
                              convert_encoding);
   }
 
@@ -283,10 +283,10 @@ class V8_EXPORT_PRIVATE Factory : public FactoryBase<Factory> {
   // UTF8 strings are pretenured when used for regexp literal patterns and
   // flags in the parser.
   V8_WARN_UNUSED_RESULT MaybeHandle<String> NewStringFromUtf8(
-      base::Vector<const char> str,
+      ::v8::base::Vector<const char> str,
       AllocationType allocation = AllocationType::kYoung);
   V8_WARN_UNUSED_RESULT MaybeHandle<String> NewStringFromUtf8(
-      base::Vector<const uint8_t> str, unibrow::Utf8Variant utf8_variant,
+      ::v8::base::Vector<const uint8_t> str, unibrow::Utf8Variant utf8_variant,
       AllocationType allocation = AllocationType::kYoung);
 
 #if V8_ENABLE_WEBASSEMBLY
@@ -310,11 +310,11 @@ class V8_EXPORT_PRIVATE Factory : public FactoryBase<Factory> {
       AllocationType allocation = AllocationType::kYoung);
 
   V8_WARN_UNUSED_RESULT MaybeHandle<String> NewStringFromTwoByte(
-      base::Vector<const base::uc16> str,
+      ::v8::base::Vector<const base::uc16> str,
       AllocationType allocation = AllocationType::kYoung);
 
   V8_WARN_UNUSED_RESULT MaybeDirectHandle<String> NewStringFromTwoByte(
-      const ZoneVector<base::uc16>* str,
+      const ::v8::base::Vector<base::uc16>* str,
       AllocationType allocation = AllocationType::kYoung);
 
 #if V8_ENABLE_WEBASSEMBLY
@@ -322,7 +322,7 @@ class V8_EXPORT_PRIVATE Factory : public FactoryBase<Factory> {
   // WebAssembly linear memory, they are explicitly little-endian.
   V8_WARN_UNUSED_RESULT MaybeDirectHandle<String>
   NewStringFromTwoByteLittleEndian(
-      base::Vector<const base::uc16> str,
+      ::v8::base::Vector<const base::uc16> str,
       AllocationType allocation = AllocationType::kYoung);
 #endif  // V8_ENABLE_WEBASSEMBLY
 
@@ -794,7 +794,7 @@ class V8_EXPORT_PRIVATE Factory : public FactoryBase<Factory> {
                                        wasm::WasmValue initial_value,
                                        DirectHandle<Map> map);
   DirectHandle<WasmArray> NewWasmArrayFromElements(
-      const wasm::ArrayType* type, base::Vector<wasm::WasmValue> elements,
+      const wasm::ArrayType* type, ::v8::base::Vector<wasm::WasmValue> elements,
       DirectHandle<Map> map);
   DirectHandle<WasmArray> NewWasmArrayFromMemory(
       uint32_t length, DirectHandle<Map> map,
@@ -868,10 +868,10 @@ class V8_EXPORT_PRIVATE Factory : public FactoryBase<Factory> {
   // Allocates a bound function. If direct handles are enabled, it is the
   // responsibility of the caller to ensure that the memory pointed to by
   // `bound_args` is scanned during CSS, e.g., it comes from a
-  // `DirectHandleVector<Object>`.
+  // `DirectHandle<::v8::base::Vector<Object>`.
   MaybeDirectHandle<JSBoundFunction> NewJSBoundFunction(
       DirectHandle<JSReceiver> target_function, DirectHandle<JSAny> bound_this,
-      base::Vector<DirectHandle<Object>> bound_args,
+      ::v8::base::Vector<DirectHandle<Object>> bound_args,
       DirectHandle<JSPrototype> prototype);
 
   // Allocates a Harmony proxy.
@@ -926,7 +926,7 @@ class V8_EXPORT_PRIVATE Factory : public FactoryBase<Factory> {
 
   Handle<JSObject> NewError(DirectHandle<JSFunction> constructor,
                             MessageTemplate template_index,
-                            base::Vector<const DirectHandle<Object>> args);
+                            ::v8::base::Vector<const DirectHandle<Object>> args);
 
   DirectHandle<JSObject> NewSuppressedErrorAtDisposal(
       Isolate* isolate, DirectHandle<Object> error,
@@ -945,7 +945,7 @@ class V8_EXPORT_PRIVATE Factory : public FactoryBase<Factory> {
   // https://tc39.es/proposal-shadowrealm/#sec-create-type-error-copy
   DirectHandle<JSObject> ShadowRealmNewTypeErrorCopy(
       DirectHandle<Object> original, MessageTemplate template_index,
-      base::Vector<const DirectHandle<Object>> args);
+      ::v8::base::Vector<const DirectHandle<Object>> args);
 
   template <typename... Args>
   DirectHandle<JSObject> ShadowRealmNewTypeErrorCopy(
@@ -961,7 +961,7 @@ class V8_EXPORT_PRIVATE Factory : public FactoryBase<Factory> {
 
 #define DECLARE_ERROR(NAME)                                                  \
   Handle<JSObject> New##NAME(MessageTemplate template_index,                 \
-                             base::Vector<const DirectHandle<Object>> args); \
+                             ::v8::base::Vector<const DirectHandle<Object>> args); \
                                                                              \
   template <typename... Args>                                                \
     requires(std::is_convertible_v<Args, DirectHandle<Object>> && ...)       \

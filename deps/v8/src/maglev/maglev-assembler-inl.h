@@ -1,3 +1,6 @@
+#ifdef __wasi__
+#define V8_TARGET_ARCH_WASM32 1
+#endif
 // Copyright 2023 the V8 project authors. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
@@ -726,7 +729,7 @@ void MoveArgumentsForBuiltin(MaglevAssembler* masm, Args&&... args) {
 
   // Set the context last (to avoid clobbering).
   if constexpr (Descriptor::HasContextParameter()) {
-    auto&& context = std::get<0>(args_tuple);
+    auto&& context = ::std::get<0>(args_tuple);
     DCHECK(!ClobberedBy(written_registers, context));
     DCHECK(!ClobberedBy(written_double_registers, context));
     DCHECK(MachineTypeMatches(MachineType::AnyTagged(), context));

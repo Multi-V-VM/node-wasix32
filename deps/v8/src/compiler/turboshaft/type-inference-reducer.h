@@ -204,7 +204,7 @@ class TypeInferenceReducer
     // predecessors.
     {
       auto MergeTypes = [&](table_t::Key,
-                            base::Vector<const Type> predecessors) -> Type {
+                            ::v8::base::Vector<const Type> predecessors) -> Type {
         DCHECK_GT(predecessors.size(), 0);
         Type result_type = predecessors[0];
         for (size_t i = 1; i < predecessors.size(); ++i) {
@@ -294,7 +294,7 @@ class TypeInferenceReducer
     return index;
   }
 
-  OpIndex REDUCE(Phi)(base::Vector<const OpIndex> inputs,
+  OpIndex REDUCE(Phi)(::v8::base::Vector<const OpIndex> inputs,
                       RegisterRepresentation rep) {
     OpIndex index = Next::ReducePhi(inputs, rep);
     if (!NeedsTyping(index)) return index;
@@ -562,7 +562,7 @@ class TypeInferenceReducer
                                  std::nullopt, Asm().phase_zone()};
   // {predecessors_} is used during merging, but we use an instance variable for
   // it, in order to save memory and not reallocate it for each merge.
-  ZoneVector<table_t::Snapshot> predecessors_{Asm().phase_zone()};
+  ::v8::base::Vector<table_t::Snapshot> predecessors_{Asm().phase_zone()};
   TypeInferenceAnalysis analyzer_{Asm().modifiable_input_graph(),
                                   Asm().phase_zone()};
 };

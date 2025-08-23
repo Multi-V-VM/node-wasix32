@@ -171,7 +171,7 @@ class WasmGraphBuilder {
   // Operations that read and/or write {control} and {effect}.
   //-----------------------------------------------------------------------
 
-  Node* Return(base::Vector<Node*> nodes);
+  Node* Return(::v8::base::Vector<Node*> nodes);
   template <typename... Nodes>
   Node* Return(Node* fst, Nodes*... more) {
     Node* arr[] = {fst, more...};
@@ -216,12 +216,12 @@ class WasmGraphBuilder {
   Node* BuildSafeStore(int offset, wasm::ValueTypeBase type, Node* arg_buffer,
                        Node* value, Node* effect, Node* control);
 
-  Node* BuildCallNode(size_t param_count, base::Vector<Node*> args,
+  Node* BuildCallNode(size_t param_count, ::v8::base::Vector<Node*> args,
                       wasm::WasmCodePosition position, Node* instance_node,
                       const Operator* op, Node* frame_state = nullptr);
   template <typename T>
-  Node* BuildWasmCall(const Signature<T>* sig, base::Vector<Node*> args,
-                      base::Vector<Node*> rets, wasm::WasmCodePosition position,
+  Node* BuildWasmCall(const Signature<T>* sig, ::v8::base::Vector<Node*> args,
+                      ::v8::base::Vector<Node*> rets, wasm::WasmCodePosition position,
                       Node* implicit_first_arg, bool indirect,
                       Node* frame_state = nullptr);
 

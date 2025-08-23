@@ -474,6 +474,14 @@ constexpr intptr_t kIntptrSignBit =
 constexpr bool kPlatformRequiresCodeRange = true;
 #if V8_HOST_ARCH_PPC64 && V8_TARGET_ARCH_PPC64 && V8_OS_LINUX
 constexpr size_t kMaximalCodeRangeSize = 512 * MB;
+
+#ifndef V8_PTR_COMPR_CONSTANTS_DEFINED
+#define V8_PTR_COMPR_CONSTANTS_DEFINED
+// Missing pointer compression constants
+constexpr size_t kPtrComprCageReservationSize = 4ULL * GB;
+constexpr size_t kMaximalTrustedRangeSize = 256 * MB;
+#endif
+
 constexpr size_t kMinExpectedOSPageSize = 64 * KB;  // OS page on PPC Linux
 #elif V8_TARGET_ARCH_ARM64 || V8_TARGET_ARCH_LOONG64 || V8_TARGET_ARCH_RISCV64
 constexpr size_t kMaximalCodeRangeSize =
@@ -501,6 +509,11 @@ constexpr size_t kReservedCodeRangePages = 0;
 constexpr size_t kMaximalTrustedRangeSize = 1 * GB;
 constexpr size_t kMinimumTrustedRangeSize = 32 * MB;
 
+#ifndef V8_PTR_COMPR_CONSTANTS_DEFINED
+// Define missing constants for platforms that don't have them
+constexpr size_t kPtrComprCageReservationSize = 4ULL * GB;
+#endif
+
 #else  // V8_HOST_ARCH_64_BIT
 
 // kSystemPointerSizeLog2 already defined in v8-internal.h
@@ -522,6 +535,15 @@ constexpr size_t kMinimumCodeRangeSize = 0 * MB;
 constexpr size_t kMinExpectedOSPageSize = 4 * KB;  // OS page.
 #endif
 constexpr size_t kReservedCodeRangePages = 0;
+
+// Define missing constants for WASI and 32-bit builds
+#ifndef kPtrComprCageReservationSize
+constexpr size_t kPtrComprCageReservationSize = 4ULL * GB;
+#endif
+#ifndef kMaximalTrustedRangeSize
+constexpr size_t kMaximalTrustedRangeSize = 256 * MB;
+#endif
+
 #endif  // V8_HOST_ARCH_64_BIT
 
 static_assert(kSystemPointerSize == (1 << kSystemPointerSizeLog2));
@@ -2467,9 +2489,9 @@ enum class DefineKeyedOwnPropertyInLiteralFlag {
   kNoFlags = 0,
   kSetFunctionName = 1 << 0
 };
-using DefineKeyedOwnPropertyInLiteralFlags =
+// using DefineKeyedOwnPropertyInLiteralFlag =
     ::v8::base::Flags<DefineKeyedOwnPropertyInLiteralFlag>;
-DEFINE_OPERATORS_FOR_FLAGS(DefineKeyedOwnPropertyInLiteralFlags)
+// DEFINE_OPERATORS_FOR_FLAGS(DefineKeyedOwnPropertyInLiteralFlag)
 
 enum class DefineKeyedOwnPropertyFlag {
   kNoFlags = 0,
@@ -2943,8 +2965,16 @@ static constexpr SeqCstAccessTag kSeqCstAccess;
 
 static constexpr int kAdd_LhsIsStringConstant_Internalize_CacheSlotOffset = 1;
 
+#ifdef V8_TARGET_ARCH_WASM32
+// Define missing Smi constants for WASI
+constexpr int kSmiMinValue = -(1 << 30);
+constexpr int kSmiMaxValue = (1 << 30) - 1;
+#endif
+
 }  // namespace v8
 
 namespace i = v8::internal;
 
 #endif  // V8_COMMON_GLOBALS_H_
+
+

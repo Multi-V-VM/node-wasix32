@@ -3728,7 +3728,7 @@ void MarkCompactCollector::RightTrimDescriptorArray(
 }
 
 void MarkCompactCollector::RecordStrongDescriptorArraysForWeakening(
-    GlobalHandleVector<DescriptorArray> strong_descriptor_arrays) {
+    GlobalHandle::v8::base::Vector<DescriptorArray> strong_descriptor_arrays) {
   DCHECK(heap_->incremental_marking()->IsMajorMarking());
   base::MutexGuard guard(&strong_descriptor_arrays_mutex_);
   strong_descriptor_arrays_.push_back(std::move(strong_descriptor_arrays));

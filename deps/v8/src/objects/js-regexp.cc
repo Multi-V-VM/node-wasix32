@@ -196,7 +196,7 @@ int CountAdditionalEscapeChars(DirectHandle<String> source,
   int escapes = 0;
   bool needs_escapes = false;
   bool in_character_class = false;
-  base::Vector<const Char> src = source->GetCharVector<Char>(no_gc);
+  ::v8::base::Vector<const Char> src = source->GetChar::v8::base::Vector<Char>(no_gc);
   for (int i = 0; i < src.length(); i++) {
     const Char c = src[i];
     if (c == '\\') {
@@ -239,7 +239,7 @@ int CountAdditionalEscapeChars(DirectHandle<String> source,
 }
 
 template <typename Char>
-void WriteStringToCharVector(base::Vector<Char> v, int* d, const char* string) {
+void WriteStringToCharVector(::v8::base::Vector<Char> v, int* d, const char* string) {
   int s = 0;
   while (string[s] != '\0') v[(*d)++] = string[s++];
 }
@@ -248,8 +248,8 @@ template <typename Char, typename StringType>
 DirectHandle<StringType> WriteEscapedRegExpSource(
     DirectHandle<String> source, DirectHandle<StringType> result) {
   DisallowGarbageCollection no_gc;
-  base::Vector<const Char> src = source->GetCharVector<Char>(no_gc);
-  base::Vector<Char> dst(result->GetChars(no_gc), result->length());
+  ::v8::base::Vector<const Char> src = source->GetChar::v8::base::Vector<Char>(no_gc);
+  ::v8::base::Vector<Char> dst(result->GetChars(no_gc), result->length());
   int s = 0;
   int d = 0;
   bool in_character_class = false;

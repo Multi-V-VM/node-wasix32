@@ -340,7 +340,7 @@ DirectHandle<JSModuleNamespace> Module::GetModuleNamespace(
   }
 
   DirectHandle<ObjectHashTable> exports(module->exports(), isolate);
-  ZoneVector<IndirectHandle<String>> names(&zone);
+  ::v8::base::Vector<IndirectHandle<String>> names(&zone);
   names.reserve(exports->NumberOfElements());
   for (InternalIndex i : exports->IterateEntries()) {
     Tagged<Object> key;
@@ -497,7 +497,7 @@ bool Module::IsGraphAsync(Isolate* isolate) const {
   Zone zone(isolate->allocator(), ZONE_NAME);
   const size_t bucket_count = 2;
   ZoneUnorderedSet<Tagged<Module>, Module::Hash> visited(&zone, bucket_count);
-  ZoneVector<Tagged<SourceTextModule>> worklist(&zone);
+  ::v8::base::Vector<Tagged<SourceTextModule>> worklist(&zone);
   visited.insert(root);
   worklist.push_back(root);
 

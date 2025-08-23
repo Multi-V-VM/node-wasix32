@@ -16,24 +16,24 @@ namespace internal {
 // Classes which are internal to prepared-scope-data.cc, but are exposed in
 // a header for tests.
 
-// Wraps a ZoneVector<uint8_t> to have with functions named the same as
+// Wraps a ::v8::base::Vector<uint8_t> to have with functions named the same as
 // Tagged<PodArray<uint8_t>>.
 class ZoneVectorWrapper {
  public:
   class Inner {
    public:
     Inner() = default;
-    explicit Inner(ZoneVector<uint8_t>* data) : data_(data) {}
+    explicit Inner(::v8::base::Vector<uint8_t>* data) : data_(data) {}
 
     int data_length() const { return static_cast<int>(data_->size()); }
     uint8_t get(int index) const { return data_->at(index); }
 
    private:
-    ZoneVector<uint8_t>* data_ = nullptr;
+    ::v8::base::Vector<uint8_t>* data_ = nullptr;
   };
 
   ZoneVectorWrapper() = default;
-  explicit ZoneVectorWrapper(ZoneVector<uint8_t>* data) : inner_(data) {}
+  explicit ZoneVectorWrapper(::v8::base::Vector<uint8_t>* data) : inner_(data) {}
 
   const Inner* operator->() const { return &inner_; }
 
@@ -206,7 +206,7 @@ class OnHeapConsumedPreparseData final
 class ZonePreparseData : public ZoneObject {
  public:
   V8_EXPORT_PRIVATE ZonePreparseData(Zone* zone,
-                                     base::Vector<uint8_t>* byte_data,
+                                     ::v8::base::Vector<uint8_t>* byte_data,
                                      int child_length);
 
   ZonePreparseData(const ZonePreparseData&) = delete;
@@ -224,11 +224,11 @@ class ZonePreparseData : public ZoneObject {
     children_[index] = child;
   }
 
-  ZoneVector<uint8_t>* byte_data() { return &byte_data_; }
+  ::v8::base::Vector<uint8_t>* byte_data() { return &byte_data_; }
 
  private:
-  ZoneVector<uint8_t> byte_data_;
-  ZoneVector<ZonePreparseData*> children_;
+  ::v8::base::Vector<uint8_t> byte_data_;
+  ::v8::base::Vector<ZonePreparseData*> children_;
 };
 
 ZonePreparseData* PreparseDataBuilder::ByteData::CopyToZone(

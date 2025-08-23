@@ -17,6 +17,10 @@
 
 namespace v8::internal {
 
+// Forward declare missing types for WASI compatibility
+enum class TracedReferenceStoreMode { kDrop, kAssign };
+enum class TracedReferenceHandling { kDefault };
+
 class CppHeap;
 class Isolate;
 class TracedHandles;
@@ -91,7 +95,7 @@ class TracedNode final {
   void Release(Address zap_value);
 
  private:
-  using IsInUse = base::BitField8<bool, 0, 1>;
+  using IsInUse = ::v8::base::BitField8<bool, 0, 1>;
   using IsInYoungList = IsInUse::Next<bool, 1>;
   using IsWeak = IsInYoungList::Next<bool, 1>;
   using IsDroppable = IsWeak::Next<bool, 1>;
@@ -183,11 +187,11 @@ class TracedNodeBlock final {
   };
 
   using OverallList =
-      v8::base::DoublyThreadedList<TracedNodeBlock*, OverallListTraits>;
+      ::v8::base::DoublyThreadedList<TracedNodeBlock*, OverallListTraits>;
   using UsableList =
-      v8::base::DoublyThreadedList<TracedNodeBlock*, UsableListTraits>;
+      ::v8::base::DoublyThreadedList<TracedNodeBlock*, UsableListTraits>;
   using YoungList =
-      v8::base::DoublyThreadedList<TracedNodeBlock*, YoungListTraits>;
+      ::v8::base::DoublyThreadedList<TracedNodeBlock*, YoungListTraits>;
   using Iterator = NodeIteratorImpl;
 
 #if defined(V8_USE_ADDRESS_SANITIZER)

@@ -207,7 +207,7 @@ DirectHandle<DictionaryTemplateInfo> DictionaryTemplateInfo::Create(
   for (const std::string_view& name : names) {
     DirectHandle<String> internalized_name =
         isolate->factory()->InternalizeString(
-            base::Vector<const char>(name.data(), name.length()));
+            ::v8::base::Vector<const char>(name.data(), name.length()));
     // Check that property name cannot be used as index.
     CHECK(!internalized_name->AsArrayIndex(&unused_array_index));
     property_names->set(index, *internalized_name);
@@ -252,7 +252,7 @@ DirectHandle<JSObject> DictionaryTemplateInfo::NewInstance(
 
   const int property_names_len = property_names->length();
   CHECK_EQ(property_names_len, static_cast<int>(property_values.size()));
-  const int num_properties_set = static_cast<int>(std::count_if(
+  const int num_properties_set = static_cast<int>(::std::count_if(
       property_values.begin(), property_values.end(),
       [](const auto& maybe_value) { return !maybe_value.IsEmpty(); }));
 

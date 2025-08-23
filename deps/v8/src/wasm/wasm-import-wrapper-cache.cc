@@ -61,11 +61,11 @@ WasmCode* WasmImportWrapperCache::ModificationScope::AddWrapper(
   cache_->mutex_.AssertHeld();
   // Equivalent of NativeModule::AddCode().
   const CodeDesc& desc = result.code_desc;
-  base::Vector<uint8_t> code_space =
+  ::v8::base::Vector<uint8_t> code_space =
       cache_->code_allocator_->AllocateForWrapper(desc.instr_size);
 
   // Equivalent of NativeModule::AddCodeWithCodeSpace().
-  base::Vector<uint8_t> reloc_info{
+  ::v8::base::Vector<uint8_t> reloc_info{
       desc.buffer + desc.buffer_size - desc.reloc_size,
       static_cast<size_t>(desc.reloc_size)};
   // Contrary to the NativeModule, we don't track code size here, because we

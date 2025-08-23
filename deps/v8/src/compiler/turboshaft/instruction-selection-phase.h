@@ -71,11 +71,11 @@ class V8_EXPORT_PRIVATE TurboshaftSpecialRPONumberer {
   TurboshaftSpecialRPONumberer(const Graph& graph, Zone* zone)
       : graph_(&graph), block_data_(graph.block_count(), zone), loops_(zone) {}
 
-  ZoneVector<uint32_t> ComputeSpecialRPO();
+  ::v8::base::Vector<uint32_t> ComputeSpecialRPO();
 
  private:
-  void ComputeLoopInfo(size_t num_loops, ZoneVector<Backedge>& backedges);
-  ZoneVector<uint32_t> ComputeBlockPermutation(const Block* entry);
+  void ComputeLoopInfo(size_t num_loops, ::v8::base::Vector<Backedge>& backedges);
+  ::v8::base::Vector<uint32_t> ComputeBlockPermutation(const Block* entry);
 
   int32_t rpo_number(const Block* block) const {
     return block_data_[block->index()].rpo_number;
@@ -107,7 +107,7 @@ class V8_EXPORT_PRIVATE TurboshaftSpecialRPONumberer {
 
   const Graph* graph_;
   FixedBlockSidetable<BlockData> block_data_;
-  ZoneVector<LoopInfo> loops_;
+  ::v8::base::Vector<LoopInfo> loops_;
 };
 
 V8_EXPORT_PRIVATE void PropagateDeferred(Graph& graph);

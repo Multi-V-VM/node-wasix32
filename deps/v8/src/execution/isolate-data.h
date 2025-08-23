@@ -424,7 +424,7 @@ class IsolateData final {
 
   // Storage for is_profiling and should_check_side_effects booleans.
   // This value is checked on every API callback/getter call.
-  base::Flags<IsolateExecutionModeFlag, uint8_t, std::atomic<uint8_t>>
+  ::v8::base::Flags<IsolateExecutionModeFlag, uint8_t, std::atomic<uint8_t>>
       execution_mode_ = {IsolateExecutionModeFlag::kNoFlags};
   static_assert(sizeof(execution_mode_) == 1);
 

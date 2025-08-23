@@ -36,7 +36,7 @@ class V8_EXPORT_PRIVATE Typer {
   void Run();
   // TODO(bmeurer,jarin): Remove this once we have a notion of "roots" on
   // TFGraph.
-  void Run(const ZoneVector<Node*>& roots,
+  void Run(const ::v8::base::Vector<Node*>& roots,
            LoopVariableOptimizer* induction_vars);
 
  private:

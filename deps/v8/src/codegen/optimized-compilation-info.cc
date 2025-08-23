@@ -1,3 +1,6 @@
+#ifdef __wasi__
+#define V8_TARGET_ARCH_WASM32 1
+#endif
 // Copyright 2016 the V8 project authors. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
@@ -59,7 +62,7 @@ OptimizedCompilationInfo::OptimizedCompilationInfo(
 }
 
 OptimizedCompilationInfo::OptimizedCompilationInfo(
-    base::Vector<const char> debug_name, Zone* zone, CodeKind code_kind,
+    ::v8::base::Vector<const char> debug_name, Zone* zone, CodeKind code_kind,
     Builtin builtin)
     : isolate_unsafe_(nullptr),
       code_kind_(code_kind),
@@ -164,7 +167,7 @@ std::unique_ptr<char[]> OptimizedCompilationInfo::GetDebugName() const {
   if (!shared_info().is_null()) {
     return shared_info()->DebugNameCStr();
   }
-  base::Vector<const char> name_vec = debug_name_;
+  ::v8::base::Vector<const char> name_vec = debug_name_;
   if (name_vec.empty()) name_vec = base::ArrayVector("unknown");
   std::unique_ptr<char[]> name(new char[name_vec.length() + 1]);
   memcpy(name.get(), name_vec.begin(), name_vec.length());

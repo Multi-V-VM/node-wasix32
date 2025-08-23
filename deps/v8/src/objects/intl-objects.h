@@ -457,7 +457,7 @@ class Intl {
   // which the clock time roll back one (or two or six, in some Time Zone) hour:
   //    [offset_former, offset_later]
   // The unit of the return values in BigInt is nanosecond.
-  static DirectHandleVector<BigInt> GetTimeZonePossibleOffsetNanoseconds(
+  static DirectHandle<::v8::base::Vector<BigInt> GetTimeZonePossibleOffsetNanoseconds(
       Isolate* isolate, int32_t time_zone_index,
       DirectHandle<BigInt> nanosecond_epoch);
 

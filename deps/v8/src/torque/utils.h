@@ -531,7 +531,7 @@ std::vector<T> TransformVector(const std::vector<U>& v, F f) {
 }
 template <class T, class U>
 std::vector<T> TransformVector(const std::vector<U>& v) {
-  return TransformVector<T>(v, [](const U& x) -> T { return x; });
+  return Transform<T>(v, [](const U& x) -> T { return x; });
 }
 
 }  // namespace v8::internal::torque

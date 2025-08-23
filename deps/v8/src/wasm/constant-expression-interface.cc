@@ -230,9 +230,9 @@ void ConstantExpressionInterface::StringConst(FullDecoder* decoder,
 
   const wasm::WasmStringRefLiteral& literal =
       module_->stringref_literals[imm.index];
-  const base::Vector<const uint8_t> module_bytes =
+  const ::v8::base::Vector<const uint8_t> module_bytes =
       trusted_instance_data_->native_module()->wire_bytes();
-  const base::Vector<const uint8_t> string_bytes = module_bytes.SubVector(
+  const ::v8::base::Vector<const uint8_t> string_bytes = module_bytes.SubVector(
       literal.source.offset(), literal.source.end_offset());
   DirectHandle<String> string =
       isolate_->factory()
@@ -358,8 +358,8 @@ void ConstantExpressionInterface::ArrayNewFixed(
   DirectHandle<Map> rtt{
       Cast<Map>(data->managed_object_maps()->get(array_imm.index.index)),
       isolate_};
-  base::Vector<WasmValue> element_values =
-      decoder->zone_->AllocateVector<WasmValue>(length_imm.index);
+  ::v8::base::Vector<WasmValue> element_values =
+      decoder->zone_->Allocate::v8::base::Vector<WasmValue>(length_imm.index);
   for (size_t i = 0; i < length_imm.index; i++) {
     element_values[i] = elements[i].runtime_value;
   }

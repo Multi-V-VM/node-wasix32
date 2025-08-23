@@ -655,7 +655,6 @@ using ::std::atomic_fetch_and_explicit;
 using ::std::atomic_store_explicit;
 using ::std::atomic_load_explicit;
 using ::std::atomic_thread_fence;
-using ::std::memory_order_seq_cst;
 
 // Stream manipulators
 using ::std::setprecision;

@@ -106,7 +106,7 @@ class V8_EXPORT_PRIVATE AsmCallableType : public NON_EXPORTED_BASE(ZoneObject) {
   virtual std::string Name() = 0;
 
   virtual bool CanBeInvokedWith(AsmType* return_type,
-                                const ZoneVector<AsmType*>& args) = 0;
+                                const ::v8::base::Vector<AsmType*>& args) = 0;
 
 #define DECLARE_CAST(CamelName) \
   virtual Asm##CamelName* As##CamelName() { return nullptr; }
@@ -130,11 +130,11 @@ class V8_EXPORT_PRIVATE AsmFunctionType final : public AsmCallableType {
   AsmFunctionType* AsFunctionType() final { return this; }
 
   void AddArgument(AsmType* type) { args_.push_back(type); }
-  const ZoneVector<AsmType*>& Arguments() const { return args_; }
+  const ::v8::base::Vector<AsmType*>& Arguments() const { return args_; }
   AsmType* ReturnType() const { return return_type_; }
 
   bool CanBeInvokedWith(AsmType* return_type,
-                        const ZoneVector<AsmType*>& args) override;
+                        const ::v8::base::Vector<AsmType*>& args) override;
 
  protected:
   AsmFunctionType(Zone* zone, AsmType* return_type)
@@ -148,7 +148,7 @@ class V8_EXPORT_PRIVATE AsmFunctionType final : public AsmCallableType {
   bool IsA(AsmType* other) override;
 
   AsmType* return_type_;
-  ZoneVector<AsmType*> args_;
+  ::v8::base::Vector<AsmType*> args_;
 };
 
 class V8_EXPORT_PRIVATE AsmOverloadedFunctionType final
@@ -168,9 +168,9 @@ class V8_EXPORT_PRIVATE AsmOverloadedFunctionType final
 
   std::string Name() override;
   bool CanBeInvokedWith(AsmType* return_type,
-                        const ZoneVector<AsmType*>& args) override;
+                        const ::v8::base::Vector<AsmType*>& args) override;
 
-  ZoneVector<AsmType*> overloads_;
+  ::v8::base::Vector<AsmType*> overloads_;
 
   DISALLOW_IMPLICIT_CONSTRUCTORS(AsmOverloadedFunctionType);
 };

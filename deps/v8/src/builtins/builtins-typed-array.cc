@@ -880,13 +880,13 @@ BUILTIN(Uint8ArrayFromHex) {
     String::FlatContent input_content = input_string->GetFlatContent(no_gc);
 
       if (input_content.IsOneByte()) {
-        base::Vector<const uint8_t> input_vector =
+        ::v8::base::Vector<const uint8_t> input_vector =
             input_content.ToOneByteVector();
         result = ArrayBufferFromHex(
             input_vector, static_cast<uint8_t*>(buffer->backing_store()),
             output_length);
       } else {
-        base::Vector<const base::uc16> input_vector =
+        ::v8::base::Vector<const base::uc16> input_vector =
             input_content.ToUC16Vector();
         result = ArrayBufferFromHex(
             input_vector, static_cast<uint8_t*>(buffer->backing_store()),
@@ -977,13 +977,13 @@ BUILTIN(Uint8ArrayPrototypeSetFromHex) {
     String::FlatContent input_content = input_string->GetFlatContent(no_gc);
 
     if (input_content.IsOneByte()) {
-      base::Vector<const uint8_t> input_vector =
+      ::v8::base::Vector<const uint8_t> input_vector =
           input_content.ToOneByteVector();
       result = ArrayBufferFromHex(input_vector,
                                   static_cast<uint8_t*>(uint8array->DataPtr()),
                                   output_length);
     } else {
-      base::Vector<const base::uc16> input_vector =
+      ::v8::base::Vector<const base::uc16> input_vector =
           input_content.ToUC16Vector();
       result = ArrayBufferFromHex(input_vector,
                                   static_cast<uint8_t*>(uint8array->DataPtr()),

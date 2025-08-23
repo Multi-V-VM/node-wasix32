@@ -24,8 +24,8 @@ class V8_BASE_EXPORT Bignum {
   void AssignUInt64(uint64_t value);
   void AssignBignum(const Bignum& other);
 
-  void AssignDecimalString(Vector<const char> value);
-  void AssignHexString(Vector<const char> value);
+  void AssignDecimalString(::v8::base::Vector<const char> value);
+  void AssignHexString(::v8::base::Vector<const char> value);
 
   void AssignPowerUInt16(uint16_t base, int exponent);
 
@@ -109,7 +109,7 @@ class V8_BASE_EXPORT Bignum {
   Chunk bigits_buffer_[kBigitCapacity];
   // A vector backed by bigits_buffer_. This way accesses to the array are
   // checked for out-of-bounds errors.
-  Vector<Chunk> bigits_;
+  ::v8::base::Vector<Chunk> bigits_;
   int used_digits_;
   // The Bignum's value equals value(bigits_) * 2^(exponent_ * kBigitSize).
   int exponent_;

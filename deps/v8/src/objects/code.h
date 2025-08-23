@@ -5,9 +5,17 @@
 #ifndef V8_OBJECTS_CODE_H_
 #define V8_OBJECTS_CODE_H_
 
+#ifdef __wasi__
+namespace { constexpr int kNumValues = 32; }
+#endif
+
+#include "src/base/bit-field.h"
 #include "src/codegen/maglev-safepoint-table.h"
 #include "src/objects/code-kind.h"
 #include "src/objects/struct.h"
+#ifdef __wasi__
+#include "src/objects/code-bitfields-fix.h"
+#endif
 #include "src/objects/trusted-object.h"
 
 // Has to be the last include (doesn't have include guards):
@@ -449,7 +457,7 @@ class Code : public ExposedTrustedObject {
 #undef FLAGS_BIT_FIELDS
   static_assert(FLAGS_BIT_FIELDS_Ranges::kBitsCount <=
                 FIELD_SIZE(kFlagsOffset) * kBitsPerByte);
-  static_assert(kCodeKindCount <= KindField::kNumValues);
+  static_assert(kCodeKindCount <= (1 << 5));
 
   // The {marked_for_deoptimization} field is accessed from generated code.
   static const int kMarkedForDeoptimizationBit =

@@ -85,8 +85,8 @@ static bool IsControlChar(char c) {
   }
 }
 
-void StringStream::Add(base::Vector<const char> format,
-                       base::Vector<FmtElm> elms) {
+void StringStream::Add(::v8::base::Vector<const char> format,
+                       ::v8::base::Vector<FmtElm> elms) {
   // If we already ran out of space then return immediately.
   if (full()) return;
   int offset = 0;
@@ -98,7 +98,7 @@ void StringStream::Add(base::Vector<const char> format,
       continue;
     }
     // Read this formatting directive into a temporary buffer
-    base::EmbeddedVector<char, 24> temp;
+    base::Embedded::v8::base::Vector<char, 24> temp;
     int format_length = 0;
     // Skip over the whole control character sequence until the
     // format element type
@@ -120,7 +120,7 @@ void StringStream::Add(base::Vector<const char> format,
       }
       case 'w': {
         DCHECK_EQ(FmtElm::LC_STR, current.type_);
-        base::Vector<const base::uc16> value = *current.data_.u_lc_str_;
+        ::v8::base::Vector<const base::uc16> value = *current.data_.u_lc_str_;
         for (int i = 0; i < value.length(); i++)
           Put(static_cast<char>(value[i]));
         break;
@@ -150,9 +150,9 @@ void StringStream::Add(base::Vector<const char> format,
       case 'c':
       case 'X': {
         int value = current.data_.u_int_;
-        base::EmbeddedVector<char, 24> formatted;
+        base::Embedded::v8::base::Vector<char, 24> formatted;
         int length = SNPrintF(formatted, temp.begin(), value);
-        Add(base::Vector<const char>(formatted.begin(), length));
+        Add(::v8::base::Vector<const char>(formatted.begin(), length));
         break;
       }
       case 'f':
@@ -169,7 +169,7 @@ void StringStream::Add(base::Vector<const char> format,
         } else if (std::isnan(value)) {
           Add("nan");
         } else {
-          base::EmbeddedVector<char, 28> formatted;
+          base::Embedded::v8::base::Vector<char, 28> formatted;
           SNPrintF(formatted, temp.begin(), value);
           Add(formatted.begin());
         }
@@ -177,7 +177,7 @@ void StringStream::Add(base::Vector<const char> format,
       }
       case 'p': {
         void* value = current.data_.u_pointer_;
-        base::EmbeddedVector<char, 20> formatted;
+        base::Embedded::v8::base::Vector<char, 20> formatted;
         SNPrintF(formatted, temp.begin(), value);
         Add(formatted.begin());
         break;
@@ -249,7 +249,7 @@ void StringStream::OutputToFile(FILE* out) {
 
 DirectHandle<String> StringStream::ToString(Isolate* isolate) {
   return isolate->factory()
-      ->NewStringFromUtf8(base::Vector<const char>(buffer_, length_))
+      ->NewStringFromUtf8(::v8::base::Vector<const char>(buffer_, length_))
       .ToHandleChecked();
 }
 

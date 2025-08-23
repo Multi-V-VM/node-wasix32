@@ -341,7 +341,7 @@ void WasmFunctionBuilder::EmitFromInitializerExpression(
   WriteInitializerExpression(&body_, init_expr);
 }
 
-void WasmFunctionBuilder::SetName(base::Vector<const char> name) {
+void WasmFunctionBuilder::SetName(::v8::base::Vector<const char> name) {
   name_ = name;
 }
 
@@ -464,8 +464,8 @@ WasmFunctionBuilder* WasmModuleBuilder::AddFunction(ModuleTypeIndex sig_index) {
 
 void WasmModuleBuilder::AddDataSegment(const uint8_t* data, uint32_t size,
                                        uint32_t dest) {
-  data_segments_.push_back({.data = ZoneVector<uint8_t>(zone()), .dest = dest});
-  ZoneVector<uint8_t>& vec = data_segments_.back().data;
+  data_segments_.push_back({.data = ::v8::base::Vector<uint8_t>(zone()), .dest = dest});
+  ::v8::base::Vector<uint8_t>& vec = data_segments_.back().data;
   for (uint32_t i = 0; i < size; i++) {
     vec.push_back(data[i]);
   }
@@ -474,8 +474,8 @@ void WasmModuleBuilder::AddDataSegment(const uint8_t* data, uint32_t size,
 void WasmModuleBuilder::AddPassiveDataSegment(const uint8_t* data,
                                               uint32_t size) {
   data_segments_.push_back(
-      {.data = ZoneVector<uint8_t>(zone()), .dest = 0, .is_active = false});
-  ZoneVector<uint8_t>& vec = data_segments_.back().data;
+      {.data = ::v8::base::Vector<uint8_t>(zone()), .dest = 0, .is_active = false});
+  ::v8::base::Vector<uint8_t>& vec = data_segments_.back().data;
   for (uint32_t i = 0; i < size; i++) {
     vec.push_back(data[i]);
   }
@@ -604,18 +604,18 @@ void WasmModuleBuilder::SetIndirectFunction(
   AddElementSegment(std::move(segment));
 }
 
-uint32_t WasmModuleBuilder::AddImport(base::Vector<const char> name,
+uint32_t WasmModuleBuilder::AddImport(::v8::base::Vector<const char> name,
                                       const FunctionSig* sig,
-                                      base::Vector<const char> module) {
+                                      ::v8::base::Vector<const char> module) {
   DCHECK(adding_imports_allowed_);
   function_imports_.push_back(
       {.module = module, .name = name, .sig_index = AddSignature(sig, true)});
   return static_cast<uint32_t>(function_imports_.size() - 1);
 }
 
-uint32_t WasmModuleBuilder::AddGlobalImport(base::Vector<const char> name,
+uint32_t WasmModuleBuilder::AddGlobalImport(::v8::base::Vector<const char> name,
                                             ValueType type, bool mutability,
-                                            base::Vector<const char> module) {
+                                            ::v8::base::Vector<const char> module) {
   global_imports_.push_back({.module = module,
                              .name = name,
                              .type_code = type.value_type_code(),
@@ -627,7 +627,7 @@ void WasmModuleBuilder::MarkStartFunction(WasmFunctionBuilder* function) {
   start_function_index_ = function->func_index();
 }
 
-void WasmModuleBuilder::AddExport(base::Vector<const char> name,
+void WasmModuleBuilder::AddExport(::v8::base::Vector<const char> name,
                                   ImportExportKindCode kind, uint32_t index) {
   DCHECK_LE(index, std::numeric_limits<int>::max());
   exports_.push_back(
@@ -636,13 +636,13 @@ void WasmModuleBuilder::AddExport(base::Vector<const char> name,
 
 uint32_t WasmModuleBuilder::AddExportedGlobal(ValueType type, bool mutability,
                                               WasmInitExpr init,
-                                              base::Vector<const char> name) {
+                                              ::v8::base::Vector<const char> name) {
   uint32_t index = AddGlobal(type, mutability, init);
   AddExport(name, kExternalGlobal, index);
   return index;
 }
 
-void WasmModuleBuilder::ExportImportedFunction(base::Vector<const char> name,
+void WasmModuleBuilder::ExportImportedFunction(::v8::base::Vector<const char> name,
                                                int import_index) {
 #if DEBUG
   // The size of function_imports_ must not change any more.

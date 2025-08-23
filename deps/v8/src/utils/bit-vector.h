@@ -23,7 +23,7 @@ class V8_EXPORT_PRIVATE BitVector : public ZoneObject {
       if (bit_in_word < kDataBits - 1) {
         uintptr_t remaining_bits = *ptr_ >> (bit_in_word + 1);
         if (remaining_bits) {
-          int next_bit_in_word = base::bits::CountTrailingZeros(remaining_bits);
+          int next_bit_in_word = ::v8::base::bits::CountTrailingZeros(static_cast<uint64_t>(remaining_bits));
           current_index_ += next_bit_in_word + 1;
           return;
         }
@@ -38,7 +38,7 @@ class V8_EXPORT_PRIVATE BitVector : public ZoneObject {
         if (ptr_ == end_) return;
       } while (*ptr_ == 0);
 
-      uintptr_t trailing_zeros = base::bits::CountTrailingZeros(*ptr_);
+      uintptr_t trailing_zeros = ::v8::base::bits::CountTrailingZeros(static_cast<uint64_t>(*ptr_));
       current_index_ += trailing_zeros;
     }
 
@@ -78,7 +78,7 @@ class V8_EXPORT_PRIVATE BitVector : public ZoneObject {
         current_index_ += kDataBits;
         if (ptr_ == end_) return;
       }
-      current_index_ += base::bits::CountTrailingZeros(*ptr_);
+      current_index_ += ::v8::base::bits::CountTrailingZeros(static_cast<uint64_t>(*ptr_));
     }
 
     explicit Iterator(const BitVector* target, EndTag)
@@ -332,7 +332,7 @@ class GrowableBitVector {
     // Ensure that {RoundUpToPowerOfTwo32} does not overflow {int} range.
     CHECK_GE(kMaxSupportedValue, needed_value);
     int new_length = std::max(
-        kInitialLength, static_cast<int>(base::bits::RoundUpToPowerOfTwo32(
+        kInitialLength, static_cast<int>(::v8::base::bits::RoundUpToPowerOfTwo32(
                             static_cast<uint32_t>(needed_value + 1))));
     bits_.Resize(new_length, zone);
   }

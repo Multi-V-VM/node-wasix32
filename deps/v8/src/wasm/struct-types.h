@@ -45,10 +45,10 @@ class StructTypeBase : public ZoneObject {
   }
 
   // Iteration support.
-  base::iterator_range<const ValueTypeBase*> fields() const {
+  ::v8::base::iterator_range<const ValueTypeBase*> fields() const {
     return {reps_, reps_ + field_count_};
   }
-  base::iterator_range<const bool*> mutabilities() const {
+  ::v8::base::iterator_range<const bool*> mutabilities() const {
     return {mutabilities_, mutabilities_ + field_count_};
   }
 
@@ -247,7 +247,7 @@ class StructType : public StructTypeBase {
     return ValueType{StructTypeBase::field(index)};
   }
 
-  base::iterator_range<const ValueType*> fields() const {
+  ::v8::base::iterator_range<const ValueType*> fields() const {
     const ValueType* cast_reps = static_cast<const ValueType*>(reps_);
     return {cast_reps, cast_reps + field_count_};
   }
@@ -279,7 +279,7 @@ class CanonicalStructType : public StructTypeBase {
                       other.mutabilities().begin());
   }
 
-  base::iterator_range<const CanonicalValueType*> fields() const {
+  ::v8::base::iterator_range<const CanonicalValueType*> fields() const {
     const CanonicalValueType* cast_reps =
         static_cast<const CanonicalValueType*>(reps_);
     return {cast_reps, cast_reps + field_count_};

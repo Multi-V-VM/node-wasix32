@@ -28,7 +28,7 @@ class V8_EXPORT_PRIVATE OFStreamBase : public std::streambuf {
 
   int sync() override;
   int_type overflow(int_type c) override;
-  std::streamsize xsputn(const char* s, std::streamsize n) override;
+  streamsize xsputn(const char* s, streamsize n) override;
 };
 
 // Output buffer and stream writing into debugger's command window.
@@ -69,7 +69,7 @@ class V8_EXPORT_PRIVATE AndroidLogStream : public std::streambuf {
   virtual ~AndroidLogStream();
 
  protected:
-  std::streamsize xsputn(const char* s, std::streamsize n) override;
+  streamsize xsputn(const char* s, streamsize n) override;
 
  private:
   std::string line_buffer_;
@@ -82,10 +82,10 @@ class StdoutStream : public std::ostream {
  private:
   friend class StderrStream;
 
-  static V8_EXPORT_PRIVATE base::RecursiveMutex* GetStdoutMutex();
+  static V8_EXPORT_PRIVATE RecursiveMutex* GetStdoutMutex();
 
   AndroidLogStream stream_;
-  base::RecursiveMutexGuard mutex_guard_{GetStdoutMutex()};
+  ::v8::base::RecursiveMutexGuard mutex_guard_{GetStdoutMutex()};
 };
 #else
 class StdoutStream : public OFStream {
@@ -94,7 +94,7 @@ class StdoutStream : public OFStream {
 
  private:
   friend class StderrStream;
-  static V8_EXPORT_PRIVATE base::RecursiveMutex* GetStdoutMutex();
+  static V8_EXPORT_PRIVATE RecursiveMutex* GetStdoutMutex();
 
   ::v8::base::RecursiveMutexGuard mutex_guard_{GetStdoutMutex()};
 };
@@ -105,7 +105,7 @@ class StderrStream : public OFStream {
   StderrStream() : OFStream(stderr) {}
 
  private:
-  base::RecursiveMutexGuard mutex_guard_{StdoutStream::GetStdoutMutex()};
+  ::v8::base::RecursiveMutexGuard mutex_guard_{StdoutStream::GetStdoutMutex()};
 };
 
 // Wrappers to disambiguate uint16_t and base::uc16.
@@ -184,7 +184,7 @@ struct PrintIteratorRange {
 // {const T&}. This function is only instantiable if that type exists.
 template <typename T>
 auto PrintCollection(const T& collection) -> PrintIteratorRange<
-    typename std::common_type<decltype(std::begin(collection)),
+    typename common_type<decltype(std::begin(collection)),
                               decltype(std::end(collection))>::type> {
   return {std::begin(collection), std::end(collection)};
 }

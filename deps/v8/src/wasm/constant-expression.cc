@@ -1,4 +1,7 @@
 // Copyright 2022 the V8 project authors. All rights reserved.
+#ifdef __wasi__
+#include "src/wasm/wasm-features-fix.h"
+#endif
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
@@ -56,7 +59,7 @@ ValueOrError EvaluateConstantExpression(
     case ConstantExpression::Kind::kWireBytesRef: {
       WireBytesRef ref = expr.wire_bytes_ref();
 
-      base::Vector<const uint8_t> module_bytes =
+      ::v8::base::Vector<const uint8_t> module_bytes =
           trusted_instance_data->native_module()->wire_bytes();
 
       const uint8_t* start = module_bytes.begin() + ref.offset();

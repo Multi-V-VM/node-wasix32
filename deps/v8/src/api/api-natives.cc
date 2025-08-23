@@ -459,7 +459,7 @@ MaybeHandle<JSFunction> InstantiateFunction(
 
 void AddPropertyToPropertyList(Isolate* isolate,
                                DirectHandle<TemplateInfoWithProperties> info,
-                               base::Vector<DirectHandle<Object>> data) {
+                               ::v8::base::Vector<DirectHandle<Object>> data) {
   Tagged<Object> maybe_list = info->property_list();
   DirectHandle<ArrayList> list;
   if (IsUndefined(maybe_list, isolate)) {

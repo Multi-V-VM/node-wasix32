@@ -70,7 +70,7 @@ String16::String16(std::basic_string<UChar>&& impl) : m_impl(impl) {}
 // static
 String16 String16::fromInteger(int number) {
   char arr[50];
-  v8::base::Vector<char> buffer = ::v8::base::ArrayVector(arr);
+  ::v8::base::Vector<char> buffer = ::v8::base::ArrayVector(arr);
   std::string_view str = v8::internal::IntToStringView(number, buffer);
   return String16(str);
 }
@@ -97,7 +97,7 @@ String16 String16::fromInteger64(int64_t number) {
 // static
 String16 String16::fromDouble(double number) {
   char arr[50];
-  v8::base::Vector<char> buffer = ::v8::base::ArrayVector(arr);
+  ::v8::base::Vector<char> buffer = ::v8::base::ArrayVector(arr);
   std::string_view str = v8::internal::DoubleToStringView(number, buffer);
   return String16(str);
 }
@@ -105,7 +105,7 @@ String16 String16::fromDouble(double number) {
 // static
 String16 String16::fromDouble(double number, int precision) {
   char arr[v8::internal::kDoubleToPrecisionMaxChars];
-  v8::base::Vector<char> buffer = ::v8::base::ArrayVector(arr);
+  ::v8::base::Vector<char> buffer = ::v8::base::ArrayVector(arr);
   std::string_view str =
       v8::internal::DoubleToPrecisionStringView(number, precision, buffer);
   return String16(str);

@@ -28,7 +28,7 @@ class MaglevCodeGenerator final {
 
   MaybeHandle<Code> Generate(Isolate* isolate);
 
-  GlobalHandleVector<Map> RetainedMaps(Isolate* isolate);
+  GlobalHandle::v8::base::Vector<Map> RetainedMaps(Isolate* isolate);
 
  private:
   V8_NODISCARD bool EmitCode();
@@ -38,7 +38,7 @@ class MaglevCodeGenerator final {
   void EmitMetadata();
   void RecordInlinedFunctions();
 
-  GlobalHandleVector<Map> CollectRetainedMaps(DirectHandle<Code> code);
+  GlobalHandle::v8::base::Vector<Map> CollectRetainedMaps(DirectHandle<Code> code);
   Handle<DeoptimizationData> GenerateDeoptimizationData(
       LocalIsolate* local_isolate);
   MaybeHandle<Code> BuildCodeObject(LocalIsolate* local_isolate);
@@ -68,7 +68,7 @@ class MaglevCodeGenerator final {
 
   IndirectHandle<DeoptimizationData> deopt_data_;
   MaybeIndirectHandle<Code> code_;
-  GlobalHandleVector<Map> retained_maps_;
+  GlobalHandle::v8::base::Vector<Map> retained_maps_;
   bool is_context_specialized_;
   Zone* zone_;
 };

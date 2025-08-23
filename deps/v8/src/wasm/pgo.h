@@ -28,10 +28,10 @@ class ProfileInformation {
   ProfileInformation(const ProfileInformation&) = delete;
   ProfileInformation& operator=(const ProfileInformation&) = delete;
 
-  base::Vector<const uint32_t> executed_functions() const {
+  ::v8::base::Vector<const uint32_t> executed_functions() const {
     return base::VectorOf(executed_functions_);
   }
-  base::Vector<const uint32_t> tiered_up_functions() const {
+  ::v8::base::Vector<const uint32_t> tiered_up_functions() const {
     return base::VectorOf(tiered_up_functions_);
   }
 
@@ -41,11 +41,11 @@ class ProfileInformation {
 };
 
 void DumpProfileToFile(const WasmModule* module,
-                       base::Vector<const uint8_t> wire_bytes,
+                       ::v8::base::Vector<const uint8_t> wire_bytes,
                        std::atomic<uint32_t>* tiering_budget_array);
 
 V8_WARN_UNUSED_RESULT std::unique_ptr<ProfileInformation> LoadProfileFromFile(
-    const WasmModule* module, base::Vector<const uint8_t> wire_bytes);
+    const WasmModule* module, ::v8::base::Vector<const uint8_t> wire_bytes);
 
 }  // namespace v8::internal::wasm
 

@@ -61,7 +61,7 @@ class NodeAuxData {
 
  private:
   Zone* zone_;
-  ZoneVector<T> aux_data_;
+  ::v8::base::Vector<T> aux_data_;
 };
 
 template <class T, T def(Zone*)>
@@ -73,7 +73,7 @@ class NodeAuxData<T, def>::const_iterator {
   using pointer = value_type*;
   using reference = value_type&;
 
-  const_iterator(const ZoneVector<T>* data, size_t current)
+  const_iterator(const ::v8::base::Vector<T>* data, size_t current)
       : data_(data), current_(current) {}
   const_iterator(const const_iterator& other)
       : data_(other.data_), current_(other.current_) {}
@@ -94,7 +94,7 @@ class NodeAuxData<T, def>::const_iterator {
   const_iterator operator++(int);
 
  private:
-  const ZoneVector<T>* data_;
+  const ::v8::base::Vector<T>* data_;
   size_t current_;
 };
 

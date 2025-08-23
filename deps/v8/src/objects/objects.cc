@@ -4511,7 +4511,7 @@ void Script::TraceScriptRundownSources() {
 namespace {
 
 template <typename Char>
-bool GetPositionInfoSlowImpl(base::Vector<Char> source, int position,
+bool GetPositionInfoSlowImpl(::v8::base::Vector<Char> source, int position,
                              Script::PositionInfo* info) {
   DCHECK(DisallowPositionInfoSlow::IsAllowed());
   if (position < 0) {

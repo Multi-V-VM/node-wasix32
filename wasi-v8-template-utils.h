@@ -41,60 +41,63 @@ template <typename T, typename... Ts>
 inline constexpr size_t index_of_type_v = index_of_type<T, Ts...>::value;
 
 // Flags template for bit manipulation
-template <typename T>
-class Flags {
- public:
-  using flag_type = T;
-  using mask_type = T;
-  
-  constexpr Flags() : value_(0) {}
-  constexpr explicit Flags(T value) : value_(value) {}
-  
-  constexpr T value() const { return value_; }
-  constexpr operator T() const { return value_; }
-  
-  constexpr Flags operator|(Flags other) const {
-    return Flags(value_ | other.value_);
-  }
-  
-  constexpr Flags operator&(Flags other) const {
-    return Flags(value_ & other.value_);
-  }
-  
-  constexpr Flags operator^(Flags other) const {
-    return Flags(value_ ^ other.value_);
-  }
-  
-  constexpr Flags operator~() const {
-    return Flags(~value_);
-  }
-  
-  constexpr Flags& operator|=(Flags other) {
-    value_ |= other.value_;
-    return *this;
-  }
-  
-  constexpr Flags& operator&=(Flags other) {
-    value_ &= other.value_;
-    return *this;
-  }
-  
-  constexpr Flags& operator^=(Flags other) {
-    value_ ^= other.value_;
-    return *this;
-  }
-  
-  constexpr bool operator==(Flags other) const {
-    return value_ == other.value_;
-  }
-  
-  constexpr bool operator!=(Flags other) const {
-    return value_ != other.value_;
-  }
-  
- private:
-  T value_;
-};
+// Match the signature used in v8/src/base/flags.h
+template <typename EnumT, typename BitfieldT = int,
+          typename BitfieldStorageT = BitfieldT>
+// class Flags {
+//  public:
+//   using flag_type = EnumT;
+//   using mask_type = BitfieldT;
+//   
+//   constexpr Flags() : value_(0) {}
+//   constexpr explicit Flags(EnumT value) : value_(static_cast<BitfieldT>(value)) {}
+//   constexpr explicit Flags(BitfieldT value) : value_(value) {}
+//   
+//   constexpr BitfieldT value() const { return value_; }
+//   constexpr operator BitfieldT() const { return value_; }
+//   
+//   constexpr Flags operator|(Flags other) const {
+//     return Flags(value_ | other.value_);
+//   }
+//   
+//   constexpr Flags operator&(Flags other) const {
+//     return Flags(value_ & other.value_);
+//   }
+//   
+//   constexpr Flags operator^(Flags other) const {
+//     return Flags(value_ ^ other.value_);
+//   }
+//   
+//   constexpr Flags operator~() const {
+//     return Flags(~value_);
+//   }
+//   
+//   constexpr Flags& operator|=(Flags other) {
+//     value_ |= other.value_;
+//     return *this;
+//   }
+//   
+//   constexpr Flags& operator&=(Flags other) {
+//     value_ &= other.value_;
+//     return *this;
+//   }
+//   
+//   constexpr Flags& operator^=(Flags other) {
+//     value_ ^= other.value_;
+//     return *this;
+//   }
+//   
+//   constexpr bool operator==(Flags other) const {
+//     return value_ == other.value_;
+//   }
+//   
+//   constexpr bool operator!=(Flags other) const {
+//     return value_ != other.value_;
+//   }
+//   
+//  private:
+//   BitfieldT value_;
+// };
 
 }  // namespace base
 }  // namespace v8

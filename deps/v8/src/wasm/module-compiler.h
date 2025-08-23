@@ -56,11 +56,11 @@ std::shared_ptr<NativeModule> CompileToNativeModule(
     Isolate* isolate, WasmEnabledFeatures enabled_features,
     WasmDetectedFeatures detected_features, CompileTimeImports compile_imports,
     ErrorThrower* thrower, std::shared_ptr<const WasmModule> module,
-    base::OwnedVector<const uint8_t> wire_bytes, int compilation_id,
+    base::Owned::v8::base::Vector<const uint8_t> wire_bytes, int compilation_id,
     v8::metrics::Recorder::ContextId context_id, ProfileInformation* pgo_info);
 
 V8_EXPORT_PRIVATE WasmError ValidateAndSetBuiltinImports(
-    const WasmModule* module, base::Vector<const uint8_t> wire_bytes,
+    const WasmModule* module, ::v8::base::Vector<const uint8_t> wire_bytes,
     const CompileTimeImports& imports, WasmDetectedFeatures* detected);
 
 // Compiles the wrapper for this (kind, sig) pair and sets the corresponding
@@ -116,7 +116,7 @@ class AsyncCompileJob {
  public:
   AsyncCompileJob(Isolate* isolate, WasmEnabledFeatures enabled_features,
                   CompileTimeImports compile_imports,
-                  base::OwnedVector<const uint8_t> bytes,
+                  base::Owned::v8::base::Vector<const uint8_t> bytes,
                   DirectHandle<Context> context,
                   DirectHandle<NativeContext> incumbent_context,
                   const char* api_method_name,
@@ -227,7 +227,7 @@ class AsyncCompileJob {
   base::TimeTicks start_time_;
   // Copy of the module wire bytes, moved into the {native_module_} on its
   // creation.
-  base::OwnedVector<const uint8_t> bytes_copy_;
+  base::Owned::v8::base::Vector<const uint8_t> bytes_copy_;
   // Reference to the wire bytes (held in {bytes_copy_} or as part of
   // {native_module_}).
   ModuleWireBytes wire_bytes_;

@@ -2370,7 +2370,7 @@ void InstructionSelectorT::EmitMoveFPRToParam(InstructionOperand* op,
                                               LinkageLocation location) {}
 
 void InstructionSelectorT::EmitPrepareArguments(
-    ZoneVector<PushParameter>* arguments, const CallDescriptor* call_descriptor,
+    ::v8::base::Vector<PushParameter>* arguments, const CallDescriptor* call_descriptor,
     OpIndex node) {
   S390OperandGeneratorT g(this);
 
@@ -3129,7 +3129,7 @@ void InstructionSelectorT::VisitS128Select(OpIndex node) {
 }
 
 void InstructionSelectorT::EmitPrepareResults(
-    ZoneVector<PushParameter>* results, const CallDescriptor* call_descriptor,
+    ::v8::base::Vector<PushParameter>* results, const CallDescriptor* call_descriptor,
     OpIndex node) {
   S390OperandGeneratorT g(this);
 

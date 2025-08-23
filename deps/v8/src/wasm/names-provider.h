@@ -36,7 +36,7 @@ class V8_EXPORT_PRIVATE NamesProvider {
   };
 
   NamesProvider(const WasmModule* module,
-                base::Vector<const uint8_t> wire_bytes);
+                ::v8::base::Vector<const uint8_t> wire_bytes);
   ~NamesProvider();
 
   void PrintFunctionName(StringBuilder& out, uint32_t function_index,
@@ -92,7 +92,7 @@ class V8_EXPORT_PRIVATE NamesProvider {
   bool has_computed_function_import_names_{false};
   bool has_computed_import_names_{false};
   const WasmModule* module_;
-  base::Vector<const uint8_t> wire_bytes_;
+  ::v8::base::Vector<const uint8_t> wire_bytes_;
   std::unique_ptr<DecodedNameSection> name_section_names_;
   std::map<uint32_t, std::string> import_export_function_names_;
   std::map<uint32_t, std::string> import_export_table_names_;
@@ -121,7 +121,7 @@ class CanonicalTypeNamesProvider {
 
  private:
   // TODO(jkummerow): Use Zone allocation for the character payloads?
-  using StringT = base::OwnedVector<char>;
+  using StringT = base::Owned::v8::base::Vector<char>;
 
   size_t DetectInlineStringThreshold();
 

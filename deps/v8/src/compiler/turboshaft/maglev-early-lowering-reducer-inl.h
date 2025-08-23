@@ -196,7 +196,7 @@ class MaglevEarlyLoweringReducer : public Next {
 
   V<Map> TransitionMultipleElementsKind(
       V<Object> object, V<Map> map,
-      const ZoneVector<compiler::MapRef>& transition_sources,
+      const ::v8::base::Vector<compiler::MapRef>& transition_sources,
       const MapRef transition_target) {
     Label<Map> end(this);
 
@@ -209,7 +209,7 @@ class MaglevEarlyLoweringReducer : public Next {
 
   void TransitionElementsKind(
       V<Object> object, V<Map> map,
-      const ZoneVector<compiler::MapRef>& transition_sources,
+      const ::v8::base::Vector<compiler::MapRef>& transition_sources,
       const MapRef transition_target, Label<Map>& end) {
     // Turboshaft's TransitionElementsKind operation loads the map everytime, so
     // we don't call it to have a single map load (in practice,

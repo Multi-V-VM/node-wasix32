@@ -177,8 +177,8 @@ std::optional<wasm::ValueKind> WasmReturnTypeFromSignature(
 bool EquivalentNumericSig(const CanonicalSig* a, const FunctionSig* b) {
   if (a->parameter_count() != b->parameter_count()) return false;
   if (a->return_count() != b->return_count()) return false;
-  base::Vector<const CanonicalValueType> a_types = a->all();
-  base::Vector<const ValueType> b_types = b->all();
+  ::v8::base::Vector<const CanonicalValueType> a_types = a->all();
+  ::v8::base::Vector<const ValueType> b_types = b->all();
   for (size_t i = 0; i < a_types.size(); i++) {
     if (!a_types[i].is_numeric()) return false;
     if (a_types[i].kind() != b_types[i].kind()) return false;
@@ -208,9 +208,9 @@ const wasm::FunctionSig* ReplaceTypeInSig(Zone* zone,
                                           wasm::ValueType to,
                                           size_t num_replacements) {
   size_t param_occurences =
-      std::count(sig->parameters().begin(), sig->parameters().end(), from);
+      ::std::count(sig->parameters().begin(), sig->parameters().end(), from);
   size_t return_occurences =
-      std::count(sig->returns().begin(), sig->returns().end(), from);
+      ::std::count(sig->returns().begin(), sig->returns().end(), from);
   if (param_occurences == 0 && return_occurences == 0) return sig;
 
   wasm::FunctionSig::Builder builder(

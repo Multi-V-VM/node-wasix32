@@ -17,8 +17,8 @@
 namespace v8::internal {
 
 // Import base memory functions
-using v8::base::ReadUnalignedValue;
-using v8::base::WriteUnalignedValue;
+using ::v8::base::ReadUnalignedValue;
+using ::v8::base::WriteUnalignedValue;
 
 class Object;
 class ExposedTrustedObject;
@@ -240,11 +240,11 @@ class UnalignedSlot : public SlotBase<UnalignedSlot<T>, T, 1> {
     Reference(const Reference&) V8_NOEXCEPT = default;
 
     Reference& operator=(const Reference& other) V8_NOEXCEPT {
-      base::WriteUnalignedValue<T>(address_, other.value());
+      ::v8::base::WriteUnalignedValue<T>(address_, other.value());
       return *this;
     }
     Reference& operator=(T value) {
-      base::WriteUnalignedValue<T>(address_, value);
+      ::v8::base::WriteUnalignedValue<T>(address_, value);
       return *this;
     }
 
@@ -254,8 +254,8 @@ class UnalignedSlot : public SlotBase<UnalignedSlot<T>, T, 1> {
 
     void swap(Reference& other) {
       T tmp = value();
-      base::WriteUnalignedValue<T>(address_, other.value());
-      base::WriteUnalignedValue<T>(other.address_, tmp);
+      ::v8::base::WriteUnalignedValue<T>(address_, other.value());
+      ::v8::base::WriteUnalignedValue<T>(other.address_, tmp);
     }
 
     bool operator<(const Reference& other) const {
@@ -267,7 +267,7 @@ class UnalignedSlot : public SlotBase<UnalignedSlot<T>, T, 1> {
     }
 
    private:
-    T value() const { return base::ReadUnalignedValue<T>(address_); }
+    T value() const { return ::v8::base::ReadUnalignedValue<T>(address_); }
 
     Address address_;
   };
@@ -416,7 +416,7 @@ class ExternalPointerSlot
 
   ExternalPointerTag exact_tag() const {
     DCHECK(ExactTagIsKnown());
-    return tag_range_.first;
+    return tag_range_.first();
   }
 
   ExternalPointerTagRange tag_range() const { return tag_range_; }

@@ -79,7 +79,7 @@ class SandboxedArrayBufferAllocator {
   // The backing memory's accessible region is grown in chunks of this size.
   static constexpr size_t kChunkSize = 1 * MB;
 
-  std::unique_ptr<base::RegionAllocator> region_alloc_;
+  std::unique_ptr<::v8::base::RegionAllocator> region_alloc_;
   size_t end_of_accessible_region_ = 0;
   Sandbox* sandbox_ = nullptr;
   base::Mutex mutex_;
@@ -272,7 +272,7 @@ class V8_EXPORT_PRIVATE IsolateGroup final {
   V8_INLINE static IsolateGroup* GetDefault() { return default_isolate_group_; }
 
  private:
-  friend class base::LeakyObject<IsolateGroup>;
+  friend class ::v8::base::LeakyObject<IsolateGroup>;
   friend class PoolTest;
   friend class PagePool;
 
@@ -316,7 +316,7 @@ class V8_EXPORT_PRIVATE IsolateGroup final {
 
   std::unique_ptr<PagePool> page_pool_;
 
-  base::v8::Once::OnceType init_code_range_ = V8_ONCE_INIT;
+  ::v8::Once::OnceType init_code_range_ = V8_ONCE_INIT;
   std::unique_ptr<CodeRange> code_range_;
   Address external_ref_table_[ExternalReferenceTable::kSizeIsolateIndependent] =
       {0};

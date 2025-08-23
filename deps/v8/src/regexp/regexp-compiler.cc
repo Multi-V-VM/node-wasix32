@@ -264,7 +264,7 @@ RegExpCompiler::CompilationResult RegExpCompiler::Assemble(
     int capture_count, DirectHandle<String> pattern) {
   macro_assembler_ = macro_assembler;
 
-  ZoneVector<RegExpNode*> work_list(zone());
+  ::v8::base::Vector<RegExpNode*> work_list(zone());
   work_list_ = &work_list;
   Label fail;
   macro_assembler_->PushBacktrack(&fail);
@@ -1667,7 +1667,7 @@ void TextNode::GetQuickCheckDetails(QuickCheckDetails* details,
   for (int k = 0; k < elements()->length(); k++) {
     TextElement elm = elements()->at(k);
     if (elm.text_type() == TextElement::ATOM) {
-      base::Vector<const base::uc16> quarks = elm.atom()->data();
+      ::v8::base::Vector<const base::uc16> quarks = elm.atom()->data();
       for (int i = 0; i < characters && i < quarks.length(); i++) {
         QuickCheckDetails::Position* pos =
             details->positions(characters_filled_in);
@@ -1949,7 +1949,7 @@ RegExpNode* TextNode::FilterOneByte(int depth, RegExpCompiler* compiler) {
   for (int i = 0; i < element_count; i++) {
     TextElement elm = elements()->at(i);
     if (elm.text_type() == TextElement::ATOM) {
-      base::Vector<const base::uc16> quarks = elm.atom()->data();
+      ::v8::base::Vector<const base::uc16> quarks = elm.atom()->data();
       for (int j = 0; j < quarks.length(); j++) {
         base::uc16 c = quarks[j];
         if (!IsIgnoreCase(flags)) {
@@ -2428,7 +2428,7 @@ void TextNode::TextEmitPass(RegExpCompiler* compiler, TextEmitPassType pass,
     TextElement elm = elements()->at(i);
     int cp_offset = trace->cp_offset() + elm.cp_offset() + backward_offset;
     if (elm.text_type() == TextElement::ATOM) {
-      base::Vector<const base::uc16> quarks = elm.atom()->data();
+      ::v8::base::Vector<const base::uc16> quarks = elm.atom()->data();
       for (int j = preloaded ? 0 : quarks.length() - 1; j >= 0; j--) {
         if (first_element_checked && i == 0 && j == 0) continue;
         if (DeterminedAlready(quick_check, elm.cp_offset() + j)) continue;

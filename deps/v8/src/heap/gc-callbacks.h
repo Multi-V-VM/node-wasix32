@@ -19,9 +19,9 @@ class RootVisitor;
 
 class GCCallbacks final {
  public:
-  using CallbackType = void (*)(v8::Isolate*, GCType, GCCallbackFlags, void*);
+  using CallbackType = void (*)(::v8::internal::Isolate*, GCType, GCCallbackFlags, void*);
 
-  void Add(CallbackType callback, v8::Isolate* isolate, GCType gc_type,
+  void Add(CallbackType callback, ::v8::internal::Isolate* isolate, GCType gc_type,
            void* data) {
     DCHECK_NOT_NULL(callback);
     DCHECK_EQ(callbacks_.end(), FindCallback(callback, data));
@@ -49,7 +49,7 @@ class GCCallbacks final {
 
  private:
   struct CallbackData final {
-    CallbackData(CallbackType callback, v8::Isolate* isolate, GCType gc_type,
+    CallbackData(CallbackType callback, ::v8::internal::Isolate* isolate, GCType gc_type,
                  void* user_data)
         : callback(callback),
           isolate(isolate),
@@ -57,14 +57,14 @@ class GCCallbacks final {
           user_data(user_data) {}
 
     CallbackType callback;
-    v8::Isolate* isolate;
+    ::v8::internal::Isolate* isolate;
     GCType gc_type;
     void* user_data;
   };
 
   std::vector<CallbackData>::iterator FindCallback(CallbackType callback,
                                                    void* data) {
-    return std::find_if(callbacks_.begin(), callbacks_.end(),
+    return ::std::find_if(callbacks_.begin(), callbacks_.end(),
                         [callback, data](CallbackData& callback_data) {
                           return callback_data.callback == callback &&
                                  callback_data.user_data == data;
@@ -134,7 +134,7 @@ class GCCallbacksInSafepoint final {
 
   std::vector<CallbackData>::iterator FindCallback(CallbackType callback,
                                                    void* data) {
-    return std::find_if(callbacks_.begin(), callbacks_.end(),
+    return ::std::find_if(callbacks_.begin(), callbacks_.end(),
                         [callback, data](CallbackData& callback_data) {
                           return callback_data.callback == callback &&
                                  callback_data.user_data == data;

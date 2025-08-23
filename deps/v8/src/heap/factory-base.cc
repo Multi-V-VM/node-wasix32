@@ -694,7 +694,7 @@ Handle<FeedbackMetadata> FactoryBase<Impl>::NewFeedbackMetadata(
 
 template <typename Impl>
 Handle<CoverageInfo> FactoryBase<Impl>::NewCoverageInfo(
-    const ZoneVector<SourceRange>& slots) {
+    const ::v8::base::Vector<SourceRange>& slots) {
   const int slot_count = static_cast<int>(slots.size());
 
   int size = CoverageInfo::SizeFor(slot_count);
@@ -714,10 +714,10 @@ Handle<String> FactoryBase<Impl>::MakeOrFindTwoCharacterString(uint16_t c1,
                                                                uint16_t c2) {
   if ((c1 | c2) <= unibrow::Latin1::kMaxChar) {
     uint8_t buffer[] = {static_cast<uint8_t>(c1), static_cast<uint8_t>(c2)};
-    return InternalizeString(base::Vector<const uint8_t>(buffer, 2));
+    return InternalizeString(::v8::base::Vector<const uint8_t>(buffer, 2));
   }
   uint16_t buffer[] = {c1, c2};
-  return InternalizeString(base::Vector<const uint16_t>(buffer, 2));
+  return InternalizeString(::v8::base::Vector<const uint16_t>(buffer, 2));
 }
 
 template <typename Impl>
@@ -750,7 +750,7 @@ template EXPORT_TEMPLATE_DEFINE(V8_EXPORT_PRIVATE)
 
 template <typename Impl>
 Handle<String> FactoryBase<Impl>::InternalizeString(
-    base::Vector<const uint8_t> string, bool convert_encoding) {
+    ::v8::base::Vector<const uint8_t> string, bool convert_encoding) {
   SequentialStringKey<uint8_t> key(string, HashSeed(read_only_roots()),
                                    convert_encoding);
   return InternalizeStringWithKey(&key);
@@ -758,7 +758,7 @@ Handle<String> FactoryBase<Impl>::InternalizeString(
 
 template <typename Impl>
 Handle<String> FactoryBase<Impl>::InternalizeString(
-    base::Vector<const uint16_t> string, bool convert_encoding) {
+    ::v8::base::Vector<const uint16_t> string, bool convert_encoding) {
   SequentialStringKey<uint16_t> key(string, HashSeed(read_only_roots()),
                                     convert_encoding);
   return InternalizeStringWithKey(&key);
@@ -766,7 +766,7 @@ Handle<String> FactoryBase<Impl>::InternalizeString(
 
 template <typename Impl>
 Handle<SeqOneByteString> FactoryBase<Impl>::NewOneByteInternalizedString(
-    base::Vector<const uint8_t> str, uint32_t raw_hash_field) {
+    ::v8::base::Vector<const uint8_t> str, uint32_t raw_hash_field) {
   Handle<SeqOneByteString> result =
       AllocateRawOneByteInternalizedString(str.length(), raw_hash_field);
   // No synchronization is needed since the shared string hasn't yet escaped to
@@ -779,7 +779,7 @@ Handle<SeqOneByteString> FactoryBase<Impl>::NewOneByteInternalizedString(
 
 template <typename Impl>
 Handle<SeqTwoByteString> FactoryBase<Impl>::NewTwoByteInternalizedString(
-    base::Vector<const base::uc16> str, uint32_t raw_hash_field) {
+    ::v8::base::Vector<const base::uc16> str, uint32_t raw_hash_field) {
   Handle<SeqTwoByteString> result =
       AllocateRawTwoByteInternalizedString(str.length(), raw_hash_field);
   // No synchronization is needed since the shared string hasn't yet escaped to
@@ -793,7 +793,7 @@ Handle<SeqTwoByteString> FactoryBase<Impl>::NewTwoByteInternalizedString(
 template <typename Impl>
 DirectHandle<SeqOneByteString>
 FactoryBase<Impl>::NewOneByteInternalizedStringFromTwoByte(
-    base::Vector<const base::uc16> str, uint32_t raw_hash_field) {
+    ::v8::base::Vector<const base::uc16> str, uint32_t raw_hash_field) {
   DirectHandle<SeqOneByteString> result =
       AllocateRawOneByteInternalizedString(str.length(), raw_hash_field);
   DisallowGarbageCollection no_gc;
@@ -974,12 +974,12 @@ Handle<String> FactoryBase<Impl>::LookupSingleCharacterStringFromCode(
         isolate()->root_handle(RootsTable::SingleCharacterStringIndex(code)));
   }
   uint16_t buffer[] = {code};
-  return InternalizeString(base::Vector<const uint16_t>(buffer, 1));
+  return InternalizeString(::v8::base::Vector<const uint16_t>(buffer, 1));
 }
 
 template <typename Impl>
 MaybeHandle<String> FactoryBase<Impl>::NewStringFromOneByte(
-    base::Vector<const uint8_t> string, AllocationType allocation) {
+    ::v8::base::Vector<const uint8_t> string, AllocationType allocation) {
   DCHECK_NE(allocation, AllocationType::kReadOnly);
   int length = string.length();
   if (length == 0) return empty_string();
@@ -1048,7 +1048,7 @@ Handle<String> FactoryBase<Impl>::HeapNumberToString(
     result = NaN_string();
   } else {
     char arr[kNumberToStringBufferSize];
-    base::Vector<char> buffer(arr, arraysize(arr));
+    ::v8::base::Vector<char> buffer(arr, arraysize(arr));
     std::string_view string = DoubleToStringView(value, buffer);
     result = StringViewToString(this, string, mode);
   }
@@ -1075,7 +1075,7 @@ inline Handle<String> FactoryBase<Impl>::SmiToString(Tagged<Smi> number,
     result = zero_string();
   } else {
     char arr[kNumberToStringBufferSize];
-    base::Vector<char> buffer(arr, arraysize(arr));
+    ::v8::base::Vector<char> buffer(arr, arraysize(arr));
     std::string_view string = IntToStringView(number.value(), buffer);
     result = StringViewToString(this, string, mode);
   }

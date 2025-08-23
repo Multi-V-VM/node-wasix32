@@ -316,7 +316,7 @@ class MachineRepresentationInferrer {
 
   Schedule const* const schedule_;
   Linkage const* const linkage_;
-  ZoneVector<MachineRepresentation> representation_vector_;
+  ::v8::base::Vector<MachineRepresentation> representation_vector_;
   BasicBlock* current_block_;
 };
 

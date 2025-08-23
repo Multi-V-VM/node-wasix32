@@ -165,7 +165,7 @@ class RelocatableArguments : public Relocatable {
 MaybeHandle<Object> Builtins::InvokeApiFunction(
     Isolate* isolate, bool is_construct,
     DirectHandle<FunctionTemplateInfo> function, DirectHandle<Object> receiver,
-    base::Vector<const DirectHandle<Object>> args,
+    ::v8::base::Vector<const DirectHandle<Object>> args,
     DirectHandle<HeapObject> new_target) {
   RCS_SCOPE(isolate, RuntimeCallCounterId::kInvokeApiFunction);
 

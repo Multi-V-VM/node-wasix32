@@ -130,7 +130,7 @@ void DotPrinterImpl::VisitText(TextNode* that) {
     TextElement elm = that->elements()->at(i);
     switch (elm.text_type()) {
       case TextElement::ATOM: {
-        base::Vector<const base::uc16> data = elm.atom()->data();
+        ::v8::base::Vector<const base::uc16> data = elm.atom()->data();
         for (int j = 0; j < data.length(); j++) {
           os_ << static_cast<char>(data[j]);
         }

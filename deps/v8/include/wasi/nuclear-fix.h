@@ -114,12 +114,14 @@ constexpr Address kNullAddress = 0;
 class Internals {
  public:
   static constexpr int kJSObjectType = 1057;  // Must match JS_OBJECT_TYPE from instance-type.h
+  static constexpr int kNumIsolateDataSlots = 4;  // Number of embedder data slots
   static constexpr int kFirstNonstringType = 128;  // Updated to match actual value (was 64)
   static constexpr int kForeignType = 204;  // Updated to match actual value (was 69)
   static constexpr int kFirstJSApiObjectType = 1058;
   static constexpr int kLastJSApiObjectType = 2058;  // Add missing constant
   static constexpr int kJSSpecialApiObjectType = 1040;  // Updated to match error
   static constexpr int kOddballType = 131;  // Updated to match actual value (was 70)
+  static constexpr int kTheHoleValueRootIndex = 10;
   
   static constexpr int kUndefinedValueRootIndex = 5;
   static constexpr int kNullValueRootIndex = 6;
@@ -131,7 +133,7 @@ class Internals {
   static constexpr int kNodeStateIsWeakValue = 2;
   static constexpr int kNodeStateIsPendingValue = 3;
   
-  static constexpr int kNativeContextEmbedderDataOffset = 7;
+  static constexpr int kNativeContextEmbedderDataOffset = 24;
   
   static constexpr int kExternalPointerTableSizeLog2 = 22;
   static constexpr int kExternalPointerTableSize = 1 << kExternalPointerTableSizeLog2;
@@ -146,7 +148,7 @@ class Internals {
   
   static constexpr int kStringResourceOffset = 16;
   static constexpr int kOddballKindOffset = 16;
-  static constexpr int kJSObjectHeaderSize = 24;
+  static constexpr int kJSObjectHeaderSize = 12;
   static constexpr int kFixedArrayHeaderSize = 16;
   static constexpr int kEmbedderDataArrayHeaderSize = 16;
   static constexpr int kEmbedderDataSlotSize = 8;
@@ -294,25 +296,46 @@ static constexpr uint64_t kExternalPointerPayloadMask = ~kExternalPointerTagMask
 static constexpr ExternalPointerTag kExternalPointerFreeEntryTag = 0x7FFF000000000000ULL;
 static constexpr ExternalPointerTag kExternalPointerEvacuationEntryTag = 0x7FFE000000000000ULL;
 
-// Add ExternalPointerTagRange class
+// Add missing external pointer tags
+static constexpr ExternalPointerTag kArrayBufferExtensionTag = 0x0001000000000000ULL;
+static constexpr ExternalPointerTag kWaiterQueueNodeTag = 0x0002000000000000ULL;
+
+// Add ExternalPointerTagRange class - must be literal type for template parameters
 class ExternalPointerTagRange {
  public:
-  ExternalPointerTagRange(ExternalPointerTag lower, ExternalPointerTag upper)
+  // Default constructor for zero-initialization
+  constexpr ExternalPointerTagRange() : lower_(0), upper_(0) {}
+  
+  constexpr ExternalPointerTagRange(ExternalPointerTag lower, ExternalPointerTag upper)
       : lower_(lower), upper_(upper) {}
   
-  explicit ExternalPointerTagRange(ExternalPointerTag tag)
+  constexpr explicit ExternalPointerTagRange(ExternalPointerTag tag)
       : lower_(tag), upper_(tag) {}
   
-  bool Contains(ExternalPointerTag tag) const {
+  constexpr bool Contains(ExternalPointerTag tag) const {
     return tag >= lower_ && tag <= upper_;
   }
   
-  bool IsEmpty() const { return lower_ > upper_; }
+  constexpr bool IsEmpty() const { return lower_ > upper_; }
   
-  ExternalPointerTag lower() const { return lower_; }
-  ExternalPointerTag upper() const { return upper_; }
+  // Members accessed by slots.h
+  constexpr size_t Size() const { return upper_ - lower_ + 1; }
+  constexpr ExternalPointerTag first() const { return lower_; }
   
- private:
+  constexpr ExternalPointerTag lower() const { return lower_; }
+  constexpr ExternalPointerTag upper() const { return upper_; }
+  
+  // Comparison operators
+  constexpr bool operator==(ExternalPointerTag tag) const {
+    return lower_ == tag && upper_ == tag;
+  }
+  
+  constexpr bool operator==(const ExternalPointerTagRange& other) const {
+    return lower_ == other.lower_ && upper_ == other.upper_;
+  }
+  
+ // Members must be public for C++20 structural type requirements
+ public:
   ExternalPointerTag lower_;
   ExternalPointerTag upper_;
 };
@@ -373,8 +396,14 @@ constexpr size_t kCppHeapPointerTableReservationSize = 1024 * 1024;   // 1MB res
 using ExternalPointerHandle = uint32_t;
 using CodePointerHandle = uint32_t;
 using CppHeapPointerHandle = uint32_t;
+#ifndef V8_NULL_EXTERNAL_POINTER_DEFINED
+#define V8_NULL_EXTERNAL_POINTER_DEFINED
 constexpr ExternalPointerHandle kNullExternalPointerHandle = 0;
+#endif
+#ifndef V8_NULL_CODE_POINTER_DEFINED
+#define V8_NULL_CODE_POINTER_DEFINED
 constexpr CodePointerHandle kNullCodePointerHandle = 0;
+#endif
 constexpr CppHeapPointerHandle kNullCppHeapPointerHandle = 0;
 #endif
 
@@ -383,7 +412,21 @@ constexpr CppHeapPointerHandle kNullCppHeapPointerHandle = 0;
 #define V8_CODE_POINTER_TABLE_ENTRY_SIZE
 // Check if already defined elsewhere with correct type
 #if !defined(kCodePointerTableEntrySize)
-constexpr size_t kCodePointerTableEntrySize = 8;  // 64-bit entries
+#ifndef V8_CODE_POINTER_TABLE_ENTRY_SIZE_DEFINED
+#define V8_CODE_POINTER_TABLE_ENTRY_SIZE_DEFINED
+constexpr size_t kCodePointerTableEntrySize = 8;
+#endif  // 64-bit entries
+#endif
+
+// Add missing trusted pointer table constants
+#if !defined(kTrustedPointerTableEntrySize)
+constexpr size_t kTrustedPointerTableEntrySize = 8;  // Same as code pointer table
+constexpr int kTrustedPointerTableEntrySizeLog2 = 3;  // log2(8) = 3
+#endif
+
+// Add missing sandbox constant
+#if !defined(kAllCodeObjectsLiveInTrustedSpace)
+constexpr bool kAllCodeObjectsLiveInTrustedSpace = false;  // Default for WASI
 #endif
 #endif
 
@@ -401,6 +444,27 @@ constexpr uint32_t kMaxExternalPointers = 65536;  // Match existing type
 #if !defined(kMaxCodePointers)
 constexpr uint32_t kMaxCodePointers = 65536;  // Match existing type
 #endif
+#endif
+
+#ifndef V8_MAX_CPPHEAP_POINTERS
+#define V8_MAX_CPPHEAP_POINTERS
+// Check if already defined elsewhere, use uint32_t to match existing definitions  
+#if !defined(kMaxCppHeapPointers)
+constexpr uint32_t kMaxCppHeapPointers = 65536;  // Match existing type
+#endif
+#endif
+
+#ifndef V8_MAX_TRUSTED_POINTERS
+#define V8_MAX_TRUSTED_POINTERS
+// Check if already defined elsewhere, use uint32_t to match existing definitions  
+#if !defined(kMaxTrustedPointers)
+constexpr uint32_t kMaxTrustedPointers = 65536;  // Match existing type
+#endif
+#endif
+
+#ifndef V8_TRUSTED_POINTER_TABLE_RESERVATION_SIZE
+#define V8_TRUSTED_POINTER_TABLE_RESERVATION_SIZE
+constexpr size_t kTrustedPointerTableReservationSize = 1024 * 1024;   // 1MB reservation
 #endif
 
 #ifndef V8_MAX_CAPACITY
@@ -635,7 +699,7 @@ namespace bits {
   }
   
   template<typename T>
-  inline bool IsPowerOfTwo(T value) {
+  constexpr bool IsPowerOfTwo(T value) {
     return value && !(value & (value - 1));
   }
 }  // namespace bits
@@ -688,4 +752,13 @@ enum class StackState {
 }  // namespace v8
 
 #endif  // V8_INCLUDE_WASI_NUCLEAR_FIX_H_
+
+
+// Add atomic_load to std namespace for WASI compatibility
+
+
+// Once initialization macro
+#ifndef V8_ONCE_INIT
+#define V8_ONCE_INIT 0
+#endif
 

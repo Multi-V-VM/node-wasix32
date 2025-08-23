@@ -114,7 +114,7 @@ class Decoder {
 
   Decoder(const uint8_t* start, const uint8_t* end, uint32_t buffer_offset = 0)
       : Decoder(start, start, end, buffer_offset) {}
-  explicit Decoder(const base::Vector<const uint8_t> bytes,
+  explicit Decoder(const ::v8::base::Vector<const uint8_t> bytes,
                    uint32_t buffer_offset = 0)
       : Decoder(bytes.begin(), bytes.begin() + bytes.length(), buffer_offset) {}
   Decoder(const uint8_t* start, const uint8_t* pc, const uint8_t* end,
@@ -395,7 +395,7 @@ class Decoder {
     error_ = {};
   }
 
-  void Reset(base::Vector<const uint8_t> bytes, uint32_t buffer_offset = 0) {
+  void Reset(::v8::base::Vector<const uint8_t> bytes, uint32_t buffer_offset = 0) {
     Reset(bytes.begin(), bytes.end(), buffer_offset);
   }
 
@@ -446,7 +446,7 @@ class Decoder {
     // Only report the first error.
     if (!ok()) return;
     constexpr int kMaxErrorMsg = 256;
-    base::EmbeddedVector<char, kMaxErrorMsg> buffer;
+    base::Embedded::v8::base::Vector<char, kMaxErrorMsg> buffer;
     va_list args;
     va_start(args, format);
     int len = base::VSNPrintF(buffer, format, args);

@@ -55,6 +55,28 @@ inline size_t RoundUpToPowerOfTwo(size_t value) {
   }
 }
 
+// Count functions inline implementations
+inline int CountLeadingZeros(uint32_t value) {
+  return __builtin_clz(value);
+}
+inline int CountLeadingZeros(uint64_t value) {
+  return __builtin_clzll(value);
+}
+inline int CountTrailingZeros(uint32_t value) {
+  return __builtin_ctz(value);
+}
+inline int CountTrailingZeros(uint64_t value) {
+  return __builtin_ctzll(value);
+}
+inline int CountPopulation(uint32_t value) {
+  return __builtin_popcount(value);
+}
+inline int CountPopulation(uint64_t value) {
+  return __builtin_popcountll(value);
+}
+
+// CountTrailingZerosNonZero is defined in nuclear-fix.h
+
 // SignedSaturatedAdd64 and SignedSaturatedSub64 are defined in nuclear-fix.h
 
 #else

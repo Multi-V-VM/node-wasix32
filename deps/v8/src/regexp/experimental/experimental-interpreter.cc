@@ -18,7 +18,7 @@ constexpr uint64_t kUndefinedClockValue = -1;
 
 template <class Character>
 bool SatisfiesAssertion(RegExpAssertion::Type type,
-                        base::Vector<const Character> context, int position) {
+                        ::v8::base::Vector<const Character> context, int position) {
   DCHECK_LE(position, context.length());
   DCHECK_GE(position, 0);
 
@@ -50,22 +50,22 @@ bool SatisfiesAssertion(RegExpAssertion::Type type,
   }
 }
 
-base::Vector<RegExpInstruction> ToInstructionVector(
+Vector<RegExpInstruction> ToInstructionVector(
     Tagged<TrustedByteArray> raw_bytes,
     const DisallowGarbageCollection& no_gc) {
   RegExpInstruction* inst_begin =
       reinterpret_cast<RegExpInstruction*>(raw_bytes->begin());
   int inst_num = raw_bytes->length() / sizeof(RegExpInstruction);
   DCHECK_EQ(sizeof(RegExpInstruction) * inst_num, raw_bytes->length());
-  return base::Vector<RegExpInstruction>(inst_begin, inst_num);
+  return ::v8::base::Vector<RegExpInstruction>(inst_begin, inst_num);
 }
 
 template <class Character>
-base::Vector<const Character> ToCharacterVector(
+Vector<const Character> ToCharacterVector(
     Tagged<String> str, const DisallowGarbageCollection& no_gc);
 
 template <>
-base::Vector<const uint8_t> ToCharacterVector<uint8_t>(
+Vector<const uint8_t> ToCharacter::v8::base::Vector<uint8_t>(
     Tagged<String> str, const DisallowGarbageCollection& no_gc) {
   DCHECK(str->IsFlat());
   String::FlatContent content = str->GetFlatContent(no_gc);
@@ -74,7 +74,7 @@ base::Vector<const uint8_t> ToCharacterVector<uint8_t>(
 }
 
 template <>
-base::Vector<const base::uc16> ToCharacterVector<base::uc16>(
+Vector<const base::uc16> ToCharacter::v8::base::Vector<base::uc16>(
     Tagged<String> str, const DisallowGarbageCollection& no_gc) {
   DCHECK(str->IsFlat());
   String::FlatContent content = str->GetFlatContent(no_gc);
@@ -84,13 +84,13 @@ base::Vector<const base::uc16> ToCharacterVector<base::uc16>(
 
 class FilterGroups {
  public:
-  static base::Vector<int> Filter(
-      int pc, base::Vector<int> registers,
-      base::Vector<uint64_t> quantifiers_clocks,
-      base::Vector<uint64_t> capture_clocks,
-      std::optional<base::Vector<uint64_t>> lookaround_clocks,
-      base::Vector<int> filtered_registers,
-      base::Vector<const RegExpInstruction> bytecode, Zone* zone) {
+  static ::v8::base::Vector<int> Filter(
+      int pc, ::v8::base::Vector<int> registers,
+      ::v8::base::Vector<uint64_t> quantifiers_clocks,
+      ::v8::base::Vector<uint64_t> capture_clocks,
+      std::optional<::v8::base::Vector<uint64_t>> lookaround_clocks,
+      ::v8::base::Vector<int> filtered_registers,
+      ::v8::base::Vector<const RegExpInstruction> bytecode, Zone* zone) {
     /* Capture groups that were not traversed in the last iteration of a
      * quantifier need to be discarded. In order to determine which groups need
      * to be discarded, the interpreter maintains a clock, an internal count of
@@ -109,7 +109,7 @@ class FilterGroups {
   }
 
  private:
-  FilterGroups(int pc, base::Vector<const RegExpInstruction> bytecode,
+  FilterGroups(int pc, ::v8::base::Vector<const RegExpInstruction> bytecode,
                Zone* zone)
       : pc_(pc),
         max_clock_(0),
@@ -142,11 +142,11 @@ class FilterGroups {
            bytecode_[pc_ + 1].opcode != RegExpInstruction::FILTER_CHILD;
   }
 
-  base::Vector<int> Run(base::Vector<int> registers_,
-                        base::Vector<uint64_t> quantifiers_clocks_,
-                        base::Vector<uint64_t> capture_clocks_,
-                        std::optional<base::Vector<uint64_t>> lookaround_clocks,
-                        base::Vector<int> filtered_registers_) {
+  ::v8::base::Vector<int> Run(::v8::base::Vector<int> registers_,
+                        ::v8::base::Vector<uint64_t> quantifiers_clocks_,
+                        ::v8::base::Vector<uint64_t> capture_clocks_,
+                        std::optional<::v8::base::Vector<uint64_t>> lookaround_clocks,
+                        ::v8::base::Vector<int> filtered_registers_) {
     pc_stack_.push(pc_);
     max_clock_stack_.push(max_clock_);
 
@@ -234,7 +234,7 @@ class FilterGroups {
   ZoneStack<int> pc_stack_;
   ZoneStack<uint64_t> max_clock_stack_;
 
-  base::Vector<const RegExpInstruction> bytecode_;
+  ::v8::base::Vector<const RegExpInstruction> bytecode_;
 };
 
 template <class Character>
@@ -344,7 +344,7 @@ class NfaInterpreter {
         register_count_per_match_(register_count_per_match),
         quantifier_count_(0),
         input_object_(input),
-        input_(ToCharacterVector<Character>(input, no_gc_)),
+        input_(ToCharacter::v8::base::Vector<Character>(input, no_gc_)),
         input_index_(input_index),
         clock(0),
         pc_last_input_index_(
@@ -490,7 +490,7 @@ class NfaInterpreter {
 
       if (!FoundMatch()) break;
 
-      base::Vector<int> registers;
+      ::v8::base::Vector<int> registers;
 
       err_code = GetFilteredRegisters(*best_match_thread_, registers);
       if (err_code != RegExp::kInternalRegExpSuccess) {
@@ -788,7 +788,7 @@ class NfaInterpreter {
         bytecode_object_ = *bytecode_handle;
         bytecode_ = ToInstructionVector(bytecode_object_, no_gc_);
         input_object_ = *input_handle;
-        input_ = ToCharacterVector<Character>(input_object_, no_gc_);
+        input_ = ToCharacter::v8::base::Vector<Character>(input_object_, no_gc_);
       }
     }
     return RegExp::kInternalRegExpSuccess;
@@ -902,16 +902,16 @@ class NfaInterpreter {
           fork.consumed_since_last_quantifier =
               t.consumed_since_last_quantifier;
 
-          base::Vector<int> fork_registers = GetRegisterArray(fork);
-          base::Vector<int> t_registers = GetRegisterArray(t);
+          ::v8::base::Vector<int> fork_registers = GetRegisterArray(fork);
+          ::v8::base::Vector<int> t_registers = GetRegisterArray(t);
           DCHECK_EQ(fork_registers.length(), t_registers.length());
           std::copy(t_registers.begin(), t_registers.end(),
                     fork_registers.begin());
 
           if (v8_flags.experimental_regexp_engine_capture_group_opt) {
-            base::Vector<uint64_t> fork_quantifier_clocks =
+            ::v8::base::Vector<uint64_t> fork_quantifier_clocks =
                 GetQuantifierClockArray(fork);
-            base::Vector<uint64_t> t_fork_quantifier_clocks =
+            ::v8::base::Vector<uint64_t> t_fork_quantifier_clocks =
                 GetQuantifierClockArray(t);
             DCHECK_EQ(fork_quantifier_clocks.length(),
                       t_fork_quantifier_clocks.length());
@@ -919,9 +919,9 @@ class NfaInterpreter {
                       t_fork_quantifier_clocks.end(),
                       fork_quantifier_clocks.begin());
 
-            base::Vector<uint64_t> fork_capture_clocks =
+            ::v8::base::Vector<uint64_t> fork_capture_clocks =
                 GetCaptureClockArray(fork);
-            base::Vector<uint64_t> t_fork_capture_clocks =
+            ::v8::base::Vector<uint64_t> t_fork_capture_clocks =
                 GetCaptureClockArray(t);
             DCHECK_EQ(fork_capture_clocks.length(),
                       t_fork_capture_clocks.length());
@@ -929,9 +929,9 @@ class NfaInterpreter {
                       t_fork_capture_clocks.end(), fork_capture_clocks.begin());
 
             if (!only_captureless_lookbehinds_) {
-              base::Vector<int> fork_lookaround_match_index =
+              ::v8::base::Vector<int> fork_lookaround_match_index =
                   GetLookaroundMatchIndexArray(fork);
-              base::Vector<int> t_fork_lookaround_match_index =
+              ::v8::base::Vector<int> t_fork_lookaround_match_index =
                   GetLookaroundMatchIndexArray(t);
               DCHECK_EQ(fork_lookaround_match_index.length(),
                         t_fork_lookaround_match_index.length());
@@ -939,9 +939,9 @@ class NfaInterpreter {
                         t_fork_lookaround_match_index.end(),
                         fork_lookaround_match_index.begin());
 
-              base::Vector<uint64_t> fork_lookaround_clocks =
+              ::v8::base::Vector<uint64_t> fork_lookaround_clocks =
                   GetLookaroundClockArray(fork);
-              base::Vector<uint64_t> t_fork_lookaround_clocks =
+              ::v8::base::Vector<uint64_t> t_fork_lookaround_clocks =
                   GetLookaroundClockArray(t);
               DCHECK_EQ(fork_lookaround_clocks.length(),
                         t_fork_lookaround_clocks.length());
@@ -1175,36 +1175,36 @@ class NfaInterpreter {
                : RegExp::kInternalRegExpException;
   }
 
-  base::Vector<int> GetRegisterArray(InterpreterThread t) {
-    return base::Vector<int>(t.register_array_begin, register_count_per_match_);
+  ::v8::base::Vector<int> GetRegisterArray(InterpreterThread t) {
+    return ::v8::base::Vector<int>(t.register_array_begin, register_count_per_match_);
   }
-  base::Vector<int> GetLookaroundMatchIndexArray(InterpreterThread t) {
+  ::v8::base::Vector<int> GetLookaroundMatchIndexArray(InterpreterThread t) {
     DCHECK(v8_flags.experimental_regexp_engine_capture_group_opt);
     DCHECK_NOT_NULL(t.lookaround_match_index_array_begin);
 
-    return base::Vector<int>(t.lookaround_match_index_array_begin,
+    return ::v8::base::Vector<int>(t.lookaround_match_index_array_begin,
                              lookaround_table_->size());
   }
 
-  base::Vector<uint64_t> GetQuantifierClockArray(InterpreterThread t) {
+  ::v8::base::Vector<uint64_t> GetQuantifierClockArray(InterpreterThread t) {
     DCHECK(v8_flags.experimental_regexp_engine_capture_group_opt);
     DCHECK_NOT_NULL(t.captures_clock_array_begin);
 
-    return base::Vector<uint64_t>(t.quantifier_clock_array_begin,
+    return ::v8::base::Vector<uint64_t>(t.quantifier_clock_array_begin,
                                   quantifier_count_);
   }
-  base::Vector<uint64_t> GetCaptureClockArray(InterpreterThread t) {
+  ::v8::base::Vector<uint64_t> GetCaptureClockArray(InterpreterThread t) {
     DCHECK(v8_flags.experimental_regexp_engine_capture_group_opt);
     DCHECK_NOT_NULL(t.captures_clock_array_begin);
 
-    return base::Vector<uint64_t>(t.captures_clock_array_begin,
+    return ::v8::base::Vector<uint64_t>(t.captures_clock_array_begin,
                                   register_count_per_match_);
   }
-  base::Vector<uint64_t> GetLookaroundClockArray(InterpreterThread t) {
+  ::v8::base::Vector<uint64_t> GetLookaroundClockArray(InterpreterThread t) {
     DCHECK(v8_flags.experimental_regexp_engine_capture_group_opt);
     DCHECK_NOT_NULL(t.lookaround_clock_array_begin);
 
-    return base::Vector<uint64_t>(t.lookaround_clock_array_begin,
+    return ::v8::base::Vector<uint64_t>(t.lookaround_clock_array_begin,
                                   lookaround_table_->size());
   }
 
@@ -1346,7 +1346,7 @@ class NfaInterpreter {
   }
 
   V8_WARN_UNUSED_RESULT int GetFilteredRegisters(
-      InterpreterThread main_thread, base::Vector<int>& filtered_registers) {
+      InterpreterThread main_thread, ::v8::base::Vector<int>& filtered_registers) {
     if (!only_captureless_lookbehinds_) {
       int err_code = FillLookaroundCaptures(main_thread);
       if (err_code != RegExp::kInternalRegExpSuccess) {
@@ -1354,10 +1354,10 @@ class NfaInterpreter {
       }
     }
 
-    base::Vector<int> registers = GetRegisterArray(main_thread);
+    ::v8::base::Vector<int> registers = GetRegisterArray(main_thread);
 
     if (filter_groups_pc_.has_value()) {
-      filtered_registers = base::Vector<int>(
+      filtered_registers = ::v8::base::Vector<int>(
           NewRegisterArray(kUndefinedRegisterValue), register_count_per_match_);
 
       filtered_registers[0] = registers[0];
@@ -1438,7 +1438,7 @@ class NfaInterpreter {
   DisallowGarbageCollection no_gc_;
 
   Tagged<TrustedByteArray> bytecode_object_;
-  base::Vector<const RegExpInstruction> bytecode_;
+  ::v8::base::Vector<const RegExpInstruction> bytecode_;
 
   // Number of registers used per thread.
   const int register_count_per_match_;
@@ -1447,7 +1447,7 @@ class NfaInterpreter {
   int quantifier_count_;
 
   Tagged<String> input_object_;
-  base::Vector<const Character> input_;
+  ::v8::base::Vector<const Character> input_;
   int input_index_;
 
   // Global clock counting the total of executed instructions.
@@ -1472,7 +1472,7 @@ class NfaInterpreter {
   // time a thread t such that t.pc == k was activated for both values of
   // consumed_since_last_quantifier. Thus pc_last_input_index.size() ==
   // bytecode.size(). See also `RunActiveThread`.
-  base::Vector<LastInputIndex> pc_last_input_index_;
+  ::v8::base::Vector<LastInputIndex> pc_last_input_index_;
 
   // Active threads can potentially (but not necessarily) continue without
   // input.  Sorted from low to high priority.
@@ -1515,7 +1515,7 @@ class NfaInterpreter {
   // whether the lookaround of index l did complete a match on the position
   // r.
   // Only used when `only_captureless_lookbehinds_` is false.
-  std::optional<ZoneVector<ZoneVector<bool>>> lookaround_table_;
+  std::optional<::v8::base::Vector<::v8::base::Vector<bool>>> lookaround_table_;
 
   // Truth table for the lookbehinds. lookbehind_table_[k] indicates whether
   // the lookbehind of index k did complete a match on the current position.

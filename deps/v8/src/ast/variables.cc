@@ -47,7 +47,7 @@ void Variable::RewriteLocationForRepl() {
   }
 }
 
-void Variable::AssignHoleCheckBitmapIndex(ZoneVector<Variable*>& list,
+void Variable::AssignHoleCheckBitmapIndex(::v8::base::Vector<Variable*>& list,
                                           uint8_t next_index) {
   DCHECK_EQ(next_index, list.size() + 1);
   DCHECK_NE(kUncacheableHoleCheckBitmapIndex, next_index);

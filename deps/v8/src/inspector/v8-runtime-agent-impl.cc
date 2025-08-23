@@ -128,7 +128,7 @@ void innerCallFunctionOn(
     std::unique_ptr<V8RuntimeAgentImpl::CallFunctionOnCallback> callback) {
   V8InspectorImpl* inspector = session->inspector();
 
-  v8::LocalVector<v8::Value> args(inspector->isolate());
+  v8::Local::v8::base::Vector<v8::Value> args(inspector->isolate());
   if (optionalArguments) {
     protocol::Array<protocol::Runtime::CallArgument>& arguments =
         *optionalArguments;
@@ -245,8 +245,8 @@ Response ensureContext(V8InspectorImpl* inspector, int contextGroupId,
 Response parseAdditionalSerializationParameters(
     protocol::DictionaryValue* additionalParameters, v8::Isolate* isolate,
     v8::Local<v8::Object>* result) {
-  v8::LocalVector<v8::Name> keys(isolate);
-  v8::LocalVector<v8::Value> values(isolate);
+  v8::Local::v8::base::Vector<v8::Name> keys(isolate);
+  v8::Local::v8::base::Vector<v8::Value> values(isolate);
 
   if (additionalParameters != nullptr) {
     for (size_t i = 0; i < additionalParameters->size(); ++i) {

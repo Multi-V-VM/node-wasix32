@@ -274,7 +274,7 @@ V8_INLINE size_t hash_value(std::pair<T1, T2> const& v) {
 template <typename... T, size_t... I>
 V8_INLINE size_t hash_value_impl(std::tuple<T...> const& v,
                                  std::index_sequence<I...>) {
-  return Hasher::Combine(std::get<I>(v)...);
+  return Hasher::Combine(::std::get<I>(v)...);
 }
 
 template <typename... T>

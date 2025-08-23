@@ -1,3 +1,4 @@
+#include "src/base/hasher.h"
 // Copyright 2015 the V8 project authors. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
@@ -110,11 +111,11 @@ class Signature : public ZoneObject {
   }
 
   // Iteration support.
-  base::Vector<const T> parameters() const {
+  ::v8::base::Vector<const T> parameters() const {
     return {reps_ + return_count_, parameter_count_};
   }
-  base::Vector<const T> returns() const { return {reps_, return_count_}; }
-  base::Vector<const T> all() const {
+  ::v8::base::Vector<const T> returns() const { return {reps_, return_count_}; }
+  ::v8::base::Vector<const T> all() const {
     return {reps_, return_count_ + parameter_count_};
   }
 
@@ -155,7 +156,7 @@ size_t hash_value(const Signature<T>& sig) {
   // Hash over all contained representations, plus the parameter count to
   // differentiate signatures with the same representation array but different
   // parameter/return count.
-  return v8::base::Hasher{}.Add(sig.parameter_count()).AddRange(sig.all()).hash();
+  return ::v8::base::Hasher{}.Add(sig.parameter_count()).AddRange(sig.all()).hash();
 }
 
 template <typename T, size_t kNumReturns = 0, size_t kNumParams = 0>

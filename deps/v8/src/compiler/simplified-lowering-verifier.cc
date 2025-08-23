@@ -469,7 +469,7 @@ void SimplifiedLoweringVerifier::VisitNode(Node* node,
       break;
     }
     case IrOpcode::kTypedStateValues: {
-      const ZoneVector<MachineType>* machine_types = MachineTypesOf(node->op());
+      const ::v8::base::Vector<MachineType>* machine_types = MachineTypesOf(node->op());
       for (int i = 0; i < static_cast<int>(machine_types->size()); ++i) {
         // Inputs must not be truncated.
         CHECK_EQ(InputTruncation(node, i), Truncation::Any());

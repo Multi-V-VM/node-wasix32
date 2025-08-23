@@ -935,7 +935,7 @@ void WasmInterpreterRuntime::BeginExecution(
   // argument_values.
   HandleScope handle_scope(isolate_);  // Avoid leaking handles.
 
-  DirectHandleVector<Object> ref_args(isolate_);
+  DirectHandle<::v8::base::Vector<Object> ref_args(isolate_);
   if (ref_args_count > 0) {
     ref_args.reserve(ref_args_count);
   }

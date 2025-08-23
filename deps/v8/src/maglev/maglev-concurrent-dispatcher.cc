@@ -165,7 +165,7 @@ CompilationJob::Status MaglevCompilationJob::FinalizeJobImpl(Isolate* isolate) {
         CachedTieringDecision::kNormal);
   }
   info()->set_code(code);
-  GlobalHandleVector<Map> maps = CollectRetainedMaps(isolate, code);
+  GlobalHandle::v8::base::Vector<Map> maps = CollectRetainedMaps(isolate, code);
   RegisterWeakObjectsInOptimizedCode(
       isolate, info()->broker()->target_native_context().object(), code,
       std::move(maps));
@@ -173,7 +173,7 @@ CompilationJob::Status MaglevCompilationJob::FinalizeJobImpl(Isolate* isolate) {
   return CompilationJob::SUCCEEDED;
 }
 
-GlobalHandleVector<Map> MaglevCompilationJob::CollectRetainedMaps(
+GlobalHandle::v8::base::Vector<Map> MaglevCompilationJob::CollectRetainedMaps(
     Isolate* isolate, DirectHandle<Code> code) {
   if (v8_flags.maglev_build_code_on_background) {
     return info()->code_generator()->RetainedMaps(isolate);

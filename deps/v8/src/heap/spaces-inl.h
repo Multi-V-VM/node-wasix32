@@ -68,42 +68,42 @@ OldGenerationMemoryChunkIterator::OldGenerationMemoryChunkIterator(Heap* heap)
 MutablePageMetadata* OldGenerationMemoryChunkIterator::next() {
   switch (state_) {
     case kOldSpace: {
-      PageIterator& iterator = std::get<PageIterator>(iterator_);
+      PageIterator& iterator = ::std::get<PageIterator>(iterator_);
       if (iterator != heap_->old_space()->end()) return *(iterator++);
       state_ = kCodeSpace;
       iterator_ = heap_->code_space()->begin();
       [[fallthrough]];
     }
     case kCodeSpace: {
-      PageIterator& iterator = std::get<PageIterator>(iterator_);
+      PageIterator& iterator = ::std::get<PageIterator>(iterator_);
       if (iterator != heap_->code_space()->end()) return *(iterator++);
       state_ = kLargeObjectSpace;
       iterator_ = heap_->lo_space()->begin();
       [[fallthrough]];
     }
     case kLargeObjectSpace: {
-      LargePageIterator& iterator = std::get<LargePageIterator>(iterator_);
+      LargePageIterator& iterator = ::std::get<LargePageIterator>(iterator_);
       if (iterator != heap_->lo_space()->end()) return *(iterator++);
       state_ = kCodeLargeObjectSpace;
       iterator_ = heap_->code_lo_space()->begin();
       [[fallthrough]];
     }
     case kCodeLargeObjectSpace: {
-      LargePageIterator& iterator = std::get<LargePageIterator>(iterator_);
+      LargePageIterator& iterator = ::std::get<LargePageIterator>(iterator_);
       if (iterator != heap_->code_lo_space()->end()) return *(iterator++);
       state_ = kTrustedSpace;
       iterator_ = heap_->trusted_space()->begin();
       [[fallthrough]];
     }
     case kTrustedSpace: {
-      PageIterator& iterator = std::get<PageIterator>(iterator_);
+      PageIterator& iterator = ::std::get<PageIterator>(iterator_);
       if (iterator != heap_->trusted_space()->end()) return *(iterator++);
       state_ = kTrustedLargeObjectSpace;
       iterator_ = heap_->trusted_lo_space()->begin();
       [[fallthrough]];
     }
     case kTrustedLargeObjectSpace: {
-      LargePageIterator& iterator = std::get<LargePageIterator>(iterator_);
+      LargePageIterator& iterator = ::std::get<LargePageIterator>(iterator_);
       if (iterator != heap_->trusted_lo_space()->end()) return *(iterator++);
       state_ = kFinished;
       [[fallthrough]];

@@ -105,14 +105,14 @@ using CollectionEpoch = uint32_t;
 // GCTracer collects and prints ONE line after each garbage collector
 // invocation IFF --trace_gc is used.
 class V8_EXPORT_PRIVATE GCTracer {
-  using Priority = v8::Isolate::Priority;
+  using Priority = ::v8::Isolate::Priority;
 
  public:
   struct IncrementalInfos final {
-    constexpr V8_INLINE IncrementalInfos& operator+=(base::TimeDelta delta);
+    constexpr V8_INLINE IncrementalInfos& operator+=(::v8::base::TimeDelta delta);
 
-    base::TimeDelta duration;
-    base::TimeDelta longest_step;
+    ::v8::base::TimeDelta duration;
+    ::v8::base::TimeDelta longest_step;
     int steps = 0;
   };
 

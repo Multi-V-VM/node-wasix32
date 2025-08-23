@@ -118,7 +118,7 @@ inline constexpr uint8_t ToLatin1Upper(uint8_t ch) {
 // Ensure callers explicitly truncate uint16_t.
 inline constexpr uint8_t ToLatin1Upper(uint16_t ch) = delete;
 
-bool ToUpperFastASCII(base::Vector<const uint16_t> src,
+bool ToUpperFastASCII(::v8::base::Vector<const uint16_t> src,
                       DirectHandle<SeqOneByteString> result) {
   // Do a faster loop for the case where all the characters are ASCII.
   uint16_t ored = 0;
@@ -134,7 +134,7 @@ bool ToUpperFastASCII(base::Vector<const uint16_t> src,
 const uint16_t sharp_s = 0xDF;
 
 template <typename Char>
-bool ToUpperOneByte(base::Vector<const Char> src, uint8_t* dest,
+bool ToUpperOneByte(::v8::base::Vector<const Char> src, uint8_t* dest,
                     int* sharp_s_count) {
   // Still pretty-fast path for the input with non-ASCII Latin-1 characters.
 
@@ -160,7 +160,7 @@ bool ToUpperOneByte(base::Vector<const Char> src, uint8_t* dest,
 }
 
 template <typename Char>
-void ToUpperWithSharpS(base::Vector<const Char> src,
+void ToUpperWithSharpS(::v8::base::Vector<const Char> src,
                        DirectHandle<SeqOneByteString> result) {
   int32_t dest_index = 0;
   for (auto it = src.begin(); it != src.end(); ++it) {
@@ -412,7 +412,7 @@ MaybeDirectHandle<String> Intl::ConvertToUpper(Isolate* isolate,
       String::FlatContent flat = s->GetFlatContent(no_gc);
       uint8_t* dest = result->GetChars(no_gc);
       if (flat.IsOneByte()) {
-        base::Vector<const uint8_t> src = flat.ToOneByteVector();
+        ::v8::base::Vector<const uint8_t> src = flat.ToOneByteVector();
         std::memcpy(result->GetChars(no_gc), src.begin(), prefix);
         uint32_t ascii_prefix_length =
             FastAsciiConvert<unibrow::ToUppercase>(
@@ -428,7 +428,7 @@ MaybeDirectHandle<String> Intl::ConvertToUpper(Isolate* isolate,
                            dest + ascii_prefix_length, &sharp_s_count);
       } else {
         DCHECK(flat.IsTwoByte());
-        base::Vector<const uint16_t> src = flat.ToUC16Vector();
+        ::v8::base::Vector<const uint16_t> src = flat.ToUC16Vector();
         if (ToUpperFastASCII(src, result)) return result;
         is_result_single_byte = ToUpperOneByte(src, dest, &sharp_s_count);
       }
@@ -496,7 +496,7 @@ Maybe<icu::Locale> CreateICULocale(const std::string& bcp47_locale) {
 
 MaybeHandle<String> Intl::ToString(Isolate* isolate,
                                    const icu::UnicodeString& string) {
-  return isolate->factory()->NewStringFromTwoByte(base::Vector<const uint16_t>(
+  return isolate->factory()->NewStringFromTwoByte(::v8::base::Vector<const uint16_t>(
       reinterpret_cast<const uint16_t*>(string.getBuffer()), string.length()));
 }
 
@@ -1179,21 +1179,21 @@ bool FastCompareStringFlatContent(const String::FlatContent& lhs,
                                   const String::FlatContent& rhs, int length,
                                   FastCompareStringsData* d) {
   if (lhs.IsOneByte()) {
-    base::Vector<const uint8_t> l = lhs.ToOneByteVector();
+    ::v8::base::Vector<const uint8_t> l = lhs.ToOneByteVector();
     if (rhs.IsOneByte()) {
-      base::Vector<const uint8_t> r = rhs.ToOneByteVector();
+      ::v8::base::Vector<const uint8_t> r = rhs.ToOneByteVector();
       return FastCompareFlatString(l.data(), r.data(), length, d);
     } else {
-      base::Vector<const uint16_t> r = rhs.ToUC16Vector();
+      ::v8::base::Vector<const uint16_t> r = rhs.ToUC16Vector();
       return FastCompareFlatString(l.data(), r.data(), length, d);
     }
   } else {
-    base::Vector<const uint16_t> l = lhs.ToUC16Vector();
+    ::v8::base::Vector<const uint16_t> l = lhs.ToUC16Vector();
     if (rhs.IsOneByte()) {
-      base::Vector<const uint8_t> r = rhs.ToOneByteVector();
+      ::v8::base::Vector<const uint8_t> r = rhs.ToOneByteVector();
       return FastCompareFlatString(l.data(), r.data(), length, d);
     } else {
-      base::Vector<const uint16_t> r = rhs.ToUC16Vector();
+      ::v8::base::Vector<const uint16_t> r = rhs.ToUC16Vector();
       return FastCompareFlatString(l.data(), r.data(), length, d);
     }
   }
@@ -3172,7 +3172,7 @@ DirectHandle<Object> Intl::GetTimeZoneOffsetTransitionNanoseconds(
   return MillisecondToNanosecond(isolate, time_ms);
 }
 
-DirectHandleVector<BigInt> Intl::GetTimeZonePossibleOffsetNanoseconds(
+DirectHandle<::v8::base::Vector<BigInt> Intl::GetTimeZonePossibleOffsetNanoseconds(
     Isolate* isolate, int32_t time_zone_index,
     DirectHandle<BigInt> nanosecond_epoch) {
   std::unique_ptr<const icu::BasicTimeZone> basic_time_zone(
@@ -3197,7 +3197,7 @@ DirectHandleVector<BigInt> Intl::GetTimeZonePossibleOffsetNanoseconds(
   // transition
   int64_t offset_latter = raw_offset + dst_offset;
 
-  DirectHandleVector<BigInt> result(isolate);
+  DirectHandle<::v8::base::Vector<BigInt> result(isolate);
   if (offset_former == offset_latter) {
     // For most of the time, when either interpretation are the same, we are not
     // in a moment of offset transition based on rule changing: Just return that

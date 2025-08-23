@@ -1,3 +1,6 @@
+#ifdef __wasi__
+#define V8_TARGET_ARCH_WASM32 1
+#endif
 // Copyright 2014 the V8 project authors. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
@@ -333,7 +336,7 @@ bool ParallelMove::IsRedundant() const {
 }
 
 void ParallelMove::PrepareInsertAfter(
-    MoveOperands* move, ZoneVector<MoveOperands*>* to_eliminate) const {
+    MoveOperands* move, ::v8::base::Vector<MoveOperands*>* to_eliminate) const {
   bool no_aliasing = kFPAliasing != AliasingKind::kCombine ||
                      !move->destination().IsFPLocationOperand();
   MoveOperands* replacement = nullptr;

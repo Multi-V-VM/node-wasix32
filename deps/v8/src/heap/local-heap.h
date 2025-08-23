@@ -213,7 +213,7 @@ class V8_EXPORT_PRIVATE LocalHeap {
 
   // Weakens StrongDescriptorArray objects into regular DescriptorArray objects.
   void WeakenDescriptorArrays(
-      GlobalHandleVector<DescriptorArray> strong_descriptor_arrays);
+      GlobalHandle::v8::base::Vector<DescriptorArray> strong_descriptor_arrays);
 
   // Used to make SetupMainThread() available to unit tests.
   void SetUpMainThreadForTesting();

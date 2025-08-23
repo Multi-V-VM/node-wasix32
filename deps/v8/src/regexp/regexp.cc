@@ -1,3 +1,6 @@
+#ifdef __wasi__
+#define V8_TARGET_ARCH_WASM32 1
+#endif
 // Copyright 2012 the V8 project authors. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
@@ -143,11 +146,11 @@ template bool RegExp::VerifySyntax<base::uc16>(
 MaybeDirectHandle<Object> RegExp::ThrowRegExpException(
     Isolate* isolate, RegExpFlags flags, DirectHandle<String> pattern,
     RegExpError error) {
-  base::Vector<const char> error_data =
+  ::v8::base::Vector<const char> error_data =
       base::CStrVector(RegExpErrorString(error));
   DirectHandle<String> error_text =
       isolate->factory()
-          ->NewStringFromOneByte(base::Vector<const uint8_t>::cast(error_data))
+          ->NewStringFromOneByte(::v8::base::Vector<const uint8_t>::cast(error_data))
           .ToHandleChecked();
   DirectHandle<String> flag_string =
       JSRegExp::StringFromFlags(isolate, JSRegExp::AsJSRegExpFlags(flags));
@@ -265,7 +268,7 @@ MaybeDirectHandle<Object> RegExp::Compile(Isolate* isolate,
     RegExpAtom* atom = parse_result.tree->AsAtom();
     // The pattern source might (?) contain escape sequences, but they're
     // resolved in atom_string.
-    base::Vector<const base::uc16> atom_pattern = atom->data();
+    ::v8::base::Vector<const base::uc16> atom_pattern = atom->data();
     DirectHandle<String> atom_string;
     ASSIGN_RETURN_ON_EXCEPTION(
         isolate, atom_string,
@@ -393,8 +396,8 @@ void RegExpImpl::AtomCompile(Isolate* isolate, DirectHandle<JSRegExp> re,
 namespace {
 
 template <typename SChar, typename PChar>
-int AtomExecRawImpl(Isolate* isolate, base::Vector<const SChar> subject,
-                    base::Vector<const PChar> pattern, int index,
+int AtomExecRawImpl(Isolate* isolate, ::v8::base::Vector<const SChar> subject,
+                    ::v8::base::Vector<const PChar> pattern, int index,
                     RegExpFlags flags, int32_t* output, int output_size,
                     const DisallowGarbageCollection& no_gc) {
   const int subject_length = subject.length();
@@ -586,7 +589,7 @@ struct RegExpCaptureIndexLess {
 
 // static
 DirectHandle<FixedArray> RegExp::CreateCaptureNameMap(
-    Isolate* isolate, ZoneVector<RegExpCapture*>* named_captures) {
+    Isolate* isolate, ::v8::base::Vector<RegExpCapture*>* named_captures) {
   if (named_captures == nullptr) return DirectHandle<FixedArray>();
 
   DCHECK(!named_captures->empty());
@@ -602,7 +605,7 @@ DirectHandle<FixedArray> RegExp::CreateCaptureNameMap(
 
   int i = 0;
   for (const RegExpCapture* capture : *named_captures) {
-    base::Vector<const base::uc16> capture_name(capture->name()->data(),
+    ::v8::base::Vector<const base::uc16> capture_name(capture->name()->data(),
                                                 capture->name()->size());
     // CSA code in ConstructNewResultFromMatchInfo requires these strings to be
     // internalized so they can be used as property names in the 'exec' results.

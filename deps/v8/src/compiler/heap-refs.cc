@@ -184,11 +184,11 @@ class PropertyCellData : public HeapObjectData {
 
 namespace {
 
-ZoneVector<Address> GetCFunctions(Tagged<FixedArray> function_overloads,
+::v8::base::Vector<Address> GetCFunctions(Tagged<FixedArray> function_overloads,
                                   Isolate* isolate, Zone* zone) {
   const int len = function_overloads->length() /
                   FunctionTemplateInfo::kFunctionOverloadEntrySize;
-  ZoneVector<Address> c_functions = ZoneVector<Address>(len, zone);
+  ::v8::base::Vector<Address> c_functions = ::v8::base::Vector<Address>(len, zone);
   for (int i = 0; i < len; i++) {
     c_functions[i] = v8::ToCData<kCFunctionTag>(
         isolate, function_overloads->get(
@@ -197,12 +197,12 @@ ZoneVector<Address> GetCFunctions(Tagged<FixedArray> function_overloads,
   return c_functions;
 }
 
-ZoneVector<const CFunctionInfo*> GetCSignatures(
+::v8::base::Vector<const CFunctionInfo*> GetCSignatures(
     Tagged<FixedArray> function_overloads, Isolate* isolate, Zone* zone) {
   const int len = function_overloads->length() /
                   FunctionTemplateInfo::kFunctionOverloadEntrySize;
-  ZoneVector<const CFunctionInfo*> c_signatures =
-      ZoneVector<const CFunctionInfo*>(len, zone);
+  ::v8::base::Vector<const CFunctionInfo*> c_signatures =
+      ::v8::base::Vector<const CFunctionInfo*>(len, zone);
   for (int i = 0; i < len; i++) {
     c_signatures[i] = v8::ToCData<const CFunctionInfo*, kCFunctionInfoTag>(
         isolate, function_overloads->get(
@@ -591,7 +591,7 @@ int InstanceSizeWithMinSlack(JSHeapBroker* broker, MapRef map) {
   // processing). This is to avoid having to take two locks
   // (full_transition_array_access and map_updater_access) at once and thus
   // having to deal with related deadlock issues.
-  ZoneVector<IndirectHandle<Map>> maps(broker->zone());
+  ::v8::base::Vector<IndirectHandle<Map>> maps(broker->zone());
   maps.push_back(map.object());
 
   {
@@ -1206,7 +1206,7 @@ OptionalMapRef MapRef::AsElementsKind(JSHeapBroker* broker,
 }
 
 bool MapRef::PrototypesElementsDoNotHaveAccessorsOrThrow(
-    JSHeapBroker* broker, ZoneVector<MapRef>* prototype_maps) {
+    JSHeapBroker* broker, ::v8::base::Vector<MapRef>* prototype_maps) {
   DCHECK_NOT_NULL(prototype_maps);
   MapRef prototype_map = prototype(broker).map(broker);
   while (prototype_map.oddball_type(broker) != OddballType::kNull) {
@@ -1875,13 +1875,13 @@ bool StringRef::IsExternalString() const {
   return i::IsExternalString(*object());
 }
 
-ZoneVector<Address> FunctionTemplateInfoRef::c_functions(
+::v8::base::Vector<Address> FunctionTemplateInfoRef::c_functions(
     JSHeapBroker* broker) const {
   return GetCFunctions(Cast<FixedArray>(object()->GetCFunctionOverloads()),
                        broker->isolate(), broker->zone());
 }
 
-ZoneVector<const CFunctionInfo*> FunctionTemplateInfoRef::c_signatures(
+::v8::base::Vector<const CFunctionInfo*> FunctionTemplateInfoRef::c_signatures(
     JSHeapBroker* broker) const {
   return GetCSignatures(Cast<FixedArray>(object()->GetCFunctionOverloads()),
                         broker->isolate(), broker->zone());

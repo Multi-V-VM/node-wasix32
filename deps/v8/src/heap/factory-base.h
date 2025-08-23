@@ -292,22 +292,22 @@ class FactoryBase : public TorqueGeneratedFactory<Impl> {
       int slot_count, int create_closure_slot_count,
       AllocationType allocation = AllocationType::kOld);
 
-  Handle<CoverageInfo> NewCoverageInfo(const ZoneVector<SourceRange>& slots);
+  Handle<CoverageInfo> NewCoverageInfo(const ::v8::base::Vector<SourceRange>& slots);
 
-  Handle<String> InternalizeString(base::Vector<const uint8_t> string,
+  Handle<String> InternalizeString(::v8::base::Vector<const uint8_t> string,
                                    bool convert_encoding = false);
-  Handle<String> InternalizeString(base::Vector<const uint16_t> string,
+  Handle<String> InternalizeString(::v8::base::Vector<const uint16_t> string,
                                    bool convert_encoding = false);
 
   template <class StringTableKey>
   Handle<String> InternalizeStringWithKey(StringTableKey* key);
 
   Handle<SeqOneByteString> NewOneByteInternalizedString(
-      base::Vector<const uint8_t> str, uint32_t raw_hash_field);
+      ::v8::base::Vector<const uint8_t> str, uint32_t raw_hash_field);
   Handle<SeqTwoByteString> NewTwoByteInternalizedString(
-      base::Vector<const base::uc16> str, uint32_t raw_hash_field);
+      ::v8::base::Vector<const ::v8::base::uc16> str, uint32_t raw_hash_field);
   DirectHandle<SeqOneByteString> NewOneByteInternalizedStringFromTwoByte(
-      base::Vector<const base::uc16> str, uint32_t raw_hash_field);
+      ::v8::base::Vector<const ::v8::base::uc16> str, uint32_t raw_hash_field);
 
   Handle<SeqOneByteString> AllocateRawOneByteInternalizedString(
       int length, uint32_t raw_hash_field);
@@ -319,19 +319,19 @@ class FactoryBase : public TorqueGeneratedFactory<Impl> {
   Handle<String> LookupSingleCharacterStringFromCode(uint16_t code);
 
   MaybeHandle<String> NewStringFromOneByte(
-      base::Vector<const uint8_t> string,
+      ::v8::base::Vector<const uint8_t> string,
       AllocationType allocation = AllocationType::kYoung);
 
   inline Handle<String> NewStringFromAsciiChecked(
       const char* str, AllocationType allocation = AllocationType::kYoung) {
-    return NewStringFromOneByte(base::OneByteVector(str), allocation)
+    return NewStringFromOneByte(::v8::base::OneByteVector(str), allocation)
         .ToHandleChecked();
   }
 
   inline Handle<String> NewStringFromAsciiChecked(
       std::string_view str,
       AllocationType allocation = AllocationType::kYoung) {
-    return NewStringFromOneByte(base::OneByteVector(str.data(), str.length()),
+    return NewStringFromOneByte(::v8::base::OneByteVector(str.data(), str.length()),
                                 allocation)
         .ToHandleChecked();
   }

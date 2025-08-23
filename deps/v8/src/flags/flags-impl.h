@@ -29,7 +29,7 @@ Flag* FindFlagByPointer(const void* ptr);
 V8_EXPORT_PRIVATE Flag* FindFlagByName(const char* name);
 V8_EXPORT_PRIVATE Flag* FindImplicationFlagByName(const char* name);
 
-V8_EXPORT_PRIVATE base::Vector<Flag> Flags();
+V8_EXPORT_PRIVATE ::v8::base::Vector<Flag> Flags();
 
 // Helper struct for printing normalized flag names.
 struct FlagName {

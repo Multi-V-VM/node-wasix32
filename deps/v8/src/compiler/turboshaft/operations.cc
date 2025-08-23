@@ -1,3 +1,6 @@
+#ifdef __wasi__
+#define V8_TARGET_ARCH_WASM32 1
+#endif
 // Copyright 2022 the V8 project authors. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
@@ -102,7 +105,7 @@ void ValidateOpInputRep(
     std::initializer_list<RegisterRepresentation> expected_reps,
     const Operation* checked_op, std::optional<size_t> projection_index) {
   const Operation& input_op = graph.Get(input);
-  base::Vector<const RegisterRepresentation> input_reps =
+  ::v8::base::Vector<const RegisterRepresentation> input_reps =
       input_op.outputs_rep();
   RegisterRepresentation input_rep;
   if (projection_index) {
@@ -2149,10 +2152,10 @@ bool IsUnlikelySuccessor(const Block* block, const Block* successor,
 }
 
 bool Operation::IsOnlyUserOf(const Operation& value, const Graph& graph) const {
-  DCHECK_GE(std::count(inputs().begin(), inputs().end(), graph.Index(value)),
+  DCHECK_GE(::std::count(inputs().begin(), inputs().end(), graph.Index(value)),
             1);
   if (value.saturated_use_count.IsOne()) return true;
-  return std::count(inputs().begin(), inputs().end(), graph.Index(value)) ==
+  return ::std::count(inputs().begin(), inputs().end(), graph.Index(value)) ==
          value.saturated_use_count.Get();
 }
 

@@ -185,7 +185,7 @@ class DebugFieldType {
           .Position(pos_);
       return 0;
     }
-    return std::get<0>(*opt_size);
+    return ::std::get<0>(*opt_size);
   }
 
   // Returns the name of the function for getting this field's address.
@@ -343,8 +343,8 @@ void GenerateFieldValueAccessor(const Field& field,
 //     "",                                            // Field type
 //     "",                                            // Decompressed type
 //     address_ - i::kHeapObjectTag +
-//     std::get<1>(indexed_field_slice_descriptors.value), // Field address
-//     std::get<2>(indexed_field_slice_descriptors.value), // Number of values
+//     ::std::get<1>(indexed_field_slice_descriptors.value), // Field address
+//     ::std::get<2>(indexed_field_slice_descriptors.value), // Number of values
 //     12,                                            // Size of value
 //     std::move(descriptors_struct_field_list),      // Struct fields
 //     GetArrayKind(indexed_field_slice_descriptors.validity)));  // Field kind
@@ -395,9 +395,9 @@ void GenerateGetPropsChunkForField(const Field& field,
                    << "    result.push_back(std::make_unique<ObjectProperty>(\""
                    << field.name_and_type.name << "\", "
                    << debug_field_type.GetTypeString(kAsStoredInHeap) << ", "
-                   << "address_ - i::kHeapObjectTag + std::get<1>(" << value
+                   << "address_ - i::kHeapObjectTag + ::std::get<1>(" << value
                    << "), "
-                   << "std::get<2>(" << value << ")"
+                   << "::std::get<2>(" << value << ")"
                    << ", " << debug_field_type.GetSize() << ", "
                    << struct_field_list << ", " << property_kind << "));\n"
                    << "  }\n";

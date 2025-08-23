@@ -38,7 +38,7 @@ namespace internal {
 namespace {
 
 bool BackRefMatchesNoCase(Isolate* isolate, int from, int current, int len,
-                          base::Vector<const base::uc16> subject,
+                          ::v8::base::Vector<const base::uc16> subject,
                           bool unicode) {
   Address offset_a =
       reinterpret_cast<Address>(const_cast<base::uc16*>(&subject.at(from)));
@@ -55,7 +55,7 @@ bool BackRefMatchesNoCase(Isolate* isolate, int from, int current, int len,
 }
 
 bool BackRefMatchesNoCase(Isolate* isolate, int from, int current, int len,
-                          base::Vector<const uint8_t> subject, bool unicode) {
+                          ::v8::base::Vector<const uint8_t> subject, bool unicode) {
   // For Latin1 characters the unicode flag makes no difference.
   for (int i = 0; i < len; i++) {
     unsigned int old_char = subject[from++];
@@ -242,7 +242,7 @@ void UpdateCodeAndSubjectReferences(
     DirectHandle<String> subject_string,
     Tagged<TrustedByteArray>* code_array_out, const uint8_t** code_base_out,
     const uint8_t** pc_out, Tagged<String>* subject_string_out,
-    base::Vector<const Char>* subject_string_vector_out) {
+    ::v8::base::Vector<const Char>* subject_string_vector_out) {
   DisallowGarbageCollection no_gc;
 
   if (*code_base_out != code_array->begin()) {
@@ -255,7 +255,7 @@ void UpdateCodeAndSubjectReferences(
 
   DCHECK(subject_string->IsFlat());
   *subject_string_out = *subject_string;
-  *subject_string_vector_out = subject_string->GetCharVector<Char>(no_gc);
+  *subject_string_vector_out = subject_string->GetChar::v8::base::Vector<Char>(no_gc);
 }
 
 // Runs all pending interrupts and updates unhandlified object references if
@@ -265,7 +265,7 @@ IrregexpInterpreter::Result HandleInterrupts(
     Isolate* isolate, RegExp::CallOrigin call_origin,
     Tagged<TrustedByteArray>* code_array_out,
     Tagged<String>* subject_string_out, const uint8_t** code_base_out,
-    base::Vector<const Char>* subject_string_vector_out,
+    ::v8::base::Vector<const Char>* subject_string_vector_out,
     const uint8_t** pc_out) {
   DisallowGarbageCollection no_gc;
 
@@ -395,7 +395,7 @@ bool IndexIsInBounds(int index, int length) {
 template <typename Char>
 IrregexpInterpreter::Result RawMatch(
     Isolate* isolate, Tagged<TrustedByteArray>* code_array,
-    Tagged<String>* subject_string, base::Vector<const Char> subject,
+    Tagged<String>* subject_string, ::v8::base::Vector<const Char> subject,
     int* output_registers, int output_register_count, int total_register_count,
     int current, uint32_t current_char, RegExp::CallOrigin call_origin,
     const uint32_t backtrack_limit) {
@@ -1154,7 +1154,7 @@ IrregexpInterpreter::Result IrregexpInterpreter::MatchInternal(
   // safe. See (2) above.
   subject_content.UnsafeDisableChecksumVerification();
   if (subject_content.IsOneByte()) {
-    base::Vector<const uint8_t> subject_vector =
+    ::v8::base::Vector<const uint8_t> subject_vector =
         subject_content.ToOneByteVector();
     if (start_position != 0) previous_char = subject_vector[start_position - 1];
     return RawMatch(isolate, code_array, subject_string, subject_vector,
@@ -1163,7 +1163,7 @@ IrregexpInterpreter::Result IrregexpInterpreter::MatchInternal(
                     call_origin, backtrack_limit);
   } else {
     DCHECK(subject_content.IsTwoByte());
-    base::Vector<const base::uc16> subject_vector =
+    ::v8::base::Vector<const base::uc16> subject_vector =
         subject_content.ToUC16Vector();
     if (start_position != 0) previous_char = subject_vector[start_position - 1];
     return RawMatch(isolate, code_array, subject_string, subject_vector,

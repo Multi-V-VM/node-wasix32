@@ -14,6 +14,7 @@
 #include "src/base/hashing.h"
 #include "src/base/macros.h"
 #include "src/base/small-vector.h"
+#include "src/base/vector.h"
 #include "src/common/checks.h"
 #include "src/common/globals.h"
 #include "src/objects/casting.h"
@@ -837,7 +838,7 @@ V8_INLINE IndirectHandle<T> indirect_handle(DirectHandle<T> handle,
 #endif  // V8_ENABLE_DIRECT_HANDLE
 
 // A variant of DirectHandle that is suitable for off-stack allocation.
-// Used internally by DirectHandleVector<T>. Not to be used directly!
+// Used internally by DirectHandle<::v8::base::Vector<T>. Not to be used directly!
 template <typename T>
 class V8_TRIVIAL_ABI DirectHandleUnchecked final : public DirectHandle<T> {
  public:
@@ -988,7 +989,7 @@ class DirectHandleVector {
     return iterator(backing_.insert(pos.base(), init.begin(), init.end()));
   }
 
-  DirectHandleVector<T>& operator=(std::initializer_list<value_type> init) {
+  DirectHandle<::v8::base::Vector<T>>& operator=(std::initializer_list<value_type> init) {
     backing_.clear();
     backing_.reserve(init.size());
     backing_.insert(backing_.end(), init.begin(), init.end());
@@ -1006,30 +1007,30 @@ class DirectHandleVector {
   void clear() noexcept { backing_.clear(); }
   void resize(size_t n) { backing_.resize(n); }
   void resize(size_t n, const value_type& value) { backing_.resize(n, value); }
-  void swap(DirectHandleVector<T>& other) { backing_.swap(other.backing_); }
+  void swap(DirectHandle<v8::base::Vector<T>>& other) { backing_.swap(other.backing_); }
 
-  friend bool operator==(const DirectHandleVector<T>& x,
-                         const DirectHandleVector<T>& y) {
+  friend bool operator==(const DirectHandle<v8::base::Vector<T>>& x,
+                         const DirectHandle<v8::base::Vector<T>>& y) {
     return x.backing_ == y.backing_;
   }
-  friend bool operator!=(const DirectHandleVector<T>& x,
-                         const DirectHandleVector<T>& y) {
+  friend bool operator!=(const DirectHandle<v8::base::Vector<T>>& x,
+                         const DirectHandle<v8::base::Vector<T>>& y) {
     return x.backing_ != y.backing_;
   }
-  friend bool operator<(const DirectHandleVector<T>& x,
-                        const DirectHandleVector<T>& y) {
+  friend bool operator<(const DirectHandle<v8::base::Vector<T>>& x,
+                        const DirectHandle<v8::base::Vector<T>>& y) {
     return x.backing_ < y.backing_;
   }
-  friend bool operator>(const DirectHandleVector<T>& x,
-                        const DirectHandleVector<T>& y) {
+  friend bool operator>(const DirectHandle<v8::base::Vector<T>>& x,
+                        const DirectHandle<v8::base::Vector<T>>& y) {
     return x.backing_ > y.backing_;
   }
-  friend bool operator<=(const DirectHandleVector<T>& x,
-                         const DirectHandleVector<T>& y) {
+  friend bool operator<=(const DirectHandle<v8::base::Vector<T>>& x,
+                         const DirectHandle<v8::base::Vector<T>>& y) {
     return x.backing_ <= y.backing_;
   }
-  friend bool operator>=(const DirectHandleVector<T>& x,
-                         const DirectHandleVector<T>& y) {
+  friend bool operator>=(const DirectHandle<v8::base::Vector<T>>& x,
+                         const DirectHandle<v8::base::Vector<T>>& y) {
     return x.backing_ >= y.backing_;
   }
 
@@ -1099,8 +1100,8 @@ class DirectHandleSmallVector {
     backing_.insert(backing_.end(), init.begin(), init.end());
   }
   template <typename IsolateT>
-  explicit V8_INLINE DirectHandleSmallVector(
-      base::Vector<const value_type> init)
+  explicit V8_INLINE DirectHandleSmallVector(IsolateT* isolate,
+      ::v8::base::Vector<const value_type> init)
       : backing_() {
     if (init.size() == 0) return;
     backing_.reserve(init.size());

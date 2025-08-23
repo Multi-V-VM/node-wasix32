@@ -339,7 +339,7 @@ void MemoryMeasurement::ReportResults() {
     Request request = std::move(done_.front());
     done_.pop_front();
     HandleScope handle_scope(isolate_);
-    v8::LocalVector<v8::Context> contexts(
+    v8::Local::v8::base::Vector<v8::Context> contexts(
         reinterpret_cast<v8::Isolate*>(isolate_));
     std::vector<size_t> size_in_bytes;
     DCHECK_EQ(request.sizes.size(),

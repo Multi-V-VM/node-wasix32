@@ -220,7 +220,7 @@ Reduction WasmLoadElimination::ReduceWasmStructGet(Node* node) {
     std::tuple<Node*, Node*> replacement = TruncateAndExtendOrType(
         lookup_result.value, effect, control,
         field_info.type->field(field_info.field_index), field_info.is_signed);
-    if (std::get<0>(replacement) == dead()) {
+    if (::std::get<0>(replacement) == dead()) {
       // If the value is dead (unreachable), this whole code path is unreachable
       // and we can mark this control flow path as dead.
       ReplaceWithValue(node, dead(), dead(), dead());
@@ -229,10 +229,10 @@ Reduction WasmLoadElimination::ReduceWasmStructGet(Node* node) {
       node->Kill();
       return Replace(dead());
     }
-    ReplaceWithValue(node, std::get<0>(replacement), std::get<1>(replacement),
+    ReplaceWithValue(node, ::std::get<0>(replacement), ::std::get<1>(replacement),
                      control);
     node->Kill();
-    return Replace(std::get<0>(replacement));
+    return Replace(::std::get<0>(replacement));
   }
 
   half_state = half_state->AddField(field_info.field_index, object, node);

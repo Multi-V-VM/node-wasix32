@@ -20,7 +20,7 @@ struct any_of : std::tuple<const Ts&...> {
 
   template <class T, size_t... indices>
   bool Contains(const T& value, std::index_sequence<indices...>) {
-    return ((value == std::get<indices>(*this)) || ...);
+    return ((value == ::std::get<indices>(*this)) || ...);
   }
 
   template <size_t... indices>
@@ -28,7 +28,7 @@ struct any_of : std::tuple<const Ts&...> {
     bool first = true;
     os << "any_of(";
     (((first ? (first = false, os) : os << ", "),
-      os << base::PrintCheckOperand(std::get<indices>(*this))),
+      os << base::PrintCheckOperand(::std::get<indices>(*this))),
      ...);
     return os << ")";
   }
@@ -52,7 +52,7 @@ struct all_of : std::tuple<const Ts&...> {
 
   template <class T, size_t... indices>
   bool AllEqualTo(const T& value, std::index_sequence<indices...>) {
-    return ((value == std::get<indices>(*this)) && ...);
+    return ((value == ::std::get<indices>(*this)) && ...);
   }
 
   template <size_t... indices>
@@ -60,7 +60,7 @@ struct all_of : std::tuple<const Ts&...> {
     bool first = true;
     os << "all_of(";
     (((first ? (first = false, os) : os << ", "),
-      os << base::PrintCheckOperand(std::get<indices>(*this))),
+      os << base::PrintCheckOperand(::std::get<indices>(*this))),
      ...);
     return os << ")";
   }

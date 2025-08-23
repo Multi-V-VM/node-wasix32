@@ -30,10 +30,10 @@ class SourceCodeCache final {
 
   void Iterate(RootVisitor* v);
 
-  bool Lookup(Isolate* isolate, base::Vector<const char> name,
+  bool Lookup(Isolate* isolate, ::v8::base::Vector<const char> name,
               DirectHandle<SharedFunctionInfo>* handle);
 
-  void Add(Isolate* isolate, base::Vector<const char> name,
+  void Add(Isolate* isolate, ::v8::base::Vector<const char> name,
            DirectHandle<SharedFunctionInfo> shared);
 
  private:

@@ -199,7 +199,7 @@ Tagged<Object> DoFunctionBind(Isolate* isolate, BuiltinArguments args,
   // Allocate the bound function with the given {this_arg} and {args}.
   DirectHandle<JSReceiver> target = args.at<JSReceiver>(0);
   DirectHandle<JSAny> this_arg = isolate->factory()->undefined_value();
-  DirectHandleVector<Object> argv(isolate, std::max(0, args.length() - 2));
+  DirectHandle<::v8::base::Vector<Object> argv(isolate, std::max(0, args.length() - 2));
   if (args.length() > 1) {
     this_arg = args.at<JSAny>(1);
     for (int i = 2; i < args.length(); ++i) {

@@ -297,7 +297,7 @@ Flag flags[] = {
 
 constexpr size_t kNumFlags = arraysize(flags);
 
-base::Vector<Flag> Flags() { return base::ArrayVector(flags); }
+Vector<Flag> Flags() { return base::ArrayVector(flags); }
 
 struct FlagLess {
   bool operator()(const Flag* a, const Flag* b) const {
@@ -799,7 +799,7 @@ int FlagList::SetFlagsFromString(const char* str, size_t len) {
   }
 
   // Allocate argument array.
-  base::ScopedVector<char*> argv(argc);
+  base::Scoped::v8::base::Vector<char*> argv(argc);
 
   // Split the flags string into arguments.
   argc = 1;  // be compatible with SetFlagsFromCommandLine()

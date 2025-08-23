@@ -6,9 +6,12 @@
 #define V8_COMPILER_TURBOSHAFT_FAST_HASH_H_
 
 #include <tuple>
+#include "src/base/hasher.h"
 
 #include "src/base/hashing.h"
+#include "src/base/hasher.h"
 #include "src/base/vector.h"
+#include "src/base/hasher.h"
 
 namespace v8::internal::compiler::turboshaft {
 
@@ -30,7 +33,7 @@ struct fast_hash {
     if constexpr (std::is_enum<T>::value) {
       return static_cast<size_t>(v);
     } else {
-      return base::hash<T>()(v);
+      return ::std::hash<T>()(v);
     }
   }
 };
@@ -51,7 +54,7 @@ struct fast_hash<std::tuple<Ts...>> {
   template <size_t... I>
   V8_INLINE size_t impl(std::tuple<Ts...> const& v,
                         std::index_sequence<I...>) const {
-    return fast_hash_combine(std::get<I>(v)...);
+    return fast_hash_combine(::std::get<I>(v)...);
   }
 };
 
@@ -70,8 +73,8 @@ V8_INLINE size_t fast_hash_range(Iterator first, Iterator last) {
 }
 
 template <typename T>
-struct fast_hash<base::Vector<T>> {
-  V8_INLINE size_t operator()(base::Vector<T> v) const {
+struct fast_hash<::v8::Vector<T>> {
+  V8_INLINE size_t operator()(::v8::Vector<T> v) const {
     return fast_hash_range(v.begin(), v.end());
   }
 };

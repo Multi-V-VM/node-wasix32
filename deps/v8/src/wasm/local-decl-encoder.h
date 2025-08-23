@@ -42,7 +42,7 @@ class V8_EXPORT_PRIVATE LocalDeclEncoder {
 
  private:
   const FunctionSig* sig;
-  ZoneVector<std::pair<uint32_t, ValueType>> local_decls;
+  ::v8::base::Vector<std::pair<uint32_t, ValueType>> local_decls;
   size_t total;
 };
 

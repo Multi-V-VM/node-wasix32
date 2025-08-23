@@ -94,8 +94,8 @@ enum class PrivateMemberFilter {
  */
 V8_EXPORT_PRIVATE bool GetPrivateMembers(Local<Context> context,
                                          Local<Object> value, int filter,
-                                         LocalVector<Value>* names_out,
-                                         LocalVector<Value>* values_out);
+                                         ::v8::base::Vector<Value>* names_out,
+                                         ::v8::base::Vector<Value>* values_out);
 
 /**
  * Forwards to v8::Object::CreationContext, but with special handling for
@@ -283,7 +283,7 @@ class WasmScript : public Script {
 
 // "Static" version of WasmScript::Disassemble, for use with cached scripts
 // where we only have raw wire bytes available.
-void Disassemble(base::Vector<const uint8_t> wire_bytes,
+void Disassemble(::v8::base::Vector<const uint8_t> wire_bytes,
                  DisassemblyCollector* collector,
                  std::vector<int>* function_body_offsets);
 
@@ -553,7 +553,7 @@ int64_t GetNextRandomInt64(v8::Isolate* isolate);
 
 MaybeLocal<Value> CallFunctionOn(Local<Context> context,
                                  Local<Function> function, Local<Value> recv,
-                                 base::Vector<Local<Value>> args,
+                                 ::v8::base::Vector<Local<Value>> args,
                                  bool throw_on_side_effect);
 
 enum class EvaluateGlobalMode {

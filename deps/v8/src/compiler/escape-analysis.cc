@@ -39,7 +39,7 @@ class Sidetable {
   }
 
  private:
-  ZoneVector<T> map_;
+  ::v8::base::Vector<T> map_;
 };
 
 template <class T>
@@ -156,7 +156,7 @@ class VariableTracker {
   Zone* zone_;
   JSGraph* graph_;
   SparseSidetable<State> table_;
-  ZoneVector<Node*> buffer_;
+  ::v8::base::Vector<Node*> buffer_;
   EffectGraphReducer* reducer_;
   int next_variable_ = 0;
   TickCounter* const tick_counter_;

@@ -75,7 +75,7 @@ class NodeHashCache {
   };
   ZoneUnorderedSet<Node*, NodeHashCode, NodeEquals> cache_;
   // Unused nodes whose memory can be recycled.
-  ZoneVector<Node*> temp_nodes_;
+  ::v8::base::Vector<Node*> temp_nodes_;
 };
 
 // Modify the graph according to the information computed in the previous phase.
@@ -109,7 +109,7 @@ class V8_EXPORT_PRIVATE EscapeAnalysisReducer final
   JSGraph* const jsgraph_;
   JSHeapBroker* const broker_;
   EscapeAnalysisResult analysis_result_;
-  ZoneVector<Node*> object_id_cache_;
+  ::v8::base::Vector<Node*> object_id_cache_;
   NodeHashCache node_cache_;
   ZoneSet<Node*> arguments_elements_;
   Zone* const zone_;

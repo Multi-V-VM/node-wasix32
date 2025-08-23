@@ -252,7 +252,7 @@ Token::Value Scanner::SkipMagicComment(base::uc32 hash_or_at_sign) {
 
 namespace {
 
-void ProcessPerFunctionCompileHints(const base::Vector<const uint8_t>& data,
+void ProcessPerFunctionCompileHints(const ::v8::base::Vector<const uint8_t>& data,
                                     int current_position,
                                     std::vector<int>& positions) {
   // Compile hints are relative to the position of the comment end.
@@ -291,7 +291,7 @@ void Scanner::TryToParseMagicComment(base::uc32 hash_or_at_sign) {
     Advance();
   }
   if (!name.is_one_byte()) return;
-  base::Vector<const uint8_t> name_literal = name.one_byte_literal();
+  ::v8::base::Vector<const uint8_t> name_literal = name.one_byte_literal();
   LiteralBuffer* value;
   LiteralBuffer per_function_compile_hints_value;
   if (name_literal == base::StaticOneByteVector("sourceURL")) {
@@ -339,7 +339,7 @@ void Scanner::TryToParseMagicComment(base::uc32 hash_or_at_sign) {
   }
   if (value == &per_function_compile_hints_value &&
       per_function_compile_hints_value.is_one_byte()) {
-    base::Vector<const uint8_t> value_literal =
+    ::v8::base::Vector<const uint8_t> value_literal =
         per_function_compile_hints_value.one_byte_literal();
     per_function_compile_hint_positions_.clear();
     per_function_compile_hint_positions_idx_ = 0;
@@ -1038,7 +1038,7 @@ Token::Value Scanner::ScanIdentifierOrKeywordInnerSlow(bool escaped,
   }
 
   if (can_be_keyword && next().literal_chars.is_one_byte()) {
-    base::Vector<const uint8_t> chars = next().literal_chars.one_byte_literal();
+    ::v8::base::Vector<const uint8_t> chars = next().literal_chars.one_byte_literal();
     Token::Value token =
         KeywordOrIdentifierToken(chars.begin(), chars.length());
     if (base::IsInRange(token, Token::kIdentifier, Token::kYield)) return token;
@@ -1166,7 +1166,7 @@ double Scanner::DoubleValue() {
 
 const char* Scanner::CurrentLiteralAsCString(Zone* zone) const {
   DCHECK(is_literal_one_byte());
-  base::Vector<const uint8_t> vector = literal_one_byte_string();
+  ::v8::base::Vector<const uint8_t> vector = literal_one_byte_string();
   int length = vector.length();
   char* buffer = zone->AllocateArray<char>(length + 1);
   memcpy(buffer, vector.begin(), length);

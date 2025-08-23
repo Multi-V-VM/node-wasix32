@@ -1,3 +1,6 @@
+#ifdef __wasi__
+#define V8_TARGET_ARCH_WASM32 1
+#endif
 // Copyright 2014 the V8 project authors. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
@@ -164,7 +167,7 @@ class V8_EXPORT_PRIVATE INSTRUCTION_OPERAND_ALIGN InstructionOperand {
   uint64_t value_;
 };
 
-using InstructionOperandVector = ZoneVector<InstructionOperand>;
+using InstructionOperandVector = ::v8::base::Vector<InstructionOperand>;
 
 std::ostream& operator<<(std::ostream&, const InstructionOperand&);
 
@@ -845,10 +848,10 @@ class V8_EXPORT_PRIVATE MoveOperands final
 V8_EXPORT_PRIVATE std::ostream& operator<<(std::ostream&, const MoveOperands&);
 
 class V8_EXPORT_PRIVATE ParallelMove final
-    : public NON_EXPORTED_BASE(ZoneVector<MoveOperands*>),
+    : public NON_EXPORTED_BASE(::v8::base::Vector<MoveOperands*>),
       public NON_EXPORTED_BASE(ZoneObject) {
  public:
-  explicit ParallelMove(Zone* zone) : ZoneVector<MoveOperands*>(zone) {}
+  explicit ParallelMove(Zone* zone) : ::v8::base::Vector<MoveOperands*>(zone) {}
   ParallelMove(const ParallelMove&) = delete;
   ParallelMove& operator=(const ParallelMove&) = delete;
 
@@ -873,7 +876,7 @@ class V8_EXPORT_PRIVATE ParallelMove final
   // ParallelMove.  move->source() may be changed.  Any MoveOperands added to
   // to_eliminate must be Eliminated.
   void PrepareInsertAfter(MoveOperands* move,
-                          ZoneVector<MoveOperands*>* to_eliminate) const;
+                          ::v8::base::Vector<MoveOperands*>* to_eliminate) const;
 
   bool Equals(const ParallelMove& that) const;
 
@@ -890,7 +893,7 @@ class ReferenceMap final : public ZoneObject {
   explicit ReferenceMap(Zone* zone)
       : reference_operands_(zone), instruction_position_(-1) {}
 
-  const ZoneVector<InstructionOperand>& reference_operands() const {
+  const ::v8::base::Vector<InstructionOperand>& reference_operands() const {
     return reference_operands_;
   }
   int instruction_position() const { return instruction_position_; }
@@ -905,7 +908,7 @@ class ReferenceMap final : public ZoneObject {
  private:
   friend std::ostream& operator<<(std::ostream&, const ReferenceMap&);
 
-  ZoneVector<InstructionOperand> reference_operands_;
+  ::v8::base::Vector<InstructionOperand> reference_operands_;
   int instruction_position_;
 };
 
@@ -1456,19 +1459,19 @@ class StateValueList {
    private:
     friend class StateValueList;
 
-    iterator(ZoneVector<StateValueDescriptor>::iterator it,
-             ZoneVector<StateValueList*>::iterator nested)
+    iterator(::v8::base::Vector<StateValueDescriptor>::iterator it,
+             ::v8::base::Vector<StateValueList*>::iterator nested)
         : field_iterator(it), nested_iterator(nested) {}
 
-    ZoneVector<StateValueDescriptor>::iterator field_iterator;
-    ZoneVector<StateValueList*>::iterator nested_iterator;
+    ::v8::base::Vector<StateValueDescriptor>::iterator field_iterator;
+    ::v8::base::Vector<StateValueList*>::iterator nested_iterator;
   };
 
   struct Slice {
-    Slice(ZoneVector<StateValueDescriptor>::iterator start, size_t fields)
+    Slice(::v8::base::Vector<StateValueDescriptor>::iterator start, size_t fields)
         : start_position(start), fields_count(fields) {}
 
-    ZoneVector<StateValueDescriptor>::iterator start_position;
+    ::v8::base::Vector<StateValueDescriptor>::iterator start_position;
     size_t fields_count;
   };
 
@@ -1529,8 +1532,8 @@ class StateValueList {
     return false;
   }
 
-  ZoneVector<StateValueDescriptor> fields_;
-  ZoneVector<StateValueList*> nested_;
+  ::v8::base::Vector<StateValueDescriptor> fields_;
+  ::v8::base::Vector<StateValueList*> nested_;
 };
 
 class FrameStateDescriptor : public ZoneObject {
@@ -1676,12 +1679,12 @@ class DeoptimizationEntry final {
   const FeedbackSource feedback_;
 };
 
-using DeoptimizationVector = ZoneVector<DeoptimizationEntry>;
+using DeoptimizationVector = ::v8::base::Vector<DeoptimizationEntry>;
 
 class V8_EXPORT_PRIVATE PhiInstruction final
     : public NON_EXPORTED_BASE(ZoneObject) {
  public:
-  using Inputs = ZoneVector<InstructionOperand>;
+  using Inputs = ::v8::base::Vector<InstructionOperand>;
 
   PhiInstruction(Zone* zone, int virtual_register, size_t input_count);
 
@@ -1752,13 +1755,13 @@ class V8_EXPORT_PRIVATE InstructionBlock final
   bool omitted_by_jump_threading() const { return omitted_by_jump_threading_; }
   void set_omitted_by_jump_threading() { omitted_by_jump_threading_ = true; }
 
-  using Predecessors = ZoneVector<RpoNumber>;
+  using Predecessors = ::v8::base::Vector<RpoNumber>;
   Predecessors& predecessors() { return predecessors_; }
   const Predecessors& predecessors() const { return predecessors_; }
   size_t PredecessorCount() const { return predecessors_.size(); }
   size_t PredecessorIndexOf(RpoNumber rpo_number) const;
 
-  using Successors = ZoneVector<RpoNumber>;
+  using Successors = ::v8::base::Vector<RpoNumber>;
   Successors& successors() { return successors_; }
   const Successors& successors() const { return successors_; }
   size_t SuccessorCount() const { return successors_.size(); }
@@ -1766,7 +1769,7 @@ class V8_EXPORT_PRIVATE InstructionBlock final
   RpoNumber dominator() const { return dominator_; }
   void set_dominator(RpoNumber dominator) { dominator_ = dominator; }
 
-  using PhiInstructions = ZoneVector<PhiInstruction*>;
+  using PhiInstructions = ::v8::base::Vector<PhiInstruction*>;
   const PhiInstructions& phis() const { return phis_; }
   PhiInstruction* PhiAt(size_t i) const { return phis_[i]; }
   void AddPhi(PhiInstruction* phi) { phis_.push_back(phi); }
@@ -1823,9 +1826,9 @@ struct PrintableInstructionBlock {
 std::ostream& operator<<(std::ostream&, const PrintableInstructionBlock&);
 
 using ConstantMap = ZoneUnorderedMap</* virtual register */ int, Constant>;
-using Instructions = ZoneVector<Instruction*>;
-using ReferenceMaps = ZoneVector<ReferenceMap*>;
-using InstructionBlocks = ZoneVector<InstructionBlock*>;
+using Instructions = ::v8::base::Vector<Instruction*>;
+using ReferenceMaps = ::v8::base::Vector<ReferenceMap*>;
+using InstructionBlocks = ::v8::base::Vector<InstructionBlock*>;
 
 // Represents architecture-specific generated code before, during, and after
 // register allocation.
@@ -1939,10 +1942,10 @@ class V8_EXPORT_PRIVATE InstructionSequence final
     return it->second;
   }
 
-  using Immediates = ZoneVector<Constant>;
+  using Immediates = ::v8::base::Vector<Constant>;
   Immediates& immediates() { return immediates_; }
 
-  using RpoImmediates = ZoneVector<RpoNumber>;
+  using RpoImmediates = ::v8::base::Vector<RpoNumber>;
   RpoImmediates& rpo_immediates() { return rpo_immediates_; }
 
   ImmediateOperand AddImmediate(const Constant& constant) {
@@ -2061,7 +2064,7 @@ class V8_EXPORT_PRIVATE InstructionSequence final
   Instructions instructions_;
   int next_virtual_register_;
   ReferenceMaps reference_maps_;
-  ZoneVector<MachineRepresentation> representations_;
+  ::v8::base::Vector<MachineRepresentation> representations_;
   int representation_mask_;
   DeoptimizationVector deoptimization_entries_;
 

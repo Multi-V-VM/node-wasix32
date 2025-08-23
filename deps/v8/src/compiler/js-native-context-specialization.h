@@ -152,18 +152,18 @@ class V8_EXPORT_PRIVATE JSNativeContextSpecialization final
   std::optional<ValueEffectControl> BuildPropertyAccess(
       Node* lookup_start_object, Node* receiver, Node* value, Node* context,
       Node* frame_state, Node* effect, Node* control, NameRef name,
-      ZoneVector<Node*>* if_exceptions, PropertyAccessInfo const& access_info,
+      ::v8::base::Vector<Node*>* if_exceptions, PropertyAccessInfo const& access_info,
       AccessMode access_mode);
   std::optional<ValueEffectControl> BuildPropertyLoad(
       Node* lookup_start_object, Node* receiver, Node* context,
       Node* frame_state, Node* effect, Node* control, NameRef name,
-      ZoneVector<Node*>* if_exceptions, PropertyAccessInfo const& access_info);
+      ::v8::base::Vector<Node*>* if_exceptions, PropertyAccessInfo const& access_info);
 
   ValueEffectControl BuildPropertyStore(Node* receiver, Node* value,
                                         Node* context, Node* frame_state,
                                         Node* effect, Node* control,
                                         NameRef name,
-                                        ZoneVector<Node*>* if_exceptions,
+                                        ::v8::base::Vector<Node*>* if_exceptions,
                                         PropertyAccessInfo const& access_info,
                                         AccessMode access_mode);
 
@@ -176,12 +176,12 @@ class V8_EXPORT_PRIVATE JSNativeContextSpecialization final
                                  Node* lookup_start_object, Node* context,
                                  Node* frame_state, Node** effect,
                                  Node** control,
-                                 ZoneVector<Node*>* if_exceptions,
+                                 ::v8::base::Vector<Node*>* if_exceptions,
                                  PropertyAccessInfo const& access_info);
   void InlinePropertySetterCall(Node* receiver, Node* value, Node* context,
                                 Node* frame_state, Node** effect,
                                 Node** control,
-                                ZoneVector<Node*>* if_exceptions,
+                                ::v8::base::Vector<Node*>* if_exceptions,
                                 PropertyAccessInfo const& access_info);
   Node* InlineApiCall(Node* receiver, Node* frame_state, Node* value,
                       Node** effect, Node** control,
@@ -227,16 +227,16 @@ class V8_EXPORT_PRIVATE JSNativeContextSpecialization final
   // Checks if we can turn the hole into undefined when loading an element
   // from an object with one of the {receiver_maps}; sets up appropriate
   // code dependencies and might use the array protector cell.
-  bool CanTreatHoleAsUndefined(ZoneVector<MapRef> const& receiver_maps);
+  bool CanTreatHoleAsUndefined(::v8::base::Vector<MapRef> const& receiver_maps);
 
-  void RemoveImpossibleMaps(Node* object, ZoneVector<MapRef>* maps) const;
+  void RemoveImpossibleMaps(Node* object, ::v8::base::Vector<MapRef>* maps) const;
 
   ElementAccessFeedback const& TryRefineElementAccessFeedback(
       ElementAccessFeedback const& feedback, Node* receiver,
       Effect effect) const;
 
   // Try to infer maps for the given {object} at the current {effect}.
-  bool InferMaps(Node* object, Effect effect, ZoneVector<MapRef>* maps) const;
+  bool InferMaps(Node* object, Effect effect, ::v8::base::Vector<MapRef>* maps) const;
 
   // Try to infer a root map for the {object} independent of the current program
   // location.

@@ -941,7 +941,7 @@ void Heap::RemoveHeapObjectAllocationTracker(
 }
 
 void Heap::IncrementDeferredCounts(
-    base::Vector<const v8::Isolate::UseCounterFeature> features) {
+    ::v8::base::Vector<const v8::Isolate::UseCounterFeature> features) {
   deferred_counters_.insert(deferred_counters_.end(), features.begin(),
                             features.end());
 }
@@ -5945,7 +5945,7 @@ int Heap::NextStressMarkingLimit() {
 }
 
 void Heap::WeakenDescriptorArrays(
-    GlobalHandleVector<DescriptorArray> strong_descriptor_arrays) {
+    GlobalHandle::v8::base::Vector<DescriptorArray> strong_descriptor_arrays) {
   if (incremental_marking()->IsMajorMarking()) {
     // During incremental/concurrent marking regular DescriptorArray objects are
     // treated with custom weakness. This weakness depends on
@@ -6333,7 +6333,7 @@ void Heap::CompactWeakArrayLists() {
 }
 
 void Heap::AddRetainedMaps(DirectHandle<NativeContext> context,
-                           GlobalHandleVector<Map> maps) {
+                           GlobalHandle::v8::base::Vector<Map> maps) {
   Handle<WeakArrayList> array(Cast<WeakArrayList>(context->retained_maps()),
                               isolate());
   int new_maps_size = static_cast<int>(maps.size()) * kRetainMapEntrySize;

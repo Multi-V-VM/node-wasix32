@@ -33,7 +33,7 @@ class WasmModuleObject;
 
 namespace v8::internal::wasm {
 
-using WasmName = base::Vector<const char>;
+using WasmName = ::v8::base::Vector<const char>;
 
 struct AsmJsOffsets;
 class ErrorThrower;
@@ -418,7 +418,7 @@ class V8_EXPORT_PRIVATE LazilyGeneratedNames {
 
 class V8_EXPORT_PRIVATE AsmJsOffsetInformation {
  public:
-  explicit AsmJsOffsetInformation(base::Vector<const uint8_t> encoded_offsets);
+  explicit AsmJsOffsetInformation(::v8::base::Vector<const uint8_t> encoded_offsets);
 
   // Destructor defined in wasm-module.cc, where the definition of
   // {AsmJsOffsets} is available.
@@ -438,7 +438,7 @@ class V8_EXPORT_PRIVATE AsmJsOffsetInformation {
   mutable base::Mutex mutex_;
 
   // Holds the encoded offset table bytes.
-  base::OwnedVector<const uint8_t> encoded_offsets_;
+  ::v8::base::OwnedVector<const uint8_t> encoded_offsets_;
 
   // Holds the decoded offset table.
   std::unique_ptr<AsmJsOffsets> decoded_offsets_;
@@ -633,13 +633,13 @@ class CallSiteFeedback {
 struct FunctionTypeFeedback {
   // {feedback_vector} is computed from {call_targets} and the instance-specific
   // feedback vector by {TransitiveTypeFeedbackProcessor}.
-  base::OwnedVector<CallSiteFeedback> feedback_vector;
+  ::v8::base::OwnedVector<CallSiteFeedback> feedback_vector;
 
   // {call_targets} has one entry per "call", "call_indirect", and "call_ref" in
   // the function.
   // For "call", it holds the index of the called function, for "call_indirect"
   // and "call_ref" the value will be a sentinel {kCallIndirect} / {kCallRef}.
-  base::OwnedVector<uint32_t> call_targets;
+  ::v8::base::OwnedVector<uint32_t> call_targets;
 
   // {tierup_priority} is updated and used when triggering tier-up.
   // TODO(clemensb): This does not belong here; find a better place.
@@ -931,7 +931,7 @@ struct V8_EXPORT_PRIVATE WasmModule {
     if (isorecursive_canonical_type_ids.empty()) {
       return CanonicalTypeIndex::Invalid();
     }
-    return *std::max_element(isorecursive_canonical_type_ids.begin(),
+    return *::std::max_element(isorecursive_canonical_type_ids.begin(),
                              isorecursive_canonical_type_ids.end());
   }
 
@@ -977,8 +977,8 @@ struct V8_EXPORT_PRIVATE WasmModule {
     }
   }
 
-  base::Vector<const WasmFunction> declared_functions() const {
-    return base::VectorOf(functions) + num_imported_functions;
+  ::v8::base::Vector<const WasmFunction> declared_functions() const {
+    return ::v8::base::VectorOf(functions) + num_imported_functions;
   }
 
 #if V8_ENABLE_DRUMBRAKE
@@ -1025,10 +1025,10 @@ V8_EXPORT_PRIVATE int GetSubtypingDepth(const WasmModule* module,
 // It is illegal for anyone receiving a ModuleWireBytes to store pointers based
 // on module_bytes, as this storage is only guaranteed to be alive as long as
 // this struct is alive.
-// As {ModuleWireBytes} is just a wrapper around a {base::Vector<const
+// As {ModuleWireBytes} is just a wrapper around a {::v8::base::Vector<const
 // uint8_t>}, it should generally be passed by value.
 struct V8_EXPORT_PRIVATE ModuleWireBytes {
-  explicit ModuleWireBytes(base::Vector<const uint8_t> module_bytes)
+  explicit ModuleWireBytes(::v8::base::Vector<const uint8_t> module_bytes)
       : module_bytes_(module_bytes) {}
   constexpr ModuleWireBytes(const uint8_t* start, const uint8_t* end)
       : module_bytes_(start, static_cast<int>(end - start)) {
@@ -1049,19 +1049,19 @@ struct V8_EXPORT_PRIVATE ModuleWireBytes {
     return ref.offset() <= size && ref.length() <= size - ref.offset();
   }
 
-  base::Vector<const uint8_t> GetFunctionBytes(
+  ::v8::base::Vector<const uint8_t> GetFunctionBytes(
       const WasmFunction* function) const {
     return module_bytes_.SubVector(function->code.offset(),
                                    function->code.end_offset());
   }
 
-  base::Vector<const uint8_t> module_bytes() const { return module_bytes_; }
+  ::v8::base::Vector<const uint8_t> module_bytes() const { return module_bytes_; }
   const uint8_t* start() const { return module_bytes_.begin(); }
   const uint8_t* end() const { return module_bytes_.end(); }
   size_t length() const { return module_bytes_.length(); }
 
  private:
-  base::Vector<const uint8_t> module_bytes_;
+  ::v8::base::Vector<const uint8_t> module_bytes_;
 };
 ASSERT_TRIVIALLY_COPYABLE(ModuleWireBytes);
 
@@ -1131,7 +1131,7 @@ class TruncatedUserString {
 
  public:
   template <typename T>
-  explicit TruncatedUserString(base::Vector<T> name)
+  explicit TruncatedUserString(::v8::base::Vector<T> name)
       : TruncatedUserString(name.begin(), name.length()) {}
 
   TruncatedUserString(const uint8_t* start, size_t len)
@@ -1160,11 +1160,11 @@ class TruncatedUserString {
 // between parameter types and return types. If {buffer} is non-empty, it will
 // be null-terminated, even if the signature is cut off. Returns the number of
 // characters written, excluding the terminating null-byte.
-size_t PrintSignature(base::Vector<char> buffer, const CanonicalSig* sig,
+size_t PrintSignature(::v8::base::Vector<char> buffer, const CanonicalSig* sig,
                       char delimiter = ':');
 
 V8_EXPORT_PRIVATE size_t
-GetWireBytesHash(base::Vector<const uint8_t> wire_bytes);
+GetWireBytesHash(::v8::base::Vector<const uint8_t> wire_bytes);
 
 // Get the required number of feedback slots for a function.
 int NumFeedbackSlots(const WasmModule* module, int func_index);

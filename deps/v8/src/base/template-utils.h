@@ -55,7 +55,7 @@ typename std::enable_if_t<detail::NIsNotGreaterThanTupleSize<N, Tuple>::value,
 std::tuple_element_t<N, Tuple>&
 #endif
 get(Tuple& tuple) {
-  return std::get<N>(tuple);
+  return ::std::get<N>(tuple);
 }
 
 // Rest of template utilities...

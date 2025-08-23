@@ -85,7 +85,7 @@ BUILTIN(StringFromCodePoint) {
 
   if (index == length) {
     RETURN_RESULT_OR_FAILURE(
-        isolate, isolate->factory()->NewStringFromOneByte(base::Vector<uint8_t>(
+        isolate, isolate->factory()->NewStringFromOneByte(::v8::base::Vector<uint8_t>(
                      one_byte_buffer.data(), one_byte_buffer.size())));
   }
 
@@ -361,7 +361,7 @@ V8_WARN_UNUSED_RESULT static Tagged<Object> ConvertCase(
     String::FlatContent flat = s->GetFlatContent(no_gc);
     DCHECK(flat.IsFlat());
     uint8_t* dest = result->GetChars(no_gc);
-    base::Vector<const uint8_t> src = flat.ToOneByteVector();
+    ::v8::base::Vector<const uint8_t> src = flat.ToOneByteVector();
     std::memcpy(dest, src.begin(), prefix);
     uint32_t index_to_first_unprocessed =
         FastAsciiConvert<Converter>(

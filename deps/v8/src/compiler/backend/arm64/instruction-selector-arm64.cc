@@ -1588,7 +1588,7 @@ static std::optional<FlagsCondition> GetFlagsCondition(
 //   logic x, y
 static std::optional<CompareChainNode*> FindCompareChain(
     OpIndex user, OpIndex node, InstructionSelectorT* selector, Zone* zone,
-    ZoneVector<CompareChainNode*>& nodes) {
+    ::v8::base::Vector<CompareChainNode*>& nodes) {
   if (selector->Get(node).Is<Opmask::kWord32BitwiseAnd>() ||
       selector->Get(node).Is<Opmask::kWord32BitwiseOr>()) {
     auto maybe_lhs = FindCompareChain(node, selector->input_at(node, 0),
@@ -1804,7 +1804,7 @@ static std::optional<FlagsCondition> TryMatchConditionalCompareChainShared(
   //  (cset cc1 (ccmp x1 y1 cc1 !cc0 (cmp x0, y0))
 
   // Look for a potential chain.
-  ZoneVector<CompareChainNode*> logic_nodes(zone);
+  ::v8::base::Vector<CompareChainNode*> logic_nodes(zone);
   auto root =
       FindCompareChain(OpIndex::Invalid(), node, selector, zone, logic_nodes);
   if (!root.has_value()) return std::nullopt;
@@ -3068,7 +3068,7 @@ void InstructionSelectorT::EmitMoveFPRToParam(InstructionOperand* op,
                                               LinkageLocation location) {}
 
 void InstructionSelectorT::EmitPrepareArguments(
-    ZoneVector<PushParameter>* arguments, const CallDescriptor* call_descriptor,
+    ::v8::base::Vector<PushParameter>* arguments, const CallDescriptor* call_descriptor,
     OpIndex node) {
   Arm64OperandGeneratorT g(this);
 
@@ -3117,7 +3117,7 @@ void InstructionSelectorT::EmitPrepareArguments(
 }
 
 void InstructionSelectorT::EmitPrepareResults(
-    ZoneVector<PushParameter>* results, const CallDescriptor* call_descriptor,
+    ::v8::base::Vector<PushParameter>* results, const CallDescriptor* call_descriptor,
     OpIndex node) {
   Arm64OperandGeneratorT g(this);
 

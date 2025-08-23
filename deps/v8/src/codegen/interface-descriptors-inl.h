@@ -1,3 +1,6 @@
+#ifdef __wasi__
+#define V8_TARGET_ARCH_WASM32 1
+#endif
 // Copyright 2021 the V8 project authors. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
@@ -179,7 +182,7 @@ struct IsRegisterArray<EmptyRegisterArray> : public std::true_type {};
 template <size_t N, size_t Index>
 struct FirstInvalidRegisterHelper {
   static constexpr int Call(std::array<Register, N> regs) {
-    if (!std::get<Index>(regs).is_valid()) {
+    if (!::std::get<Index>(regs).is_valid()) {
       // All registers after the first invalid one have to also be invalid (this
       // DCHECK will be checked recursively).
       DCHECK_EQ((FirstInvalidRegisterHelper<N, Index + 1>::Call(regs)),
@@ -290,16 +293,16 @@ constexpr Register FastNewObjectDescriptor::NewTargetRegister() {
 
 // static
 constexpr Register WriteBarrierDescriptor::ObjectRegister() {
-  return std::get<kObject>(registers());
+  return ::std::get<kObject>(registers());
 }
 // static
 constexpr Register WriteBarrierDescriptor::SlotAddressRegister() {
-  return std::get<kSlotAddress>(registers());
+  return ::std::get<kSlotAddress>(registers());
 }
 
 // static
 constexpr Register WriteBarrierDescriptor::ValueRegister() {
-  return std::get<kSlotAddress + 1>(registers());
+  return ::std::get<kSlotAddress + 1>(registers());
 }
 
 // static
@@ -335,17 +338,17 @@ constexpr auto IndirectPointerWriteBarrierDescriptor::registers() {
 }
 // static
 constexpr Register IndirectPointerWriteBarrierDescriptor::ObjectRegister() {
-  return std::get<kObject>(registers());
+  return ::std::get<kObject>(registers());
 }
 // static
 constexpr Register
 IndirectPointerWriteBarrierDescriptor::SlotAddressRegister() {
-  return std::get<kSlotAddress>(registers());
+  return ::std::get<kSlotAddress>(registers());
 }
 // static
 constexpr Register
 IndirectPointerWriteBarrierDescriptor::IndirectPointerTagRegister() {
-  return std::get<kIndirectPointerTag>(registers());
+  return ::std::get<kIndirectPointerTag>(registers());
 }
 
 // static
@@ -766,17 +769,17 @@ constexpr Register RunMicrotasksDescriptor::MicrotaskQueueRegister() {
 // static
 constexpr inline Register
 WasmJSToWasmWrapperDescriptor::WrapperBufferRegister() {
-  return std::get<kWrapperBuffer>(registers());
+  return ::std::get<kWrapperBuffer>(registers());
 }
 
 // static
 constexpr inline Register
 WasmHandleStackOverflowDescriptor::FrameBaseRegister() {
-  return std::get<kFrameBase>(registers());
+  return ::std::get<kFrameBase>(registers());
 }
 
 constexpr inline Register WasmHandleStackOverflowDescriptor::GapRegister() {
-  return std::get<kGap>(registers());
+  return ::std::get<kGap>(registers());
 }
 
 constexpr auto WasmToJSWrapperDescriptor::registers() {

@@ -24,7 +24,7 @@ namespace v8::internal::compiler::turboshaft {
 
 #include "src/compiler/turboshaft/define-assembler-macros.inc"
 
-using SmallShuffleVector = SmallZoneVector<const Simd128ShuffleOp*, 8>;
+using SmallShuffleVector = SmallVector<const Simd128ShuffleOp*, 8>;
 
 // The aim of this reducer is to reduce the size of shuffles, by looking at
 // what elements are required and we do this by looking at their users:
@@ -49,7 +49,7 @@ class DemandedElementAnalysis {
 
   using LaneBitSet = std::bitset<16>;
   using DemandedElementMap =
-      ZoneVector<std::pair<const Operation*, LaneBitSet>>;
+      ::v8::base::Vector<std::pair<const Operation*, LaneBitSet>>;
 
   DemandedElementAnalysis(Zone* phase_zone, const Graph& input_graph)
       : phase_zone_(phase_zone), input_graph_(input_graph) {}

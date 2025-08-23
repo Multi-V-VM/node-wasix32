@@ -365,10 +365,10 @@ void ProfilerListener::OnHeapObjectDeletion(CodeEntry* entry) {
 
 void ProfilerListener::CodeSweepEvent() { weak_code_registry_.Sweep(this); }
 
-const char* ProfilerListener::GetName(base::Vector<const char> name) {
+const char* ProfilerListener::GetName(::v8::base::Vector<const char> name) {
   // TODO(all): Change {StringsStorage} to accept non-null-terminated strings.
-  base::OwnedVector<char> null_terminated =
-      base::OwnedVector<char>::New(name.size() + 1);
+  base::Owned::v8::base::Vector<char> null_terminated =
+      base::Owned::v8::base::Vector<char>::New(name.size() + 1);
 #if defined(__GNUC__) && !defined(__clang__)
   // Work around a spurious GCC-12 warning (-Werror=array-bounds).
   if (name.end() < name.begin()) return nullptr;

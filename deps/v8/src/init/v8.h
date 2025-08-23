@@ -42,19 +42,19 @@ class V8 : public AllStatic {
   [[noreturn]] V8_EXPORT_PRIVATE static void FatalProcessOutOfMemory(
       Isolate* isolate, const char* location, const char* detail);
 
-  static void InitializePlatform(v8::Platform* platform);
+  static void InitializePlatform(::v8::Platform* platform);
   V8_EXPORT_PRIVATE static void InitializePlatformForTesting(
-      v8::Platform* platform);
+      ::v8::Platform* platform);
   static void DisposePlatform();
-  V8_EXPORT_PRIVATE static v8::Platform* GetCurrentPlatform();
+  V8_EXPORT_PRIVATE static ::v8::Platform* GetCurrentPlatform();
   // Replaces the current platform with the given platform.
   // Should be used only for testing.
-  V8_EXPORT_PRIVATE static void SetPlatformForTesting(v8::Platform* platform);
+  V8_EXPORT_PRIVATE static void SetPlatformForTesting(::v8::Platform* platform);
 
   static void SetSnapshotBlob(StartupData* snapshot_blob);
 
  private:
-  static v8::Platform* platform_;
+  static ::v8::Platform* platform_;
 };
 
 }  // namespace internal

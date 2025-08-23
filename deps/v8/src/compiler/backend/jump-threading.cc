@@ -18,7 +18,7 @@ namespace {
 
 struct JumpThreadingState {
   bool forwarded;
-  ZoneVector<RpoNumber>& result;
+  ::v8::base::Vector<RpoNumber>& result;
   ZoneStack<RpoNumber>& stack;
 
   void Clear(size_t count) { result.assign(count, unvisited()); }
@@ -107,7 +107,7 @@ struct GapJumpRecord {
     } else {
       // This is the first explored gap jump to target block.
       auto ins =
-          gap_jump_records_.insert({target_block, ZoneVector<Record>(zone_)});
+          gap_jump_records_.insert({target_block, ::v8::base::Vector<Record>(zone_)});
       if (ins.second) {
         ins.first->second.reserve(4);
         ins.first->second.push_back({instr_block, instr});
@@ -117,14 +117,14 @@ struct GapJumpRecord {
   }
 
   Zone* zone_;
-  ZoneUnorderedMap<RpoNumber, ZoneVector<Record>, RpoNumberHash>
+  ZoneUnorderedMap<RpoNumber, ::v8::base::Vector<Record>, RpoNumberHash>
       gap_jump_records_;
 };
 
 }  // namespace
 
 bool JumpThreading::ComputeForwarding(Zone* local_zone,
-                                      ZoneVector<RpoNumber>* result,
+                                      ::v8::base::Vector<RpoNumber>* result,
                                       InstructionSequence* code,
                                       bool frame_at_start) {
   ZoneStack<RpoNumber> stack(local_zone);
@@ -253,7 +253,7 @@ bool JumpThreading::ComputeForwarding(Zone* local_zone,
 }
 
 void JumpThreading::ApplyForwarding(Zone* local_zone,
-                                    ZoneVector<RpoNumber> const& result,
+                                    ::v8::base::Vector<RpoNumber> const& result,
                                     InstructionSequence* code) {
   if (!v8_flags.turbo_jt) return;
 

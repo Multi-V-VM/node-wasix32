@@ -229,7 +229,7 @@ class V8_EXPORT_PRIVATE ConstantArrayBuilder final {
     const size_t capacity_;
     size_t reserved_;
     OperandSize operand_size_;
-    ZoneVector<Entry> constants_;
+    ::v8::base::Vector<Entry> constants_;
   };
 
   ConstantArraySlice* IndexToSlice(size_t index) const;
@@ -241,7 +241,7 @@ class V8_EXPORT_PRIVATE ConstantArrayBuilder final {
                             ZoneAllocationPolicy>
       constants_map_;
   ZoneMap<Tagged<Smi>, index_t> smi_map_;
-  ZoneVector<std::pair<Tagged<Smi>, index_t>> smi_pairs_;
+  ::v8::base::Vector<std::pair<Tagged<Smi>, index_t>> smi_pairs_;
   ZoneMap<double, index_t> heap_number_map_;
 
 #define SINGLETON_ENTRY_FIELD(NAME, LOWER_NAME) int LOWER_NAME##_ = -1;

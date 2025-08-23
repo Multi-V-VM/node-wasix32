@@ -99,7 +99,7 @@ class ZoneBuffer : public ZoneObject {
     pos_ += size;
   }
 
-  void write_string(base::Vector<const char> name) {
+  void write_string(::v8::base::Vector<const char> name) {
     write_size(name.length());
     write(reinterpret_cast<const uint8_t*>(name.begin()), name.length());
   }
@@ -202,7 +202,7 @@ class V8_EXPORT_PRIVATE WasmFunctionBuilder : public ZoneObject {
   void EmitValueType(ValueType type);
   void EmitDirectCallIndex(uint32_t index);
   void EmitFromInitializerExpression(const WasmInitExpr& init_expr);
-  void SetName(base::Vector<const char> name);
+  void SetName(::v8::base::Vector<const char> name);
   void AddAsmWasmOffset(size_t call_position, size_t to_number_position);
   void SetAsmFunctionStartPosition(size_t function_position);
   void SetCompilationHint(WasmCompilationHintStrategy strategy,
@@ -239,12 +239,12 @@ class V8_EXPORT_PRIVATE WasmFunctionBuilder : public ZoneObject {
   ModuleTypeIndex signature_index_;
   uint32_t func_index_;
   ZoneBuffer body_;
-  base::Vector<const char> name_;
-  ZoneVector<uint32_t> i32_temps_;
-  ZoneVector<uint32_t> i64_temps_;
-  ZoneVector<uint32_t> f32_temps_;
-  ZoneVector<uint32_t> f64_temps_;
-  ZoneVector<DirectCallIndex> direct_calls_;
+  ::v8::base::Vector<const char> name_;
+  ::v8::base::Vector<uint32_t> i32_temps_;
+  ::v8::base::Vector<uint32_t> i64_temps_;
+  ::v8::base::Vector<uint32_t> f32_temps_;
+  ::v8::base::Vector<uint32_t> f64_temps_;
+  ::v8::base::Vector<DirectCallIndex> direct_calls_;
 
   // Delta-encoded mapping from wasm bytes to asm.js source positions.
   ZoneBuffer asm_offsets_;
@@ -311,7 +311,7 @@ class V8_EXPORT_PRIVATE WasmModuleBuilder : public ZoneObject {
     uint32_t table_index;
     WasmInitExpr offset;
     FunctionIndexingMode indexing_mode = kRelativeToImports;
-    ZoneVector<Entry> entries;
+    ::v8::base::Vector<Entry> entries;
     Status status;
 
    private:
@@ -327,14 +327,14 @@ class V8_EXPORT_PRIVATE WasmModuleBuilder : public ZoneObject {
   };
 
   // Building methods.
-  uint32_t AddImport(base::Vector<const char> name, const FunctionSig* sig,
-                     base::Vector<const char> module = {});
+  uint32_t AddImport(::v8::base::Vector<const char> name, const FunctionSig* sig,
+                     ::v8::base::Vector<const char> module = {});
   WasmFunctionBuilder* AddFunction(const FunctionSig* sig = nullptr);
   WasmFunctionBuilder* AddFunction(ModuleTypeIndex sig_index);
   uint32_t AddGlobal(ValueType type, bool mutability, WasmInitExpr init);
-  uint32_t AddGlobalImport(base::Vector<const char> name, ValueType type,
+  uint32_t AddGlobalImport(::v8::base::Vector<const char> name, ValueType type,
                            bool mutability,
-                           base::Vector<const char> module = {});
+                           ::v8::base::Vector<const char> module = {});
   void AddDataSegment(const uint8_t* data, uint32_t size, uint32_t dest);
   void AddPassiveDataSegment(const uint8_t* data, uint32_t size);
   // Add an element segment to this {WasmModuleBuilder}. {segment}'s enties
@@ -372,14 +372,14 @@ class V8_EXPORT_PRIVATE WasmModuleBuilder : public ZoneObject {
   uint32_t AddMemory64(uint32_t min_pages);
   uint32_t AddMemory64(uint32_t min_pages, uint32_t max_pages);
   void MarkStartFunction(WasmFunctionBuilder* builder);
-  void AddExport(base::Vector<const char> name, ImportExportKindCode kind,
+  void AddExport(::v8::base::Vector<const char> name, ImportExportKindCode kind,
                  uint32_t index);
-  void AddExport(base::Vector<const char> name, WasmFunctionBuilder* builder) {
+  void AddExport(::v8::base::Vector<const char> name, WasmFunctionBuilder* builder) {
     AddExport(name, kExternalFunction, builder->func_index());
   }
   uint32_t AddExportedGlobal(ValueType type, bool mutability, WasmInitExpr init,
-                             base::Vector<const char> name);
-  void ExportImportedFunction(base::Vector<const char> name, int import_index);
+                             ::v8::base::Vector<const char> name);
+  void ExportImportedFunction(::v8::base::Vector<const char> name, int import_index);
 
   void StartRecursiveTypeGroup() {
     DCHECK_EQ(current_recursive_group_start_, -1);
@@ -480,21 +480,21 @@ class V8_EXPORT_PRIVATE WasmModuleBuilder : public ZoneObject {
 
  private:
   struct WasmFunctionImport {
-    base::Vector<const char> module;
-    base::Vector<const char> name;
+    ::v8::base::Vector<const char> module;
+    ::v8::base::Vector<const char> name;
     ModuleTypeIndex sig_index;
   };
 
   struct WasmGlobalImport {
-    base::Vector<const char> module;
-    base::Vector<const char> name;
+    ::v8::base::Vector<const char> module;
+    ::v8::base::Vector<const char> name;
     // TODO(manoskouk): Extend to full value type.
     ValueTypeCode type_code;
     bool mutability;
   };
 
   struct WasmExport {
-    base::Vector<const char> name;
+    ::v8::base::Vector<const char> name;
     ImportExportKindCode kind;
     int index;  // Can be negative for re-exported imports.
   };
@@ -528,31 +528,31 @@ class V8_EXPORT_PRIVATE WasmModuleBuilder : public ZoneObject {
   };
 
   struct WasmDataSegment {
-    ZoneVector<uint8_t> data;
+    ::v8::base::Vector<uint8_t> data;
     uint32_t dest;
     bool is_active = true;
   };
 
   friend class WasmFunctionBuilder;
   Zone* zone_;
-  ZoneVector<TypeDefinition> types_;
-  ZoneVector<WasmFunctionImport> function_imports_;
-  ZoneVector<WasmGlobalImport> global_imports_;
-  ZoneVector<WasmExport> exports_;
-  ZoneVector<WasmFunctionBuilder*> functions_;
-  ZoneVector<WasmTable> tables_;
-  ZoneVector<WasmMemory> memories_;
-  ZoneVector<WasmDataSegment> data_segments_;
-  ZoneVector<WasmElemSegment> element_segments_;
-  ZoneVector<WasmGlobal> globals_;
-  ZoneVector<ModuleTypeIndex> tags_;
+  ::v8::base::Vector<TypeDefinition> types_;
+  ::v8::base::Vector<WasmFunctionImport> function_imports_;
+  ::v8::base::Vector<WasmGlobalImport> global_imports_;
+  ::v8::base::Vector<WasmExport> exports_;
+  ::v8::base::Vector<WasmFunctionBuilder*> functions_;
+  ::v8::base::Vector<WasmTable> tables_;
+  ::v8::base::Vector<WasmMemory> memories_;
+  ::v8::base::Vector<WasmDataSegment> data_segments_;
+  ::v8::base::Vector<WasmElemSegment> element_segments_;
+  ::v8::base::Vector<WasmGlobal> globals_;
+  ::v8::base::Vector<ModuleTypeIndex> tags_;
   ZoneUnorderedMap<FunctionSig, ModuleTypeIndex> signature_map_;
   int current_recursive_group_start_;
   struct RecGroup {
     uint32_t start_index;
     uint32_t size;
   };
-  ZoneVector<RecGroup> recursive_groups_;
+  ::v8::base::Vector<RecGroup> recursive_groups_;
   int start_function_index_;
 #if DEBUG
   // Once AddExportedImport is called, no more imports can be added.

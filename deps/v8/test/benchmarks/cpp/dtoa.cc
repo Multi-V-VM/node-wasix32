@@ -10,7 +10,6 @@
 using v8::base::FAST_DTOA_PRECISION;
 using v8::base::FAST_DTOA_SHORTEST;
 using v8::base::kFastDtoaMaximalLength;
-using v8::base::Vector;
 
 // This is a dump from a benchmark (MotionMark suits).
 // It contains a large number of nontrivial doubles,

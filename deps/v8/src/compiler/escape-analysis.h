@@ -117,7 +117,7 @@ class Dependable : public ZoneObject {
   }
 
  private:
-  ZoneVector<Node*> dependants_;
+  ::v8::base::Vector<Node*> dependants_;
 };
 
 // A virtual object represents an allocation site and tracks the Variables
@@ -125,7 +125,7 @@ class Dependable : public ZoneObject {
 class VirtualObject : public Dependable {
  public:
   using Id = uint32_t;
-  using const_iterator = ZoneVector<Variable>::const_iterator;
+  using const_iterator = ::v8::base::Vector<Variable>::const_iterator;
   VirtualObject(VariableTracker* var_states, Id id, int size);
   Maybe<Variable> FieldAt(int offset) const {
     CHECK(IsAligned(offset, kTaggedSize));
@@ -156,7 +156,7 @@ class VirtualObject : public Dependable {
  private:
   bool escaped_ = false;
   Id id_;
-  ZoneVector<Variable> fields_;
+  ::v8::base::Vector<Variable> fields_;
 };
 
 class EscapeAnalysisResult {

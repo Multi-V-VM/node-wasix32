@@ -30,13 +30,13 @@ class ExplicitTruncationReducer
     using Op = typename opcode_to_operation_map<opcode>::Op;
     Op* operation = CreateOperation<Op>(storage_, args...);
 
-    base::Vector<const MaybeRegisterRepresentation> reps =
+    ::v8::base::Vector<const MaybeRegisterRepresentation> reps =
         operation->inputs_rep(inputs_rep_storage_);
-    base::Vector<OpIndex> inputs = operation->inputs();
+    ::v8::base::Vector<OpIndex> inputs = operation->inputs();
     bool has_truncation = false;
     for (size_t i = 0; i < reps.size(); ++i) {
       if (reps[i] == MaybeRegisterRepresentation::Word32()) {
-        base::Vector<const RegisterRepresentation> actual_inputs_rep =
+        ::v8::base::Vector<const RegisterRepresentation> actual_inputs_rep =
             Asm().input_graph().Get(inputs[i]).outputs_rep();
         // We ignore any input operation that produces more than one value.
         // These cannot be consumed directly and therefore require a projection.
@@ -67,7 +67,7 @@ class ExplicitTruncationReducer
   }
 
  private:
-  ZoneVector<MaybeRegisterRepresentation> inputs_rep_storage_{
+  ::v8::base::Vector<MaybeRegisterRepresentation> inputs_rep_storage_{
       Asm().phase_zone()};
   base::SmallVector<OperationStorageSlot, 32> storage_;
 };

@@ -42,11 +42,11 @@ SnapshotData::SnapshotData(const Serializer* serializer) {
             static_cast<size_t>(payload->size()));
 }
 
-base::Vector<const uint8_t> SnapshotData::Payload() const {
+Vector<const uint8_t> SnapshotData::Payload() const {
   const uint8_t* payload = data_ + kHeaderSize;
   uint32_t length = GetHeaderValue(kPayloadLengthOffset);
   DCHECK_EQ(data_ + size_, payload + length);
-  return base::Vector<const uint8_t>(payload, length);
+  return ::v8::base::Vector<const uint8_t>(payload, length);
 }
 
 }  // namespace internal

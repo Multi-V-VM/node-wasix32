@@ -34,14 +34,14 @@ class PropertyAccessBuilder {
 
   // Builds the appropriate string check if the maps are only string
   // maps.
-  bool TryBuildStringCheck(JSHeapBroker* broker, ZoneVector<MapRef> const& maps,
+  bool TryBuildStringCheck(JSHeapBroker* broker, ::v8::base::Vector<MapRef> const& maps,
                            Node** receiver, Effect* effect, Control control);
   // Builds a number check if all maps are number maps.
-  bool TryBuildNumberCheck(JSHeapBroker* broker, ZoneVector<MapRef> const& maps,
+  bool TryBuildNumberCheck(JSHeapBroker* broker, ::v8::base::Vector<MapRef> const& maps,
                            Node** receiver, Effect* effect, Control control);
 
   void BuildCheckMaps(Node* object, Effect* effect, Control control,
-                      ZoneVector<MapRef> const& maps,
+                      ::v8::base::Vector<MapRef> const& maps,
                       bool has_deprecated_map_without_migration_target = false);
 
   Node* BuildCheckValue(Node* receiver, Effect* effect, Control control,
@@ -99,11 +99,11 @@ class PropertyAccessBuilder {
   JSHeapBroker* broker_;
 };
 
-bool HasOnlyStringMaps(JSHeapBroker* broker, ZoneVector<MapRef> const& maps);
+bool HasOnlyStringMaps(JSHeapBroker* broker, ::v8::base::Vector<MapRef> const& maps);
 bool HasOnlyStringWrapperMaps(JSHeapBroker* broker,
-                              ZoneVector<MapRef> const& maps);
+                              ::v8::base::Vector<MapRef> const& maps);
 bool HasOnlyNonResizableTypedArrayMaps(JSHeapBroker* broker,
-                                       ZoneVector<MapRef> const& maps);
+                                       ::v8::base::Vector<MapRef> const& maps);
 
 }  // namespace compiler
 }  // namespace internal

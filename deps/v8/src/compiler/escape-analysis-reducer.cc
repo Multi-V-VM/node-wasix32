@@ -249,7 +249,7 @@ void EscapeAnalysisReducer::Finalize() {
     }
 
     bool escaping_use = false;
-    ZoneVector<Node*> loads(zone());
+    ::v8::base::Vector<Node*> loads(zone());
     for (Edge edge : node->use_edges()) {
       Node* use = edge.from();
       if (!NodeProperties::IsValueEdge(edge)) continue;

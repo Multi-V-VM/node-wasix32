@@ -88,7 +88,7 @@ class DebugSideTable {
     // Stack height, including locals.
     int stack_height() const { return stack_height_; }
 
-    base::Vector<const Value> changed_values() const {
+    ::v8::base::Vector<const Value> changed_values() const {
       return base::VectorOf(changed_values_);
     }
 
@@ -208,7 +208,7 @@ class V8_EXPORT_PRIVATE DebugInfo {
 
   void RemoveBreakpoint(int func_index, int offset, Isolate* current_isolate);
 
-  void RemoveDebugSideTables(base::Vector<WasmCode* const>);
+  void RemoveDebugSideTables(::v8::base::Vector<WasmCode* const>);
 
   // Return the debug side table for the given code object, but only if it has
   // already been created. This will never trigger generation of the table.

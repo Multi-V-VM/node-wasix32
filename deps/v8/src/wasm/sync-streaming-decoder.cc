@@ -1,4 +1,7 @@
 // Copyright 2020 the V8 project authors. All rights reserved.
+#ifdef __wasi__
+#include "src/wasm/wasm-features-fix.h"
+#endif
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
@@ -27,7 +30,7 @@ class V8_EXPORT_PRIVATE SyncStreamingDecoder : public StreamingDecoder {
         resolver_(resolver) {}
 
   // The buffer passed into OnBytesReceived is owned by the caller.
-  void OnBytesReceived(base::Vector<const uint8_t> bytes) override {
+  void OnBytesReceived(::v8::base::Vector<const uint8_t> bytes) override {
     buffer_.emplace_back(bytes.size());
     CHECK_EQ(buffer_.back().size(), bytes.size());
     std::memcpy(buffer_.back().data(), bytes.data(), bytes.size());
@@ -36,7 +39,7 @@ class V8_EXPORT_PRIVATE SyncStreamingDecoder : public StreamingDecoder {
 
   void Finish(bool can_use_compiled_module) override {
     // We copy all received chunks into one byte buffer.
-    auto bytes = base::OwnedVector<uint8_t>::NewForOverwrite(buffer_size_);
+    auto bytes = base::Owned::v8::base::Vector<uint8_t>::NewForOverwrite(buffer_size_);
     uint8_t* destination = bytes.begin();
     for (auto& chunk : buffer_) {
       std::memcpy(destination, chunk.data(), chunk.size());

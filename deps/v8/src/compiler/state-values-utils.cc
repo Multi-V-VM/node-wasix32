@@ -389,7 +389,7 @@ MachineType StateValuesAccess::iterator::type() {
   } else {
     DCHECK_EQ(IrOpcode::kTypedStateValues, parent->opcode());
 
-    ZoneVector<MachineType> const* types = MachineTypesOf(parent->op());
+    ::v8::base::Vector<MachineType> const* types = MachineTypesOf(parent->op());
     return (*types)[Top()->real_index()];
   }
 }

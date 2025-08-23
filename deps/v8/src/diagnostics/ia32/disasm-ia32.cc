@@ -1,3 +1,6 @@
+#ifdef __wasi__
+#define V8_TARGET_ARCH_WASM32 1
+#endif
 // Copyright 2011 the V8 project authors. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
@@ -227,7 +230,7 @@ class DisassemblerIA32 {
 
   // Writes one disassembled instruction into 'buffer' (0-terminated).
   // Returns the length of the disassembled machine instruction in bytes.
-  int InstructionDecode(v8::base::Vector<char> buffer, uint8_t* instruction);
+  int InstructionDecode(v8::Vector<char> buffer, uint8_t* instruction);
 
  private:
   const NameConverter& converter_;
@@ -235,7 +238,7 @@ class DisassemblerIA32 {
   uint8_t vex_byte1_;
   uint8_t vex_byte2_;  // only for 3 bytes vex prefix
   InstructionTable* instruction_table_;
-  v8::base::EmbeddedVector<char, 128> tmp_buffer_;
+  v8::base::Embedded::v8::base::Vector<char, 128> tmp_buffer_;
   unsigned int tmp_buffer_pos_;
   Disassembler::UnimplementedOpcodeAction unimplemented_opcode_action_;
 
@@ -380,7 +383,7 @@ class DisassemblerIA32 {
 };
 
 void DisassemblerIA32::AppendToBuffer(const char* format, ...) {
-  v8::base::Vector<char> buf = tmp_buffer_ + tmp_buffer_pos_;
+  v8::Vector<char> buf = tmp_buffer_ + tmp_buffer_pos_;
   va_list args;
   va_start(args, format);
   int result = ::v8::base::VSNPrintF(buf, format, args);
@@ -1746,7 +1749,7 @@ static const char* F0Mnem(uint8_t f0byte) {
 }
 
 // Disassembled instruction '*instr' and writes it into 'out_buffer'.
-int DisassemblerIA32::InstructionDecode(v8::base::Vector<char> out_buffer,
+int DisassemblerIA32::InstructionDecode(v8::Vector<char> out_buffer,
                                         uint8_t* instr) {
   tmp_buffer_pos_ = 0;  // starting to write as position 0
   uint8_t* data = instr;
@@ -2896,7 +2899,7 @@ const char* NameConverter::NameInCode(uint8_t* addr) const {
 
 //------------------------------------------------------------------------------
 
-int Disassembler::InstructionDecode(v8::base::Vector<char> buffer,
+int Disassembler::InstructionDecode(v8::Vector<char> buffer,
                                     uint8_t* instruction) {
   DisassemblerIA32 d(converter_, unimplemented_opcode_action());
   return d.InstructionDecode(buffer, instruction);
@@ -2911,7 +2914,7 @@ void Disassembler::Disassemble(FILE* f, uint8_t* begin, uint8_t* end,
   NameConverter converter;
   Disassembler d(converter, unimplemented_action);
   for (uint8_t* pc = begin; pc < end;) {
-    v8::base::EmbeddedVector<char, 128> buffer;
+    v8::base::Embedded::v8::base::Vector<char, 128> buffer;
     buffer[0] = '\0';
     uint8_t* prev_pc = pc;
     pc += d.InstructionDecode(buffer, pc);

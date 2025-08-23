@@ -1,3 +1,6 @@
+#ifdef __wasi__
+#define V8_TARGET_ARCH_WASM32 1
+#endif
 // Copyright 2023 the V8 project authors. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
@@ -408,7 +411,7 @@ class GeneratorAnalyzer {
   // {visit_queue_} is used in FindLoopBody to store nodes that still need to be
   // visited. It is an instance variable in order to reuse its memory more
   // efficiently.
-  ZoneVector<const maglev::BasicBlock*> visit_queue_;
+  ::v8::base::Vector<const maglev::BasicBlock*> visit_queue_;
 };
 
 #define GET_FRAME_STATE_MAYBE_ABORT(name, deopt_info)                       \
@@ -1114,8 +1117,8 @@ class GraphBuildingNodeProcessor {
     // it has to be zone allocated rather than heap-allocated, since it won't be
     // freed and this would thus cause a leak.
     std::string reg_string_name = node->source().ToString();
-    base::Vector<char> debug_name_arr =
-        graph_zone()->NewVector<char>(reg_string_name.length() + /* \n */ 1);
+    ::v8::base::Vector<char> debug_name_arr =
+        graph_zone()->New::v8::base::Vector<char>(reg_string_name.length() + /* \n */ 1);
     snprintf(debug_name_arr.data(), debug_name_arr.length(), "%s",
              reg_string_name.c_str());
     char* debug_name = debug_name_arr.data();
@@ -1431,7 +1434,7 @@ class GraphBuildingNodeProcessor {
   }
   V<Any> GenerateBuiltinCall(
       maglev::NodeBase* node, Builtin builtin,
-      OptionalV<FrameState> frame_state, base::Vector<const OpIndex> arguments,
+      OptionalV<FrameState> frame_state, ::v8::base::Vector<const OpIndex> arguments,
       std::optional<int> stack_arg_count = std::nullopt) {
     ThrowingScope throwing_scope(this, node);
     DCHECK(!TooManyArgumentsForCall(arguments.size()));

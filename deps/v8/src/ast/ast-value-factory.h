@@ -102,7 +102,7 @@ class AstRawString final : public ZoneObject {
   friend Zone;
 
   // Members accessed only by the AstValueFactory & related classes:
-  AstRawString(bool is_one_byte, base::Vector<const uint8_t> literal_bytes,
+  AstRawString(bool is_one_byte, ::v8::base::Vector<const uint8_t> literal_bytes,
                uint32_t raw_hash_field)
       : next_(nullptr),
         literal_bytes_(literal_bytes),
@@ -131,7 +131,7 @@ class AstRawString final : public ZoneObject {
     IndirectHandle<String> string_;
   };
 
-  base::Vector<const uint8_t> literal_bytes_;  // Memory owned by Zone.
+  ::v8::base::Vector<const uint8_t> literal_bytes_;  // Memory owned by Zone.
   uint32_t raw_hash_field_;
   bool is_one_byte_;
 #ifdef DEBUG
@@ -179,7 +179,7 @@ class AstConsString final : public ZoneObject {
   EXPORT_TEMPLATE_DECLARE(V8_EXPORT_PRIVATE)
   Handle<String> AllocateFlat(IsolateT* isolate) const;
 
-  std::forward_list<const AstRawString*> ToRawStrings() const;
+  ::forward_list<const AstRawString*> ToRawStrings() const;
 
   const AstRawString* last() const { return segment_.string; }
 
@@ -230,9 +230,9 @@ struct AstRawStringMapMatcher {
 };
 
 using AstRawStringMap =
-    base::TemplateHashMapImpl<const AstRawString*, base::NoHashMapValue,
+    ::v8::base::TemplateHashMapImpl<const AstRawString*, ::v8::base::NoHashMapValue,
                               AstRawStringMapMatcher,
-                              base::DefaultAllocationPolicy>;
+                              ::v8::base::DefaultAllocationPolicy>;
 
 // For generating constants.
 #define AST_STRING_CONSTANTS_INTERNALIZED_STRING_LIST_ADAPTER(F, name,  \
@@ -373,13 +373,13 @@ class AstValueFactory {
     return single_parse_zone_;
   }
 
-  const AstRawString* GetOneByteString(base::Vector<const uint8_t> literal) {
+  const AstRawString* GetOneByteString(::v8::base::Vector<const uint8_t> literal) {
     return GetOneByteStringInternal(literal);
   }
   const AstRawString* GetOneByteString(const char* string) {
-    return GetOneByteString(base::OneByteVector(string));
+    return GetOneByteString(::v8::base::OneByteVector(string));
   }
-  const AstRawString* GetTwoByteString(base::Vector<const uint16_t> literal) {
+  const AstRawString* GetTwoByteString(Vector<const uint16_t> literal) {
     return GetTwoByteStringInternal(literal);
   }
   const AstRawString* GetString(Tagged<String> literal,
@@ -413,11 +413,11 @@ class AstValueFactory {
     strings_end_ = &strings_;
   }
   V8_EXPORT_PRIVATE const AstRawString* GetOneByteStringInternal(
-      base::Vector<const uint8_t> literal);
+      ::v8::base::Vector<const uint8_t> literal);
   const AstRawString* GetTwoByteStringInternal(
-      base::Vector<const uint16_t> literal);
+      Vector<const uint16_t> literal);
   const AstRawString* GetString(uint32_t raw_hash_field, bool is_one_byte,
-                                base::Vector<const uint8_t> literal_bytes);
+                                ::v8::base::Vector<const uint8_t> literal_bytes);
 
   // All strings are copied here.
   AstRawStringMap string_table_;

@@ -311,7 +311,7 @@ const uint64_t kNoId = 0;
 
 class TraceEventHelper {
  public:
-  V8_EXPORT_PRIVATE static v8::TracingController* GetTracingController();
+  V8_EXPORT_PRIVATE static TracingController* GetTracingController();
 };
 
 // TraceID encapsulates an ID that can either be an integer or pointer.
@@ -395,8 +395,8 @@ static V8_INLINE uint64_t AddTraceEventImpl(
         static_cast<intptr_t>(arg_values[1])));
   }
   DCHECK_LE(num_args, 2);
-  v8::TracingController* controller =
-      v8::internal::tracing::TraceEventHelper::GetTracingController();
+  TracingController* controller =
+      TraceEventHelper::GetTracingController();
   return controller->AddTraceEvent(phase, category_group_enabled, name, scope,
                                    id, bind_id, num_args, arg_names, arg_types,
                                    arg_values, arg_convertables, flags);
@@ -417,8 +417,8 @@ static V8_INLINE uint64_t AddTraceEventWithTimestampImpl(
         static_cast<intptr_t>(arg_values[1])));
   }
   DCHECK_LE(num_args, 2);
-  v8::TracingController* controller =
-      v8::internal::tracing::TraceEventHelper::GetTracingController();
+  TracingController* controller =
+      TraceEventHelper::GetTracingController();
   return controller->AddTraceEventWithTimestamp(
       phase, category_group_enabled, name, scope, id, bind_id, num_args,
       arg_names, arg_types, arg_values, arg_convertables, flags, timestamp);
@@ -566,7 +566,7 @@ class ScopedTracer {
   ScopedTracer() : p_data_(nullptr) {}
 
   ~ScopedTracer() {
-    if (p_data_ && base::Relaxed_Load(reinterpret_cast<const base::Atomic8*>(
+    if (p_data_ && ::v8::base::Relaxed_Load(reinterpret_cast<const ::v8::base::Atomic8*>(
                        data_.category_group_enabled))) {
       TRACE_EVENT_API_UPDATE_TRACE_EVENT_DURATION(
           data_.category_group_enabled, data_.name, data_.event_handle);

@@ -1,3 +1,9 @@
+#ifdef __wasi__
+#ifdef __wasi__
+#include "src/wasm/wasm-features-fix.h"
+#endif
+#define V8_TARGET_ARCH_WASM32 1
+#endif
 // Copyright 2012 the V8 project authors. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
@@ -2318,7 +2324,7 @@ Maybe<bool> Module::SetSyntheticModuleExport(Isolate* v8_isolate,
   return Just(true);
 }
 
-std::pair<LocalVector<Module>, LocalVector<Message>>
+std::pair<Local::v8::base::Vector<Module>, Local::v8::base::Vector<Message>>
 Module::GetStalledTopLevelAwaitMessages(Isolate* isolate) {
   auto i_isolate = reinterpret_cast<i::Isolate*>(isolate);
   auto self = Utils::OpenDirectHandle(this);
@@ -2326,20 +2332,20 @@ Module::GetStalledTopLevelAwaitMessages(Isolate* isolate) {
                   "v8::Module::GetStalledTopLevelAwaitMessages",
                   "v8::Module::GetStalledTopLevelAwaitMessages must only be "
                   "called on a SourceTextModule");
-  std::pair<i::DirectHandleVector<i::SourceTextModule>,
-            i::DirectHandleVector<i::JSMessageObject>>
+  std::pair<i::DirectHandle<::v8::base::Vector<i::SourceTextModule>,
+            i::DirectHandle<::v8::base::Vector<i::JSMessageObject>>
       stalled_awaits =
           i::Cast<i::SourceTextModule>(self)->GetStalledTopLevelAwaitMessages(
               i_isolate);
 
-  LocalVector<Module> modules(isolate);
+  Local::v8::base::Vector<Module> modules(isolate);
   if (size_t stalled_awaits_count = stalled_awaits.first.size();
       stalled_awaits_count > 0) {
     modules.reserve(stalled_awaits_count);
     for (auto module : stalled_awaits.first)
       modules.push_back(ToApiHandle<Module>(module));
   }
-  LocalVector<Message> messages(isolate);
+  Local::v8::base::Vector<Message> messages(isolate);
   if (size_t stalled_awaits_count = stalled_awaits.second.size();
       stalled_awaits_count > 0) {
     messages.reserve(stalled_awaits_count);
@@ -3392,7 +3398,7 @@ const SharedValueConveyor* ValueDeserializer::Delegate::GetSharedValueConveyor(
 }
 
 struct ValueDeserializer::PrivateData {
-  PrivateData(i::Isolate* i_isolate, base::Vector<const uint8_t> data,
+  PrivateData(i::Isolate* i_isolate, ::v8::base::Vector<const uint8_t> data,
               Delegate* delegate)
       : isolate(i_isolate), deserializer(i_isolate, data, delegate) {}
   i::Isolate* isolate;
@@ -3407,7 +3413,7 @@ ValueDeserializer::ValueDeserializer(Isolate* v8_isolate, const uint8_t* data,
 ValueDeserializer::ValueDeserializer(Isolate* v8_isolate, const uint8_t* data,
                                      size_t size, Delegate* delegate) {
   private_ = new PrivateData(reinterpret_cast<i::Isolate*>(v8_isolate),
-                             base::Vector<const uint8_t>(data, size), delegate);
+                             ::v8::base::Vector<const uint8_t>(data, size), delegate);
 }
 
 ValueDeserializer::~ValueDeserializer() { delete private_; }
@@ -5315,7 +5321,7 @@ bool v8::Object::IsUndetectable() const {
 }
 
 namespace {
-base::Vector<i::DirectHandle<i::Object>> PrepareArguments(int argc,
+Vector<i::DirectHandle<i::Object>> PrepareArguments(int argc,
                                                           Local<Value> argv[]) {
   static_assert(sizeof(v8::Local<v8::Value>) ==
                 sizeof(i::DirectHandle<i::Object>));
@@ -5798,7 +5804,7 @@ namespace {
 // units until the buffer capacity is reached, would be exceeded by the next
 // unit, or all code units have been written out.
 template <typename Char>
-static int WriteUtf8Impl(base::Vector<const Char> string, char* write_start,
+static int WriteUtf8Impl(::v8::base::Vector<const Char> string, char* write_start,
                          int write_capacity, int options,
                          int* utf16_chars_read_out) {
   bool write_null = !(options & v8::String::NO_NULL_TERMINATION);
@@ -7028,7 +7034,7 @@ class ObjectVisitorDeepFreezer : i::ObjectVisitor {
 
   bool FreezeEmbedderObjectAndVisitChildren(i::DirectHandle<i::JSObject> obj) {
     DCHECK(delegate_);
-    LocalVector<Object> children(reinterpret_cast<Isolate*>(isolate_));
+    Local::v8::base::Vector<Object> children(reinterpret_cast<Isolate*>(isolate_));
     if (!delegate_->FreezeEmbedderObjectAndGetChildren(Utils::ToLocal(obj),
                                                        children)) {
       return false;
@@ -7148,7 +7154,7 @@ class ObjectVisitorDeepFreezer : i::ObjectVisitor {
     i::DirectHandle<i::NativeContext> native_context =
         isolate_->native_context();
 
-    i::DirectHandleVector<i::AccessorPair> lazy_accessor_pairs_to_freeze(
+    i::DirectHandle<::v8::base::Vector<i::AccessorPair> lazy_accessor_pairs_to_freeze(
         isolate_);
     std::swap(lazy_accessor_pairs_to_freeze, lazy_accessor_pairs_to_freeze_);
 
@@ -7167,8 +7173,8 @@ class ObjectVisitorDeepFreezer : i::ObjectVisitor {
   i::Isolate* isolate_;
   Context::DeepFreezeDelegate* delegate_;
   std::unordered_set<i::Tagged<i::Object>, i::Object::Hasher> done_list_;
-  i::DirectHandleVector<i::JSReceiver> objects_to_freeze_;
-  i::DirectHandleVector<i::AccessorPair> lazy_accessor_pairs_to_freeze_;
+  i::DirectHandle<::v8::base::Vector<i::JSReceiver> objects_to_freeze_;
+  i::DirectHandle<::v8::base::Vector<i::AccessorPair> lazy_accessor_pairs_to_freeze_;
   std::optional<ErrorInfo> error_;
 };
 
@@ -7568,7 +7574,7 @@ inline int StringLength(const uint16_t* string) {
 V8_WARN_UNUSED_RESULT
 inline i::MaybeHandle<i::String> NewString(i::Factory* factory,
                                            NewStringType type,
-                                           base::Vector<const char> string) {
+                                           ::v8::base::Vector<const char> string) {
   if (type == NewStringType::kInternalized) {
     return factory->InternalizeUtf8String(string);
   }
@@ -7578,7 +7584,7 @@ inline i::MaybeHandle<i::String> NewString(i::Factory* factory,
 V8_WARN_UNUSED_RESULT
 inline i::MaybeHandle<i::String> NewString(i::Factory* factory,
                                            NewStringType type,
-                                           base::Vector<const uint8_t> string) {
+                                           ::v8::base::Vector<const uint8_t> string) {
   if (type == NewStringType::kInternalized) {
     return factory->InternalizeString(string);
   }
@@ -7588,7 +7594,7 @@ inline i::MaybeHandle<i::String> NewString(i::Factory* factory,
 V8_WARN_UNUSED_RESULT
 inline i::MaybeHandle<i::String> NewString(
     i::Factory* factory, NewStringType type,
-    base::Vector<const uint16_t> string) {
+    ::v8::base::Vector<const uint16_t> string) {
   if (type == NewStringType::kInternalized) {
     return factory->InternalizeString(string);
   }
@@ -7615,7 +7621,7 @@ static_assert(v8::String::kMaxLength == i::String::kMaxLength);
     if (length < 0) length = StringLength(data);                              \
     i::DirectHandle<i::String> handle_result =                                \
         NewString(i_isolate->factory(), type,                                 \
-                  base::Vector<const Char>(data, length))                     \
+                  ::v8::base::Vector<const Char>(data, length))                     \
             .ToHandleChecked();                                               \
     result = Utils::ToLocal(handle_result);                                   \
   }
@@ -7629,7 +7635,7 @@ Local<String> String::NewFromUtf8Literal(Isolate* v8_isolate,
   API_RCS_SCOPE(i_isolate, String, NewFromUtf8Literal);
   i::DirectHandle<i::String> handle_result =
       NewString(i_isolate->factory(), type,
-                base::Vector<const char>(literal, length))
+                ::v8::base::Vector<const char>(literal, length))
           .ToHandleChecked();
   return Utils::ToLocal(handle_result);
 }
@@ -8872,7 +8878,7 @@ OwnedBuffer CompiledWasmModule::Serialize() {
 
 MemorySpan<const uint8_t> CompiledWasmModule::GetWireBytesRef() {
 #if V8_ENABLE_WEBASSEMBLY
-  base::Vector<const uint8_t> bytes_vec = native_module_->wire_bytes();
+  ::v8::base::Vector<const uint8_t> bytes_vec = native_module_->wire_bytes();
   return {bytes_vec.begin(), bytes_vec.size()};
 #else
   UNREACHABLE();
@@ -8920,7 +8926,7 @@ MaybeLocal<WasmModuleObject> WasmModuleObject::FromCompiledModule(
 MaybeLocal<WasmModuleObject> WasmModuleObject::Compile(
     Isolate* v8_isolate, MemorySpan<const uint8_t> wire_bytes) {
 #if V8_ENABLE_WEBASSEMBLY
-  base::OwnedVector<const uint8_t> bytes = base::OwnedCopyOf(wire_bytes);
+  base::Owned::v8::base::Vector<const uint8_t> bytes = base::OwnedCopyOf(wire_bytes);
   i::Isolate* i_isolate = reinterpret_cast<i::Isolate*>(v8_isolate);
   // We don't check for `IsWasmCodegenAllowed` here, because this function is
   // used for ESM integration, which in terms of security is equivalent to

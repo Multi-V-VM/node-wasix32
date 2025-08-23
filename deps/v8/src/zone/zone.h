@@ -137,14 +137,14 @@ class V8_EXPORT_PRIVATE Zone final {
 
   // Allocates a Vector with 'length' uninitialized entries.
   template <typename T, typename TypeTag = T[]>
-  base::Vector<T> AllocateVector(size_t length) {
+  ::v8::base::Vector<T> AllocateVector(size_t length) {
     T* new_array = AllocateArray<T, TypeTag>(length);
     return {new_array, length};
   }
 
   // Allocates a Vector with 'length' elements and value-constructs them.
   template <typename T, typename TypeTag = T[]>
-  base::Vector<T> NewVector(size_t length) {
+  ::v8::base::Vector<T> NewVector(size_t length) {
     T* new_array = AllocateArray<T, TypeTag>(length);
     std::uninitialized_value_construct_n(new_array, length);
     return {new_array, length};
@@ -153,14 +153,14 @@ class V8_EXPORT_PRIVATE Zone final {
   // Allocates a Vector with 'length' elements and initializes them with
   // 'value'.
   template <typename T, typename TypeTag = T[]>
-  base::Vector<T> NewVector(size_t length, T value) {
+  ::v8::base::Vector<T> NewVector(size_t length, T value) {
     T* new_array = AllocateArray<T, TypeTag>(length);
     std::uninitialized_fill_n(new_array, length, value);
     return {new_array, length};
   }
 
   template <typename T, typename TypeTag = std::remove_const_t<T>[]>
-  base::Vector<std::remove_const_t<T>> CloneVector(base::Vector<T> v) {
+  ::v8::base::Vector<std::remove_const_t<T>> CloneVector(::v8::base::Vector<T> v) {
     auto* new_array = AllocateArray<std::remove_const_t<T>, TypeTag>(v.size());
     std::uninitialized_copy(v.begin(), v.end(), new_array);
     return {new_array, v.size()};

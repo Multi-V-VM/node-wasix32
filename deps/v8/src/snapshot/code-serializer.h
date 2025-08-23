@@ -150,7 +150,7 @@ class SerializedCodeData : public SerializedData {
   // Return ScriptData object and relinquish ownership over it to the caller.
   AlignedCachedData* GetScriptData();
 
-  base::Vector<const uint8_t> Payload() const;
+  ::v8::base::Vector<const uint8_t> Payload() const;
 
   static uint32_t SourceHash(DirectHandle<String> source,
                              DirectHandle<FixedArray> wrapped_arguments,
@@ -161,8 +161,8 @@ class SerializedCodeData : public SerializedData {
   SerializedCodeData(const uint8_t* data, int size)
       : SerializedData(const_cast<uint8_t*>(data), size) {}
 
-  base::Vector<const uint8_t> ChecksummedContent() const {
-    return base::Vector<const uint8_t>(data_ + kHeaderSize,
+  ::v8::base::Vector<const uint8_t> ChecksummedContent() const {
+    return ::v8::base::Vector<const uint8_t>(data_ + kHeaderSize,
                                        size_ - kHeaderSize);
   }
 

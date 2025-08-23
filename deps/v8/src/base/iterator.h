@@ -185,7 +185,7 @@ class TupleIterator
   template <class Other, size_t... indices>
   bool not_equal_impl(const Other& other,
                       std::index_sequence<indices...>) const {
-    return (... || (std::get<indices>(its_) != std::get<indices>(other.its_)));
+    return (... || (::std::get<indices>(its_) != ::std::get<indices>(other.its_)));
   }
 
   std::tuple<Iterators...> its_;

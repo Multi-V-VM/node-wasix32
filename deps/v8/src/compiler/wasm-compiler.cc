@@ -1,4 +1,7 @@
 // Copyright 2015 the V8 project authors. All rights reserved.
+#ifdef __wasi__
+#include "src/wasm/wasm-features-fix.h"
+#endif
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
@@ -166,7 +169,7 @@ bool WasmGraphBuilder::TryWasmInlining(int fct_index,
     TRACE("- not inlining: function is imported");
     return false;
   }
-  base::Vector<const uint8_t> bytes(native_module->wire_bytes().SubVector(
+  ::v8::base::Vector<const uint8_t> bytes(native_module->wire_bytes().SubVector(
       inlinee.code.offset(), inlinee.code.end_offset()));
   bool is_shared = module->type(inlinee.sig_index).is_shared;
   const wasm::FunctionBody inlinee_body(inlinee.sig, inlinee.code.offset(),
@@ -296,7 +299,7 @@ TrapId WasmGraphBuilder::GetTrapIdForTrap(wasm::TrapReason reason) {
   }
 }
 
-Node* WasmGraphBuilder::Return(base::Vector<Node*> vals) {
+Node* WasmGraphBuilder::Return(::v8::base::Vector<Node*> vals) {
   unsigned count = static_cast<unsigned>(vals.size());
   base::SmallVector<Node*, 8> buf(count + 3);
 
@@ -343,7 +346,7 @@ void WasmGraphBuilder::SetEffectControl(Node* effect, Node* control) {
 }
 
 Node* WasmGraphBuilder::BuildCallNode(size_t param_count,
-                                      base::Vector<Node*> args,
+                                      ::v8::base::Vector<Node*> args,
                                       wasm::WasmCodePosition position,
                                       Node* implicit_first_arg,
                                       const Operator* op, Node* frame_state) {
@@ -379,8 +382,8 @@ Node* WasmGraphBuilder::BuildCallNode(size_t param_count,
 
 template <typename T>
 Node* WasmGraphBuilder::BuildWasmCall(const Signature<T>* sig,
-                                      base::Vector<Node*> args,
-                                      base::Vector<Node*> rets,
+                                      ::v8::base::Vector<Node*> args,
+                                      ::v8::base::Vector<Node*> rets,
                                       wasm::WasmCodePosition position,
                                       Node* implicit_first_arg, bool indirect,
                                       Node* frame_state) {

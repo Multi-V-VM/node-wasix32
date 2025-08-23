@@ -46,7 +46,7 @@ enum class ClassSetOperandType {
 
 class RegExpTextBuilder {
  public:
-  using SmallRegExpTreeVector = SmallZoneVector<RegExpTree*, 8>;
+  using SmallRegExpTreeVector = SmallVector<RegExpTree*, 8>;
 
   RegExpTextBuilder(Zone* zone, SmallRegExpTreeVector* terms_storage,
                     RegExpFlags flags)
@@ -258,10 +258,10 @@ RegExpTree* RegExpTextBuilder::PopLastAtom() {
   FlushPendingSurrogate();
   RegExpTree* atom;
   if (characters_ != nullptr) {
-    base::Vector<const base::uc16> char_vector = characters_->ToConstVector();
+    ::v8::base::Vector<const base::uc16> char_vector = characters_->ToConstVector();
     int num_chars = char_vector.length();
     if (num_chars > 1) {
-      base::Vector<const base::uc16> prefix =
+      ::v8::base::Vector<const base::uc16> prefix =
           char_vector.SubVector(0, num_chars - 1);
       text_.emplace_back(zone()->New<RegExpAtom>(prefix));
       char_vector = char_vector.SubVector(num_chars - 1, num_chars);
@@ -330,7 +330,7 @@ class RegExpBuilder {
   bool pending_empty_ = false;
   const RegExpFlags flags_;
 
-  using SmallRegExpTreeVector = SmallZoneVector<RegExpTree*, 8>;
+  using SmallRegExpTreeVector = SmallVector<RegExpTree*, 8>;
   SmallRegExpTreeVector terms_;
   SmallRegExpTreeVector alternatives_;
   RegExpTextBuilder text_builder_;
@@ -351,7 +351,7 @@ class RegExpParserState : public ZoneObject {
                     SubexpressionType group_type,
                     RegExpLookaround::Type lookaround_type,
                     int disjunction_capture_index,
-                    const ZoneVector<base::uc16>* capture_name,
+                    const ::v8::base::Vector<base::uc16>* capture_name,
                     RegExpFlags flags, Zone* zone)
       : previous_state_(previous_state),
         builder_(zone, flags),
@@ -379,7 +379,7 @@ class RegExpParserState : public ZoneObject {
   int capture_index() const { return disjunction_capture_index_; }
   // The name of the current sub-expression, if group_type is CAPTURE. Only
   // used for named captures.
-  const ZoneVector<base::uc16>* capture_name() const { return capture_name_; }
+  const ::v8::base::Vector<base::uc16>* capture_name() const { return capture_name_; }
   std::pair<int, int> non_participating_capture_group_interval() const {
     return non_participating_capture_group_interval_;
   }
@@ -400,7 +400,7 @@ class RegExpParserState : public ZoneObject {
   }
 
   // Check whether the parser is inside a capture group with the given name.
-  bool IsInsideCaptureGroup(const ZoneVector<base::uc16>* name) const {
+  bool IsInsideCaptureGroup(const ::v8::base::Vector<base::uc16>* name) const {
     DCHECK_NOT_NULL(name);
     for (const RegExpParserState* s = this; s != nullptr;
          s = s->previous_state()) {
@@ -434,7 +434,7 @@ class RegExpParserState : public ZoneObject {
   // Stored disjunction's capture index (if any).
   const int disjunction_capture_index_;
   // Stored capture name (if any).
-  const ZoneVector<base::uc16>* const capture_name_;
+  const ::v8::base::Vector<base::uc16>* const capture_name_;
   // Interval of (named) capture indices ]from, to] that are not participating
   // in the current state (i.e. they cannot match).
   // Capture indices are not participating if they were created in a different
@@ -465,12 +465,12 @@ class RegExpParserImpl final {
   bool ParseUnicodeEscape(base::uc32* value);
   bool ParseUnlimitedLengthHexNumber(int max_value, base::uc32* value);
 
-  bool ParsePropertyClassName(ZoneVector<char>* name_1,
-                              ZoneVector<char>* name_2);
+  bool ParsePropertyClassName(::v8::base::Vector<char>* name_1,
+                              ::v8::base::Vector<char>* name_2);
   bool AddPropertyClassRange(ZoneList<CharacterRange>* add_to_range,
                              CharacterClassStrings* add_to_strings, bool negate,
-                             const ZoneVector<char>& name_1,
-                             const ZoneVector<char>& name_2);
+                             const ::v8::base::Vector<char>& name_1,
+                             const ::v8::base::Vector<char>& name_2);
 
   RegExpTree* ParseClassRanges(ZoneList<CharacterRange>* ranges,
                                bool add_unicode_case_equivalents);
@@ -571,7 +571,7 @@ class RegExpParserImpl final {
 
   // Parses the name of a capture group (?<name>pattern). The name must adhere
   // to IdentifierName in the ECMAScript standard.
-  const ZoneVector<base::uc16>* ParseCaptureGroupName();
+  const ::v8::base::Vector<base::uc16>* ParseCaptureGroupName();
 
   bool ParseNamedBackReference(RegExpBuilder* builder,
                                RegExpParserState* state);
@@ -582,7 +582,7 @@ class RegExpParserImpl final {
   // to avoid complicating cases in which references comes before the capture.
   void PatchNamedBackReferences();
 
-  ZoneVector<RegExpCapture*>* GetNamedCaptures();
+  ::v8::base::Vector<RegExpCapture*>* GetNamedCaptures();
 
   // Returns true iff the pattern contains named captures. May call
   // ScanForCaptures to look ahead at the remaining pattern.
@@ -1293,7 +1293,7 @@ RegExpParserState* RegExpParserImpl<CharT>::ParseOpenParenthesis(
     RegExpParserState* state) {
   RegExpLookaround::Type lookaround_type = state->lookaround_type();
   bool is_named_capture = false;
-  const ZoneVector<base::uc16>* capture_name = nullptr;
+  const ::v8::base::Vector<base::uc16>* capture_name = nullptr;
   SubexpressionType subexpr_type = CAPTURE;
   RegExpFlags flags = state->builder()->flags();
   bool parsing_modifiers = false;
@@ -1536,7 +1536,7 @@ bool RegExpParserImpl<CharT>::ParseBackReferenceIndex(int* index_out) {
 
 namespace {
 
-void push_code_unit(ZoneVector<base::uc16>* v, uint32_t code_unit) {
+void push_code_unit(::v8::base::Vector<base::uc16>* v, uint32_t code_unit) {
   if (code_unit <= unibrow::Utf16::kMaxNonSurrogateCharCode) {
     v->push_back(code_unit);
   } else {
@@ -1548,7 +1548,7 @@ void push_code_unit(ZoneVector<base::uc16>* v, uint32_t code_unit) {
 }  // namespace
 
 template <class CharT>
-const ZoneVector<base::uc16>* RegExpParserImpl<CharT>::ParseCaptureGroupName() {
+const ::v8::base::Vector<base::uc16>* RegExpParserImpl<CharT>::ParseCaptureGroupName() {
   // Due to special Advance requirements (see the next comment), rewind by one
   // such that names starting with a surrogate pair are parsed correctly for
   // patterns where the unicode flag is unset.
@@ -1559,8 +1559,8 @@ const ZoneVector<base::uc16>* RegExpParserImpl<CharT>::ParseCaptureGroupName() {
   // `current` should point at the first character of Foo).
   RewindByOneCodepoint();
 
-  ZoneVector<base::uc16>* name =
-      zone()->template New<ZoneVector<base::uc16>>(zone());
+  ::v8::base::Vector<base::uc16>* name =
+      zone()->template New<::v8::base::Vector<base::uc16>>(zone());
 
   {
     // Advance behavior inside this function is tricky since
@@ -1622,7 +1622,7 @@ const ZoneVector<base::uc16>* RegExpParserImpl<CharT>::ParseCaptureGroupName() {
 template <class CharT>
 bool RegExpParserImpl<CharT>::CreateNamedCaptureAtIndex(
     const RegExpParserState* state, int index) {
-  const ZoneVector<base::uc16>* name = state->capture_name();
+  const ::v8::base::Vector<base::uc16>* name = state->capture_name();
   const std::pair<int, int> non_participating_capture_group_interval =
       state->non_participating_capture_group_interval();
   DCHECK(0 < index && index <= captures_started_);
@@ -1674,7 +1674,7 @@ bool RegExpParserImpl<CharT>::ParseNamedBackReference(
   }
 
   Advance();
-  const ZoneVector<base::uc16>* name = ParseCaptureGroupName();
+  const ::v8::base::Vector<base::uc16>* name = ParseCaptureGroupName();
   if (name == nullptr) {
     return false;
   }
@@ -1753,14 +1753,14 @@ RegExpCapture* RegExpParserImpl<CharT>::GetCapture(int index) {
 }
 
 template <class CharT>
-ZoneVector<RegExpCapture*>* RegExpParserImpl<CharT>::GetNamedCaptures() {
+::v8::base::Vector<RegExpCapture*>* RegExpParserImpl<CharT>::GetNamedCaptures() {
   if (named_captures_ == nullptr) {
     return nullptr;
   }
   DCHECK(!named_captures_->empty());
 
-  ZoneVector<RegExpCapture*>* flattened_named_captures =
-      zone()->template New<ZoneVector<RegExpCapture*>>(zone());
+  ::v8::base::Vector<RegExpCapture*>* flattened_named_captures =
+      zone()->template New<::v8::base::Vector<RegExpCapture*>>(zone());
   for (auto capture : *named_captures_) {
     DCHECK_IMPLIES(!v8_flags.js_regexp_duplicate_named_groups,
                    capture.second->length() == 1);
@@ -2170,8 +2170,8 @@ bool IsUnicodePropertyValueCharacter(char c) {
 }  // namespace
 
 template <class CharT>
-bool RegExpParserImpl<CharT>::ParsePropertyClassName(ZoneVector<char>* name_1,
-                                                     ZoneVector<char>* name_2) {
+bool RegExpParserImpl<CharT>::ParsePropertyClassName(::v8::base::Vector<char>* name_1,
+                                                     ::v8::base::Vector<char>* name_2) {
   DCHECK(name_1->empty());
   DCHECK(name_2->empty());
   // Parse the property class as follows:
@@ -2212,7 +2212,7 @@ template <class CharT>
 bool RegExpParserImpl<CharT>::AddPropertyClassRange(
     ZoneList<CharacterRange>* add_to_ranges,
     CharacterClassStrings* add_to_strings, bool negate,
-    const ZoneVector<char>& name_1, const ZoneVector<char>& name_2) {
+    const ::v8::base::Vector<char>& name_1, const ::v8::base::Vector<char>& name_2) {
   if (name_2.empty()) {
     // First attempt to interpret as general category property value name.
     const char* name = name_1.data();
@@ -2269,8 +2269,8 @@ bool RegExpParserImpl<CharT>::AddPropertyClassRange(
 #else  // V8_INTL_SUPPORT
 
 template <class CharT>
-bool RegExpParserImpl<CharT>::ParsePropertyClassName(ZoneVector<char>* name_1,
-                                                     ZoneVector<char>* name_2) {
+bool RegExpParserImpl<CharT>::ParsePropertyClassName(::v8::base::Vector<char>* name_1,
+                                                     ::v8::base::Vector<char>* name_2) {
   return false;
 }
 
@@ -2278,7 +2278,7 @@ template <class CharT>
 bool RegExpParserImpl<CharT>::AddPropertyClassRange(
     ZoneList<CharacterRange>* add_to_ranges,
     CharacterClassStrings* add_to_strings, bool negate,
-    const ZoneVector<char>& name_1, const ZoneVector<char>& name_2) {
+    const ::v8::base::Vector<char>& name_1, const ::v8::base::Vector<char>& name_2) {
   return false;
 }
 
@@ -2587,8 +2587,8 @@ bool RegExpParserImpl<CharT>::TryParseCharacterClassEscape(
       if (!IsUnicodeMode()) return false;
       bool negate = next == 'P';
       Advance(2);
-      ZoneVector<char> name_1(zone);
-      ZoneVector<char> name_2(zone);
+      ::v8::base::Vector<char> name_1(zone);
+      ::v8::base::Vector<char> name_2(zone);
       if (!ParsePropertyClassName(&name_1, &name_2) ||
           !AddPropertyClassRange(ranges, strings, negate, name_1, name_2)) {
         ReportError(in_class_escape_state == InClassEscapeState::kInClass
@@ -3253,12 +3253,12 @@ bool RegExpParser::ParseRegExpFromHeapString(Isolate* isolate, Zone* zone,
   uintptr_t stack_limit = isolate->stack_guard()->real_climit();
   String::FlatContent content = input->GetFlatContent(no_gc);
   if (content.IsOneByte()) {
-    base::Vector<const uint8_t> v = content.ToOneByteVector();
+    ::v8::base::Vector<const uint8_t> v = content.ToOneByteVector();
     return RegExpParserImpl<uint8_t>{v.begin(),   v.length(), flags,
                                      stack_limit, zone,       no_gc}
         .Parse(result);
   } else {
-    base::Vector<const base::uc16> v = content.ToUC16Vector();
+    ::v8::base::Vector<const base::uc16> v = content.ToUC16Vector();
     return RegExpParserImpl<base::uc16>{v.begin(),   v.length(), flags,
                                         stack_limit, zone,       no_gc}
         .Parse(result);

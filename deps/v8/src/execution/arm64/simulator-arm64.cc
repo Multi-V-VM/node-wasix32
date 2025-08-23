@@ -332,7 +332,7 @@ void Simulator::SetStackLimit(uintptr_t limit) {
   stack_limit_ = static_cast<uintptr_t>(limit - kAdditionalStackMargin);
 }
 
-base::Vector<uint8_t> Simulator::GetCentralStackView() const {
+Vector<uint8_t> Simulator::GetCentralStackView() const {
   // We do not add an additional safety margin as above in
   // Simulator::StackLimit, as users of this method are expected to add their
   // own margin.

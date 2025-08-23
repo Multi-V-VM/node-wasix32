@@ -537,7 +537,7 @@ class Simulator : public SimulatorBase {
   uintptr_t StackBase() const;
   // Return central stack view, without additional safety margins.
   // Users, for example wasm::StackMemory, can add their own.
-  base::Vector<uint8_t> GetCentralStackView() const;
+  ::v8::base::Vector<uint8_t> GetCentralStackView() const;
   static constexpr int JSStackLimitMargin() { return kAdditionalStackMargin; }
 
   void IterateRegistersAndStack(::heap::base::StackVisitor* visitor);
@@ -1205,7 +1205,7 @@ class Simulator : public SimulatorBase {
   sreg_t* watch_address_ = nullptr;
   sreg_t watch_value_ = 0;
   int break_count_;
-  base::EmbeddedVector<char, 256> trace_buf_;
+  base::Embedded::v8::base::Vector<char, 256> trace_buf_;
 
   // Debugger input.
   char* last_debugger_input_;

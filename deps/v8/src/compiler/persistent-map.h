@@ -93,7 +93,7 @@ class PersistentMap {
     if (tree_ == other.tree_) return true;
     if (def_value_ != other.def_value_) return false;
     for (std::tuple<Key, Value, Value> triple : Zip(other)) {
-      if (std::get<1>(triple) != std::get<2>(triple)) return false;
+      if (::std::get<1>(triple) != ::std::get<2>(triple)) return false;
     }
     return true;
   }

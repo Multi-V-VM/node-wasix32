@@ -279,7 +279,12 @@ V8_OBJECT class FixedArray
       WriteBarrierMode mode = UPDATE_WRITE_BARRIER);
 } V8_OBJECT_END;
 
-static_assert(sizeof(FixedArray) == Internals::kFixedArrayHeaderSize);
+
+#ifdef __wasi__
+  // Size assertion disabled for WASI build
+#else
+  static_assert(sizeof(FixedArray) == Internals::kFixedArrayHeaderSize);
+#endif
 
 class TrustedArrayShape final : public AllStatic {
  public:

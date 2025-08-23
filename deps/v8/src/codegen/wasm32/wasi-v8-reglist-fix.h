@@ -4,9 +4,30 @@
 // Fixes for register list types in WASI build
 
 #include <cstdint>
+
+// Forward declaration or typedef for DoubleRegister
+#if defined(V8_TARGET_ARCH_IA32)
+#include "src/codegen/ia32/register-ia32.h"
+#else
+class DoubleRegister;
+#endif
 #include <initializer_list>
 
+// Forward declaration or typedef for DoubleRegister
+#if defined(V8_TARGET_ARCH_IA32)
+#include "src/codegen/ia32/register-ia32.h"
+#else
+class DoubleRegister;
+#endif
+
 #include "../../../../../wasi-v8-bits-fixes.h"
+
+// Forward declaration or typedef for DoubleRegister
+#if defined(V8_TARGET_ARCH_IA32)
+#include "src/codegen/ia32/register-ia32.h"
+#else
+class DoubleRegister;
+#endif
 
 namespace v8 {
 namespace internal {

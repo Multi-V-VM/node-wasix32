@@ -286,7 +286,7 @@ int GetSafepointIndexForStackSlot(const VarState& slot) {
 }  // namespace
 
 void LiftoffAssembler::CacheState::GetTaggedSlotsForOOLCode(
-    ZoneVector<int>* slots, LiftoffRegList* spills,
+    ::v8::base::Vector<int>* slots, LiftoffRegList* spills,
     SpillLocation spill_location) {
   for (const auto& slot : stack_state) {
     if (!is_reference(slot.kind())) continue;
@@ -480,7 +480,7 @@ bool SlotInterference(const VarState& a, const VarState& b) {
          b.offset() - value_kind_size(b.kind()) < a.offset();
 }
 
-bool SlotInterference(const VarState& a, base::Vector<const VarState> v) {
+bool SlotInterference(const VarState& a, ::v8::base::Vector<const VarState> v) {
   // Check the first 16 entries in {v}, then increase the step size to avoid
   // quadratic runtime on huge stacks. This logic checks 41 of the first 100
   // slots, 77 of the first 1000 and 115 of the first 10000.
@@ -928,7 +928,7 @@ void LiftoffAssembler::Move(LiftoffRegister dst, LiftoffRegister src,
 }
 
 void LiftoffAssembler::ParallelRegisterMove(
-    base::Vector<const ParallelRegisterMoveTuple> tuples) {
+    ::v8::base::Vector<const ParallelRegisterMoveTuple> tuples) {
   ParallelMove parallel_move{this};
   for (auto tuple : tuples) {
     if (tuple.dst == tuple.src) continue;

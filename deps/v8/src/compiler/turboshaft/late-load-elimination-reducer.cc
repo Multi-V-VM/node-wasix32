@@ -696,7 +696,7 @@ bool LateLoadEliminationAnalyzer::BeginBlock(const Block* block) {
   // Start a new snapshot for this block by merging information from
   // predecessors.
   auto merge_aliases = [&](AliasKey key,
-                           base::Vector<const bool> predecessors) -> bool {
+                           ::v8::base::Vector<const bool> predecessors) -> bool {
     if (for_loop_revisit && predecessors[kForwardEdgeOffset] &&
         !predecessors[kBackedgeOffset]) {
       // The backedge doesn't think that {key} is no-alias, but the loop
@@ -710,7 +710,7 @@ bool LateLoadEliminationAnalyzer::BeginBlock(const Block* block) {
 
   auto merge_maps =
       [&](MapKey key,
-          base::Vector<const MapMaskAndOr> predecessors) -> MapMaskAndOr {
+          ::v8::base::Vector<const MapMaskAndOr> predecessors) -> MapMaskAndOr {
     MapMaskAndOr minmax;
     for (const MapMaskAndOr pred : predecessors) {
       if (is_empty(pred)) {
@@ -732,7 +732,7 @@ bool LateLoadEliminationAnalyzer::BeginBlock(const Block* block) {
   // rather than a reducer. Still, we could "prepare" the insertion now and then
   // really insert them during the Reduce phase of the CopyingPhase.
   auto merge_memory = [&](MemoryKey key,
-                          base::Vector<const OpIndex> predecessors) -> OpIndex {
+                          ::v8::base::Vector<const OpIndex> predecessors) -> OpIndex {
     if (for_loop_revisit && predecessors[kForwardEdgeOffset].valid() &&
         predecessors[kBackedgeOffset] != predecessors[kForwardEdgeOffset]) {
       // {key} had a value in the loop header, but the backedge and the forward

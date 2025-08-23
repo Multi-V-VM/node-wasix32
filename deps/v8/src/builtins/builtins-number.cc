@@ -59,7 +59,7 @@ BUILTIN(NumberPrototypeToExponential) {
                     ? -1
                     : static_cast<int>(fraction_digits_number);
   char chars[kDoubleToExponentialMaxChars];
-  base::Vector<char> buffer = base::ArrayVector(chars);
+  ::v8::base::Vector<char> buffer = base::ArrayVector(chars);
   std::string_view str = DoubleToExponentialStringView(value_number, f, buffer);
   DirectHandle<String> result =
       isolate->factory()->NewStringFromAsciiChecked(str);
@@ -106,7 +106,7 @@ BUILTIN(NumberPrototypeToFixed) {
                                 : ReadOnlyRoots(isolate).Infinity_string();
   }
   char chars[kDoubleToFixedMaxChars];
-  base::Vector<char> buffer = base::ArrayVector(chars);
+  ::v8::base::Vector<char> buffer = base::ArrayVector(chars);
   std::string_view str = DoubleToFixedStringView(
       value_number, static_cast<int>(fraction_digits_number), buffer);
   DirectHandle<String> result =
@@ -186,7 +186,7 @@ BUILTIN(NumberPrototypeToPrecision) {
         isolate, NewRangeError(MessageTemplate::kToPrecisionFormatRange));
   }
   char chars[kDoubleToPrecisionMaxChars];
-  base::Vector<char> buffer = base::ArrayVector(chars);
+  ::v8::base::Vector<char> buffer = base::ArrayVector(chars);
   std::string_view str = DoubleToPrecisionStringView(
       value_number, static_cast<int>(precision_number), buffer);
   DirectHandle<String> result =

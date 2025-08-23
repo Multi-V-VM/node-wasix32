@@ -579,7 +579,7 @@ void InstructionSelectorT::VisitFloat64Ieee754Unop(OpIndex node,
 }
 
 void InstructionSelectorT::EmitPrepareArguments(
-    ZoneVector<PushParameter>* arguments, const CallDescriptor* call_descriptor,
+    ::v8::base::Vector<PushParameter>* arguments, const CallDescriptor* call_descriptor,
     OpIndex node) {
   RiscvOperandGeneratorT g(this);
 

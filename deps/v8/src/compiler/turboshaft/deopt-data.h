@@ -88,7 +88,7 @@ struct FrameStateData {
                          zone->CloneVector(base::VectorOf(int_operands_))});
     }
 
-    base::Vector<const OpIndex> Inputs() { return base::VectorOf(inputs_); }
+    ::v8::base::Vector<const OpIndex> Inputs() { return base::VectorOf(inputs_); }
     bool inlined() const { return inlined_; }
 
    private:
@@ -101,10 +101,10 @@ struct FrameStateData {
   };
 
   struct Iterator {
-    base::Vector<const Instr> instructions;
-    base::Vector<const MachineType> machine_types;
-    base::Vector<const uint32_t> int_operands;
-    base::Vector<const OpIndex> inputs;
+    ::v8::base::Vector<const Instr> instructions;
+    ::v8::base::Vector<const MachineType> machine_types;
+    ::v8::base::Vector<const uint32_t> int_operands;
+    ::v8::base::Vector<const OpIndex> inputs;
 
     bool has_more() const {
       DCHECK_IMPLIES(instructions.empty(), machine_types.empty());
@@ -168,14 +168,14 @@ struct FrameStateData {
     }
   };
 
-  Iterator iterator(base::Vector<const OpIndex> state_values) const {
+  Iterator iterator(::v8::base::Vector<const OpIndex> state_values) const {
     return Iterator{instructions, machine_types, int_operands, state_values};
   }
 
   const FrameStateInfo& frame_state_info;
-  base::Vector<Instr> instructions;
-  base::Vector<MachineType> machine_types;
-  base::Vector<uint32_t> int_operands;
+  ::v8::base::Vector<Instr> instructions;
+  ::v8::base::Vector<MachineType> machine_types;
+  ::v8::base::Vector<uint32_t> int_operands;
 };
 
 inline bool operator==(const FrameStateData& lhs, const FrameStateData& rhs) {

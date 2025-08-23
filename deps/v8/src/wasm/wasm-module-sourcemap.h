@@ -37,8 +37,8 @@ namespace wasm {
 // code.
 class V8_EXPORT_PRIVATE WasmModuleSourceMap {
  public:
-  WasmModuleSourceMap(v8::Isolate* v8_isolate,
-                      v8::Local<v8::String> src_map_str);
+  WasmModuleSourceMap(::v8::Isolate* v8_isolate,
+                      ::v8::Local<::v8::String> src_map_str);
 
   // Member valid_ is true only if the source map complies with specification
   // and can be correctly decoded.

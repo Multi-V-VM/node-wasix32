@@ -232,10 +232,10 @@ class TimedHistogram : public Histogram {
  public:
   // Records a TimeDelta::Max() result. Useful to record percentage of tasks
   // that never got to run in a given scenario. Log if isolate non-null.
-  void RecordAbandon(base::ElapsedTimer* timer, Isolate* isolate);
+  void RecordAbandon(::v8::base::ElapsedTimer* timer, Isolate* isolate);
 
   // Add a single sample to this histogram.
-  V8_EXPORT_PRIVATE void AddTimedSample(base::TimeDelta sample);
+  V8_EXPORT_PRIVATE void AddTimedSample(::v8::base::TimeDelta sample);
 
 #ifdef DEBUG
   // Ensures that we don't have nested timers for TimedHistogram per thread, use
@@ -247,7 +247,7 @@ class TimedHistogram : public Histogram {
 #endif  // DEBUG
 
  protected:
-  void Stop(base::ElapsedTimer* timer);
+  void Stop(::v8::base::ElapsedTimer* timer);
   void LogStart(Isolate* isolate);
   void LogEnd(Isolate* isolate);
 
@@ -327,9 +327,9 @@ class NestedTimedHistogram : public TimedHistogram {
 class AggregatableHistogramTimer : public Histogram {
  public:
   // Start/stop the "outer" scope.
-  void Start() { time_ = base::TimeDelta(); }
+  void Start() { time_ = ::v8::base::TimeDelta(); }
   void Stop() {
-    if (time_ != base::TimeDelta()) {
+    if (time_ != ::v8::base::TimeDelta()) {
       // Only add non-zero samples, since zero samples represent situations
       // where there were no aggregated samples added.
       AddSample(static_cast<int>(time_.InMicroseconds()));
@@ -337,7 +337,7 @@ class AggregatableHistogramTimer : public Histogram {
   }
 
   // Add a time value ("inner" scope).
-  void Add(base::TimeDelta other) { time_ += other; }
+  void Add(::v8::base::TimeDelta other) { time_ += other; }
 
  private:
   friend class Counters;
@@ -347,7 +347,7 @@ class AggregatableHistogramTimer : public Histogram {
   AggregatableHistogramTimer& operator=(const AggregatableHistogramTimer&) =
       delete;
 
-  base::TimeDelta time_;
+  ::v8::base::TimeDelta time_;
 };
 
 // A helper class for use with AggregatableHistogramTimer. This is the
@@ -376,7 +376,7 @@ class V8_NODISCARD AggregatedHistogramTimerScope {
   ~AggregatedHistogramTimerScope() { histogram_->Add(timer_.Elapsed()); }
 
  private:
-  base::ElapsedTimer timer_;
+  ::v8::base::ElapsedTimer timer_;
   AggregatableHistogramTimer* histogram_;
 };
 

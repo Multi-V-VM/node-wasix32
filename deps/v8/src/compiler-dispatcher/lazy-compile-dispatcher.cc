@@ -205,7 +205,7 @@ void LazyCompileDispatcher::WaitForJobIfRunningOnBackground(
 
   if (!job->is_running_on_background()) {
     if (job->state == Job::State::kPending) {
-      DCHECK_EQ(std::count(pending_background_jobs_.begin(),
+      DCHECK_EQ(::std::count(pending_background_jobs_.begin(),
                            pending_background_jobs_.end(), job),
                 1);
 
@@ -220,7 +220,7 @@ void LazyCompileDispatcher::WaitForJobIfRunningOnBackground(
     } else {
       DCHECK_EQ(job->state, Job::State::kReadyToFinalize);
       DCHECK_EQ(
-          std::count(finalizable_jobs_.begin(), finalizable_jobs_.end(), job),
+          ::std::count(finalizable_jobs_.begin(), finalizable_jobs_.end(), job),
           1);
 
       // TODO(leszeks): Remove from finalizable jobs without walking the whole
@@ -239,7 +239,7 @@ void LazyCompileDispatcher::WaitForJobIfRunningOnBackground(
   }
 
   DCHECK_EQ(job->state, Job::State::kReadyToFinalize);
-  DCHECK_EQ(std::count(finalizable_jobs_.begin(), finalizable_jobs_.end(), job),
+  DCHECK_EQ(::std::count(finalizable_jobs_.begin(), finalizable_jobs_.end(), job),
             1);
 
   // TODO(leszeks): Remove from finalizable jobs without walking the whole
@@ -276,11 +276,11 @@ bool LazyCompileDispatcher::FinishNow(
 
   if (DEBUG_BOOL) {
     base::MutexGuard lock(&mutex_);
-    DCHECK_EQ(std::count(pending_background_jobs_.begin(),
+    DCHECK_EQ(::std::count(pending_background_jobs_.begin(),
                          pending_background_jobs_.end(), job),
               0);
     DCHECK_EQ(
-        std::count(finalizable_jobs_.begin(), finalizable_jobs_.end(), job), 0);
+        ::std::count(finalizable_jobs_.begin(), finalizable_jobs_.end(), job), 0);
     DCHECK_EQ(job->state, Job::State::kFinalizingNow);
   }
 
@@ -318,7 +318,7 @@ void LazyCompileDispatcher::AbortJob(
     job->state = Job::State::kAbortRequested;
   } else {
     if (job->state == Job::State::kPending) {
-      DCHECK_EQ(std::count(pending_background_jobs_.begin(),
+      DCHECK_EQ(::std::count(pending_background_jobs_.begin(),
                            pending_background_jobs_.end(), job),
                 1);
 
@@ -330,7 +330,7 @@ void LazyCompileDispatcher::AbortJob(
       NotifyRemovedBackgroundJob(lock);
     } else if (job->state == Job::State::kReadyToFinalize) {
       DCHECK_EQ(
-          std::count(finalizable_jobs_.begin(), finalizable_jobs_.end(), job),
+          ::std::count(finalizable_jobs_.begin(), finalizable_jobs_.end(), job),
           1);
 
       finalizable_jobs_.erase(

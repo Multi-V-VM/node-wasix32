@@ -396,7 +396,7 @@ MaybeDirectHandle<Object> ErrorUtils::FormatStackTrace(
 
 DirectHandle<String> MessageFormatter::Format(
     Isolate* isolate, MessageTemplate index,
-    base::Vector<const DirectHandle<Object>> args) {
+    ::v8::base::Vector<const DirectHandle<Object>> args) {
   constexpr size_t kMaxArgs = 3;
   DirectHandle<String> arg_strings[kMaxArgs];
   DCHECK_LE(args.size(), kMaxArgs);
@@ -438,7 +438,7 @@ const char* MessageFormatter::TemplateString(MessageTemplate index) {
 
 MaybeHandle<String> MessageFormatter::TryFormat(
     Isolate* isolate, MessageTemplate index,
-    base::Vector<const DirectHandle<String>> args) {
+    ::v8::base::Vector<const DirectHandle<String>> args) {
   const char* template_string = TemplateString(index);
 
   IncrementalStringBuilder builder(isolate);
@@ -489,7 +489,7 @@ MaybeHandle<String> MessageFormatter::TryFormat(
       MessageTemplate::kUnexpectedTokenIdentifier,
       MessageTemplate::kWeakRefsCleanupMustBeCallable};
 
-  base::Vector<const DirectHandle<String>> remaining_args = args;
+  ::v8::base::Vector<const DirectHandle<String>> remaining_args = args;
   for (const char* c = template_string; *c != '\0'; c++) {
     if (*c == '%') {
       // %% results in verbatim %.
@@ -499,7 +499,7 @@ MaybeHandle<String> MessageFormatter::TryFormat(
       } else {
         // TODO(14386): Remove this fallback.
         if (remaining_args.empty()) {
-          if (std::count(std::begin(kTemplatesWithMismatchedArguments),
+          if (::std::count(std::begin(kTemplatesWithMismatchedArguments),
                          std::end(kTemplatesWithMismatchedArguments), index)) {
             builder.AppendCString("undefined");
           } else {
@@ -517,7 +517,7 @@ MaybeHandle<String> MessageFormatter::TryFormat(
     }
   }
   if (!remaining_args.empty() &&
-      std::count(std::begin(kTemplatesWithMismatchedArguments),
+      ::std::count(std::begin(kTemplatesWithMismatchedArguments),
                  std::end(kTemplatesWithMismatchedArguments), index) == 0) {
     FATAL("Too many arguments to template (expected %zu, got %zu): %s",
           args.size() - remaining_args.size(), args.size(), template_string);
@@ -730,7 +730,7 @@ MaybeHandle<String> ErrorUtils::ToString(Isolate* isolate,
 // static
 Handle<JSObject> ErrorUtils::MakeGenericError(
     Isolate* isolate, DirectHandle<JSFunction> constructor,
-    MessageTemplate index, base::Vector<const DirectHandle<Object>> args,
+    MessageTemplate index, ::v8::base::Vector<const DirectHandle<Object>> args,
     FrameSkipMode mode) {
   if (v8_flags.clear_exceptions_on_js_entry) {
     // This function used to be implemented in JavaScript, and JSEntry
@@ -755,7 +755,7 @@ Handle<JSObject> ErrorUtils::MakeGenericError(
 // static
 DirectHandle<JSObject> ErrorUtils::ShadowRealmConstructTypeErrorCopy(
     Isolate* isolate, DirectHandle<Object> original, MessageTemplate index,
-    base::Vector<const DirectHandle<Object>> args) {
+    ::v8::base::Vector<const DirectHandle<Object>> args) {
   if (v8_flags.clear_exceptions_on_js_entry) {
     // This function used to be implemented in JavaScript, and JSEntry
     // clears any exceptions - so whenever we'd call this from C++,

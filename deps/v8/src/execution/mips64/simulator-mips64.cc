@@ -308,7 +308,7 @@ void MipsDebugger::Debug() {
       disasm::NameConverter converter;
       disasm::Disassembler dasm(converter);
       // Use a reasonably large buffer.
-      v8::base::EmbeddedVector<char, 256> buffer;
+      v8::base::Embedded::v8::base::Vector<char, 256> buffer;
       dasm.InstructionDecode(buffer,
                              reinterpret_cast<uint8_t*>(sim_->get_pc()));
       PrintF("  0x%016" PRIx64 "   %s\n", sim_->get_pc(), buffer.begin());
@@ -470,7 +470,7 @@ void MipsDebugger::Debug() {
         disasm::NameConverter converter;
         disasm::Disassembler dasm(converter);
         // Use a reasonably large buffer.
-        v8::base::EmbeddedVector<char, 256> buffer;
+        v8::base::Embedded::v8::base::Vector<char, 256> buffer;
 
         uint8_t* cur = nullptr;
         uint8_t* end = nullptr;
@@ -599,7 +599,7 @@ void MipsDebugger::Debug() {
         disasm::NameConverter converter;
         disasm::Disassembler dasm(converter);
         // Use a reasonably large buffer.
-        v8::base::EmbeddedVector<char, 256> buffer;
+        v8::base::Embedded::v8::base::Vector<char, 256> buffer;
 
         uint8_t* cur = nullptr;
         uint8_t* end = nullptr;
@@ -2193,7 +2193,7 @@ uintptr_t Simulator::StackBase() const {
   return reinterpret_cast<uintptr_t>(stack_) + UsableStackSize();
 }
 
-base::Vector<uint8_t> Simulator::GetCentralStackView() const {
+Vector<uint8_t> Simulator::GetCentralStackView() const {
   // We do not add an additional safety margin as above in
   // Simulator::StackLimit, as users of this method are expected to add their
   // own margin.
@@ -7518,7 +7518,7 @@ void Simulator::InstructionDecode(Instruction* instr) {
   }
   pc_modified_ = false;
 
-  v8::base::EmbeddedVector<char, 256> buffer;
+  v8::base::Embedded::v8::base::Vector<char, 256> buffer;
 
   if (v8_flags.trace_sim) {
     base::SNPrintF(trace_buf_, " ");

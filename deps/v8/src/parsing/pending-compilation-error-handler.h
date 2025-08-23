@@ -191,7 +191,7 @@ class PendingCompilationErrorHandler {
 
   MessageDetails error_details_;
 
-  std::forward_list<MessageDetails> warning_messages_;
+  forward_list<MessageDetails> warning_messages_;
 };
 
 extern template void PendingCompilationErrorHandler::PrepareErrors(

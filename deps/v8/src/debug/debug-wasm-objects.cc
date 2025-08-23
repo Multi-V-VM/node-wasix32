@@ -847,7 +847,7 @@ class DebugWasmInterpreterScopeIterator final : public debug::ScopeIterator {
 DirectHandle<String> WasmSimd128ToString(Isolate* isolate, Simd128 s128) {
   // We use the canonical format as described in:
   // https://github.com/WebAssembly/simd/blob/master/proposals/simd/TextSIMD.md
-  base::EmbeddedVector<char, 50> buffer;
+  base::Embedded::v8::base::Vector<char, 50> buffer;
   auto i32x4 = s128.to_i32x4();
   SNPrintF(buffer, "i32x4 0x%08X 0x%08X 0x%08X 0x%08X", i32x4.val[0],
            i32x4.val[1], i32x4.val[2], i32x4.val[3]);
@@ -1059,7 +1059,7 @@ DirectHandle<WasmValueObject> WasmValueObject::New(
         v = ref;
       } else {
         // Fail gracefully.
-        base::EmbeddedVector<char, 64> error;
+        base::Embedded::v8::base::Vector<char, 64> error;
         int len = SNPrintF(error, "unimplemented object type: %d",
                            Cast<HeapObject>(*ref)->map()->instance_type());
         t = GetRefTypeName(isolate, value.type());

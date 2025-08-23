@@ -115,16 +115,16 @@ static_assert(ConstantExpression{}.kind() == ConstantExpression::Kind::kEmpty);
 // compilation/instantiation.
 static_assert(sizeof(ConstantExpression) <= 8);
 
-using ValueOrError = std::variant<WasmValue, MessageTemplate>;
+using ValueOrError = ::std::variant<WasmValue, MessageTemplate>;
 
 V8_INLINE bool is_error(ValueOrError result) {
-  return std::holds_alternative<MessageTemplate>(result);
+  return ::std::holds_alternative<MessageTemplate>(result);
 }
 V8_INLINE MessageTemplate to_error(ValueOrError result) {
-  return std::get<MessageTemplate>(result);
+  return ::std::get<MessageTemplate>(result);
 }
 V8_INLINE WasmValue to_value(ValueOrError result) {
-  return std::get<WasmValue>(result);
+  return ::std::get<WasmValue>(result);
 }
 
 // Evaluates a constant expression.

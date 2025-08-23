@@ -316,7 +316,7 @@ int GetNumApiReferences(LocalIsolate* isolate) { return 0; }
 
 template <typename IsolateT>
 Deserializer<IsolateT>::Deserializer(IsolateT* isolate,
-                                     base::Vector<const uint8_t> payload,
+                                     ::v8::base::Vector<const uint8_t> payload,
                                      uint32_t magic_number,
                                      bool deserializing_user_code,
                                      bool can_rehash)

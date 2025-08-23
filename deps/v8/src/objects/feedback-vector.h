@@ -171,7 +171,7 @@ class MapsAndHandlers {
   Iterator begin() const { return Iterator(this, 0); }
   Iterator end() const { return Iterator(this, size()); }
 
-  base::Vector<DirectHandle<Map>> maps() { return base::VectorOf(maps_); }
+  ::v8::base::Vector<DirectHandle<Map>> maps() { return base::VectorOf(maps_); }
 
  private:
   DirectHandleSmallVector<Map, DEFAULT_MAX_POLYMORPHIC_MAP_COUNT> maps_;
@@ -308,7 +308,7 @@ class NexusConfig;
 // A FeedbackVector has a fixed header followed by an array of feedback slots,
 // of length determined by the feedback metadata.
 class FeedbackVector
-    : public TorqueGeneratedFeedbackVector<FeedbackVector, HeapObject> {
+    : public TorqueGeneratedFeedback::v8::base::Vector<FeedbackVector, HeapObject> {
  public:
   NEVER_READ_ONLY_SPACE
   DEFINE_TORQUE_GENERATED_OSR_STATE()
@@ -691,9 +691,9 @@ class V8_EXPORT_PRIVATE FeedbackVectorSpec {
   void append(FeedbackSlotKind kind) { slot_kinds_.push_back(kind); }
 
   static_assert(sizeof(FeedbackSlotKind) == sizeof(uint8_t));
-  ZoneVector<FeedbackSlotKind> slot_kinds_;
+  ::v8::base::Vector<FeedbackSlotKind> slot_kinds_;
   // A vector containing the parameter count for every create closure slot.
-  ZoneVector<uint16_t> create_closure_parameter_counts_;
+  ::v8::base::Vector<uint16_t> create_closure_parameter_counts_;
 
   friend class SharedFeedbackSlot;
 };

@@ -998,7 +998,7 @@ namespace {
 
 void FlushPendingPushRegisters(MacroAssembler* masm,
                                FrameAccessState* frame_access_state,
-                               ZoneVector<Register>* pending_pushes) {
+                               ::v8::base::Vector<Register>* pending_pushes) {
   switch (pending_pushes->size()) {
     case 0:
       break;
@@ -1021,7 +1021,7 @@ void FlushPendingPushRegisters(MacroAssembler* masm,
 
 void AdjustStackPointerForTailCall(
     MacroAssembler* masm, FrameAccessState* state, int new_slot_above_sp,
-    ZoneVector<Register>* pending_pushes = nullptr,
+    ::v8::base::Vector<Register>* pending_pushes = nullptr,
     bool allow_shrinkage = true) {
   int current_sp_offset = state->GetSPToFPSlotCount() +
                           StandardFrameConstants::kFixedSlotCountAboveFp;
@@ -1045,14 +1045,14 @@ void AdjustStackPointerForTailCall(
 
 void CodeGenerator::AssembleTailCallBeforeGap(Instruction* instr,
                                               int first_unused_slot_offset) {
-  ZoneVector<MoveOperands*> pushes(zone());
+  ::v8::base::Vector<MoveOperands*> pushes(zone());
   GetPushCompatibleMoves(instr, kRegisterPush, &pushes);
 
   if (!pushes.empty() &&
       (LocationOperand::cast(pushes.back()->destination()).index() + 1 ==
        first_unused_slot_offset)) {
     S390OperandConverter g(this, instr);
-    ZoneVector<Register> pending_pushes(zone());
+    ::v8::base::Vector<Register> pending_pushes(zone());
     for (auto move : pushes) {
       LocationOperand destination_location(
           LocationOperand::cast(move->destination()));
@@ -3343,7 +3343,7 @@ void CodeGenerator::AssembleArchTableSwitch(Instruction* instr) {
   S390OperandConverter i(this, instr);
   Register input = i.InputRegister(0);
   int32_t const case_count = static_cast<int32_t>(instr->InputCount() - 2);
-  base::Vector<Label*> cases = zone()->AllocateVector<Label*>(case_count);
+  ::v8::base::Vector<Label*> cases = zone()->Allocate::v8::base::Vector<Label*>(case_count);
   for (int32_t index = 0; index < case_count; ++index) {
     cases[index] = GetLabel(i.InputRpo(index + 2));
   }
@@ -3969,7 +3969,7 @@ void CodeGenerator::AssembleSwap(InstructionOperand* source,
   }
 }
 
-void CodeGenerator::AssembleJumpTable(base::Vector<Label*> targets) {
+void CodeGenerator::AssembleJumpTable(::v8::base::Vector<Label*> targets) {
   for (auto target : targets) {
     __ emit_label_addr(target);
   }

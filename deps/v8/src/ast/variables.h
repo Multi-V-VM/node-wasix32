@@ -223,7 +223,7 @@ class Variable final : public ZoneObject {
   }
 
   void RememberHoleCheckInBitmap(HoleCheckBitmap& bitmap,
-                                 ZoneVector<Variable*>& list) {
+                                 ::v8::base::Vector<Variable*>& list) {
     DCHECK(v8_flags.ignition_elide_redundant_tdz_checks);
     uint8_t index = HoleCheckBitmapIndex();
     if (V8_UNLIKELY(index == kUncacheableHoleCheckBitmapIndex)) {
@@ -342,7 +342,7 @@ class Variable final : public ZoneObject {
     return HoleCheckBitmapIndexField::decode(hole_check_analysis_bit_field_);
   }
 
-  void AssignHoleCheckBitmapIndex(ZoneVector<Variable*>& list,
+  void AssignHoleCheckBitmapIndex(::v8::base::Vector<Variable*>& list,
                                   uint8_t next_index);
 
   using VariableModeField = base::BitField16<VariableMode, 0, 4>;

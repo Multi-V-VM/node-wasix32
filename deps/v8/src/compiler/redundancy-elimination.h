@@ -61,7 +61,7 @@ class V8_EXPORT_PRIVATE RedundancyElimination final : public AdvancedReducer {
     void Set(Node* node, EffectPathChecks const* checks);
 
    private:
-    ZoneVector<EffectPathChecks const*> info_for_node_;
+    ::v8::base::Vector<EffectPathChecks const*> info_for_node_;
   };
 
   Reduction ReduceCheckNode(Node* node);

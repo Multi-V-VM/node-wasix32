@@ -139,7 +139,7 @@ inline constexpr CodeKindFlag CodeKindToCodeKindFlag(CodeKind kind) {
 }
 
 // CodeKinds represents a set of CodeKind.
-using CodeKinds = base::Flags<CodeKindFlag, uint32_t>;
+using CodeKinds = ::v8::base::Flags<CodeKindFlag, uint32_t>;
 
 #ifdef __wasi__
 // WASI compatibility fix for flags operators

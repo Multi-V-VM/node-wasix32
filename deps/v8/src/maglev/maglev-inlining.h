@@ -107,7 +107,7 @@ class MaglevInliner {
     ExceptionHandlerInfo::List rem_handlers_in_call_block;
     call_block->exception_handlers().TruncateAt(
         &rem_handlers_in_call_block, call_node->exception_handler_info());
-    ZoneVector<Node*> rem_nodes_in_call_block =
+    ::v8::base::Vector<Node*> rem_nodes_in_call_block =
         call_block->Split(call_node, zone());
 
     // Create a new compilation unit.

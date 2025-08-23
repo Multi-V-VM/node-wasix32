@@ -105,7 +105,7 @@ class V8_EXPORT_PRIVATE Node final {
 
   class Inputs;
   inline Inputs inputs() const;
-  inline base::Vector<Node*> inputs_vector() const;
+  inline ::v8::base::Vector<Node*> inputs_vector() const;
 
   class UseEdges final {
    public:
@@ -371,8 +371,8 @@ class Control : public NodeWrapper {
 // Typedefs to shorten commonly used Node containers.
 using NodeDeque = ZoneDeque<Node*>;
 using NodeSet = ZoneSet<Node*>;
-using NodeVector = ZoneVector<Node*>;
-using NodeVectorVector = ZoneVector<NodeVector>;
+using NodeVector = ::v8::base::Vector<Node*>;
+using NodeVectorVector = ::v8::base::Vector<NodeVector>;
 
 class Node::InputEdges final {
  public:
@@ -484,7 +484,7 @@ Node::Inputs Node::inputs() const {
   }
 }
 
-base::Vector<Node*> Node::inputs_vector() const {
+Vector<Node*> Node::inputs_vector() const {
   int inline_count = InlineCountField::decode(bit_field_);
   if (inline_count != kOutlineMarker) {
     return base::VectorOf<Node*>(inline_inputs(), inline_count);

@@ -19,8 +19,8 @@ namespace v8 {
 namespace internal {
 namespace maglev {
 
-using NodeIterator = ZoneVector<Node*>::iterator;
-using NodeConstIterator = ZoneVector<Node*>::const_iterator;
+using NodeIterator = ::v8::base::Vector<Node*>::iterator;
+using NodeConstIterator = ::v8::base::Vector<Node*>::const_iterator;
 
 class BasicBlock {
  public:
@@ -57,7 +57,7 @@ class BasicBlock {
     return control_node()->id();
   }
 
-  ZoneVector<Node*>& nodes() { return nodes_; }
+  ::v8::base::Vector<Node*>& nodes() { return nodes_; }
 
   ControlNode* control_node() const { return control_node_; }
   void set_control_node(ControlNode* control_node) {
@@ -74,14 +74,14 @@ class BasicBlock {
 
   // Moves all nodes after |node| to the resulting ZoneVector, while keeping all
   // nodes before |node| in the basic block. |node| itself is dropped.
-  ZoneVector<Node*> Split(Node* node, Zone* zone) {
+  ::v8::base::Vector<Node*> Split(Node* node, Zone* zone) {
     size_t split = 0;
     for (; split < nodes_.size(); split++) {
       if (nodes_[split] == node) break;
     }
     DCHECK_NE(split, nodes_.size());
     size_t after_split = split + 1;
-    ZoneVector<Node*> result(nodes_.size() - after_split, zone);
+    ::v8::base::Vector<Node*> result(nodes_.size() - after_split, zone);
     for (size_t i = 0; i < result.size(); i++) {
       result[i] = nodes_[i + after_split];
     }
@@ -318,7 +318,7 @@ class BasicBlock {
 
   Id id_ = kInvalidBlockId;
 
-  ZoneVector<Node*> nodes_;
+  ::v8::base::Vector<Node*> nodes_;
   ControlNode* control_node_;
   ExceptionHandlerInfo::List exception_handlers_;
 

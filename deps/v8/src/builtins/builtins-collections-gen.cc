@@ -331,7 +331,7 @@ void BaseCollectionsAssembler::GotoIfInitialAddFunctionModified(
   PrototypeCheckAssembler prototype_check_assembler(
       state(), flags, native_context,
       GetInitialCollectionPrototype(variant, native_context),
-      base::Vector<DescriptorIndexNameValue>(&property_to_check, 1));
+      ::v8::base::Vector<DescriptorIndexNameValue>(&property_to_check, 1));
 
   TNode<HeapObject> prototype = LoadMapPrototype(LoadMap(collection));
   Label if_unmodified(this);

@@ -4,6 +4,8 @@
 
 #ifndef V8_SANDBOX_TRUSTED_POINTER_TABLE_H_
 #define V8_SANDBOX_TRUSTED_POINTER_TABLE_H_
+#ifdef __wasi__
+#endif
 
 #include "include/v8config.h"
 #include "src/base/atomicops.h"
@@ -116,8 +118,10 @@ struct TrustedPointerTableEntry {
   std::atomic<Payload> payload_;
 };
 
+#ifndef __wasi__
 static_assert(sizeof(TrustedPointerTableEntry) ==
               kTrustedPointerTableEntrySize);
+#endif
 
 /**
  * A table containing (full) pointers to TrustedObjects.

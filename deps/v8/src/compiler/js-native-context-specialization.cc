@@ -45,14 +45,14 @@ namespace compiler {
 
 namespace {
 
-bool HasNumberMaps(JSHeapBroker* broker, ZoneVector<MapRef> const& maps) {
+bool HasNumberMaps(JSHeapBroker* broker, ::v8::base::Vector<MapRef> const& maps) {
   for (MapRef map : maps) {
     if (map.IsHeapNumberMap()) return true;
   }
   return false;
 }
 
-bool HasOnlyJSArrayMaps(JSHeapBroker* broker, ZoneVector<MapRef> const& maps) {
+bool HasOnlyJSArrayMaps(JSHeapBroker* broker, ::v8::base::Vector<MapRef> const& maps) {
   for (MapRef map : maps) {
     if (!map.IsJSArrayMap()) return false;
   }
@@ -843,7 +843,7 @@ JSNativeContextSpecialization::InferHasInPrototypeChain(
       broker(), receiver, effect, &receiver_maps);
   if (result == NodeProperties::kNoMaps) return kMayBeInPrototypeChain;
 
-  ZoneVector<MapRef> receiver_map_refs(zone());
+  ::v8::base::Vector<MapRef> receiver_map_refs(zone());
 
   // Try to determine either that all of the {receiver_maps} have the given
   // {prototype} in their chain, or that none do. If we can't tell, return
@@ -1047,7 +1047,7 @@ Reduction JSNativeContextSpecialization::ReduceJSResolvePromise(Node* node) {
   ZoneRefSet<Map> const& resolution_maps = inference.GetMaps();
 
   // Compute property access info for "then" on {resolution}.
-  ZoneVector<PropertyAccessInfo> access_infos(graph()->zone());
+  ::v8::base::Vector<PropertyAccessInfo> access_infos(graph()->zone());
   AccessInfoFactory access_info_factory(broker(), graph()->zone());
 
   for (MapRef map : resolution_maps) {
@@ -1527,7 +1527,7 @@ Reduction JSNativeContextSpecialization::ReduceNamedAccess(
   }
 
   // Either infer maps from the graph or use the feedback.
-  ZoneVector<MapRef> inferred_maps(zone());
+  ::v8::base::Vector<MapRef> inferred_maps(zone());
   if (!InferMaps(lookup_start_object, effect, &inferred_maps)) {
     for (MapRef map : feedback.maps()) {
       inferred_maps.push_back(map);
@@ -1556,9 +1556,9 @@ Reduction JSNativeContextSpecialization::ReduceNamedAccess(
     }
   }
 
-  ZoneVector<PropertyAccessInfo> access_infos(zone());
+  ::v8::base::Vector<PropertyAccessInfo> access_infos(zone());
   {
-    ZoneVector<PropertyAccessInfo> access_infos_for_feedback(zone());
+    ::v8::base::Vector<PropertyAccessInfo> access_infos_for_feedback(zone());
     for (MapRef map : inferred_maps) {
       if (map.is_deprecated()) continue;
 
@@ -1588,8 +1588,8 @@ Reduction JSNativeContextSpecialization::ReduceNamedAccess(
   }
 
   // Collect call nodes to rewire exception edges.
-  ZoneVector<Node*> if_exception_nodes(zone());
-  ZoneVector<Node*>* if_exceptions = nullptr;
+  ::v8::base::Vector<Node*> if_exception_nodes(zone());
+  ::v8::base::Vector<Node*>* if_exceptions = nullptr;
   Node* if_exception = nullptr;
   if (NodeProperties::IsExceptionalCall(node, &if_exception)) {
     if_exceptions = &if_exception_nodes;
@@ -1711,9 +1711,9 @@ Reduction JSNativeContextSpecialization::ReduceNamedAccess(
   } else {
     // The final states for every polymorphic branch. We join them with
     // Merge+Phi+EffectPhi at the bottom.
-    ZoneVector<Node*> values(zone());
-    ZoneVector<Node*> effects(zone());
-    ZoneVector<Node*> controls(zone());
+    ::v8::base::Vector<Node*> values(zone());
+    ::v8::base::Vector<Node*> effects(zone());
+    ::v8::base::Vector<Node*> controls(zone());
 
     Node* receiverissmi_control = nullptr;
     Node* receiverissmi_effect = effect;
@@ -1749,7 +1749,7 @@ Reduction JSNativeContextSpecialization::ReduceNamedAccess(
       Control this_control{fallthrough_control};
 
       // Perform map check on {lookup_start_object}.
-      ZoneVector<MapRef> const& lookup_start_object_maps =
+      ::v8::base::Vector<MapRef> const& lookup_start_object_maps =
           access_info.lookup_start_object_maps();
       {
         // Whether to insert a dedicated MapGuard node into the
@@ -2220,7 +2220,7 @@ OptionalJSTypedArrayRef GetTypedArrayConstant(JSHeapBroker* broker,
 }  // namespace
 
 void JSNativeContextSpecialization::RemoveImpossibleMaps(
-    Node* object, ZoneVector<MapRef>* maps) const {
+    Node* object, ::v8::base::Vector<MapRef>* maps) const {
   OptionalMapRef root_map = InferRootMap(object);
   if (root_map.has_value() && !root_map->is_abandoned_prototype_map()) {
     maps->erase(
@@ -2243,7 +2243,7 @@ JSNativeContextSpecialization::TryRefineElementAccessFeedback(
       access_mode == AccessMode::kLoad || access_mode == AccessMode::kHas;
   if (!use_inference) return feedback;
 
-  ZoneVector<MapRef> inferred_maps(zone());
+  ::v8::base::Vector<MapRef> inferred_maps(zone());
   if (!InferMaps(receiver, effect, &inferred_maps)) return feedback;
 
   RemoveImpossibleMaps(receiver, &inferred_maps);
@@ -2296,7 +2296,7 @@ Reduction JSNativeContextSpecialization::ReduceElementAccess(
   }
 
   AccessInfoFactory access_info_factory(broker(), graph()->zone());
-  ZoneVector<ElementAccessInfo> access_infos(zone());
+  ::v8::base::Vector<ElementAccessInfo> access_infos(zone());
   if (!access_info_factory.ComputeElementAccessInfos(refined_feedback,
                                                      &access_infos) ||
       access_infos.empty()) {
@@ -2320,7 +2320,7 @@ Reduction JSNativeContextSpecialization::ReduceElementAccess(
     // TODO(turbofan): We could have a fast path here, that checks for the
     // common case of Array or Object prototype only and therefore avoids
     // the zone allocation of this vector.
-    ZoneVector<MapRef> prototype_maps(zone());
+    ::v8::base::Vector<MapRef> prototype_maps(zone());
     for (ElementAccessInfo const& access_info : access_infos) {
       for (MapRef receiver_map : access_info.lookup_start_object_maps()) {
         // If the {receiver_map} has a prototype and its elements backing
@@ -2390,9 +2390,9 @@ Reduction JSNativeContextSpecialization::ReduceElementAccess(
   } else {
     // The final states for every polymorphic branch. We join them with
     // Merge+Phi+EffectPhi at the bottom.
-    ZoneVector<Node*> values(zone());
-    ZoneVector<Node*> effects(zone());
-    ZoneVector<Node*> controls(zone());
+    ::v8::base::Vector<Node*> values(zone());
+    ::v8::base::Vector<Node*> effects(zone());
+    ::v8::base::Vector<Node*> controls(zone());
 
     // Generate code for the various different element access patterns.
     Node* fallthrough_control = control;
@@ -2419,7 +2419,7 @@ Reduction JSNativeContextSpecialization::ReduceElementAccess(
       }
 
       // Perform map check(s) on {receiver}.
-      ZoneVector<MapRef> const& receiver_maps =
+      ::v8::base::Vector<MapRef> const& receiver_maps =
           access_info.lookup_start_object_maps();
       if (j == access_infos.size() - 1) {
         // Last map check on the fallthrough control path, do a
@@ -2842,7 +2842,7 @@ Reduction JSNativeContextSpecialization::ReduceJSDefineKeyedOwnProperty(
 Node* JSNativeContextSpecialization::InlinePropertyGetterCall(
     Node* receiver, ConvertReceiverMode receiver_mode,
     Node* lookup_start_object, Node* context, Node* frame_state, Node** effect,
-    Node** control, ZoneVector<Node*>* if_exceptions,
+    Node** control, ::v8::base::Vector<Node*>* if_exceptions,
     PropertyAccessInfo const& access_info) {
   ObjectRef constant = access_info.constant().value();
 
@@ -2887,7 +2887,7 @@ Node* JSNativeContextSpecialization::InlinePropertyGetterCall(
 
 void JSNativeContextSpecialization::InlinePropertySetterCall(
     Node* receiver, Node* value, Node* context, Node* frame_state,
-    Node** effect, Node** control, ZoneVector<Node*>* if_exceptions,
+    Node** effect, Node** control, ::v8::base::Vector<Node*>* if_exceptions,
     PropertyAccessInfo const& access_info) {
   ObjectRef constant = access_info.constant().value();
   Node* target = jsgraph()->ConstantNoHole(constant, broker());
@@ -3029,7 +3029,7 @@ Node* JSNativeContextSpecialization::InlineApiCall(
 std::optional<JSNativeContextSpecialization::ValueEffectControl>
 JSNativeContextSpecialization::BuildPropertyLoad(
     Node* lookup_start_object, Node* receiver, Node* context, Node* frame_state,
-    Node* effect, Node* control, NameRef name, ZoneVector<Node*>* if_exceptions,
+    Node* effect, Node* control, NameRef name, ::v8::base::Vector<Node*>* if_exceptions,
     PropertyAccessInfo const& access_info) {
   // Determine actual holder and perform prototype chain checks.
   OptionalJSObjectRef holder = access_info.holder();
@@ -3088,7 +3088,7 @@ JSNativeContextSpecialization::BuildPropertyLoad(
       }
 
     } else {
-      const ZoneVector<MapRef> maps = access_info.lookup_start_object_maps();
+      const ::v8::base::Vector<MapRef> maps = access_info.lookup_start_object_maps();
       DCHECK_EQ(maps.size(), 1);
       value = graph()->NewNode(
           simplified()->TypedArrayLength(maps[0].elements_kind()),
@@ -3136,7 +3136,7 @@ std::optional<JSNativeContextSpecialization::ValueEffectControl>
 JSNativeContextSpecialization::BuildPropertyAccess(
     Node* lookup_start_object, Node* receiver, Node* value, Node* context,
     Node* frame_state, Node* effect, Node* control, NameRef name,
-    ZoneVector<Node*>* if_exceptions, PropertyAccessInfo const& access_info,
+    ::v8::base::Vector<Node*>* if_exceptions, PropertyAccessInfo const& access_info,
     AccessMode access_mode) {
   switch (access_mode) {
     case AccessMode::kLoad:
@@ -3160,7 +3160,7 @@ JSNativeContextSpecialization::BuildPropertyAccess(
 JSNativeContextSpecialization::ValueEffectControl
 JSNativeContextSpecialization::BuildPropertyStore(
     Node* receiver, Node* value, Node* context, Node* frame_state, Node* effect,
-    Node* control, NameRef name, ZoneVector<Node*>* if_exceptions,
+    Node* control, NameRef name, ::v8::base::Vector<Node*>* if_exceptions,
     PropertyAccessInfo const& access_info, AccessMode access_mode) {
   // Determine actual holder and perform prototype chain checks.
   PropertyAccessBuilder access_builder(jsgraph(), broker());
@@ -3409,7 +3409,7 @@ JSNativeContextSpecialization::BuildElementAccess(
   // TODO(bmeurer): We currently specialize based on elements kind. We should
   // also be able to properly support strings and other JSObjects here.
   ElementsKind elements_kind = access_info.elements_kind();
-  ZoneVector<MapRef> const& receiver_maps =
+  ::v8::base::Vector<MapRef> const& receiver_maps =
       access_info.lookup_start_object_maps();
 
   if (IsTypedArrayElementsKind(elements_kind) ||
@@ -4171,7 +4171,7 @@ Node* JSNativeContextSpecialization::BuildExtendPropertiesBackingStore(
   SBXCHECK_GE(length, 0);
   int new_length = length + JSObject::kFieldsAdded;
   // Collect the field values from the {properties}.
-  ZoneVector<Node*> values(zone());
+  ::v8::base::Vector<Node*> values(zone());
   values.reserve(new_length);
   for (int i = 0; i < length; ++i) {
     Node* value = effect = graph()->NewNode(
@@ -4237,7 +4237,7 @@ Node* JSNativeContextSpecialization::BuildCheckEqualsName(NameRef name,
 }
 
 bool JSNativeContextSpecialization::CanTreatHoleAsUndefined(
-    ZoneVector<MapRef> const& receiver_maps) {
+    ::v8::base::Vector<MapRef> const& receiver_maps) {
   // Check if all {receiver_maps} have one of the initial Array.prototype
   // or Object.prototype objects as their prototype (in any of the current
   // native contexts, as the global Array protector works isolate-wide).
@@ -4254,7 +4254,7 @@ bool JSNativeContextSpecialization::CanTreatHoleAsUndefined(
 }
 
 bool JSNativeContextSpecialization::InferMaps(Node* object, Effect effect,
-                                              ZoneVector<MapRef>* maps) const {
+                                              ::v8::base::Vector<MapRef>* maps) const {
   ZoneRefSet<Map> map_set;
   NodeProperties::InferMapsResult result =
       NodeProperties::InferMapsUnsafe(broker(), object, effect, &map_set);

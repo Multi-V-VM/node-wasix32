@@ -285,7 +285,7 @@ class InputUseInfos {
   }
 
  private:
-  ZoneVector<UseInfo> input_use_infos_;
+  ::v8::base::Vector<UseInfo> input_use_infos_;
 
   static bool IsUseLessGeneral(UseInfo use1, UseInfo use2) {
     return use1.truncation().IsLessGeneralThan(use2.truncation());
@@ -1069,7 +1069,7 @@ class RepresentationSelector {
   void MarkAsPossibleRevisit(Node* node, Node* input) {
     auto it = might_need_revisit_.find(input);
     if (it == might_need_revisit_.end()) {
-      it = might_need_revisit_.insert({input, ZoneVector<Node*>(zone())}).first;
+      it = might_need_revisit_.insert({input, ::v8::base::Vector<Node*>(zone())}).first;
     }
     it->second.push_back(node);
     TRACE(" Marking #%d: %s as needing revisit due to #%d: %s\n", node->id(),
@@ -1428,8 +1428,8 @@ class RepresentationSelector {
       }
     } else if (lower<T>()) {
       Zone* zone = jsgraph_->zone();
-      ZoneVector<MachineType>* types =
-          zone->New<ZoneVector<MachineType>>(node->InputCount(), zone);
+      ::v8::base::Vector<MachineType>* types =
+          zone->New<::v8::base::Vector<MachineType>>(node->InputCount(), zone);
       for (int i = 0; i < node->InputCount(); i++) {
         Node* input = node->InputAt(i);
         MachineRepresentation input_rep = GetInfo(input)->representation();
@@ -1492,8 +1492,8 @@ class RepresentationSelector {
         node->ReplaceInput(FrameState::kFrameStateStackInput,
                            jsgraph_->SingleDeadTypedStateValues());
       } else {
-        ZoneVector<MachineType>* types =
-            zone->New<ZoneVector<MachineType>>(1, zone);
+        ::v8::base::Vector<MachineType>* types =
+            zone->New<::v8::base::Vector<MachineType>>(1, zone);
         (*types)[0] = DeoptMachineTypeOf(accumulator_rep, accumulator_type);
 
         node->ReplaceInput(
@@ -1527,8 +1527,8 @@ class RepresentationSelector {
       }
     } else if (lower<T>()) {
       Zone* zone = jsgraph_->zone();
-      ZoneVector<MachineType>* types =
-          zone->New<ZoneVector<MachineType>>(node->InputCount(), zone);
+      ::v8::base::Vector<MachineType>* types =
+          zone->New<::v8::base::Vector<MachineType>>(node->InputCount(), zone);
       for (int i = 0; i < node->InputCount(); i++) {
         Node* input = node->InputAt(i);
         MachineRepresentation input_rep = GetInfo(input)->representation();
@@ -4950,11 +4950,11 @@ class RepresentationSelector {
   JSHeapBroker* broker_;
   Zone* zone_;                      // Temporary zone.
   // Map from node to its uses that might need to be revisited.
-  ZoneMap<Node*, ZoneVector<Node*>> might_need_revisit_;
+  ZoneMap<Node*, ::v8::base::Vector<Node*>> might_need_revisit_;
   size_t count_;                    // number of nodes in the graph
-  ZoneVector<NodeInfo> info_;       // node id -> usage information
+  ::v8::base::Vector<NodeInfo> info_;       // node id -> usage information
 #ifdef DEBUG
-  ZoneVector<InputUseInfos> node_input_use_infos_;  // Debug information about
+  ::v8::base::Vector<InputUseInfos> node_input_use_infos_;  // Debug information about
                                                     // requirements on inputs.
 #endif                                              // DEBUG
   NodeVector replacements_;         // replacements to be done after lowering

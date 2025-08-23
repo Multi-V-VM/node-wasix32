@@ -32,23 +32,23 @@ class Vector {
     DCHECK(length == 0 || data != nullptr);
   }
 
-  static Vector<T> New(size_t length) {
-    return Vector<T>(new T[length], length);
+  static ::v8::base::Vector<T> New(size_t length) {
+    return ::v8::base::Vector<T>(new T[length], length);
   }
 
   // Returns a vector using the same backing storage as this one,
   // spanning from and including 'from', to but not including 'to'.
-  Vector<T> SubVector(size_t from, size_t to) const {
+  ::v8::base::Vector<T> SubVector(size_t from, size_t to) const {
     DCHECK_LE(from, to);
     DCHECK_LE(to, length_);
-    return Vector<T>(begin() + from, to - from);
+    return ::v8::base::Vector<T>(begin() + from, to - from);
   }
-  Vector<T> SubVectorFrom(size_t from) const {
+  ::v8::base::Vector<T> SubVectorFrom(size_t from) const {
     return SubVector(from, length_);
   }
 
   template <class U>
-  void OverwriteWith(Vector<U> other) {
+  void OverwriteWith(::v8::base::Vector<U> other) {
     DCHECK_EQ(size(), other.size());
     std::copy(other.begin(), other.end(), begin());
   }
@@ -111,10 +111,10 @@ class Vector {
   }
 
   // Returns a clone of this vector with a new backing store.
-  Vector<T> Clone() const {
+  ::v8::base::Vector<T> Clone() const {
     T* result = new T[length_];
     for (size_t i = 0; i < length_; i++) result[i] = start_[i];
-    return Vector<T>(result, length_);
+    return ::v8::base::Vector<T>(result, length_);
   }
 
   void Truncate(size_t length) {
@@ -130,19 +130,19 @@ class Vector {
     length_ = 0;
   }
 
-  const Vector<T> operator+(size_t offset) const {
+  const ::v8::base::Vector<T> operator+(size_t offset) const {
     DCHECK_LE(offset, length_);
-    return Vector<T>(start_ + offset, length_ - offset);
+    return ::v8::base::Vector<T>(start_ + offset, length_ - offset);
   }
 
-  Vector<T> operator+=(size_t offset) {
+  ::v8::base::Vector<T> operator+=(size_t offset) {
     DCHECK_LE(offset, length_);
     start_ += offset;
     length_ -= offset;
     return *this;
   }
 
-  // Implicit conversion from Vector<T> to Vector<const U> if
+  // Implicit conversion from ::v8::base::Vector<T> to ::v8::base::Vector<const U> if
   // - T* is convertible to const U*, and
   // - U and T have the same size.
   // Note that this conversion is only safe for `*const* U`; writes would
@@ -151,37 +151,37 @@ class Vector {
             typename = typename std::enable_if<
                 std::is_convertible<T*, const U*>::value && 
                 (sizeof(U) == sizeof(T))>::type>
-  operator Vector<const U>() const {
+  operator ::v8::base::Vector<const U>() const {
     return {start_, length_};
   }
 
   template <typename S>
-  static Vector<T> cast(Vector<S> input) {
+  static ::v8::base::Vector<T> cast(::v8::base::Vector<S> input) {
     // Casting is potentially dangerous, so be really restrictive here. This
     // might be lifted once we have use cases for that.
     static_assert(std::is_trivial_v<S> && std::is_standard_layout_v<S>);
     static_assert(std::is_trivial_v<T> && std::is_standard_layout_v<T>);
     DCHECK_EQ(0, (input.size() * sizeof(S)) % sizeof(T));
     DCHECK_EQ(0, reinterpret_cast<uintptr_t>(input.begin()) % alignof(T));
-    return Vector<T>(reinterpret_cast<T*>(input.begin()),
+    return ::v8::base::Vector<T>(reinterpret_cast<T*>(input.begin()),
                      input.size() * sizeof(S) / sizeof(T));
   }
 
   // Equality comparison
-  bool operator==(const Vector<T>& other) const {
+  bool operator==(const ::v8::base::Vector<T>& other) const {
     if (length_ != other.length_) return false;
     if (start_ == other.start_) return true;
     if (start_ == nullptr || other.start_ == nullptr) return false;
     return std::equal(start_, start_ + length_, other.start_);
   }
 
-  bool operator!=(const Vector<T>& other) const {
+  bool operator!=(const ::v8::base::Vector<T>& other) const {
     return !(*this == other);
   }
 
   template <typename TT = T,
             typename = typename std::enable_if<!std::is_const<TT>::value>::type>
-  bool operator==(const Vector<const T>& other) const {
+  bool operator==(const ::v8::base::Vector<const T>& other) const {
     return std::equal(begin(), end(), other.begin(), other.end());
   }
 
@@ -191,14 +191,14 @@ class Vector {
 };
 
 template <typename T>
-V8_INLINE size_t hash_value(base::Vector<T> v) {
+V8_INLINE size_t hash_value(::v8::base::Vector<T> v) {
   return hash_range(v.begin(), v.end());
 }
 
 template <typename T>
-class V8_NODISCARD ScopedVector : public Vector<T> {
+class V8_NODISCARD ScopedVector : public ::v8::base::Vector<T> {
  public:
-  explicit ScopedVector(size_t length) : Vector<T>(new T[length], length) {}
+  explicit ScopedVector(size_t length) : ::v8::base::Vector<T>(new T[length], length) {}
   ~ScopedVector() { delete[] this->begin(); }
 
  private:
@@ -272,8 +272,8 @@ class OwnedVector {
     return data_[index];
   }
 
-  // Returns a {Vector<T>} view of the data in this vector.
-  Vector<T> as_vector() const { return {begin(), size()}; }
+  // Returns a {::v8::base::Vector<T>} view of the data in this vector.
+  ::v8::base::Vector<T> as_vector() const { return {begin(), size()}; }
 
   // Releases the backing data from this vector and transfers ownership to the
   // caller. This vector will be empty afterwards.
@@ -332,22 +332,22 @@ class OwnedVector {
 
 // Known length, constexpr.
 template <size_t N>
-constexpr Vector<const char> StaticCharVector(const char (&array)[N]) {
+constexpr ::v8::base::Vector<const char> StaticCharVector(const char (&array)[N]) {
   return {array, N - 1};
 }
 
 // Unknown length, not constexpr.
-inline Vector<const char> CStrVector(const char* data) {
+inline ::v8::base::Vector<const char> CStrVector(const char* data) {
   return {data, strlen(data)};
 }
 
 // OneByteVector is never constexpr because the data pointer is
 // {reinterpret_cast}ed.
-inline Vector<const uint8_t> OneByteVector(const char* data, size_t length) {
+inline ::v8::base::Vector<const uint8_t> OneByteVector(const char* data, size_t length) {
   return {reinterpret_cast<const uint8_t*>(data), length};
 }
 
-inline Vector<const uint8_t> OneByteVector(const char* data) {
+inline ::v8::base::Vector<const uint8_t> OneByteVector(const char* data) {
   return OneByteVector(data, strlen(data));
 }
 
@@ -360,13 +360,13 @@ Vector<const uint8_t> StaticOneByteVector(const char (&array)[N]) {
 // with length 4 and null-termination.
 // If you want ['f', 'o', 'o'], use CStrVector("foo").
 template <typename T, size_t N>
-inline constexpr Vector<T> ArrayVector(T (&arr)[N]) {
+inline constexpr ::v8::base::Vector<T> ArrayVector(T (&arr)[N]) {
   return {arr, N};
 }
 
 // Construct a Vector from a start pointer and a size.
 template <typename T>
-inline constexpr Vector<T> VectorOf(T* start, size_t size) {
+inline constexpr ::v8::base::Vector<T> VectorOf(T* start, size_t size) {
   return {start, size};
 }
 
@@ -382,7 +382,7 @@ inline constexpr auto VectorOf(Container&& c)
 // used as long as the initializer list is live. Valid uses include direct use
 // in parameter lists: F(VectorOf({1, 2, 3}));
 template <typename T>
-inline constexpr Vector<const T> VectorOf(std::initializer_list<T> list) {
+inline constexpr ::v8::base::Vector<const T> VectorOf(std::initializer_list<T> list) {
   return VectorOf(list.begin(), list.size());
 }
 
@@ -403,10 +403,10 @@ inline auto OwnedCopyOf(const Container& c)
 }
 
 template <typename T, size_t kSize>
-class EmbeddedVector : public Vector<T> {
+class EmbeddedVector : public ::v8::base::Vector<T> {
  public:
-  EmbeddedVector() : Vector<T>(buffer_, kSize) {}
-  explicit EmbeddedVector(const T& initial_value) : Vector<T>(buffer_, kSize) {
+  EmbeddedVector() : ::v8::base::Vector<T>(buffer_, kSize) {}
+  explicit EmbeddedVector(const T& initial_value) : ::v8::base::Vector<T>(buffer_, kSize) {
     std::fill_n(buffer_, kSize, initial_value);
   }
   EmbeddedVector(const EmbeddedVector&) = delete;

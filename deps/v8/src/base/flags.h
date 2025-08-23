@@ -24,8 +24,10 @@ namespace base {
 // that there's no type checking at all; any enum value can be OR'd with any
 // other enum value and passed on to a function that takes an int or unsigned
 // int.
+#ifndef V8_BASE_FLAGS_DEFINED
+#define V8_BASE_FLAGS_DEFINED
 template <typename EnumT, typename BitfieldT = int,
-          typename BitfieldStorageT = BitfieldT>
+          typename BitfieldStorageT = BitfieldT> 
 class Flags final {
  public:
   static_assert(sizeof(BitfieldStorageT) >= sizeof(BitfieldT));
@@ -133,6 +135,7 @@ class Flags final {
     return ~Type(val);                                                   \
   }
 
+#endif
 }  // namespace base
 }  // namespace v8
 

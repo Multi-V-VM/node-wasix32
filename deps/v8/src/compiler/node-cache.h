@@ -27,7 +27,7 @@ class Node;
 
 // A cache for nodes based on a key. Useful for implementing canonicalization of
 // nodes such as constants, parameters, etc.
-template <typename Key, typename Hash = base::hash<Key>,
+template <typename Key, typename Hash = ::std::hash<Key>,
           typename Pred = std::equal_to<Key> >
 class EXPORT_TEMPLATE_DECLARE(V8_EXPORT_PRIVATE) NodeCache final {
  public:
@@ -44,7 +44,7 @@ class EXPORT_TEMPLATE_DECLARE(V8_EXPORT_PRIVATE) NodeCache final {
   Node** Find(Key key) { return &(map_[key]); }
 
   // Appends all nodes from this cache to {nodes}.
-  void GetCachedNodes(ZoneVector<Node*>* nodes) {
+  void GetCachedNodes(::v8::base::Vector<Node*>* nodes) {
     for (const auto& entry : map_) {
       if (entry.second) nodes->push_back(entry.second);
     }

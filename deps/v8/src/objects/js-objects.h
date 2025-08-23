@@ -133,11 +133,11 @@ class JSReceiver : public TorqueGeneratedJSReceiver<JSReceiver, HeapObject> {
   // maybe_excluded_properties list.
   // If direct handles are enabled, it is the responsibility of the caller to
   // ensure that the memory pointed to by `excluded_properties` is scanned
-  // during CSS, e.g., it comes from a `DirectHandleVector<Object>`.
+  // during CSS, e.g., it comes from a `DirectHandle<::v8::base::Vector<Object>`.
   V8_WARN_UNUSED_RESULT static Maybe<bool> SetOrCopyDataProperties(
       Isolate* isolate, DirectHandle<JSReceiver> target,
       DirectHandle<Object> source, PropertiesEnumerationMode mode,
-      base::Vector<DirectHandle<Object>> excluded_properties = {},
+      ::v8::base::Vector<DirectHandle<Object>> excluded_properties = {},
       bool use_set = true);
 
   // Implementation of [[HasProperty]], ECMA-262 5th edition, section 8.12.6.
@@ -203,7 +203,7 @@ class JSReceiver : public TorqueGeneratedJSReceiver<JSReceiver, HeapObject> {
   V8_WARN_UNUSED_RESULT static Maybe<bool> CheckPrivateNameStore(
       LookupIterator* it, bool is_define);
 
-  // ES6 7.3.4 (when passed kDontThrow)
+  // ES6 7.3.4 (when passed Internals::kDontThrow)
   V8_WARN_UNUSED_RESULT static Maybe<bool> CreateDataProperty(
       Isolate* isolate, DirectHandle<JSReceiver> object, DirectHandle<Name> key,
       DirectHandle<Object> value, Maybe<ShouldThrow> should_throw);
@@ -252,7 +252,7 @@ class JSReceiver : public TorqueGeneratedJSReceiver<JSReceiver, HeapObject> {
 
   using IntegrityLevel = PropertyAttributes;
 
-  // ES6 7.3.14 (when passed kDontThrow)
+  // ES6 7.3.14 (when passed Internals::kDontThrow)
   // 'level' must be SEALED or FROZEN.
   V8_WARN_UNUSED_RESULT static Maybe<bool> SetIntegrityLevel(
       Isolate* isolate, DirectHandle<JSReceiver> object, IntegrityLevel lvl,
@@ -263,7 +263,7 @@ class JSReceiver : public TorqueGeneratedJSReceiver<JSReceiver, HeapObject> {
   V8_WARN_UNUSED_RESULT static Maybe<bool> TestIntegrityLevel(
       Isolate* isolate, DirectHandle<JSReceiver> object, IntegrityLevel lvl);
 
-  // ES6 [[PreventExtensions]] (when passed kDontThrow)
+  // ES6 [[PreventExtensions]] (when passed Internals::kDontThrow)
   V8_WARN_UNUSED_RESULT static Maybe<bool> PreventExtensions(
       Isolate* isolate, DirectHandle<JSReceiver> object,
       ShouldThrow should_throw);
@@ -516,7 +516,7 @@ class JSObject : public TorqueGeneratedJSObject<JSObject, JSReceiver> {
   V8_WARN_UNUSED_RESULT static Maybe<bool> CreateDataProperty(
       Isolate* isolate, DirectHandle<JSObject> object, PropertyKey key,
       DirectHandle<Object> value,
-      Maybe<ShouldThrow> should_throw = Just(kDontThrow));
+      Maybe<ShouldThrow> should_throw = Just(Internals::kDontThrow));
 
   V8_EXPORT_PRIVATE static void AddProperty(Isolate* isolate,
                                             DirectHandle<JSObject> object,

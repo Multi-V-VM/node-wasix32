@@ -76,7 +76,7 @@ class V8_EXPORT_PRIVATE BytecodeOffsetIterator {
  private:
   void Initialize();
   inline int ReadPosition() {
-    return base::VLQDecodeUnsigned(data_start_address_, &current_index_);
+    return ::v8::base::VLQDecodeUnsigned(data_start_address_, &current_index_);
   }
 
   Handle<TrustedByteArray> mapping_table_;

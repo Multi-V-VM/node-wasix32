@@ -142,7 +142,7 @@ const BitFieldStructType* TypeVisitor::ComputeType(
     ReportError("Cannot determine size of bitfield struct ", decl->name->value,
                 " because of unsized parent type ", parent->ToString());
   }
-  const size_t size = 8 * std::get<0>(*opt_size);  // Convert bytes to bits.
+  const size_t size = 8 * ::std::get<0>(*opt_size);  // Convert bytes to bits.
   BitFieldStructType* type = TypeOracle::GetBitFieldStructType(parent, decl);
 
   // Iterate through all of the declared fields, checking their validity and
@@ -168,7 +168,7 @@ const BitFieldStructType* TypeVisitor::ComputeType(
       if (!opt_field_type_size.has_value()) {
         ReportError("Size unknown for type ", field_type->ToString());
       }
-      field_type_size = 8 * std::get<0>(*opt_field_type_size);
+      field_type_size = 8 * ::std::get<0>(*opt_field_type_size);
     }
 
     if (field.num_bits < 1 ||
@@ -447,7 +447,7 @@ void TypeVisitor::VisitClassFieldsAndMethods(
          field_expression.custom_weak_marking,
          field_expression.const_qualified,
          field_expression.synchronization});
-    ResidueClass field_size = std::get<0>(field.GetFieldSizeInformation());
+    ResidueClass field_size = ::std::get<0>(field.GetFieldSizeInformation());
     if (field.index) {
       // Validate that a value at any index in a packed array is aligned
       // correctly, since it is possible to define a struct whose size is not a
@@ -528,10 +528,18 @@ const Type* TypeVisitor::ComputeTypeForStructExpression(
   }
 
   CurrentScope::Scope generic_scope(generic_type->ParentScope());
+  
+  // Convert term_argument_types to vector of optionals
+  std::vector<std::optional<const Type*>> optional_term_types;
+  optional_term_types.reserve(term_argument_types.size());
+  for (const Type* type : term_argument_types) {
+    optional_term_types.push_back(type);
+  }
+  
   TypeArgumentInference inference(
       generic_type->generic_parameters(), explicit_type_arguments,
       term_parameters,
-      TransformVector<std::optional<const Type*>>(term_argument_types));
+      optional_term_types);
 
   if (inference.HasFailed()) {
     ReportError("failed to infer type arguments for struct ", basic->name,

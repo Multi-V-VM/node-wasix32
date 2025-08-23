@@ -60,7 +60,7 @@ class SmallVector {
     ::std::uninitialized_move(init.begin(), init.end(), begin_);
     end_ = begin_ + init.size();
   }
-  explicit V8_INLINE SmallVector(base::Vector<const T> init,
+  explicit V8_INLINE SmallVector(::v8::base::Vector<const T> init,
                                  const Allocator& allocator = Allocator())
       : allocator_(allocator) {
     if (init.size() > capacity()) Grow(init.size());

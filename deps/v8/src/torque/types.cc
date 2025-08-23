@@ -521,7 +521,7 @@ std::string StructType::GetGeneratedTypeNameImpl() const {
 size_t StructType::PackedSize() const {
   size_t result = 0;
   for (const Field& field : fields()) {
-    result += std::get<0>(field.GetFieldSizeInformation());
+    result += ::std::get<0>(field.GetFieldSizeInformation());
   }
   return result;
 }
@@ -661,7 +661,7 @@ std::vector<Field> ClassType::ComputeHeaderFields() const {
   for (Field& field : ComputeAllFields()) {
     if (field.index) break;
     // The header is allowed to end with an optional padding field of size 0.
-    DCHECK(std::get<0>(field.GetFieldSizeInformation()) == 0 ||
+    DCHECK(::std::get<0>(field.GetFieldSizeInformation()) == 0 ||
            *field.offset < header_size());
     result.push_back(std::move(field));
   }
@@ -673,7 +673,7 @@ std::vector<Field> ClassType::ComputeArrayFields() const {
   for (Field& field : ComputeAllFields()) {
     if (!field.index) {
       // The header is allowed to end with an optional padding field of size 0.
-      DCHECK(std::get<0>(field.GetFieldSizeInformation()) == 0 ||
+      DCHECK(::std::get<0>(field.GetFieldSizeInformation()) == 0 ||
              *field.offset < header_size());
       continue;
     }
@@ -706,7 +706,7 @@ void ComputeSlotKindsHelper(std::vector<ObjectSlotKind>* slots,
                             const std::vector<Field>& fields) {
   size_t offset = start_offset;
   for (const Field& field : fields) {
-    size_t field_size = std::get<0>(field.GetFieldSizeInformation());
+    size_t field_size = ::std::get<0>(field.GetFieldSizeInformation());
     // Support optional padding fields.
     if (field_size == 0) continue;
     size_t slot_index = offset / TargetArchitecture::TaggedSize();
@@ -1327,7 +1327,7 @@ void Field::ValidateAlignment(ResidueClass at_offset) const {
       struct_type != TypeOracle::GetFloat64OrUndefinedOrHoleType()) {
     for (const Field& field : (*struct_type)->fields()) {
       field.ValidateAlignment(at_offset);
-      size_t field_size = std::get<0>(field.GetFieldSizeInformation());
+      size_t field_size = ::std::get<0>(field.GetFieldSizeInformation());
       at_offset += field_size;
     }
   } else {

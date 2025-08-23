@@ -1,3 +1,6 @@
+#ifdef __wasi__
+#define V8_TARGET_ARCH_WASM32 1
+#endif
 // Copyright 2014 the V8 project authors. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
@@ -94,11 +97,11 @@ class V8_EXPORT_PRIVATE CodeGenerator final : public GapResolver::Assembler {
   MaybeHandle<Code> FinalizeCode();
 
 #if V8_ENABLE_WEBASSEMBLY
-  base::OwnedVector<uint8_t> GenerateWasmDeoptimizationData();
+  base::Owned::v8::base::Vector<uint8_t> GenerateWasmDeoptimizationData();
 #endif
 
-  base::OwnedVector<uint8_t> GetSourcePositionTable();
-  base::OwnedVector<uint8_t> GetProtectedInstructionsData();
+  base::Owned::v8::base::Vector<uint8_t> GetSourcePositionTable();
+  base::Owned::v8::base::Vector<uint8_t> GetProtectedInstructionsData();
 
   InstructionSequence* instructions() const { return instructions_; }
   FrameAccessState* frame_access_state() const { return frame_access_state_; }
@@ -127,8 +130,8 @@ class V8_EXPORT_PRIVATE CodeGenerator final : public GapResolver::Assembler {
   SafepointTableBuilder* safepoint_table_builder() { return &safepoints_; }
   size_t handler_table_offset() const { return handler_table_offset_; }
 
-  const ZoneVector<int>& block_starts() const { return block_starts_; }
-  const ZoneVector<TurbolizerInstructionStartInfo>& instr_starts() const {
+  const ::v8::base::Vector<int>& block_starts() const { return block_starts_; }
+  const ::v8::base::Vector<TurbolizerInstructionStartInfo>& instr_starts() const {
     return instr_starts_;
   }
 
@@ -292,7 +295,7 @@ class V8_EXPORT_PRIVATE CodeGenerator final : public GapResolver::Assembler {
   // together.
   static void GetPushCompatibleMoves(Instruction* instr,
                                      PushTypeFlags push_type,
-                                     ZoneVector<MoveOperands*>* pushes);
+                                     ::v8::base::Vector<MoveOperands*>* pushes);
 
   class MoveType {
    public:
@@ -357,9 +360,9 @@ class V8_EXPORT_PRIVATE CodeGenerator final : public GapResolver::Assembler {
   // Adds a jump table that is emitted after the actual code.  Returns label
   // pointing to the beginning of the table.  {targets} is assumed to be static
   // or zone allocated.
-  Label* AddJumpTable(base::Vector<Label*> targets);
+  Label* AddJumpTable(::v8::base::Vector<Label*> targets);
   // Emits a jump table.
-  void AssembleJumpTable(base::Vector<Label*> targets);
+  void AssembleJumpTable(::v8::base::Vector<Label*> targets);
 
   // ===========================================================================
   // ================== Deoptimization table construction. =====================
@@ -418,7 +421,7 @@ class V8_EXPORT_PRIVATE CodeGenerator final : public GapResolver::Assembler {
   MacroAssembler masm_;
   GapResolver resolver_;
   SafepointTableBuilder safepoints_;
-  ZoneVector<HandlerInfo> handlers_;
+  ::v8::base::Vector<HandlerInfo> handlers_;
   int next_deoptimization_id_ = 0;
   int deopt_exit_start_offset_ = 0;
   int eager_deopt_count_ = 0;
@@ -466,12 +469,12 @@ class V8_EXPORT_PRIVATE CodeGenerator final : public GapResolver::Assembler {
   int osr_pc_offset_;
   SourcePositionTableBuilder source_position_table_builder_;
 #if V8_ENABLE_WEBASSEMBLY
-  ZoneVector<trap_handler::ProtectedInstructionData> protected_instructions_;
+  ::v8::base::Vector<trap_handler::ProtectedInstructionData> protected_instructions_;
 #endif  // V8_ENABLE_WEBASSEMBLY
   CodeGenResult result_;
-  ZoneVector<int> block_starts_;
+  ::v8::base::Vector<int> block_starts_;
   TurbolizerCodeOffsetsInfo offsets_info_;
-  ZoneVector<TurbolizerInstructionStartInfo> instr_starts_;
+  ::v8::base::Vector<TurbolizerInstructionStartInfo> instr_starts_;
   MoveCycleState move_cycle_;
 
   const char* debug_name_ = nullptr;

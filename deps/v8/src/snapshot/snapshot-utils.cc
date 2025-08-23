@@ -13,7 +13,7 @@
 namespace v8 {
 namespace internal {
 
-uint32_t Checksum(base::Vector<const uint8_t> payload) {
+uint32_t Checksum(::v8::base::Vector<const uint8_t> payload) {
 #ifdef MEMORY_SANITIZER
   // Computing the checksum includes padding bytes for objects like strings.
   // Mark every object as initialized in the code serializer.

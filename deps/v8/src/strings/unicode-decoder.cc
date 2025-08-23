@@ -57,7 +57,7 @@ struct DecoderTraits<StrictUtf8Decoder> {
 }  // namespace
 
 template <class Decoder>
-Utf8DecoderBase<Decoder>::Utf8DecoderBase(base::Vector<const uint8_t> data)
+Utf8DecoderBase<Decoder>::Utf8DecoderBase(::v8::base::Vector<const uint8_t> data)
     : encoding_(Encoding::kAscii),
       non_ascii_start_(NonAsciiStart(data.begin(), data.length())),
       utf16_length_(non_ascii_start_) {
@@ -128,7 +128,7 @@ Utf8DecoderBase<Decoder>::Utf8DecoderBase(base::Vector<const uint8_t> data)
 template <class Decoder>
 template <typename Char>
 void Utf8DecoderBase<Decoder>::Decode(Char* out,
-                                      base::Vector<const uint8_t> data) {
+                                      ::v8::base::Vector<const uint8_t> data) {
   using Traits = DecoderTraits<Decoder>;
   DCHECK(!is_invalid());
   CopyChars(out, data.begin(), non_ascii_start_);
@@ -182,11 +182,11 @@ void Utf8DecoderBase<Decoder>::Decode(Char* out,
 
 #define DEFINE_UNICODE_DECODER(Decoder)                                 \
   template V8_EXPORT_PRIVATE Utf8DecoderBase<Decoder>::Utf8DecoderBase( \
-      base::Vector<const uint8_t> data);                                \
+      ::v8::base::Vector<const uint8_t> data);                                \
   template V8_EXPORT_PRIVATE void Utf8DecoderBase<Decoder>::Decode(     \
-      uint8_t* out, base::Vector<const uint8_t> data);                  \
+      uint8_t* out, ::v8::base::Vector<const uint8_t> data);                  \
   template V8_EXPORT_PRIVATE void Utf8DecoderBase<Decoder>::Decode(     \
-      uint16_t* out, base::Vector<const uint8_t> data)
+      uint16_t* out, ::v8::base::Vector<const uint8_t> data)
 
 DEFINE_UNICODE_DECODER(Utf8Decoder);
 

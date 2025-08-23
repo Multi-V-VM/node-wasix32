@@ -481,7 +481,7 @@ bool SourceTextModule::MaybeTransitionComponent(
   // 14/11. Assert: module occurs exactly once in stack.
   SLOW_DCHECK(
       // {module} is on the {stack}.
-      std::count_if(stack->begin(), stack->end(), [&](DirectHandle<Module> m) {
+      ::std::count_if(stack->begin(), stack->end(), [&](DirectHandle<Module> m) {
         return *m == *module;
       }) == 1);
 
@@ -589,7 +589,7 @@ bool SourceTextModule::FinishInstantiate(
     SLOW_DCHECK(
         // {requested_module} is instantiating iff it's on the {stack}.
         (requested_module->status() == kLinking) ==
-        std::count_if(
+        ::std::count_if(
             stack->begin(), stack->end(),
             [&](DirectHandle<Module> m) { return *m == *requested_module; }));
 
@@ -1242,7 +1242,7 @@ MaybeDirectHandle<Object> SourceTextModule::InnerModuleEvaluation(
       // ii. Assert: requiredModule.[[Status]] is EVALUATING if and only if
       //     requiredModule is in stack.
       SLOW_DCHECK((requested_module->status() == kEvaluating) ==
-                  std::count_if(stack->begin(), stack->end(),
+                  ::std::count_if(stack->begin(), stack->end(),
                                 [&](DirectHandle<Module> m) {
                                   return *m == *requested_module;
                                 }));
@@ -1362,13 +1362,13 @@ void SourceTextModule::Reset(Isolate* isolate,
   raw_module->set_dfs_ancestor_index(-1);
 }
 
-std::pair<DirectHandleVector<SourceTextModule>,
-          DirectHandleVector<JSMessageObject>>
+std::pair<DirectHandle<::v8::base::Vector<SourceTextModule>,
+          DirectHandle<::v8::base::Vector<JSMessageObject>>
 SourceTextModule::GetStalledTopLevelAwaitMessages(Isolate* isolate) {
   Zone zone(isolate->allocator(), ZONE_NAME);
   UnorderedModuleSet visited(&zone);
-  DirectHandleVector<SourceTextModule> stalled_modules(isolate);
-  DirectHandleVector<JSMessageObject> messages(isolate);
+  DirectHandle<::v8::base::Vector<SourceTextModule> stalled_modules(isolate);
+  DirectHandle<::v8::base::Vector<JSMessageObject> messages(isolate);
   InnerGetStalledTopLevelAwaitModule(isolate, &visited, &stalled_modules);
   size_t stalled_modules_size = stalled_modules.size();
   if (stalled_modules_size == 0) return {stalled_modules, messages};
@@ -1392,7 +1392,7 @@ SourceTextModule::GetStalledTopLevelAwaitMessages(Isolate* isolate) {
 
 void SourceTextModule::InnerGetStalledTopLevelAwaitModule(
     Isolate* isolate, UnorderedModuleSet* visited,
-    DirectHandleVector<SourceTextModule>* result) {
+    DirectHandle<::v8::base::Vector<SourceTextModule>* result) {
   DisallowGarbageCollection no_gc;
   // If it's a module that is waiting for no other modules but itself,
   // it's what we are looking for. Add it to the results.

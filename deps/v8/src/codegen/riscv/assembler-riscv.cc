@@ -552,7 +552,7 @@ void Assembler::disassembleInstr(uint8_t* pc) {
   if (!v8_flags.riscv_debug) return;
   disasm::NameConverter converter;
   disasm::Disassembler disasm(converter);
-  base::EmbeddedVector<char, 128> disasm_buffer;
+  base::Embedded::v8::base::Vector<char, 128> disasm_buffer;
 
   disasm.InstructionDecode(disasm_buffer, pc);
   DEBUG_PRINTF("%s\n", disasm_buffer.begin());
@@ -1438,9 +1438,9 @@ void Assembler::GrowBuffer() {
 
   // Relocate internal references.
   // Relocate runtime entries.
-  base::Vector<uint8_t> instructions{buffer_start_,
+  ::v8::base::Vector<uint8_t> instructions{buffer_start_,
                                      static_cast<size_t>(pc_offset())};
-  base::Vector<const uint8_t> reloc_info{reloc_info_writer.pos(), reloc_size};
+  ::v8::base::Vector<const uint8_t> reloc_info{reloc_info_writer.pos(), reloc_size};
   for (RelocIterator it(instructions, reloc_info, 0); !it.done(); it.next()) {
     RelocInfo::Mode rmode = it.rinfo()->rmode();
     if (rmode == RelocInfo::INTERNAL_REFERENCE) {

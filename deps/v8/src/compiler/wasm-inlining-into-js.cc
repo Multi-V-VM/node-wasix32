@@ -33,7 +33,7 @@ class WasmIntoJSInlinerImpl : private wasm::Decoder {
  public:
   WasmIntoJSInlinerImpl(Zone* zone, const wasm::WasmModule* module,
                         MachineGraph* mcgraph, const wasm::FunctionBody& body,
-                        base::Vector<const uint8_t> bytes,
+                        ::v8::base::Vector<const uint8_t> bytes,
                         SourcePositionTable* source_position_table,
                         int inlining_id)
       : wasm::Decoder(bytes.begin(), bytes.end()),
@@ -384,7 +384,7 @@ class WasmIntoJSInlinerImpl : private wasm::Decoder {
 bool WasmIntoJSInliner::TryInlining(Zone* zone, const wasm::WasmModule* module,
                                     MachineGraph* mcgraph,
                                     const wasm::FunctionBody& body,
-                                    base::Vector<const uint8_t> bytes,
+                                    ::v8::base::Vector<const uint8_t> bytes,
                                     SourcePositionTable* source_position_table,
                                     int inlining_id) {
   WasmIntoJSInlinerImpl inliner(zone, module, mcgraph, body, bytes,

@@ -509,8 +509,8 @@ void WasmGCTypeAnalyzer::CreateMergeSnapshot(const Block& block) {
 }
 
 bool WasmGCTypeAnalyzer::CreateMergeSnapshot(
-    base::Vector<const Snapshot> predecessors,
-    base::Vector<const bool> reachable) {
+    ::v8::base::Vector<const Snapshot> predecessors,
+    ::v8::base::Vector<const bool> reachable) {
   DCHECK_EQ(predecessors.size(), reachable.size());
   // The merging logic is also used to evaluate if two snapshots are
   // "identical", i.e. the known types for all operations are the same.
@@ -518,7 +518,7 @@ bool WasmGCTypeAnalyzer::CreateMergeSnapshot(
   types_table_.StartNewSnapshot(
       predecessors, [this, &types_are_equivalent, reachable](
                         TypeSnapshotTable::Key,
-                        base::Vector<const wasm::ValueType> predecessors) {
+                        ::v8::base::Vector<const wasm::ValueType> predecessors) {
         DCHECK_GT(predecessors.size(), 1);
         size_t i = 0;
         // Initialize the type based on the first reachable predecessor.

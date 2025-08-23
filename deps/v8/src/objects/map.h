@@ -147,7 +147,7 @@ enum class ObjectFields {
 
 using MapHandles =
     DirectHandleSmallVector<Map, DEFAULT_MAX_POLYMORPHIC_MAP_COUNT>;
-using MapHandlesSpan = v8::MemorySpan<DirectHandle<Map>>;
+using MapHandlesSpan = MemorySpan<DirectHandle<Map>>;
 
 #include "torque-generated/src/objects/map-tq.inc"
 

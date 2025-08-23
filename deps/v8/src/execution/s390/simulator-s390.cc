@@ -202,7 +202,7 @@ void S390Debugger::Debug() {
       disasm::NameConverter converter;
       disasm::Disassembler dasm(converter);
       // use a reasonably large buffer
-      v8::base::EmbeddedVector<char, 256> buffer;
+      v8::base::Embedded::v8::base::Vector<char, 256> buffer;
       dasm.InstructionDecode(buffer,
                              reinterpret_cast<uint8_t*>(sim_->get_pc()));
       PrintF("  0x%08" V8PRIxPTR "  %s\n", sim_->get_pc(), buffer.begin());
@@ -242,7 +242,7 @@ void S390Debugger::Debug() {
           disasm::NameConverter converter;
           disasm::Disassembler dasm(converter);
           // use a reasonably large buffer
-          v8::base::EmbeddedVector<char, 256> buffer;
+          v8::base::Embedded::v8::base::Vector<char, 256> buffer;
 
           if (GetValue(arg1, &value)) {
             // Interpret a numeric argument as the number of instructions to
@@ -443,7 +443,7 @@ void S390Debugger::Debug() {
         disasm::NameConverter converter;
         disasm::Disassembler dasm(converter);
         // use a reasonably large buffer
-        v8::base::EmbeddedVector<char, 256> buffer;
+        v8::base::Embedded::v8::base::Vector<char, 256> buffer;
 
         uint8_t* prev = nullptr;
         uint8_t* cur = nullptr;
@@ -1889,7 +1889,7 @@ uintptr_t Simulator::StackBase() const {
   return reinterpret_cast<uintptr_t>(stack_) + UsableStackSize();
 }
 
-base::Vector<uint8_t> Simulator::GetCentralStackView() const {
+Vector<uint8_t> Simulator::GetCentralStackView() const {
   // We do not add an additional safety margin as above in
   // Simulator::StackLimit, as this is currently only used in wasm::StackMemory,
   // which adds its own margin.
@@ -2451,7 +2451,7 @@ void Simulator::ExecuteInstruction(Instruction* instr, bool auto_incr_pc) {
     disasm::NameConverter converter;
     disasm::Disassembler dasm(converter);
     // use a reasonably large buffer
-    v8::base::EmbeddedVector<char, 256> buffer;
+    v8::base::Embedded::v8::base::Vector<char, 256> buffer;
     dasm.InstructionDecode(buffer, reinterpret_cast<uint8_t*>(instr));
     PrintF("%05" PRId64 "  %08" V8PRIxPTR "  %s\n", icount_,
            reinterpret_cast<intptr_t>(instr), buffer.begin());

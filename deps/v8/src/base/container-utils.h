@@ -70,10 +70,10 @@ inline size_t erase_if(C& container, const P& predicate) {
   return count;
 }
 
-// Helper for std::count_if.
+// Helper for ::std::count_if.
 template <typename C, typename P>
 inline size_t count_if(const C& container, const P& predicate) {
-  return std::count_if(std::begin(container), std::end(container), predicate);
+  return ::std::count_if(std::begin(container), std::end(container), predicate);
 }
 
 // Helper for std::all_of.

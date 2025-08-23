@@ -184,13 +184,13 @@ KeyedAccessMode ElementAccessFeedback::keyed_mode() const {
   return keyed_mode_;
 }
 
-ZoneVector<ElementAccessFeedback::TransitionGroup> const&
+::v8::base::Vector<ElementAccessFeedback::TransitionGroup> const&
 ElementAccessFeedback::transition_groups() const {
   return transition_groups_;
 }
 
 ElementAccessFeedback const& ElementAccessFeedback::Refine(
-    JSHeapBroker* broker, ZoneVector<MapRef> const& inferred_maps) const {
+    JSHeapBroker* broker, ::v8::base::Vector<MapRef> const& inferred_maps) const {
   if (inferred_maps.empty()) {
     return *broker->zone()->New<ElementAccessFeedback>(
         broker->zone(), keyed_mode(), slot_kind());
@@ -206,7 +206,7 @@ NamedAccessFeedback const& ElementAccessFeedback::Refine(JSHeapBroker* broker,
   // Allow swapping megamorphic elements accesses for named accesses when the
   // key is know to be a known name.
   CHECK(transition_groups_.empty());
-  ZoneVector<MapRef> maps(broker->zone());
+  ::v8::base::Vector<MapRef> maps(broker->zone());
   return *broker->zone()->New<NamedAccessFeedback>(name, maps, slot_kind());
 }
 
@@ -405,7 +405,7 @@ MegaDOMPropertyAccessFeedback::MegaDOMPropertyAccessFeedback(
 }
 
 NamedAccessFeedback::NamedAccessFeedback(
-    NameRef name, ZoneVector<MapRef> const& maps, FeedbackSlotKind slot_kind,
+    NameRef name, ::v8::base::Vector<MapRef> const& maps, FeedbackSlotKind slot_kind,
     bool has_deprecated_map_without_migration_target)
     : ProcessedFeedback(kNamedAccess, slot_kind),
       name_(name),
@@ -465,7 +465,7 @@ ProcessedFeedback const& JSHeapBroker::ReadFeedbackForPropertyAccess(
   FeedbackSlotKind kind = nexus.kind();
   if (nexus.IsUninitialized()) return NewInsufficientFeedback(kind);
 
-  ZoneVector<MapRef> maps(zone());
+  ::v8::base::Vector<MapRef> maps(zone());
   bool has_deprecated_map_without_migration_target = false;
   nexus.IterateMapsWithUnclearedHandler(
       [this, &maps, &has_deprecated_map_without_migration_target](
@@ -818,7 +818,7 @@ ProcessedFeedback const& JSHeapBroker::GetFeedbackForGlobalAccess(
 }
 
 ElementAccessFeedback const& JSHeapBroker::ProcessFeedbackMapsForElementAccess(
-    ZoneVector<MapRef>& maps, KeyedAccessMode const& keyed_mode,
+    ::v8::base::Vector<MapRef>& maps, KeyedAccessMode const& keyed_mode,
     FeedbackSlotKind slot_kind) {
   DCHECK(!maps.empty());
 
@@ -886,7 +886,7 @@ void ElementAccessFeedback::AddGroup(TransitionGroup&& group) {
     int count = 0;
     for (TransitionGroup const& some_group : transition_groups()) {
       count +=
-          std::count_if(some_group.begin(), some_group.end(),
+          ::std::count_if(some_group.begin(), some_group.end(),
                         [&](MapRef some_map) { return some_map.equals(map); });
     }
     CHECK_EQ(count, 1);

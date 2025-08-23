@@ -1,3 +1,6 @@
+#ifdef __wasi__
+#define V8_TARGET_ARCH_WASM32 1
+#endif
 // Copyright 2018 the V8 project authors. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
@@ -82,7 +85,7 @@ struct CompilationEnv {
 class WireBytesStorage {
  public:
   virtual ~WireBytesStorage() = default;
-  virtual base::Vector<const uint8_t> GetCode(WireBytesRef) const = 0;
+  virtual ::v8::base::Vector<const uint8_t> GetCode(WireBytesRef) const = 0;
   // Returns the ModuleWireBytes corresponding to the underlying module if
   // available. Not supported if the wire bytes are owned by a StreamingDecoder.
   virtual std::optional<ModuleWireBytes> GetModuleBytes() const = 0;
@@ -142,8 +145,8 @@ class V8_EXPORT_PRIVATE CompilationState {
 
   void AddCallback(std::unique_ptr<CompilationEventCallback> callback);
 
-  void InitializeAfterDeserialization(base::Vector<const int> lazy_functions,
-                                      base::Vector<const int> eager_functions);
+  void InitializeAfterDeserialization(::v8::base::Vector<const int> lazy_functions,
+                                      ::v8::base::Vector<const int> eager_functions);
 
   // Set a higher priority for the compilation job.
   void SetHighPriority();
@@ -164,7 +167,7 @@ class V8_EXPORT_PRIVATE CompilationState {
   size_t EstimateCurrentMemoryConsumption() const;
 
   std::vector<WasmCode*> PublishCode(
-      base::Vector<UnpublishedWasmCode> unpublished_code);
+      ::v8::base::Vector<UnpublishedWasmCode> unpublished_code);
 
   WasmDetectedFeatures detected_features() const;
 

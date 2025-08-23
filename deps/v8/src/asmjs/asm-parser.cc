@@ -146,7 +146,7 @@ void AsmJsParser::InitializeStdlibTypes() {
 }
 
 FunctionSig* AsmJsParser::ConvertSignature(AsmType* return_type,
-                                           const ZoneVector<AsmType*>& params) {
+                                           const ::v8::base::Vector<AsmType*>& params) {
   FunctionSig::Builder sig_builder(
       zone(), !return_type->IsA(AsmType::Void()) ? 1 : 0, params.size());
   for (auto param : params) {
@@ -200,7 +200,7 @@ wasm::AsmJsParser::VarInfo* AsmJsParser::GetVarInfo(
     AsmJsScanner::token_t token) {
   const bool is_global = AsmJsScanner::IsGlobal(token);
   DCHECK(is_global || AsmJsScanner::IsLocal(token));
-  base::Vector<VarInfo>& var_info =
+  ::v8::base::Vector<VarInfo>& var_info =
       is_global ? global_var_info_ : local_var_info_;
   size_t old_capacity = var_info.size();
   size_t index = is_global ? AsmJsScanner::GlobalIndex(token)
@@ -208,7 +208,7 @@ wasm::AsmJsParser::VarInfo* AsmJsParser::GetVarInfo(
   if (is_global && index + 1 > num_globals_) num_globals_ = index + 1;
   if (index + 1 > old_capacity) {
     size_t new_size = std::max(2 * old_capacity, index + 1);
-    base::Vector<VarInfo> new_info = zone_->NewVector<VarInfo>(new_size);
+    ::v8::base::Vector<VarInfo> new_info = zone_->New::v8::base::Vector<VarInfo>(new_size);
     std::copy(var_info.begin(), var_info.end(), new_info.begin());
     var_info = new_info;
   }
@@ -220,7 +220,7 @@ uint32_t AsmJsParser::VarIndex(VarInfo* info) {
   return info->index + static_cast<uint32_t>(global_imports_.size());
 }
 
-void AsmJsParser::AddGlobalImport(base::Vector<const char> name, AsmType* type,
+void AsmJsParser::AddGlobalImport(::v8::base::Vector<const char> name, AsmType* type,
                                   ValueType vtype, bool mutable_variable,
                                   VarInfo* info) {
   // Allocate a separate variable for the import.
@@ -257,7 +257,7 @@ uint32_t AsmJsParser::TempVariable(int index) {
   return function_temp_locals_offset_ + index;
 }
 
-base::Vector<const char> AsmJsParser::CopyCurrentIdentifierString() {
+Vector<const char> AsmJsParser::CopyCurrentIdentifierString() {
   return zone()->CloneVector(base::VectorOf(scanner_.GetIdentifierString()));
 }
 
@@ -548,13 +548,13 @@ void AsmJsParser::ValidateModuleVarImport(VarInfo* info,
   if (Check('+')) {
     EXPECT_TOKEN(foreign_name_);
     EXPECT_TOKEN('.');
-    base::Vector<const char> name = CopyCurrentIdentifierString();
+    ::v8::base::Vector<const char> name = CopyCurrentIdentifierString();
     AddGlobalImport(name, AsmType::Double(), kWasmF64, mutable_variable, info);
     scanner_.Next();
   } else {
     EXPECT_TOKEN(foreign_name_);
     EXPECT_TOKEN('.');
-    base::Vector<const char> name = CopyCurrentIdentifierString();
+    ::v8::base::Vector<const char> name = CopyCurrentIdentifierString();
     scanner_.Next();
     if (Check('|')) {
       if (!CheckForZero()) {
@@ -634,7 +634,7 @@ void AsmJsParser::ValidateExport() {
   // clang-format on
   if (Check('{')) {
     for (;;) {
-      base::Vector<const char> name = CopyCurrentIdentifierString();
+      ::v8::base::Vector<const char> name = CopyCurrentIdentifierString();
       if (!scanner_.IsGlobal() && !scanner_.IsLocal()) {
         FAIL("Illegal export name");
       }
@@ -734,7 +734,7 @@ void AsmJsParser::ValidateFunction() {
     FAIL("Expected function name");
   }
 
-  base::Vector<const char> function_name_str = CopyCurrentIdentifierString();
+  ::v8::base::Vector<const char> function_name_str = CopyCurrentIdentifierString();
   AsmJsScanner::token_t function_name = Consume();
   VarInfo* function_info = GetVarInfo(function_name);
   if (function_info->kind == VarKind::kUnused) {
@@ -757,7 +757,7 @@ void AsmJsParser::ValidateFunction() {
   current_function_builder_->SetAsmFunctionStartPosition(
       function_start_position);
 
-  CachedVector<AsmType*> params(&cached_asm_type_p_vectors_);
+  Cached::v8::base::Vector<AsmType*> params(&cached_asm_type_p_vectors_);
   ValidateFunctionParams(&params);
 
   // Check against limit on number of parameters.
@@ -765,7 +765,7 @@ void AsmJsParser::ValidateFunction() {
     FAIL("Number of parameters exceeds internal limit");
   }
 
-  CachedVector<ValueType> locals(&cached_valuetype_vectors_);
+  Cached::v8::base::Vector<ValueType> locals(&cached_valuetype_vectors_);
   ValidateFunctionLocals(params.size(), &locals);
 
   function_temp_locals_offset_ = static_cast<uint32_t>(
@@ -840,13 +840,13 @@ void AsmJsParser::ValidateFunction() {
 }
 
 // 6.4 ValidateFunction
-void AsmJsParser::ValidateFunctionParams(ZoneVector<AsmType*>* params) {
+void AsmJsParser::ValidateFunctionParams(::v8::base::Vector<AsmType*>* params) {
   // TODO(bradnelson): Do this differently so that the scanner doesn't need to
   // have a state transition that needs knowledge of how the scanner works
   // inside.
   scanner_.EnterLocalScope();
   EXPECT_TOKEN('(');
-  CachedVector<AsmJsScanner::token_t> function_parameters(
+  Cached::v8::base::Vector<AsmJsScanner::token_t> function_parameters(
       &cached_token_t_vectors_);
   while (!failed_ && !Peek(')')) {
     if (!scanner_.IsLocal()) {
@@ -902,7 +902,7 @@ void AsmJsParser::ValidateFunctionParams(ZoneVector<AsmType*>* params) {
 
 // 6.4 ValidateFunction - locals
 void AsmJsParser::ValidateFunctionLocals(size_t param_count,
-                                         ZoneVector<ValueType>* locals) {
+                                         ::v8::base::Vector<ValueType>* locals) {
   DCHECK(locals->empty());
   // Local Variables.
   while (Peek(TOK(var))) {
@@ -1323,7 +1323,7 @@ void AsmJsParser::SwitchStatement() {
   Begin(pending_label_);
   pending_label_ = 0;
   // TODO(bradnelson): Make less weird.
-  CachedVector<int32_t> cases(&cached_int_vectors_);
+  Cached::v8::base::Vector<int32_t> cases(&cached_int_vectors_);
   GatherCases(&cases);
   EXPECT_TOKEN('{');
   size_t count = cases.size() + 1;
@@ -2183,8 +2183,8 @@ AsmType* AsmJsParser::ValidateCall() {
   }
 
   // Parse argument list and gather types.
-  CachedVector<AsmType*> param_types(&cached_asm_type_p_vectors_);
-  CachedVector<AsmType*> param_specific_types(&cached_asm_type_p_vectors_);
+  Cached::v8::base::Vector<AsmType*> param_types(&cached_asm_type_p_vectors_);
+  Cached::v8::base::Vector<AsmType*> param_specific_types(&cached_asm_type_p_vectors_);
   EXPECT_TOKENn('(');
   while (!failed_ && !Peek(')')) {
     AsmType* t;
@@ -2544,7 +2544,7 @@ void AsmJsParser::ScanToClosingParenthesis() {
   }
 }
 
-void AsmJsParser::GatherCases(ZoneVector<int32_t>* cases) {
+void AsmJsParser::GatherCases(::v8::base::Vector<int32_t>* cases) {
   size_t start = scanner_.Position();
   int depth = 0;
   for (;;) {

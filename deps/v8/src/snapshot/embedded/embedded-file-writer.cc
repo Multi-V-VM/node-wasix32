@@ -1,3 +1,6 @@
+#ifdef __wasi__
+#define V8_TARGET_ARCH_WASM32 1
+#endif
 // Copyright 2018 the V8 project authors. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
@@ -53,7 +56,7 @@ void EmbeddedFileWriter::WriteBuiltin(PlatformEmbeddedFileWriterBase* w,
   const bool is_default_variant =
       std::strcmp(embedded_variant_, kDefaultEmbeddedVariant) == 0;
 
-  base::EmbeddedVector<char, kTemporaryStringLength> builtin_symbol;
+  base::Embedded::v8::base::Vector<char, kTemporaryStringLength> builtin_symbol;
   if (is_default_variant) {
     // Create nicer symbol names for the default mode.
     base::SNPrintF(builtin_symbol, "Builtins_%s", i::Builtins::name(builtin));
@@ -72,7 +75,7 @@ void EmbeddedFileWriter::WriteBuiltin(PlatformEmbeddedFileWriterBase* w,
   const std::vector<uint8_t>& current_positions = source_positions_[builtin_id];
   // The code below interleaves bytes of assembly code for the builtin
   // function with source positions at the appropriate offsets.
-  base::Vector<const uint8_t> vpos(current_positions.data(),
+  ::v8::base::Vector<const uint8_t> vpos(current_positions.data(),
                                    current_positions.size());
   v8::internal::SourcePositionTableIterator positions(
       vpos, SourcePositionTableIterator::kExternalOnly);
@@ -172,7 +175,7 @@ void EmbeddedFileWriter::WriteCodeSection(PlatformEmbeddedFileWriterBase* w,
 void EmbeddedFileWriter::WriteFileEpilogue(PlatformEmbeddedFileWriterBase* w,
                                            const i::EmbeddedData* blob) const {
   {
-    base::EmbeddedVector<char, kTemporaryStringLength>
+    base::Embedded::v8::base::Vector<char, kTemporaryStringLength>
         embedded_blob_code_size_symbol;
     base::SNPrintF(embedded_blob_code_size_symbol,
                    "v8_%s_embedded_blob_code_size_", embedded_variant_);
@@ -183,7 +186,7 @@ void EmbeddedFileWriter::WriteFileEpilogue(PlatformEmbeddedFileWriterBase* w,
     w->DeclareUint32(embedded_blob_code_size_symbol.begin(), blob->code_size());
     w->Newline();
 
-    base::EmbeddedVector<char, kTemporaryStringLength>
+    base::Embedded::v8::base::Vector<char, kTemporaryStringLength>
         embedded_blob_data_size_symbol;
     base::SNPrintF(embedded_blob_data_size_symbol,
                    "v8_%s_embedded_blob_data_size_", embedded_variant_);
@@ -195,7 +198,7 @@ void EmbeddedFileWriter::WriteFileEpilogue(PlatformEmbeddedFileWriterBase* w,
 
 #if defined(V8_OS_WIN64)
   {
-    base::EmbeddedVector<char, kTemporaryStringLength> unwind_info_symbol;
+    base::Embedded::v8::base::Vector<char, kTemporaryStringLength> unwind_info_symbol;
     base::SNPrintF(unwind_info_symbol, "%s_Builtins_UnwindInfo",
                    embedded_variant_);
 

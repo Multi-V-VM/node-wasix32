@@ -37,18 +37,18 @@ class SimplifiedLoweringVerifier final {
     DCHECK_EQ(node->opcode(), IrOpcode::kSLVerifierHint);
     hints_.push_back(node);
   }
-  const ZoneVector<Node*>& inserted_hints() const { return hints_; }
+  const ::v8::base::Vector<Node*>& inserted_hints() const { return hints_; }
   void RecordMachineUsesOfConstant(Node* constant, Node::Uses uses) {
     DCHECK(IrOpcode::IsMachineConstantOpcode(constant->opcode()));
     auto it = machine_uses_of_constants_.find(constant);
     if (it == machine_uses_of_constants_.end()) {
       it =
-          machine_uses_of_constants_.emplace(constant, ZoneVector<Node*>(zone_))
+          machine_uses_of_constants_.emplace(constant, ::v8::base::Vector<Node*>(zone_))
               .first;
     }
     base::vector_append(it->second, uses);
   }
-  const ZoneUnorderedMap<Node*, ZoneVector<Node*>>& machine_uses_of_constants()
+  const ZoneUnorderedMap<Node*, ::v8::base::Vector<Node*>>& machine_uses_of_constants()
       const {
     return machine_uses_of_constants_;
   }
@@ -131,9 +131,9 @@ class SimplifiedLoweringVerifier final {
 
   Zone* graph_zone() const { return graph_->zone(); }
 
-  ZoneVector<Node*> hints_;
-  ZoneUnorderedMap<Node*, ZoneVector<Node*>> machine_uses_of_constants_;
-  ZoneVector<PerNodeData> data_;
+  ::v8::base::Vector<Node*> hints_;
+  ZoneUnorderedMap<Node*, ::v8::base::Vector<Node*>> machine_uses_of_constants_;
+  ::v8::base::Vector<PerNodeData> data_;
   TFGraph* graph_;
   Zone* zone_;
 };

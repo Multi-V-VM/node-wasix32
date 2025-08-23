@@ -1,4 +1,7 @@
 // Copyright 2015 the V8 project authors. All rights reserved.
+#ifdef __wasi__
+#include "src/wasm/wasm-features-fix.h"
+#endif
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
@@ -128,7 +131,7 @@ void LazilyGeneratedNames::AddForTesting(int function_index,
 }
 
 AsmJsOffsetInformation::AsmJsOffsetInformation(
-    base::Vector<const uint8_t> encoded_offsets)
+    ::v8::base::Vector<const uint8_t> encoded_offsets)
     : encoded_offsets_(base::OwnedCopyOf(encoded_offsets)) {}
 
 AsmJsOffsetInformation::~AsmJsOffsetInformation() = default;
@@ -624,12 +627,12 @@ DirectHandle<JSArray> GetCustomSections(
     DirectHandle<String> name, ErrorThrower* thrower) {
   Factory* factory = isolate->factory();
 
-  base::Vector<const uint8_t> wire_bytes =
+  ::v8::base::Vector<const uint8_t> wire_bytes =
       module_object->native_module()->wire_bytes();
   std::vector<CustomSectionOffset> custom_sections =
       DecodeCustomSections(wire_bytes);
 
-  DirectHandleVector<Object> matching_sections(isolate);
+  DirectHandle<::v8::base::Vector<Object> matching_sections(isolate);
 
   // Gather matching sections.
   for (auto& section : custom_sections) {
@@ -791,7 +794,7 @@ size_t WasmModule::EstimateCurrentMemoryConsumption() const {
   return result;
 }
 
-size_t PrintSignature(base::Vector<char> buffer, const CanonicalSig* sig,
+size_t PrintSignature(::v8::base::Vector<char> buffer, const CanonicalSig* sig,
                       char delimiter) {
   if (buffer.empty()) return 0;
   size_t old_size = buffer.size();
@@ -816,7 +819,7 @@ int JumpTableOffset(const WasmModule* module, int func_index) {
       declared_function_index(module, func_index));
 }
 
-size_t GetWireBytesHash(base::Vector<const uint8_t> wire_bytes) {
+size_t GetWireBytesHash(::v8::base::Vector<const uint8_t> wire_bytes) {
   return StringHasher::HashSequentialString(
       reinterpret_cast<const char*>(wire_bytes.begin()), wire_bytes.length(),
       kZeroHashSeed);

@@ -1,3 +1,6 @@
+#ifdef __wasi__
+#define V8_TARGET_ARCH_WASM32 1
+#endif
 // Copyright 2011 the V8 project authors. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
@@ -279,7 +282,7 @@ void SafepointTableBuilder::Emit(Assembler* assembler, int stack_slot_count) {
   // Emit bitmaps of tagged stack slots. Note the slot list is reversed in the
   // encoding.
   // TODO(jgruber): Avoid building a reversed copy of the bit vector.
-  ZoneVector<uint8_t> bits(tagged_slots_bytes, 0, zone_);
+  ::v8::base::Vector<uint8_t> bits(tagged_slots_bytes, 0, zone_);
   for (const EntryBuilder& entry : entries_) {
     std::fill(bits.begin(), bits.end(), 0);
 

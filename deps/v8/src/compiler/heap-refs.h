@@ -933,7 +933,7 @@ class V8_EXPORT_PRIVATE MapRef : public HeapObjectRef {
   HeapObjectRef prototype(JSHeapBroker* broker) const;
 
   bool PrototypesElementsDoNotHaveAccessorsOrThrow(
-      JSHeapBroker* broker, ZoneVector<MapRef>* prototype_maps);
+      JSHeapBroker* broker, ::v8::base::Vector<MapRef>* prototype_maps);
 
   // Concerning the underlying instance_descriptors:
   DescriptorArrayRef instance_descriptors(JSHeapBroker* broker) const;
@@ -976,8 +976,8 @@ class FunctionTemplateInfoRef : public HeapObjectRef {
   Address callback(JSHeapBroker* broker) const;
   OptionalObjectRef callback_data(JSHeapBroker* broker) const;
 
-  ZoneVector<Address> c_functions(JSHeapBroker* broker) const;
-  ZoneVector<const CFunctionInfo*> c_signatures(JSHeapBroker* broker) const;
+  ::v8::base::Vector<Address> c_functions(JSHeapBroker* broker) const;
+  ::v8::base::Vector<const CFunctionInfo*> c_signatures(JSHeapBroker* broker) const;
   HolderLookupResult LookupHolderOfExpectedType(JSHeapBroker* broker,
                                                 MapRef receiver_map);
 };
@@ -1322,7 +1322,7 @@ inline bool AnyMapIsHeapNumber(const ZoneRefSet<Map>& maps) {
                      [](MapRef map) { return map.IsHeapNumberMap(); });
 }
 
-inline bool AnyMapIsHeapNumber(const base::Vector<const MapRef>& maps) {
+inline bool AnyMapIsHeapNumber(const ::v8::base::Vector<const MapRef>& maps) {
   return std::any_of(maps.begin(), maps.end(),
                      [](MapRef map) { return map.IsHeapNumberMap(); });
 }

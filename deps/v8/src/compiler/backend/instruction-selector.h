@@ -1,3 +1,6 @@
+#ifdef __wasi__
+#define V8_TARGET_ARCH_WASM32 1
+#endif
 // Copyright 2014 the V8 project authors. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
@@ -97,7 +100,7 @@ class V8_EXPORT_PRIVATE InstructionSelector final {
     return Features(CpuFeatures::SupportedFeatures());
   }
 
-  const ZoneVector<std::pair<int, int>>& instr_origins() const;
+  const ::v8::base::Vector<std::pair<int, int>>& instr_origins() const;
   const std::map<NodeId, int> GetVirtualRegistersForTesting() const;
 
   static MachineOperatorBuilder::Flags SupportedMachineOperatorFlags();
@@ -659,7 +662,7 @@ class InstructionSelectorT final : public TurboshaftAdapter {
 
   Isolate* isolate() const { return sequence()->isolate(); }
 
-  const ZoneVector<std::pair<int, int>>& instr_origins() const {
+  const ::v8::base::Vector<std::pair<int, int>>& instr_origins() const {
     return instr_origins_;
   }
 
@@ -801,7 +804,7 @@ class InstructionSelectorT final : public TurboshaftAdapter {
   void InitializeCallBuffer(turboshaft::OpIndex call, CallBuffer* buffer,
                             CallBufferFlags flags, turboshaft::OpIndex callee,
                             turboshaft::OptionalOpIndex frame_state_opt,
-                            base::Vector<const turboshaft::OpIndex> arguments,
+                            ::v8::base::Vector<const turboshaft::OpIndex> arguments,
                             int return_count, int stack_slot_delta = 0);
   bool IsTailCallAddressImmediate();
 
@@ -1113,10 +1116,10 @@ class InstructionSelectorT final : public TurboshaftAdapter {
   void VisitWordCompareZero(turboshaft::OpIndex user, turboshaft::OpIndex value,
                             FlagsContinuation* cont);
 
-  void EmitPrepareArguments(ZoneVector<PushParameter>* arguments,
+  void EmitPrepareArguments(::v8::base::Vector<PushParameter>* arguments,
                             const CallDescriptor* call_descriptor,
                             turboshaft::OpIndex node);
-  void EmitPrepareResults(ZoneVector<PushParameter>* results,
+  void EmitPrepareResults(::v8::base::Vector<PushParameter>* results,
                           const CallDescriptor* call_descriptor,
                           turboshaft::OpIndex node);
 
@@ -1206,7 +1209,7 @@ class InstructionSelectorT final : public TurboshaftAdapter {
   turboshaft::Graph* schedule() const { return schedule_; }
   Linkage* linkage() const { return linkage_; }
   InstructionSequence* sequence() const { return sequence_; }
-  base::Vector<const turboshaft::OpIndex> turboshaft_uses(
+  ::v8::base::Vector<const turboshaft::OpIndex> turboshaft_uses(
       turboshaft::OpIndex node) const {
     DCHECK(turboshaft_use_map_.has_value());
     return turboshaft_use_map_->uses(node);
@@ -1285,7 +1288,7 @@ class InstructionSelectorT final : public TurboshaftAdapter {
   Features features_;
   turboshaft::Graph* const schedule_;
   const turboshaft::Block* current_block_;
-  ZoneVector<Instruction*> instructions_;
+  ::v8::base::Vector<Instruction*> instructions_;
   InstructionOperandVector continuation_inputs_;
   InstructionOperandVector continuation_outputs_;
   InstructionOperandVector continuation_temps_;
@@ -1307,7 +1310,7 @@ class InstructionSelectorT final : public TurboshaftAdapter {
 
   Frame* frame_;
   bool instruction_selection_failed_;
-  ZoneVector<std::pair<int, int>> instr_origins_;
+  ::v8::base::Vector<std::pair<int, int>> instr_origins_;
   InstructionSelector::EnableTraceTurboJson trace_turbo_;
   TickCounter* const tick_counter_;
   // The broker is only used for unparking the LocalHeap for diagnostic printing
@@ -1330,7 +1333,7 @@ class InstructionSelectorT final : public TurboshaftAdapter {
   // Holds lazily-computed results for whether phi nodes guarantee their upper
   // 32 bits to be zero. Indexed by node ID; nobody reads or writes the values
   // for non-phi nodes.
-  ZoneVector<Upper32BitsState> phi_states_;
+  ::v8::base::Vector<Upper32BitsState> phi_states_;
 #endif
 };
 

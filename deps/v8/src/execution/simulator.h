@@ -1,3 +1,6 @@
+#ifdef __wasi__
+#define V8_TARGET_ARCH_WASM32 1
+#endif
 // Copyright 2009 the V8 project authors. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
@@ -57,7 +60,7 @@ class SimulatorStack : public v8::internal::AllStatic {
 
 #if V8_ENABLE_WEBASSEMBLY
   // Includes the safety stack limit gap.
-  static inline base::Vector<uint8_t> GetCentralStackView(
+  static inline ::v8::base::Vector<uint8_t> GetCentralStackView(
       v8::internal::Isolate* isolate) {
     return Simulator::current(isolate)->GetCentralStackView();
   }
@@ -108,7 +111,7 @@ class SimulatorStack : public v8::internal::AllStatic {
   }
 
 #if V8_ENABLE_WEBASSEMBLY
-  static inline base::Vector<uint8_t> GetCentralStackView(
+  static inline ::v8::base::Vector<uint8_t> GetCentralStackView(
       v8::internal::Isolate* isolate) {
     uintptr_t upper_bound = base::Stack::GetStackStart();
     size_t size = isolate->stack_size() + JSStackLimitMargin();

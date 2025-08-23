@@ -57,13 +57,13 @@ void* Histogram::CreateHistogram() const {
   return counters_->CreateHistogram(name_, min_, max_, num_buckets_);
 }
 
-void TimedHistogram::Stop(base::ElapsedTimer* timer) {
+void TimedHistogram::Stop(::v8::base::ElapsedTimer* timer) {
   DCHECK(Enabled());
   AddTimedSample(timer->Elapsed());
   timer->Stop();
 }
 
-void TimedHistogram::AddTimedSample(base::TimeDelta sample) {
+void TimedHistogram::AddTimedSample(::v8::base::TimeDelta sample) {
   if (Enabled()) {
     int64_t sample_int = resolution_ == TimedHistogramResolution::MICROSECOND
                              ? sample.InMicroseconds()
@@ -72,14 +72,14 @@ void TimedHistogram::AddTimedSample(base::TimeDelta sample) {
   }
 }
 
-void TimedHistogram::RecordAbandon(base::ElapsedTimer* timer,
+void TimedHistogram::RecordAbandon(::v8::base::ElapsedTimer* timer,
                                    Isolate* isolate) {
   if (Enabled()) {
     DCHECK(timer->IsStarted());
     timer->Stop();
     int64_t sample = resolution_ == TimedHistogramResolution::MICROSECOND
-                         ? base::TimeDelta::Max().InMicroseconds()
-                         : base::TimeDelta::Max().InMilliseconds();
+                         ? ::v8::base::TimeDelta::Max().InMicroseconds()
+                         : ::v8::base::TimeDelta::Max().InMilliseconds();
     AddSample(static_cast<int>(sample));
   }
   if (isolate != nullptr) {

@@ -43,7 +43,7 @@ class alignas(double) Simd128 {
 
   explicit Simd128(uint8_t* bytes) {
     memcpy(static_cast<void*>(val_), reinterpret_cast<void*>(bytes),
-           v8::internal::kSimd128Size);
+           kSimd128Size);
   }
 
   bool operator==(const Simd128& other) const noexcept {

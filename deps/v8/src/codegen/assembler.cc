@@ -1,3 +1,6 @@
+#ifdef __wasi__
+#define V8_TARGET_ARCH_WASM32 1
+#endif
 // Copyright (c) 1994-2006 Sun Microsystems Inc.
 // All Rights Reserved.
 //
@@ -91,7 +94,7 @@ namespace {
 class DefaultAssemblerBuffer : public AssemblerBuffer {
  public:
   explicit DefaultAssemblerBuffer(int size)
-      : buffer_(base::OwnedVector<uint8_t>::NewForOverwrite(
+      : buffer_(base::Owned::v8::base::Vector<uint8_t>::NewForOverwrite(
             std::max(AssemblerBase::kMinimalBufferSize, size))) {
 #ifdef DEBUG
     ZapCode(reinterpret_cast<Address>(buffer_.begin()), buffer_.size());
@@ -108,7 +111,7 @@ class DefaultAssemblerBuffer : public AssemblerBuffer {
   }
 
  private:
-  base::OwnedVector<uint8_t> buffer_;
+  base::Owned::v8::base::Vector<uint8_t> buffer_;
 };
 
 class ExternalAssemblerBufferImpl : public AssemblerBuffer {

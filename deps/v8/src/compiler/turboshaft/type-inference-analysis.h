@@ -116,7 +116,7 @@ class TypeInferenceAnalysis {
     // predecessors.
     {
       auto MergeTypes = [&](table_t::Key,
-                            base::Vector<const Type> predecessors) -> Type {
+                            ::v8::base::Vector<const Type> predecessors) -> Type {
         DCHECK_GT(predecessors.size(), 0);
         Type result_type = predecessors[0];
         for (size_t i = 1; i < predecessors.size(); ++i) {
@@ -546,7 +546,7 @@ class TypeInferenceAnalysis {
       block_to_snapshot_mapping_;
   // {predecessors_} is used during merging, but we use an instance variable for
   // it, in order to save memory and not reallocate it for each merge.
-  ZoneVector<table_t::Snapshot> predecessors_;
+  ::v8::base::Vector<table_t::Snapshot> predecessors_;
   Zone* graph_zone_;
 
 #ifdef DEBUG

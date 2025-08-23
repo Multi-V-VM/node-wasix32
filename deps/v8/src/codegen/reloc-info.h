@@ -1,3 +1,6 @@
+#ifdef __wasi__
+#define V8_TARGET_ARCH_WASM32 1
+#endif
 // Copyright 2018 the V8 project authors. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
@@ -572,8 +575,8 @@ class V8_EXPORT_PRIVATE RelocIterator : public RelocIteratorBase<RelocInfo> {
   explicit RelocIterator(Tagged<Code> code, int mode_mask = kAllModesMask);
 
   // For Wasm.
-  explicit RelocIterator(base::Vector<uint8_t> instructions,
-                         base::Vector<const uint8_t> reloc_info,
+  explicit RelocIterator(::v8::base::Vector<uint8_t> instructions,
+                         ::v8::base::Vector<const uint8_t> reloc_info,
                          Address const_pool, int mode_mask = kAllModesMask);
   // For the disassembler.
   explicit RelocIterator(const CodeReference code_reference);
@@ -599,8 +602,8 @@ class V8_EXPORT_PRIVATE WritableRelocIterator
                         Address constant_pool, int mode_mask);
   // Constructor for iterating Wasm code.
   WritableRelocIterator(WritableJitAllocation& jit_allocation,
-                        base::Vector<uint8_t> instructions,
-                        base::Vector<const uint8_t> reloc_info,
+                        ::v8::base::Vector<uint8_t> instructions,
+                        ::v8::base::Vector<const uint8_t> reloc_info,
                         Address constant_pool, int mode_mask = kAllModesMask);
 };
 

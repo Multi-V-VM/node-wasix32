@@ -7,7 +7,7 @@
 namespace v8::internal::compiler::turboshaft {
 
 void LoopFinder::Run() {
-  ZoneVector<Block*> all_loops(phase_zone_);
+  ::v8::base::Vector<Block*> all_loops(phase_zone_);
   for (const Block& block : base::Reversed(input_graph_->blocks())) {
     if (block.IsLoop()) {
       LoopInfo info = VisitLoop(&block);
@@ -79,7 +79,7 @@ ZoneSet<const Block*, LoopFinder::BlockCmp> LoopFinder::GetLoopBody(
   ZoneSet<const Block*, BlockCmp> body(phase_zone_);
   body.insert(loop_header);
 
-  ZoneVector<const Block*> queue(phase_zone_);
+  ::v8::base::Vector<const Block*> queue(phase_zone_);
   queue.push_back(loop_header->LastPredecessor());
   while (!queue.empty()) {
     const Block* curr = queue.back();

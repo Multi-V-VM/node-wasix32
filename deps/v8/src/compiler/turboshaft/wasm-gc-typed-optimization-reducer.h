@@ -89,8 +89,8 @@ class WasmGCTypeAnalyzer {
   wasm::ValueType GetTypeForPhiInput(const PhiOp& phi, int input_index);
 
   void CreateMergeSnapshot(const Block& block);
-  bool CreateMergeSnapshot(base::Vector<const Snapshot> predecessors,
-                           base::Vector<const bool> reachable);
+  bool CreateMergeSnapshot(::v8::base::Vector<const Snapshot> predecessors,
+                           ::v8::base::Vector<const bool> reachable);
 
   // Updates the knowledge in the side table about the type of {object},
   // returning the previous known type. Returns bottom if the refined type is

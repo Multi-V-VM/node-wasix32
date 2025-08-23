@@ -280,23 +280,23 @@ class V8_EXPORT ThreadIsolation {
     JitPageReference(const JitPageReference&) = delete;
     JitPageReference& operator=(const JitPageReference&) = delete;
 
-    base::Address Address() const { return address_; }
+    ::Address Address() const { return address_; }
     size_t Size() const;
-    base::Address End() const { return Address() + Size(); }
-    JitAllocation& RegisterAllocation(base::Address addr, size_t size,
+    ::Address End() const { return Address() + Size(); }
+    JitAllocation& RegisterAllocation(::Address addr, size_t size,
                                       JitAllocationType type);
-    JitAllocation& LookupAllocation(base::Address addr, size_t size,
+    JitAllocation& LookupAllocation(::Address addr, size_t size,
                                     JitAllocationType type);
-    bool Contains(base::Address addr, size_t size,
+    bool Contains(::Address addr, size_t size,
                   JitAllocationType type) const;
-    void UnregisterAllocation(base::Address addr);
-    void UnregisterAllocationsExcept(base::Address start, size_t size,
-                                     const std::vector<base::Address>& addr);
-    void UnregisterRange(base::Address addr, size_t size);
+    void UnregisterAllocation(::Address addr);
+    void UnregisterAllocationsExcept(::Address start, size_t size,
+                                     const std::vector<::Address>& addr);
+    void UnregisterRange(::Address addr, size_t size);
 
-    base::Address StartOfAllocationAt(base::Address inner_pointer);
-    std::pair<base::Address, JitAllocation&> AllocationContaining(
-        base::Address addr);
+    ::Address StartOfAllocationAt(::Address inner_pointer);
+    std::pair<::Address, JitAllocation&> AllocationContaining(
+        ::Address addr);
 
     bool Empty() const { return jit_page_->allocations_.empty(); }
     void Shrink(class JitPage* tail);
@@ -309,7 +309,7 @@ class V8_EXPORT ThreadIsolation {
     class JitPage* jit_page_;
     // We get the address from the key of the map when we do a JitPage lookup.
     // We can save some memory by storing it as part of the reference instead.
-    base::Address address_;
+    ::Address address_;
   };
 
   class JitPage {
@@ -502,7 +502,7 @@ class WritableFreeSpace {
   // non-executable memory only, i.e. it won't perform CFI validation and
   // doesn't unlock the code space.
   // For executable memory, use the WritableJitPage::FreeRange function.
-  static V8_INLINE WritableFreeSpace ForNonExecutableMemory(base::Address addr,
+  static V8_INLINE WritableFreeSpace ForNonExecutableMemory(::Address addr,
                                                             size_t size);
 
   WritableFreeSpace(const WritableFreeSpace&) = delete;
@@ -514,14 +514,14 @@ class WritableFreeSpace {
   template <size_t offset>
   void ClearTagged(size_t count) const;
 
-  base::Address Address() const { return address_; }
+  ::Address Address() const { return address_; }
   int Size() const { return size_; }
   bool Executable() const { return executable_; }
 
  private:
-  WritableFreeSpace(base::Address addr, size_t size, bool executable);
+  WritableFreeSpace(::Address addr, size_t size, bool executable);
 
-  const base::Address address_;
+  const ::Address address_;
   const int size_;
   const bool executable_;
 

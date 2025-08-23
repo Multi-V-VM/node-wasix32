@@ -80,7 +80,7 @@ class V8_EXPORT_PRIVATE AccountingAllocator {
   std::atomic<size_t> max_memory_usage_{0};
 
   std::unique_ptr<VirtualMemory> reserved_area_;
-  std::unique_ptr<base::BoundedPageAllocator> bounded_page_allocator_;
+  std::unique_ptr<::v8::base::BoundedPageAllocator> bounded_page_allocator_;
 };
 
 }  // namespace internal

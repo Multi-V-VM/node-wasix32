@@ -123,7 +123,7 @@ bool AreStdlibMembersValid(Isolate* isolate, DirectHandle<JSReceiver> stdlib,
   return true;
 }
 
-void Report(Handle<Script> script, int position, base::Vector<const char> text,
+void Report(Handle<Script> script, int position, ::v8::base::Vector<const char> text,
             MessageTemplate message_template,
             v8::Isolate::MessageErrorLevel level) {
   Isolate* isolate = script->GetIsolate();
@@ -140,7 +140,7 @@ void Report(Handle<Script> script, int position, base::Vector<const char> text,
 void ReportCompilationSuccess(Handle<Script> script, int position,
                               double compile_time, size_t module_size) {
   if (v8_flags.suppress_asm_messages || !v8_flags.trace_asm_time) return;
-  base::EmbeddedVector<char, 100> text;
+  base::Embedded::v8::base::Vector<char, 100> text;
   int length = SNPrintF(text, "success, compile time %0.3f ms, %zu bytes",
                         compile_time, module_size);
   CHECK_NE(-1, length);
@@ -161,7 +161,7 @@ void ReportCompilationFailure(ParseInfo* parse_info, int position,
 void ReportInstantiationSuccess(Handle<Script> script, int position,
                                 double instantiate_time) {
   if (v8_flags.suppress_asm_messages || !v8_flags.trace_asm_time) return;
-  base::EmbeddedVector<char, 50> text;
+  base::Embedded::v8::base::Vector<char, 50> text;
   int length = SNPrintF(text, "success, %0.3f ms", instantiate_time);
   CHECK_NE(-1, length);
   text.Truncate(length);
@@ -173,7 +173,7 @@ void ReportInstantiationSuccess(Handle<Script> script, int position,
 void ReportInstantiationFailure(Handle<Script> script, int position,
                                 const char* reason) {
   if (v8_flags.suppress_asm_messages) return;
-  base::Vector<const char> text = base::CStrVector(reason);
+  ::v8::base::Vector<const char> text = base::CStrVector(reason);
   Report(script, position, text, MessageTemplate::kAsmJsLinkingFailed,
          v8::Isolate::kMessageWarning);
 }
@@ -423,7 +423,7 @@ MaybeDirectHandle<Object> AsmJs::InstantiateAsmWasm(
     if (isolate->is_execution_terminating()) return {};
     if (isolate->has_exception()) isolate->clear_exception();
     if (thrower.error()) {
-      base::ScopedVector<char> error_reason(100);
+      base::Scoped::v8::base::Vector<char> error_reason(100);
       SNPrintF(error_reason, "Internal wasm failure: %s", thrower.error_msg());
       ReportInstantiationFailure(script, position, error_reason.begin());
     } else {

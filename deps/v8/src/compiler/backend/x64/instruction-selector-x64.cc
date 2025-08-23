@@ -1,3 +1,6 @@
+#ifdef __wasi__
+#define V8_TARGET_ARCH_WASM32 1
+#endif
 // Copyright 2014 the V8 project authors. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
@@ -3045,7 +3048,7 @@ void InstructionSelectorT::EmitMoveFPRToParam(InstructionOperand* op,
                                               LinkageLocation location) {}
 
 void InstructionSelectorT::EmitPrepareArguments(
-    ZoneVector<PushParameter>* arguments, const CallDescriptor* call_descriptor,
+    ::v8::base::Vector<PushParameter>* arguments, const CallDescriptor* call_descriptor,
     OpIndex node) {
   X64OperandGeneratorT g(this);
 
@@ -3102,7 +3105,7 @@ void InstructionSelectorT::EmitPrepareArguments(
 }
 
 void InstructionSelectorT::EmitPrepareResults(
-    ZoneVector<PushParameter>* results, const CallDescriptor* call_descriptor,
+    ::v8::base::Vector<PushParameter>* results, const CallDescriptor* call_descriptor,
     OpIndex node) {
   X64OperandGeneratorT g(this);
   for (PushParameter output : *results) {

@@ -94,6 +94,9 @@
 
 namespace v8 {
 namespace base {
+
+template <typename T>
+inline const T& PrintCheckOperand(const T& value) { return value; }
 constexpr const char* kUnreachableCodeMessage = "Unreachable code";
 
 // Out-of-memory error types

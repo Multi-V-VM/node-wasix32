@@ -111,7 +111,7 @@ V8_OBJECT class Name : public PrimitiveHeapObject {
   DECL_VERIFIER(Name)
   DECL_PRINTER(Name)
   void NameShortPrint();
-  int NameShortPrint(base::Vector<char> str);
+  int NameShortPrint(::v8::base::Vector<char> str);
 
   // Mask constant for checking if a name has a computed hash code and the type
   // of information stored in the hash field. The least significant bit
@@ -181,8 +181,10 @@ V8_OBJECT class Name : public PrimitiveHeapObject {
   // Check that kMaxCachedArrayIndexLength + 1 is a power of two so we
   // could use a mask to test if the length of string is less than or equal to
   // kMaxCachedArrayIndexLength.
-  static_assert(base::bits::IsPowerOfTwo(kMaxCachedArrayIndexLength + 1),
+#ifndef __wasi__
+  static_assert(::v8::base::bits::IsPowerOfTwo(kMaxCachedArrayIndexLength + 1),
                 "(kMaxCachedArrayIndexLength + 1) must be power of two");
+#endif
 
   // When any of these bits is set then the hash field does not contain a cached
   // array index.
@@ -238,7 +240,7 @@ V8_OBJECT class Name : public PrimitiveHeapObject {
 
   inline uint32_t GetRawHashFromForwardingTable(uint32_t raw_hash) const;
 
-  std::atomic_uint32_t raw_hash_field_;
+  ::std::atomic_uint32_t raw_hash_field_;
 } V8_OBJECT_END;
 
 inline bool IsUniqueName(Tagged<Name> obj);

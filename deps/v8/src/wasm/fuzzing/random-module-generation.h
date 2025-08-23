@@ -26,7 +26,7 @@ namespace v8::internal::wasm::fuzzing {
 enum WasmModuleGenerationOption { kGenerateSIMD, kGenerateWasmGC };
 
 struct WasmModuleGenerationOptions
-    : public base::EnumSet<WasmModuleGenerationOption> {
+    : public ::v8::base::EnumSet<WasmModuleGenerationOption> {
   bool generate_simd() const { return contains(kGenerateSIMD); }
   bool generate_wasm_gc() const { return contains(kGenerateWasmGC); }
 
@@ -40,14 +40,14 @@ struct WasmModuleGenerationOptions
 // Returns an empty buffer on failure, valid module wire bytes otherwise.
 // The bytes will be allocated in the zone.
 // Defined in random-module-generation.cc.
-V8_EXPORT_PRIVATE base::Vector<uint8_t> GenerateRandomWasmModule(
-    Zone*, WasmModuleGenerationOptions, base::Vector<const uint8_t> data);
+V8_EXPORT_PRIVATE ::v8::base::Vector<uint8_t> GenerateRandomWasmModule(
+    Zone*, WasmModuleGenerationOptions, ::v8::base::Vector<const uint8_t> data);
 
-V8_EXPORT_PRIVATE base::Vector<uint8_t> GenerateWasmModuleForInitExpressions(
-    Zone*, base::Vector<const uint8_t> data, size_t* count);
+V8_EXPORT_PRIVATE ::v8::base::Vector<uint8_t> GenerateWasmModuleForInitExpressions(
+    Zone*, ::v8::base::Vector<const uint8_t> data, size_t* count);
 
-V8_EXPORT_PRIVATE base::Vector<uint8_t> GenerateWasmModuleForDeopt(
-    Zone*, base::Vector<const uint8_t> data, std::vector<std::string>& callees,
+V8_EXPORT_PRIVATE ::v8::base::Vector<uint8_t> GenerateWasmModuleForDeopt(
+    Zone*, ::v8::base::Vector<const uint8_t> data, std::vector<std::string>& callees,
     std::vector<std::string>& inlinees);
 #endif
 

@@ -98,7 +98,7 @@ class V8_EXPORT_PRIVATE TFGraph final : public NON_EXPORTED_BASE(ZoneObject) {
   void SetSimd(bool has_simd) { has_simd_ = has_simd; }
 
   void RecordSimdStore(Node* store);
-  ZoneVector<Node*> const& GetSimdStoreNodes();
+  ::v8::base::Vector<Node*> const& GetSimdStoreNodes();
 
  private:
   friend class NodeMarkerBase;
@@ -110,9 +110,9 @@ class V8_EXPORT_PRIVATE TFGraph final : public NON_EXPORTED_BASE(ZoneObject) {
   Node* end_;
   Mark mark_max_;
   NodeId next_node_id_;
-  ZoneVector<GraphDecorator*> decorators_;
+  ::v8::base::Vector<GraphDecorator*> decorators_;
   bool has_simd_;
-  ZoneVector<Node*> simd_stores_;
+  ::v8::base::Vector<Node*> simd_stores_;
 };
 
 // A graph decorator can be used to add behavior to the creation of nodes

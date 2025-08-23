@@ -501,7 +501,7 @@ class BytecodeAnalysis::BytecodeAnalysisImpl {
   bool ResumeJumpTargetsAreValid();
   bool ResumeJumpTargetLeavesResolveSuspendIds(
       int parent_offset,
-      const ZoneVector<ResumeJumpTarget>& resume_jump_targets,
+      const ::v8::base::Vector<ResumeJumpTarget>& resume_jump_targets,
       std::map<int, int>* unresolved_suspend_ids);
 
   bool LivenessIsValid();
@@ -521,7 +521,7 @@ class BytecodeAnalysis::BytecodeAnalysisImpl {
   Zone* zone_;
   Handle<BytecodeArray> const bytecode_array_;
   ZoneStack<LoopStackEntry> loop_stack_;
-  ZoneVector<int> loop_end_index_queue_;
+  ::v8::base::Vector<int> loop_end_index_queue_;
   interpreter::BytecodeArrayRandomIterator iterator_;
 };
 
@@ -927,7 +927,7 @@ bool BytecodeAnalysis::BytecodeAnalysisImpl::ResumeJumpTargetsAreValid() {
 bool BytecodeAnalysis::BytecodeAnalysisImpl::
     ResumeJumpTargetLeavesResolveSuspendIds(
         int parent_offset,
-        const ZoneVector<ResumeJumpTarget>& resume_jump_targets,
+        const ::v8::base::Vector<ResumeJumpTarget>& resume_jump_targets,
         std::map<int, int>* unresolved_suspend_ids) {
   bool valid = true;
   for (const ResumeJumpTarget& target : resume_jump_targets) {

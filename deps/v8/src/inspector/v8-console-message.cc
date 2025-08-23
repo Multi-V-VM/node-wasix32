@@ -184,7 +184,7 @@ class V8ValueStringBuilder {
   uint32_t m_arrayLimit;
   v8::Isolate* m_isolate;
   String16Builder m_builder;
-  v8::LocalVector<v8::Array> m_visitedArrays;
+  ::v8::base::Vector<v8::Array> m_visitedArrays;
   v8::TryCatch m_tryCatch;
   v8::Local<v8::Context> m_context;
 };

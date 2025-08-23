@@ -1,3 +1,6 @@
+#ifdef __wasi__
+#define V8_TARGET_ARCH_WASM32 1
+#endif
 // Copyright 2012 the V8 project authors. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
@@ -6193,7 +6196,7 @@ void Isolate::MaybeInitializeVectorListFromHeap() {
   }
 
   // Collect existing feedback vectors.
-  DirectHandleVector<FeedbackVector> vectors(this);
+  DirectHandle<::v8::base::Vector<FeedbackVector> vectors(this);
 
   {
     HeapObjectIterator heap_iterator(heap());
@@ -7068,7 +7071,7 @@ void Isolate::CountUsage(v8::Isolate::UseCounterFeature feature) {
 }
 
 void Isolate::CountUsage(
-    base::Vector<const v8::Isolate::UseCounterFeature> features) {
+    ::v8::base::Vector<const v8::Isolate::UseCounterFeature> features) {
   // The counter callback
   // - may cause the embedder to call into V8, which is not generally possible
   //   during GC.

@@ -27,7 +27,7 @@ namespace internal {
 class Decoder {
  public:
   Decoder(const disasm::NameConverter& converter,
-          v8::base::Vector<char> out_buffer)
+          v8::Vector<char> out_buffer)
       : converter_(converter), out_buffer_(out_buffer), out_buffer_pos_(0) {
     out_buffer_[out_buffer_pos_] = '\0';
   }
@@ -106,7 +106,7 @@ class Decoder {
   void DecodeTypekOp22(Instruction* instr);
 
   const disasm::NameConverter& converter_;
-  v8::base::Vector<char> out_buffer_;
+  v8::Vector<char> out_buffer_;
   int out_buffer_pos_;
 };
 
@@ -1682,7 +1682,7 @@ const char* NameConverter::NameInCode(uint8_t* addr) const {
 
 //------------------------------------------------------------------------------
 
-int Disassembler::InstructionDecode(v8::base::Vector<char> buffer,
+int Disassembler::InstructionDecode(v8::Vector<char> buffer,
                                     uint8_t* instruction) {
   v8::internal::Decoder d(converter_, buffer);
   return d.InstructionDecode(instruction);
@@ -1695,7 +1695,7 @@ void Disassembler::Disassemble(FILE* f, uint8_t* begin, uint8_t* end,
   NameConverter converter;
   Disassembler d(converter, unimplemented_action);
   for (uint8_t* pc = begin; pc < end;) {
-    v8::base::EmbeddedVector<char, 128> buffer;
+    v8::base::Embedded::v8::base::Vector<char, 128> buffer;
     buffer[0] = '\0';
     uint8_t* prev_pc = pc;
     pc += d.InstructionDecode(buffer, pc);

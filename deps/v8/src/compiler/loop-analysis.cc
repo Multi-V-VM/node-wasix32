@@ -118,9 +118,9 @@ class LoopFinderImpl {
   Node* end_;
   NodeDeque queue_;
   NodeMarker<bool> queued_;
-  ZoneVector<NodeInfo> info_;
-  ZoneVector<TempLoopInfo> loops_;
-  ZoneVector<int> loop_num_;
+  ::v8::base::Vector<NodeInfo> info_;
+  ::v8::base::Vector<TempLoopInfo> loops_;
+  ::v8::base::Vector<int> loop_num_;
   LoopTree* loop_tree_;
   int loops_found_;
   int width_;
@@ -633,7 +633,7 @@ ZoneUnorderedSet<Node*>* LoopFinder::FindSmallInnermostLoopFromHeader(
             // While a built-in call, this is the slow path, so it should not
             // prevent loop unrolling for stringview_wtf16.get_codeunit.
             Builtin::kWasmStringViewWtf16GetCodeUnit};
-        if (std::count(std::begin(unrollable_builtins),
+        if (::std::count(std::begin(unrollable_builtins),
                        std::end(unrollable_builtins), builtin) == 0) {
           return nullptr;
         }

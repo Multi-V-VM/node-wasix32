@@ -133,7 +133,7 @@ inline SectionCode IdentifyUnknownSectionInternal(Decoder* decoder,
         static_cast<int>(section_name_start - decoder->start()),
         string.length() < 20 ? string.length() : 20, section_name_start);
 
-  using SpecialSectionPair = std::pair<base::Vector<const char>, SectionCode>;
+  using SpecialSectionPair = std::pair<::v8::base::Vector<const char>, SectionCode>;
   static constexpr SpecialSectionPair kSpecialSections[]{
       {base::StaticCharVector(kNameString), kNameSectionCode},
       {base::StaticCharVector(kSourceMappingURLString),
@@ -147,7 +147,7 @@ inline SectionCode IdentifyUnknownSectionInternal(Decoder* decoder,
        kExternalDebugInfoSectionCode},
       {base::StaticCharVector(kBuildIdString), kBuildIdSectionCode}};
 
-  auto name_vec = base::Vector<const char>::cast(
+  auto name_vec = ::v8::base::Vector<const char>::cast(
       base::VectorOf(section_name_start, string.length()));
   for (auto& special_section : kSpecialSections) {
     if (name_vec == special_section.first) return special_section.second;
@@ -179,7 +179,7 @@ class WasmSectionIterator {
     return static_cast<uint32_t>(section_end_ - section_start_);
   }
 
-  base::Vector<const uint8_t> payload() const {
+  ::v8::base::Vector<const uint8_t> payload() const {
     return {payload_start_, payload_length()};
   }
 
@@ -279,7 +279,7 @@ class WasmSectionIterator {
   }
 };
 
-inline void DumpModule(const base::Vector<const uint8_t> module_bytes,
+inline void DumpModule(const ::v8::base::Vector<const uint8_t> module_bytes,
                        bool ok) {
   std::string path;
   if (v8_flags.dump_wasm_module_path) {
@@ -291,7 +291,7 @@ inline void DumpModule(const base::Vector<const uint8_t> module_bytes,
   // File are named `<hash>.{ok,failed}.wasm`.
   // Limit the hash to 8 characters (32 bits).
   uint32_t hash = static_cast<uint32_t>(GetWireBytesHash(module_bytes));
-  base::EmbeddedVector<char, 32> buf;
+  base::Embedded::v8::base::Vector<char, 32> buf;
   SNPrintF(buf, "%08x.%s.wasm", hash, ok ? "ok" : "failed");
   path += buf.begin();
   size_t rv = 0;
@@ -309,7 +309,7 @@ inline void DumpModule(const base::Vector<const uint8_t> module_bytes,
 class ModuleDecoderImpl : public Decoder {
  public:
   ModuleDecoderImpl(WasmEnabledFeatures enabled_features,
-                    base::Vector<const uint8_t> wire_bytes, ModuleOrigin origin,
+                    ::v8::base::Vector<const uint8_t> wire_bytes, ModuleOrigin origin,
                     WasmDetectedFeatures* detected_features,
                     ITracer* tracer = ITracer::NoTrace)
       : Decoder(wire_bytes),
@@ -324,7 +324,7 @@ class ModuleDecoderImpl : public Decoder {
     pc_ = end_;  // On error, terminate section decoding loop.
   }
 
-  void DecodeModuleHeader(base::Vector<const uint8_t> bytes) {
+  void DecodeModuleHeader(::v8::base::Vector<const uint8_t> bytes) {
     if (failed()) return;
     Reset(bytes);
 
@@ -421,7 +421,7 @@ class ModuleDecoderImpl : public Decoder {
   }
 
   void DecodeSection(SectionCode section_code,
-                     base::Vector<const uint8_t> bytes, uint32_t offset) {
+                     ::v8::base::Vector<const uint8_t> bytes, uint32_t offset) {
     if (failed()) return;
     Reset(bytes, offset);
     TRACE("Section: %s\n", SectionName(section_code));
@@ -788,7 +788,7 @@ class ModuleDecoderImpl : public Decoder {
       bool is_shared = type_def.is_shared;
       switch (type_def.kind) {
         case TypeDefinition::kFunction: {
-          base::Vector<const ValueType> all = type_def.function_sig->all();
+          ::v8::base::Vector<const ValueType> all = type_def.function_sig->all();
           size_t count = all.size();
           ValueType* storage = const_cast<ValueType*>(all.begin());
           for (uint32_t j = 0; j < count; j++) {
@@ -1431,10 +1431,10 @@ class ModuleDecoderImpl : public Decoder {
 
       // Now that the function has been decoded, we can compute module offsets.
       for (; inst_traces_it != this->inst_traces_.end() &&
-             std::get<0>(*inst_traces_it) == i;
+             ::std::get<0>(*inst_traces_it) == i;
            ++inst_traces_it) {
-        uint32_t trace_offset = offset + std::get<1>(*inst_traces_it);
-        uint32_t mark_id = std::get<2>(*inst_traces_it);
+        uint32_t trace_offset = offset + ::std::get<1>(*inst_traces_it);
+        uint32_t mark_id = ::std::get<2>(*inst_traces_it);
         std::pair<uint32_t, uint32_t> trace_mark = {trace_offset, mark_id};
         inst_traces.push_back(trace_mark);
       }
@@ -1929,7 +1929,7 @@ class ModuleDecoderImpl : public Decoder {
   ModuleResult DecodeModule(bool validate_functions) {
     // Keep a reference to the wire bytes, in case this decoder gets reset on
     // error.
-    base::Vector<const uint8_t> wire_bytes(start_, end_ - start_);
+    ::v8::base::Vector<const uint8_t> wire_bytes(start_, end_ - start_);
     size_t max_size = max_module_size();
     if (wire_bytes.size() > max_size) {
       return ModuleResult{WasmError{0, "size > maximum module size (%zu): %zu",

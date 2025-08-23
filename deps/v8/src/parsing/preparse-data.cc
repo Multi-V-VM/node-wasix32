@@ -137,7 +137,7 @@ void PreparseDataBuilder::ByteData::Finalize(Zone* zone) {
       zone->AllocateArray<uint8_t, RawPreparseData>(index_);
   memcpy(raw_zone_data, byte_data_->data(), index_);
   byte_data_->resize(0);
-  zone_byte_data_ = base::Vector<uint8_t>(raw_zone_data, index_);
+  zone_byte_data_ = ::v8::base::Vector<uint8_t>(raw_zone_data, index_);
 #ifdef DEBUG
   is_finalized_ = true;
 #endif
@@ -256,7 +256,7 @@ void PreparseDataBuilder::AddChild(PreparseDataBuilder* child) {
 
 void PreparseDataBuilder::FinalizeChildren(Zone* zone) {
   DCHECK(!finalized_children_);
-  base::Vector<PreparseDataBuilder*> children =
+  ::v8::base::Vector<PreparseDataBuilder*> children =
       CloneVector(zone, children_buffer_.ToConstVector());
   children_buffer_.Rewind();
   children_ = children;
@@ -557,7 +557,7 @@ class ZoneProducedPreparseData final : public ProducedPreparseData {
   }
 
   ZonePreparseData* Serialize(Zone* zone) final {
-    base::Vector<uint8_t> data(data_->byte_data()->data(),
+    ::v8::base::Vector<uint8_t> data(data_->byte_data()->data(),
                                data_->byte_data()->size());
     return zone->New<ZonePreparseData>(zone, &data, data_->children_length());
   }
@@ -784,7 +784,7 @@ OnHeapConsumedPreparseData::OnHeapConsumedPreparseData(
   DCHECK(VerifyDataStart());
 }
 
-ZonePreparseData::ZonePreparseData(Zone* zone, base::Vector<uint8_t>* byte_data,
+ZonePreparseData::ZonePreparseData(Zone* zone, ::v8::base::Vector<uint8_t>* byte_data,
                                    int children_length)
     : byte_data_(byte_data->begin(), byte_data->end(), zone),
       children_(children_length, zone) {}

@@ -6,7 +6,7 @@ using Address = uintptr_t;
 constexpr Address kNullAddress = 0;
 }  // namespace base
 }  // namespace v8
-#define NON_EXPORTED_BASE(x) public x
+// NON_EXPORTED_BASE is already defined in compiler-specific.h
 #else
 // Copyright 2021 the V8 project authors. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be

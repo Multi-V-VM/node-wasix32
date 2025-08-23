@@ -1,3 +1,6 @@
+#ifdef __wasi__
+#define V8_TARGET_ARCH_WASM32 1
+#endif
 // Copyright 2013 the V8 project authors. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
@@ -35,17 +38,17 @@ namespace compiler {
 
 class CodeGenerator::JumpTable final : public ZoneObject {
  public:
-  JumpTable(JumpTable* next, const base::Vector<Label*>& targets)
+  JumpTable(JumpTable* next, const ::v8::base::Vector<Label*>& targets)
       : next_(next), targets_(targets) {}
 
   Label* label() { return &label_; }
   JumpTable* next() const { return next_; }
-  const base::Vector<Label*>& targets() const { return targets_; }
+  const ::v8::base::Vector<Label*>& targets() const { return targets_; }
 
  private:
   Label label_;
   JumpTable* const next_;
-  base::Vector<Label*> const targets_;
+  ::v8::base::Vector<Label*> const targets_;
 };
 
 CodeGenerator::CodeGenerator(Zone* codegen_zone, Frame* frame, Linkage* linkage,
@@ -473,14 +476,14 @@ void CodeGenerator::AssembleArchJump(RpoNumber target) {
     AssembleArchJumpRegardlessOfAssemblyOrder(target);
 }
 
-base::OwnedVector<uint8_t> CodeGenerator::GetSourcePositionTable() {
+base::Owned::v8::base::Vector<uint8_t> CodeGenerator::GetSourcePositionTable() {
   return source_position_table_builder_.ToSourcePositionTableVector();
 }
 
-base::OwnedVector<uint8_t> CodeGenerator::GetProtectedInstructionsData() {
+base::Owned::v8::base::Vector<uint8_t> CodeGenerator::GetProtectedInstructionsData() {
 #if V8_ENABLE_WEBASSEMBLY
   return base::OwnedCopyOf(
-      base::Vector<uint8_t>::cast(base::VectorOf(protected_instructions_)));
+      ::v8::base::Vector<uint8_t>::cast(base::VectorOf(protected_instructions_)));
 #else
   return {};
 #endif  // V8_ENABLE_WEBASSEMBLY
@@ -618,7 +621,7 @@ bool CodeGenerator::IsValidPush(InstructionOperand source,
 
 void CodeGenerator::GetPushCompatibleMoves(Instruction* instr,
                                            PushTypeFlags push_type,
-                                           ZoneVector<MoveOperands*>* pushes) {
+                                           ::v8::base::Vector<MoveOperands*>* pushes) {
   static constexpr int first_push_compatible_index =
       kReturnAddressStackSlotCount;
   pushes->clear();
@@ -1049,7 +1052,7 @@ Handle<DeoptimizationData> CodeGenerator::GenerateDeoptimizationData() {
 }
 
 #if V8_ENABLE_WEBASSEMBLY
-base::OwnedVector<uint8_t> CodeGenerator::GenerateWasmDeoptimizationData() {
+base::Owned::v8::base::Vector<uint8_t> CodeGenerator::GenerateWasmDeoptimizationData() {
   int deopt_count = static_cast<int>(deoptimization_exits_.size());
   if (deopt_count == 0) {
     return {};
@@ -1060,7 +1063,7 @@ base::OwnedVector<uint8_t> CodeGenerator::GenerateWasmDeoptimizationData() {
   DCHECK_EQ(inlined_function_count_, 0);
 
   auto deopt_entries =
-      base::OwnedVector<wasm::WasmDeoptEntry>::New(deopt_count);
+      base::Owned::v8::base::Vector<wasm::WasmDeoptEntry>::New(deopt_count);
   // Populate deoptimization entries.
   for (int i = 0; i < deopt_count; i++) {
     const DeoptimizationExit* deoptimization_exit = deoptimization_exits_[i];
@@ -1070,9 +1073,9 @@ base::OwnedVector<uint8_t> CodeGenerator::GenerateWasmDeoptimizationData() {
                         deoptimization_exit->translation_id()};
   }
 
-  base::Vector<const uint8_t> frame_translations =
+  ::v8::base::Vector<const uint8_t> frame_translations =
       translations_.ToFrameTranslationWasm();
-  base::OwnedVector<uint8_t> result = wasm::WasmDeoptDataProcessor::Serialize(
+  base::Owned::v8::base::Vector<uint8_t> result = wasm::WasmDeoptDataProcessor::Serialize(
       deopt_exit_start_offset_, eager_deopt_count_, frame_translations,
       base::VectorOf(deopt_entries), deoptimization_literals_);
 #if DEBUG
@@ -1101,7 +1104,7 @@ base::OwnedVector<uint8_t> CodeGenerator::GenerateWasmDeoptimizationData() {
 }
 #endif  // V8_ENABLE_WEBASSEMBLY
 
-Label* CodeGenerator::AddJumpTable(base::Vector<Label*> targets) {
+Label* CodeGenerator::AddJumpTable(::v8::base::Vector<Label*> targets) {
   jump_tables_ = zone()->New<JumpTable>(jump_tables_, targets);
   return jump_tables_->label();
 }
@@ -1355,7 +1358,7 @@ DeoptimizationExit* CodeGenerator::BuildTranslation(
       0);
 #endif  // DEBUG
   if (immediate_args_count != 0) {
-    auto immediate_args = zone()->New<ZoneVector<ImmediateOperand*>>(zone());
+    auto immediate_args = zone()->New<::v8::base::Vector<ImmediateOperand*>>(zone());
     InstructionOperandIterator imm_iter(
         instr, frame_state_offset - immediate_args_count - 1);
     for (size_t i = 0; i < immediate_args_count; i++) {

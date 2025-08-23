@@ -1,3 +1,6 @@
+#ifdef __wasi__
+#define V8_TARGET_ARCH_WASM32 1
+#endif
 // Copyright 2018 the V8 project authors. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
@@ -428,14 +431,14 @@ size_t EmbeddedData::CreateEmbeddedBlobDataHash() const {
   static constexpr uint32_t kFirstHashedDataOffset = IsolateHashOffset();
   // Hash the entire data section except the embedded blob hash fields
   // themselves.
-  base::Vector<const uint8_t> payload(data_ + kFirstHashedDataOffset,
+  ::v8::base::Vector<const uint8_t> payload(data_ + kFirstHashedDataOffset,
                                       data_size_ - kFirstHashedDataOffset);
   return Checksum(payload);
 }
 
 size_t EmbeddedData::CreateEmbeddedBlobCodeHash() const {
   CHECK(v8_flags.text_is_readable);
-  base::Vector<const uint8_t> payload(code_, code_size_);
+  ::v8::base::Vector<const uint8_t> payload(code_, code_size_);
   return Checksum(payload);
 }
 

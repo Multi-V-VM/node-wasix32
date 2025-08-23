@@ -1,3 +1,6 @@
+#ifdef __wasi__
+#define V8_TARGET_ARCH_WASM32 1
+#endif
 // Copyright 2015 the V8 project authors. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
@@ -135,25 +138,25 @@ DirectHandle<WasmModuleObject> WasmModuleObject::New(
 DirectHandle<String> WasmModuleObject::ExtractUtf8StringFromModuleBytes(
     Isolate* isolate, DirectHandle<WasmModuleObject> module_object,
     wasm::WireBytesRef ref, InternalizeString internalize) {
-  base::Vector<const uint8_t> wire_bytes =
+  ::v8::base::Vector<const uint8_t> wire_bytes =
       module_object->native_module()->wire_bytes();
   return ExtractUtf8StringFromModuleBytes(isolate, wire_bytes, ref,
                                           internalize);
 }
 
 DirectHandle<String> WasmModuleObject::ExtractUtf8StringFromModuleBytes(
-    Isolate* isolate, base::Vector<const uint8_t> wire_bytes,
+    Isolate* isolate, ::v8::base::Vector<const uint8_t> wire_bytes,
     wasm::WireBytesRef ref, InternalizeString internalize) {
-  base::Vector<const uint8_t> name_vec =
+  ::v8::base::Vector<const uint8_t> name_vec =
       wire_bytes.SubVector(ref.offset(), ref.end_offset());
   // UTF8 validation happens at decode time.
   DCHECK(unibrow::Utf8::ValidateEncoding(name_vec.begin(), name_vec.length()));
   auto* factory = isolate->factory();
   return internalize
              ? factory->InternalizeUtf8String(
-                   base::Vector<const char>::cast(name_vec))
+                   ::v8::base::Vector<const char>::cast(name_vec))
              : factory
-                   ->NewStringFromUtf8(base::Vector<const char>::cast(name_vec))
+                   ->NewStringFromUtf8(::v8::base::Vector<const char>::cast(name_vec))
                    .ToHandleChecked();
 }
 
@@ -178,10 +181,10 @@ MaybeDirectHandle<String> WasmModuleObject::GetFunctionNameOrNull(
                                           kNoInternalize);
 }
 
-base::Vector<const uint8_t> WasmModuleObject::GetRawFunctionName(
+Vector<const uint8_t> WasmModuleObject::GetRawFunctionName(
     int func_index) {
   if (func_index == wasm::kAnonymousFuncIndex) {
-    return base::Vector<const uint8_t>({nullptr, 0});
+    return ::v8::base::Vector<const uint8_t>({nullptr, 0});
   }
   DCHECK_GT(module()->functions.size(), func_index);
   wasm::ModuleWireBytes wire_bytes(native_module()->wire_bytes());
@@ -189,7 +192,7 @@ base::Vector<const uint8_t> WasmModuleObject::GetRawFunctionName(
       module()->lazily_generated_names.LookupFunctionName(wire_bytes,
                                                           func_index);
   wasm::WasmName name = wire_bytes.GetNameOrNull(name_ref);
-  return base::Vector<const uint8_t>::cast(name);
+  return ::v8::base::Vector<const uint8_t>::cast(name);
 }
 
 DirectHandle<WasmTableObject> WasmTableObject::New(
@@ -1903,7 +1906,7 @@ DirectHandle<WasmTrustedInstanceData> WasmTrustedInstanceData::New(
 void WasmTrustedInstanceData::InitDataSegmentArrays(
     const wasm::NativeModule* native_module) {
   const WasmModule* module = native_module->module();
-  base::Vector<const uint8_t> wire_bytes = native_module->wire_bytes();
+  ::v8::base::Vector<const uint8_t> wire_bytes = native_module->wire_bytes();
   uint32_t num_data_segments = module->num_declared_data_segments;
   // The number of declared data segments will be zero if there is no DataCount
   // section. These arrays will not be allocated nor initialized in that case,
@@ -3083,11 +3086,11 @@ DirectHandle<WasmExportedFunction> WasmExportedFunction::New(
   }
   DirectHandle<String> name;
   if (!maybe_name.ToHandle(&name)) {
-    base::EmbeddedVector<char, 16> buffer;
+    base::Embedded::v8::base::Vector<char, 16> buffer;
     int length = SNPrintF(buffer, "%d", func_index);
     name = factory
                ->NewStringFromOneByte(
-                   base::Vector<uint8_t>::cast(buffer.SubVector(0, length)))
+                   ::v8::base::Vector<uint8_t>::cast(buffer.SubVector(0, length)))
                .ToHandleChecked();
   }
   DirectHandle<Map> function_map;
@@ -3137,7 +3140,7 @@ std::unique_ptr<char[]> WasmExportedFunction::GetDebugName(
   constexpr const char kPrefix[] = "js-to-wasm:";
   // prefix + parameters + delimiter + returns + zero byte
   size_t len = strlen(kPrefix) + sig->all().size() + 2;
-  auto buffer = base::OwnedVector<char>::New(len);
+  auto buffer = base::Owned::v8::base::Vector<char>::New(len);
   memcpy(buffer.begin(), kPrefix, strlen(kPrefix));
   PrintSignature(buffer.as_vector() + strlen(kPrefix), sig);
   return buffer.ReleaseData();

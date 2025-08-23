@@ -346,7 +346,7 @@ static_assert(sizeof(RegExpInstruction) == 8);
 
 std::ostream& operator<<(std::ostream& os, const RegExpInstruction& inst);
 std::ostream& operator<<(std::ostream& os,
-                         base::Vector<const RegExpInstruction> insts);
+                         ::v8::base::Vector<const RegExpInstruction> insts);
 std::ostream& operator<<(std::ostream& os,
                          const RegExpInstruction::LookaroundPayload& inst);
 

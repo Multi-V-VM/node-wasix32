@@ -1,3 +1,6 @@
+#ifdef __wasi__
+#define V8_TARGET_ARCH_WASM32 1
+#endif
 // Copyright 2019 the V8 project authors. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
@@ -230,7 +233,7 @@ void Disassemble(const char* name, std::ostream& os, Isolate* isolate,
     if (int pool_size = code->constant_pool_size()) {
       DCHECK_EQ(pool_size & kPointerAlignmentMask, 0);
       os << "\nConstant Pool (size = " << pool_size << ")\n";
-      base::Vector<char> buf = base::Vector<char>::New(50);
+      ::v8::base::Vector<char> buf = ::v8::base::Vector<char>::New(50);
       intptr_t* ptr = reinterpret_cast<intptr_t*>(code->constant_pool());
       for (int i = 0; i < pool_size; i += kSystemPointerSize, ptr++) {
         SNPrintF(buf, "%4d %08" V8PRIxPTR, i, *ptr);

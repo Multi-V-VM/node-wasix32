@@ -82,11 +82,11 @@ class V8_EXPORT_PRIVATE Scheduler {
   TFGraph* graph_;
   Schedule* schedule_;
   Flags flags_;
-  ZoneVector<NodeVector*>
+  ::v8::base::Vector<NodeVector*>
       scheduled_nodes_;                  // Per-block list of nodes in reverse.
   NodeVector schedule_root_nodes_;       // Fixed root nodes seed the worklist.
   ZoneQueue<Node*> schedule_queue_;      // Worklist of schedulable nodes.
-  ZoneVector<SchedulerData> node_data_;  // Per-node data for all nodes.
+  ::v8::base::Vector<SchedulerData> node_data_;  // Per-node data for all nodes.
   CFGBuilder* control_flow_builder_;     // Builds basic blocks for controls.
   SpecialRPONumberer* special_rpo_;      // Special RPO numbering of blocks.
   ControlEquivalence* equivalence_;      // Control dependence equivalence.

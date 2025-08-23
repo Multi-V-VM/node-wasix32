@@ -1783,7 +1783,7 @@ std::optional<Node*> JSCreateLowering::TryAllocateFastLiteral(
   }
 
   // Compute the in-object properties to store first (might have effects).
-  ZoneVector<std::pair<FieldAccess, Node*>> inobject_fields(zone());
+  ::v8::base::Vector<std::pair<FieldAccess, Node*>> inobject_fields(zone());
   inobject_fields.reserve(boilerplate_map.GetInObjectProperties());
   int const boilerplate_nof = boilerplate_map.NumberOfOwnDescriptors();
   for (InternalIndex i : InternalIndex::Range(boilerplate_nof)) {
@@ -1939,7 +1939,7 @@ std::optional<Node*> JSCreateLowering::TryAllocateFastLiteralElements(
   }
 
   // Compute the elements to store first (might have effects).
-  ZoneVector<Node*> elements_values(elements_length, zone());
+  ::v8::base::Vector<Node*> elements_values(elements_length, zone());
   if (boilerplate_elements.IsFixedDoubleArray()) {
     uint32_t const size =
         FixedDoubleArray::SizeFor(boilerplate_elements.length());

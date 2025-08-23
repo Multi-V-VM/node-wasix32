@@ -212,9 +212,9 @@ class MaglevPhiRepresentationSelector {
   SnapshotTable<ValueNode*> phi_taggings_;
   // {predecessors_} is used during merging, but we use an instance variable for
   // it, in order to save memory and not reallocate it for each merge.
-  ZoneVector<Snapshot> predecessors_;
+  ::v8::base::Vector<Snapshot> predecessors_;
 
-  ZoneVector<Node*> new_nodes_at_start_;
+  ::v8::base::Vector<Node*> new_nodes_at_start_;
 
   absl::flat_hash_map<BasicBlock::Id, Snapshot> snapshots_;
 

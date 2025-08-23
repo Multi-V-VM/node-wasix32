@@ -38,7 +38,7 @@ class DateParser : public AllStatic {
   // [7]: UTC offset in seconds, or null value if no timezone specified
   // If parsing fails, return false (content of output array is not defined).
   template <typename Char>
-  static bool Parse(Isolate* isolate, base::Vector<Char> str, double* output);
+  static bool Parse(Isolate* isolate, ::v8::base::Vector<Char> str, double* output);
 
  private:
   // Range testing
@@ -57,7 +57,7 @@ class DateParser : public AllStatic {
   template <typename Char>
   class InputReader {
    public:
-    explicit InputReader(base::Vector<Char> s) : index_(0), buffer_(s) {
+    explicit InputReader(::v8::base::Vector<Char> s) : index_(0), buffer_(s) {
       Next();
     }
 
@@ -124,7 +124,7 @@ class DateParser : public AllStatic {
 
    private:
     int index_;
-    base::Vector<Char> buffer_;
+    ::v8::base::Vector<Char> buffer_;
     uint32_t ch_;
   };
 

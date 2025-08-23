@@ -24,10 +24,10 @@ WasmDeoptView::BuildDeoptimizationLiteralArray() {
   return deopt_literals;
 }
 
-base::OwnedVector<uint8_t> WasmDeoptDataProcessor::Serialize(
+base::Owned::v8::base::Vector<uint8_t> WasmDeoptDataProcessor::Serialize(
     int deopt_exit_start_offset, int eager_deopt_count,
-    base::Vector<const uint8_t> translation_array,
-    base::Vector<wasm::WasmDeoptEntry> deopt_entries,
+    ::v8::base::Vector<const uint8_t> translation_array,
+    ::v8::base::Vector<wasm::WasmDeoptEntry> deopt_entries,
     const ZoneDeque<DeoptimizationLiteral>& deopt_literals) {
   wasm::WasmDeoptData data;
   data.entry_count = eager_deopt_count;
@@ -45,7 +45,7 @@ base::OwnedVector<uint8_t> WasmDeoptDataProcessor::Serialize(
       deopt_literals.size() * sizeof(deopt_literals[0]);
   size_t byte_size = sizeof(data) + translation_array_byte_size +
                      deopt_entries_byte_size + deopt_literals_byte_size;
-  auto result = base::OwnedVector<uint8_t>::New(byte_size);
+  auto result = base::Owned::v8::base::Vector<uint8_t>::New(byte_size);
   uint8_t* result_iter = result.begin();
   std::memcpy(result_iter, &data, sizeof(data));
   result_iter += sizeof(data);

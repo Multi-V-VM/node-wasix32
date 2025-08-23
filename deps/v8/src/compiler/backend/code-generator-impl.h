@@ -1,3 +1,6 @@
+#ifdef __wasi__
+#define V8_TARGET_ARCH_WASM32 1
+#endif
 // Copyright 2013 the V8 project authors. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
@@ -260,10 +263,10 @@ class DeoptimizationExit : public ZoneObject {
   DeoptimizeKind kind() const { return kind_; }
   DeoptimizeReason reason() const { return reason_; }
   NodeId node_id() const { return node_id_; }
-  const ZoneVector<ImmediateOperand*>* immediate_args() const {
+  const ::v8::base::Vector<ImmediateOperand*>* immediate_args() const {
     return immediate_args_;
   }
-  void set_immediate_args(ZoneVector<ImmediateOperand*>* immediate_args) {
+  void set_immediate_args(::v8::base::Vector<ImmediateOperand*>* immediate_args) {
     immediate_args_ = immediate_args;
   }
   // Returns whether the deopt exit has already been emitted. Most deopt exits
@@ -284,7 +287,7 @@ class DeoptimizationExit : public ZoneObject {
   const DeoptimizeKind kind_;
   const DeoptimizeReason reason_;
   const NodeId node_id_;
-  ZoneVector<ImmediateOperand*>* immediate_args_;
+  ::v8::base::Vector<ImmediateOperand*>* immediate_args_;
   bool emitted_;
 };
 

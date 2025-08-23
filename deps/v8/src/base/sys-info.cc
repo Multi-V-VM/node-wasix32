@@ -58,6 +58,9 @@ int SysInfo::NumberOfProcessors() {
   return static_cast<int>(system_info.dwNumberOfProcessors);
 #elif V8_OS_STARBOARD
   return SbSystemGetNumberOfProcessors();
+#else
+  // Default for WASI and other platforms
+  return 1;
 #endif
 }
 
@@ -112,6 +115,9 @@ int64_t SysInfo::AmountOfPhysicalMemory() {
   return static_cast<int64_t>(pages) * page_size;
 #elif V8_OS_STARBOARD
   return SbSystemGetTotalCPUMemory();
+#else
+  // Default for WASI and other platforms
+  return 256 * 1024 * 1024;  // 256MB default
 #endif
 }
 
@@ -128,6 +134,9 @@ int64_t SysInfo::AmountOfVirtualMemory() {
   }
   return (rlim.rlim_cur == RLIM_INFINITY) ? 0 : rlim.rlim_cur;
 #elif V8_OS_STARBOARD
+  return 0;
+#else
+  // Default for WASI and other platforms
   return 0;
 #endif
 }

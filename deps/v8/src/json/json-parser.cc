@@ -819,7 +819,7 @@ class JSDataObjectBuilder {
   }
 
   template <typename Char, typename GetKeyFunction, typename GetValueFunction>
-  V8_INLINE bool TryAddFastPropertyForValue(base::Vector<const Char> key_chars,
+  V8_INLINE bool TryAddFastPropertyForValue(::v8::base::Vector<const Char> key_chars,
                                             GetKeyFunction&& get_key,
                                             GetValueFunction&& get_value) {
     // The fast path is only valid as long as we haven't allocated an object
@@ -991,7 +991,7 @@ class JSDataObjectBuilder {
  private:
   template <typename Char, typename GetKeyFunction>
   V8_INLINE bool TryFastTransitionToPropertyKey(
-      base::Vector<const Char> key_chars, GetKeyFunction&& get_key,
+      ::v8::base::Vector<const Char> key_chars, GetKeyFunction&& get_key,
       Handle<String>* key_out) {
     Handle<String> expected_key;
     DirectHandle<Map> target_map;
@@ -1262,7 +1262,7 @@ class JsonParser<Char>::NamedPropertyIterator {
     return it_ == end_;
   }
 
-  base::Vector<const Char> GetKeyChars() {
+  ::v8::base::Vector<const Char> GetKeyChars() {
     return parser_.GetKeyChars(it_->string);
   }
   Handle<String> GetKey(Handle<String> expected_key_hint) {
@@ -2063,7 +2063,7 @@ bool JsonParser<Char>::ParseJsonNumberAsDoubleOrSmi(double* result_double,
       AdvanceToNonDecimal();
     }
 
-    base::Vector<const Char> chars(start, cursor_ - start);
+    ::v8::base::Vector<const Char> chars(start, cursor_ - start);
     *result_double =
         StringToDouble(chars,
                        NO_CONVERSION_FLAG,  // Hex, octal or trailing junk.
@@ -2078,7 +2078,7 @@ bool JsonParser<Char>::ParseJsonNumberAsDoubleOrSmi(double* result_double,
 namespace {
 
 template <typename Char>
-bool Matches(base::Vector<const Char> chars, DirectHandle<String> string) {
+bool Matches(::v8::base::Vector<const Char> chars, DirectHandle<String> string) {
   DCHECK(!string.is_null());
   return string->IsEqualTo(chars);
 }
@@ -2103,7 +2103,7 @@ Handle<String> JsonParser<Char>::DecodeString(
 
     if (!string.internalize()) return intermediate;
 
-    base::Vector<const SinkChar> data(dest, string.length());
+    ::v8::base::Vector<const SinkChar> data(dest, string.length());
     if (!hint.is_null() && Matches(data, hint)) return hint;
   }
 
@@ -2127,7 +2127,7 @@ Handle<String> JsonParser<Char>::MakeString(const JsonString& string,
 
   if (string.internalize() && !string.has_escape()) {
     if (!hint.is_null()) {
-      base::Vector<const Char> data(chars_ + string.start(), string.length());
+      ::v8::base::Vector<const Char> data(chars_ + string.start(), string.length());
       if (Matches(data, hint)) return hint;
     }
     if (chars_may_relocate_) {
@@ -2135,7 +2135,7 @@ Handle<String> JsonParser<Char>::MakeString(const JsonString& string,
                                              string.start(), string.length(),
                                              string.needs_conversion());
     }
-    base::Vector<const Char> chars(chars_ + string.start(), string.length());
+    ::v8::base::Vector<const Char> chars(chars_ + string.start(), string.length());
     return factory()->InternalizeString(chars, string.needs_conversion());
   }
 

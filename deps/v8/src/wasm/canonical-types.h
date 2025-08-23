@@ -345,8 +345,8 @@ class TypeCanonicalizer {
       }
     }
 
-    bool EqualTypes(base::Vector<const CanonicalType> types1,
-                    base::Vector<const CanonicalType> types2) const {
+    bool EqualTypes(::v8::base::Vector<const CanonicalType> types1,
+                    ::v8::base::Vector<const CanonicalType> types2) const {
       return std::equal(types1.begin(), types1.end(), types2.begin(),
                         types2.end(),
                         std::bind_front(&CanonicalEquality::EqualType, this));
@@ -398,7 +398,7 @@ class TypeCanonicalizer {
 
   struct CanonicalGroup {
     CanonicalGroup(Zone* zone, size_t size, CanonicalTypeIndex first)
-        : types(zone->AllocateVector<CanonicalType>(size)), first(first) {
+        : types(zone->Allocate::v8::base::Vector<CanonicalType>(size)), first(first) {
       // size >= 2; otherwise a `CanonicalSingletonGroup` should have been used.
       DCHECK_LE(2, size);
     }
@@ -423,7 +423,7 @@ class TypeCanonicalizer {
     }
 
     // The storage of this vector is the TypeCanonicalizer's zone_.
-    const base::Vector<CanonicalType> types;
+    const ::v8::base::Vector<CanonicalType> types;
     const CanonicalTypeIndex first;
   };
 

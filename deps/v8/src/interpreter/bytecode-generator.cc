@@ -389,7 +389,7 @@ class V8_NODISCARD BytecodeGenerator::ControlScope::DeferredCommands final {
   }
 
   BytecodeGenerator* generator_;
-  ZoneVector<Entry> deferred_;
+  ::v8::base::Vector<Entry> deferred_;
   Register token_register_;
   Register result_register_;
   Register message_register_;

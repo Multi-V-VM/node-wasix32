@@ -21,7 +21,7 @@ class V8_EXPORT_PRIVATE MoveOptimizer final {
   void Run();
 
  private:
-  using MoveOpVector = ZoneVector<MoveOperands*>;
+  using MoveOpVector = ::v8::base::Vector<MoveOperands*>;
 
   InstructionSequence* code() const { return code_; }
   Zone* local_zone() const { return local_zone_; }
@@ -56,8 +56,8 @@ class V8_EXPORT_PRIVATE MoveOptimizer final {
 
   // Reusable buffers for storing operand sets. We need at most two sets
   // at any given time, so we create two buffers.
-  ZoneVector<InstructionOperand> operand_buffer1;
-  ZoneVector<InstructionOperand> operand_buffer2;
+  ::v8::base::Vector<InstructionOperand> operand_buffer1;
+  ::v8::base::Vector<InstructionOperand> operand_buffer2;
 };
 
 }  // namespace compiler

@@ -401,7 +401,7 @@ Type TypeGuardTypeOf(Operator const* op) {
 }
 
 std::ostream& operator<<(std::ostream& os,
-                         const ZoneVector<MachineType>* types) {
+                         const ::v8::base::Vector<MachineType>* types) {
   // Print all the MachineTypes, separated by commas.
   bool first = true;
   for (MachineType elem : *types) {
@@ -429,7 +429,7 @@ SparseInputMask SparseInputMaskOf(Operator const* op) {
   return OpParameter<SparseInputMask>(op);
 }
 
-ZoneVector<MachineType> const* MachineTypesOf(Operator const* op) {
+::v8::base::Vector<MachineType> const* MachineTypesOf(Operator const* op) {
   DCHECK(op->opcode() == IrOpcode::kTypedObjectState ||
          op->opcode() == IrOpcode::kTypedStateValues);
 
@@ -1529,7 +1529,7 @@ const Operator* CommonOperatorBuilder::StateValues(int arguments,
 }
 
 const Operator* CommonOperatorBuilder::TypedStateValues(
-    const ZoneVector<MachineType>* types, SparseInputMask bitmask) {
+    const ::v8::base::Vector<MachineType>* types, SparseInputMask bitmask) {
 #if DEBUG
   DCHECK(bitmask.IsDense() ||
          bitmask.CountReal() == static_cast<int>(types->size()));
@@ -1573,7 +1573,7 @@ const Operator* CommonOperatorBuilder::ObjectState(uint32_t object_id,
 }
 
 const Operator* CommonOperatorBuilder::TypedObjectState(
-    uint32_t object_id, const ZoneVector<MachineType>* types) {
+    uint32_t object_id, const ::v8::base::Vector<MachineType>* types) {
   return zone()->New<Operator1<TypedObjectStateInfo>>(  // --
       IrOpcode::kTypedObjectState, Operator::kPure,     // opcode
       "TypedObjectState",                               // name

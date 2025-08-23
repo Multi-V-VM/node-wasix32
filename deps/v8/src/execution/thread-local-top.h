@@ -72,7 +72,7 @@ class ThreadLocalTop {
 #endif
     if constexpr (clear_exception) {
       exception_ = Tagged<Object>(
-          Internals::GetRoot(reinterpret_cast<v8::Isolate*>(isolate_),
+          Internals::GetRoot(reinterpret_cast<::v8::Isolate*>(isolate_),
                              Internals::kTheHoleValueRootIndex));
     }
   }
@@ -160,7 +160,7 @@ class ThreadLocalTop {
   // This field is not guaranteed to hold an address that can be
   // used for comparison with addresses into the JS stack. If such
   // an address is needed, use try_catch_handler_address.
-  v8::TryCatch* try_catch_handler_;
+  ::v8::TryCatch* try_catch_handler_;
 
   // These two fields are updated rarely (on every thread restore).
   Isolate* isolate_;
@@ -190,10 +190,10 @@ class ThreadLocalTop {
   EmbedderState* current_embedder_state_;
 
   // The top entry of the v8::Context::BackupIncumbentScope stack.
-  const v8::Context::BackupIncumbentScope* top_backup_incumbent_scope_;
+  const ::v8::Context::BackupIncumbentScope* top_backup_incumbent_scope_;
 
   // Call back function to report unsafe JS accesses.
-  v8::FailedAccessCheckCallback failed_access_check_callback_;
+  ::v8::FailedAccessCheckCallback failed_access_check_callback_;
 
   // Address of the thread-local "thread in wasm" flag.
   Address thread_in_wasm_flag_address_;

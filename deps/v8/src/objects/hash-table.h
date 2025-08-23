@@ -245,6 +245,7 @@ class EXPORT_TEMPLATE_DECLARE(V8_EXPORT_PRIVATE) HashTable
 
   // Find the entry at which to insert element with the given key that
   // has the given hash value.
+ public:
   InternalIndex FindInsertionEntry(PtrComprCageBase cage_base,
                                    ReadOnlyRoots roots, uint32_t hash);
   template <typename IsolateT>
@@ -271,7 +272,7 @@ class EXPORT_TEMPLATE_DECLARE(V8_EXPORT_PRIVATE) HashTable
   // Ensure that kMaxRegularCapacity yields a non-large object dictionary.
   static_assert(EntryToIndex(InternalIndex(kMaxRegularCapacity)) <
                 FixedArray::kMaxRegularLength);
-  static_assert(v8::base::bits::IsPowerOfTwo(kMaxRegularCapacity));
+  static_assert(::v8::base::bits::IsPowerOfTwo(kMaxRegularCapacity));
   static const int kMaxRegularEntry = kMaxRegularCapacity / kEntrySize;
   static const int kMaxRegularIndex =
       EntryToIndex(InternalIndex(kMaxRegularEntry));
@@ -553,6 +554,7 @@ class V8_EXPORT_PRIVATE NameToIndexHashTable
   // Exposed for NameDictionaryLookupForwardedString slow path for forwarded
   // strings.
   using HashTable<NameToIndexHashTable, NameToIndexShape>::FindInsertionEntry;
+  using HashTable<NameToIndexHashTable, NameToIndexShape>::EntryToIndex;
 
   DECL_PRINTER(NameToIndexHashTable)
 
@@ -594,6 +596,8 @@ class RegisteredSymbolTable
   DECL_PRINTER(RegisteredSymbolTable)
 
  private:
+  using HashTable<RegisteredSymbolTable, RegisteredSymbolTableShape>::EntryToIndex;
+  
   static inline int EntryToValueIndex(InternalIndex entry) {
     return EntryToIndex(entry) + RegisteredSymbolTableShape::kEntryValueIndex;
   }

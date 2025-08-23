@@ -127,7 +127,7 @@ Tagged_t Assembler::target_compressed_address_at(Address pc,
                                                  Address constant_pool) {
   disasm::NameConverter converter;
   disasm::Disassembler disasm(converter);
-  base::EmbeddedVector<char, 128> disasm_buffer;
+  base::Embedded::v8::base::Vector<char, 128> disasm_buffer;
 
   disasm.InstructionDecode(disasm_buffer, reinterpret_cast<uint8_t*>(pc));
   DEBUG_PRINTF("%s\n", disasm_buffer.begin());
@@ -170,7 +170,7 @@ Handle<HeapObject> Assembler::embedded_object_handle_at(Address pc) {
   DEBUG_PRINTF("\tembedded_object_handle_at: pc: 0x%" PRIxPTR " \n", pc);
   disasm::NameConverter converter;
   disasm::Disassembler disasm(converter);
-  base::EmbeddedVector<char, 128> disasm_buffer;
+  base::Embedded::v8::base::Vector<char, 128> disasm_buffer;
 
   disasm.InstructionDecode(disasm_buffer, reinterpret_cast<uint8_t*>(pc));
   DEBUG_PRINTF("%s\n", disasm_buffer.begin());

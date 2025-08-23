@@ -68,7 +68,7 @@ class DependentCode : public WeakArrayList {
     kEmptyContextExtensionGroup = 1 << 10,
     // IMPORTANT: The last bit must fit into a Smi, i.e. into 31 bits.
   };
-  using DependencyGroups = base::Flags<DependencyGroup, uint32_t>;
+  using DependencyGroups = ::v8::base::Flags<DependencyGroup, uint32_t>;
 
   static const char* DependencyGroupName(DependencyGroup group);
   static LazyDeoptimizeReason DependencyGroupToLazyDeoptReason(

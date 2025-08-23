@@ -37,6 +37,8 @@ namespace std {
   using ::std::add_const;
   using ::std::apply;
   using ::std::move_backward;
+  using ::std::deque;
+  using ::std::multiset;
 }
 #endif
 
@@ -203,7 +205,7 @@ class ZoneVector {
     return *this;
   }
 
-  void swap(ZoneVector<T>& other) noexcept {
+  void swap(::v8::base::Vector<T>& other) noexcept {
     DCHECK_EQ(zone_, other.zone_);
     std::swap(data_, other.data_);
     std::swap(end_, other.end_);
@@ -592,28 +594,28 @@ class ZoneVector {
 };
 
 template <class T>
-bool operator==(const ZoneVector<T>& lhs, const ZoneVector<T>& rhs) {
+bool operator==(const ::v8::base::Vector<T>& lhs, const ::v8::base::Vector<T>& rhs) {
   return std::equal(lhs.begin(), lhs.end(), rhs.begin(), rhs.end());
 }
 
 template <class T>
-bool operator!=(const ZoneVector<T>& lhs, const ZoneVector<T>& rhs) {
+bool operator!=(const ::v8::base::Vector<T>& lhs, const ::v8::base::Vector<T>& rhs) {
   return !(lhs == rhs);
 }
 
 template <class T>
-bool operator<(const ZoneVector<T>& lhs, const ZoneVector<T>& rhs) {
+bool operator<(const ::v8::base::Vector<T>& lhs, const ::v8::base::Vector<T>& rhs) {
   return std::lexicographical_compare(lhs.begin(), lhs.end(), rhs.begin(),
                                       rhs.end());
 }
 
 template <class T, class GetIntrusiveSetIndex>
 class ZoneIntrusiveSet
-    : public ::v8::base::IntrusiveSet<T, GetIntrusiveSetIndex, ZoneVector<T>> {
+    : public ::v8::base::IntrusiveSet<T, GetIntrusiveSetIndex, ::v8::base::Vector<T>> {
  public:
   explicit ZoneIntrusiveSet(Zone* zone, GetIntrusiveSetIndex index_functor = {})
-      : ::v8::base::IntrusiveSet<T, GetIntrusiveSetIndex, ZoneVector<T>>(
-            ZoneVector<T>(zone), std::move(index_functor)) {}
+      : ::v8::base::IntrusiveSet<T, GetIntrusiveSetIndex, ::v8::base::Vector<T>>(
+            ::v8::base::Vector<T>(zone), std::move(index_functor)) {}
 };
 using ::v8::base::IntrusiveSetIndex;
 
@@ -643,23 +645,23 @@ class ZoneLinkedList : public std::list<T, ZoneAllocator<T>> {
 // A wrapper subclass for std::forward_list to make it easy to construct one
 // that uses a zone allocator.
 template <typename T>
-class ZoneForwardList : public std::forward_list<T, ZoneAllocator<T>> {
+class ZoneForwardList : public forward_list<T, ZoneAllocator<T>> {
  public:
   // Constructs an empty list.
   explicit ZoneForwardList(Zone* zone)
-      : std::forward_list<T, ZoneAllocator<T>>(ZoneAllocator<T>(zone)) {}
+      : forward_list<T, ZoneAllocator<T>>(ZoneAllocator<T>(zone)) {}
 };
 
 // A wrapper subclass for std::priority_queue to make it easy to construct one
 // that uses a zone allocator.
 template <typename T, typename Compare = std::less<T>>
 class ZonePriorityQueue
-    : public std::priority_queue<T, ZoneVector<T>, Compare> {
+    : public std::priority_queue<T, ::v8::base::Vector<T>, Compare> {
  public:
   // Constructs an empty list.
   explicit ZonePriorityQueue(Zone* zone)
-      : std::priority_queue<T, ZoneVector<T>, Compare>(Compare(),
-                                                       ZoneVector<T>(zone)) {}
+      : std::priority_queue<T, ::v8::base::Vector<T>, Compare>(Compare(),
+                                                       ::v8::base::Vector<T>(zone)) {}
 };
 
 // A wrapper subclass for std::queue to make it easy to construct one
@@ -718,7 +720,7 @@ class ZoneMap
 
 // A wrapper subclass for std::unordered_map to make it easy to construct one
 // that uses a zone allocator.
-template <typename K, typename V, typename Hash = base::hash<K>,
+template <typename K, typename V, typename Hash = ::std::hash<K>,
           typename KeyEqual = std::equal_to<K>>
 class ZoneUnorderedMap
     : public std::unordered_map<K, V, Hash, KeyEqual,
@@ -734,7 +736,7 @@ class ZoneUnorderedMap
 
 // A wrapper subclass for std::unordered_set to make it easy to construct one
 // that uses a zone allocator.
-template <typename K, typename Hash = base::hash<K>,
+template <typename K, typename Hash = ::std::hash<K>,
           typename KeyEqual = std::equal_to<K>>
 class ZoneUnorderedSet
     : public std::unordered_set<K, Hash, KeyEqual, ZoneAllocator<K>> {
@@ -850,7 +852,7 @@ class ZoneAbslBTreeMap
 };
 
 // Typedefs to shorten commonly used vectors.
-using IntVector = ZoneVector<int>;
+using IntVector = ::v8::base::Vector<int>;
 
 }  // namespace internal
 }  // namespace v8

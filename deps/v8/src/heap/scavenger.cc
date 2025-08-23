@@ -1216,9 +1216,9 @@ void Scavenger::ScavengePage(MutablePageMetadata* page) {
     WritableJitPage jit_page = ThreadIsolation::LookupWritableJitPage(
         page->area_start(), page->area_size());
     for (auto& slot_update : slot_updates) {
-      Tagged<HeapObject> new_target = std::get<0>(slot_update);
-      SlotType slot_type = std::get<1>(slot_update);
-      Address slot_address = std::get<2>(slot_update);
+      Tagged<HeapObject> new_target = ::std::get<0>(slot_update);
+      SlotType slot_type = ::std::get<1>(slot_update);
+      Address slot_address = ::std::get<2>(slot_update);
 
       WritableJitAllocation jit_allocation =
           jit_page.LookupAllocationContaining(slot_address);

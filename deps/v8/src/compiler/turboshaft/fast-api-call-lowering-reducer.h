@@ -26,9 +26,9 @@ class FastApiCallLoweringReducer : public Next {
 
   OpIndex REDUCE(FastApiCall)(
       V<FrameState> frame_state, V<Object> data_argument, V<Context> context,
-      base::Vector<const OpIndex> arguments,
+      ::v8::base::Vector<const OpIndex> arguments,
       const FastApiCallParameters* parameters,
-      base::Vector<const RegisterRepresentation> out_reps) {
+      ::v8::base::Vector<const RegisterRepresentation> out_reps) {
     __ data() -> set_graph_has_lowered_fast_api_calls();
 
     FastApiCallFunction c_function = parameters->c_function;
@@ -446,7 +446,7 @@ class FastApiCallLoweringReducer : public Next {
 
   OpIndex WrapFastCall(const TSCallDescriptor* descriptor, OpIndex callee,
                        V<FrameState> frame_state, V<Context> context,
-                       base::Vector<const OpIndex> arguments) {
+                       ::v8::base::Vector<const OpIndex> arguments) {
     // CPU profiler support.
     OpIndex target_address =
         __ IsolateField(IsolateFieldId::kFastApiCallTarget);

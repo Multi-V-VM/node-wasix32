@@ -157,7 +157,7 @@ bool ShouldPrintBytecode(DirectHandle<SharedFunctionInfo> shared) {
 
   // Checks whether function passed the filter.
   if (shared->is_toplevel()) {
-    base::Vector<const char> filter =
+    ::v8::base::Vector<const char> filter =
         base::CStrVector(v8_flags.print_bytecode_filter);
     return filter.empty() || (filter.length() == 1 && filter[0] == '*');
   } else {

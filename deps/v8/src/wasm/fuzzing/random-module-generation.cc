@@ -102,13 +102,13 @@ constexpr auto ConcatArrays(std::array<T, N>... array) {
 
 class DataRange {
   // data_ is used for general random values for fuzzing.
-  base::Vector<const uint8_t> data_;
+  ::v8::base::Vector<const uint8_t> data_;
   // The RNG is used for generating random values (i32.consts etc.) for which
   // the quality of the input is less important.
   base::RandomNumberGenerator rng_;
 
  public:
-  explicit DataRange(base::Vector<const uint8_t> data, int64_t seed = -1)
+  explicit DataRange(::v8::base::Vector<const uint8_t> data, int64_t seed = -1)
       : data_(data), rng_(seed == -1 ? get<int64_t>() : seed) {}
   DataRange(const DataRange&) = delete;
   DataRange& operator=(const DataRange&) = delete;
@@ -304,7 +304,7 @@ ValueType GetValueType(WasmModuleGenerationOptions options, DataRange* data,
 
 void GeneratePassiveDataSegment(DataRange* range, WasmModuleBuilder* builder) {
   int length = range->get<uint8_t>() % 65;
-  ZoneVector<uint8_t> data(length, builder->zone());
+  ::v8::base::Vector<uint8_t> data(length, builder->zone());
   for (int i = 0; i < length; ++i) {
     data[i] = range->getPseudoRandom<uint8_t>();
   }
@@ -341,8 +341,8 @@ std::vector<ValueType> GenerateTypes(WasmModuleGenerationOptions options,
 }
 
 FunctionSig* CreateSignature(Zone* zone,
-                             base::Vector<const ValueType> param_types,
-                             base::Vector<const ValueType> return_types) {
+                             ::v8::base::Vector<const ValueType> param_types,
+                             ::v8::base::Vector<const ValueType> return_types) {
   FunctionSig::Builder builder(zone, return_types.size(), param_types.size());
   for (auto& type : param_types) {
     builder.AddParam(type);
@@ -375,7 +375,7 @@ class GeneratorAlternativesPerOption {
         wasmgc_(ConcatArrays(mvp, wasmgc)),
         all_(ConcatArrays(mvp, ConcatArrays(simd, wasmgc))) {}
 
-  constexpr base::Vector<const GenerateFn> GetAlternatives(
+  constexpr ::v8::base::Vector<const GenerateFn> GetAlternatives(
       WasmModuleGenerationOptions options) const {
     switch (options.ToIntegral()) {
       case 0:  // 0
@@ -415,9 +415,9 @@ class BodyGen {
   class V8_NODISCARD BlockScope {
    public:
     BlockScope(BodyGen* gen, WasmOpcode block_type,
-               base::Vector<const ValueType> param_types,
-               base::Vector<const ValueType> result_types,
-               base::Vector<const ValueType> br_types, bool emit_end = true)
+               ::v8::base::Vector<const ValueType> param_types,
+               ::v8::base::Vector<const ValueType> result_types,
+               ::v8::base::Vector<const ValueType> br_types, bool emit_end = true)
         : gen_(gen), emit_end_(emit_end) {
       gen->blocks_.emplace_back(br_types.begin(), br_types.end());
       gen->builder_->EmitByte(block_type);
@@ -459,8 +459,8 @@ class BodyGen {
     bool emit_end_;
   };
 
-  void block(base::Vector<const ValueType> param_types,
-             base::Vector<const ValueType> return_types, DataRange* data) {
+  void block(::v8::base::Vector<const ValueType> param_types,
+             ::v8::base::Vector<const ValueType> return_types, DataRange* data) {
     BlockScope block_scope(this, kExprBlock, param_types, return_types,
                            return_types);
     ConsumeAndGenerate(param_types, return_types, data);
@@ -475,8 +475,8 @@ class BodyGen {
     }
   }
 
-  void loop(base::Vector<const ValueType> param_types,
-            base::Vector<const ValueType> return_types, DataRange* data) {
+  void loop(::v8::base::Vector<const ValueType> param_types,
+            ::v8::base::Vector<const ValueType> return_types, DataRange* data) {
     BlockScope block_scope(this, kExprLoop, param_types, return_types,
                            param_types);
     ConsumeAndGenerate(param_types, return_types, data);
@@ -491,8 +491,8 @@ class BodyGen {
     }
   }
 
-  void finite_loop(base::Vector<const ValueType> param_types,
-                   base::Vector<const ValueType> return_types,
+  void finite_loop(::v8::base::Vector<const ValueType> param_types,
+                   ::v8::base::Vector<const ValueType> return_types,
                    DataRange* data) {
     // int counter = `kLoopConstant`;
     int kLoopConstant = data->get<uint8_t>() % 8 + 1;
@@ -545,8 +545,8 @@ class BodyGen {
 
   enum IfType { kIf, kIfElse };
 
-  void if_(base::Vector<const ValueType> param_types,
-           base::Vector<const ValueType> return_types, IfType type,
+  void if_(::v8::base::Vector<const ValueType> param_types,
+           ::v8::base::Vector<const ValueType> return_types, IfType type,
            DataRange* data) {
     // One-armed "if" are only valid if the input and output types are the same.
     DCHECK_IMPLIES(type == kIf, param_types == return_types);
@@ -565,7 +565,7 @@ class BodyGen {
     static_assert(T == kVoid || type == kIfElse,
                   "if without else cannot produce a value");
     if_({},
-        T == kVoid ? base::Vector<ValueType>{}
+        T == kVoid ? ::v8::base::Vector<ValueType>{}
                    : base::VectorOf({ValueType::Primitive(T)}),
         type, data);
   }
@@ -578,8 +578,8 @@ class BodyGen {
     // Allow one more target than there are enclosing try blocks, for delegating
     // to the caller.
 
-    base::Vector<const ValueType> return_type_vec =
-        return_type.kind() == kVoid ? base::Vector<ValueType>{}
+    ::v8::base::Vector<const ValueType> return_type_vec =
+        return_type.kind() == kVoid ? ::v8::base::Vector<ValueType>{}
                                     : base::VectorOf(&return_type, 1);
     BlockScope block_scope(this, kExprTry, {}, return_type_vec, return_type_vec,
                            !is_delegate);
@@ -617,9 +617,9 @@ class BodyGen {
 
   // Generates the i-th nested block for the try-table, and recursively generate
   // the blocks inside it.
-  void try_table_rec(base::Vector<const ValueType> param_types,
-                     base::Vector<const ValueType> return_types,
-                     base::Vector<CatchCase> catch_cases, size_t i,
+  void try_table_rec(::v8::base::Vector<const ValueType> param_types,
+                     ::v8::base::Vector<const ValueType> return_types,
+                     ::v8::base::Vector<CatchCase> catch_cases, size_t i,
                      DataRange* data) {
     DCHECK(v8_flags.experimental_wasm_exnref);
     if (i == catch_cases.size()) {
@@ -662,7 +662,7 @@ class BodyGen {
     size_t return_count =
         (has_tag ? type->parameter_count() : 0) + (has_ref ? 1 : 0);
     auto block_returns =
-        builder_->builder()->zone()->AllocateVector<ValueType>(return_count);
+        builder_->builder()->zone()->Allocate::v8::base::Vector<ValueType>(return_count);
     if (has_tag) {
       std::copy_n(type->parameters().begin(), type->parameter_count(),
                   block_returns.begin());
@@ -679,12 +679,12 @@ class BodyGen {
     builder_->EmitWithU32V(kExprBr, static_cast<uint32_t>(i));
   }
 
-  void try_table_block_helper(base::Vector<const ValueType> param_types,
-                              base::Vector<const ValueType> return_types,
+  void try_table_block_helper(::v8::base::Vector<const ValueType> param_types,
+                              ::v8::base::Vector<const ValueType> return_types,
                               DataRange* data) {
     uint8_t num_catch = data->get<uint8_t>() % kMaxCatchCases;
     auto catch_cases =
-        builder_->builder()->zone()->AllocateVector<CatchCase>(num_catch);
+        builder_->builder()->zone()->Allocate::v8::base::Vector<CatchCase>(num_catch);
     for (int i = 0; i < num_catch; ++i) {
       catch_cases[i].tag_index =
           data->get<uint8_t>() % builder_->builder()->NumTags();
@@ -709,8 +709,8 @@ class BodyGen {
     try_table_block_helper({}, return_types, data);
   }
 
-  void any_block(base::Vector<const ValueType> param_types,
-                 base::Vector<const ValueType> return_types, DataRange* data) {
+  void any_block(::v8::base::Vector<const ValueType> param_types,
+                 ::v8::base::Vector<const ValueType> return_types, DataRange* data) {
     uint8_t available_cases = v8_flags.experimental_wasm_exnref ? 6 : 5;
     uint8_t block_type = data->get<uint8_t>() % available_cases;
     switch (block_type) {
@@ -763,7 +763,7 @@ class BodyGen {
     ConsumeAndGenerate(
         break_types,
         wanted_kind == kVoid
-            ? base::Vector<ValueType>{}
+            ? ::v8::base::Vector<ValueType>{}
             : base::VectorOf({ValueType::Primitive(wanted_kind)}),
         data);
   }
@@ -782,7 +782,7 @@ class BodyGen {
     ConsumeAndGenerate(
         break_types,
         wanted_kind == kVoid
-            ? base::Vector<ValueType>{}
+            ? ::v8::base::Vector<ValueType>{}
             : base::VectorOf({ValueType::Primitive(wanted_kind)}),
         data);
   }
@@ -805,7 +805,7 @@ class BodyGen {
     ConsumeAndGenerate(
         break_types.SubVector(0, break_types.size() - 1),
         wanted_kind == kVoid
-            ? base::Vector<ValueType>{}
+            ? ::v8::base::Vector<ValueType>{}
             : base::VectorOf({ValueType::Primitive(wanted_kind)}),
         data);
   }
@@ -1593,7 +1593,7 @@ class BodyGen {
     ValueType needed_type = ValueType::RefMaybeNull(type, nullable);
     int table_count = builder_->builder()->NumTables();
     DCHECK_GT(table_count, 0);
-    ZoneVector<uint32_t> table(builder_->builder()->zone());
+    ::v8::base::Vector<uint32_t> table(builder_->builder()->zone());
     for (int i = 0; i < table_count; i++) {
       if (builder_->builder()->GetTableType(i) == needed_type) {
         table.push_back(i);
@@ -1635,7 +1635,7 @@ class BodyGen {
   void table_copy(DataRange* data) {
     ValueType needed_type = data->get<bool>() ? kWasmFuncRef : kWasmExternRef;
     int table_count = builder_->builder()->NumTables();
-    ZoneVector<uint32_t> table(builder_->builder()->zone());
+    ::v8::base::Vector<uint32_t> table(builder_->builder()->zone());
     for (int i = 0; i < table_count; i++) {
       if (builder_->builder()->GetTableType(i) == needed_type) {
         table.push_back(i);
@@ -1660,7 +1660,7 @@ class BodyGen {
 
   bool array_get_helper(ValueType value_type, DataRange* data) {
     WasmModuleBuilder* builder = builder_->builder();
-    ZoneVector<ModuleTypeIndex> array_indices(builder->zone());
+    ::v8::base::Vector<ModuleTypeIndex> array_indices(builder->zone());
 
     for (ModuleTypeIndex i : arrays_) {
       DCHECK(builder->IsArrayType(i));
@@ -1817,7 +1817,7 @@ class BodyGen {
 
   void array_set(DataRange* data) {
     WasmModuleBuilder* builder = builder_->builder();
-    ZoneVector<ModuleTypeIndex> array_indices(builder->zone());
+    ::v8::base::Vector<ModuleTypeIndex> array_indices(builder->zone());
     for (ModuleTypeIndex i : arrays_) {
       DCHECK(builder->IsArrayType(i));
       if (builder->GetArrayType(i)->mutability()) {
@@ -1843,8 +1843,8 @@ class BodyGen {
 
   bool struct_get_helper(ValueType value_type, DataRange* data) {
     WasmModuleBuilder* builder = builder_->builder();
-    ZoneVector<uint32_t> field_index(builder->zone());
-    ZoneVector<ModuleTypeIndex> struct_index(builder->zone());
+    ::v8::base::Vector<uint32_t> field_index(builder->zone());
+    ::v8::base::Vector<ModuleTypeIndex> struct_index(builder->zone());
     for (ModuleTypeIndex i : structs_) {
       DCHECK(builder->IsStructType(i));
       int field_count = builder->GetStructType(i)->field_count();
@@ -2127,7 +2127,7 @@ class BodyGen {
         structs_[data->get<uint8_t>() % structs_.size()];
     DCHECK(builder->IsStructType(struct_index));
     const StructType* struct_type = builder->GetStructType(struct_index);
-    ZoneVector<uint32_t> field_indices(builder->zone());
+    ::v8::base::Vector<uint32_t> field_indices(builder->zone());
     for (uint32_t i = 0; i < struct_type->field_count(); i++) {
       if (struct_type->mutability(i)) {
         field_indices.push_back(i);
@@ -3517,7 +3517,7 @@ class BodyGen {
                               arrays_.size()));
   }
 
-  void Generate(base::Vector<const ValueType> types, DataRange* data) {
+  void Generate(::v8::base::Vector<const ValueType> types, DataRange* data) {
     // Maybe emit a multi-value block with the expected return type. Use a
     // non-default value to indicate block generation to avoid recursion when we
     // reach the end of the data.
@@ -3544,15 +3544,15 @@ class BodyGen {
     // Split the types in two halves and recursively generate each half.
     // Each half is non empty to ensure termination.
     size_t split_index = data->get<uint8_t>() % (types.size() - 1) + 1;
-    base::Vector<const ValueType> lower_half = types.SubVector(0, split_index);
-    base::Vector<const ValueType> upper_half =
+    ::v8::base::Vector<const ValueType> lower_half = types.SubVector(0, split_index);
+    ::v8::base::Vector<const ValueType> upper_half =
         types.SubVector(split_index, types.size());
     DataRange first_range = data->split();
     Generate(lower_half, &first_range);
     Generate(upper_half, data);
   }
   void Generate(std::initializer_list<ValueTypeBase> types, DataRange* data) {
-    base::Vector<const ValueType> cast_types = base::VectorOf<const ValueType>(
+    ::v8::base::Vector<const ValueType> cast_types = base::VectorOf<const ValueType>(
         static_cast<const ValueType*>(types.begin()), types.size());
     return Generate(cast_types, data);
   }
@@ -3582,8 +3582,8 @@ class BodyGen {
 
   // Emit code to match an arbitrary signature.
   // TODO(11954): Add the missing reference type conversion/upcasting.
-  void ConsumeAndGenerate(base::Vector<const ValueType> param_types,
-                          base::Vector<const ValueType> return_types,
+  void ConsumeAndGenerate(::v8::base::Vector<const ValueType> param_types,
+                          ::v8::base::Vector<const ValueType> return_types,
                           DataRange* data) {
     // This numeric conversion logic consists of picking exactly one
     // index in the return values and dropping all the values that come
@@ -3956,11 +3956,11 @@ class ModuleGen {
     static constexpr FunctionSig kSig_into_a8(1, 3, kReps_into_a8);
     static constexpr FunctionSig kSig_to_a8(1, 1, kReps_to_a8);
 
-    static constexpr base::Vector<const char> kJsString =
+    static constexpr ::v8::base::Vector<const char> kJsString =
         base::StaticCharVector("wasm:js-string");
-    static constexpr base::Vector<const char> kTextDecoder =
+    static constexpr ::v8::base::Vector<const char> kTextDecoder =
         base::StaticCharVector("wasm:text-decoder");
-    static constexpr base::Vector<const char> kTextEncoder =
+    static constexpr ::v8::base::Vector<const char> kTextEncoder =
         base::StaticCharVector("wasm:text-encoder");
 
 #define STRINGFUNC(name, sig, group) \
@@ -4101,8 +4101,8 @@ WasmInitExpr GenerateStructNewInitExpr(
   if (use_new_default) {
     return WasmInitExpr::StructNewDefault(index);
   } else {
-    ZoneVector<WasmInitExpr>* elements =
-        zone->New<ZoneVector<WasmInitExpr>>(zone);
+    ::v8::base::Vector<WasmInitExpr>* elements =
+        zone->New<::v8::base::Vector<WasmInitExpr>>(zone);
     int field_count = struct_type->field_count();
     for (int field_index = 0; field_index < field_count; field_index++) {
       elements->push_back(GenerateInitExpr(
@@ -4131,8 +4131,8 @@ WasmInitExpr GenerateArrayInitExpr(Zone* zone, DataRange& range,
       // in size very quickly.)
       element_count %= 2;
     }
-    ZoneVector<WasmInitExpr>* elements =
-        zone->New<ZoneVector<WasmInitExpr>>(zone);
+    ::v8::base::Vector<WasmInitExpr>* elements =
+        zone->New<::v8::base::Vector<WasmInitExpr>>(zone);
     for (size_t i = 0; i < element_count; i++) {
       elements->push_back(GenerateInitExpr(zone, range, builder, element_type,
                                            structs, arrays,
@@ -4336,9 +4336,9 @@ WasmInitExpr GenerateInitExpr(Zone* zone, DataRange& range,
 
 }  // namespace
 
-base::Vector<uint8_t> GenerateRandomWasmModule(
+Vector<uint8_t> GenerateRandomWasmModule(
     Zone* zone, WasmModuleGenerationOptions options,
-    base::Vector<const uint8_t> data) {
+    ::v8::base::Vector<const uint8_t> data) {
   WasmModuleBuilder builder(zone);
 
   // Split input data in two parts:
@@ -4487,7 +4487,7 @@ base::Vector<uint8_t> GenerateRandomWasmModule(
     BodyGen gen_body(options, f, function_signatures, globals, mutable_globals,
                      struct_types, array_types, strings, &function_range);
     const FunctionSig* sig = f->signature();
-    base::Vector<const ValueType> return_types(sig->returns().begin(),
+    ::v8::base::Vector<const ValueType> return_types(sig->returns().begin(),
                                                sig->return_count());
     gen_body.InitializeNonDefaultableLocals(&function_range);
     gen_body.Generate(return_types, &function_range);
@@ -4501,8 +4501,8 @@ base::Vector<uint8_t> GenerateRandomWasmModule(
 }
 
 // Used by the initializer expression fuzzer.
-base::Vector<uint8_t> GenerateWasmModuleForInitExpressions(
-    Zone* zone, base::Vector<const uint8_t> data, size_t* count) {
+Vector<uint8_t> GenerateWasmModuleForInitExpressions(
+    Zone* zone, ::v8::base::Vector<const uint8_t> data, size_t* count) {
   // Don't limit expressions for the initializer expression fuzzer.
   constexpr WasmModuleGenerationOptions options =
       WasmModuleGenerationOptions::All();
@@ -4625,7 +4625,7 @@ base::Vector<uint8_t> GenerateWasmModuleForInitExpressions(
     WasmInitExpr init_expr = GenerateInitExpr(
         zone, module_range, &builder, type, struct_types, array_types, 0);
     init_exprs.push_back(init_expr);
-    auto buffer = zone->AllocateVector<char>(8);
+    auto buffer = zone->Allocate::v8::base::Vector<char>(8);
     size_t len = base::SNPrintF(buffer, "g%i", i);
     builder.AddExportedGlobal(type, mutability, init_expr,
                               {buffer.begin(), len});
@@ -4637,7 +4637,7 @@ base::Vector<uint8_t> GenerateWasmModuleForInitExpressions(
   for (int i = 0; i < num_functions; ++i) {
     WasmFunctionBuilder* f = functions[i];
     f->EmitFromInitializerExpression(init_exprs[i]);
-    auto buffer = zone->AllocateVector<char>(8);
+    auto buffer = zone->Allocate::v8::base::Vector<char>(8);
     size_t len = base::SNPrintF(buffer, "f%i", i);
     builder.AddExport({buffer.begin(), len}, f);
   }
@@ -4662,7 +4662,7 @@ void EmitDeoptAndReturnValues(BodyGen gen_body, WasmFunctionBuilder* f,
                               ModuleTypeIndex target_sig_index,
                               uint32_t global_index, uint32_t table_index,
                               bool use_table64, DataRange* data) {
-  base::Vector<const ValueType> return_types = f->signature()->returns();
+  ::v8::base::Vector<const ValueType> return_types = f->signature()->returns();
   // Split the return types randomly and generate some values before the
   // deopting call and some afterwards. (This makes sure that we have deopts
   // where there are values on the wasm value stack which are not used by the
@@ -4720,7 +4720,7 @@ void EmitCallAndReturnValues(BodyGen gen_body, WasmFunctionBuilder* f,
   uint32_t callee_index =
       callee->func_index() + gen_body.NumImportedFunctions();
 
-  base::Vector<const ValueType> return_types = f->signature()->returns();
+  ::v8::base::Vector<const ValueType> return_types = f->signature()->returns();
   // Split the return types randomly and generate some values before the
   // deopting call and some afterwards to create more interesting test cases.
   uint32_t returns_split = data->get<uint8_t>() % (return_types.size() + 1);
@@ -4770,8 +4770,8 @@ void EmitCallAndReturnValues(BodyGen gen_body, WasmFunctionBuilder* f,
 }
 }  // anonymous namespace
 
-base::Vector<uint8_t> GenerateWasmModuleForDeopt(
-    Zone* zone, base::Vector<const uint8_t> data,
+Vector<uint8_t> GenerateWasmModuleForDeopt(
+    Zone* zone, ::v8::base::Vector<const uint8_t> data,
     std::vector<std::string>& callees, std::vector<std::string>& inlinees) {
   // Don't limit the features for the deopt fuzzer.
   constexpr WasmModuleGenerationOptions options =
@@ -4935,7 +4935,7 @@ base::Vector<uint8_t> GenerateWasmModuleForDeopt(
                               table_index, use_table64, &function_range);
     }
     f->Emit(kExprEnd);
-    auto buffer = zone->AllocateVector<char>(32);
+    auto buffer = zone->Allocate::v8::base::Vector<char>(32);
     size_t len = base::SNPrintF(buffer, "inlinee_%i", i);
     builder.AddExport({buffer.begin(), len}, f);
     inlinees.emplace_back(buffer.begin(), len);
@@ -4979,13 +4979,13 @@ base::Vector<uint8_t> GenerateWasmModuleForDeopt(
     BodyGen gen_body(options, f, function_signatures, {}, {}, struct_types,
                      array_types, strings, &function_range);
     const FunctionSig* sig = f->signature();
-    base::Vector<const ValueType> target_return_types(sig->returns().begin(),
+    ::v8::base::Vector<const ValueType> target_return_types(sig->returns().begin(),
                                                       sig->return_count());
     gen_body.InitializeNonDefaultableLocals(&function_range);
     gen_body.Generate(target_return_types, &function_range);
 
     f->Emit(kExprEnd);
-    auto buffer = zone->AllocateVector<char>(32);
+    auto buffer = zone->Allocate::v8::base::Vector<char>(32);
     size_t len = base::SNPrintF(buffer, "callee_%i", i);
     builder.AddExport({buffer.begin(), len}, f);
     callees.emplace_back(buffer.begin(), len);

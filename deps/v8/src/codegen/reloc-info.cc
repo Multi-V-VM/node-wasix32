@@ -1,3 +1,6 @@
+#ifdef __wasi__
+#define V8_TARGET_ARCH_WASM32 1
+#endif
 // Copyright 2018 the V8 project authors. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
@@ -199,8 +202,8 @@ RelocIterator::RelocIterator(EmbeddedData* embedded_data, Tagged<Code> code,
                     code->constant_pool(), code->relocation_end(),
                     code->relocation_start(), mode_mask) {}
 
-RelocIterator::RelocIterator(base::Vector<uint8_t> instructions,
-                             base::Vector<const uint8_t> reloc_info,
+RelocIterator::RelocIterator(::v8::base::Vector<uint8_t> instructions,
+                             ::v8::base::Vector<const uint8_t> reloc_info,
                              Address const_pool, int mode_mask)
     : RelocIterator(reinterpret_cast<Address>(instructions.begin()), const_pool,
                     reloc_info.begin() + reloc_info.size(), reloc_info.begin(),
@@ -224,8 +227,8 @@ WritableRelocIterator::WritableRelocIterator(
           istream->unchecked_relocation_info()->begin(), mode_mask) {}
 
 WritableRelocIterator::WritableRelocIterator(
-    WritableJitAllocation& jit_allocation, base::Vector<uint8_t> instructions,
-    base::Vector<const uint8_t> reloc_info, Address constant_pool,
+    WritableJitAllocation& jit_allocation, ::v8::base::Vector<uint8_t> instructions,
+    ::v8::base::Vector<const uint8_t> reloc_info, Address constant_pool,
     int mode_mask)
     : RelocIteratorBase<WritableRelocInfo>(
           WritableRelocInfo(jit_allocation,

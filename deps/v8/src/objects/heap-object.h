@@ -491,7 +491,9 @@ class HeapObject : public TaggedImpl<HeapObjectReferenceType::STRONG, Address> {
   static constexpr int kMapOffset = offsetof(HeapObjectLayout, map_);
   static constexpr int kHeaderSize = sizeof(HeapObjectLayout);
 
+#ifndef __wasi__
   static_assert(kMapOffset == Internals::kHeapObjectMapOffset);
+#endif
 
   using MapField = TaggedField<MapWord, HeapObject::kMapOffset>;
 

@@ -165,7 +165,7 @@ bool IsSupportedLoad(const Node* node) {
 }
 
 #ifdef DEBUG
-bool IsSupportedLoad(const ZoneVector<Node*>& node_group) {
+bool IsSupportedLoad(const ::v8::base::Vector<Node*>& node_group) {
   for (auto node : node_group) {
     if (!IsSupportedLoad(node)) return false;
   }
@@ -215,7 +215,7 @@ Node* GetNodeAddress(const Node* node) {
   return address;
 }
 
-bool IsContinuousAccess(const ZoneVector<Node*>& node_group) {
+bool IsContinuousAccess(const ::v8::base::Vector<Node*>& node_group) {
   DCHECK_GT(node_group.size(), 0);
   int64_t previous_offset = GetMemoryOffsetValue(node_group[0]);
   for (size_t i = 1; i < node_group.size(); ++i) {
@@ -240,7 +240,7 @@ bool IsContinuousAccess(const ZoneVector<Node*>& node_group) {
 }
 
 // Returns true if all of the nodes in node_group are constants.
-bool AllConstant(const ZoneVector<Node*>& node_group) {
+bool AllConstant(const ::v8::base::Vector<Node*>& node_group) {
   for (Node* node : node_group) {
     if (!NodeProperties::IsConstant(node)) {
       return false;
@@ -250,7 +250,7 @@ bool AllConstant(const ZoneVector<Node*>& node_group) {
 }
 
 // Returns true if all the addresses of the nodes in node_group are identical.
-bool AllSameAddress(const ZoneVector<Node*>& nodes) {
+bool AllSameAddress(const ::v8::base::Vector<Node*>& nodes) {
   Node* address = GetNodeAddress(nodes[0]);
   for (size_t i = 1; i < nodes.size(); i++) {
     if (GetNodeAddress(nodes[i]) != address) {
@@ -284,9 +284,9 @@ V8_INLINE static bool OperatorCanBePacked(const Operator* lhs,
 }
 
 // Returns true if all of the nodes in node_group have the same type.
-bool AllPackableOperator(const ZoneVector<Node*>& node_group) {
+bool AllPackableOperator(const ::v8::base::Vector<Node*>& node_group) {
   auto op = node_group[0]->op();
-  for (ZoneVector<Node*>::size_type i = 1; i < node_group.size(); i++) {
+  for (::v8::base::Vector<Node*>::size_type i = 1; i < node_group.size(); i++) {
     if (!OperatorCanBePacked(node_group[i]->op(), op)) {
       return false;
     }
@@ -294,9 +294,9 @@ bool AllPackableOperator(const ZoneVector<Node*>& node_group) {
   return true;
 }
 
-bool ShiftBySameScalar(const ZoneVector<Node*>& node_group) {
+bool ShiftBySameScalar(const ::v8::base::Vector<Node*>& node_group) {
   auto node0 = node_group[0];
-  for (ZoneVector<Node*>::size_type i = 1; i < node_group.size(); i++) {
+  for (::v8::base::Vector<Node*>::size_type i = 1; i < node_group.size(); i++) {
     DCHECK_EQ(node_group[i]->op(), node0->op());
     DCHECK_EQ(node0->InputCount(), 2);
     if (node_group[i]->InputAt(1) != node0->InputAt(1)) {
@@ -320,7 +320,7 @@ bool IsSignExtensionOperation(IrOpcode::Value op) {
   UNREACHABLE();
 }
 
-bool MaybePackSignExtensionOp(const ZoneVector<Node*>& node_group) {
+bool MaybePackSignExtensionOp(const ::v8::base::Vector<Node*>& node_group) {
 #define CHECK_SIGN_EXTENSION_CASE(op_low, op_high, not_used)      \
   case IrOpcode::k##op_low: {                                     \
     if (node_group[1]->opcode() == IrOpcode::k##op_high &&        \
@@ -398,7 +398,7 @@ void PackNode::Print() const {
   }
 }
 
-bool SLPTree::CanBePacked(const ZoneVector<Node*>& node_group) {
+bool SLPTree::CanBePacked(const ::v8::base::Vector<Node*>& node_group) {
   DCHECK_EQ(node_group.size(), 2);
   // Only Support simd128 operators or common operators with simd128
   // MachineRepresentation. The MachineRepresentation of root had been checked,
@@ -440,7 +440,7 @@ bool SLPTree::CanBePacked(const ZoneVector<Node*>& node_group) {
   return true;
 }
 
-PackNode* SLPTree::NewPackNode(const ZoneVector<Node*>& node_group) {
+PackNode* SLPTree::NewPackNode(const ::v8::base::Vector<Node*>& node_group) {
   TRACE("PackNode %s(#%d:, #%d)\n", node_group[0]->op()->mnemonic(),
         node_group[0]->id(), node_group[1]->id());
   PackNode* pnode = zone_->New<PackNode>(zone_, node_group);
@@ -450,12 +450,12 @@ PackNode* SLPTree::NewPackNode(const ZoneVector<Node*>& node_group) {
   return pnode;
 }
 
-PackNode* SLPTree::NewPackNodeAndRecurs(const ZoneVector<Node*>& node_group,
+PackNode* SLPTree::NewPackNodeAndRecurs(const ::v8::base::Vector<Node*>& node_group,
                                         int start_index, int count,
                                         unsigned recursion_depth) {
   PackNode* pnode = NewPackNode(node_group);
   for (int i = start_index; i < start_index + count; ++i) {
-    ZoneVector<Node*> operands(zone_);
+    ::v8::base::Vector<Node*> operands(zone_);
     // Prepare the operand vector.
     for (size_t j = 0; j < node_group.size(); j++) {
       Node* node = node_group[j];
@@ -480,7 +480,7 @@ PackNode* SLPTree::GetPackNode(Node* node) {
   return nullptr;
 }
 
-void SLPTree::PushStack(const ZoneVector<Node*>& node_group) {
+void SLPTree::PushStack(const ::v8::base::Vector<Node*>& node_group) {
   TRACE("Stack Push (%d %s, %d %s)\n", node_group[0]->id(),
         node_group[0]->op()->mnemonic(), node_group[1]->id(),
         node_group[1]->op()->mnemonic());
@@ -491,7 +491,7 @@ void SLPTree::PushStack(const ZoneVector<Node*>& node_group) {
 }
 
 void SLPTree::PopStack() {
-  const ZoneVector<Node*>& node_group = stack_.top();
+  const ::v8::base::Vector<Node*>& node_group = stack_.top();
   DCHECK_EQ(node_group.size(), 2);
   TRACE("Stack Pop (%d %s, %d %s)\n", node_group[0]->id(),
         node_group[0]->op()->mnemonic(), node_group[1]->id(),
@@ -506,7 +506,7 @@ bool SLPTree::OnStack(Node* node) {
   return on_stack_.find(node) != on_stack_.end();
 }
 
-bool SLPTree::AllOnStack(const ZoneVector<Node*>& node_group) {
+bool SLPTree::AllOnStack(const ::v8::base::Vector<Node*>& node_group) {
   for (auto node : node_group) {
     if (OnStack(node)) return true;
   }
@@ -514,13 +514,13 @@ bool SLPTree::AllOnStack(const ZoneVector<Node*>& node_group) {
 }
 
 bool SLPTree::StackTopIsPhi() {
-  const ZoneVector<Node*>& node_group = stack_.top();
+  const ::v8::base::Vector<Node*>& node_group = stack_.top();
   DCHECK_EQ(node_group.size(), 2);
   return NodeProperties::IsPhi(node_group[0]);
 }
 
 void SLPTree::ClearStack() {
-  stack_ = ZoneStack<ZoneVector<Node*>>(zone_);
+  stack_ = ZoneStack<::v8::base::Vector<Node*>>(zone_);
   on_stack_.clear();
 }
 
@@ -528,7 +528,7 @@ void SLPTree::ClearStack() {
 // |PackNode| without breaking effect dependency:
 // Before: [Load1]->...->[Load2]->...->[Load3]->...->[Load4]
 // After:  [Load1]->[Load2]->[Load3]->[Load4]
-void SLPTree::TryReduceLoadChain(const ZoneVector<Node*>& loads) {
+void SLPTree::TryReduceLoadChain(const ::v8::base::Vector<Node*>& loads) {
   ZoneSet<Node*> visited(zone());
   for (Node* load : loads) {
     if (visited.find(load) != visited.end()) continue;
@@ -551,7 +551,7 @@ void SLPTree::TryReduceLoadChain(const ZoneVector<Node*>& loads) {
   }
 }
 
-bool SLPTree::IsSideEffectFreeLoad(const ZoneVector<Node*>& node_group) {
+bool SLPTree::IsSideEffectFreeLoad(const ::v8::base::Vector<Node*>& node_group) {
   DCHECK(IsSupportedLoad(node_group));
   DCHECK_EQ(node_group.size(), 2);
   TRACE("Enter IsSideEffectFreeLoad (%d %s, %d %s)\n", node_group[0]->id(),
@@ -609,7 +609,7 @@ bool SLPTree::IsSideEffectFreeLoad(const ZoneVector<Node*>& node_group) {
   return true;
 }
 
-PackNode* SLPTree::BuildTree(const ZoneVector<Node*>& roots) {
+PackNode* SLPTree::BuildTree(const ::v8::base::Vector<Node*>& roots) {
   TRACE("Enter %s\n", __func__);
 
   DeleteTree();
@@ -618,7 +618,7 @@ PackNode* SLPTree::BuildTree(const ZoneVector<Node*>& roots) {
   return root_;
 }
 
-PackNode* SLPTree::BuildTreeRec(const ZoneVector<Node*>& node_group,
+PackNode* SLPTree::BuildTreeRec(const ::v8::base::Vector<Node*>& node_group,
                                 unsigned recursion_depth) {
   TRACE("Enter %s\n", __func__);
   DCHECK_EQ(node_group.size(), 2);
@@ -716,7 +716,7 @@ PackNode* SLPTree::BuildTreeRec(const ZoneVector<Node*>& node_group,
       }
 
       // Sort loads by offset
-      ZoneVector<Node*> sorted_node_group(node_group.size(), zone_);
+      ::v8::base::Vector<Node*> sorted_node_group(node_group.size(), zone_);
       std::partial_sort_copy(node_group.begin(), node_group.end(),
                              sorted_node_group.begin(), sorted_node_group.end(),
                              MemoryOffsetComparer());
@@ -903,7 +903,7 @@ bool Revectorizer::DecideVectorize() {
 
   int save = 0, cost = 0;
   slp_tree_->ForEach([&](PackNode const* pnode) {
-    const ZoneVector<Node*>& nodes = pnode->Nodes();
+    const ::v8::base::Vector<Node*>& nodes = pnode->Nodes();
     IrOpcode::Value op = nodes[0]->opcode();
 
     // Skip LoopExit as auxiliary nodes are not issued in generated code.
@@ -942,7 +942,7 @@ bool Revectorizer::DecideVectorize() {
 }
 
 void Revectorizer::SetEffectInput(PackNode* pnode, int index, Node*& input) {
-  const ZoneVector<Node*>& nodes = pnode->Nodes();
+  const ::v8::base::Vector<Node*>& nodes = pnode->Nodes();
 
   // We assumed there's no effect edge to the 3rd node inbetween.
   DCHECK(nodes[0] == nodes[1] ||
@@ -1235,7 +1235,7 @@ Node* Revectorizer::VectorizeTree(PackNode* pnode) {
       }
     }
     // Extract Uses
-    const ZoneVector<Node*>& nodes = pnode->Nodes();
+    const ::v8::base::Vector<Node*>& nodes = pnode->Nodes();
     for (size_t i = 0; i < nodes.size(); i++) {
       if (i > 0 && nodes[i] == nodes[i - 1]) continue;
       Node* input_128 = nullptr;
@@ -1386,10 +1386,10 @@ bool Revectorizer::ReduceStoreChains(
   for (auto chain_iter = store_chains->cbegin();
        chain_iter != store_chains->cend(); ++chain_iter) {
     if (chain_iter->second.size() >= 2 && chain_iter->second.size() % 2 == 0) {
-      ZoneVector<Node*> store_chain(chain_iter->second.begin(),
+      ::v8::base::Vector<Node*> store_chain(chain_iter->second.begin(),
                                     chain_iter->second.end(), zone_);
       for (auto it = store_chain.begin(); it < store_chain.end(); it = it + 2) {
-        ZoneVector<Node*> stores_unit(it, it + 2, zone_);
+        ::v8::base::Vector<Node*> stores_unit(it, it + 2, zone_);
         if ((NodeProperties::GetEffectInput(stores_unit[0]) == stores_unit[1] ||
              NodeProperties::GetEffectInput(stores_unit[1]) ==
                  stores_unit[0]) &&
@@ -1403,7 +1403,7 @@ bool Revectorizer::ReduceStoreChains(
   return changed;
 }
 
-bool Revectorizer::ReduceStoreChain(const ZoneVector<Node*>& Stores) {
+bool Revectorizer::ReduceStoreChain(const ::v8::base::Vector<Node*>& Stores) {
   TRACE("Enter %s, root@ (#%d,#%d)\n", __func__, Stores[0]->id(),
         Stores[1]->id());
   if (!IsContinuousAccess(Stores)) {

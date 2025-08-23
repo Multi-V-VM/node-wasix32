@@ -1298,7 +1298,7 @@ void InstructionSelectorT::EmitMoveFPRToParam(InstructionOperand* op,
                                               LinkageLocation location) {}
 
 void InstructionSelectorT::EmitPrepareArguments(
-    ZoneVector<PushParameter>* arguments, const CallDescriptor* call_descriptor,
+    ::v8::base::Vector<PushParameter>* arguments, const CallDescriptor* call_descriptor,
     OpIndex node) {
   Mips64OperandGeneratorT g(this);
 
@@ -1339,7 +1339,7 @@ void InstructionSelectorT::EmitPrepareArguments(
 }
 
 void InstructionSelectorT::EmitPrepareResults(
-    ZoneVector<PushParameter>* results, const CallDescriptor* call_descriptor,
+    ::v8::base::Vector<PushParameter>* results, const CallDescriptor* call_descriptor,
     OpIndex node) {
   Mips64OperandGeneratorT g(this);
 
