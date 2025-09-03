@@ -1,4 +1,4 @@
-#ifdef __wasi__
+#if 0
 // WASI compatibility - must be included before any other headers
 #include <stdint.h>
 #include <stddef.h>
@@ -10,16 +10,13 @@ namespace internal {
 // Missing sandbox constants
 constexpr size_t kExternalPointerTableReservationSize = 1024 * 1024;
 constexpr size_t kCodePointerTableReservationSize = 1024 * 1024;
-constexpr uint32_t kMaxExternalPointers = 65536;
 constexpr uint32_t kMaxCodePointers = 65536;
 constexpr uint32_t kMaxCapacity = 65536;
-constexpr size_t kCodePointerTableEntrySize = 8;
 constexpr int kExternalPointerTagShift = 48;
 
 using ExternalPointerHandle = uint32_t;
 using CodePointerHandle = uint32_t;
 constexpr ExternalPointerHandle kNullExternalPointerHandle = 0;
-constexpr CodePointerHandle kNullCodePointerHandle = 0;
 
 } // namespace internal
 } // namespace v8

@@ -16,11 +16,9 @@
 namespace v8 {
 namespace internal {
 
-// Namespace aliases for WASI compatibility
-namespace base {
-  using MutexGuard = ::v8::base::MutexGuard;
-  using Mutex = ::v8::base::Mutex;
-}
+// Namespace aliases for WASI compatibility (avoid creating nested base namespace)
+using MutexGuard = ::v8::base::MutexGuard;
+using Mutex = ::v8::base::Mutex;
 
 // Forward declarations.
 class Isolate;

@@ -79,7 +79,7 @@ struct CodePointerTableEntry {
 
   // Freelist entries contain the index of the next free entry in their lower 32
   // bits and are tagged with the kFreeCodePointerTableEntryTag.
-  static constexpr Address kFreeEntryTag = kFreeCodePointerTableEntryTag;
+  static constexpr Address kFreeEntryTag = static_cast<Address>(kFreeCodePointerTableEntryTag & 0xFFFFFFFFUL);
 
   // The marking bit is stored in the code_ field, see below.
   static constexpr Address kMarkingBit = 1;

@@ -3,75 +3,48 @@
 
 #ifdef __wasi__
 
-#include <atomic>
+#include <cstddef>
 #include <cstdint>
-#include "include/v8-sandbox.h"
 
 namespace v8 {
 namespace internal {
 
-// WASI stub for CppHeapPointerTableEntry that ensures 8-byte size
-struct CppHeapPointerTableEntry {
-  // Stub methods for WASI compatibility
-  inline void MakePointerEntry(Address value, CppHeapPointerTag tag, bool mark_as_alive) {
-    // WASI stub - no-op
-  }
+#ifndef V8_CPPHEAP_POINTER_HANDLE_TYPE_DEFINED
+#define V8_CPPHEAP_POINTER_HANDLE_TYPE_DEFINED
+using CppHeapPointerHandle = uint32_t;
+#endif
 
-  inline Address GetPointer(CppHeapPointerTagRange tag_range) const {
-    return 0;  // WASI stub
-  }
+#ifndef V8_NULL_CPPHEAP_POINTER_HANDLE_DEFINED
+#define V8_NULL_CPPHEAP_POINTER_HANDLE_DEFINED
+constexpr CppHeapPointerHandle kNullCppHeapPointerHandle = 0;
+#endif
 
-  inline void SetPointer(Address value, CppHeapPointerTag tag) {
-    // WASI stub - no-op
-  }
+#ifndef V8_CPPHEAP_POINTER_TABLE_SIZE
+#define V8_CPPHEAP_POINTER_TABLE_SIZE
+constexpr size_t kCppHeapPointerTableReservationSize = 1024 * 1024;  // 1MB
+#endif
 
-  inline bool HasPointer(CppHeapPointerTagRange tag_range) const {
-    return false;  // WASI stub
-  }
+#ifndef V8_MAX_CPPHEAP_POINTERS
+#define V8_MAX_CPPHEAP_POINTERS
+constexpr size_t kMaxCppHeapPointers = 65536;
+#endif
 
-  inline void MakeZappedEntry() {
-    // WASI stub - no-op
-  }
+#ifndef V8_CPPHEAP_POINTER_SHIFTS_DEFINED
+#define V8_CPPHEAP_POINTER_SHIFTS_DEFINED
+constexpr int kCppHeapPointerIndexShift = 0;
+constexpr int kCppHeapPointerPayloadShift = 1;
+constexpr int kCppHeapPointerTagShift = 1;
+#endif
 
-  inline void MakeFreelistEntry(uint32_t next_entry_index) {
-    // WASI stub - no-op
-  }
+#ifndef V8_CPPHEAP_POINTER_MARKBIT_DEFINED
+#define V8_CPPHEAP_POINTER_MARKBIT_DEFINED
+constexpr uintptr_t kCppHeapPointerMarkBit = static_cast<uintptr_t>(0);
+#endif
 
-  inline uint32_t GetNextFreelistEntryIndex() const {
-    return 0;  // WASI stub
-  }
+}  // namespace internal
+}  // namespace v8
 
-  inline void MakeEvacuationEntry(Address handle_location) {
-    // WASI stub - no-op
-  }
+#endif  // __wasi__
 
-  inline bool HasEvacuationEntry() const {
-    return false;  // WASI stub
-  }
+#endif  // V8_SANDBOX_WASI_CPPHEAP_POINTER_TABLE_STUB_H_
 
-  inline void Evacuate(CppHeapPointerTableEntry& dest) {
-    // WASI stub - no-op
-  }
-
-  inline void Mark() {
-    // WASI stub - no-op
-  }
-
-  static constexpr bool IsWriteProtected = false;
-
-private:
-  // Ensure the entry is exactly 8 bytes as expected by V8
-  // Use uint64_t to guarantee 8-byte size regardless of platform
-  std::atomic<uint64_t> data_;
-};
-
-// Verify the size assertion will pass
-static_assert(sizeof(CppHeapPointerTableEntry) == 8, 
-              "CppHeapPointerTableEntry must be exactly 8 bytes");
-
-} // namespace internal
-} // namespace v8
-
-#endif // __wasi__
-
-#endif // V8_SANDBOX_WASI_CPPHEAP_POINTER_TABLE_STUB_H_

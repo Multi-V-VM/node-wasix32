@@ -20,26 +20,26 @@ class BasicMarkingState;
 class MutatorMarkingState;
 class ConcurrentMarkingState;
 
-class V8_EXPORT_PRIVATE MarkingVisitorBase : public VisitorBase {
+class V8_EXPORT_PRIVATE MarkingVisitorBase : public cppgc::Visitor {
  public:
   MarkingVisitorBase(HeapBase&, BasicMarkingState&);
-  ~MarkingVisitorBase() override = default;
+  ~MarkingVisitorBase() = default;
 
  protected:
-  void Visit(const void*, TraceDescriptor) final;
+  void Visit(const void*, TraceDescriptor);
   void VisitMultipleUncompressedMember(const void*, size_t,
-                                       TraceDescriptorCallback) final;
+                                       TraceDescriptorCallback);
 #if defined(CPPGC_POINTER_COMPRESSION)
   void VisitMultipleCompressedMember(const void*, size_t,
-                                     TraceDescriptorCallback) final;
+                                     TraceDescriptorCallback);
 #endif  // defined(CPPGC_POINTER_COMPRESSION)
-  void VisitWeak(const void*, TraceDescriptor, WeakCallback, const void*) final;
-  void VisitEphemeron(const void*, const void*, TraceDescriptor) final;
+  void VisitWeak(const void*, TraceDescriptor, void*, const void*);
+  void VisitEphemeron(const void*, const void*, TraceDescriptor);
   void VisitWeakContainer(const void* object, TraceDescriptor strong_desc,
                           TraceDescriptor weak_desc, WeakCallback callback,
-                          const void* data) final;
-  void RegisterWeakCallback(WeakCallback, const void*) final;
-  void HandleMovableReference(const void**) final;
+                          const void* data);
+  void RegisterWeakCallback(WeakCallback, const void*);
+  void HandleMovableReference(const void**);
 
   BasicMarkingState& marking_state_;
 };
@@ -47,29 +47,29 @@ class V8_EXPORT_PRIVATE MarkingVisitorBase : public VisitorBase {
 class V8_EXPORT_PRIVATE MutatorMarkingVisitor : public MarkingVisitorBase {
  public:
   MutatorMarkingVisitor(HeapBase&, MutatorMarkingState&);
-  ~MutatorMarkingVisitor() override = default;
+  ~MutatorMarkingVisitor() = default;
 };
 
-class V8_EXPORT_PRIVATE ConcurrentMarkingVisitor final
+class V8_EXPORT_PRIVATE ConcurrentMarkingVisitor
     : public MarkingVisitorBase {
  public:
   ConcurrentMarkingVisitor(HeapBase&, ConcurrentMarkingState&);
-  ~ConcurrentMarkingVisitor() override = default;
+  ~ConcurrentMarkingVisitor() = default;
 
  protected:
   bool DeferTraceToMutatorThreadIfConcurrent(const void*, TraceCallback,
-                                             size_t) final;
+                                             size_t);
 };
 
 class V8_EXPORT_PRIVATE RootMarkingVisitor : public RootVisitorBase {
  public:
   explicit RootMarkingVisitor(MutatorMarkingState&);
-  ~RootMarkingVisitor() override = default;
+  ~RootMarkingVisitor() = default;
 
  protected:
-  void VisitRoot(const void*, TraceDescriptor, const SourceLocation&) final;
-  void VisitWeakRoot(const void*, TraceDescriptor, WeakCallback, const void*,
-                     const SourceLocation&) final;
+  void VisitRoot(const void*, TraceDescriptor, const SourceLocation&);
+  void VisitWeakRoot(const void*, TraceDescriptor, void*, const void*,
+                     const SourceLocation&);
 
   MutatorMarkingState& mutator_marking_state_;
 };
@@ -78,13 +78,13 @@ class ConservativeMarkingVisitor : public ConservativeTracingVisitor,
                                    public heap::base::StackVisitor {
  public:
   ConservativeMarkingVisitor(HeapBase&, MutatorMarkingState&, cppgc::Visitor&);
-  ~ConservativeMarkingVisitor() override = default;
+  ~ConservativeMarkingVisitor() = default;
 
  private:
-  void VisitFullyConstructedConservatively(HeapObjectHeader&) final;
+  void VisitFullyConstructedConservatively(HeapObjectHeader&);
   void VisitInConstructionConservatively(HeapObjectHeader&,
-                                         TraceConservativelyCallback) final;
-  void VisitPointer(const void*) final;
+                                         TraceConservativelyCallback);
+  void VisitPointer(const void*) override;
 
   MutatorMarkingState& marking_state_;
 };

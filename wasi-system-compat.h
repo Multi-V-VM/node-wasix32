@@ -58,14 +58,6 @@ namespace cppgc {
 class ObjectStatsEntry;
 class PageStatistics;
 class SpaceStatistics;
-class HeapStatistics;
-
-class ObjectStatsEntry {
- public:
-  const char* type_name;
-  size_t allocated_bytes;
-  size_t object_count;
-};
 
 class PageStatistics {
  public:
@@ -97,39 +89,13 @@ class SpaceStatistics {
 // HeapStatistics extension - only define if not already defined
 #ifndef CPPGC_HEAP_STATISTICS_DEFINED
 #define CPPGC_HEAP_STATISTICS_DEFINED
-class HeapStatistics {
- public:
-  enum class DetailLevel { kBrief, kDetailed };
-  
-  // Re-export nested types for compatibility
-  using PageStatistics = ::cppgc::PageStatistics;
-  using ObjectStatsEntry = ::cppgc::ObjectStatsEntry;
-  using SpaceStatistics = ::cppgc::SpaceStatistics;
-  
-  DetailLevel detail_level;
-  size_t used_size_bytes;
-  size_t committed_size_bytes;
-  size_t resident_size_bytes;
-  size_t pooled_memory_size_bytes;
-  
-  std::vector<SpaceStatistics> space_stats;
-  std::unordered_map<const void*, size_t> type_names;
-};
 #endif
 
 } // namespace cppgc
 
 // v8::HeapStatistics extensions
 namespace v8 {
-
-// Forward declaration
-class HeapStatistics;
-
-// Extend HeapStatistics with missing members
-inline void ExtendHeapStatistics(HeapStatistics* stats) {
-  // This is a placeholder - the actual HeapStatistics needs these members
-}
-
+// Extension classes can be added here if needed
 } // namespace v8
 
 #endif // __wasi__

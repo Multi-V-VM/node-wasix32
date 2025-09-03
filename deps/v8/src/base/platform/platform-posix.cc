@@ -59,6 +59,7 @@ static int FileDescriptorFromSharedMemoryHandle(int handle) { return handle; }
 #include "src/base/platform/platform-posix.h"
 #include "src/base/platform/platform.h"
 #include "src/base/platform/time.h"
+#include "src/base/immediate-crash.h"
 #include "src/base/utils/random-number-generator.h"
 
 #ifdef V8_FAST_TLS_SUPPORTED

@@ -19,6 +19,9 @@
 
 #ifdef __wasi__
 namespace v8 {
+
+// Forward declarations
+class StartupData;
 // Forward declaration
 class SharedMemoryStatistics;
 }
@@ -31,6 +34,9 @@ class SharedMemoryStatistics;
  * The v8 JavaScript engine.
  */
 namespace v8 {
+
+// Forward declarations
+class StartupData;
 
 class PageAllocator;
 class Platform;
@@ -216,6 +222,9 @@ class V8_EXPORT V8 {
   static void DisposePlatform();
 
 #if defined(V8_ENABLE_SANDBOX)
+#ifdef __wasi__
+class VirtualAddressSpace;  // forward declaration for WASI builds
+#endif
   /**
    * Returns true if the sandbox is configured securely.
    *

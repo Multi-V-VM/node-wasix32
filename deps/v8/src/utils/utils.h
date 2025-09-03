@@ -21,6 +21,8 @@
 #include "src/base/vector.h"
 #include "src/utils/vector-alias.h"
 #include "src/common/globals.h"
+// Needed for ReadUnalignedValue/WriteUnalignedValue declarations.
+#include "src/base/memory.h"
 
 #ifdef __wasi__
 // Ensure base types are available in WASI builds
@@ -30,9 +32,9 @@ namespace internal {
 // in wasi-v8-base-fixes.h and wasi-v8-namespace-fix.h
 // Just bring v8::base functions into v8::internal scope
 // using v8::base::Semaphore;  // Not available in WASI builds
-using v8::base::WriteUnalignedValue;
-using v8::base::ReadUnalignedValue;
-using v8::base::bit_cast;
+using ::v8::base::WriteUnalignedValue;
+using ::v8::base::ReadUnalignedValue;
+using ::v8::base::bit_cast;
 // For bits namespace, we need to use what's already defined in base
 namespace bits {
   using namespace ::v8::base::bits;

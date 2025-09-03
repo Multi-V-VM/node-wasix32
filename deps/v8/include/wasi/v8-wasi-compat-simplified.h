@@ -48,13 +48,28 @@ constexpr size_t kSandboxSizeLog2 = 0;
 constexpr size_t kSandboxMinimumReservationSize = 0;
 
 // External pointer table constants
+#ifndef V8_EXTERNAL_POINTER_TABLE_SIZE
+#define V8_EXTERNAL_POINTER_TABLE_SIZE
 constexpr size_t kExternalPointerTableReservationSize = 1024 * 1024;  // 1MB
+#endif
 constexpr uint32_t kExternalPointerTableEntrySize = 8;
 constexpr int kExternalPointerTableEntrySizeLog2 = 3;
+#ifndef V8_MAX_EXTERNAL_POINTERS
+#define V8_MAX_EXTERNAL_POINTERS
 constexpr size_t kMaxExternalPointers = 65536;
+#endif
+#ifndef V8_NULL_EXTERNAL_POINTER_HANDLE
+#define V8_NULL_EXTERNAL_POINTER_HANDLE
 constexpr uint32_t kNullExternalPointerHandle = 0;
+#endif
+#ifndef V8_MAX_CAPACITY
+#define V8_MAX_CAPACITY
 constexpr size_t kMaxCapacity = 65536;
+#endif
+#ifndef V8_EXTERNAL_POINTER_TAG_SHIFT
+#define V8_EXTERNAL_POINTER_TAG_SHIFT
 constexpr int kExternalPointerTagShift = 48;
+#endif
 
 // CppHeap pointer table constants
 constexpr size_t kCppHeapPointerTableReservationSize = 1024 * 1024;  // 1MB
@@ -62,7 +77,10 @@ constexpr uint64_t kCppHeapPointerMarkBit = 1ULL << 63;  // MSB for mark bit
 
 // Code pointer table constants  
 using CodePointerHandle = uint32_t;
+#ifndef V8_MAX_CODE_POINTERS
+#define V8_MAX_CODE_POINTERS
 constexpr size_t kMaxCodePointers = 65536;
+#endif
 
 // Memory constants
 constexpr int kStackAlignment = 16;  

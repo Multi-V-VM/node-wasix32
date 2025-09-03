@@ -18,6 +18,10 @@
 #include "src/base/logging.h"
 #include "src/base/macros.h"
 #include "src/base/strong-alias.h"
+#include "src/base/atomic-utils.h"
+#include "src/base/platform/time.h"
+#include "src/base/vector.h"
+#include "src/base/small-vector.h"
 
 // WASI 兼容性修复
 #ifdef __wasi__
@@ -33,8 +37,17 @@ class Mutex;
 
 namespace internal {
 
-// Constants are already defined in v8::internal namespace from v8-internal.h
-// No need to re-import them
+// Bridge commonly used ::v8::base symbols into v8::internal::base to satisfy
+// code referencing internal::base::...
+namespace base {
+using ::v8::base::TimeTicks;
+using ::v8::base::TimeDelta;
+using ::v8::base::SmallVector;
+using ::v8::base::Vector;
+using ::v8::base::VectorOf;
+template <class T>
+using Flags = ::v8::base::Flags<T>;
+}  // namespace base
 
 #define V8_INFINITY std::numeric_limits<double>::infinity()
 
@@ -478,7 +491,7 @@ constexpr size_t kMaximalCodeRangeSize = 512 * MB;
 #ifndef V8_PTR_COMPR_CONSTANTS_DEFINED
 #define V8_PTR_COMPR_CONSTANTS_DEFINED
 // Missing pointer compression constants
-constexpr size_t kPtrComprCageReservationSize = 4ULL * GB;
+constexpr size_t kPtrComprCageReservationSize = static_cast<size_t>(4ULL * GB);
 constexpr size_t kMaximalTrustedRangeSize = 256 * MB;
 #endif
 
@@ -511,7 +524,7 @@ constexpr size_t kMinimumTrustedRangeSize = 32 * MB;
 
 #ifndef V8_PTR_COMPR_CONSTANTS_DEFINED
 // Define missing constants for platforms that don't have them
-constexpr size_t kPtrComprCageReservationSize = 4ULL * GB;
+constexpr size_t kPtrComprCageReservationSize = static_cast<size_t>(4ULL * GB);
 #endif
 
 #else  // V8_HOST_ARCH_64_BIT
@@ -538,7 +551,7 @@ constexpr size_t kReservedCodeRangePages = 0;
 
 // Define missing constants for WASI and 32-bit builds
 #ifndef kPtrComprCageReservationSize
-constexpr size_t kPtrComprCageReservationSize = 4ULL * GB;
+constexpr size_t kPtrComprCageReservationSize = static_cast<size_t>(4ULL * GB);
 #endif
 #ifndef kMaximalTrustedRangeSize
 constexpr size_t kMaximalTrustedRangeSize = 256 * MB;
@@ -2490,7 +2503,7 @@ enum class DefineKeyedOwnPropertyInLiteralFlag {
   kSetFunctionName = 1 << 0
 };
 // using DefineKeyedOwnPropertyInLiteralFlag =
-    ::v8::base::Flags<DefineKeyedOwnPropertyInLiteralFlag>;
+//     ::v8::base::Flags<DefineKeyedOwnPropertyInLiteralFlag>;
 // DEFINE_OPERATORS_FOR_FLAGS(DefineKeyedOwnPropertyInLiteralFlag)
 
 enum class DefineKeyedOwnPropertyFlag {
@@ -2976,5 +2989,3 @@ constexpr int kSmiMaxValue = (1 << 30) - 1;
 namespace i = v8::internal;
 
 #endif  // V8_COMMON_GLOBALS_H_
-
-

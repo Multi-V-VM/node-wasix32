@@ -1,3 +1,4 @@
+// Minimal WASI stub for wasm features when building without full platform
 #ifndef V8_WASM_FEATURES_FIX_H_
 #define V8_WASM_FEATURES_FIX_H_
 
@@ -5,15 +6,16 @@ namespace v8 {
 namespace internal {
 namespace wasm {
 
-class WasmEnabledFeatures {
- public:
-  bool contains(int feature) const { return true; }
-  static WasmEnabledFeatures All() { return WasmEnabledFeatures(); }
-  static WasmEnabledFeatures None() { return WasmEnabledFeatures(); }
+// Provide minimal feature toggles as false for WASI stub builds
+struct Features {
+  static bool threads_enabled() { return false; }
+  static bool simd_enabled() { return false; }
+  static bool gc_enabled() { return false; }
 };
 
-} // namespace wasm
-} // namespace internal
-} // namespace v8
+}  // namespace wasm
+}  // namespace internal
+}  // namespace v8
 
-#endif
+#endif  // V8_WASM_FEATURES_FIX_H_
+

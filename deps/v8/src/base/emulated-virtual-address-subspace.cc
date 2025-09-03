@@ -10,6 +10,12 @@
 namespace v8 {
 namespace base {
 
+#ifdef __wasi__
+
+// No-op for WASI: stubbed in header
+
+#else  // !__wasi__
+
 EmulatedVirtualAddressSubspace::EmulatedVirtualAddressSubspace(
     VirtualAddressSpace* parent_space, Address base, size_t mapped_size,
     size_t total_size)
@@ -193,6 +199,8 @@ bool EmulatedVirtualAddressSubspace::DecommitPages(Address address,
   DCHECK(Contains(address, size));
   return parent_space_->DecommitPages(address, size);
 }
+
+#endif  // __wasi__
 
 }  // namespace base
 }  // namespace v8

@@ -208,6 +208,7 @@ enum InstanceType : uint16_t {
 constexpr InstanceType LAST_STRING_TYPE =
     static_cast<InstanceType>(FIRST_NONSTRING_TYPE - 1);
 
+#ifndef __wasi__
 static_assert((FIRST_NONSTRING_TYPE & kIsNotStringMask) != kStringTag);
 static_assert(JS_OBJECT_TYPE == Internals::kJSObjectType);
 static_assert(FIRST_JS_API_OBJECT_TYPE == Internals::kFirstJSApiObjectType);
@@ -216,6 +217,7 @@ static_assert(JS_SPECIAL_API_OBJECT_TYPE == Internals::kJSSpecialApiObjectType);
 static_assert(FIRST_NONSTRING_TYPE == Internals::kFirstNonstringType);
 static_assert(ODDBALL_TYPE == Internals::kOddballType);
 static_assert(FOREIGN_TYPE == Internals::kForeignType);
+#endif
 
 // Verify that string types are all less than other types.
 #define CHECK_STRING_RANGE(TYPE, ...) \

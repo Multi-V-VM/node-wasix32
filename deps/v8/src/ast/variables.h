@@ -20,6 +20,20 @@ namespace internal {
 // after binding and variable allocation.
 class Variable final : public ZoneObject {
  public:
+  // Bit field layout types (declared early to allow use in initializers).
+  using VariableModeField = ::v8::base::BitField16<VariableMode, 0, 4>;
+  using VariableKindField = VariableModeField::Next<VariableKind, 3>;
+  using LocationField = VariableKindField::Next<VariableLocation, 3>;
+  using ForceContextAllocationBit = LocationField::Next<bool, 1>;
+  using IsUsedField = ForceContextAllocationBit::Next<bool, 1>;
+  using InitializationFlagField = IsUsedField::Next<InitializationFlag, 1>;
+  using MaybeAssignedFlagField =
+      InitializationFlagField::Next<MaybeAssignedFlag, 1>;
+  using IsStaticFlagField = MaybeAssignedFlagField::Next<IsStaticFlag, 1>;
+
+  using HoleCheckBitmapIndexField = ::v8::base::BitField16<uint8_t, 0, 8>;
+  using ForceHoleInitializationFlagField =
+      HoleCheckBitmapIndexField::Next<ForceHoleInitializationFlag, 2>;
   Variable(Scope* scope, const AstRawString* name, VariableMode mode,
            VariableKind kind, InitializationFlag initialization_flag,
            MaybeAssignedFlag maybe_assigned_flag = kNotAssigned,
@@ -317,7 +331,7 @@ class Variable final : public ZoneObject {
   // Rewrites the VariableLocation of repl script scope 'lets' to REPL_GLOBAL.
   void RewriteLocationForRepl();
 
-  using List = base::ThreadedList<Variable>;
+  using List = ::v8::base::ThreadedList<Variable>;
 
  private:
   Scope* scope_;
@@ -345,23 +359,11 @@ class Variable final : public ZoneObject {
   void AssignHoleCheckBitmapIndex(::v8::base::Vector<Variable*>& list,
                                   uint8_t next_index);
 
-  using VariableModeField = base::BitField16<VariableMode, 0, 4>;
-  using VariableKindField = VariableModeField::Next<VariableKind, 3>;
-  using LocationField = VariableKindField::Next<VariableLocation, 3>;
-  using ForceContextAllocationBit = LocationField::Next<bool, 1>;
-  using IsUsedField = ForceContextAllocationBit::Next<bool, 1>;
-  using InitializationFlagField = IsUsedField::Next<InitializationFlag, 1>;
-  using MaybeAssignedFlagField =
-      InitializationFlagField::Next<MaybeAssignedFlag, 1>;
-  using IsStaticFlagField = MaybeAssignedFlagField::Next<IsStaticFlag, 1>;
-
-  using HoleCheckBitmapIndexField = base::BitField16<uint8_t, 0, 8>;
-  using ForceHoleInitializationFlagField =
-      HoleCheckBitmapIndexField::Next<ForceHoleInitializationFlag, 2>;
+  // (Bit field type aliases are declared earlier.)
 
   Variable** next() { return &next_; }
   friend List;
-  friend base::ThreadedListTraits<Variable>;
+  friend ::v8::base::ThreadedListTraits<Variable>;
 };
 }  // namespace internal
 }  // namespace v8

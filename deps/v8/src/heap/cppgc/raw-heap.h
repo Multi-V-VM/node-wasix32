@@ -1,3 +1,4 @@
+#include "cppgc/custom-space.h"
 // Copyright 2020 the V8 project authors. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
@@ -75,10 +76,10 @@ class V8_EXPORT_PRIVATE RawHeap final {
     return const_cast<RawHeap&>(*this).Space(space);
   }
 
-  BaseSpace* CustomSpace(CustomSpaceIndex space_index) {
+  BaseSpace* CustomSpace(cppgc::CustomSpaceIndex space_index) {
     return Space(SpaceIndexForCustomSpace(space_index));
   }
-  const BaseSpace* CustomSpace(CustomSpaceIndex space_index) const {
+  const BaseSpace* CustomSpace(cppgc::CustomSpaceIndex space_index) const {
     return const_cast<RawHeap&>(*this).CustomSpace(space_index);
   }
 
@@ -86,9 +87,9 @@ class V8_EXPORT_PRIVATE RawHeap final {
   const HeapBase* heap() const { return main_heap_; }
 
  private:
-  size_t SpaceIndexForCustomSpace(CustomSpaceIndex space_index) const {
-    DCHECK_LT(space_index.value, spaces_.size() - kNumberOfRegularSpaces);
-    return kNumberOfRegularSpaces + space_index.value;
+  size_t SpaceIndexForCustomSpace(cppgc::CustomSpaceIndex space_index) const {
+    DCHECK_LT(space_index, spaces_.size() - kNumberOfRegularSpaces);
+    return kNumberOfRegularSpaces + space_index;
   }
 
   BaseSpace* Space(size_t space_index) {

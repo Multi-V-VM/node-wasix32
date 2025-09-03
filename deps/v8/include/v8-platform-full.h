@@ -57,6 +57,7 @@ class PageAllocator {
     kReadExecute,
     kNoAccessWillJitLater
   };
+  using PagePermissions = Permission;
   
   virtual ~PageAllocator() = default;
   
@@ -91,6 +92,9 @@ class PageAllocator {
     virtual void Remap(void* new_address) = 0;
   };
 };
+
+// Expose PagePermissions at v8::PagePermissions for convenience
+using PagePermissions = PageAllocator::PagePermissions;
 
 // Platform interface
 class Platform {
@@ -145,4 +149,3 @@ class ConvertableToTraceFormat;
 }  // namespace v8
 
 #endif  // V8_V8_PLATFORM_COMPLETE_H_
-

@@ -96,7 +96,7 @@ class WasmDebugBreakFrameConstants : public TypedFrameConstants {
     uint32_t lower_regs =
         kPushedGpRegs.bits() & ((uint32_t{1} << reg_code) - 1);
     return kLastPushedGpRegisterOffset +
-           base::bits::CountPopulation(lower_regs) * kSystemPointerSize;
+           ::v8::base::bits::CountPopulation(lower_regs) * kSystemPointerSize;
   }
 
   static int GetPushedFpRegisterOffset(int reg_code) {
@@ -104,7 +104,7 @@ class WasmDebugBreakFrameConstants : public TypedFrameConstants {
     uint32_t lower_regs =
         kPushedFpRegs.bits() & ((uint32_t{1} << reg_code) - 1);
     return kLastPushedFpRegisterOffset +
-           base::bits::CountPopulation(lower_regs) * kSimd128Size;
+           ::v8::base::bits::CountPopulation(lower_regs) * kSimd128Size;
   }
 };
 

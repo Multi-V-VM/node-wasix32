@@ -1,4 +1,4 @@
-#ifdef __wasi__
+#if 0
 // WASI compatibility - must be included before any other headers
 #include <stdint.h>
 #include <stddef.h>

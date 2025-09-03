@@ -107,6 +107,9 @@ using FloatRegister = XMMRegister;
 
 using DoubleRegister = XMMRegister;
 
+// Forward declaration for RegList compatibility
+class Register;
+
 using Simd128Register = XMMRegister;
 
 #define DEFINE_REGISTER(R) \

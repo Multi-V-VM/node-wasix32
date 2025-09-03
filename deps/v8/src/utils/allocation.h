@@ -121,7 +121,10 @@ V8_EXPORT_PRIVATE ::v8::PageAllocator* GetPlatformPageAllocator();
 
 // Returns platfrom virtual memory space instance. Guaranteed to be a valid
 // pointer.
-V8_EXPORT_PRIVATE v8::VirtualAddressSpace* GetPlatformVirtualAddressSpace();
+#ifdef __wasi__
+class VirtualAddressSpace;
+#endif
+V8_EXPORT_PRIVATE VirtualAddressSpace* GetPlatformVirtualAddressSpace();
 
 #ifdef V8_ENABLE_SANDBOX
 // Returns the page allocator instance for allocating pages inside the sandbox.
@@ -163,7 +166,7 @@ V8_EXPORT_PRIVATE void* GetRandomMmapAddr();
 // AllocatePageSize(). Returns the address of the allocated memory, with the
 // specified size and alignment, or nullptr on failure.
 V8_EXPORT_PRIVATE
-V8_WARN_UNUSED_RESULT void* AllocatePages(v8::PageAllocator* page_allocator,
+V8_WARN_UNUSED_RESULT void* AllocatePages(PageAllocator* page_allocator,
                                           void* address, size_t size,
                                           size_t alignment,
                                           PageAllocator::Permission access);
@@ -171,7 +174,7 @@ V8_WARN_UNUSED_RESULT void* AllocatePages(v8::PageAllocator* page_allocator,
 // Frees memory allocated by a call to AllocatePages. |address| and |size| must
 // be multiples of AllocatePageSize().
 V8_EXPORT_PRIVATE
-void FreePages(v8::PageAllocator* page_allocator, void* address,
+void FreePages(PageAllocator* page_allocator, void* address,
                const size_t size);
 
 // Releases memory that is no longer needed. The range specified by |address|
@@ -179,7 +182,7 @@ void FreePages(v8::PageAllocator* page_allocator, void* address,
 // multiples of CommitPageSize(). Memory from |new_size| to |size| is released.
 // Released memory is left in an undefined state, so it should not be accessed.
 V8_EXPORT_PRIVATE
-void ReleasePages(v8::PageAllocator* page_allocator, void* address, size_t size,
+void ReleasePages(PageAllocator* page_allocator, void* address, size_t size,
                   size_t new_size);
 
 // Sets permissions according to |access|. |address| and |size| must be
@@ -187,10 +190,10 @@ void ReleasePages(v8::PageAllocator* page_allocator, void* address, size_t size,
 // cause the memory contents to be lost. Returns true on success, otherwise
 // false.
 V8_EXPORT_PRIVATE
-V8_WARN_UNUSED_RESULT bool SetPermissions(v8::PageAllocator* page_allocator,
+V8_WARN_UNUSED_RESULT bool SetPermissions(PageAllocator* page_allocator,
                                           void* address, size_t size,
                                           PageAllocator::Permission access);
-inline bool SetPermissions(v8::PageAllocator* page_allocator, Address address,
+inline bool SetPermissions(PageAllocator* page_allocator, Address address,
                            size_t size, PageAllocator::Permission access) {
   return SetPermissions(page_allocator, reinterpret_cast<void*>(address), size,
                         access);
@@ -220,7 +223,7 @@ class VirtualMemory final {
 
   // Construct a virtual memory by assigning it some already mapped address
   // and size.
-  VirtualMemory(v8::PageAllocator* page_allocator, Address address, size_t size)
+  VirtualMemory(PageAllocator* page_allocator, Address address, size_t size)
       : page_allocator_(page_allocator), region_(address, size) {
     DCHECK_NOT_NULL(page_allocator);
     DCHECK(IsAligned(address, page_allocator->AllocatePageSize()));

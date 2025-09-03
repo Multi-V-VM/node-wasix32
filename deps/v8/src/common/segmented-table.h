@@ -13,6 +13,10 @@
 #include "src/common/code-memory-access.h"
 
 namespace v8 {
+#ifdef __wasi__
+// Forward declare a stub VirtualAddressSpace type for WASI builds.
+namespace internal { class VirtualAddressSpace; }
+#endif
 namespace internal {
 
 /**
@@ -59,6 +63,9 @@ class V8_EXPORT_PRIVATE SegmentedTable {
   static constexpr size_t kEntriesPerSegment = kSegmentSize / kEntrySize;
 
   // Struct representing a segment of the table.
+#ifdef __wasi__
+ public:
+#endif
   struct Segment {
    public:
     // Initialize a segment given its number.
@@ -102,6 +109,9 @@ class V8_EXPORT_PRIVATE SegmentedTable {
   // A segmented table uses simple, singly-linked lists to manage free entries.
   // Each entry on the freelist contains the 32-bit index of the next entry. The
   // last entry points to zero.
+#ifdef __wasi__
+ public:
+#endif
   struct FreelistHead {
     constexpr FreelistHead() : next_(0), length_(0) {}
     constexpr FreelistHead(uint32_t next, uint32_t length)
@@ -131,6 +141,9 @@ class V8_EXPORT_PRIVATE SegmentedTable {
 
   // This Iterator also acts as a scope object to temporarily lift any
   // write-protection (if kIsWriteProtected is true).
+#ifdef __wasi__
+ public:
+#endif
   class WriteIterator {
    public:
     explicit WriteIterator(Entry* base, uint32_t index);
@@ -175,6 +188,7 @@ class V8_EXPORT_PRIVATE SegmentedTable {
 #endif
   };
 
+ protected:
   // Access the entry at the specified index.
   Entry& at(uint32_t index);
   const Entry& at(uint32_t index) const;

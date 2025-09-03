@@ -1,3 +1,4 @@
+#include "src/base/bits.h"
 #ifdef __wasi__
 #define V8_TARGET_ARCH_WASM32 1
 #endif

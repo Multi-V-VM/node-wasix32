@@ -160,10 +160,10 @@ V8_INLINE Dest bit_cast(Source const& source) {
 //  [...] A non-placement deallocation function for a class is
 //  odr-used by the definition of the destructor of that class, [...]
 #define DISALLOW_NEW_AND_DELETE()                                \
-  void* operator new(size_t) { v8::base::OS::Abort(); }          \
-  void* operator new[](size_t) { v8::base::OS::Abort(); }        \
-  void operator delete(void*, size_t) { v8::base::OS::Abort(); } \
-  void operator delete[](void*, size_t) { v8::base::OS::Abort(); }
+  void* operator new(size_t) { ::v8::base::OS::Abort(); }          \
+  void* operator new[](size_t) { ::v8::base::OS::Abort(); }        \
+  void operator delete(void*, size_t) { ::v8::base::OS::Abort(); } \
+  void operator delete[](void*, size_t) { ::v8::base::OS::Abort(); }
 
 // Define V8_USE_ADDRESS_SANITIZER macro.
 #if defined(__has_feature)

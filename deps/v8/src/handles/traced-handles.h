@@ -95,7 +95,7 @@ class TracedNode final {
   void Release(Address zap_value);
 
  private:
-  using IsInUse = ::v8::base::BitField8<bool, 0, 1>;
+  using IsInUse = ::v8::base::BitField<bool, 0, 1>;
   using IsInYoungList = IsInUse::Next<bool, 1>;
   using IsWeak = IsInYoungList::Next<bool, 1>;
   using IsDroppable = IsWeak::Next<bool, 1>;

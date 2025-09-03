@@ -116,6 +116,12 @@ struct ExternalPointerTableEntry {
 
     static Address Tag(Address pointer, ExternalPointerTag tag) {
       DCHECK_LE(tag, kLastExternalPointerTag);
+#ifdef __wasi__
+      // For 32-bit WASI builds, avoid shift overflow
+      if (kExternalPointerTagShift >= 32) {
+        return static_cast<Address>(pointer);
+      }
+#endif
       return pointer | (static_cast<Address>(tag) << kExternalPointerTagShift);
     }
 
@@ -324,7 +330,7 @@ class V8_EXPORT_PRIVATE ExternalPointerTable
 #else
   static_assert(kMaxExternalPointers == kMaxCapacity);
 #endif
-  static_assert(kSupportsCompaction);
+  static_assert(Base::kSupportsCompaction);
 
  public:
   using EvacuateMarkMode = ExternalPointerTableEntry::EvacuateMarkMode;

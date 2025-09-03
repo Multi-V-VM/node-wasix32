@@ -58,22 +58,11 @@ using BitField64 = BitField<T, start, size, uint64_t>;
 
 #endif // V8_BASE_BIT_FIELD_H_
 
-// Also fix std namespace issues - conditionally include std functions
+// Include standard headers normally; avoid polluting namespaces with re-exports.
 #include <utility>
 #include <algorithm>
 #include <type_traits>
 #include <array>
-
-namespace v8 {
-namespace std {
-#ifdef __cpp_lib_move_iterator
-using ::std::move_backward;
-using ::std::move;
-#endif
-using ::std::forward;
-using ::std::add_const;
-} // namespace std
-} // namespace v8
 
 // Fix for namespace issues with Platform and other types
 namespace v8 {

@@ -49,7 +49,7 @@ class V8_EXPORT_PRIVATE DateCache {
 
   // Clears cached timezone information and increments the cache stamp.
   void ResetDateCache(
-      base::TimezoneCache::TimeZoneDetection time_zone_detection);
+      ::v8::base::TimezoneCache::TimeZoneDetection time_zone_detection);
 
   // Computes floor(time_ms / kMsPerDay).
   static int DaysFromTime(int64_t time_ms) {
@@ -246,7 +246,7 @@ class V8_EXPORT_PRIVATE DateCache {
   const char* tz_name_;
   const char* dst_tz_name_;
 
-  base::TimezoneCache* tz_cache_;
+  ::v8::base::TimezoneCache* tz_cache_;
 };
 
 // Routines shared between Date and Temporal
@@ -260,7 +260,7 @@ double MakeDay(double year, double month, double date);
 // ES6 section 20.3.1.12 MakeTime (hour, min, sec, ms)
 double MakeTime(double hour, double min, double sec, double ms);
 
-using DateBuffer = base::SmallVector<char, 128>;
+using DateBuffer = ::v8::base::SmallVector<char, 128>;
 
 enum class ToDateStringMode {
   kLocalDate,

@@ -7,8 +7,14 @@
 namespace v8 {
 namespace base {
 
+#ifdef __wasi__
+
+// No implementation needed for WASI stub (class is fully defined inline)
+
+#else  // !__wasi__
+
 VirtualAddressSpacePageAllocator::VirtualAddressSpacePageAllocator(
-    v8::VirtualAddressSpace* vas)
+    VirtualAddressSpace* vas)
     : vas_(vas) {}
 
 void* VirtualAddressSpacePageAllocator::AllocatePages(
@@ -40,8 +46,6 @@ bool VirtualAddressSpacePageAllocator::ReleasePages(void* ptr, size_t size) {
   // exactly what ReleasePages would normally do as well. However, we still need
   // to pass the original size to FreePages eventually, so we'll need to keep
   // track of that.
-  DCHECK_LE(new_size, size);
-
   MutexGuard guard(&mutex_);
   // For WASI, we don't support partial release, so just return true
   return true;
@@ -72,6 +76,8 @@ bool VirtualAddressSpacePageAllocator::DecommitPages(void* address,
 bool VirtualAddressSpacePageAllocator::SealPages(void* address, size_t size) {
   return false;
 }
+
+#endif  // __wasi__
 
 }  // namespace base
 }  // namespace v8

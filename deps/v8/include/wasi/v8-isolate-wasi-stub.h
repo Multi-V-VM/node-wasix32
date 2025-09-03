@@ -30,6 +30,19 @@ struct SnapshotBlobRef {
 
 namespace v8 {
 
+// Minimal ResourceConstraints stub for WASI builds
+class ResourceConstraints {
+ public:
+  size_t max_old_generation_size_in_bytes() const { return 0; }
+  void ConfigureDefaults(size_t /*physical_memory*/, size_t /*virtual_memory_limit*/) {}
+  void set_stack_limit(uint32_t*) {}
+  void set_max_young_generation_size_in_bytes(size_t) {}
+  size_t max_young_generation_size_in_bytes() const { return 0; }
+  void set_max_old_generation_size_in_bytes(size_t) {}
+  void set_code_range_size_in_bytes(size_t) {}
+  size_t code_range_size_in_bytes() const { return 0; }
+};
+
 // Forward declarations
 class Context;
 class Message;
@@ -38,7 +51,7 @@ class StackTrace;
 class String;
 class Isolate;
 class HeapProfiler;
-class HeapStatistics;
+class HeapStatistics; // Forward declaration for v8::HeapStatistics
 
 // Type definitions that need to be before Isolate class
 using AbortOnUncaughtExceptionCallback = bool (*)(Isolate*);

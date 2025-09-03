@@ -22,23 +22,6 @@ class CustomSpaceBase {
 };
 #endif
 
-#ifndef CPPGC_HEAP_DEFINED  
-#define CPPGC_HEAP_DEFINED
-class Heap {
- public:
-  enum class MarkingType {
-    kAtomic,
-    kIncremental,
-    kIncrementalAndConcurrent
-  };
-  
-  enum class SweepingType {
-    kAtomic,
-    kIncremental,
-    kIncrementalAndConcurrent
-  };
-};
-#endif
 
 } // namespace cppgc
 
@@ -138,16 +121,6 @@ class EscapableHandleScope : public HandleScope {
 
 // Context methods are defined inline in V8 headers
 
-// ExternalPointerTag enum
-enum ExternalPointerTag : uint64_t {
-  kExternalPointerNullTag = 0,
-  kExternalPointerFreeEntryTag = 1,
-  kAnyExternalPointerTag = ~0ULL,
-};
-
-// ExternalPointerHandle type  
-using ExternalPointerHandle = uint32_t;
-
 // Internal namespace additions
 namespace internal {
 
@@ -166,23 +139,8 @@ using Address = uintptr_t;
 
 // Note: HeapProfiler class is provided by V8 headers
 
-// Note: External pointer tags are defined in nuclear-fix.h to avoid conflicts
-
-// External pointer table constants for WASI
-#ifndef V8_EXTERNAL_POINTER_TABLE_SIZE
-#define V8_EXTERNAL_POINTER_TABLE_SIZE
-constexpr size_t kExternalPointerTableReservationSize = 1024 * 1024; // 1MB
-#endif
-
-#ifndef V8_MAX_EXTERNAL_POINTERS
-#define V8_MAX_EXTERNAL_POINTERS
-constexpr size_t kMaxExternalPointers = kExternalPointerTableReservationSize / 8;
-#endif
-
-#ifndef V8_MAX_CAPACITY
-#define V8_MAX_CAPACITY
-constexpr size_t kMaxCapacity = kMaxExternalPointers;
-#endif
+// Note: External pointer tags and table constants are provided by
+// deps/v8/include/wasi/nuclear-fix.h
 
 // V8 slot and smi value operations
 #ifndef kApiSystemPointerSize
@@ -206,6 +164,7 @@ constexpr int kApiSizetSize = sizeof(size_t);
 constexpr int kApiTaggedSize = kApiSystemPointerSize;
 #endif
 
+#if !defined(V8_WASI_NUCLEAR_PROVIDES_SMI)
 // kSmiTagSize needs to be defined for the code below
 constexpr int kSmiTagSize = 1;
 
@@ -214,8 +173,6 @@ constexpr int kSmiTagSize = 1;
 inline int SmiValue(Address value) {
   return static_cast<int32_t>(static_cast<intptr_t>(value)) >> kSmiTagSize;
 }
-
-// SmiValuesAre31Bits and SmiValuesAre32Bits are already defined in v8-wasi-compat.h
 
 // Embedder slot operations  
 inline void IncrementLongTasksStatsCounter(::v8::Isolate* isolate) {}
@@ -228,6 +185,7 @@ inline Address ReadExternalPointerField(Address field_address,
                                        ExternalPointerTag tag) {
   return 0;
 }
+#endif // !V8_WASI_NUCLEAR_PROVIDES_SMI
 
 // Isolate methods are defined in V8 headers
 

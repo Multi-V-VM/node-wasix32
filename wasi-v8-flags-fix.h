@@ -21,7 +21,10 @@ enum class CodeKindFlag;
 // Fix for missing kSmiTagMask constant
 namespace v8 {
 namespace internal {
-constexpr int kSmiTagMask = 1;
+#if !defined(V8_WASI_SMI_TAG_MASK_DEFINED)
+#define V8_WASI_SMI_TAG_MASK_DEFINED
+constexpr intptr_t kSmiTagMask = (1 << 1) - 1;  // match nuclear-fix.h type
+#endif
 } // namespace internal
 } // namespace v8
 

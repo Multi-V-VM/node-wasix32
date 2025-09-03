@@ -11,9 +11,38 @@
 #include "src/base/base-export.h"
 #include "src/base/platform/mutex.h"
 #include "src/base/platform/platform.h"
+#include "src/base/virtual-address-space.h"
 
 namespace v8 {
 namespace base {
+
+#ifdef __wasi__
+
+// WASI stub that doesn't depend on VirtualAddressSpace implementation
+class V8_BASE_EXPORT VirtualAddressSpacePageAllocator : public ::v8::PageAllocator {
+ public:
+  using Address = uintptr_t;
+
+  explicit VirtualAddressSpacePageAllocator(void* /*vas*/) {}
+
+  size_t AllocatePageSize() override { return 4096; }
+  size_t CommitPageSize() override { return 4096; }
+  void SetRandomMmapSeed(int64_t) override {}
+  void* GetRandomMmapAddr() override { return nullptr; }
+  void* AllocatePages(void*, size_t, size_t, PagePermissions) override { return nullptr; }
+  bool FreePages(void*, size_t) override { return true; }
+  bool ReleasePages(void*, size_t) override { return true; }
+  bool SetPermissions(void*, size_t, PagePermissions) override { return true; }
+  bool RecommitPages(void*, size_t, PagePermissions) override { return true; }
+  bool DiscardSystemPages(void*, size_t) override { return true; }
+  bool DecommitPages(void*, size_t) override { return true; }
+  bool SealPages(void*, size_t) override { return true; }
+
+ private:
+  Mutex mutex_;
+};
+
+#else  // !__wasi__
 
 // This class bridges a VirtualAddressSpace, the future memory management API,
 // to a PageAllocator, the current API.
@@ -22,7 +51,7 @@ class V8_BASE_EXPORT VirtualAddressSpacePageAllocator
  public:
   using Address = uintptr_t;
 
-  explicit VirtualAddressSpacePageAllocator(v8::VirtualAddressSpace* vas);
+  explicit VirtualAddressSpacePageAllocator(VirtualAddressSpace* vas);
 
   VirtualAddressSpacePageAllocator(const VirtualAddressSpacePageAllocator&) =
       delete;
@@ -62,7 +91,7 @@ class V8_BASE_EXPORT VirtualAddressSpacePageAllocator
  private:
   // Client of this class must keep the VirtualAddressSpace alive during the
   // lifetime of this instance.
-  v8::VirtualAddressSpace* vas_;
+  VirtualAddressSpace* vas_;
 
   // As the VirtualAddressSpace class doesn't support ReleasePages, this map is
   // required to keep track of the original size of resized page allocations.
@@ -72,6 +101,8 @@ class V8_BASE_EXPORT VirtualAddressSpacePageAllocator
   // Mutex guarding the above map.
   Mutex mutex_;
 };
+
+#endif  // __wasi__
 
 }  // namespace base
 }  // namespace v8

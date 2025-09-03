@@ -27,7 +27,7 @@ class HeapHandle {
   HeapHandle(const HeapHandle&) = delete;
   HeapHandle& operator=(const HeapHandle&) = delete;
 
- private:
+ protected:
   HeapHandle() = default;
 
   V8_INLINE bool is_incremental_marking_in_progress() const {

@@ -30,6 +30,8 @@
 #elif V8_TARGET_ARCH_RISCV32 || V8_TARGET_ARCH_RISCV64
 #include "src/codegen/riscv/assembler-riscv-inl.h"
 #else
+#elif V8_TARGET_ARCH_WASM32
+#include "src/codegen/ia32/assembler-ia32-inl.h"
 #error Unknown architecture.
 #endif
 

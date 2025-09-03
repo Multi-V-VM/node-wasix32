@@ -15,6 +15,17 @@
 namespace v8 {
 namespace base {
 
+#ifdef __wasi__
+
+class V8_BASE_EXPORT EmulatedVirtualAddressSubspace final {
+ public:
+  using Address = uintptr_t;
+  EmulatedVirtualAddressSubspace(void* /*parent_space*/, Address, size_t, size_t) {}
+  ~EmulatedVirtualAddressSubspace() = default;
+};
+
+#else  // !__wasi__
+
 /**
  * Emulates a virtual address subspace.
  *
@@ -29,13 +40,13 @@ namespace base {
  * provide the same security gurarantees.
  */
 class V8_BASE_EXPORT EmulatedVirtualAddressSubspace final
-    : public v8::VirtualAddressSpace {
+    : public VirtualAddressSpace {
  public:
   // Construct an emulated virtual address subspace of the specified total size,
   // potentially backed by a page allocation from the parent space. The newly
   // created instance takes ownership of the page allocation (if any) and frees
   // it during destruction.
-  EmulatedVirtualAddressSubspace(v8::VirtualAddressSpace* parent_space,
+  EmulatedVirtualAddressSubspace(VirtualAddressSpace* parent_space,
                                  Address base, size_t mapped_size,
                                  size_t total_size);
 
@@ -66,7 +77,7 @@ class V8_BASE_EXPORT EmulatedVirtualAddressSubspace final
 
   bool CanAllocateSubspaces() override;
 
-  std::unique_ptr<v8::VirtualAddressSpace> AllocateSubspace(
+  std::unique_ptr<VirtualAddressSpace> AllocateSubspace(
       Address hint, size_t size, size_t alignment,
       PagePermissions max_page_permissions) override;
 
@@ -127,7 +138,7 @@ class V8_BASE_EXPORT EmulatedVirtualAddressSubspace final
 
   // Pointer to the parent space from which the backing pages were allocated.
   // Must be kept alive by the owner of this instance.
-  v8::VirtualAddressSpace* parent_space_;
+  VirtualAddressSpace* parent_space_;
 
   // Mutex guarding the non-threadsafe RegionAllocator and
   // RandomNumberGenerator.
@@ -140,6 +151,8 @@ class V8_BASE_EXPORT EmulatedVirtualAddressSubspace final
   // Random number generator for generating random addresses.
   RandomNumberGenerator rng_;
 };
+
+#endif  // __wasi__
 
 }  // namespace base
 }  // namespace v8

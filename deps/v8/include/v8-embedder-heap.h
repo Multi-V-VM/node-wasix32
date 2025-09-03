@@ -11,6 +11,9 @@
 #include "v8-traced-handle.h"  // NOLINT(build/include_directory)
 #include "v8config.h"          // NOLINT(build/include_directory)
 
+// Forward declare global cppgc options for aliasing below
+namespace cppgc { struct HeapOptions; }
+
 namespace v8 {
 namespace internal {
 class TracedHandles;
@@ -18,6 +21,10 @@ class TracedHandles;
 
 class Isolate;
 class Value;
+class Platform;  // Forward declaration for Create() interface
+
+// Provide alias expected by some Node code: map to ::cppgc::HeapOptions
+using CppHeapCreateParams = ::cppgc::HeapOptions;
 
 /**
  * Handler for embedder roots on non-unified heap garbage collections.

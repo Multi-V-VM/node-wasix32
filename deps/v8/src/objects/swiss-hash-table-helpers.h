@@ -142,8 +142,8 @@ class BitMask {
   int operator*() const { return LowestBitSet(); }
   int LowestBitSet() const { return TrailingZeros(); }
   int HighestBitSet() const {
-    return (sizeof(T) * CHAR_BIT - base::bits::CountLeadingZeros(mask_) - 1) >>
-           Shift;
+    return (sizeof(T) * CHAR_BIT - ::v8::base::bits::CountLeadingZeros(mask_) - 1) >>
+        Shift;
   }
 
   BitMask begin() const { return *this; }
@@ -157,7 +157,7 @@ class BitMask {
   int LeadingZeros() const {
     constexpr int total_significant_bits = SignificantBits << Shift;
     constexpr int extra_bits = sizeof(T) * 8 - total_significant_bits;
-    return base::bits::CountLeadingZeros(mask_ << extra_bits) >> Shift;
+    return ::v8::base::bits::CountLeadingZeros(mask_ << extra_bits) >> Shift;
   }
 
  private:
@@ -292,7 +292,7 @@ struct GroupPortableImpl {
   static constexpr size_t kWidth = 8;  // the number of slots per group
 
   explicit GroupPortableImpl(const ctrl_t* pos)
-      : ctrl(base::ReadLittleEndianValue<uint64_t>(
+      : ctrl(::v8::base::ReadLittleEndianValue<uint64_t>(
             reinterpret_cast<uintptr_t>(const_cast<ctrl_t*>(pos)))) {}
 
   static constexpr uint64_t kMsbs = 0x8080808080808080ULL;

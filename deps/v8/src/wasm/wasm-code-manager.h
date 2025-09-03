@@ -195,7 +195,7 @@ class V8_EXPORT_PRIVATE WasmCode final {
   int index() const { return index_; }
   // Anonymous functions are functions that don't carry an index.
   bool IsAnonymous() const { return index_ == kAnonymousFuncIndex; }
-  Kind kind() const { return KindField::decode(flags_); }
+  Kind kind() const { return static_cast<Kind>(KindField::decode(flags_)); }
   NativeModule* native_module() const { return native_module_; }
   ExecutionTier tier() const { return ExecutionTierField::decode(flags_); }
   Address constant_pool() const;
@@ -600,7 +600,8 @@ class WasmCodeAllocator {
 };
 
 #ifndef kWasmNativeModuleTag
-constexpr ExternalPointerTag kWasmNativeModuleTag = 0x1234567890abcdefULL;
+constexpr ExternalPointerTag kWasmNativeModuleTag =
+    static_cast<ExternalPointerTag>(0x1234567890abcdefULL);
 #endif
 
 class V8_EXPORT_PRIVATE NativeModule final {

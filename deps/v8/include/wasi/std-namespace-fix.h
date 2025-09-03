@@ -55,6 +55,7 @@ namespace v8 {
 #include <stdexcept>
 #include <cstdlib>
 
+#if 1  // Enable v8::std aliasing for WASI shim compatibility
 namespace v8 {
 namespace std {
 
@@ -727,10 +728,17 @@ inline auto invoke(Fn&& fn, Args&&... args) -> decltype(::std::invoke(::std::for
     return ::std::invoke(::std::forward<Fn>(fn), ::std::forward<Args>(args)...);
 }
 
+// Add missing inserter and ostream aliases used in V8 sources
+using ::std::inserter;
+using ::std::ostream;
+using ::std::set_intersection;
+// Bring in add_const type trait
+using ::std::add_const;
+
 }  // namespace std
 }  // namespace v8
+#endif  // enable v8::std aliasing
 
 // Do not create aliases in ::std::ranges to avoid conflicts with standard library
 
 #endif  // V8_INCLUDE_WASI_STD_NAMESPACE_FIX_H_
-

@@ -7,6 +7,7 @@
 #include "cppgc/garbage-collected.h"
 #include "cppgc/name-provider.h"
 #include "cppgc/persistent.h"
+#include "cppgc/visitor.h"
 #include "memory_tracker.h"
 #include "util.h"
 #include "v8-cppgc.h"

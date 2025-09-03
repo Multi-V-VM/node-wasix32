@@ -62,7 +62,7 @@ class V8_EXPORT_PRIVATE Operator : public NON_EXPORTED_BASE(ZoneObject) {
   V(Commutative)                  \
   V(Associative) V(Idempotent) V(NoRead) V(NoWrite) V(NoThrow) V(NoDeopt)
 
-  using Properties = base::Flags<Property, uint8_t>;
+  using Properties = ::v8::base::Flags<Property, uint8_t>;
   enum class PrintVerbosity { kVerbose, kSilent };
 
   // Constructor.
@@ -93,7 +93,7 @@ class V8_EXPORT_PRIVATE Operator : public NON_EXPORTED_BASE(ZoneObject) {
   // Compute a hashcode to speed up equivalence-set checking.
   // Equal operators should always have equal hashcodes, and unequal operators
   // should have unequal hashcodes with high probability.
-  virtual size_t HashCode() const { return base::hash<Opcode>()(opcode()); }
+  virtual size_t HashCode() const { return ::v8::base::hash<Opcode>()(opcode()); }
 
   // Check whether this operator has the given property.
   bool HasProperty(Property property) const {
@@ -165,7 +165,7 @@ struct OpEqualTo : public std::equal_to<T> {};
 
 // Default hashing function for below Operator1<*> class.
 template <typename T>
-struct OpHash : public base::hash<T> {};
+struct OpHash : public ::v8::base::hash<T> {};
 
 
 // A templatized implementation of Operator that has one static parameter of
@@ -228,14 +228,14 @@ inline T const& OpParameter(const Operator* op) {
 // float/double we always use the ones operating on the bit level, for Handle<>
 // we always use the ones operating on the location level.
 template <>
-struct OpEqualTo<float> : public base::bit_equal_to<float> {};
+struct OpEqualTo<float> : public ::v8::base::bit_equal_to<float> {};
 template <>
-struct OpHash<float> : public base::bit_hash<float> {};
+struct OpHash<float> : public ::v8::base::bit_hash<float> {};
 
 template <>
-struct OpEqualTo<double> : public base::bit_equal_to<double> {};
+struct OpEqualTo<double> : public ::v8::base::bit_equal_to<double> {};
 template <>
-struct OpHash<double> : public base::bit_hash<double> {};
+struct OpHash<double> : public ::v8::base::bit_hash<double> {};
 
 template <class T>
 struct OpEqualTo<IndirectHandle<T>> : public IndirectHandle<T>::equal_to {};

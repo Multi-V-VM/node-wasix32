@@ -1,53 +1,45 @@
-// Copyright 2022 the V8 project authors. All rights reserved.
+// Copyright 2020 the V8 project authors. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
 #ifndef V8_HEAP_CPPGC_HEAP_CONFIG_H_
 #define V8_HEAP_CPPGC_HEAP_CONFIG_H_
 
+#include <vector>
+
 #include "include/cppgc/heap.h"
-#include "src/base/platform/time.h"
+#include <optional>
 
-namespace cppgc::internal {
+namespace cppgc {
+namespace internal {
 
-using StackState = cppgc::Heap::StackState;
-
-enum class CollectionType : uint8_t {
-  kMinor,
-  kMajor,
-};
-
-// Specifies whether free memory should be transparently discarded when it is
-// not yet released. This is generally enabled for free list entries on memory
-// reducing GCs. Windows is the exception where these calls are too expensive.
-//
-// In order to minimize actual discard calls various components optimize the
-// calls here. E.g., we assume that whole pages are freed through a page pool
-// (which doesn't discard on adding) that is fully released after a GC cycle.
-enum class FreeMemoryHandling : uint8_t {
-  kDoNotDiscard,
-  kDiscardWherePossible
-};
-
+// MarkingConfig for internal use
 struct MarkingConfig {
-  using MarkingType = cppgc::Heap::MarkingType;
+  using MarkingType = cppgc::MarkingType;
+  using StackState = cppgc::StackState;
+  
   enum class IsForcedGC : uint8_t {
     kNotForced,
     kForced,
   };
 
-  static constexpr MarkingConfig Default() { return {}; }
+  static constexpr MarkingConfig Default() {
+    return {CollectionType::kMajor, StackState::kMayContainHeapPointers,
+            MarkingType::kIncrementalAndConcurrent, IsForcedGC::kNotForced};
+  }
 
-  const CollectionType collection_type = CollectionType::kMajor;
+  CollectionType collection_type = CollectionType::kMajor;
   StackState stack_state = StackState::kMayContainHeapPointers;
-  MarkingType marking_type = MarkingType::kIncremental;
+  MarkingType marking_type = MarkingType::kIncrementalAndConcurrent;
   IsForcedGC is_forced_gc = IsForcedGC::kNotForced;
 };
 
+// SweepingConfig for internal use
 struct SweepingConfig {
-  using SweepingType = cppgc::Heap::SweepingType;
+  using SweepingType = cppgc::SweepingType;
+  
   enum class CompactableSpaceHandling { kSweep, kIgnore };
-  using FreeMemoryHandling = cppgc::internal::FreeMemoryHandling;
+  enum class FreeMemoryHandling { kDoNotDiscard, kDiscardWherePossible };
 
   SweepingType sweeping_type = SweepingType::kIncrementalAndConcurrent;
   CompactableSpaceHandling compactable_space_handling =
@@ -55,62 +47,22 @@ struct SweepingConfig {
   FreeMemoryHandling free_memory_handling = FreeMemoryHandling::kDoNotDiscard;
 };
 
+// GCConfig combines marking and sweeping configs
 struct GCConfig {
   using MarkingType = MarkingConfig::MarkingType;
   using SweepingType = SweepingConfig::SweepingType;
-  using FreeMemoryHandling = SweepingConfig::FreeMemoryHandling;
+  using StackState = MarkingConfig::StackState;
   using IsForcedGC = MarkingConfig::IsForcedGC;
 
-  static constexpr GCConfig ConservativeAtomicConfig() {
-    return {CollectionType::kMajor, StackState::kMayContainHeapPointers,
-            MarkingType::kAtomic, SweepingType::kAtomic};
+  static constexpr GCConfig Default() {
+    return {MarkingConfig::Default(), SweepingConfig{}};
   }
 
-  static constexpr GCConfig PreciseAtomicConfig() {
-    return {CollectionType::kMajor, StackState::kNoHeapPointers,
-            MarkingType::kAtomic, SweepingType::kAtomic};
-  }
-
-  static constexpr GCConfig ConservativeIncrementalConfig() {
-    return {CollectionType::kMajor, StackState::kMayContainHeapPointers,
-            MarkingType::kIncremental, SweepingType::kAtomic};
-  }
-
-  static constexpr GCConfig PreciseIncrementalConfig() {
-    return {CollectionType::kMajor, StackState::kNoHeapPointers,
-            MarkingType::kIncremental, SweepingType::kAtomic};
-  }
-
-  static constexpr GCConfig
-  PreciseIncrementalMarkingConcurrentSweepingConfig() {
-    return {CollectionType::kMajor, StackState::kNoHeapPointers,
-            MarkingType::kIncremental, SweepingType::kIncrementalAndConcurrent};
-  }
-
-  static constexpr GCConfig PreciseConcurrentConfig() {
-    return {CollectionType::kMajor, StackState::kNoHeapPointers,
-            MarkingType::kIncrementalAndConcurrent,
-            SweepingType::kIncrementalAndConcurrent};
-  }
-
-  static constexpr GCConfig MinorPreciseAtomicConfig() {
-    return {CollectionType::kMinor, StackState::kNoHeapPointers,
-            MarkingType::kAtomic, SweepingType::kAtomic};
-  }
-
-  static constexpr GCConfig MinorConservativeAtomicConfig() {
-    return {CollectionType::kMinor, StackState::kMayContainHeapPointers,
-            MarkingType::kAtomic, SweepingType::kAtomic};
-  }
-
-  CollectionType collection_type = CollectionType::kMajor;
-  StackState stack_state = StackState::kMayContainHeapPointers;
-  MarkingType marking_type = MarkingType::kAtomic;
-  SweepingType sweeping_type = SweepingType::kAtomic;
-  FreeMemoryHandling free_memory_handling = FreeMemoryHandling::kDoNotDiscard;
-  IsForcedGC is_forced_gc = IsForcedGC::kNotForced;
+  MarkingConfig marking_config;
+  SweepingConfig sweeping_config;
 };
 
-}  // namespace cppgc::internal
+}  // namespace internal
+}  // namespace cppgc
 
 #endif  // V8_HEAP_CPPGC_HEAP_CONFIG_H_

@@ -7,6 +7,8 @@
 
 #if !CPPGC_IS_STANDALONE
 #include "src/tracing/trace-event.h"
+// Alias tracing namespace for cppgc users to match macro expectations.
+namespace tracing = ::v8::internal::tracing;
 using ConvertableToTraceFormat = v8::ConvertableToTraceFormat;
 #else
 // This is a subset of stc/tracing/trace-event.h required to support

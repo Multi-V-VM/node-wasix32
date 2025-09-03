@@ -5,44 +5,37 @@
 #ifndef INCLUDE_CPPGC_CUSTOM_SPACE_H_
 #define INCLUDE_CPPGC_CUSTOM_SPACE_H_
 
-#include <cstddef>
+#include <stddef.h>
+#include <vector>
+
+#include "v8config.h"
 
 namespace cppgc {
 
-/**
- * Base class for custom spaces.
- */
-class CustomSpace {
+// Type alias for custom space index
+using CustomSpaceIndex = size_t;
+
+class V8_EXPORT CustomSpaceBase {
  public:
-  virtual ~CustomSpace() = default;
+  virtual ~CustomSpaceBase() = default;
+  virtual CustomSpaceIndex GetCustomSpaceIndex() const = 0;
   
-  /**
-   * Returns the index of the custom space.
-   */
-  virtual size_t GetIndex() const = 0;
-  
-  /**
-   * Returns true if the custom space is compactable.
-   */
-  virtual bool IsCompactable() const = 0;
+ protected:
+  CustomSpaceBase() = default;
 };
 
-/**
- * Base class for custom space indices.
- */
-class CustomSpaceIndex {
+template <size_t kSpaceIndex>
+class CustomSpace : public CustomSpaceBase {
  public:
-  constexpr CustomSpaceIndex(size_t value) : value_(value) {}
-  constexpr size_t value() const { return value_; }
-
- private:
-  size_t value_;
+  static constexpr CustomSpaceIndex kSpaceIndex_ = kSpaceIndex;
+  
+  CustomSpaceIndex GetCustomSpaceIndex() const final {
+    return kSpaceIndex_;
+  }
+  
+ protected:
+  CustomSpace() = default;
 };
-
-namespace internal {
-// This needs to be here for compatibility
-using CustomSpace = size_t;
-}  // namespace internal
 
 }  // namespace cppgc
 

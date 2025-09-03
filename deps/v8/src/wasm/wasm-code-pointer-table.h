@@ -139,7 +139,7 @@ class V8_EXPORT_PRIVATE WasmCodePointerTable
 
   // Iterate through the freelist to find and unmap empty segments. Will return
   // early if there's less than `threshold` many elements in the freelist.
-  void SweepSegments(size_t threshold = 2 * kEntriesPerSegment);
+  void SweepSegments(size_t threshold = 2 * Base::kEntriesPerSegment);
 
   // Add an entry for a native function address, used by the C API.
   WasmCodePointer GetOrCreateHandleForNativeFunction(Address addr);

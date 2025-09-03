@@ -13,7 +13,7 @@ namespace internal {
 
 int EncodedCSignature::FPParameterCount() const {
   CHECK(IsValid());
-  return base::bits::CountPopulation(bitfield_ & ~(1 << kReturnIndex));
+  return ::v8::base::bits::CountPopulation(bitfield_ & ~(1 << kReturnIndex));
 }
 
 START_ALLOW_USE_DEPRECATED()

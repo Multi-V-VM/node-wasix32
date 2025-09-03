@@ -1,3 +1,4 @@
+#include <iterator>
 // Copyright 2013 the V8 project authors. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
@@ -74,7 +75,7 @@ class V8_EXPORT_PRIVATE BasicBlock final
   const BasicBlockVector& predecessors() const { return predecessors_; }
   size_t PredecessorCount() const { return predecessors_.size(); }
   BasicBlock* PredecessorAt(size_t index) { return predecessors_[index]; }
-  void ClearPredecessors() { predecessors_.clear(); }
+  void ClearPredecessors() { predecessors_ = BasicBlockVector(); }
   void AddPredecessor(BasicBlock* predecessor);
   void RemovePredecessor(size_t index);
 
@@ -83,7 +84,7 @@ class V8_EXPORT_PRIVATE BasicBlock final
   const BasicBlockVector& successors() const { return successors_; }
   size_t SuccessorCount() const { return successors_.size(); }
   BasicBlock* SuccessorAt(size_t index) { return successors_[index]; }
-  void ClearSuccessors() { successors_.clear(); }
+  void ClearSuccessors() { successors_ = BasicBlockVector(); }
   void AddSuccessor(BasicBlock* successor);
 
   // Nodes in the basic block.
@@ -93,8 +94,8 @@ class V8_EXPORT_PRIVATE BasicBlock final
   Node* NodeAt(size_t index) { return nodes_[index]; }
   size_t NodeCount() const { return nodes_.size(); }
 
-  value_type& front() { return nodes_.front(); }
-  value_type const& front() const { return nodes_.front(); }
+  value_type& front() { return nodes_[0]; }
+  value_type const& front() const { return nodes_[0]; }
 
   using iterator = NodeVector::iterator;
   iterator begin() { return nodes_.begin(); }
@@ -106,9 +107,9 @@ class V8_EXPORT_PRIVATE BasicBlock final
   const_iterator begin() const { return nodes_.begin(); }
   const_iterator end() const { return nodes_.end(); }
 
-  using reverse_iterator = NodeVector::reverse_iterator;
-  reverse_iterator rbegin() { return nodes_.rbegin(); }
-  reverse_iterator rend() { return nodes_.rend(); }
+  using reverse_iterator = std::reverse_iterator<NodeVector::iterator>;
+  reverse_iterator rbegin() { return std::reverse_iterator<NodeVector::iterator>(nodes_.end()); }
+  reverse_iterator rend() { return std::reverse_iterator<NodeVector::iterator>(nodes_.begin()); }
 
   void AddNode(Node* node);
   template <class InputIterator>

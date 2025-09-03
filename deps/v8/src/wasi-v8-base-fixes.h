@@ -11,23 +11,11 @@
 namespace v8 {
 namespace base {
 
-// Add Address to base namespace
-using Address = ::Address;
+// Add Address to base namespace (use internal Address on WASI)
+using Address = ::v8::internal::Address;
 
 // BitWidth function
-namespace bits {
-  template<typename T>
-  constexpr int BitWidth(T value) {
-    if (value == 0) return 0;
-    int width = 0;
-    while (value) {
-      value >>= 1;
-      width++;
-    }
-    return width;
-  }
-  
-}
+// Note: bit utilities are provided in src/base/bits.h for WASI builds.
 
 // has_type_v template helper  
 template<typename T, typename... Ts>

@@ -39,7 +39,7 @@ class MinorGCHeapGrowing;
 // A C++ heap implementation used with V8 to implement unified heap.
 class V8_EXPORT_PRIVATE CppHeap final
     : public cppgc::internal::HeapBase,
-      public v8::CppHeap,
+      public ::v8::CppHeap,
       public cppgc::internal::StatsCollector::AllocationObserver,
       public cppgc::internal::GarbageCollector {
  public:
@@ -49,9 +49,9 @@ class V8_EXPORT_PRIVATE CppHeap final
     kForced = 1 << 2,
   };
 
-  using GarbageCollectionFlags = base::Flags<GarbageCollectionFlagValues>;
-  using StackState = cppgc::internal::StackState;
-  using CollectionType = cppgc::internal::CollectionType;
+  using GarbageCollectionFlags = ::v8::base::Flags<GarbageCollectionFlagValues>;
+  using StackState = cppgc::StackState;
+  using CollectionType = cppgc::CollectionType;
 
   class MetricRecorderAdapter final : public cppgc::internal::MetricRecorder {
    public:

@@ -18,6 +18,9 @@
 namespace v8 {
 namespace internal {
 
+// Forward declaration alias without introducing v8::internal::base
+using RecursiveMutex = ::v8::base::RecursiveMutex;
+
 class V8_EXPORT_PRIVATE OFStreamBase : public std::streambuf {
  public:
   explicit OFStreamBase(FILE* f);

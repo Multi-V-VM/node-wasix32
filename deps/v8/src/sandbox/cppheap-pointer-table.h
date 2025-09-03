@@ -16,7 +16,7 @@
 #include "src/utils/allocation.h"
 
 #ifdef __wasi__
-#include "wasi-cppheap-pointer-table-stub.h"
+#include "../../../../wasi-cppheap-pointer-table-stub.h"
 #endif
 
 #ifdef V8_COMPRESS_POINTERS

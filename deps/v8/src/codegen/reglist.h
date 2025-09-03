@@ -1,6 +1,3 @@
-#ifdef __wasi__
-#define V8_TARGET_ARCH_WASM32 1
-#endif
 // Copyright 2017 the V8 project authors. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
@@ -8,51 +5,68 @@
 #ifndef V8_CODEGEN_REGLIST_H_
 #define V8_CODEGEN_REGLIST_H_
 
-#ifdef V8_TARGET_ARCH_IA32
-#undef V8_TARGET_ARCH_IA32
-#endif
-#if !defined(V8_TARGET_ARCH_WASM32)
-#define V8_TARGET_ARCH_WASM32
-#endif 
+#include <initializer_list>
 
-#if V8_TARGET_ARCH_IA32
-#include "src/codegen/ia32/reglist-ia32.h"
-#elif V8_TARGET_ARCH_X64
-#include "src/codegen/x64/reglist-x64.h"
-#elif V8_TARGET_ARCH_ARM64
-#include "src/codegen/arm64/reglist-arm64.h"
-#elif V8_TARGET_ARCH_ARM
-#include "src/codegen/arm/reglist-arm.h"
-#elif V8_TARGET_ARCH_PPC64
-#include "src/codegen/ppc/reglist-ppc.h"
-#elif V8_TARGET_ARCH_MIPS64
-#include "src/codegen/mips64/reglist-mips64.h"
-#elif V8_TARGET_ARCH_LOONG64
-#include "src/codegen/loong64/reglist-loong64.h"
-#elif V8_TARGET_ARCH_S390X
-#include "src/codegen/s390/reglist-s390.h"
-#elif V8_TARGET_ARCH_RISCV32 || V8_TARGET_ARCH_RISCV64
-#include "src/codegen/riscv/reglist-riscv.h"
-#else
-#error Unknown architecture.
-#endif
+#include "src/base/bits.h"
+// Avoid circular include with register.h; rely on forward declarations.
 
 namespace v8 {
 namespace internal {
 
-static constexpr RegList kEmptyRegList = {};
+// Forward declarations
+class Register;
+// Note: DoubleRegister is defined by arch-specific register headers.
 
-#define LIST_REG(V) V,
-static const RegList kAllocatableGeneralRegisters = {
-    ALLOCATABLE_GENERAL_REGISTERS(LIST_REG) Register::no_reg()};
-#undef LIST_REG
+// RegList implemented as a compact bit-mask.
+template <class RegisterType>
+class RegListBase {
+ public:
+  // Default: empty set
+  constexpr RegListBase() : bits_(0) {}
 
-static constexpr DoubleRegList kEmptyDoubleRegList = {};
+  // Construct from explicit mask
+  constexpr explicit RegListBase(uint32_t bits) : bits_(bits) {}
 
-#define LIST_REG(V) V,
-static const DoubleRegList kAllocatableDoubleRegisters = {
-    ALLOCATABLE_DOUBLE_REGISTERS(LIST_REG) DoubleRegister::no_reg()};
-#undef LIST_REG
+  // Construct from initializer list of registers
+  constexpr RegListBase(std::initializer_list<RegisterType> init) : bits_(0) {
+    for (auto r : init) {
+      bits_ |= (uint32_t{1} << r.code());
+    }
+  }
+
+  // Bit-mask of registers
+  constexpr uint32_t bits() const { return bits_; }
+
+  // Count of set bits
+  constexpr int Count() const {
+    return ::v8::base::bits::CountPopulation(bits_);
+  }
+
+  // Membership
+  constexpr bool contains(RegisterType r) const {
+    return (bits_ & (uint32_t{1} << r.code())) != 0;
+  }
+
+  // Set operations
+  constexpr RegListBase operator|(const RegListBase& other) const {
+    return RegListBase(bits_ | other.bits_);
+  }
+  constexpr RegListBase operator&(const RegListBase& other) const {
+    return RegListBase(bits_ & other.bits_);
+  }
+
+ private:
+  uint32_t bits_;
+};
+
+// Type definitions
+using RegList = RegListBase<Register>;
+using DoubleRegList = RegListBase<DoubleRegister>;
+
+// Constants
+static constexpr RegListBase<Register> kEmptyRegList{};
+
+// Note: Architecture-specific allocatable sets are defined elsewhere.
 
 }  // namespace internal
 }  // namespace v8

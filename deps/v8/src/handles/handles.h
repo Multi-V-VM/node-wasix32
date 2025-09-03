@@ -1007,30 +1007,30 @@ class DirectHandleVector {
   void clear() noexcept { backing_.clear(); }
   void resize(size_t n) { backing_.resize(n); }
   void resize(size_t n, const value_type& value) { backing_.resize(n, value); }
-  void swap(DirectHandle<v8::base::Vector<T>>& other) { backing_.swap(other.backing_); }
+  void swap(DirectHandle<::v8::base::Vector<T>>& other) { backing_.swap(other.backing_); }
 
-  friend bool operator==(const DirectHandle<v8::base::Vector<T>>& x,
-                         const DirectHandle<v8::base::Vector<T>>& y) {
+  friend bool operator==(const DirectHandle<::v8::base::Vector<T>>& x,
+                         const DirectHandle<::v8::base::Vector<T>>& y) {
     return x.backing_ == y.backing_;
   }
-  friend bool operator!=(const DirectHandle<v8::base::Vector<T>>& x,
-                         const DirectHandle<v8::base::Vector<T>>& y) {
+  friend bool operator!=(const DirectHandle<::v8::base::Vector<T>>& x,
+                         const DirectHandle<::v8::base::Vector<T>>& y) {
     return x.backing_ != y.backing_;
   }
-  friend bool operator<(const DirectHandle<v8::base::Vector<T>>& x,
-                        const DirectHandle<v8::base::Vector<T>>& y) {
+  friend bool operator<(const DirectHandle<::v8::base::Vector<T>>& x,
+                        const DirectHandle<::v8::base::Vector<T>>& y) {
     return x.backing_ < y.backing_;
   }
-  friend bool operator>(const DirectHandle<v8::base::Vector<T>>& x,
-                        const DirectHandle<v8::base::Vector<T>>& y) {
+  friend bool operator>(const DirectHandle<::v8::base::Vector<T>>& x,
+                        const DirectHandle<::v8::base::Vector<T>>& y) {
     return x.backing_ > y.backing_;
   }
-  friend bool operator<=(const DirectHandle<v8::base::Vector<T>>& x,
-                         const DirectHandle<v8::base::Vector<T>>& y) {
+  friend bool operator<=(const DirectHandle<::v8::base::Vector<T>>& x,
+                         const DirectHandle<::v8::base::Vector<T>>& y) {
     return x.backing_ <= y.backing_;
   }
-  friend bool operator>=(const DirectHandle<v8::base::Vector<T>>& x,
-                         const DirectHandle<v8::base::Vector<T>>& y) {
+  friend bool operator>=(const DirectHandle<::v8::base::Vector<T>>& x,
+                         const DirectHandle<::v8::base::Vector<T>>& y) {
     return x.backing_ >= y.backing_;
   }
 

@@ -56,7 +56,7 @@ void MarkingVisitorBase::VisitMultipleCompressedMember(
 #endif  // defined(CPPGC_POINTER_COMPRESSION)
 
 void MarkingVisitorBase::VisitWeak(const void* object, TraceDescriptor desc,
-                                   WeakCallback weak_callback,
+                                   void* weak_callback,
                                    const void* weak_member) {
   marking_state_.RegisterWeakReferenceIfNeeded(object, desc, weak_callback,
                                                weak_member);

@@ -62,14 +62,18 @@ namespace base {
 
 // V8 internal namespace constants for WASI
 namespace internal {
+#ifndef V8_WASI_SMI_CONSTANTS_DEFINED
   constexpr int kSmiTagSize = 1;
   constexpr int kSmiShiftSize = 0;
   constexpr int kSmiValueSize = 31;
+#endif
+#ifndef V8_WASI_CORE_SIZES_DEFINED
   constexpr int kSystemPointerSize = sizeof(void*);
   constexpr int kTaggedSize = sizeof(void*);
   using ExternalPointer_t = uintptr_t;
   using CppHeapPointer_t = uintptr_t;
   using IndirectPointerHandle = uint32_t;
+#endif
 }
 }
 // Bitset compatibility for WASI
@@ -148,11 +152,7 @@ public:
   virtual bool IdleTasksEnabled() = 0;
 };
 
-// Forward declaration for ConvertableToTraceFormat
-class ConvertableToTraceFormat {
-public:
-  virtual ~ConvertableToTraceFormat() = default;
-};
+// ConvertableToTraceFormat is provided by v8-tracing-base.h in V8 builds
 
 // 枚举和类型定义
 enum class MessageLoopBehavior { kDoNotWait, kWaitForWork };

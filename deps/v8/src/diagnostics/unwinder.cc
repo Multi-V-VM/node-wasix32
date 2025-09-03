@@ -48,7 +48,7 @@ bool PCIsInCodePages(size_t code_pages_length, const MemoryRange* code_pages,
 
   MemoryRange fake_range{pc, 1};
   auto it =
-      std::upper_bound(code_pages, code_pages + code_pages_length, fake_range,
+      ::std::upper_bound(code_pages, code_pages + code_pages_length, fake_range,
                        [](const MemoryRange& a, const MemoryRange& b) {
                          return a.start < b.start;
                        });

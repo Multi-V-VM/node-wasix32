@@ -1,7 +1,4 @@
 #ifdef __wasi__
-#ifdef __wasi__
-#include "src/wasm/wasm-features-fix.h"
-#endif
 #define V8_TARGET_ARCH_WASM32 1
 #endif
 // Copyright 2012 the V8 project authors. All rights reserved.

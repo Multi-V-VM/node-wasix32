@@ -15,11 +15,11 @@ namespace internal {
 
 template <typename Type>
 class PointerToIndexHashMap
-    : public base::TemplateHashMapImpl<uintptr_t, uint32_t,
-                                       base::KeyEqualityMatcher<intptr_t>,
-                                       base::DefaultAllocationPolicy> {
+    : public ::v8::base::TemplateHashMapImpl<uintptr_t, uint32_t,
+                                       ::v8::base::KeyEqualityMatcher<intptr_t>,
+                                       ::v8::base::DefaultAllocationPolicy> {
  public:
-  using Entry = base::TemplateHashMapEntry<uintptr_t, uint32_t>;
+  using Entry = ::v8::base::TemplateHashMapEntry<uintptr_t, uint32_t>;
 
   inline void Set(Type value, uint32_t index) {
     uintptr_t key = Key(value);

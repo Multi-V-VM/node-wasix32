@@ -7,7 +7,7 @@
 #include "include/v8-platform.h"
 namespace v8 {
 namespace base {
-bool IsSubset(PagePermissions lhs, PagePermissions rhs) { return true; }
+bool IsSubset(::v8::PagePermissions lhs, ::v8::PagePermissions rhs) { return true; }
 }  // namespace base
 }  // namespace v8
 #else

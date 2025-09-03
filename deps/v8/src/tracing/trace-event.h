@@ -47,12 +47,12 @@ enum CategoryGroupEnabledFlags {
 // copies const char* arguments by default.
 // By default, const char* argument values are assumed to have long-lived scope
 // and will not be copied. Use this macro to force a const char* to be copied.
-#define TRACE_STR_COPY(str) v8::internal::tracing::TraceStringWithCopy(str)
+#define TRACE_STR_COPY(str) tracing::TraceStringWithCopy(str)
 
 // By default, trace IDs are eventually converted to a single 64-bit number. Use
 // this macro to add a scope string.
 #define TRACE_ID_WITH_SCOPE(scope, id) \
-  v8::internal::tracing::TraceID::WithScope(scope, id)
+  tracing::TraceID::WithScope(scope, id)
 
 #define INTERNAL_TRACE_EVENT_CATEGORY_GROUP_ENABLED_FOR_RECORDING_MODE() \
   TRACE_EVENT_API_LOAD_CATEGORY_GROUP_ENABLED() &                        \
@@ -78,7 +78,7 @@ enum CategoryGroupEnabledFlags {
 // const uint8_t*
 //     TRACE_EVENT_API_GET_CATEGORY_GROUP_ENABLED(const char* category_group)
 #define TRACE_EVENT_API_GET_CATEGORY_GROUP_ENABLED                \
-  v8::internal::tracing::TraceEventHelper::GetTracingController() \
+  tracing::TraceEventHelper::GetTracingController() \
       ->GetCategoryGroupEnabled
 
 // Get the number of times traces have been recorded. This is used to implement
@@ -99,7 +99,7 @@ enum CategoryGroupEnabledFlags {
 //                    const uint8_t* arg_types,
 //                    const uint64_t* arg_values,
 //                    unsigned int flags)
-#define TRACE_EVENT_API_ADD_TRACE_EVENT v8::internal::tracing::AddTraceEventImpl
+#define TRACE_EVENT_API_ADD_TRACE_EVENT tracing::AddTraceEventImpl
 
 // Add a trace event to the platform tracing system.
 // uint64_t TRACE_EVENT_API_ADD_TRACE_EVENT_WITH_TIMESTAMP(
@@ -116,7 +116,7 @@ enum CategoryGroupEnabledFlags {
 //                    unsigned int flags,
 //                    int64_t timestamp)
 #define TRACE_EVENT_API_ADD_TRACE_EVENT_WITH_TIMESTAMP \
-  v8::internal::tracing::AddTraceEventWithTimestampImpl
+  tracing::AddTraceEventWithTimestampImpl
 
 // Set the duration field of a COMPLETE trace event.
 // void TRACE_EVENT_API_UPDATE_TRACE_EVENT_DURATION(
@@ -124,7 +124,7 @@ enum CategoryGroupEnabledFlags {
 //     const char* name,
 //     uint64_t id)
 #define TRACE_EVENT_API_UPDATE_TRACE_EVENT_DURATION               \
-  v8::internal::tracing::TraceEventHelper::GetTracingController() \
+  tracing::TraceEventHelper::GetTracingController() \
       ->UpdateTraceEventDuration
 
 // Defines atomic operations used internally by the tracing system.
@@ -182,10 +182,10 @@ enum CategoryGroupEnabledFlags {
   do {                                                                       \
     INTERNAL_TRACE_EVENT_GET_CATEGORY_INFO(category_group);                  \
     if (INTERNAL_TRACE_EVENT_CATEGORY_GROUP_ENABLED_FOR_RECORDING_MODE()) {  \
-      v8::internal::tracing::AddTraceEvent(                                  \
+      tracing::AddTraceEvent(                                  \
           phase, INTERNAL_TRACE_EVENT_UID(category_group_enabled), name,     \
-          v8::internal::tracing::kGlobalScope, v8::internal::tracing::kNoId, \
-          v8::internal::tracing::kNoId, flags, ##__VA_ARGS__);               \
+          tracing::kGlobalScope, tracing::kNoId, \
+          tracing::kNoId, flags, ##__VA_ARGS__);               \
     }                                                                        \
   } while (false)
 
@@ -194,13 +194,13 @@ enum CategoryGroupEnabledFlags {
 // ends.
 #define INTERNAL_TRACE_EVENT_ADD_SCOPED(category_group, name, ...)           \
   INTERNAL_TRACE_EVENT_GET_CATEGORY_INFO(category_group);                    \
-  v8::internal::tracing::ScopedTracer INTERNAL_TRACE_EVENT_UID(tracer);      \
+  tracing::ScopedTracer INTERNAL_TRACE_EVENT_UID(tracer);      \
   if (INTERNAL_TRACE_EVENT_CATEGORY_GROUP_ENABLED_FOR_RECORDING_MODE()) {    \
-    uint64_t h = v8::internal::tracing::AddTraceEvent(                       \
+    uint64_t h = tracing::AddTraceEvent(                       \
         TRACE_EVENT_PHASE_COMPLETE,                                          \
         INTERNAL_TRACE_EVENT_UID(category_group_enabled), name,              \
-        v8::internal::tracing::kGlobalScope, v8::internal::tracing::kNoId,   \
-        v8::internal::tracing::kNoId, TRACE_EVENT_FLAG_NONE, ##__VA_ARGS__); \
+        tracing::kGlobalScope, tracing::kNoId,   \
+        tracing::kNoId, TRACE_EVENT_FLAG_NONE, ##__VA_ARGS__); \
     INTERNAL_TRACE_EVENT_UID(tracer)                                         \
         .Initialize(INTERNAL_TRACE_EVENT_UID(category_group_enabled), name,  \
                     h);                                                      \
@@ -209,15 +209,15 @@ enum CategoryGroupEnabledFlags {
 #define INTERNAL_TRACE_EVENT_ADD_SCOPED_WITH_FLOW(category_group, name,     \
                                                   bind_id, flow_flags, ...) \
   INTERNAL_TRACE_EVENT_GET_CATEGORY_INFO(category_group);                   \
-  v8::internal::tracing::ScopedTracer INTERNAL_TRACE_EVENT_UID(tracer);     \
+  tracing::ScopedTracer INTERNAL_TRACE_EVENT_UID(tracer);     \
   if (INTERNAL_TRACE_EVENT_CATEGORY_GROUP_ENABLED_FOR_RECORDING_MODE()) {   \
     unsigned int trace_event_flags = flow_flags;                            \
-    v8::internal::tracing::TraceID trace_event_bind_id(bind_id,             \
+    tracing::TraceID trace_event_bind_id(bind_id,             \
                                                        &trace_event_flags); \
-    uint64_t h = v8::internal::tracing::AddTraceEvent(                      \
+    uint64_t h = tracing::AddTraceEvent(                      \
         TRACE_EVENT_PHASE_COMPLETE,                                         \
         INTERNAL_TRACE_EVENT_UID(category_group_enabled), name,             \
-        v8::internal::tracing::kGlobalScope, v8::internal::tracing::kNoId,  \
+        tracing::kGlobalScope, tracing::kNoId,  \
         trace_event_bind_id.raw_id(), trace_event_flags, ##__VA_ARGS__);    \
     INTERNAL_TRACE_EVENT_UID(tracer)                                        \
         .Initialize(INTERNAL_TRACE_EVENT_UID(category_group_enabled), name, \
@@ -232,12 +232,12 @@ enum CategoryGroupEnabledFlags {
     INTERNAL_TRACE_EVENT_GET_CATEGORY_INFO(category_group);                    \
     if (INTERNAL_TRACE_EVENT_CATEGORY_GROUP_ENABLED_FOR_RECORDING_MODE()) {    \
       unsigned int trace_event_flags = flags | TRACE_EVENT_FLAG_HAS_ID;        \
-      v8::internal::tracing::TraceID trace_event_trace_id(id,                  \
+      tracing::TraceID trace_event_trace_id(id,                  \
                                                           &trace_event_flags); \
-      v8::internal::tracing::AddTraceEvent(                                    \
+      tracing::AddTraceEvent(                                    \
           phase, INTERNAL_TRACE_EVENT_UID(category_group_enabled), name,       \
           trace_event_trace_id.scope(), trace_event_trace_id.raw_id(),         \
-          v8::internal::tracing::kNoId, trace_event_flags, ##__VA_ARGS__);     \
+          tracing::kNoId, trace_event_flags, ##__VA_ARGS__);     \
     }                                                                          \
   } while (false)
 
@@ -247,10 +247,10 @@ enum CategoryGroupEnabledFlags {
   do {                                                                       \
     INTERNAL_TRACE_EVENT_GET_CATEGORY_INFO(category_group);                  \
     if (INTERNAL_TRACE_EVENT_CATEGORY_GROUP_ENABLED_FOR_RECORDING_MODE()) {  \
-      v8::internal::tracing::AddTraceEventWithTimestamp(                     \
+      tracing::AddTraceEventWithTimestamp(                     \
           phase, INTERNAL_TRACE_EVENT_UID(category_group_enabled), name,     \
-          v8::internal::tracing::kGlobalScope, v8::internal::tracing::kNoId, \
-          v8::internal::tracing::kNoId, flags, timestamp, ##__VA_ARGS__);    \
+          tracing::kGlobalScope, tracing::kNoId, \
+          tracing::kNoId, flags, timestamp, ##__VA_ARGS__);    \
     }                                                                        \
   } while (false)
 
@@ -261,12 +261,12 @@ enum CategoryGroupEnabledFlags {
     INTERNAL_TRACE_EVENT_GET_CATEGORY_INFO(category_group);                    \
     if (INTERNAL_TRACE_EVENT_CATEGORY_GROUP_ENABLED_FOR_RECORDING_MODE()) {    \
       unsigned int trace_event_flags = flags | TRACE_EVENT_FLAG_HAS_ID;        \
-      v8::internal::tracing::TraceID trace_event_trace_id(id,                  \
+      tracing::TraceID trace_event_trace_id(id,                  \
                                                           &trace_event_flags); \
-      v8::internal::tracing::AddTraceEventWithTimestamp(                       \
+      tracing::AddTraceEventWithTimestamp(                       \
           phase, INTERNAL_TRACE_EVENT_UID(category_group_enabled), name,       \
           trace_event_trace_id.scope(), trace_event_trace_id.raw_id(),         \
-          v8::internal::tracing::kNoId, trace_event_flags, timestamp,          \
+          tracing::kNoId, trace_event_flags, timestamp,          \
           ##__VA_ARGS__);                                                      \
     }                                                                          \
   } while (false)
@@ -285,7 +285,7 @@ enum CategoryGroupEnabledFlags {
 #ifdef V8_RUNTIME_CALL_STATS
 #define INTERNAL_TRACE_EVENT_CALL_STATS_SCOPED(isolate, category_group, name)  \
   INTERNAL_TRACE_EVENT_GET_CATEGORY_INFO(category_group);                      \
-  v8::internal::tracing::CallStatsScopedTracer INTERNAL_TRACE_EVENT_UID(       \
+  tracing::CallStatsScopedTracer INTERNAL_TRACE_EVENT_UID(       \
       tracer);                                                                 \
   if (INTERNAL_TRACE_EVENT_CATEGORY_GROUP_ENABLED_FOR_RECORDING_MODE()) {      \
     INTERNAL_TRACE_EVENT_UID(tracer)                                           \

@@ -12,6 +12,10 @@
 #include "src/common/globals.h"
 #include "src/execution/thread-id.h"
 #include "src/objects/contexts.h"
+#ifdef __wasi__
+// WASI fix for Tagged<Object> conversion
+#include <type_traits>
+#endif
 #include "src/utils/utils.h"
 
 namespace v8 {
@@ -71,9 +75,9 @@ class ThreadLocalTop {
     last_api_entry_ = reinterpret_cast<i::Address>(stack_allocated_scope);
 #endif
     if constexpr (clear_exception) {
-      exception_ = Tagged<Object>(
+      exception_ = Tagged<Object>(reinterpret_cast<Address>(reinterpret_cast<Object*>(
           Internals::GetRoot(reinterpret_cast<::v8::Isolate*>(isolate_),
-                             Internals::kTheHoleValueRootIndex));
+                             Internals::kTheHoleValueRootIndex)));
     }
   }
 

@@ -14,6 +14,19 @@
 
 #ifdef V8_ENABLE_SANDBOX
 #include "src/sandbox/sandbox.h"
+
+// Define missing constant for WASI builds
+#ifndef kPtrComprCageBaseAlignment
+#if INTPTR_MAX == INT32_MAX
+constexpr size_t kPtrComprCageBaseAlignment = 1u;
+#else
+constexpr size_t kPtrComprCageBaseAlignment = size_t{1} << 32;
+#endif
+#endif
+// Fallback for alignment hint macro
+#ifndef V8_ASSUME_ALIGNED
+#define V8_ASSUME_ALIGNED(ptr, alignment) (ptr)
+#endif
 #endif  // V8_ENABLE_SANDBOX
 
 namespace v8 {
@@ -37,7 +50,7 @@ constexpr Address kPtrComprCageBaseMask = ~(kPtrComprCageBaseAlignment - 1);
 template <typename Cage>
 constexpr Address V8HeapCompressionSchemeImpl<Cage>::GetPtrComprCageBaseAddress(
     Address on_heap_addr) {
-  return RoundDown<kPtrComprCageBaseAlignment>(on_heap_addr);
+  return RoundDown(on_heap_addr, static_cast<intptr_t>(kPtrComprCageBaseAlignment));
 }
 
 // static

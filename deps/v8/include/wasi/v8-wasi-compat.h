@@ -8,6 +8,8 @@
 #include "wasi/nuclear-fix.h"
 #include "wasi/v8-wasi-helpers.h"
 #include "wasi/chrono-compat.h"
+// Provide missing API constants like kApiSystemPointerSize
+#include "wasi/v8-constants.h"
 
 // Define V8_INLINE if not already defined
 #ifndef V8_INLINE

@@ -7,6 +7,12 @@
 #endif
 
 namespace v8 {
+
+// Provide v8::Once wrapper expected by headers using v8::Once::OnceType.
+struct Once {
+  using OnceType = int;
+};
+
 namespace base {
 
 using OnceType = int;
@@ -15,15 +21,23 @@ using OnceType = int;
 #define ONCE_STATE_UNINITIALIZED 0
 #define ONCE_STATE_DONE 1
 
-#ifndef __wasi__
-template <typename T>
-void CallOnce(v8::Once::OnceType* once, T init_func) {
+// Simple CallOnce implementation used by LazyInstance on WASI and generic builds.
+template <typename Function, typename Storage>
+inline void CallOnce(v8::Once::OnceType* once, Function function, Storage storage) {
   if (*once == ONCE_STATE_UNINITIALIZED) {
-    init_func();
+    function(storage);
     *once = ONCE_STATE_DONE;
   }
 }
-#endif
+
+// Backwards-compatible overload taking only a function with no storage param.
+template <typename Function>
+inline void CallOnce(v8::Once::OnceType* once, Function function) {
+  if (*once == ONCE_STATE_UNINITIALIZED) {
+    function();
+    *once = ONCE_STATE_DONE;
+  }
+}
 
 }  // namespace base
 }  // namespace v8
