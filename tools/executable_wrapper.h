@@ -42,11 +42,15 @@ using argv_type = char*;
 #define NODE_MAIN int main
 
 void FixupMain(int argc, argv_type raw_argv[], char*** argv) {
+#ifdef __wasi__
+  *argv = raw_argv;
+#else
   *argv = uv_setup_args(argc, raw_argv);
   // Disable stdio buffering, it interacts poorly with printf()
   // calls elsewhere in the program (e.g., any logging from V8.)
   setvbuf(stdout, nullptr, _IONBF, 0);
   setvbuf(stderr, nullptr, _IONBF, 0);
+#endif
 }
 #endif
 

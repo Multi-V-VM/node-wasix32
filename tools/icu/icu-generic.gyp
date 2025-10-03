@@ -148,7 +148,9 @@
                       'outputs': [ '<(SHARED_INTERMEDIATE_DIR)/icudt<(icu_ver_major)<(icu_endianness)_dat.<(icu_asm_ext)' ],
                       # on Windows, we can go directly to .obj file (-o) option.
                       # for Clang use "-c <(target_arch)" option
-                      'action': [ '<(PRODUCT_DIR)/genccode<(EXECUTABLE_SUFFIX)',
+                      'action': [ '<(python)',
+                                  'run_genccode.py',
+                                  '<(PRODUCT_DIR)/genccode<(EXECUTABLE_SUFFIX)',
                                   '<@(icu_asm_opts)', # -o
                                   '-c', '<(target_arch)',
                                   '-d', '<(SHARED_INTERMEDIATE_DIR)',
@@ -166,7 +168,9 @@
                       'outputs': [ '<(SHARED_INTERMEDIATE_DIR)/icudt<(icu_ver_major)<(icu_endianness)_dat.<(icu_asm_ext)' ],
                       # on Windows, we can go directly to .obj file (-o) option.
                       # for MSVC do not use "-c <(target_arch)" option
-                      'action': [ '<(PRODUCT_DIR)/genccode<(EXECUTABLE_SUFFIX)',
+                      'action': [ '<(python)',
+                                  'run_genccode.py',
+                                  '<(PRODUCT_DIR)/genccode<(EXECUTABLE_SUFFIX)',
                                   '<@(icu_asm_opts)', # -o
                                   '-d', '<(SHARED_INTERMEDIATE_DIR)',
                                   '-n', 'icudata',
@@ -205,7 +209,9 @@
                   'msvs_quote_cmd': 0,
                   'inputs': [ '<(SHARED_INTERMEDIATE_DIR)/icutmp/icudt<(icu_ver_major)<(icu_endianness).dat' ],
                   'outputs': [ '<(SHARED_INTERMEDIATE_DIR)/icudt<(icu_ver_major)<(icu_endianness)_dat.<(icu_asm_ext)' ],
-                  'action': [ '<(PRODUCT_DIR)/genccode<(EXECUTABLE_SUFFIX)',
+                  'action': [ '<(python)',
+                              'run_genccode.py',
+                              '<(PRODUCT_DIR)/genccode<(EXECUTABLE_SUFFIX)',
                               '<@(icu_asm_opts)', # -o
                               '-d', '<(SHARED_INTERMEDIATE_DIR)/',
                               '-n', 'icudata',
@@ -252,7 +258,9 @@
                   'action_name': 'icudata',
                   'inputs': [ '<(SHARED_INTERMEDIATE_DIR)/icudt<(icu_ver_major).dat' ],
                   'outputs':[ '<(SHARED_INTERMEDIATE_DIR)/icudt<(icu_ver_major)_dat.<(icu_asm_ext)' ],
-                  'action': [ '<(PRODUCT_DIR)/genccode<(EXECUTABLE_SUFFIX)',
+                  'action': [ '<(python)',
+                              'run_genccode.py',
+                              '<(PRODUCT_DIR)/genccode<(EXECUTABLE_SUFFIX)',
                               '-e', 'icudt<(icu_ver_major)',
                               '-d', '<(SHARED_INTERMEDIATE_DIR)',
                               '<@(icu_asm_opts)',
@@ -297,7 +305,9 @@
                   'action_name': 'genccode',
                   'inputs': [ '<(SHARED_INTERMEDIATE_DIR)/icutmp/icusmdt<(icu_ver_major).dat' ],
                   'outputs': [ '<(SHARED_INTERMEDIATE_DIR)/icusmdt<(icu_ver_major)_dat.<(icu_asm_ext)' ],
-                  'action': [ '<(PRODUCT_DIR)/genccode<(EXECUTABLE_SUFFIX)',
+                  'action': [ '<(python)',
+                              'run_genccode.py',
+                              '<(PRODUCT_DIR)/genccode<(EXECUTABLE_SUFFIX)',
                               '<@(icu_asm_opts)',
                               '-d', '<(SHARED_INTERMEDIATE_DIR)',
                               '<@(_inputs)' ],

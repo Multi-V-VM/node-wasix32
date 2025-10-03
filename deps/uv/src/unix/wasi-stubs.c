@@ -90,6 +90,31 @@ __attribute__((weak)) void uv__process_close(uv_process_t* handle) {
   // No-op for WASI
 }
 
+__attribute__((weak)) void uv__wait_children(uv_loop_t* loop) {
+  // No-op for WASI
+}
+
+__attribute__((weak)) int uv_spawn(uv_loop_t* loop,
+                                   uv_process_t* handle,
+                                   const uv_process_options_t* options) {
+  (void) loop;
+  (void) handle;
+  (void) options;
+  return UV_ENOSYS;
+}
+
+__attribute__((weak)) int uv_process_kill(uv_process_t* process, int signum) {
+  (void) process;
+  (void) signum;
+  return UV_ENOSYS;
+}
+
+__attribute__((weak)) int uv_kill(int pid, int signum) {
+  (void) pid;
+  (void) signum;
+  return UV_ENOSYS;
+}
+
 // Thread stubs - use weak symbols to avoid conflicts
 __attribute__((weak)) int uv_thread_create(uv_thread_t* tid, void (*entry)(void *arg), void* arg) {
   return UV_ENOSYS;

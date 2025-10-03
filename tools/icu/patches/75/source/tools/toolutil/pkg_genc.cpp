@@ -56,6 +56,10 @@
 
 #define MAX_COLUMN ((uint32_t)(0xFFFFFFFFU))
 
+// Keep the generated assembly lines short to avoid triggering clang's wasm32
+// assembler crash on extremely long comma-separated literal lists.
+static constexpr uint32_t kMaxAssemblyLiteralsPerLine = 8;
+
 #define HEX_0X 0 /*  0x1234 */
 #define HEX_0H 1 /*  01234h */
 
@@ -618,7 +622,7 @@ write32(FileStream *out, uint32_t bitField, uint32_t column) {
     if(column==MAX_COLUMN) {
         /* first byte */
         column=1;
-    } else if(column<32) {
+    } else if(column<kMaxAssemblyLiteralsPerLine) {
         *(s++)=',';
         ++column;
     } else {

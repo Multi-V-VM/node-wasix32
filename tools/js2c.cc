@@ -5,10 +5,17 @@
 #include <cstdarg>
 #include <cstdio>
 #include <functional>
+#include <fstream>
 #include <map>
 #include <string>
 #include <string_view>
 #include <vector>
+#include <iterator>
+#include <filesystem>
+#include <cerrno>
+#include <cstring>
+#include <sys/stat.h>
+#include <unistd.h>
 #include "embedded_data.h"
 #include "executable_wrapper.h"
 #ifndef __wasi__
@@ -75,11 +82,37 @@ void Debug(const char* format, ...) {
   va_end(arguments);
 }
 
+#ifdef __wasi__
+namespace {
+namespace fs = std::filesystem;
+}  // namespace
+#endif
+
 void PrintUvError(const char* syscall, const char* filename, int error) {
+#ifdef __wasi__
+  fprintf(stderr,
+          "[%s] %s: %s\n",
+          syscall,
+          filename,
+          std::strerror(std::abs(error)));
+#else
   fprintf(stderr, "[%s] %s: %s\n", syscall, filename, uv_strerror(error));
+#endif
 }
 
 int GetStats(const char* path, std::function<void(const uv_stat_t*)> func) {
+#ifdef __wasi__
+  std::error_code ec;
+  fs::directory_entry entry(path, ec);
+  if (ec) {
+    return -ec.value();
+  }
+  uv_stat_t stats{};
+  stats.st_size = entry.is_regular_file() ? entry.file_size() : 0;
+  stats.st_mode = entry.is_directory() ? S_IFDIR : 0;
+  func(&stats);
+  return 0;
+#else
   uv_fs_t req;
   int r = uv_fs_stat(nullptr, &req, path, nullptr);
   if (r == 0) {
@@ -87,9 +120,23 @@ int GetStats(const char* path, std::function<void(const uv_stat_t*)> func) {
   }
   uv_fs_req_cleanup(&req);
   return r;
+#endif
 }
 
 bool IsDirectory(const std::string& filename, int* error) {
+#ifdef __wasi__
+  std::error_code ec;
+  bool result = fs::is_directory(filename, ec);
+  if (ec) {
+    *error = -ec.value();
+  } else {
+    *error = 0;
+  }
+  if (*error != 0) {
+    PrintUvError("stat", filename.c_str(), *error);
+  }
+  return result;
+#else
   bool result = false;
   *error = GetStats(filename.c_str(), [&](const uv_stat_t* stats) {
     result = !!(stats->st_mode & S_IFDIR);
@@ -98,13 +145,25 @@ bool IsDirectory(const std::string& filename, int* error) {
     PrintUvError("stat", filename.c_str(), *error);
   }
   return result;
+#endif
 }
 
 size_t GetFileSize(const std::string& filename, int* error) {
+#ifdef __wasi__
+  std::error_code ec;
+  auto size = fs::file_size(filename, ec);
+  if (ec) {
+    *error = -ec.value();
+    return 0;
+  }
+  *error = 0;
+  return static_cast<size_t>(size);
+#else
   size_t result = 0;
   *error = GetStats(filename.c_str(),
                     [&](const uv_stat_t* stats) { result = stats->st_size; });
   return result;
+#endif
 }
 
 constexpr bool FilenameIsConfigGypi(const std::string_view path) {
@@ -121,6 +180,35 @@ typedef std::map<std::string, FileList> FileMap;
 bool SearchFiles(const std::string& dir,
                  FileMap* file_map,
                  std::string_view extension) {
+#ifdef __wasi__
+  bool errored = false;
+  auto& files = (*file_map)[std::string(extension)];
+  std::error_code ec;
+  for (fs::directory_iterator it(dir, ec), end; it != end;
+       it.increment(ec)) {
+    if (ec) {
+      PrintUvError("scandir", dir.c_str(), -ec.value());
+      return false;
+    }
+    const auto& entry = *it;
+    std::string path = entry.path().string();
+    if (!entry.is_directory()) {
+      if (wasi_ends_with(path, std::string(extension))) {
+        files.emplace_back(path);
+      }
+      continue;
+    }
+    if (!SearchFiles(path, file_map, extension)) {
+      errored = true;
+      break;
+    }
+  }
+  if (ec) {
+    PrintUvError("scandir", dir.c_str(), -ec.value());
+    errored = true;
+  }
+  return !errored;
+#else
   uv_fs_t scan_req;
   int result = uv_fs_scandir(nullptr, &scan_req, dir.c_str(), 0, nullptr);
   bool errored = false;
@@ -145,11 +233,7 @@ bool SearchFiles(const std::string& dir,
       }
 
       std::string path = dir + '/' + dent.name;
-#ifdef __wasi__
-      if (wasi_ends_with(path, std::string(extension))) {
-#else
       if (path.ends_with(extension)) {
-#endif
         files.emplace_back(path);
         continue;
       }
@@ -171,6 +255,7 @@ bool SearchFiles(const std::string& dir,
 
   uv_fs_req_cleanup(&scan_req);
   return !errored;
+#endif
 }
 
 constexpr std::string_view kMjsSuffix = ".mjs";
@@ -283,6 +368,23 @@ Fragment Format(const Fragments& definitions,
 }
 
 std::vector<char> ReadFileSync(const char* path, size_t size, int* error) {
+#ifdef __wasi__
+  std::ifstream file(path, std::ios::binary);
+  if (!file) {
+    *error = UV_ENOENT;
+    return {};
+  }
+  std::vector<char> contents((std::istreambuf_iterator<char>(file)),
+                             std::istreambuf_iterator<char>());
+  *error = 0;
+  if (contents.size() != size) {
+    Debug("ReadFileSync(%s) expected %zu bytes, got %zu\n",
+          path,
+          size,
+          contents.size());
+  }
+  return contents;
+#else
   uv_fs_t req;
   Debug("ReadFileSync %s with size %zu\n", path, size);
 
@@ -300,9 +402,14 @@ std::vector<char> ReadFileSync(const char* path, size_t size, int* error) {
   while (offset < size) {
     uv_buf_t buf = uv_buf_init(contents.data() + offset, size - offset);
     int bytes_read = uv_fs_read(nullptr, &req, file, &buf, 1, offset, nullptr);
-    offset += bytes_read;
     *error = req.result;
     uv_fs_req_cleanup(&req);
+    if (bytes_read < 0) {
+      *error = bytes_read;
+      uv_fs_close(nullptr, &req, file, nullptr);
+      return std::vector<char>();
+    }
+    offset += static_cast<size_t>(bytes_read);
     if (*error < 0) {
       uv_fs_close(nullptr, &req, file, nullptr);
       // We can't do anything if uv_fs_close returns error, so just return.
@@ -316,10 +423,22 @@ std::vector<char> ReadFileSync(const char* path, size_t size, int* error) {
 
   *error = uv_fs_close(nullptr, &req, file, nullptr);
   return contents;
+#endif
 }
 
 int WriteFileSync(const std::vector<char>& out, const char* path) {
   Debug("WriteFileSync %zu bytes to %s\n", out.size(), path);
+#ifdef __wasi__
+  std::ofstream file(path, std::ios::binary | std::ios::trunc);
+  if (!file) {
+    return -errno;
+  }
+  file.write(out.data(), static_cast<std::streamsize>(out.size()));
+  if (!file) {
+    return -errno;
+  }
+  return 0;
+#else
   uv_fs_t req;
   uv_file file = uv_fs_open(nullptr,
                             &req,
@@ -344,6 +463,7 @@ int WriteFileSync(const std::vector<char>& out, const char* path) {
     return err;
   }
   return r;
+#endif
 }
 
 int WriteIfChanged(const Fragment& out, const std::string& dest) {
@@ -1001,12 +1121,22 @@ int Main(int argc, char* argv[]) {
   }
 
   if (!root_dir.empty()) {
+#ifdef __wasi__
+    int r = chdir(root_dir.c_str());
+    if (r != 0) {
+      int err = -errno;
+      fprintf(stderr, "Cannot switch to the directory specified by --root\n");
+      PrintUvError("chdir", root_dir.c_str(), err);
+      return 1;
+    }
+#else
     int r = uv_chdir(root_dir.c_str());
     if (r != 0) {
       fprintf(stderr, "Cannot switch to the directory specified by --root\n");
       PrintUvError("chdir", root_dir.c_str(), r);
       return 1;
     }
+#endif
   }
   std::string output = args[0];
 

@@ -3,6 +3,14 @@
 
 #ifdef __wasi__
 
+/* Prefer the SDK-provided netdb definitions if available. */
+#if defined(__has_include)
+# if __has_include(<netdb.h>)
+#  include <netdb.h>
+#  define CARES_WASI_HAS_NATIVE_NETDB 1
+# endif
+#endif
+
 // === Phase 1: Basic includes ===
 #include <errno.h>
 #include <stdint.h>
@@ -66,8 +74,9 @@
 
 
 // === Phase 5: Host and service structures ===
-#ifndef HOSTENT_DEFINED
-#define HOSTENT_DEFINED
+#if !defined(CARES_WASI_HAS_NATIVE_NETDB)
+# ifndef HOSTENT_DEFINED
+#  define HOSTENT_DEFINED
 struct hostent {
   char* h_name;       /* official name of host */
   char** h_aliases;   /* alias list */
@@ -75,16 +84,17 @@ struct hostent {
   int h_length;       /* length of address */
   char** h_addr_list; /* list of addresses */
 };
-#endif
+# endif
 
-#ifndef SERVENT_DEFINED
-#define SERVENT_DEFINED
+# ifndef SERVENT_DEFINED
+#  define SERVENT_DEFINED
 struct servent {
   char* s_name;     /* official name of service */
   char** s_aliases; /* alias list */
   int s_port;       /* port number */
   char* s_proto;    /* protocol to use */
 };
+# endif
 #endif
 
 // === Phase 6: Type definitions ===

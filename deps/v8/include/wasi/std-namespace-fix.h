@@ -54,6 +54,14 @@ namespace v8 {
 #include <iomanip>
 #include <stdexcept>
 #include <cstdlib>
+#include <cmath>
+#include <mutex>
+#include <cstddef>
+#include <array>
+#include <stack>
+#include <cstdint>
+#include <new>
+#include <bit>
 
 #if 1  // Enable v8::std aliasing for WASI shim compatibility
 namespace v8 {

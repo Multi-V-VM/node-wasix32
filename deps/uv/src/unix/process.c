@@ -30,10 +30,19 @@
 #include <string.h>
 
 #include <sys/types.h>
-#include <sys/wait.h>
+#if !defined(__wasi__)
+# include <sys/wait.h>
+#endif
 #include <unistd.h>
 #include <fcntl.h>
 #include <poll.h>
+
+#ifdef __wasi__
+
+/* Processes are not supported on WASI; behavior is provided via stubs in
+ * wasi-stubs.c. */
+
+#else  /* !__wasi__ */
 
 #if defined(__APPLE__)
 # include <spawn.h>
@@ -1123,3 +1132,5 @@ void uv__process_close(uv_process_t* handle) {
     uv_signal_stop(&handle->loop->child_watcher);
 #endif
 }
+
+#endif  /* !__wasi__ */

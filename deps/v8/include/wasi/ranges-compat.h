@@ -8,6 +8,7 @@
 #include <iterator>
 #include <type_traits>
 #include <utility>
+#include <concepts>
 
 // Disable actual ranges functionality for WASI builds
 #define RANGES_DISABLED_FOR_WASI 1

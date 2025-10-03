@@ -5,12 +5,12 @@
 #ifndef V8_BASE_REGION_ALLOCATOR_H_
 #define V8_BASE_REGION_ALLOCATOR_H_
 
+#include <functional>
 #include <set>
 
 #include "src/base/address-region.h"
 #include "src/base/utils/random-number-generator.h"
 #include "testing/gtest/include/gtest/gtest_prod.h"  // nogncheck
-
 namespace v8 {
 namespace base {
 

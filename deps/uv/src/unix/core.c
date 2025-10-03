@@ -39,7 +39,9 @@
 #include <arpa/inet.h>
 #include <limits.h> /* INT_MAX, PATH_MAX, IOV_MAX */
 #include <sys/uio.h> /* writev */
-#include <sys/resource.h> /* getrusage */
+#if !defined(__wasi__)
+# include <sys/resource.h> /* getrusage */
+#endif
 #include <pwd.h>
 #include <grp.h>
 #include <sys/utsname.h>
@@ -1026,6 +1028,7 @@ int uv__fd_exists(uv_loop_t* loop, int fd) {
 }
 
 
+#if !defined(__wasi__)
 static int uv__getrusage(int who, uv_rusage_t* rusage) {
   struct rusage usage;
 
@@ -1066,15 +1069,32 @@ static int uv__getrusage(int who, uv_rusage_t* rusage) {
 
   return 0;
 }
+#else
+static int uv__getrusage(int who, uv_rusage_t* rusage) {
+  (void) who;
+
+  if (rusage == NULL)
+    return UV_EINVAL;
+
+  memset(rusage, 0, sizeof(*rusage));
+  return 0;
+}
+#endif
 
 
 int uv_getrusage(uv_rusage_t* rusage) {
+#if defined(__wasi__)
+  return uv__getrusage(0, rusage);
+#else
   return uv__getrusage(RUSAGE_SELF, rusage);
+#endif
 }
 
 
 int uv_getrusage_thread(uv_rusage_t* rusage) {
-#if defined(__APPLE__)
+#if defined(__wasi__)
+  return uv__getrusage(0, rusage);
+#elif defined(__APPLE__)
   mach_msg_type_number_t count;
   thread_basic_info_data_t info;
   kern_return_t kr;

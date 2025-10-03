@@ -30,7 +30,9 @@
 #include <errno.h>
 
 #include <sys/time.h>
-#include <sys/resource.h>  /* getrlimit() */
+#if !defined(__wasi__)
+# include <sys/resource.h>  /* getrlimit() */
+#endif
 #include <unistd.h>  /* getpagesize() */
 
 #include <limits.h>

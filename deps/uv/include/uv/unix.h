@@ -32,9 +32,17 @@
 #include <netinet/tcp.h>
 #include <arpa/inet.h>
 #ifdef __wasi__
-#include "wasi/netdb.h"
+# if defined(__has_include)
+#  if __has_include(<netdb.h>)
+#   include <netdb.h>
+#  else
+#   include "wasi/netdb.h"
+#  endif
+# else
+#  include "wasi/netdb.h"
+# endif
 #else
-#include <netdb.h>
+# include <netdb.h>
 #endif  /* MAXHOSTNAMELEN on Solaris */
 
 #include <termios.h>

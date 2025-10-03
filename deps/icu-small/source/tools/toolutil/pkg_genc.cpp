@@ -56,6 +56,13 @@
 
 #define MAX_COLUMN ((uint32_t)(0xFFFFFFFFU))
 
+// LLVM's wasm32 assembler in clang 20 can crash (see clang's
+// LexNumericConstant) when it has to tokenize extremely long lines with many
+// comma-separated numeric literals.  This happens because genccode emits 32
+// values per line by default.  Keep the generated lines shorter to avoid
+// hitting that bug while keeping the existing behaviour elsewhere unchanged.
+static constexpr uint32_t kMaxAssemblyLiteralsPerLine = 8;
+
 #define HEX_0X 0 /*  0x1234 */
 #define HEX_0H 1 /*  01234h */
 
@@ -618,7 +625,7 @@ write32(FileStream *out, uint32_t bitField, uint32_t column) {
     if(column==MAX_COLUMN) {
         /* first byte */
         column=1;
-    } else if(column<32) {
+    } else if(column<kMaxAssemblyLiteralsPerLine) {
         *(s++)=',';
         ++column;
     } else {
