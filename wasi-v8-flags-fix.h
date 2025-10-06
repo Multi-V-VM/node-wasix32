@@ -1,6 +1,8 @@
 #ifndef WASI_V8_FLAGS_FIX_H_
 #define WASI_V8_FLAGS_FIX_H_
 
+#include <cstdint>
+
 // Fix for missing Flags template types and operators
 namespace v8 {
 namespace base {

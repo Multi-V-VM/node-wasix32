@@ -9,7 +9,7 @@ namespace internal {
 namespace compiler {
 
 using UnderlyingMap =
-    base::TemplateHashMapImpl<Address, ObjectData*, AddressMatcher,
+    ::v8::base::TemplateHashMapImpl<Address, ObjectData*, AddressMatcher,
                               ZoneAllocationPolicy>;
 
 RefsMap::RefsMap(uint32_t capacity, AddressMatcher match, Zone* zone)

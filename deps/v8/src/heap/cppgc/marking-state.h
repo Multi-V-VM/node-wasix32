@@ -442,7 +442,8 @@ void MutatorMarkingState::InvokeWeakRootsCallbackIfNeeded(
   DCHECK_IMPLIES(header.IsInConstruction(),
                  header.IsMarked<AccessMode::kAtomic>());
 #endif  // DEBUG
-  weak_callback(static_cast<const void*>(&LivenessBrokerFactory::Create()));
+  static LivenessBroker broker = LivenessBrokerFactory::Create();
+  weak_callback(static_cast<const void*>(&broker));
 }
 
 bool MutatorMarkingState::IsMarkedWeakContainer(HeapObjectHeader& header) {

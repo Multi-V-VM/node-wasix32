@@ -19,20 +19,20 @@ namespace v8 {
 
 // LocalVector template for WASI builds
 template <typename T>
-class LocalVector : public std::vector<Local<T>> {
+class LocalVector : public ::std::vector<Local<T>> {
  public:
   LocalVector() = default;
-  explicit LocalVector(Isolate* isolate) : std::vector<Local<T>>() {
+  explicit LocalVector(Isolate* isolate) : ::std::vector<Local<T>>() {
     // Isolate parameter is ignored in WASI build
   }
-  LocalVector(Isolate* isolate, size_t size) : std::vector<Local<T>>(size) {
+  LocalVector(Isolate* isolate, size_t size) : ::std::vector<Local<T>>(size) {
     // Isolate parameter is ignored in WASI build
   }
-  LocalVector(Isolate* isolate, std::initializer_list<Local<T>> init) 
-      : std::vector<Local<T>>(init) {
+  LocalVector(Isolate* isolate, ::std::initializer_list<Local<T>> init)
+      : ::std::vector<Local<T>>(init) {
     // Isolate parameter is ignored in WASI build
   }
-  using std::vector<Local<T>>::vector;
+  using ::std::vector<Local<T>>::vector;
 };
 
 class AccessorSignature;

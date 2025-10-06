@@ -3,32 +3,24 @@
 
 #ifdef __wasi__
 
-#include <string>
 #include <filesystem>
+
+#if defined(_LIBCPP_HAS_NO_FILESYSTEM)
 
 namespace std {
 namespace filesystem {
 
-// Add missing filesystem functions for WASI
-inline bool equivalent(const path& p1, const path& p2) {
-  // Simple comparison for WASI
-  return p1 == p2;
-}
+inline bool equivalent(const path& p1, const path& p2) { return p1 == p2; }
 
-inline bool is_directory(const path& p) {
-  // For WASI, we'll need to use stat or similar
-  // For now, return false as a stub
-  return false;
-}
+inline bool is_directory(const path&) { return false; }
 
-inline path current_path() {
-  // Return root path for WASI
-  return path("/");
-}
+inline path current_path() { return path("/"); }
 
-} // namespace filesystem
-} // namespace std
+}  // namespace filesystem
+}  // namespace std
 
-#endif // __wasi__
+#endif  // defined(_LIBCPP_HAS_NO_FILESYSTEM)
+
+#endif  // __wasi__
 
 #endif // WASI_FILESYSTEM_STUBS_H_

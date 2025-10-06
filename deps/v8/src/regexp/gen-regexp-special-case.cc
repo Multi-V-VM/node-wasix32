@@ -4,10 +4,22 @@
 
 #ifdef __wasi__
 // WASI doesn't support file streams, use C-style file operations
+#include <cstddef>
+#include <cstdlib>
 #include <cstdio>
 #include <iomanip>
 #include <iostream>
 #include <sstream>
+
+extern "C" {
+void* __cxa_allocate_exception(size_t) {
+  abort();
+}
+
+[[noreturn]] void __cxa_throw(void*, void*, void (*)(void*)) {
+  abort();
+}
+}
 #else
 #include <fstream>
 #include <iomanip>

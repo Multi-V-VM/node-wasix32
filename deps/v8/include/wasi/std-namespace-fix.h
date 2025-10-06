@@ -51,6 +51,7 @@ namespace v8 {
 #include <initializer_list>
 #include <iterator>
 #include <list>
+#include <forward_list>
 #include <iomanip>
 #include <stdexcept>
 #include <cstdlib>
@@ -63,14 +64,44 @@ namespace v8 {
 #include <new>
 #include <bit>
 
-#if 1  // Enable v8::std aliasing for WASI shim compatibility
+#if !defined(__cpp_lib_endian)
+namespace std {
+enum class endian {
+    little = 0,
+    big = 1,
+#if defined(__BYTE_ORDER__) && defined(__ORDER_BIG_ENDIAN__) && defined(__ORDER_LITTLE_ENDIAN__)
+#if __BYTE_ORDER__ == __ORDER_BIG_ENDIAN__
+    native = big
+#else
+    native = little
+#endif
+#else
+    native = little
+#endif
+};
+}  // namespace std
+#endif
+
+#if !defined(__cpp_lib_ranges)
+namespace std {
+struct contiguous_iterator_tag : random_access_iterator_tag {};
+}  // namespace std
+#endif
+
+// Only define v8::std namespace for Node.js code, not V8 internal code
+// Enable v8::std namespace to provide type aliases
+#if 1
 namespace v8 {
 namespace std {
 
 // Forward string type aliases
 using ::std::string;
 using ::std::wstring;
+#if defined(__cpp_char8_t)
 using ::std::u8string;
+#else
+using u8string = ::std::string;
+#endif
 using ::std::u16string;
 using ::std::u32string;
 using ::std::string_view;
@@ -133,7 +164,8 @@ inline bool atomic_compare_exchange_strong_explicit(::std::atomic<T>* ptr, T* ex
 using mutex = ::std::mutex;
 template<typename T> using lock_guard = ::std::lock_guard<T>;
 
-// Memory order constants
+// Memory order type and constants
+using ::std::memory_order;
 using ::std::memory_order_relaxed;
 using ::std::memory_order_consume;
 using ::std::memory_order_acquire;
@@ -145,7 +177,7 @@ using ::std::memory_order_seq_cst;
 template<typename T> using numeric_limits = ::std::numeric_limits<T>;
 
 // Container types
-template<typename T, typename Alloc = ::std::allocator<T>> 
+template<typename T, typename Alloc = ::std::allocator<T>>
 using vector = ::std::vector<T, Alloc>;
 
 // Tuple type
@@ -172,14 +204,26 @@ using queue = ::std::queue<T, Container>;
 template<typename T, typename Container = ::std::deque<T>>
 using stack = ::std::stack<T, Container>;
 
+template<typename T, typename Container = ::std::vector<T>, typename Compare = ::std::less<typename Container::value_type>>
+using priority_queue = ::std::priority_queue<T, Container, Compare>;
+
+template<typename T, typename Container = ::std::deque<T>>
+using deque = ::std::deque<T>;
+
 template<typename T, typename Compare = ::std::less<T>, typename Alloc = ::std::allocator<T>>
 using set = ::std::set<T, Compare, Alloc>;
+
+template<typename T, typename Compare = ::std::less<T>, typename Alloc = ::std::allocator<T>>
+using multiset = ::std::multiset<T, Compare, Alloc>;
 
 template<typename Key, typename T, typename Compare = ::std::less<Key>, typename Alloc = ::std::allocator<::std::pair<const Key, T>>>
 using map = ::std::map<Key, T, Compare, Alloc>;
 
 template<typename T, typename Alloc = ::std::allocator<T>>
 using list = ::std::list<T, Alloc>;
+
+template<typename T, typename Alloc = ::std::allocator<T>>
+using forward_list = ::std::forward_list<T, Alloc>;
 
 template<typename Key, typename T, typename Compare = ::std::less<Key>, typename Alloc = ::std::allocator<::std::pair<const Key, T>>>
 using multimap = ::std::multimap<Key, T, Compare, Alloc>;
@@ -262,6 +306,9 @@ inline ::std::unique_ptr<T> make_unique(Args&&... args) {
 // move function - use the standard library version
 using ::std::move;
 
+// exchange function - use the standard library version
+using ::std::exchange;
+
 // Type traits
 template<typename T> using is_unsigned = ::std::is_unsigned<T>;
 template<bool B, typename T = void> using enable_if = ::std::enable_if<B, T>;
@@ -272,6 +319,8 @@ template<typename T, T v> using integral_constant = ::std::integral_constant<T, 
 template<typename... Ts> using void_t = ::std::void_t<Ts...>;
 template<typename T> using underlying_type = ::std::underlying_type<T>;
 template<typename T> using underlying_type_t = ::std::underlying_type_t<T>;
+template<typename... T> using common_type = ::std::common_type<T...>;
+template<typename... T> using common_type_t = ::std::common_type_t<T...>;
 template<std::size_t I, typename T> using tuple_element = ::std::tuple_element<I, T>;
 template<std::size_t I, typename T> using tuple_element_t = ::std::tuple_element_t<I, T>;
 template<typename Base, typename Derived> using is_base_of = ::std::is_base_of<Base, Derived>;
@@ -291,8 +340,14 @@ template<typename T> using remove_reference = ::std::remove_reference<T>;
 template<typename T> using remove_reference_t = ::std::remove_reference_t<T>;
 template<typename T> using remove_cv = ::std::remove_cv<T>;
 template<typename T> using remove_cv_t = ::std::remove_cv_t<T>;
+#if defined(__cpp_lib_remove_cvref)
 template<typename T> using remove_cvref = ::std::remove_cvref<T>;
 template<typename T> using remove_cvref_t = ::std::remove_cvref_t<T>;
+#else
+template<typename T>
+struct remove_cvref : ::std::remove_cv<typename ::std::remove_reference<T>::type> {};
+template<typename T> using remove_cvref_t = typename remove_cvref<T>::type;
+#endif
 template<typename T> using is_const = ::std::is_const<T>;
 template<typename T> constexpr bool is_const_v = ::std::is_const_v<T>;
 template<typename T> using is_trivial = ::std::is_trivial<T>;
@@ -312,6 +367,7 @@ template<typename T> using is_copy_constructible = ::std::is_copy_constructible<
 template<typename T> using is_copy_assignable = ::std::is_copy_assignable<T>;
 template<typename... T> using is_constructible = ::std::is_constructible<T...>;
 template<typename... T> constexpr bool is_constructible_v = ::std::is_constructible_v<T...>;
+template<typename F, typename... Args> constexpr bool is_invocable_v = ::std::is_invocable_v<F, Args...>;
 template<typename T> using is_default_constructible = ::std::is_default_constructible<T>;
 template<typename T> constexpr bool is_default_constructible_v = ::std::is_default_constructible_v<T>;
 template<typename T> using is_void = ::std::is_void<T>;
@@ -324,12 +380,14 @@ template<bool B, typename T, typename F> using conditional_t = ::std::conditiona
 template<typename T> using remove_const = ::std::remove_const<T>;
 template<typename T> using remove_const_t = ::std::remove_const_t<T>;
 template<typename T> using is_array = ::std::is_array<T>;
+template<typename T, unsigned N = 0> using extent = ::std::extent<T, N>;
+template<typename T, unsigned N = 0> constexpr size_t extent_v = ::std::extent_v<T, N>;
 template<bool B> using bool_constant = ::std::bool_constant<B>;
 template<typename T> using tuple_size = ::std::tuple_size<T>;
 template<typename T> constexpr size_t tuple_size_v = ::std::tuple_size_v<T>;
 
 // bit_cast template
-#if __cplusplus >= 202002L && __has_builtin(__builtin_bit_cast)
+#if __has_builtin(__builtin_bit_cast)
 template<typename To, typename From>
 constexpr To bit_cast(const From& from) {
     return __builtin_bit_cast(To, from);
@@ -345,10 +403,21 @@ inline To bit_cast(const From& from) {
 #endif
 
 // to_address function
+#if defined(__cpp_lib_to_address)
 template<typename Ptr>
-inline auto to_address(Ptr const& p) noexcept -> decltype(::std::to_address(p)) {
+inline auto to_address(const Ptr& p) noexcept {
     return ::std::to_address(p);
 }
+#else
+template<typename Ptr>
+inline auto to_address(const Ptr& p) noexcept {
+#ifdef _LIBCPP_VERSION
+    return ::std::__to_address(p);
+#else
+    return ::std::addressof(*p);
+#endif
+}
+#endif
 
 template<typename T>
 inline T* to_address(T* p) noexcept {
@@ -402,6 +471,7 @@ using basic_streambuf = ::std::basic_streambuf<CharT, Traits>;
 // Size type
 using size_t = ::std::size_t;
 using ptrdiff_t = ::std::ptrdiff_t;
+using streamsize = ::std::streamsize;
 
 // String types  
 template<typename CharT, typename Traits = ::std::char_traits<CharT>, typename Alloc = ::std::allocator<CharT>>
@@ -410,10 +480,14 @@ using basic_string = ::std::basic_string<CharT, Traits, Alloc>;
 template<typename CharT, typename Traits = ::std::char_traits<CharT>>
 using basic_string_view = ::std::basic_string_view<CharT, Traits>;
 
+#if defined(__cpp_char8_t)
 using u8string_view = ::std::u8string_view;
+#else
+using u8string_view = ::std::string_view;
+#endif
 
 // Endian enum
-using endian = ::std::endian;
+using ::std::endian;
 
 // Type traits
 template<typename T> using is_function = ::std::is_function<T>;
@@ -468,7 +542,7 @@ using output_iterator_tag = ::std::output_iterator_tag;
 using forward_iterator_tag = ::std::forward_iterator_tag;
 using bidirectional_iterator_tag = ::std::bidirectional_iterator_tag;
 using random_access_iterator_tag = ::std::random_access_iterator_tag;
-using contiguous_iterator_tag = ::std::contiguous_iterator_tag;
+using ::std::contiguous_iterator_tag;
 
 // Iterator types and traits
 template<typename T> using iterator_traits = ::std::iterator_traits<T>;
@@ -484,6 +558,9 @@ auto make_reverse_iterator(Iterator it) -> decltype(::std::make_reverse_iterator
 inline size_t strlen(const char* str) {
     return ::strlen(str);
 }
+
+// C string functions
+using ::std::strcmp;
 
 // Math functions
 using ::std::ceil;
@@ -629,10 +706,14 @@ OutputIt fill_n(OutputIt first, Size count, const T& value) {
     return ::std::fill_n(first, count, value);
 }
 
+#if defined(__cpp_lib_make_unique_for_overwrite)
+using ::std::make_unique_for_overwrite;
+#else
 template<typename T>
 inline ::std::unique_ptr<T> make_unique_for_overwrite() {
-    return ::std::make_unique_for_overwrite<T>();
+    return ::std::unique_ptr<T>(new T);
 }
+#endif
 
 // Additional algorithms
 using ::std::distance;
@@ -646,6 +727,10 @@ using ::std::copy_if;
 using ::std::sort;
 using ::std::fill;
 using ::std::uninitialized_value_construct_n;
+using ::std::lexicographical_compare;
+using ::std::move_backward;
+using ::std::apply;
+using ::std::lower_bound;
 
 // Memory utilities
 using ::std::addressof;
@@ -673,8 +758,12 @@ using ::std::isdigit;
 using ::std::setfill;
 using ::std::setw;
 using ::std::endl;
+using ::std::showpos;
+using ::std::noshowpos;
 
 // Quoted manipulator
+using ::std::quoted;
+
 template<typename CharT, typename Traits, typename Allocator>
 inline auto __quoted(const ::std::basic_string<CharT, Traits, Allocator>& s,
                      CharT delim = CharT('"'), CharT escape = CharT('\\')) {

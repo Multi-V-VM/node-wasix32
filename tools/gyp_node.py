@@ -18,6 +18,8 @@ sys.path.insert(0, os.path.join(node_root, 'tools', 'v8_gypfiles'))
 output_dir = os.path.join(os.path.abspath(node_root), 'out')
 
 def run_gyp(args):
+  if '--no-parallel' not in args:
+    args = ['--no-parallel'] + args
   # GYP bug.
   # On msvs it will crash if it gets an absolute path.
   # On Mac/make it will crash if it doesn't get an absolute path.

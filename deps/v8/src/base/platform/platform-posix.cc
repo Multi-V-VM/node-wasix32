@@ -2,6 +2,8 @@
 #ifdef __wasi__
 #include "src/base/platform/platform.h"
 
+extern "C" [[noreturn]] void unreachable() { __builtin_trap(); }
+
 namespace v8 {
 namespace base {
 

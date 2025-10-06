@@ -24,6 +24,7 @@ struct SmiTagging {
 // Forward declarations before namespace definitions
 namespace v8 {
   class Isolate;
+  class CustomSpaceStatisticsReceiver;
 }
 
 namespace v8 {
@@ -338,10 +339,10 @@ class Internals {
   // SMI helpers
   static constexpr bool IsValidSmi(intptr_t value) {
     // kSmiTagSize = 1 -> 31-bit Smi range
-    return value >= (-static_cast<intptr_t>(1) << 30) &&
-           value <= (static_cast<intptr_t>(1) << 30) - 1;
+    const intptr_t smi_limit = static_cast<intptr_t>(1) << 30;
+    return value >= -smi_limit && value <= smi_limit - 1;
   }
-  static Address IntegralToSmi(int value) {
+  static constexpr Address IntegralToSmi(int value) {
     return (static_cast<Address>(value) << 1) | 0;
   }
   static Address* TryIntegralToSmi(intptr_t value) {
@@ -460,6 +461,22 @@ inline int CountTrailingZerosNonZero(size_t value) {
 }  // namespace base
 }  // namespace v8
 #endif  // V8_BASE_BITS_WASI_HELPERS_DEFINED
+
+#ifndef V8_WASI_BIT_CAST_DEFINED
+#define V8_WASI_BIT_CAST_DEFINED
+// Provide a global bit_cast implementation usable from legacy call sites.
+template <typename To, typename From>
+inline To bit_cast(const From& from) {
+  static_assert(sizeof(To) == sizeof(From), "bit_cast requires equal sizes");
+#if __has_builtin(__builtin_bit_cast)
+  return __builtin_bit_cast(To, from);
+#else
+  To to;
+  std::memcpy(&to, &from, sizeof(To));
+  return to;
+#endif
+}
+#endif  // V8_WASI_BIT_CAST_DEFINED
 
 // Add selected internal free-function stubs referenced by public headers
 namespace v8 {

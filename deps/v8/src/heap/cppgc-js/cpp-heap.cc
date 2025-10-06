@@ -125,7 +125,7 @@ cppgc::HeapStatistics CppHeap::CollectStatistics(
 
 void CppHeap::CollectCustomSpaceStatisticsAtLastGC(
     std::vector<cppgc::CustomSpaceIndex> custom_spaces,
-    std::unique_ptr<CustomSpaceStatisticsReceiver> receiver) {
+    std::unique_ptr<::v8::CustomSpaceStatisticsReceiver> receiver) {
   return internal::CppHeap::From(this)->CollectCustomSpaceStatisticsAtLastGC(
       std::move(custom_spaces), std::move(receiver));
 }
@@ -491,7 +491,7 @@ void CppHeap::InitializeOncePerProcess() {
 }
 
 CppHeap::CppHeap(
-    v8::Platform* platform,
+    ::v8::Platform* platform,
     const std::vector<std::unique_ptr<cppgc::CustomSpaceBase>>& custom_spaces,
     cppgc::Heap::MarkingType marking_support,
     cppgc::Heap::SweepingType sweeping_support)
@@ -1169,15 +1169,15 @@ void ReportCustomSpaceStatistics(
   }
 }
 
-class CollectCustomSpaceStatisticsAtLastGCTask final : public v8::Task {
+class CollectCustomSpaceStatisticsAtLastGCTask final : public ::v8::Task {
  public:
-  static constexpr v8::base::TimeDelta kTaskDelayMs =
-      v8::base::TimeDelta::FromMilliseconds(10);
+  static constexpr ::v8::base::TimeDelta kTaskDelayMs =
+      ::v8::base::TimeDelta::FromMilliseconds(10);
 
   CollectCustomSpaceStatisticsAtLastGCTask(
       cppgc::internal::HeapBase& heap,
       std::vector<cppgc::CustomSpaceIndex> custom_spaces,
-      std::unique_ptr<CustomSpaceStatisticsReceiver> receiver)
+      std::unique_ptr<::v8::CustomSpaceStatisticsReceiver> receiver)
       : heap_(heap),
         custom_spaces_(std::move(custom_spaces)),
         receiver_(std::move(receiver)) {}
@@ -1200,24 +1200,24 @@ class CollectCustomSpaceStatisticsAtLastGCTask final : public v8::Task {
   }
 
  private:
-  static constexpr v8::base::TimeDelta kStepSizeMs =
-      v8::base::TimeDelta::FromMilliseconds(5);
+  static constexpr ::v8::base::TimeDelta kStepSizeMs =
+      ::v8::base::TimeDelta::FromMilliseconds(5);
 
   cppgc::internal::HeapBase& heap_;
   std::vector<cppgc::CustomSpaceIndex> custom_spaces_;
-  std::unique_ptr<CustomSpaceStatisticsReceiver> receiver_;
+  std::unique_ptr<::v8::CustomSpaceStatisticsReceiver> receiver_;
 };
 
-constexpr v8::base::TimeDelta
+constexpr ::v8::base::TimeDelta
     CollectCustomSpaceStatisticsAtLastGCTask::kTaskDelayMs;
-constexpr v8::base::TimeDelta
+constexpr ::v8::base::TimeDelta
     CollectCustomSpaceStatisticsAtLastGCTask::kStepSizeMs;
 
 }  // namespace
 
 void CppHeap::CollectCustomSpaceStatisticsAtLastGC(
     std::vector<cppgc::CustomSpaceIndex> custom_spaces,
-    std::unique_ptr<CustomSpaceStatisticsReceiver> receiver) {
+    std::unique_ptr<::v8::CustomSpaceStatisticsReceiver> receiver) {
   if (sweeper().IsSweepingInProgress()) {
     platform()->GetForegroundTaskRunner()->PostDelayedTask(
         std::make_unique<CollectCustomSpaceStatisticsAtLastGCTask>(

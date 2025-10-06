@@ -8,11 +8,13 @@
 #include <type_traits>
 #include <vector>
 
+#include "src/base/vector.h"
+
 namespace v8 {
 namespace base {
 
-// Add Address to base namespace (use internal Address on WASI)
-using Address = ::v8::internal::Address;
+// Provide a permissive Address alias for WASI builds
+using Address = uintptr_t;
 
 // BitWidth function
 // Note: bit utilities are provided in src/base/bits.h for WASI builds.
@@ -31,9 +33,12 @@ struct has_type<T, Head, Tail...>
 template<typename T, typename... Ts>
 inline constexpr bool has_type_v = has_type<T, Ts...>::value;
 
-// Remove Vector alias - conflicts with base/vector.h
-
 }  // namespace base
+
+// Mirror the upstream convenience alias `v8::Vector` -> `v8::base::Vector`.
+template <typename T>
+using Vector = base::Vector<T>;
+
 }  // namespace v8
 
 #endif  // V8_SRC_WASI_V8_BASE_FIXES_H_

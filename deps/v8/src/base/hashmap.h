@@ -16,6 +16,10 @@
 #include "src/base/logging.h"
 #include "src/base/platform/memory.h"
 
+#if defined(__wasi__)
+#include "include/wasi/std-namespace-fix.h"
+#endif
+
 namespace v8 {
 namespace base {
 

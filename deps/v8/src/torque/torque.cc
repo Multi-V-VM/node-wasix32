@@ -5,6 +5,21 @@
 #include "src/torque/source-positions.h"
 #include "src/torque/torque-compiler.h"
 
+#ifdef __wasi__
+#include <cstddef>
+#include <cstdlib>
+
+extern "C" {
+void* __cxa_allocate_exception(size_t) {
+  abort();
+}
+
+[[noreturn]] void __cxa_throw(void*, void*, void (*)(void*)) {
+  abort();
+}
+}
+#endif
+
 namespace v8 {
 namespace internal {
 namespace torque {

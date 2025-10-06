@@ -17,7 +17,7 @@ namespace base {
 template<typename T, int start, int size, typename StorageType = uint32_t>
 class BitField final {
  public:
-  static_assert(std::is_unsigned<StorageType>::value, "StorageType must be unsigned");
+  static_assert(::std::is_unsigned<StorageType>::value, "StorageType must be unsigned");
   static_assert(start >= 0 && size > 0, "Invalid bit field parameters");
   static_assert(start + size <= sizeof(StorageType) * 8, "Bit field exceeds storage size");
   
@@ -81,10 +81,10 @@ using BitField64 = ::v8::base::BitField<T, start, size, uint64_t>;
 
 // Add make_array utility for WASI builds
 template<size_t N, typename F>
-constexpr auto make_array(F&& f) -> std::array<decltype(f(0)), N> {
-  return []<size_t... I>(F&& f, std::index_sequence<I...>) {
-    return std::array<decltype(f(0)), N>{{f(I)...}};
-  }(std::forward<F>(f), std::make_index_sequence<N>{});
+constexpr auto make_array(F&& f) -> ::std::array<decltype(f(0)), N> {
+  return []<size_t... I>(F&& f, ::std::index_sequence<I...>) {
+    return ::std::array<decltype(f(0)), N>{{f(I)...}};
+  }(::std::forward<F>(f), ::std::make_index_sequence<N>{});
 }
 
 } // namespace base

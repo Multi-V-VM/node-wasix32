@@ -8,7 +8,25 @@
 #include <iterator>
 #include <type_traits>
 #include <utility>
+
+#ifdef __cpp_concepts
 #include <concepts>
+#define V8_WASI_HAS_CONCEPTS 1
+#else
+#define V8_WASI_HAS_CONCEPTS 0
+#endif
+
+#if !V8_WASI_HAS_CONCEPTS
+#define V8_WASI_DECLARE_CONCEPT_1(name) \
+  template <typename T> inline constexpr bool name = false
+#define V8_WASI_DECLARE_CONCEPT_2(name) \
+  template <typename T, typename U> inline constexpr bool name = false
+#else
+#define V8_WASI_DECLARE_CONCEPT_1(name) \
+  template <typename T> concept name = false
+#define V8_WASI_DECLARE_CONCEPT_2(name) \
+  template <typename T, typename U> concept name = false
+#endif
 
 // Disable actual ranges functionality for WASI builds
 #define RANGES_DISABLED_FOR_WASI 1
@@ -29,33 +47,16 @@ namespace ranges {
 // Dummy implementations to satisfy compilation
 // These are not functional but allow the code to compile
 
-// Basic concepts
-template<typename T>
-concept range = false;
-
-template<typename T>
-concept view = false;
-
-template<typename T>
-concept borrowed_range = false;
-
-template<typename T>
-concept common_range = false;
-
-template<typename T>
-concept viewable_range = false;
-
-template<typename T>
-concept sized_range = false;
-
-template<typename T>
-concept contiguous_range = false;
-
-template<typename T>
-concept random_access_range = false;
-
-template<typename T>
-concept forward_range = false;
+// Basic concepts (stubbed to `false` for compat builds)
+V8_WASI_DECLARE_CONCEPT_1(range);
+V8_WASI_DECLARE_CONCEPT_1(view);
+V8_WASI_DECLARE_CONCEPT_1(borrowed_range);
+V8_WASI_DECLARE_CONCEPT_1(common_range);
+V8_WASI_DECLARE_CONCEPT_1(viewable_range);
+V8_WASI_DECLARE_CONCEPT_1(sized_range);
+V8_WASI_DECLARE_CONCEPT_1(contiguous_range);
+V8_WASI_DECLARE_CONCEPT_1(random_access_range);
+V8_WASI_DECLARE_CONCEPT_1(forward_range);
 
 // iterator_t helper
 template<typename T>
@@ -74,8 +75,7 @@ template<typename T>
 using iter_reference_t = typename T::value_type&;
 
 // contiguous_iterator concept
-template<typename T>
-concept contiguous_iterator = false;
+V8_WASI_DECLARE_CONCEPT_1(contiguous_iterator);
 
 // Dummy ref_view
 template<typename R>
@@ -165,12 +165,10 @@ inline auto size(R&& r) -> decltype(::std::size(::std::forward<R>(r))) {
 }
 
 // __span_compatible_range concept helper
-template<typename R, typename T>
-concept __span_compatible_range = false;
+V8_WASI_DECLARE_CONCEPT_2(__span_compatible_range);
 
 // __simple_view concept helper
-template<typename T>
-concept __simple_view = false;
+V8_WASI_DECLARE_CONCEPT_1(__simple_view);
 
 // enable_view trait
 template<typename T>
@@ -229,5 +227,9 @@ using __2::ranges::elements_view;
 
 } // namespace std
 } // namespace v8
+
+#undef V8_WASI_DECLARE_CONCEPT_1
+#undef V8_WASI_DECLARE_CONCEPT_2
+#undef V8_WASI_HAS_CONCEPTS
 
 #endif // WASI_RANGES_COMPAT_H_

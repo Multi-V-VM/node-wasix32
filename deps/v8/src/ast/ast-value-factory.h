@@ -179,7 +179,7 @@ class AstConsString final : public ZoneObject {
   EXPORT_TEMPLATE_DECLARE(V8_EXPORT_PRIVATE)
   Handle<String> AllocateFlat(IsolateT* isolate) const;
 
-  ::forward_list<const AstRawString*> ToRawStrings() const;
+  ::std::forward_list<const AstRawString*> ToRawStrings() const;
 
   const AstRawString* last() const { return segment_.string; }
 

@@ -12,10 +12,7 @@
 #include "src/objects/tagged.h"
 #include "src/utils/utils.h"
 
-#ifdef V8_ENABLE_SANDBOX
-#include "src/sandbox/sandbox.h"
-
-// Define missing constant for WASI builds
+// Define missing constant for WASI builds (needed even without sandbox)
 #ifndef kPtrComprCageBaseAlignment
 #if INTPTR_MAX == INT32_MAX
 constexpr size_t kPtrComprCageBaseAlignment = 1u;
@@ -23,6 +20,10 @@ constexpr size_t kPtrComprCageBaseAlignment = 1u;
 constexpr size_t kPtrComprCageBaseAlignment = size_t{1} << 32;
 #endif
 #endif
+
+#ifdef V8_ENABLE_SANDBOX
+#include "src/sandbox/sandbox.h"
+
 // Fallback for alignment hint macro
 #ifndef V8_ASSUME_ALIGNED
 #define V8_ASSUME_ALIGNED(ptr, alignment) (ptr)

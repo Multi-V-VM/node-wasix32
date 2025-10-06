@@ -84,6 +84,13 @@ class NODE_EXTERN_PRIVATE BuiltinLoader {
   BuiltinLoader(const BuiltinLoader&) = delete;
   BuiltinLoader& operator=(const BuiltinLoader&) = delete;
 
+#ifdef __wasi__
+  using BuiltinIdRange = std::vector<std::string>;
+#else
+  using BuiltinIdRange = std::ranges::keys_view<
+      std::ranges::ref_view<const BuiltinSourceMap>>;
+#endif
+
   static void RegisterExternalReferences(ExternalReferenceRegistry* registry);
   static void CreatePerIsolateProperties(IsolateData* isolate_data,
                                          v8::Local<v8::ObjectTemplate> target);
@@ -127,9 +134,7 @@ class NODE_EXTERN_PRIVATE BuiltinLoader {
 
   void CopySourceAndCodeCacheReferenceFrom(const BuiltinLoader* other);
 
-  [[nodiscard]] std::ranges::keys_view<
-      std::ranges::ref_view<const BuiltinSourceMap>>
-  GetBuiltinIds() const;
+  [[nodiscard]] BuiltinIdRange GetBuiltinIds() const;
 
   void SetEagerCompile() { should_eager_compile_ = true; }
 

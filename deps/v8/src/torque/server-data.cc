@@ -1,5 +1,5 @@
 #ifdef __wasi__
-#include "stubs/torque-stubs.h"
+// No implementation needed when building the WASI toolchain stubs.
 #else
 // Copyright 2019 the V8 project authors. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be

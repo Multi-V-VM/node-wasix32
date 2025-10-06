@@ -324,7 +324,7 @@
       }],  # ppc64
       ['v8_target_arch=="ia32"', {
         'defines': [
-          'V8_TARGET_ARCH_IA32',
+          'V8_TARGET_ARCH_WASM32',
         ],
       }],  # v8_target_arch=="ia32"
       ['v8_target_arch=="wasm32"', {

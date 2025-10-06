@@ -18,9 +18,6 @@
 namespace v8 {
 namespace internal {
 
-// Forward declaration alias without introducing v8::internal::base
-using RecursiveMutex = ::v8::base::RecursiveMutex;
-
 class V8_EXPORT_PRIVATE OFStreamBase : public std::streambuf {
  public:
   explicit OFStreamBase(FILE* f);
@@ -31,7 +28,7 @@ class V8_EXPORT_PRIVATE OFStreamBase : public std::streambuf {
 
   int sync() override;
   int_type overflow(int_type c) override;
-  streamsize xsputn(const char* s, streamsize n) override;
+  std::streamsize xsputn(const char* s, std::streamsize n) override;
 };
 
 // Output buffer and stream writing into debugger's command window.
@@ -72,7 +69,7 @@ class V8_EXPORT_PRIVATE AndroidLogStream : public std::streambuf {
   virtual ~AndroidLogStream();
 
  protected:
-  streamsize xsputn(const char* s, streamsize n) override;
+  std::streamsize xsputn(const char* s, std::streamsize n) override;
 
  private:
   std::string line_buffer_;
@@ -85,7 +82,7 @@ class StdoutStream : public std::ostream {
  private:
   friend class StderrStream;
 
-  static V8_EXPORT_PRIVATE RecursiveMutex* GetStdoutMutex();
+  static V8_EXPORT_PRIVATE ::v8::base::RecursiveMutex* GetStdoutMutex();
 
   AndroidLogStream stream_;
   ::v8::base::RecursiveMutexGuard mutex_guard_{GetStdoutMutex()};
@@ -97,7 +94,7 @@ class StdoutStream : public OFStream {
 
  private:
   friend class StderrStream;
-  static V8_EXPORT_PRIVATE RecursiveMutex* GetStdoutMutex();
+  static V8_EXPORT_PRIVATE ::v8::base::RecursiveMutex* GetStdoutMutex();
 
   ::v8::base::RecursiveMutexGuard mutex_guard_{GetStdoutMutex()};
 };
@@ -187,7 +184,7 @@ struct PrintIteratorRange {
 // {const T&}. This function is only instantiable if that type exists.
 template <typename T>
 auto PrintCollection(const T& collection) -> PrintIteratorRange<
-    typename common_type<decltype(std::begin(collection)),
+    typename std::common_type<decltype(std::begin(collection)),
                               decltype(std::end(collection))>::type> {
   return {std::begin(collection), std::end(collection)};
 }

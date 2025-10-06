@@ -11,21 +11,25 @@
 #include <sstream>
 
 #ifdef __wasi__
-// WASI doesn't have addrinfo, provide a minimal definition
+#if __has_include(<netdb.h>)
+#include <netdb.h>
+#else
+// WASI toolchains without <netdb.h> support need a minimal definition.
 #ifndef ADDRINFO_DEFINED
 #define ADDRINFO_DEFINED
 struct addrinfo {
-  int              ai_flags;
-  int              ai_family;
-  int              ai_socktype;
-  int              ai_protocol;
-  socklen_t        ai_addrlen;
-  struct sockaddr *ai_addr;
-  char            *ai_canonname;
-  struct addrinfo *ai_next;
+  int ai_flags;
+  int ai_family;
+  int ai_socktype;
+  int ai_protocol;
+  socklen_t ai_addrlen;
+  struct sockaddr* ai_addr;
+  char* ai_canonname;
+  struct addrinfo* ai_next;
 };
-#endif
-#endif
+#endif  // ADDRINFO_DEFINED
+#endif  // __has_include(<netdb.h>)
+#endif  // __wasi__
 
 namespace node {
 namespace inspector {

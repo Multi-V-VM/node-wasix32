@@ -27,7 +27,7 @@
 #include "uv.h"
 #include "v8-inspector.h"
 #include "v8.h"
-
+#include <bit>
 #include "node.h"
 #ifdef __wasi__
 // wasi-v8-complete-missing.h removed - causes redefinitions when included after V8 headers
@@ -809,11 +809,13 @@ inline ::v8::MaybeLocal<::v8::Value> ToV8Value(::v8::Local<::v8::Context> contex
                                            const std::unordered_map<T, U>& map,
                                            ::v8::Isolate* isolate = nullptr);
 
+#ifndef __wasi__
 template <typename T, std::size_t U>
 inline ::v8::MaybeLocal<::v8::Value> ToV8Value(
     ::v8::Local<::v8::Context> context,
     const ::v8::std::ranges::elements_view<T, U>& vec,
     ::v8::Isolate* isolate = nullptr);
+#endif
 
 // These macros expects a `Isolate* isolate` and a `Local<Context> context`
 // to be in the scope.

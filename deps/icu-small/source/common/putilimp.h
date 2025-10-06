@@ -155,6 +155,8 @@ typedef size_t uintptr_t;
     /* Use the predefined value. */
 #elif U_PLATFORM_USES_ONLY_WIN32_API
 #   define U_HAVE_MMAP 0
+#elif defined(__wasi__)
+#   define U_HAVE_MMAP 0
 #else
 #   define U_HAVE_MMAP 1
 #endif

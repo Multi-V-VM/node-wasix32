@@ -504,7 +504,7 @@ class V8_EXPORT_PRIVATE AssemblerBase : public Malloced {
   std::unique_ptr<AssemblerBuffer> buffer_;
   // Cached from {buffer_->start()}, for faster access.
   uint8_t* buffer_start_;
-  forward_list<HeapNumberRequest> heap_number_requests_;
+  std::forward_list<HeapNumberRequest> heap_number_requests_;
   // The program counter, which points into the buffer above and moves forward.
   // TODO(jkummerow): This should probably have type {Address}.
   uint8_t* pc_;

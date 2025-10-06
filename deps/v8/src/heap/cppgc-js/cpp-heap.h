@@ -84,12 +84,12 @@ class V8_EXPORT_PRIVATE CppHeap final
    private:
     Isolate* GetIsolate() const;
 
-    v8::metrics::Recorder::ContextId GetContextId() const;
+    ::v8::metrics::Recorder::ContextId GetContextId() const;
 
     CppHeap& cpp_heap_;
-    v8::metrics::GarbageCollectionFullMainThreadBatchedIncrementalMark
+    ::v8::metrics::GarbageCollectionFullMainThreadBatchedIncrementalMark
         incremental_mark_batched_events_;
-    v8::metrics::GarbageCollectionFullMainThreadBatchedIncrementalSweep
+    ::v8::metrics::GarbageCollectionFullMainThreadBatchedIncrementalSweep
         incremental_sweep_batched_events_;
     std::optional<cppgc::internal::MetricRecorder::GCCycle> last_full_gc_event_;
     std::optional<cppgc::internal::MetricRecorder::GCCycle>
@@ -100,14 +100,14 @@ class V8_EXPORT_PRIVATE CppHeap final
 
   static void InitializeOncePerProcess();
 
-  static CppHeap* From(v8::CppHeap* heap) {
+  static CppHeap* From(::v8::CppHeap* heap) {
     return static_cast<CppHeap*>(heap);
   }
-  static const CppHeap* From(const v8::CppHeap* heap) {
+  static const CppHeap* From(const ::v8::CppHeap* heap) {
     return static_cast<const CppHeap*>(heap);
   }
 
-  CppHeap(v8::Platform*,
+  CppHeap(::v8::Platform*,
           const std::vector<std::unique_ptr<cppgc::CustomSpaceBase>>&,
           cppgc::Heap::MarkingType, cppgc::Heap::SweepingType);
   ~CppHeap() final;
@@ -126,7 +126,7 @@ class V8_EXPORT_PRIVATE CppHeap final
 
   void CollectCustomSpaceStatisticsAtLastGC(
       std::vector<cppgc::CustomSpaceIndex>,
-      std::unique_ptr<CustomSpaceStatisticsReceiver>);
+      std::unique_ptr<::v8::CustomSpaceStatisticsReceiver>);
 
   void FinishSweepingIfRunning();
   void FinishAtomicSweepingIfRunning();
@@ -137,7 +137,7 @@ class V8_EXPORT_PRIVATE CppHeap final
       std::shared_ptr<::heap::base::IncrementalMarkingSchedule> schedule = {},
       GarbageCollectionFlags = GarbageCollectionFlagValues::kNoFlags);
   void StartMarking();
-  bool AdvanceMarking(v8::base::TimeDelta max_duration,
+  bool AdvanceMarking(::v8::base::TimeDelta max_duration,
                       size_t marked_bytes_limit);
   bool IsMarkingDone() const;
   size_t last_bytes_marked() const;
@@ -192,7 +192,7 @@ class V8_EXPORT_PRIVATE CppHeap final
 #endif  // V8_ENABLE_ALLOCATION_TIMEOUT
 
   V8_INLINE void RememberCrossHeapReferenceIfNeeded(
-      v8::internal::Tagged<v8::internal::CppHeapPointerWrapperObjectT> host_obj,
+      Tagged<CppHeapPointerWrapperObjectT> host_obj,
       void* value);
   template <typename F>
   inline void VisitCrossHeapRememberedSetIfNeeded(F f);
@@ -265,11 +265,11 @@ class V8_EXPORT_PRIVATE CppHeap final
   size_t allocated_size_limit_for_check_ = 0;
 
   std::optional<cppgc::EmbedderStackState> detached_override_stack_state_;
-  std::unique_ptr<v8::internal::EmbedderStackStateScope>
+  std::unique_ptr<EmbedderStackStateScope>
       override_stack_state_scope_;
 #ifdef V8_ENABLE_ALLOCATION_TIMEOUT
   // Use standalone RNG to avoid initialization order dependency.
-  std::optional<v8::base::RandomNumberGenerator> allocation_timeout_rng_;
+  std::optional<::v8::base::RandomNumberGenerator> allocation_timeout_rng_;
 #endif  // V8_ENABLE_ALLOCATION_TIMEOUT
 
   bool already_terminated_ = false;
@@ -279,7 +279,7 @@ class V8_EXPORT_PRIVATE CppHeap final
 };
 
 void CppHeap::RememberCrossHeapReferenceIfNeeded(
-    v8::internal::Tagged<v8::internal::CppHeapPointerWrapperObjectT> host_obj,
+    Tagged<CppHeapPointerWrapperObjectT> host_obj,
     void* value) {
   if (!generational_gc_supported()) return;
   DCHECK(isolate_);

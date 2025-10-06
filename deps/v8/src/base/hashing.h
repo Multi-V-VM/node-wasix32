@@ -132,7 +132,7 @@ class Hasher {
   template <typename T>
   Hasher& Add(const T& t) {
     #ifdef __wasi__
-    return AddHash(std::hash<T>{}(t));
+    return AddHash(::std::hash<T>{}(t));
 #else
     return AddHash(hash<T>{}(t));
 #endif
@@ -151,8 +151,8 @@ class Hasher {
   // Hash a collection of values and combine the hashes into this hasher's hash.
   template <typename C>
   auto AddRange(C collection)
-      -> decltype(AddRange(std::begin(collection), std::end(collection))) {
-    return AddRange(std::begin(collection), std::end(collection));
+      -> decltype(AddRange(::std::begin(collection), ::std::end(collection))) {
+    return AddRange(::std::begin(collection), ::std::end(collection));
   }
 
   // Hash multiple values and combine their hashes.
@@ -267,26 +267,26 @@ V8_INLINE size_t hash_value(T* const& v) {
 }
 
 template <typename T1, typename T2>
-V8_INLINE size_t hash_value(std::pair<T1, T2> const& v) {
+V8_INLINE size_t hash_value(::std::pair<T1, T2> const& v) {
   return Hasher::Combine(v.first, v.second);
 }
 
 template <typename... T, size_t... I>
-V8_INLINE size_t hash_value_impl(std::tuple<T...> const& v,
-                                 std::index_sequence<I...>) {
+V8_INLINE size_t hash_value_impl(::std::tuple<T...> const& v,
+                                 ::std::index_sequence<I...>) {
   return Hasher::Combine(::std::get<I>(v)...);
 }
 
 template <typename... T>
-V8_INLINE size_t hash_value(std::tuple<T...> const& v) {
-  return hash_value_impl(v, std::make_index_sequence<sizeof...(T)>());
+V8_INLINE size_t hash_value(::std::tuple<T...> const& v) {
+  return hash_value_impl(v, ::std::make_index_sequence<sizeof...(T)>());
 }
 
 // Enum hash_value implementation
 template <typename T>
-typename std::enable_if<std::is_enum<T>::value, size_t>::type
+typename ::std::enable_if<::std::is_enum<T>::value, size_t>::type
 hash_value(T v) {
-  return hash_value(static_cast<typename std::underlying_type_t<T>>(v));
+  return hash_value(static_cast<typename ::std::underlying_type_t<T>>(v));
 }
 
 // Provide a hash_value function for each T with a hash_value member function.
@@ -297,17 +297,17 @@ auto hash_value(const T& v) -> decltype(v.hash_value()) {
 
 // Provide hash_value for std::vector
 template <typename T>
-V8_INLINE size_t hash_value(const std::vector<T>& v) {
+V8_INLINE size_t hash_value(const ::std::vector<T>& v) {
   return Hasher{}.AddRange(v).hash();
 }
 
 // Hashable trait for WASI compatibility
 template <typename T, typename = void>
-struct is_hashable : std::false_type {};
+struct is_hashable : ::std::false_type {};
 
 template <typename T>
-struct is_hashable<T, std::void_t<decltype(hash_value(std::declval<const T&>()))>>
-    : std::true_type {};
+struct is_hashable<T, ::std::void_t<decltype(hash_value(::std::declval<const T&>()))>>
+    : ::std::true_type {};
 
 // Define base::hash to call the hash_value function.
 template <typename T>

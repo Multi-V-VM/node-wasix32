@@ -27,6 +27,7 @@ int32_t __wasi_clock_time_get(uint32_t id, uint64_t precision, uint64_t* time);
 int32_t __wasi_random_get(uint8_t* buf, size_t buf_len);
 void __wasi_proc_exit(uint32_t rval);
 int32_t __wasi_sched_yield(void);
+
 }
 
 #define __WASI_CLOCKID_REALTIME 0

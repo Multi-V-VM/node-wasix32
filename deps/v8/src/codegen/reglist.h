@@ -16,6 +16,10 @@ namespace internal {
 // Forward declarations
 class Register;
 // Note: DoubleRegister is defined by arch-specific register headers.
+// Forward declare as incomplete type for template instantiation
+#if !defined(V8_TARGET_ARCH_IA32)
+class DoubleRegister;
+#endif
 
 // RegList implemented as a compact bit-mask.
 template <class RegisterType>

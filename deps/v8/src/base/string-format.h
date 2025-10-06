@@ -77,7 +77,7 @@ struct FormattedStringPart<I> {
 template <typename S>
   requires FixedSizeString<S>
 struct FormattedStringPart<S> {
-  static constexpr size_t kCharArraySize = extent_v<S>;
+  static constexpr size_t kCharArraySize = ::std::extent_v<S>;
 
   static_assert(kCharArraySize >= 1, "Do not print (static) empty strings");
   static_assert(kCharArraySize <= 128, "Do not include huge strings");

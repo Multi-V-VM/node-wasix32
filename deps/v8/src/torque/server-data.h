@@ -5,6 +5,52 @@
 #ifndef V8_TORQUE_SERVER_DATA_H_
 #define V8_TORQUE_SERVER_DATA_H_
 
+#ifdef __wasi__
+
+#include <optional>
+#include <utility>
+#include <vector>
+
+#include "src/base/macros.h"
+#include "src/torque/declarable.h"
+#include "src/torque/global-context.h"
+#include "src/torque/source-positions.h"
+#include "src/torque/type-oracle.h"
+
+namespace v8::internal::torque {
+
+class LanguageServerData {
+ public:
+  class Scope {
+   public:
+    Scope() = default;
+  };
+
+  static void AddDefinition(SourcePosition, SourcePosition) {}
+
+  static std::optional<SourcePosition> FindDefinition(SourceId,
+                                                      LineAndColumn) {
+    return std::nullopt;
+  }
+
+  static void SetGlobalContext(GlobalContext) {}
+  static void SetTypeOracle(TypeOracle) {}
+
+  static const std::vector<Declarable*>& SymbolsForSourceId(SourceId) {
+    static std::vector<Declarable*> empty;
+    return empty;
+  }
+
+  static LanguageServerData& Get() {
+    static LanguageServerData instance;
+    return instance;
+  }
+};
+
+}  // namespace v8::internal::torque
+
+#else
+
 #include <map>
 #include <memory>
 #include <optional>
@@ -70,5 +116,7 @@ class LanguageServerData
 };
 
 }  // namespace v8::internal::torque
+
+#endif  // __wasi__
 
 #endif  // V8_TORQUE_SERVER_DATA_H_

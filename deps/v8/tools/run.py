@@ -22,6 +22,34 @@ if cmd and cmd[0] == '--redirect-stdout':
   kwargs = dict(stdout=subprocess.PIPE)
   cmd = cmd[2:]
 
+# Short-circuit the bytecode builtins list generator when cross-compiling for
+# WASI. The stub executable produced in that configuration is also a WASM
+# module, which cannot be executed directly on the build host. Instead copy the
+# pre-generated header that lives at the repository root.
+if cmd and os.path.basename(cmd[0]) == 'bytecode_builtins_list_generator':
+  if len(cmd) < 2:
+    sys.exit(1)
+  repo_root = Path(__file__).resolve().parents[3]
+  template = repo_root / 'wasi-bytecodes-builtins-list.h'
+  with template.open('r') as src, Path(cmd[1]).open('w') as dst:
+    dst.write(src.read())
+  sys.exit(0)
+
+if cmd and os.path.basename(cmd[0]) == 'gen-regexp-special-case':
+  if len(cmd) < 2:
+    sys.exit(1)
+  repo_root = Path(__file__).resolve().parents[3]
+  template = repo_root / 'wasi-gen-regexp-special-case.cc'
+  with template.open('r') as src, Path(cmd[1]).open('w') as dst:
+    dst.write(src.read())
+  sys.exit(0)
+
+if cmd and os.path.basename(cmd[0]) == 'torque':
+  repo_root = Path(__file__).resolve().parents[3]
+  log_path = repo_root / 'wasi-torque-command.log'
+  with log_path.open('a') as log_file:
+    log_file.write(' '.join(cmd) + '\n')
+
 # Check if the first argument is a WASM file
 if cmd and cmd[0].endswith('.wasm'):
     # Use our wasm-exec-wrapper.sh

@@ -13,6 +13,10 @@
 #include "src/base/platform/memory.h"
 #include "src/base/platform/mutex.h"
 
+#ifdef __wasi__
+#include "src/common/wasi-v8-constants-fix.h"
+#endif
+
 namespace heap::base {
 namespace internal {
 

@@ -71,9 +71,18 @@ BuiltinLoader::BuiltinLoader()
 #endif  // HAVE_AMARO
 }
 
-std::ranges::keys_view<std::ranges::ref_view<const BuiltinSourceMap>>
-BuiltinLoader::GetBuiltinIds() const {
+BuiltinLoader::BuiltinIdRange BuiltinLoader::GetBuiltinIds() const {
+#ifdef __wasi__
+  auto source = source_.read();
+  BuiltinIdRange ids;
+  ids.reserve(source->size());
+  for (const auto& entry : *source) {
+    ids.emplace_back(entry.first);
+  }
+  return ids;
+#else
   return std::views::keys(*source_.read());
+#endif
 }
 
 bool BuiltinLoader::Exists(const char* id) {
@@ -663,12 +672,17 @@ void BuiltinLoader::BuiltinIdsGetter(Local<Name> property,
   Environment* env = Environment::GetCurrent(info);
   Isolate* isolate = env->isolate();
 
+#ifdef __wasi__
+  std::vector<std::string> id_vector =
+      env->builtin_loader()->GetBuiltinIds();
+#else
   auto ids = env->builtin_loader()->GetBuiltinIds();
   // Convert keys_view to vector for ToV8Value
   std::vector<std::string> id_vector;
   for (const auto& id : ids) {
     id_vector.push_back(id);
   }
+#endif
   Local<Value> ret;
   if (ToV8Value(isolate->GetCurrentContext(), id_vector).ToLocal(&ret)) {
     info.GetReturnValue().Set(ret);

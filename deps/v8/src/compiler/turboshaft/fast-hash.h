@@ -73,8 +73,8 @@ V8_INLINE size_t fast_hash_range(Iterator first, Iterator last) {
 }
 
 template <typename T>
-struct fast_hash<::v8::Vector<T>> {
-  V8_INLINE size_t operator()(::v8::Vector<T> v) const {
+struct fast_hash<::v8::base::Vector<T>> {
+  V8_INLINE size_t operator()(::v8::base::Vector<T> v) const {
     return fast_hash_range(v.begin(), v.end());
   }
 };

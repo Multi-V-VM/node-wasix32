@@ -28,6 +28,8 @@
 #include "src/codegen/s390/assembler-s390.h"
 #elif V8_TARGET_ARCH_RISCV32 || V8_TARGET_ARCH_RISCV64
 #include "src/codegen/riscv/assembler-riscv.h"
+#elif V8_TARGET_ARCH_WASM32
+#include "src/codegen/wasm32/assembler-wasm32.h"
 #else
 #error Unknown architecture.
 #endif

@@ -14,7 +14,7 @@ namespace compiler {
 
 class ObjectData;
 
-class AddressMatcher : public base::KeyEqualityMatcher<Address> {
+class AddressMatcher : public ::v8::base::KeyEqualityMatcher<Address> {
  public:
   bool operator()(uint32_t hash1, uint32_t hash2, const Address& key1,
                   const Address& key2) const {
@@ -29,7 +29,7 @@ class AddressMatcher : public base::KeyEqualityMatcher<Address> {
 // std::unordered_map doesn't satisfy this requirement, as it rehashes the
 // whole map and copies all entries one by one.
 class RefsMap
-    : public base::TemplateHashMapImpl<Address, ObjectData*, AddressMatcher,
+    : public ::v8::base::TemplateHashMapImpl<Address, ObjectData*, AddressMatcher,
                                        ZoneAllocationPolicy>,
       public ZoneObject {
  public:

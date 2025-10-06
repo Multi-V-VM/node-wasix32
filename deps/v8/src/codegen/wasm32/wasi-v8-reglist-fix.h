@@ -2,142 +2,18 @@
 #define WASI_V8_REGLIST_FIX_H_
 
 // Fixes for register list types in WASI build
+// This file provides compatibility when building with IA32 target arch
 
 #include <cstdint>
-
-// Forward declaration or typedef for DoubleRegister
-#if defined(V8_TARGET_ARCH_IA32)
-#include "src/codegen/ia32/register-ia32.h"
-#else
-class DoubleRegister;
-#endif
 #include <initializer_list>
 
-// Forward declaration or typedef for DoubleRegister
-#if defined(V8_TARGET_ARCH_IA32)
-#include "src/codegen/ia32/register-ia32.h"
-#else
-class DoubleRegister;
-#endif
-
 #include "../../../../../wasi-v8-bits-fixes.h"
-
-// Forward declaration or typedef for DoubleRegister
-#if defined(V8_TARGET_ARCH_IA32)
-#include "src/codegen/ia32/register-ia32.h"
-#else
-class DoubleRegister;
-#endif
 
 namespace v8 {
 namespace internal {
 
-// Forward declare register types
-class Register;
-// Note: DoubleRegister is defined as a type alias in ia32/register-ia32.h
-// Don't forward declare it here to avoid conflicts
-
-// Basic RegListBase template definition for WASI
-template <typename RegisterT>
-class RegListBase {
- public:
-  using storage_t = uint64_t;  // Use 64-bit storage for simplicity
-
-  constexpr RegListBase() : bits_(0) {}
-
-  constexpr RegListBase(std::initializer_list<RegisterT> regs) : bits_(0) {
-    for (RegisterT reg : regs) {
-      set(reg);
-    }
-  }
-
-  constexpr explicit RegListBase(storage_t bits) : bits_(bits) {}
-
-  constexpr void set(RegisterT reg) {
-    if (reg.is_valid()) {
-      bits_ |= (storage_t{1} << reg.code());
-    }
-  }
-
-  constexpr void clear(RegisterT reg) {
-    if (reg.is_valid()) {
-      bits_ &= ~(storage_t{1} << reg.code());
-    }
-  }
-
-  constexpr bool has(RegisterT reg) const {
-    return reg.is_valid() && (bits_ & (storage_t{1} << reg.code())) != 0;
-  }
-
-  constexpr bool is_empty() const { return bits_ == 0; }
-
-  constexpr int Count() const { 
-    // Cast to uint32_t since our CountPopulation implementation expects that
-    return __builtin_popcount(static_cast<uint32_t>(bits_)); 
-  }
-
-  constexpr storage_t bits() const { return bits_; }
-
-  constexpr RegListBase operator|(const RegListBase& other) const {
-    return RegListBase(bits_ | other.bits_);
-  }
-
-  constexpr RegListBase operator&(const RegListBase& other) const {
-    return RegListBase(bits_ & other.bits_);
-  }
-
-  constexpr RegListBase operator-(const RegListBase& other) const {
-    return RegListBase(bits_ & ~other.bits_);
-  }
-
-  constexpr bool operator==(const RegListBase& other) const {
-    return bits_ == other.bits_;
-  }
-
-  constexpr bool operator!=(const RegListBase& other) const {
-    return bits_ != other.bits_;
-  }
-
-  // Iterator support (simplified)
-  class Iterator {
-   public:
-    Iterator(storage_t bits) : bits_(bits) {
-      if (bits_ != 0) {
-        int code = __builtin_ctzll(bits_);
-        current_ = RegisterT::from_code(code);
-      }
-    }
-
-    RegisterT operator*() const { return current_; }
-
-    Iterator& operator++() {
-      bits_ &= bits_ - 1;  // Clear lowest set bit
-      if (bits_ != 0) {
-        int code = __builtin_ctzll(bits_);
-        current_ = RegisterT::from_code(code);
-      }
-      return *this;
-    }
-
-    bool operator!=(const Iterator& other) const {
-      return bits_ != other.bits_;
-    }
-
-   private:
-    storage_t bits_;
-    RegisterT current_;
-  };
-
-  Iterator begin() const { return Iterator(bits_); }
-  Iterator end() const { return Iterator(0); }
-
- private:
-  storage_t bits_;
-};
-
-// Type aliases
-using RegList = RegListBase<Register>;
-using DoubleRegList = RegListBase<DoubleRegister>;
+// Don't redefine RegListBase if it's already defined in src/codegen/reglist.h
+// The main reglist.h provides the template definition we need
 
 }  // namespace internal
 }  // namespace v8

@@ -75,9 +75,9 @@ class ThreadLocalTop {
     last_api_entry_ = reinterpret_cast<i::Address>(stack_allocated_scope);
 #endif
     if constexpr (clear_exception) {
-      exception_ = Tagged<Object>(reinterpret_cast<Address>(reinterpret_cast<Object*>(
+      exception_ = Tagged<Object>(
           Internals::GetRoot(reinterpret_cast<::v8::Isolate*>(isolate_),
-                             Internals::kTheHoleValueRootIndex)));
+                             Internals::kTheHoleValueRootIndex));
     }
   }
 

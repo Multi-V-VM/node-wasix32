@@ -14,7 +14,7 @@
 #define V8_OS_WASI 1
 
 // Disable problematic features
-#define V8_ENABLE_SANDBOX 0
+// V8_ENABLE_SANDBOX is not supported on WASI - leave undefined
 #ifndef V8_ENABLE_MAGLEV
 #define V8_ENABLE_MAGLEV 0
 #endif

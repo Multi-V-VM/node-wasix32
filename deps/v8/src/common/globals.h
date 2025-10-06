@@ -31,8 +31,15 @@
 
 namespace v8 {
 
+// Forward declare types from v8:: namespace to avoid confusion when
+// code inside v8::internal:: uses v8::TypeName
+class PageAllocator;
+class ArrayBuffer;
+class BackingStore;
+
 namespace base {
 class Mutex;
+class ConditionVariable;
 }
 
 namespace internal {
@@ -45,8 +52,23 @@ using ::v8::base::TimeDelta;
 using ::v8::base::SmallVector;
 using ::v8::base::Vector;
 using ::v8::base::VectorOf;
-template <class T>
-using Flags = ::v8::base::Flags<T>;
+using ::v8::base::AtomicWord;
+using ::v8::base::AsAtomicWord;
+using ::v8::base::AsAtomicPointer;
+using ::v8::base::PrintCheckOperand;
+using ::v8::base::ConditionVariable;
+template<typename T, typename S> using EnumSet = ::v8::base::EnumSet<T, S>;
+template<typename T> using hash = ::std::hash<T>;
+using ::v8::base::hash_range;
+template <typename T, typename U = int, typename V = U>
+using Flags = ::v8::base::Flags<T, U, V>;
+
+namespace bits {
+using ::v8::base::bits::CountTrailingZeros;
+using ::v8::base::bits::CountPopulation;
+using ::v8::base::bits::SignedSaturatedAdd64;
+using ::v8::base::bits::SignedSaturatedSub64;
+}  // namespace bits
 }  // namespace base
 
 #define V8_INFINITY std::numeric_limits<double>::infinity()
@@ -2873,6 +2895,7 @@ enum class VariableAllocationInfo { NONE, STACK, CONTEXT, UNUSED };
 #ifdef V8_COMPRESS_POINTERS
 class PtrComprCageBase {
  public:
+  PtrComprCageBase() = default;
   explicit constexpr PtrComprCageBase(Address address) : address_(address) {}
   // NOLINTNEXTLINE
   inline PtrComprCageBase(const Isolate* isolate);

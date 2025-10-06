@@ -28,20 +28,6 @@
 
 namespace v8 {
 
-#ifdef __wasi__
-// WASI compatibility: bring std types into v8::std namespace
-namespace std {
-  using ::std::forward_list;
-  using ::std::priority_queue;
-  using ::std::lexicographical_compare;
-  using ::std::add_const;
-  using ::std::apply;
-  using ::std::move_backward;
-  using ::std::deque;
-  using ::std::multiset;
-}
-#endif
-
 namespace internal {
 
 // A drop-in replacement for std::vector that uses a Zone for its allocations,
@@ -645,11 +631,11 @@ class ZoneLinkedList : public std::list<T, ZoneAllocator<T>> {
 // A wrapper subclass for std::forward_list to make it easy to construct one
 // that uses a zone allocator.
 template <typename T>
-class ZoneForwardList : public forward_list<T, ZoneAllocator<T>> {
+class ZoneForwardList : public std::forward_list<T, ZoneAllocator<T>> {
  public:
   // Constructs an empty list.
   explicit ZoneForwardList(Zone* zone)
-      : forward_list<T, ZoneAllocator<T>>(ZoneAllocator<T>(zone)) {}
+      : std::forward_list<T, ZoneAllocator<T>>(ZoneAllocator<T>(zone)) {}
 };
 
 // A wrapper subclass for std::priority_queue to make it easy to construct one
