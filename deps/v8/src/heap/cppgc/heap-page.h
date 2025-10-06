@@ -375,16 +375,16 @@ constexpr inline size_t NormalPage::PayloadSize() {
 namespace v8::base {
 
 template <>
-struct hash<const cppgc::internal::BasePage*> {
+struct hash<const ::cppgc::internal::BasePage*> {
   V8_INLINE size_t
-  operator()(const cppgc::internal::BasePage* base_page) const {
+  operator()(const ::cppgc::internal::BasePage* base_page) const {
 #ifdef CPPGC_POINTER_COMPRESSION
     using AddressType = uint32_t;
 #else
     using AddressType = uintptr_t;
 #endif
     return static_cast<AddressType>(reinterpret_cast<uintptr_t>(base_page)) >>
-           cppgc::internal::api_constants::kPageSizeBits;
+           ::cppgc::internal::api_constants::kPageSizeBits;
   }
 };
 

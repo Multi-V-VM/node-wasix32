@@ -291,6 +291,18 @@ constexpr FloatRegister no_freg = FloatRegister::no_reg();
 constexpr DoubleRegister no_dreg = DoubleRegister::no_reg();
 constexpr Simd128Register no_vreg = Simd128Register::no_reg();
 
+// Define RegisterName function inline
+inline const char* RegisterName(Register reg) {
+  static constexpr const char* Names[] = {
+    #define REGISTER_NAME(R) #R,
+    GENERAL_REGISTER_LIST(REGISTER_NAME)
+    SPECIAL_REGISTER_LIST(REGISTER_NAME)
+    #undef REGISTER_NAME
+  };
+  static_assert(sizeof(Names) / sizeof(Names[0]) == Register::kNumRegisters);
+  return reg.is_valid() ? Names[reg.code()] : "invalid";
+}
+
 }  // namespace internal
 }  // namespace v8
 

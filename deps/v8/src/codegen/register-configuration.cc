@@ -32,10 +32,16 @@ static const int kAllocatableGeneralCodes[] = {
     ALLOCATABLE_GENERAL_REGISTERS(REGISTER_CODE)};
 #undef REGISTER_CODE
 
+#if V8_TARGET_ARCH_WASM32
+#define REGISTER_CODE(R) kFloatCode_##R,
+#else
 #define REGISTER_CODE(R) kDoubleCode_##R,
+#endif
 static const int kAllocatableDoubleCodes[] = {
     ALLOCATABLE_DOUBLE_REGISTERS(REGISTER_CODE)};
 #if V8_TARGET_ARCH_ARM
+#undef REGISTER_CODE
+#define REGISTER_CODE(R) kDoubleCode_##R,
 static const int kAllocatableNoVFP32DoubleCodes[] = {
     ALLOCATABLE_NO_VFP32_DOUBLE_REGISTERS(REGISTER_CODE)};
 #endif  // V8_TARGET_ARCH_ARM

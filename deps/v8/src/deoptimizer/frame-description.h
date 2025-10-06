@@ -75,7 +75,7 @@ class FrameDescription {
         FrameDescription(frame_size, parameter_count, isolate);
   }
 
-  void operator delete(void* description) { base::Free(description); }
+  void operator delete(void* description) { ::v8::base::Free(description); }
 
   uint32_t GetFrameSize() const {
     USE(frame_content_);
@@ -114,19 +114,19 @@ class FrameDescription {
   // Same as SetFrameSlot but only writes 32 bits. This is needed as liftoff
   // has 32 bit frame slots.
   void SetLiftoffFrameSlot32(unsigned offset, int32_t value) {
-    base::WriteUnalignedValue(
+    ::v8::base::WriteUnalignedValue(
         reinterpret_cast<char*>(GetFrameSlotPointer(offset)), value);
   }
 
   // Same as SetFrameSlot but also supports the offset to be unaligned (4 Byte
   // aligned) as liftoff doesn't align frame slots if they aren't references.
   void SetLiftoffFrameSlot64(unsigned offset, int64_t value) {
-    base::WriteUnalignedValue(
+    ::v8::base::WriteUnalignedValue(
         reinterpret_cast<char*>(GetFrameSlotPointer(offset)), value);
   }
 
   void SetLiftoffFrameSlotPointer(unsigned offset, intptr_t value) {
-    if constexpr (Is64()) {
+    if constexpr (kSystemPointerSize == 8) {
       SetLiftoffFrameSlot64(offset, value);
     } else {
       SetLiftoffFrameSlot32(offset, value);
@@ -246,7 +246,7 @@ class FrameDescription {
   void* operator new(size_t size, uint32_t frame_size) {
     // Subtracts kSystemPointerSize, as the member frame_content_ already
     // supplies the first element of the area to store the frame.
-    return base::Malloc(size + frame_size - kSystemPointerSize);
+    return ::v8::base::Malloc(size + frame_size - kSystemPointerSize);
   }
 
   static const uint32_t kZapUint32 = 0xbeeddead;

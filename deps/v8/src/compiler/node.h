@@ -371,8 +371,8 @@ class Control : public NodeWrapper {
 // Typedefs to shorten commonly used Node containers.
 using NodeDeque = ZoneDeque<Node*>;
 using NodeSet = ZoneSet<Node*>;
-using NodeVector = ::v8::base::Vector<Node*>;
-using NodeVectorVector = ::v8::base::Vector<NodeVector>;
+using NodeVector = ZoneVector<Node*>;
+using NodeVectorVector = ZoneVector<NodeVector>;
 
 class Node::InputEdges final {
  public:

@@ -48,7 +48,7 @@ static_assert(((1 << kRegExpFlagCount) - 1) == (0 REGEXP_FLAG_LIST(V)),
               "contiguous bits");
 #undef V
 
-using RegExpFlags = base::Flags<RegExpFlag>;
+using RegExpFlags = v8::base::Flags<RegExpFlag>;
 DEFINE_OPERATORS_FOR_FLAGS(RegExpFlags)
 
 #define V(Lower, Camel, ...)                \

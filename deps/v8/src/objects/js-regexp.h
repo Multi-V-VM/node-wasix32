@@ -142,7 +142,7 @@ class JSRegExp : public TorqueGeneratedJSRegExp<JSRegExp, JSObject> {
   class BodyDescriptor;
 
  private:
-  using FlagsBuffer = base::Embedded::v8::base::Vector<char, kFlagCount + 1>;
+  using FlagsBuffer = ::v8::base::Vector<char, kFlagCount + 1>;
   inline static const char* FlagsToString(Flags flags, FlagsBuffer* out_buffer);
 
   friend class RegExpData;

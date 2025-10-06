@@ -38,10 +38,10 @@ class MinorGCHeapGrowing;
 
 // A C++ heap implementation used with V8 to implement unified heap.
 class V8_EXPORT_PRIVATE CppHeap final
-    : public cppgc::internal::HeapBase,
+    : public ::cppgc::internal::HeapBase,
       public ::v8::CppHeap,
-      public cppgc::internal::StatsCollector::AllocationObserver,
-      public cppgc::internal::GarbageCollector {
+      public ::cppgc::internal::StatsCollector::AllocationObserver,
+      public ::cppgc::internal::GarbageCollector {
  public:
   enum GarbageCollectionFlagValues : uint8_t {
     kNoFlags = 0,
@@ -71,12 +71,12 @@ class V8_EXPORT_PRIVATE CppHeap final
     bool FullGCMetricsReportPending() const;
     bool YoungGCMetricsReportPending() const;
 
-    const std::optional<cppgc::internal::MetricRecorder::GCCycle>
+    const std::optional<::cppgc::internal::MetricRecorder::GCCycle>
     ExtractLastFullGcEvent();
-    const std::optional<cppgc::internal::MetricRecorder::GCCycle>
+    const std::optional<::cppgc::internal::MetricRecorder::GCCycle>
     ExtractLastYoungGcEvent();
     const std::optional<
-        cppgc::internal::MetricRecorder::MainThreadIncrementalMark>
+        ::cppgc::internal::MetricRecorder::MainThreadIncrementalMark>
     ExtractLastIncrementalMarkEvent();
 
     void ClearCachedEvents();
@@ -91,10 +91,10 @@ class V8_EXPORT_PRIVATE CppHeap final
         incremental_mark_batched_events_;
     ::v8::metrics::GarbageCollectionFullMainThreadBatchedIncrementalSweep
         incremental_sweep_batched_events_;
-    std::optional<cppgc::internal::MetricRecorder::GCCycle> last_full_gc_event_;
-    std::optional<cppgc::internal::MetricRecorder::GCCycle>
+    std::optional<::cppgc::internal::MetricRecorder::GCCycle> last_full_gc_event_;
+    std::optional<::cppgc::internal::MetricRecorder::GCCycle>
         last_young_gc_event_;
-    std::optional<cppgc::internal::MetricRecorder::MainThreadIncrementalMark>
+    std::optional<::cppgc::internal::MetricRecorder::MainThreadIncrementalMark>
         last_incremental_mark_event_;
   };
 
@@ -108,8 +108,8 @@ class V8_EXPORT_PRIVATE CppHeap final
   }
 
   CppHeap(::v8::Platform*,
-          const std::vector<std::unique_ptr<cppgc::CustomSpaceBase>>&,
-          cppgc::Heap::MarkingType, cppgc::Heap::SweepingType);
+          const std::vector<std::unique_ptr<::cppgc::CustomSpaceBase>>&,
+          ::cppgc::Heap::MarkingType, ::cppgc::Heap::SweepingType);
   ~CppHeap() final;
 
   CppHeap(const CppHeap&) = delete;

@@ -21,7 +21,7 @@ namespace v8::internal {
 // The class is used to remember V8 to Oilpan references.
 class V8_EXPORT_PRIVATE CrossHeapRememberedSet final {
  public:
-  explicit CrossHeapRememberedSet(cppgc::internal::HeapBase& heap_base)
+  explicit CrossHeapRememberedSet(::cppgc::internal::HeapBase& heap_base)
       : heap_base_(heap_base) {}
 
   CrossHeapRememberedSet(const CrossHeapRememberedSet&) = delete;
@@ -38,7 +38,7 @@ class V8_EXPORT_PRIVATE CrossHeapRememberedSet final {
   bool IsEmpty() const { return remembered_v8_to_cppgc_references_.empty(); }
 
  private:
-  cppgc::internal::HeapBase& heap_base_;
+  ::cppgc::internal::HeapBase& heap_base_;
   // The vector keeps handles to remembered V8 objects that have outgoing
   // references to the cppgc heap. Please note that the handles are global.
   std::vector<IndirectHandle<CppHeapPointerWrapperObjectT>>

@@ -4,6 +4,7 @@
 #ifdef __wasi__
 
 #include "v8-wasi-compat.h"
+#include "v8-api-stubs.h"
 #include "../v8-local-handle.h"
 #include <cstring>  // for memset
 
@@ -137,9 +138,12 @@ class V8_EXPORT Isolate {
   }
   
   // GC callbacks - updated to match V8 API signature
-  // Note: The standard V8 signature uses GCType and GCCallbackFlags enums, 
+  // Note: The standard V8 signature uses GCType and GCCallbackFlags enums,
   // but the callback expects (Isolate*, GCType, GCCallbackFlags, void*)
   using GCCallback = void (*)(Isolate* isolate, v8::GCType gc_type, v8::GCCallbackFlags gc_flags, void* data);
+  using GCCallbackWithData = void (*)(Isolate* isolate, int gc_type, int gc_flags, void* data);
+  using GetExternallyAllocatedMemoryInBytesCallback = size_t (*)();
+
   void AddGCPrologueCallback(GCCallback callback, void* data = nullptr, v8::GCType gc_type = v8::GCType::kGCTypeAll) {
     // WASI stub - no-op
   }
@@ -160,14 +164,8 @@ class V8_EXPORT Isolate {
     ~Scope() {}
   };
   
-  // MessageErrorLevel enum
-  enum MessageErrorLevel {
-    kMessageLog,
-    kMessageDebug,
-    kMessageInfo,
-    kMessageError,
-    kMessageWarning
-  };
+  // MessageErrorLevel - use the one from v8:: namespace
+  using MessageErrorLevel = ::v8::MessageErrorLevel;
   
   // DisallowJavascriptExecutionScope for WASI
   class DisallowJavascriptExecutionScope {

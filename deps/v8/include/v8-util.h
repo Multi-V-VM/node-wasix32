@@ -15,6 +15,11 @@
 
 #include "v8-function-callback.h"  // NOLINT(build/include_directory)
 #include "v8-persistent-handle.h"  // NOLINT(build/include_directory)
+#ifdef __wasi__
+#ifndef V8_HANDLESCOPE_DEFINED
+#include "wasi/v8-handlescope-fix.h"
+#endif
+#endif
 
 /**
  * Support for Persistent containers.

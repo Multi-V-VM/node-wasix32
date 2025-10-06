@@ -83,6 +83,9 @@ enum class ArgumentAdaptionMode { kAdapt, kDontAdapt };
 #elif V8_TARGET_ARCH_RISCV32 || V8_TARGET_ARCH_RISCV64
 #include "src/codegen/riscv/constants-riscv.h"
 #include "src/codegen/riscv/macro-assembler-riscv.h"
+#elif V8_TARGET_ARCH_WASM32
+#include "src/codegen/wasm32/constants-wasm32.h"
+#include "src/codegen/wasm32/macro-assembler-wasm32.h"
 #else
 #error Unsupported target architecture.
 #endif

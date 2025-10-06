@@ -44,7 +44,7 @@ class EXPORT_TEMPLATE_DECLARE(V8_EXPORT_PRIVATE) NodeCache final {
   Node** Find(Key key) { return &(map_[key]); }
 
   // Appends all nodes from this cache to {nodes}.
-  void GetCachedNodes(::v8::base::Vector<Node*>* nodes) {
+  void GetCachedNodes(ZoneVector<Node*>* nodes) {
     for (const auto& entry : map_) {
       if (entry.second) nodes->push_back(entry.second);
     }

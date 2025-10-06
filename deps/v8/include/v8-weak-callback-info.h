@@ -26,7 +26,7 @@ static constexpr int kEmbedderFieldsInWeakCallback = 2;
 
 template <typename T>
 class WeakCallbackInfo
-    : public cppgc::internal::ConditionalStackAllocatedBase<T> {
+    : public ::cppgc::internal::ConditionalStackAllocatedBase<T> {
  public:
   using Callback = void (*)(const WeakCallbackInfo<T>& data);
 

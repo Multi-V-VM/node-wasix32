@@ -5,6 +5,7 @@
 #include "include/cppgc/internal/name-trait.h"
 
 #include <stdio.h>
+#include <string>
 
 #include "src/base/logging.h"
 #include "src/base/macros.h"

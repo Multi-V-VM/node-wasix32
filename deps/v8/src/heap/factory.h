@@ -207,7 +207,7 @@ class V8_EXPORT_PRIVATE Factory : public FactoryBase<Factory> {
   // If not found, a new string is added to the table and returned.
   Handle<String> InternalizeUtf8String(::v8::base::Vector<const char> str);
   Handle<String> InternalizeUtf8String(const char* str) {
-    return InternalizeUtf8String(base::CStrVector(str));
+    return InternalizeUtf8String(::v8::base::CStrVector(str));
   }
 
   // Import InternalizeString overloads from base class.
@@ -221,7 +221,7 @@ class V8_EXPORT_PRIVATE Factory : public FactoryBase<Factory> {
 
   Handle<String> InternalizeString(const char* str,
                                    bool convert_encoding = false) {
-    return InternalizeString(base::OneByteVector(str), convert_encoding);
+    return InternalizeString(::v8::base::OneByteVector(str), convert_encoding);
   }
 
   template <typename SeqString, template <typename> typename HandleType>

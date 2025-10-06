@@ -89,6 +89,13 @@
 // Compiler detection
 #define V8_CC_CLANG 1
 
+// Deprecated API suppression macros
+#define START_ALLOW_USE_DEPRECATED()
+#define END_ALLOW_USE_DEPRECATED()
+
+// Exception specifications
+#define V8_NOEXCEPT noexcept
+
 #else
 // Non-WASI standard configuration
 #endif

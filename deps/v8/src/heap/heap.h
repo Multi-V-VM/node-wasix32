@@ -192,7 +192,7 @@ enum class GCFlag : uint8_t {
   kLastResort = 1 << 2,
 };
 
-using GCFlags = base::Flags<GCFlag, uint8_t>;
+using GCFlags = v8::base::Flags<GCFlag, uint8_t>;
 DEFINE_OPERATORS_FOR_FLAGS(GCFlags)
 
 class Heap final {
@@ -376,7 +376,7 @@ class Heap final {
   //
   // Thread-safe.
   void WeakenDescriptorArrays(
-      GlobalHandle::v8::base::Vector<DescriptorArray> strong_descriptor_arrays);
+      v8::base::Vector<DescriptorArray> strong_descriptor_arrays);
 
   void NotifyBootstrapComplete();
 
@@ -596,8 +596,10 @@ class Heap final {
       v8::Local<v8::Context> context, v8::Local<v8::Promise::Resolver> promise,
       v8::MeasureMemoryMode mode);
 
+#ifndef __wasi__
   void IncrementDeferredCounts(
       ::v8::base::Vector<const v8::Isolate::UseCounterFeature> features);
+#endif
 
   int NextScriptId();
   int NextDebuggingId();
@@ -632,7 +634,7 @@ class Heap final {
   void CompactWeakArrayLists();
 
   V8_EXPORT_PRIVATE void AddRetainedMaps(DirectHandle<NativeContext> context,
-                                         GlobalHandle::v8::base::Vector<Map> maps);
+                                         v8::base::Vector<Map> maps);
 
   // This event is triggered after object is moved to a new place.
   void OnMoveEvent(Tagged<HeapObject> source, Tagged<HeapObject> target,
@@ -986,16 +988,16 @@ class Heap final {
 
   // Iterates over the strong roots and the weak roots.
   void IterateRoots(
-      RootVisitor* v, base::EnumSet<SkipRoot> options,
+      RootVisitor* v, v8::base::EnumSet<SkipRoot> options,
       IterateRootsMode roots_mode = IterateRootsMode::kMainIsolate);
   void IterateRootsIncludingClients(RootVisitor* v,
-                                    base::EnumSet<SkipRoot> options);
+                                    v8::base::EnumSet<SkipRoot> options);
 
   // Iterates over entries in the smi roots list.  Only interesting to the
   // serializer/deserializer, since GC does not care about smis.
   void IterateSmiRoots(RootVisitor* v);
   // Iterates over weak string tables.
-  void IterateWeakRoots(RootVisitor* v, base::EnumSet<SkipRoot> options);
+  void IterateWeakRoots(RootVisitor* v, v8::base::EnumSet<SkipRoot> options);
   void IterateWeakGlobalHandles(RootVisitor* v);
   void IterateBuiltins(RootVisitor* v);
 
@@ -1112,7 +1114,7 @@ class Heap final {
 
   v8::CppHeap* cpp_heap() const { return cpp_heap_; }
 
-  std::optional<StackState> overridden_stack_state() const;
+  std::optional<cppgc::StackState> overridden_stack_state() const;
 
   // Set stack information from the stack of the current thread.
   V8_EXPORT_PRIVATE void SetStackStart();
@@ -2307,7 +2309,7 @@ class Heap final {
   EmbedderRootsHandler* embedder_roots_handler_ =
       nullptr;  // Owned by the embedder.
 
-  StackState embedder_stack_state_ = StackState::kMayContainHeapPointers;
+  cppgc::StackState embedder_stack_state_ = cppgc::StackState::kMayContainHeapPointers;
   std::optional<EmbedderStackStateOrigin> embedder_stack_state_origin_;
 
   StrongRootsEntry* strong_roots_head_ = nullptr;
@@ -2672,6 +2674,7 @@ class HeapObjectAllocationTracker {
 template <typename T>
 inline Tagged<T> ForwardingAddress(Tagged<T> heap_obj);
 
+#ifndef __wasi__
 // Specialized strong root allocator for blocks of Addresses, retained
 // as strong references.
 template <>
@@ -2691,16 +2694,17 @@ class StrongRootAllocator<Address> : public StrongRootAllocatorBase {
     return deallocate_impl(p, n);
   }
 };
+#endif
 
 class V8_EXPORT_PRIVATE V8_NODISCARD EmbedderStackStateScope final {
  public:
   EmbedderStackStateScope(Heap* heap, EmbedderStackStateOrigin origin,
-                          StackState stack_state);
+                          cppgc::StackState stack_state);
   ~EmbedderStackStateScope();
 
  private:
   Heap* const heap_;
-  const StackState old_stack_state_;
+  const cppgc::StackState old_stack_state_;
   std::optional<EmbedderStackStateOrigin> old_origin_;
 };
 
@@ -2708,7 +2712,7 @@ class V8_NODISCARD DisableConservativeStackScanningScopeForTesting {
  public:
   explicit inline DisableConservativeStackScanningScopeForTesting(Heap* heap)
       : embedder_scope_(heap, EmbedderStackStateOrigin::kExplicitInvocation,
-                        StackState::kNoHeapPointers) {}
+                        cppgc::StackState::kNoHeapPointers) {}
 
  private:
   EmbedderStackStateScope embedder_scope_;

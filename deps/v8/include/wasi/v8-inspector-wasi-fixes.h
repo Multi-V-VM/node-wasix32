@@ -12,14 +12,14 @@ namespace v8 {
 class Isolate;
 
 // Define MessageErrorLevel in the v8 namespace
-enum MessageErrorLevel {
-  kMessageLog = (1 << 0),
-  kMessageDebug = (1 << 1),
-  kMessageInfo = (1 << 2),
-  kMessageError = (1 << 3),
-  kMessageWarning = (1 << 4),
-  kMessageAll = kMessageLog | kMessageDebug | kMessageInfo | kMessageError | kMessageWarning
-};
+// enum MessageErrorLevel {
+//   kMessageLog = (1 << 0),
+//   kMessageDebug = (1 << 1),
+//   kMessageInfo = (1 << 2),
+//   kMessageError = (1 << 3),
+//   kMessageWarning = (1 << 4),
+//   kMessageAll = kMessageLog | kMessageDebug | kMessageInfo | kMessageError | kMessageWarning
+// };
 } // namespace v8
 
 #endif // V8_INSPECTOR_WASI_FIXES_H_

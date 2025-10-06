@@ -3,6 +3,11 @@
 
 #include <cstdlib>  // for abort()
 
+// V8_INLINE macro
+#ifndef V8_INLINE
+#define V8_INLINE inline
+#endif
+
 // Minimal logging stubs for WASI
 #ifndef CHECK
 #define CHECK(condition) ((void)0)
