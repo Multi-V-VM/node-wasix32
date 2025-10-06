@@ -2,6 +2,7 @@
 #define V8_TASK_FULL_H_
 
 #include <memory>
+#include <utility>
 
 namespace v8 {
 
@@ -29,6 +30,13 @@ class TaskRunner {
   virtual void PostTask(std::unique_ptr<Task> task) = 0;
   virtual void PostDelayedTask(std::unique_ptr<Task> task, double delay_in_seconds) = 0;
   virtual void PostIdleTask(std::unique_ptr<IdleTask> task) = 0;
+  virtual void PostNonNestableTask(std::unique_ptr<Task> task) {
+    PostTask(std::move(task));
+  }
+  virtual void PostNonNestableDelayedTask(std::unique_ptr<Task> task,
+                                          double delay_in_seconds) {
+    PostDelayedTask(std::move(task), delay_in_seconds);
+  }
   virtual bool IdleTasksEnabled() = 0;
   virtual bool NonNestableTasksEnabled() const { return false; }
   virtual bool NonNestableDelayedTasksEnabled() const { return false; }

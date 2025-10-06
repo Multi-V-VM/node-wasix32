@@ -197,7 +197,7 @@ class V8_EXPORT_PRIVATE AssemblerWasm32 : public AssemblerBase {
   static constexpr int kMaxDistToJumpImm = (1 << 20) - 1;    // 20-bit signed offset
 
   // Stack pointer operations (for MacroAssembler)
-  static constexpr Register kStackPointer = sp();
+  static constexpr Register kStackPointer = Register::sp();
 
   // Required by Assembler base
   void DataAlign(int m) {

@@ -55,9 +55,11 @@ struct GCConfig {
   using IsForcedGC = MarkingConfig::IsForcedGC;
 
   static constexpr GCConfig Default() {
-    return {MarkingConfig::Default(), SweepingConfig{}};
+    return {StackState::kMayContainHeapPointers, MarkingConfig::Default(),
+            SweepingConfig{}};
   }
 
+  StackState stack_state = StackState::kMayContainHeapPointers;
   MarkingConfig marking_config;
   SweepingConfig sweeping_config;
 };

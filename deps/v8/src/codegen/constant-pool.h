@@ -18,6 +18,9 @@
 namespace v8 {
 namespace internal {
 
+// Import Double from v8::base for use in this namespace
+using ::v8::base::Double;
+
 class Instruction;
 
 // -----------------------------------------------------------------------------

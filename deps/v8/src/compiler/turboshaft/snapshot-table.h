@@ -300,7 +300,7 @@ class SnapshotTable {
   void RevertCurrentSnapshot(ChangeCallback& change_callback) {
     DCHECK(current_snapshot_->IsSealed());
     ::v8::base::Vector<LogEntry> log_entries = LogEntries(current_snapshot_);
-    for (const LogEntry& entry : base::Reversed(log_entries)) {
+    for (const LogEntry& entry : ::v8::base::Reversed(log_entries)) {
       DCHECK_EQ(entry.table_entry.value, entry.new_value);
       DCHECK_NE(entry.new_value, entry.old_value);
       change_callback(Key{entry.table_entry}, entry.new_value, entry.old_value);
@@ -451,7 +451,7 @@ SnapshotTable<Value, KeyData>::MoveToNewSnapshot(
     for (SnapshotData* s = common_ancestor; s != go_back_to; s = s->parent) {
       path_.push_back(s);
     }
-    for (SnapshotData* s : base::Reversed(path_)) {
+    for (SnapshotData* s : ::v8::base::Reversed(path_)) {
       ReplaySnapshot(s, change_callback);
     }
   }
@@ -488,7 +488,7 @@ void SnapshotTable<Value, KeyData>::MergePredecessors(
     for (SnapshotData* predecessor = predecessors[i].data_;
          predecessor != common_ancestor; predecessor = predecessor->parent) {
       ::v8::base::Vector<LogEntry> log_entries = LogEntries(predecessor);
-      for (const LogEntry& entry : base::Reversed(log_entries)) {
+      for (const LogEntry& entry : ::v8::base::Reversed(log_entries)) {
         RecordMergeValue(entry.table_entry, entry.new_value, i,
                          predecessor_count);
       }

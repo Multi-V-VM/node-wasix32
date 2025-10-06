@@ -143,8 +143,6 @@ using CodeKinds = ::v8::base::Flags<CodeKindFlag, uint32_t>;
 
 #ifdef __wasi__
 // WASI compatibility fix for flags operators
-namespace v8 {
-namespace internal {
 using CodeKindsType = CodeKinds;
 
 // Define operators manually for WASI to avoid ambiguity
@@ -159,9 +157,6 @@ inline constexpr CodeKinds operator|(CodeKindFlag lhs, const CodeKinds& rhs) {
 inline constexpr CodeKinds operator|(const CodeKinds& lhs, CodeKindFlag rhs) {
   return lhs | CodeKinds(rhs);
 }
-
-} // namespace internal
-} // namespace v8
 #else
 DEFINE_OPERATORS_FOR_FLAGS(CodeKinds)
 #endif

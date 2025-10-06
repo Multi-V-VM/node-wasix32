@@ -23,7 +23,7 @@ namespace base {
     template<typename T> struct bit_hash;
     template<typename T> struct bit_equal_to;
     template<typename T, typename U = int, typename V = U> class Flags;
-    template<typename T, typename U> class EnumSet;
+    template<typename E, typename T = int> class EnumSet;
     class AddressRegion;
     template<typename T> using is_trivially_copyable = std::is_trivially_copyable<T>;
     using OnceType = std::atomic<int>;

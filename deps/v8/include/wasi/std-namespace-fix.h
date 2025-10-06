@@ -88,18 +88,19 @@ struct contiguous_iterator_tag : random_access_iterator_tag {};
 }  // namespace std
 #endif
 
-// Define v8::std namespace with proper scoping
-// When included from v8::internal, we need to close those namespaces first
-#ifdef V8_OBJECTS_H_  // Common V8 internal header - indicates we're in v8::internal context
-  }  // Close namespace internal
-  }  // Close namespace v8
-  #define V8_STD_FIX_REOPEN_INTERNAL
-#endif
+// Disable v8::std namespace entirely to avoid nested namespace issues
+// V8 headers should use ::std:: explicitly instead
+#if 1
 
 namespace v8 {
 namespace std {
+  // Import everything from ::std
+  using namespace ::std;
 
-// Forward string type aliases
+  // Add specific types needed by V8 API that might not be in C++20
+  using ::std::random_access_iterator_tag;
+
+// Forward string type aliases (redundant with using namespace but explicit)
 using ::std::string;
 using ::std::wstring;
 #if defined(__cpp_char8_t)
@@ -840,12 +841,7 @@ using ::std::add_const;
 }  // namespace std
 }  // namespace v8
 
-// Reopen v8::internal namespace if we closed it earlier
-#ifdef V8_STD_FIX_REOPEN_INTERNAL
-  namespace v8 {
-  namespace internal {
-  #undef V8_STD_FIX_REOPEN_INTERNAL
-#endif
+#endif  // disabled v8::std
 
 // Do not create aliases in ::std::ranges to avoid conflicts with standard library
 

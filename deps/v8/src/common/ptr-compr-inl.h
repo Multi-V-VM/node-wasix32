@@ -28,6 +28,8 @@ constexpr size_t kPtrComprCageBaseAlignment = size_t{1} << 32;
 #ifndef V8_ASSUME_ALIGNED
 #define V8_ASSUME_ALIGNED(ptr, alignment) (ptr)
 #endif
+#else
+#define V8_ASSUME_ALIGNED(ptr, alignment) (ptr)
 #endif  // V8_ENABLE_SANDBOX
 
 namespace v8 {

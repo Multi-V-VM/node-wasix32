@@ -3,6 +3,9 @@
 #include <cstdint>
 #include <vector>
 #include <cstddef>
+#include <type_traits>
+#include <cstdarg>
+#include <iterator>
 
 // Check if Vector class is already defined by wasi-v8-base-fixes.h
 #ifdef WASI_V8_VECTOR_CLASS_DEFINED
@@ -12,6 +15,50 @@
 #endif
 
 // Fix namespace issues for V8 internal types
+
+// Forward declare frequently used API types so we can import them into
+// v8::internal when necessary.
+namespace v8 {
+namespace base {
+class OS;
+class Semaphore;
+template <typename T>
+class ScopedVector;
+template <typename T>
+class Vector;
+template <typename T>
+class AtomicValue;
+class Double;  // Forward declare Double class from src/base/numbers/double.h
+class ElapsedTimer;  // Forward declare from platform/elapsed-timer.h
+class TimeTicks;  // Forward declare from platform/time.h
+class TimeDelta;  // Forward declare from platform/time.h
+
+int SNPrintF(Vector<char> str, const char* format, ...);
+int VSNPrintF(Vector<char> str, const char* format, va_list args);
+
+template <typename T, size_t N>
+inline constexpr Vector<T> ArrayVector(T (&arr)[N]);
+
+template <typename T>
+inline constexpr Vector<T> VectorOf(T* start, size_t size);
+
+template <typename Container>
+inline constexpr auto VectorOf(Container&& container)
+    -> decltype(VectorOf(std::data(container), std::size(container)));
+}  // namespace base
+
+class ArrayBuffer;
+class BackingStore;
+class PageAllocator;
+class RegExp;
+class TypedArray;
+namespace metrics {
+struct Recorder;
+}  // namespace metrics
+namespace internal {
+class DoubleRegister;
+}  // namespace internal
+}  // namespace v8
 
 // Forward declare LockGuard template and Mutex classes
 // These are implemented in wasi-v8-base-fixes.h
@@ -38,9 +85,40 @@ namespace base {
 using Mutex = ::v8::base::Mutex;
 using MutexGuard = ::v8::base::MutexGuard;
 
+// Surface common platform utilities expected under v8::internal::base.
+using ::v8::base::OS;
+using ::v8::base::Semaphore;
+template <typename T>
+using AtomicValue = ::v8::base::AtomicValue<T>;
+template <typename T>
+using ScopedVector = ::v8::base::ScopedVector<T>;
+using ::v8::base::ArrayVector;
+using ::v8::base::VectorOf;
+
+// Import additional commonly used types from v8::base
+// SNPrintF and related functions
+using ::v8::base::SNPrintF;
+using ::v8::base::VSNPrintF;
+
+// Import Double class (defined in src/base/numbers/double.h)
+using ::v8::base::Double;
+
+// Import timer classes
+using ::v8::base::ElapsedTimer;
+using ::v8::base::TimeTicks;
+using ::v8::base::TimeDelta;
+
 // BitField types - import from v8::base namespace
 // BitField64 is already defined in wasi-v8-bits-fixes.h
 using ::v8::base::BitField;
+
+// Import BitField8 template alias (defined in src/base/bit-field.h)
+template <class T, int shift, int size>
+using BitField8 = ::v8::base::BitField<T, shift, size, uint8_t>;
+
+// Character and integer helpers used throughout parser/regexp code.
+typedef uint16_t uc16;
+typedef uint32_t uc32;
 
 // ReadUnalignedValue is provided by other WASI compatibility files if needed
 
@@ -119,6 +197,19 @@ static constexpr uintptr_t kExternalPointerTagShift = 48;
 } // namespace base
 } // namespace internal
 } // namespace v8
+
+namespace v8 {
+namespace internal {
+
+// Ensure references to v8::Something inside v8::internal resolve to the API
+// namespace rather than recursively to v8::internal::v8::... during lookup.
+namespace v8 = ::v8;
+
+// Bring additional namespaces frequently referenced from internal code.
+namespace metrics = ::v8::metrics;
+
+}  // namespace internal
+}  // namespace v8
 
 // AtomicWord is already defined in nuclear-fix.h and atomicops.h
 // Don't redefine it here

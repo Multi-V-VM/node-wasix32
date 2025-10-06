@@ -88,7 +88,7 @@ struct V8_EXPORT_PRIVATE LoopInfo {
     return offset >= loop_start_ && offset < loop_end_;
   }
 
-  const ::v8::base::Vector<ResumeJumpTarget>& resume_jump_targets() const {
+  const ZoneVector<ResumeJumpTarget>& resume_jump_targets() const {
     return resume_jump_targets_;
   }
   void AddResumeTarget(const ResumeJumpTarget& target) {
@@ -106,7 +106,7 @@ struct V8_EXPORT_PRIVATE LoopInfo {
   bool resumable_ = false;
   bool innermost_ = true;
   BytecodeLoopAssignments assignments_;
-  ::v8::base::Vector<ResumeJumpTarget> resume_jump_targets_;
+  ZoneVector<ResumeJumpTarget> resume_jump_targets_;
 };
 
 // Analyze the bytecodes to find the loop ranges, loop nesting, loop assignments
@@ -136,7 +136,7 @@ class V8_EXPORT_PRIVATE BytecodeAnalysis : public ZoneObject {
   const ZoneMap<int, LoopInfo>& GetLoopInfos() const { return header_to_info_; }
 
   // Get the top-level resume jump targets.
-  const ::v8::base::Vector<ResumeJumpTarget>& resume_jump_targets() const {
+  const ZoneVector<ResumeJumpTarget>& resume_jump_targets() const {
     return resume_jump_targets_;
   }
 
@@ -173,7 +173,7 @@ class V8_EXPORT_PRIVATE BytecodeAnalysis : public ZoneObject {
 
   BytecodeOffset const osr_bailout_id_;
   bool const analyze_liveness_;
-  ::v8::base::Vector<ResumeJumpTarget> resume_jump_targets_;
+  ZoneVector<ResumeJumpTarget> resume_jump_targets_;
   ZoneMap<int, int> end_to_header_;
   ZoneMap<int, LoopInfo> header_to_info_;
   int osr_entry_point_;

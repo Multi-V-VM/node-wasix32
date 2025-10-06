@@ -12,89 +12,67 @@
 namespace v8 {
 namespace internal {
 
-// WASM32 frame constants
+// WASM32-specific frame constants
 class EntryFrameConstants : public AllStatic {
  public:
   // Total frame size includes return address and frame pointer
   static constexpr int kFixedFrameSizeFromFp = 2 * kSystemPointerSize;
+
+  // Offsets for storing FP and PC of fast API calls
+  static constexpr int kNextExitFrameFPOffset = -3 * kSystemPointerSize;
+  static constexpr int kNextFastCallFrameFPOffset = -4 * kSystemPointerSize;
+  static constexpr int kNextFastCallFramePCOffset = -5 * kSystemPointerSize;
+
+  // Root register value offset
+  static constexpr int kRootRegisterValueOffset = +2 * kSystemPointerSize;
+
+  // Arguments for JSEntry and JSConstructEntry
+  static constexpr int kNewTargetArgOffset = +3 * kSystemPointerSize;
+  static constexpr int kFunctionArgOffset = +4 * kSystemPointerSize;
+  static constexpr int kReceiverArgOffset = +5 * kSystemPointerSize;
+  static constexpr int kArgcOffset = +6 * kSystemPointerSize;
+  static constexpr int kArgvOffset = +7 * kSystemPointerSize;
+
+  // For JSRunMicrotasksEntry
+  static constexpr int kMicrotaskQueueArgOffset = +3 * kSystemPointerSize;
 };
 
-class ExitFrameConstants : public TypedFrameConstants {
+class WasmLiftoffSetupFrameConstants : public TypedFrameConstants {
  public:
-  static constexpr int kSPOffset = -1 * kSystemPointerSize;
-  static constexpr int kCodeOffset = -2 * kSystemPointerSize;
-  static constexpr int kPaddingOffset = -3 * kSystemPointerSize;
-  static constexpr int kCallerPCOffset = 0 * kSystemPointerSize;
-  static constexpr int kCallerFPOffset = 1 * kSystemPointerSize;
-  static constexpr int kCallerSPOffset = 2 * kSystemPointerSize;
-  
-  static constexpr int kConstantPoolOffset = 0;  // No constant pool on WASM32
-  static constexpr int kFixedFrameSizeFromFp = 3 * kSystemPointerSize;
+  // Number of gp parameters, without the instance
+  static constexpr int kNumberOfSavedGpParamRegs = 2;
+  static constexpr int kNumberOfSavedFpParamRegs = 4;
+
+  // Instance spill offset
+  static constexpr int kInstanceSpillOffset =
+      TYPED_FRAME_PUSHED_VALUE_OFFSET(1);
+
+  static constexpr int kParameterSpillsOffset[] = {
+      TYPED_FRAME_PUSHED_VALUE_OFFSET(2), TYPED_FRAME_PUSHED_VALUE_OFFSET(3)};
+
+  // SP-relative offsets
+  static constexpr int kWasmInstanceDataOffset = 2 * kSystemPointerSize;
+  static constexpr int kDeclaredFunctionIndexOffset = 1 * kSystemPointerSize;
+  static constexpr int kNativeModuleOffset = 0;
 };
 
-class WasmExitFrameConstants : public TypedFrameConstants {
+class WasmLiftoffFrameConstants : public TypedFrameConstants {
  public:
-  static constexpr int kInstanceOffset = -1 * kSystemPointerSize;
-  static constexpr int kFixedFrameSizeFromFp = 1 * kSystemPointerSize;
+  static constexpr int kFeedbackVectorOffset = 3 * kSystemPointerSize;
+  static constexpr int kInstanceDataOffset = 2 * kSystemPointerSize;
 };
 
-class JavaScriptFrameConstants : public AllStatic {
+class WasmDebugBreakFrameConstants : public TypedFrameConstants {
  public:
-  // Fixed frame slots
-  static constexpr int kFunctionOffset = -2 * kSystemPointerSize;
-  static constexpr int kContextOffset = -1 * kSystemPointerSize;
-  static constexpr int kLastParameterOffset = +2 * kSystemPointerSize;
-  
-  // Expression stack
-  static constexpr int kLocal0Offset = -3 * kSystemPointerSize;
-  static constexpr int kLastNonArgumentRegisterOffset = 0;
-  static constexpr int kBytecodeOffsetRegisterOffset = 0;
-  static constexpr int kRegisterFileFromFp = -3 * kSystemPointerSize;
-  
-  static constexpr int kExpressionsOffset = -3 * kSystemPointerSize;
-  static constexpr int kFixedFrameSizeFromFp = 2 * kSystemPointerSize;
-  static constexpr int kFixedSlotCount = 4;
-};
+  // WASM32 has limited registers compared to other architectures
+  // This will need to be filled in based on actual wasm32 register allocation
+  static constexpr int kNumPushedGpRegisters = 4;
+  static constexpr int kNumPushedFpRegisters = 4;
 
-// Constants for BuiltinContinuation frames
-class BuiltinContinuationFrameConstants : public TypedFrameConstants {
- public:
-  static constexpr int kFixedFrameSizeFromFp = 2 * kSystemPointerSize;
-  static constexpr int kFixedSlotCount = 2;
-};
-
-// Interpreted frame constants
-class InterpreterFrameConstants : public AllStatic {
- public:
-  static constexpr int kFixedFrameSizeFromFp = 3 * kSystemPointerSize;
-  static constexpr int kBytecodeOffsetFromFp = -1 * kSystemPointerSize;
-  static constexpr int kBytecodeArrayFromFp = -2 * kSystemPointerSize;
-  static constexpr int kRegisterFileFromFp = -3 * kSystemPointerSize;
-  static constexpr int kExpressionsOffset = kRegisterFileFromFp;
-  static constexpr int kLastParamFromFp = StandardFrameConstants::kCallerSPOffset;
-  static constexpr int kBytecodeOffsetFromRegisterPointer = 1 * kSystemPointerSize;
-  static constexpr int kBytecodeArrayFromRegisterPointer = 2 * kSystemPointerSize;
-  static constexpr int kNewTargetFromRegisterPointer = 3 * kSystemPointerSize;
-  static constexpr int kFunctionFromRegisterPointer = 4 * kSystemPointerSize;
-  static constexpr int kContextFromRegisterPointer = 5 * kSystemPointerSize;
-  static constexpr int kFixedFrameSizeFromRegisterPointer = 6 * kSystemPointerSize;
-  static constexpr int kNumberOfExtraArgsFromRegisterPointer = 7 * kSystemPointerSize;
-  static constexpr int kFirstParamFromRegisterPointer = 8 * kSystemPointerSize;
-};
-
-// Maglev frame constants
-class MaglevFrameConstants : public StandardFrameConstants {
- public:
-  static constexpr int kFixedFrameSizeFromFp = 2 * kSystemPointerSize;
-  static constexpr int kLastParameterOffset = +2 * kSystemPointerSize;
-  static constexpr int kStackGuardFrameSize = 1 * kSystemPointerSize;
-};
-
-// Unoptimized frame constants
-class UnoptimizedFrameConstants : public StandardFrameConstants {
- public:
-  static constexpr int kFixedFrameSizeFromFp = 2 * kSystemPointerSize;
-  static constexpr int kLastParameterOffset = +2 * kSystemPointerSize;
+  static constexpr int kLastPushedGpRegisterOffset =
+      -kFixedFrameSizeFromFp - kNumPushedGpRegisters * kSystemPointerSize;
+  static constexpr int kLastPushedFpRegisterOffset =
+      kLastPushedGpRegisterOffset - kNumPushedFpRegisters * kSimd128Size;
 };
 
 }  // namespace internal

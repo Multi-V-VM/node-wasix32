@@ -11,8 +11,12 @@
 
 #include "src/base/logging.h"
 #include "src/base/macros.h"
+#include "src/common/globals.h"
 
 namespace v8::internal::compiler::turboshaft {
+
+// Helper function to check if we're on a 64-bit platform
+constexpr bool Is64() { return kSystemPointerSize == 8; }
 
 template <class... Ts>
 struct any_of : std::tuple<const Ts&...> {

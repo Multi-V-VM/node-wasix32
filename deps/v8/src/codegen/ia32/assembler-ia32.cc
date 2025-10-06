@@ -1,6 +1,6 @@
 #ifdef __wasi__
 #define V8_TARGET_ARCH_WASM32 1
-#endif
+#else
 // Copyright (c) 1994-2006 Sun Microsystems Inc.
 // All Rights Reserved.
 //
@@ -3486,3 +3486,4 @@ void Assembler::RecordRelocInfo(RelocInfo::Mode rmode, intptr_t data) {
 }  // namespace v8
 
 #endif  // V8_TARGET_ARCH_IA32
+#endif  // V8_TARGET_ARCH_WASM32

@@ -10,6 +10,8 @@
 #include "../../../../wasi-v8-bits-fixes.h"
 #include "wasi/wasi-v8-missing-types.h"
 #include "../../../../wasi-v8-custom-arguments.h"
+// Provide namespace bridges and base helpers for internal code
+#include "../../../../wasi-v8-namespace-fix.h"
 // #include "../../../../wasi-v8-minimal-missing.h" // Now included from util.h
 #else
 // Non-WASI content would go here

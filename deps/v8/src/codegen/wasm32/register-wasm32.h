@@ -1,6 +1,3 @@
-#ifdef V8_TARGET_ARCH_IA32
-// Skip WASM32 register definitions when building for IA32
-#else
 // Copyright 2024 the V8 project authors. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
@@ -13,6 +10,7 @@
 #define V8_WASM32_DOUBLEREGISTER_DEFINED
 
 #include "src/codegen/register-base.h"
+#include "src/common/globals.h"
 
 namespace v8 {
 namespace internal {
@@ -236,13 +234,8 @@ constexpr bool kPadArguments = false;
 constexpr bool kSimpleFPAliasing = true;
 constexpr bool kSimdMaskRegisters = false;
 
-// FP aliasing kind for register configuration
-// WASM32 uses simple aliasing where float/double registers overlap
-enum class AliasingKind {
-  kOverlap,
-  kCombine,
-  kIndependent
-};
+// FP aliasing kind for register configuration (uses AliasingKind from globals.h)
+// WASM32 uses overlap aliasing where float/double registers overlap
 constexpr AliasingKind kFPAliasing = AliasingKind::kOverlap;
 
 // Define special register constants
@@ -302,4 +295,3 @@ constexpr Simd128Register no_vreg = Simd128Register::no_reg();
 }  // namespace v8
 
 #endif  // V8_CODEGEN_WASM32_REGISTER_WASM32_H_
-#endif  // V8_TARGET_ARCH_IA32

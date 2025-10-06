@@ -7,6 +7,7 @@
 
 #include <memory>
 #include <vector>
+#include <string>
 
 #include "cppgc/common.h"
 #include "cppgc/custom-space.h"
@@ -53,14 +54,44 @@ enum class StackSupport {
 };
 
 struct HeapStatistics {
+  struct ObjectStatsEntry {
+    size_t allocated_bytes = 0;
+    size_t object_count = 0;
+  };
+
+  struct PageStatistics {
+    size_t committed_size_bytes = 0;
+    size_t resident_size_bytes = 0;
+    size_t used_size_bytes = 0;
+    std::vector<ObjectStatsEntry> object_statistics;
+  };
+
+  struct FreeListStatistics {
+    std::vector<size_t> bucket_size;
+    std::vector<size_t> free_count;
+    std::vector<size_t> free_size;
+  };
+
+  struct SpaceStatistics {
+    std::string name;
+    size_t committed_size_bytes = 0;
+    size_t resident_size_bytes = 0;
+    size_t used_size_bytes = 0;
+    std::vector<PageStatistics> page_stats;
+    FreeListStatistics free_list_stats;
+  };
+
   enum class DetailLevel : uint8_t {
     kBrief,
     kDetailed,
   };
-  
+
   size_t used_size_bytes = 0;
   size_t physical_size_bytes = 0;
   size_t committed_size_bytes = 0;
+  size_t resident_size_bytes = 0;
+  std::vector<SpaceStatistics> space_stats;
+  std::vector<std::string> type_names;
 };
 
 struct HeapOptions {
@@ -72,6 +103,9 @@ struct HeapOptions {
 class V8_EXPORT Heap {
  public:
   using StackState = cppgc::StackState;
+  using StackSupport = cppgc::StackSupport;
+  using MarkingType = cppgc::MarkingType;
+  using SweepingType = cppgc::SweepingType;
 
   static std::unique_ptr<Heap> Create(
       v8::Platform* platform,
