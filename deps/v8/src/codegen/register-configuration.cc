@@ -82,7 +82,9 @@ static int get_num_simd256_registers() { return 0; }
 // between build and runtime. Avoid adding variability on other platforms.
 static int get_num_allocatable_double_registers() {
   return
-#if V8_TARGET_ARCH_IA32
+#if defined(V8_TARGET_ARCH_WASM32) || (defined(V8_TARGET_ARCH_IA32) && defined(__wasi__))
+      kMaxAllocatableDoubleRegisterCount;
+#elif V8_TARGET_ARCH_IA32
       kMaxAllocatableDoubleRegisterCount;
 #elif V8_TARGET_ARCH_X64
       kMaxAllocatableDoubleRegisterCount;

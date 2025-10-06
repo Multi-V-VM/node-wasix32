@@ -14,6 +14,8 @@
 #include "src/compiler/backend/arm/instruction-codes-arm.h"
 #elif V8_TARGET_ARCH_ARM64
 #include "src/compiler/backend/arm64/instruction-codes-arm64.h"
+#elif V8_TARGET_ARCH_WASM32
+#include "src/compiler/backend/wasm32/instruction-codes-wasm32.h"
 #elif V8_TARGET_ARCH_IA32
 #include "src/compiler/backend/ia32/instruction-codes-ia32.h"
 #elif V8_TARGET_ARCH_MIPS64

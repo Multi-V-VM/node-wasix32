@@ -38,6 +38,9 @@ static constexpr int kInvalid = -1;
   V(r8)  V(r9)  V(r10) V(r11) \
   V(r12)
 
+// Alias for register-configuration.cc compatibility
+#define ALLOCATABLE_GENERAL_REGISTERS ALLOCATABLE_GENERAL_REGISTER_LIST
+
 // Special purpose registers
 #define SPECIAL_REGISTER_LIST(V) \
   V(sp)   /* Stack pointer */    \
@@ -59,12 +62,20 @@ static constexpr int kInvalid = -1;
   V(f8)  V(f9)  V(f10) V(f11) \
   V(f12) V(f13) V(f14) V(f15)
 
+// Alias for register-configuration.cc compatibility
+#define ALLOCATABLE_DOUBLE_REGISTERS DOUBLE_REGISTER_LIST
+
 // SIMD registers (128-bit)
 #define SIMD128_REGISTER_LIST(V) \
   V(s0)  V(s1)  V(s2)  V(s3)  \
   V(s4)  V(s5)  V(s6)  V(s7)  \
   V(s8)  V(s9)  V(s10) V(s11) \
   V(s12) V(s13) V(s14) V(s15)
+
+// Combined register list for RegisterName function
+#define ALL_WASM32_REGISTERS(V) \
+  GENERAL_REGISTER_LIST(V) \
+  SPECIAL_REGISTER_LIST(V)
 
 // Define register codes
 enum RegisterCode {
@@ -78,11 +89,10 @@ enum RegisterCode {
 class Register : public RegisterBase<Register, kRegAfterLast> {
  public:
   static constexpr int kNumRegisters = kRegAfterLast;
-  
+
   // Constexpr constructors
   constexpr Register() : RegisterBase(-1) {}
-  explicit constexpr Register(int code) : RegisterBase(code) {}
-  
+
 #define DEFINE_REGISTER(R) \
   static constexpr Register R() { return Register(kRegCode_##R); }
   GENERAL_REGISTER_LIST(DEFINE_REGISTER)
@@ -144,10 +154,9 @@ class FloatRegister : public RegisterBase<FloatRegister, kFloatAfterLast> {
 class DoubleRegister : public RegisterBase<DoubleRegister, kFloatAfterLast> {
  public:
   static constexpr int kNumRegisters = kFloatAfterLast;
-  
+
   // Constexpr constructors
   constexpr DoubleRegister() : RegisterBase(-1) {}
-  explicit constexpr DoubleRegister(int code) : RegisterBase(code) {}
 
 #define DEFINE_DOUBLE_REGISTER(R) \
   static constexpr DoubleRegister R() { \
@@ -217,11 +226,6 @@ class Simd128Register : public RegisterBase<Simd128Register, kSimd128AfterLast> 
 using FPRegister = DoubleRegister;
 using VRegister = Simd128Register;
 
-// Required constants for frame layout
-constexpr int kStackFrameExtraParamSlot = 0;
-const int kStackFrameSPAdjustment = 0;
-const int kStackFrameExtraActualArgSlot = 0;
-
 // Required ArgumentPaddingSlots function
 constexpr int ArgumentPaddingSlots(int argument_count) {
   return 0;  // No padding needed for WASM
@@ -231,6 +235,15 @@ constexpr int ArgumentPaddingSlots(int argument_count) {
 constexpr bool kPadArguments = false;
 constexpr bool kSimpleFPAliasing = true;
 constexpr bool kSimdMaskRegisters = false;
+
+// FP aliasing kind for register configuration
+// WASM32 uses simple aliasing where float/double registers overlap
+enum class AliasingKind {
+  kOverlap,
+  kCombine,
+  kIndependent
+};
+constexpr AliasingKind kFPAliasing = AliasingKind::kOverlap;
 
 // Define special register constants
 constexpr Register kRootRegister = Register::r13();  // Root pointer register
@@ -265,12 +278,12 @@ constexpr Register kCArgument2 = Register::r2();
 constexpr Register kCArgument3 = Register::r3();
 
 // Floating point return and argument registers
-constexpr DoubleRegister kFPReturnRegister0 = DoubleRegister::d0();
-constexpr DoubleRegister kFPReturnRegister1 = DoubleRegister::d1();
-constexpr DoubleRegister kFPArgumentRegister0 = DoubleRegister::d0();
-constexpr DoubleRegister kFPArgumentRegister1 = DoubleRegister::d1();
-constexpr DoubleRegister kFPArgumentRegister2 = DoubleRegister::d2();
-constexpr DoubleRegister kFPArgumentRegister3 = DoubleRegister::d3();
+constexpr DoubleRegister kFPReturnRegister0 = DoubleRegister::f0();
+constexpr DoubleRegister kFPReturnRegister1 = DoubleRegister::f1();
+constexpr DoubleRegister kFPArgumentRegister0 = DoubleRegister::f0();
+constexpr DoubleRegister kFPArgumentRegister1 = DoubleRegister::f1();
+constexpr DoubleRegister kFPArgumentRegister2 = DoubleRegister::f2();
+constexpr DoubleRegister kFPArgumentRegister3 = DoubleRegister::f3();
 
 // SIMD return and argument registers
 constexpr Simd128Register kSimd128ReturnRegister0 = Simd128Register::s0();
@@ -288,4 +301,5 @@ constexpr Simd128Register no_vreg = Simd128Register::no_reg();
 }  // namespace internal
 }  // namespace v8
 
-#endif  // V8_CODEGEN_WASM32_REGISTER_WASM32_H_#endif // V8_TARGET_ARCH_IA32
+#endif  // V8_CODEGEN_WASM32_REGISTER_WASM32_H_
+#endif  // V8_TARGET_ARCH_IA32

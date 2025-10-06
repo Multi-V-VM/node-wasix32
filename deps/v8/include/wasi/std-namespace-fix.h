@@ -88,9 +88,14 @@ struct contiguous_iterator_tag : random_access_iterator_tag {};
 }  // namespace std
 #endif
 
-// Only define v8::std namespace for Node.js code, not V8 internal code
-// Enable v8::std namespace to provide type aliases
-#if 1
+// Define v8::std namespace with proper scoping
+// When included from v8::internal, we need to close those namespaces first
+#ifdef V8_OBJECTS_H_  // Common V8 internal header - indicates we're in v8::internal context
+  }  // Close namespace internal
+  }  // Close namespace v8
+  #define V8_STD_FIX_REOPEN_INTERNAL
+#endif
+
 namespace v8 {
 namespace std {
 
@@ -834,7 +839,13 @@ using ::std::add_const;
 
 }  // namespace std
 }  // namespace v8
-#endif  // enable v8::std aliasing
+
+// Reopen v8::internal namespace if we closed it earlier
+#ifdef V8_STD_FIX_REOPEN_INTERNAL
+  namespace v8 {
+  namespace internal {
+  #undef V8_STD_FIX_REOPEN_INTERNAL
+#endif
 
 // Do not create aliases in ::std::ranges to avoid conflicts with standard library
 
