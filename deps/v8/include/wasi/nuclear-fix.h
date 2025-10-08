@@ -353,7 +353,7 @@ class Internals {
     return nullptr;
   }
   static int SmiValue(Address value) {
-    return ::v8::internal::SmiValue(value);
+    return static_cast<int32_t>(static_cast<intptr_t>(value)) >> kSmiTagSize;
   }
 
   // Root retrieval for basic values

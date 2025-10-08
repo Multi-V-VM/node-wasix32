@@ -14,7 +14,7 @@
 namespace v8 {
 namespace base {
 
-template <class Category, class Type, class Diff = std::ptrdiff_t,
+template <class Category, class Type, class Diff = ::std::ptrdiff_t,
           class Pointer = Type*, class Reference = Type&>
 struct iterator {
   using iterator_category = Category;
@@ -33,11 +33,11 @@ class iterator_range {
  public:
   using iterator = ForwardIterator;
   using const_iterator = ForwardIterator;
-  using pointer = typename std::iterator_traits<iterator>::pointer;
-  using reference = typename std::iterator_traits<iterator>::reference;
-  using value_type = typename std::iterator_traits<iterator>::value_type;
+  using pointer = typename ::std::iterator_traits<iterator>::pointer;
+  using reference = typename ::std::iterator_traits<iterator>::reference;
+  using value_type = typename ::std::iterator_traits<iterator>::value_type;
   using difference_type =
-      typename std::iterator_traits<iterator>::difference_type;
+      typename ::std::iterator_traits<iterator>::difference_type;
 
   iterator_range() : begin_(), end_() {}
   iterator_range(ForwardIterator begin, ForwardIterator end)
@@ -47,8 +47,8 @@ class iterator_range {
   iterator end() const { return end_; }
   const_iterator cbegin() const { return begin_; }
   const_iterator cend() const { return end_; }
-  auto rbegin() const { return std::make_reverse_iterator(end_); }
-  auto rend() const { return std::make_reverse_iterator(begin_); }
+  auto rbegin() const { return ::std::make_reverse_iterator(end_); }
+  auto rend() const { return ::std::make_reverse_iterator(begin_); }
 
   bool empty() const { return cbegin() == cend(); }
 
@@ -67,7 +67,7 @@ auto make_iterator_range(ForwardIterator begin, ForwardIterator end) {
 }
 
 template <class T>
-struct DerefPtrIterator : base::iterator<std::bidirectional_iterator_tag, T> {
+struct DerefPtrIterator : base::iterator<::std::bidirectional_iterator_tag, T> {
   T* const* ptr;
 
   explicit DerefPtrIterator(T* const* ptr) : ptr(ptr) {}
@@ -125,9 +125,9 @@ auto Reversed(const iterator_range<T>& t) {
 // The signature avoids binding to temporaries, see the remark in {Reversed}.
 template <typename T>
 auto IterateWithoutLast(T& t) {
-  DCHECK_NE(std::begin(t), std::end(t));
-  auto new_end = std::end(t);
-  return make_iterator_range(std::begin(t), --new_end);
+  DCHECK_NE(::std::begin(t), ::std::end(t));
+  auto new_end = ::std::end(t);
+  return make_iterator_range(::std::begin(t), --new_end);
 }
 
 template <typename T>
