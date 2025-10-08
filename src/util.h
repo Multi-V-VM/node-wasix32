@@ -474,6 +474,11 @@ inline bool StringEqualNoCase(const char* a, const char* b);
 // strncasecmp() is locale-sensitive.  Use StringEqualNoCaseN() instead.
 inline bool StringEqualNoCaseN(const char* a, const char* b, size_t length);
 
+// Undefine V8 macro to allow function definition
+#ifdef arraysize
+#undef arraysize
+#endif
+
 template <typename T, size_t N>
 constexpr size_t arraysize(const T (&)[N]) {
   return N;
@@ -688,6 +693,10 @@ class BufferValue : public MaybeStackBuffer<char> {
 
 // Use this when a variable or parameter is unused in order to explicitly
 // silence a compiler warning about that.
+// Undefine V8 macro to allow function definition
+#ifdef USE
+#undef USE
+#endif
 template <typename T> inline void USE(T&&) {}
 
 template <typename Fn>

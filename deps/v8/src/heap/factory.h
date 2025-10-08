@@ -7,6 +7,7 @@
 
 // Clients of this interface shouldn't depend on lots of heap internals.
 // Do not include anything from src/heap here!
+#include "include/v8-script.h"
 #include "src/base/strings.h"
 #include "src/base/vector.h"
 #include "src/baseline/baseline.h"

@@ -100,6 +100,22 @@ constexpr Register kGpReturnRegisters[] = {r2, r3};
 constexpr DoubleRegister kFpParamRegisters[] = {d0, d2, d4, d6};
 constexpr DoubleRegister kFpReturnRegisters[] = {d0, d2};
 
+#elif V8_TARGET_ARCH_WASM32
+// ===========================================================================
+// == wasm32 =================================================================
+// ===========================================================================
+constexpr Register kGpParamRegisters[] = {
+    kWasmImplicitArgRegister, kArgumentRegister0, kArgumentRegister1,
+    kArgumentRegister2,        kArgumentRegister3, Register::r5(),
+    Register::r6()};
+constexpr Register kGpReturnRegisters[] = {kReturnRegister0, kReturnRegister1};
+constexpr DoubleRegister kFpParamRegisters[] = {
+    kFPArgumentRegister0, kFPArgumentRegister1, kFPArgumentRegister2,
+    kFPArgumentRegister3, DoubleRegister::f4(), DoubleRegister::f5(),
+    DoubleRegister::f6(), DoubleRegister::f7()};
+constexpr DoubleRegister kFpReturnRegisters[] = {kFPReturnRegister0,
+                                                 kFPReturnRegister1};
+
 #elif V8_TARGET_ARCH_RISCV32 || V8_TARGET_ARCH_RISCV64
 // ===========================================================================
 // == riscv64 =================================================================

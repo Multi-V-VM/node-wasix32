@@ -19,7 +19,7 @@
 // on the stack and we push 56 bytes which maintains 16-byte stack alignment
 // at the call.
 // Source: https://github.com/hjl-tools/x86-psABI/wiki/x86-64-psABI-1.0.pdf
-
+#ifndef __wasi__
 #ifdef _WIN64
 #error "The masm based version must be used for Windows"
 #endif
@@ -64,3 +64,6 @@ asm(
     ".Lfunc_end0-PushAllRegistersAndIterateStack        \n"
 #endif  // !defined(__APPLE__)
     );
+#else   // __wasi__
+#include "../wasm32/push_registers_asm.cc"
+#endif  // __wasi__

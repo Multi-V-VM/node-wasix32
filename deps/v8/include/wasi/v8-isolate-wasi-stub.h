@@ -60,6 +60,15 @@ using AbortOnUncaughtExceptionCallback = bool (*)(Isolate*);
 // Minimal Isolate stub for WASI
 class V8_EXPORT Isolate {
  public:
+  // UseCounter feature enumeration
+  enum UseCounterFeature {
+    kUseCounterFeatureCount = 0  // Placeholder
+  };
+
+  // Callback types
+  using UseCounterCallback = void (*)(Isolate*, UseCounterFeature);
+  using ReleaseCppHeapCallback = void (*)(Isolate*);
+
   // CreateParams stub with Node.js required fields
   struct CreateParams {
     CreateParams() = default;

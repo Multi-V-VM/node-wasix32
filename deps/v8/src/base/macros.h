@@ -10,8 +10,8 @@
 #include <cstring>
 
 #include "../../include/v8config.h"
-#include "src/base/compiler-specific.h"
-#include "src/base/logging.h"
+#include "compiler-specific.h"
+#include "logging.h"
 
 // Ensure V8 macros are defined for WASI
 #ifndef V8_INLINE

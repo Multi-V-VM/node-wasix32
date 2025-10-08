@@ -1,13 +1,14 @@
 #ifndef V8_LOCAL_HANDLE_FIXES_H_
 #define V8_LOCAL_HANDLE_FIXES_H_
 
-#ifdef __wasi__
+#if defined(__wasi__) && !defined(WASI_V8_MISSING_TYPES_H_)
 
 // Add ptr() method to v8::Local for WASI compatibility
 namespace v8 {
 
 template <typename T>
 class Local;
+template <typename T> class ReturnValue;
 
 namespace internal {
 // Helper to extract address from Local handle
@@ -19,7 +20,8 @@ inline Address* GetAddress(const Local<T>& handle) {
 
 // Extension methods for Local<T>
 template <typename T>
-inline internal::Address* Local<T>::ptr() const {
+inline auto Local<T>::ptr() const
+    -> decltype(internal::GetAddress(*this)) {
   return internal::GetAddress(*this);
 }
 
@@ -42,6 +44,6 @@ void ReturnValue<T>::Set(uint32_t i) {
 
 }  // namespace v8
 
-#endif  // __wasi__
+#endif  // defined(__wasi__) && !defined(WASI_V8_MISSING_TYPES_H_)
 
 #endif  // V8_LOCAL_HANDLE_FIXES_H_

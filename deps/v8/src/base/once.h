@@ -1,10 +1,16 @@
 #ifndef V8_BASE_ONCE_H_
 #define V8_BASE_ONCE_H_
 
-#include "src/base/base-export.h"
+#include "../../include/v8config.h"
+#include "base-export.h"
 #ifdef __wasi__
-#include "include/v8-internal.h"
+#include "../../include/v8-internal.h"
 #endif
+
+// Define macros before any namespaces so they're globally visible
+#define V8_ONCE_INIT 0
+#define ONCE_STATE_UNINITIALIZED 0
+#define ONCE_STATE_DONE 1
 
 namespace v8 {
 
@@ -17,13 +23,9 @@ namespace base {
 
 using OnceType = int;
 
-#define V8_ONCE_INIT 0
-#define ONCE_STATE_UNINITIALIZED 0
-#define ONCE_STATE_DONE 1
-
 // Simple CallOnce implementation used by LazyInstance on WASI and generic builds.
 template <typename Function, typename Storage>
-inline void CallOnce(v8::Once::OnceType* once, Function function, Storage storage) {
+inline void CallOnce(Once::OnceType* once, Function function, Storage storage) {
   if (*once == ONCE_STATE_UNINITIALIZED) {
     function(storage);
     *once = ONCE_STATE_DONE;
@@ -32,7 +34,7 @@ inline void CallOnce(v8::Once::OnceType* once, Function function, Storage storag
 
 // Backwards-compatible overload taking only a function with no storage param.
 template <typename Function>
-inline void CallOnce(v8::Once::OnceType* once, Function function) {
+inline void CallOnce(Once::OnceType* once, Function function) {
   if (*once == ONCE_STATE_UNINITIALIZED) {
     function();
     *once = ONCE_STATE_DONE;

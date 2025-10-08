@@ -334,7 +334,9 @@ ContextifyContext* ContextifyContext::New(Local<Context> v8_context,
              .ToLocal(&wrapper)) {
       return {};
     }
+#ifndef __wasi__
     DCHECK_NOT_NULL(env->isolate()->GetCppHeap());
+#endif
     result = cppgc::MakeGarbageCollected<ContextifyContext>(
         env->cppgc_allocation_handle(), env, wrapper, v8_context, options);
   }
@@ -975,7 +977,9 @@ void ContextifyScript::RegisterExternalReferences(
 
 ContextifyScript* ContextifyScript::New(Environment* env,
                                         Local<Object> object) {
+#ifndef __wasi__
   DCHECK_NOT_NULL(env->isolate()->GetCppHeap());
+#endif
   return cppgc::MakeGarbageCollected<ContextifyScript>(
       env->cppgc_allocation_handle(), env, object);
 }

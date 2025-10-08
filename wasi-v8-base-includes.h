@@ -1,16 +1,19 @@
-// Copyright 2024 the V8 project authors. All rights reserved.
-// WASI build base type includes
-#ifndef V8_INCLUDE_WASI_V8_BASE_INCLUDES_H_
-#define V8_INCLUDE_WASI_V8_BASE_INCLUDES_H_
+#ifndef WASI_V8_BASE_INCLUDES_H_
+#define WASI_V8_BASE_INCLUDES_H_
 
 #ifdef __wasi__
 
-#include "wasi/abseil-namespace-fix.h"
+// This header MUST be included at global scope (outside any namespace blocks)
+// to prevent creating nested v8::v8 namespaces
 
-// Ensure we rely on the official V8 base headers rather than local stubs.
+// Include V8 base headers - they define types in the ::v8::base namespace
+#include "src/base/macros.h"
+#include "src/base/atomicops.h"
 #include "src/base/atomic-utils.h"
 #include "src/base/bit-field.h"
 #include "src/base/bits.h"
+#include "src/base/once.h"
+#include "src/base/lazy-instance.h"
 #include "src/base/iterator.h"
 #include "src/base/numbers/double.h"
 #include "src/base/platform/elapsed-timer.h"
@@ -21,7 +24,8 @@
 #include "src/base/strings.h"
 #include "src/base/utils/random-number-generator.h"
 #include "src/base/vector.h"
+#include "wasi-v8-bits-fixes.h"
 
 #endif  // __wasi__
 
-#endif  // V8_INCLUDE_WASI_V8_BASE_INCLUDES_H_
+#endif  // WASI_V8_BASE_INCLUDES_H_

@@ -13,7 +13,7 @@ namespace v8 {
 // Forward declarations
 class Isolate;
 class Context;
-// Value is defined in v8-value.h, don't forward declare
+class Value;
 class String;
 class Object;
 // Primitive is defined in v8-primitive.h, don't forward declare
@@ -116,9 +116,63 @@ namespace internal {
 #endif
 }
 
+// Provide minimal definitions for internal types expected by V8 headers.
+namespace internal {
+class EmbedderState {};
+}  // namespace internal
+
+// CalleeSavedRegisters is declared in v8-unwinder.h. Provide a trivial stub
+// so host-side utilities that rely on unique_ptr destructors compile.
+class CalleeSavedRegisters {};
+
+// Minimal cppgc forward declaration used by public headers.
+namespace cppgc {
+class Visitor;
+class Heap;
+}  // namespace cppgc
+
 // Additional v8 types (only define if not already defined)
 // These are now defined in v8-script.h
 
-} // namespace v8
+// StackTrace stub class for WASI
+// class StackTrace {
+//  public:
+//   enum StackTraceOptions {
+//     kLineNumber = 1 << 0,
+//     kColumnOffset = 1 << 1,
+//     kScriptName = 1 << 2,
+//     kFunctionName = 1 << 3,
+//     kIsEval = 1 << 4,
+//     kIsConstructor = 1 << 5,
+//     kScriptNameOrSourceURL = 1 << 6,
+//     kScriptId = 1 << 7,
+//     kExposeFramesAcrossSecurityOrigins = 1 << 8,
+//     kOverview = kLineNumber | kColumnOffset | kScriptName | kFunctionName,
+//     kDetailed = kOverview | kIsEval | kIsConstructor | kScriptNameOrSourceURL
+//   };
+
+//   static Local<StackTrace> CurrentStackTrace(Isolate* isolate, int frame_limit,
+//                                               StackTraceOptions options = kDetailed) {
+//     return Local<StackTrace>();
+//   }
+// };
+
+// // Module stub class for WASI
+// class Module {
+//  public:
+//   enum Status {
+//     kUninstantiated,
+//     kInstantiating,
+//     kInstantiated,
+//     kEvaluating,
+//     kEvaluated,
+//     kErrored
+//   };
+
+//   Local<Value> GetModuleNamespace() { return Local<Value>(); }
+//   int GetIdentityHash() { return 0; }
+// };
+
+// } // namespace v8
 
 #endif // WASI_V8_MISSING_TYPES_H_

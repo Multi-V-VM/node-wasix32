@@ -33,6 +33,10 @@ struct has_type<T, Head, Tail...>
 template<typename T, typename... Ts>
 inline constexpr bool has_type_v = has_type<T, Ts...>::value;
 
+// RecursiveMutex and RandomNumberGenerator are already defined in V8 base classes
+// src/base/platform/mutex.h and src/base/utils/random-number-generator.h
+// Don't redefine them here
+
 }  // namespace base
 
 // Mirror the upstream convenience alias `v8::Vector` -> `v8::base::Vector`.

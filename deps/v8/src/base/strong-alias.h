@@ -78,22 +78,22 @@ class StrongAlias {
   StrongAlias() = default;
   constexpr explicit StrongAlias(const UnderlyingType& v) : value_(v) {}
   constexpr explicit StrongAlias(UnderlyingType&& v) noexcept
-      : value_(std::move(v)) {}
+      : value_(::std::move(v)) {}
 
   constexpr UnderlyingType* operator->() { return &value_; }
   constexpr const UnderlyingType* operator->() const { return &value_; }
 
   constexpr UnderlyingType& operator*() & { return value_; }
   constexpr const UnderlyingType& operator*() const& { return value_; }
-  constexpr UnderlyingType&& operator*() && { return std::move(value_); }
+  constexpr UnderlyingType&& operator*() && { return ::std::move(value_); }
   constexpr const UnderlyingType&& operator*() const&& {
-    return std::move(value_);
+    return ::std::move(value_);
   }
 
   constexpr UnderlyingType& value() & { return value_; }
   constexpr const UnderlyingType& value() const& { return value_; }
-  constexpr UnderlyingType&& value() && { return std::move(value_); }
-  constexpr const UnderlyingType&& value() const&& { return std::move(value_); }
+  constexpr UnderlyingType&& value() && { return ::std::move(value_); }
+  constexpr const UnderlyingType&& value() const&& { return ::std::move(value_); }
 
   constexpr explicit operator const UnderlyingType&() const& { return value_; }
 
@@ -116,9 +116,9 @@ class StrongAlias {
   //     using MySet = std::unordered_set<MyType, typename MyType::Hasher>;
   struct Hasher {
     using argument_type = StrongAlias;
-    using result_type = std::size_t;
+    using result_type = ::std::size_t;
     result_type operator()(const argument_type& id) const {
-      return std::hash<UnderlyingType>()(id.value());
+      return ::std::hash<UnderlyingType>()(id.value());
     }
   };
 
@@ -128,10 +128,10 @@ class StrongAlias {
 
 // Stream operator for convenience, streams the UnderlyingType.
 template <typename TagType, typename UnderlyingType>
-  requires requires(std::ostream& stream, const UnderlyingType& value) {
+  requires requires(::std::ostream& stream, const UnderlyingType& value) {
     stream << value;
   }
-std::ostream& operator<<(std::ostream& stream,
+::std::ostream& operator<<(::std::ostream& stream,
                          const StrongAlias<TagType, UnderlyingType>& alias) {
   return stream << alias.value();
 }

@@ -244,9 +244,11 @@ constexpr Register kScratchRegister = Register::r12();  // Scratch register
 constexpr Register kStackPointerRegister = Register::sp();
 constexpr Register kFramePointerRegister = Register::fp();
 constexpr Register kLinkRegister = Register::link();
+constexpr DoubleRegister kScratchDoubleReg = DoubleRegister::f15();
+constexpr Simd128Register kScratchSimd128Reg = Simd128Register::s15();
 
 // Zero register (always returns 0 when read, writes are ignored)
-constexpr Register kZeroRegister = Register::r15();  
+constexpr Register kZeroRegister = Register::r15();
 
 // JavaScript argument registers
 constexpr Register kJSFunctionRegister = Register::r1();
@@ -261,14 +263,14 @@ constexpr Register kReturnRegister2 = Register::r2();
 // Calling convention argument registers
 constexpr Register kArgumentRegister0 = Register::r0();
 constexpr Register kArgumentRegister1 = Register::r1();
-constexpr Register kArgumentRegister2 = Register::r2();
-constexpr Register kArgumentRegister3 = Register::r3();
+constexpr Register kArgumentRegister2 = Register::r3();
+constexpr Register kArgumentRegister3 = Register::r4();
 
 // C calling convention argument registers
 constexpr Register kCArgument0 = Register::r0();
 constexpr Register kCArgument1 = Register::r1();
-constexpr Register kCArgument2 = Register::r2();
-constexpr Register kCArgument3 = Register::r3();
+constexpr Register kCArgument2 = Register::r3();
+constexpr Register kCArgument3 = Register::r4();
 
 // Floating point return and argument registers
 constexpr DoubleRegister kFPReturnRegister0 = DoubleRegister::f0();
@@ -290,6 +292,24 @@ constexpr Register no_reg = Register::no_reg();
 constexpr FloatRegister no_freg = FloatRegister::no_reg();
 constexpr DoubleRegister no_dreg = DoubleRegister::no_reg();
 constexpr Simd128Register no_vreg = Simd128Register::no_reg();
+
+// JavaScript call convention helpers
+constexpr Register kJavaScriptCallArgCountRegister = kArgumentRegister0;
+constexpr Register kJavaScriptCallCodeStartRegister = Register::r8();
+constexpr Register kJavaScriptCallTargetRegister = kJSFunctionRegister;
+constexpr Register kJavaScriptCallNewTargetRegister = Register::r5();
+constexpr Register kJavaScriptCallExtraArg1Register = Register::r6();
+constexpr Register kJavaScriptCallDispatchHandleRegister = Register::r9();
+
+// Runtime call convention helpers
+constexpr Register kRuntimeCallFunctionRegister = Register::r4();
+constexpr Register kRuntimeCallArgCountRegister = kArgumentRegister0;
+constexpr Register kRuntimeCallArgvRegister = Register::r7();
+
+// WebAssembly specific aliases
+constexpr Register kWasmImplicitArgRegister = kContextRegister;
+constexpr Register kWasmCompileLazyFuncIndexRegister = Register::r6();
+constexpr Register kWasmTrapHandlerFaultAddressRegister = Register::r10();
 
 // Define RegisterName function inline
 inline const char* RegisterName(Register reg) {

@@ -4,6 +4,7 @@
 
 #include "src/deoptimizer/frame-translation-builder.h"
 
+#include <cstring>
 #include <optional>
 
 #include "src/base/vlq.h"
@@ -212,14 +213,17 @@ FrameTranslationBuilder::ToFrameTranslation(LocalFactory* factory) {
     const int input_size = SizeInBytes();
     uLongf compressed_data_size = compressBound(input_size);
 
-    ::v8::base::Vector<uint8_t> compressed_data(compressed_data_size, zone());
+    ZoneVector<uint8_t> compressed_data(zone_);
+    compressed_data.resize(compressed_data_size);
 
-    CHECK_EQ(
-        zlib_internal::CompressHelper(
-            zlib_internal::ZRAW, compressed_data.data(), &compressed_data_size,
-            reinterpret_cast<const Bytef*>(contents_for_compression_.data()),
-            input_size, Z_DEFAULT_COMPRESSION, nullptr, nullptr),
-        Z_OK);
+    CHECK_EQ(zlib_internal::CompressHelper(
+                 zlib_internal::ZRAW, compressed_data.data(),
+                 &compressed_data_size,
+                 reinterpret_cast<const Bytef*>(
+                     contents_for_compression_.data()),
+                 input_size, Z_DEFAULT_COMPRESSION, nullptr, nullptr),
+             Z_OK);
+    compressed_data.resize(static_cast<size_t>(compressed_data_size));
 
     const int translation_array_size =
         static_cast<int>(compressed_data_size) +
@@ -241,7 +245,7 @@ FrameTranslationBuilder::ToFrameTranslation(LocalFactory* factory) {
   DirectHandle<DeoptimizationFrameTranslation> result =
       factory->NewDeoptimizationFrameTranslation(SizeInBytes());
   if (SizeInBytes() == 0) return result;
-  memcpy(result->begin(), contents_.data(), contents_.size() * sizeof(uint8_t));
+  std::memcpy(result->begin(), contents_.data(), contents_.size() * sizeof(uint8_t));
 #ifdef ENABLE_SLOW_DCHECKS
   DeoptimizationFrameTranslation::Iterator iter(*result, 0);
   ValidateBytes(iter);
@@ -252,7 +256,7 @@ FrameTranslationBuilder::ToFrameTranslation(LocalFactory* factory) {
 Vector<const uint8_t> FrameTranslationBuilder::ToFrameTranslationWasm() {
   DCHECK(!v8_flags.turbo_compress_frame_translations);
   FinishPendingInstructionIfNeeded();
-  ::v8::base::Vector<const uint8_t> result = base::VectorOf(contents_);
+  ::v8::base::Vector<const uint8_t> result(contents_.data(), contents_.size());
 #ifdef ENABLE_SLOW_DCHECKS
   DeoptTranslationIterator iter(result, 0);
   ValidateBytes(iter);

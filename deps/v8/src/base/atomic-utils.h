@@ -90,7 +90,7 @@ class AsAtomicImpl {
 
   template <typename T>
   static void SeqCst_Store(T* addr,
-                           typename std::remove_reference<T>::type new_value) {
+                           typename ::std::remove_reference<T>::type new_value) {
     static_assert(sizeof(T) <= sizeof(AtomicStorageType));
     base::SeqCst_Store(to_storage_addr(addr),
                        cast_helper<T>::to_storage_type(new_value));
@@ -98,7 +98,7 @@ class AsAtomicImpl {
 
   template <typename T>
   static void Release_Store(T* addr,
-                            typename std::remove_reference<T>::type new_value) {
+                            typename ::std::remove_reference<T>::type new_value) {
     static_assert(sizeof(T) <= sizeof(AtomicStorageType));
     base::Release_Store(to_storage_addr(addr),
                         cast_helper<T>::to_storage_type(new_value));
@@ -106,7 +106,7 @@ class AsAtomicImpl {
 
   template <typename T>
   static void Relaxed_Store(T* addr,
-                            typename std::remove_reference<T>::type new_value) {
+                            typename ::std::remove_reference<T>::type new_value) {
     static_assert(sizeof(T) <= sizeof(AtomicStorageType));
     base::Relaxed_Store(to_storage_addr(addr),
                         cast_helper<T>::to_storage_type(new_value));
@@ -114,7 +114,7 @@ class AsAtomicImpl {
 
   template <typename T>
   static T SeqCst_Swap(T* addr,
-                       typename std::remove_reference<T>::type new_value) {
+                       typename ::std::remove_reference<T>::type new_value) {
     static_assert(sizeof(T) <= sizeof(AtomicStorageType));
     return base::SeqCst_AtomicExchange(
         to_storage_addr(addr), cast_helper<T>::to_storage_type(new_value));
@@ -122,8 +122,8 @@ class AsAtomicImpl {
 
   template <typename T>
   static T Release_CompareAndSwap(
-      T* addr, typename std::remove_reference<T>::type old_value,
-      typename std::remove_reference<T>::type new_value) {
+      T* addr, typename ::std::remove_reference<T>::type old_value,
+      typename ::std::remove_reference<T>::type new_value) {
     static_assert(sizeof(T) <= sizeof(AtomicStorageType));
     return cast_helper<T>::to_return_type(base::Release_CompareAndSwap(
         to_storage_addr(addr), cast_helper<T>::to_storage_type(old_value),
@@ -132,8 +132,8 @@ class AsAtomicImpl {
 
   template <typename T>
   static T Relaxed_CompareAndSwap(
-      T* addr, typename std::remove_reference<T>::type old_value,
-      typename std::remove_reference<T>::type new_value) {
+      T* addr, typename ::std::remove_reference<T>::type old_value,
+      typename ::std::remove_reference<T>::type new_value) {
     static_assert(sizeof(T) <= sizeof(AtomicStorageType));
     return cast_helper<T>::to_return_type(base::Relaxed_CompareAndSwap(
         to_storage_addr(addr), cast_helper<T>::to_storage_type(old_value),
@@ -142,8 +142,8 @@ class AsAtomicImpl {
 
   template <typename T>
   static T AcquireRelease_CompareAndSwap(
-      T* addr, typename std::remove_reference<T>::type old_value,
-      typename std::remove_reference<T>::type new_value) {
+      T* addr, typename ::std::remove_reference<T>::type old_value,
+      typename ::std::remove_reference<T>::type new_value) {
     static_assert(sizeof(T) <= sizeof(AtomicStorageType));
     return cast_helper<T>::to_return_type(base::AcquireRelease_CompareAndSwap(
         to_storage_addr(addr), cast_helper<T>::to_storage_type(old_value),
@@ -152,8 +152,8 @@ class AsAtomicImpl {
 
   template <typename T>
   static T SeqCst_CompareAndSwap(
-      T* addr, typename std::remove_reference<T>::type old_value,
-      typename std::remove_reference<T>::type new_value) {
+      T* addr, typename ::std::remove_reference<T>::type old_value,
+      typename ::std::remove_reference<T>::type new_value) {
     static_assert(sizeof(T) <= sizeof(AtomicStorageType));
     return cast_helper<T>::to_return_type(base::SeqCst_CompareAndSwap(
         to_storage_addr(addr), cast_helper<T>::to_storage_type(old_value),
@@ -272,14 +272,14 @@ class AsAtomicPointerImpl : public AsAtomicImpl<TAtomicStorageType> {
 #define WASI_ATOMIC_POINTER_IMPL_DEFINED
 #endif
 
-using AsAtomicPointer = AsAtomicPointerImpl<::v8::base::AtomicWord>;
+using AsAtomicPointer = AsAtomicPointerImpl<AtomicWord>;
 
 #ifndef __wasi__
 template <typename T>
 inline void CheckedIncrement(
-    std::atomic<T>* number, T amount,
-    std::memory_order order = std::memory_order_seq_cst)
-  requires std::is_unsigned<T>::value
+    ::std::atomic<T>* number, T amount,
+    ::std::memory_order order = ::std::memory_order_seq_cst)
+  requires ::std::is_unsigned<T>::value
 {
   const T old = number->fetch_add(amount, order);
   DCHECK_GE(old + amount, old);
@@ -290,9 +290,9 @@ inline void CheckedIncrement(
 #ifndef V8_TARGET_ARCH_WASM32
 template <typename T>
 inline void CheckedDecrement(
-    std::atomic<T>* number, T amount,
-    std::memory_order order = std::memory_order_seq_cst)
-  requires std::is_unsigned<T>::value
+    ::std::atomic<T>* number, T amount,
+    ::std::memory_order order = ::std::memory_order_seq_cst)
+  requires ::std::is_unsigned<T>::value
 {
   const T old = number->fetch_sub(amount, order);
   DCHECK_GE(old, amount);
@@ -301,17 +301,17 @@ inline void CheckedDecrement(
 #endif
 
 template <typename T>
-V8_INLINE std::atomic<T>* AsAtomicPtr(T* t) {
-  static_assert(sizeof(T) == sizeof(std::atomic<T>));
-  static_assert(alignof(T) >= alignof(std::atomic<T>));
-  return reinterpret_cast<std::atomic<T>*>(t);
+V8_INLINE ::std::atomic<T>* AsAtomicPtr(T* t) {
+  static_assert(sizeof(T) == sizeof(::std::atomic<T>));
+  static_assert(alignof(T) >= alignof(::std::atomic<T>));
+  return reinterpret_cast<::std::atomic<T>*>(t);
 }
 
 template <typename T>
-V8_INLINE const std::atomic<T>* AsAtomicPtr(const T* t) {
-  static_assert(sizeof(T) == sizeof(std::atomic<T>));
-  static_assert(alignof(T) >= alignof(std::atomic<T>));
-  return reinterpret_cast<const std::atomic<T>*>(t);
+V8_INLINE const ::std::atomic<T>* AsAtomicPtr(const T* t) {
+  static_assert(sizeof(T) == sizeof(::std::atomic<T>));
+  static_assert(alignof(T) >= alignof(::std::atomic<T>));
+  return reinterpret_cast<const ::std::atomic<T>*>(t);
 }
 
 }  // namespace base

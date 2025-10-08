@@ -70,8 +70,8 @@
 
 #include <type_traits>
 
-#include "src/base/macros.h"
-#include "src/base/once.h"
+#include "macros.h"
+#include "once.h"
 
 namespace v8 {
 namespace base {
@@ -141,7 +141,7 @@ struct DefaultCreateTrait {
 
 struct ThreadSafeInitOnceTrait {
   template <typename Function, typename Storage>
-  static void Init(v8::Once::OnceType* once, Function function, Storage storage) {
+  static void Init(Once::OnceType* once, Function function, Storage storage) {
     CallOnce(once, function, storage);
   }
 };
@@ -150,7 +150,7 @@ struct ThreadSafeInitOnceTrait {
 // Initialization trait for users who don't care about thread-safety.
 struct SingleThreadInitOnceTrait {
   template <typename Function, typename Storage>
-  static void Init(v8::Once::OnceType* once, Function function, Storage storage) {
+  static void Init(Once::OnceType* once, Function function, Storage storage) {
     if (*once == ONCE_STATE_UNINITIALIZED) {
       function(storage);
       *once = ONCE_STATE_DONE;

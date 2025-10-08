@@ -152,8 +152,8 @@ class FrameTranslationBuilder {
   void FinishPendingInstructionIfNeeded();
   void ValidateBytes(DeoptTranslationIterator& iter) const;
 
-  ::v8::base::Vector<uint8_t> contents_;
-  ::v8::base::Vector<int32_t> contents_for_compression_;
+  ZoneVector<uint8_t> contents_;
+  ZoneVector<int32_t> contents_for_compression_;
   // If match_previous_allowed_ is false, then this vector contains the
   // instructions written so far in the current translation (since the last
   // BEGIN). If match_previous_allowed_ is true, then this vector contains the
@@ -161,7 +161,7 @@ class FrameTranslationBuilder {
   // !match_previous_allowed_). This allows Add() to easily check whether a
   // newly added instruction matches the corresponding one from the basis
   // translation.
-  ::v8::base::Vector<Instruction> basis_instructions_;
+  ZoneVector<Instruction> basis_instructions_;
 #ifdef ENABLE_SLOW_DCHECKS
   std::vector<Instruction> all_instructions_;
 #endif

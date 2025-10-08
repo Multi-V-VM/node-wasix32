@@ -6,8 +6,8 @@
 #include "wasi/nuclear-fix.h"
 #include "wasi/v8-wasi-compat.h"
 #include "../../../../wasi-v8-internals-minimal.h"
-// Correct path to local fixes header in this repository
-#include "../../../../wasi-v8-bits-fixes.h"
+// Include V8 base headers at global scope first to avoid namespace nesting
+#include "../../../../wasi-v8-base-includes.h"
 #include "wasi/wasi-v8-missing-types.h"
 #include "../../../../wasi-v8-custom-arguments.h"
 // Provide namespace bridges and base helpers for internal code

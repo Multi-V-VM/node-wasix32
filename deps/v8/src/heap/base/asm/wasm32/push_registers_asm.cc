@@ -26,7 +26,7 @@ extern "C" void PushAllRegistersAndIterateStack(
   // Get current stack pointer - this is platform-specific
   // For WASM, we approximate by taking the address of a local variable
   volatile uintptr_t stack_marker = 0;
-  void* current_sp = const_cast<void*>(reinterpret_cast<const void*>(&stack_marker));
+  void* current_sp = const_cast<void*>(reinterpret_cast<const volatile void*>(&stack_marker));
   
   // In a real WASM implementation, the runtime would provide access to:
   // - Linear memory base and size

@@ -17,6 +17,7 @@
 //
 // The following assumes cdecl calling convention.
 // Source: https://en.wikipedia.org/wiki/X86_calling_conventions#cdecl
+#ifndef __wasi__
 asm(
 #ifdef _WIN32
     ".att_syntax                                        \n"
@@ -58,3 +59,6 @@ asm(
     ".Lfunc_end0-PushAllRegistersAndIterateStack\n"
 #endif  // !defined(__APPLE__) && !defined(_WIN32)
     );
+#else   // __wasi__
+#include "../wasm32/push_registers_asm.cc"
+#endif  // __wasi__

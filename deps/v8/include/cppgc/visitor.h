@@ -15,7 +15,8 @@ namespace cppgc {
 class HeapHandle;
 
 // Use existing TraceDescriptor from trace-trait.h
-// WeakCallback is defined elsewhere, don't redefine it
+// WeakCallback is defined in v8-cppgc.h - don't redefine it here
+// SpaceTrait is defined in wasi-cppgc-stubs.h - don't redefine it here
 
 class V8_EXPORT Visitor {
  public:

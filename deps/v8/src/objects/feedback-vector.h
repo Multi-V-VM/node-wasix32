@@ -21,6 +21,8 @@
 #include "src/objects/type-hints.h"
 #include "src/zone/zone-containers.h"
 
+#include "torque-generated/class-definitions-tq-inl.h"
+
 // Has to be the last include (doesn't have include guards):
 #include "src/objects/object-macros.h"
 

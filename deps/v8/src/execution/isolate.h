@@ -16,10 +16,12 @@
 #include <vector>
 
 #include "include/v8-context.h"
+#include "include/v8-debug.h"
 #include "include/v8-internal.h"
 #include "include/v8-isolate.h"
 #include "include/v8-metrics.h"
 #include "include/v8-snapshot.h"
+#include "src/base/address-region.h"
 #include "src/base/macros.h"
 #include "src/base/platform/mutex.h"
 #include "src/base/platform/platform-posix.h"
@@ -575,7 +577,7 @@ using DebugObjectCache = std::vector<Handle<HeapObject>>;
 // Do not use this variable directly, use Isolate::Current() instead.
 // Defined outside of Isolate because Isolate uses V8_EXPORT_PRIVATE.
 __attribute__((tls_model(V8_TLS_MODEL))) extern thread_local Isolate*
-    g_current_isolate_ V8_CONSTINIT;
+    g_current_isolate_;
 
 // HiddenFactory exists so Isolate can privately inherit from it without making
 // Factory's members available to Isolate directly.
@@ -588,10 +590,12 @@ class V8_EXPORT_PRIVATE Isolate final : private HiddenFactory {
   class EntryStackItem;
 
  public:
-  Isolate(const Isolate&) = delete;
-  Isolate& operator=(const Isolate&) = delete;
+ Isolate(const Isolate&) = delete;
+ Isolate& operator=(const Isolate&) = delete;
 
   using HandleScopeType = HandleScope;
+  using AbortOnUncaughtExceptionCallback =
+      v8::Isolate::AbortOnUncaughtExceptionCallback;
   void* operator new(size_t) = delete;
   void operator delete(void*) = delete;
 
@@ -975,7 +979,7 @@ class V8_EXPORT_PRIVATE Isolate final : private HiddenFactory {
   bool get_capture_stack_trace_for_uncaught_exceptions() const;
 
   void SetAbortOnUncaughtExceptionCallback(
-      v8::Isolate::AbortOnUncaughtExceptionCallback callback);
+      AbortOnUncaughtExceptionCallback callback);
 
   enum PrintStackMode { kPrintStackConcise, kPrintStackVerbose };
   void PrintCurrentStackTrace(std::ostream& out,
@@ -2827,8 +2831,8 @@ class V8_EXPORT_PRIVATE Isolate final : private HiddenFactory {
 
   std::unique_ptr<LocalIsolate> main_thread_local_isolate_;
 
-  v8::Isolate::AbortOnUncaughtExceptionCallback
-      abort_on_uncaught_exception_callback_ = nullptr;
+  AbortOnUncaughtExceptionCallback abort_on_uncaught_exception_callback_ =
+      nullptr;
 
   bool allow_atomics_wait_ = true;
   bool flush_denormals_ = false;

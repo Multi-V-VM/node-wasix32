@@ -10,6 +10,11 @@
 
 namespace v8 {
 
+// Forward declarations needed by the helper functions below when the full
+// definitions are not yet visible.
+template <typename T> class PersistentBase;
+template <typename T> class TracedReference;
+
 // Helper functions to access persistent handle values
 template<typename T>
 T* GetPersistentValue(const PersistentBase<T>& handle) {

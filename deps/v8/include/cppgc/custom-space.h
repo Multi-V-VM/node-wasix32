@@ -19,7 +19,7 @@ class V8_EXPORT CustomSpaceBase {
  public:
   virtual ~CustomSpaceBase() = default;
   virtual CustomSpaceIndex GetCustomSpaceIndex() const = 0;
-  
+
  protected:
   CustomSpaceBase() = default;
 };
@@ -28,14 +28,31 @@ template <size_t kSpaceIndex>
 class CustomSpace : public CustomSpaceBase {
  public:
   static constexpr CustomSpaceIndex kSpaceIndex_ = kSpaceIndex;
-  
+
   CustomSpaceIndex GetCustomSpaceIndex() const final {
     return kSpaceIndex_;
   }
-  
+
  protected:
   CustomSpace() = default;
 };
+
+#ifdef __wasi__
+// WASI-specific: DefaultCustomSpace for default allocation
+class DefaultCustomSpace : public CustomSpaceBase {
+ public:
+  static constexpr size_t kSpaceIndex = 0;
+  CustomSpaceIndex GetCustomSpaceIndex() const override {
+    return kSpaceIndex;
+  }
+};
+
+// SpaceTrait template for WASI - use DefaultCustomSpace as default
+template <typename T>
+struct SpaceTrait {
+  using Space = DefaultCustomSpace;
+};
+#endif  // __wasi__
 
 }  // namespace cppgc
 

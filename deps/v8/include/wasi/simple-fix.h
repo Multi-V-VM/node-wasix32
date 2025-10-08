@@ -7,6 +7,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <memory>
+#include <cstring>
 
 // Disable problematic filesystem features
 #define _LIBCPP_HAS_NO_FILESYSTEM_LIBRARY 1
@@ -42,12 +43,16 @@ inline int64_t ClockNow(int) { return 0; }
 } // namespace base
 
 namespace internal {
-// Only define missing V8 internal constants
+// Only define missing V8 internal constants if they haven't been provided by
+// another WASI shim already.
+#ifndef V8_WASI_SMI_CONSTANTS_DEFINED
 constexpr int kSmiTagSize = 1;
 constexpr int kSmiShiftSize = 0;
 constexpr int kSmiValueSize = 31;
 constexpr int kSystemPointerSize = sizeof(void*);
 constexpr int kTaggedSize = sizeof(void*);
+#define V8_WASI_SMI_CONSTANTS_DEFINED 1
+#endif
 } // namespace internal
 
 } // namespace v8

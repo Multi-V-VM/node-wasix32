@@ -24,7 +24,7 @@ namespace base {
 template <class T, int shift, int size, class U = uint32_t>
 class BitField final {
  public:
-  static_assert(std::is_unsigned<U>::value);
+  static_assert(::std::is_unsigned<U>::value);
   static_assert(shift < 8 * sizeof(U));  // Otherwise shifts by {shift} are UB.
   static_assert(size < 8 * sizeof(U));   // Otherwise shifts by {size} are UB.
   static_assert(shift + size <= 8 * sizeof(U));
@@ -78,12 +78,12 @@ template <typename A, typename B>
 class BitFieldUnion final {
  public:
   static_assert(
-      std::is_same<typename A::BaseType, typename B::BaseType>::value);
+      ::std::is_same<typename A::BaseType, typename B::BaseType>::value);
   static_assert((A::kMask & B::kMask) == 0);
-  static constexpr int kShift = std::min(A::kShift, B::kShift);
+  static constexpr int kShift = ::std::min(A::kShift, B::kShift);
   static constexpr int kMask = A::kMask | B::kMask;
   static constexpr int kSize =
-      A::kSize + B::kSize + (std::max(A::kShift, B::kShift) - kShift);
+      A::kSize + B::kSize + (::std::max(A::kShift, B::kShift) - kShift);
 };
 
 template <class T, int shift, int size>

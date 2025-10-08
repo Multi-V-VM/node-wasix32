@@ -85,16 +85,16 @@ constexpr int CountPopulation(uint64_t value) {
 
 // Provide saturated 64-bit add/sub for WASI builds
 constexpr int64_t SignedSaturatedAdd64(int64_t a, int64_t b) {
-  const int64_t max = std::numeric_limits<int64_t>::max();
-  const int64_t min = std::numeric_limits<int64_t>::min();
+  const int64_t max = ::std::numeric_limits<int64_t>::max();
+  const int64_t min = ::std::numeric_limits<int64_t>::min();
   if (b > 0 && a > max - b) return max;
   if (b < 0 && a < min - b) return min;
   return a + b;
 }
 
 constexpr int64_t SignedSaturatedSub64(int64_t a, int64_t b) {
-  const int64_t max = std::numeric_limits<int64_t>::max();
-  const int64_t min = std::numeric_limits<int64_t>::min();
+  const int64_t max = ::std::numeric_limits<int64_t>::max();
+  const int64_t min = ::std::numeric_limits<int64_t>::min();
   if (b < 0 && a > max + b) return max;
   if (b > 0 && a < min + b) return min;
   return a - b;

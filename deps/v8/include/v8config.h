@@ -97,7 +97,57 @@
 #define V8_NOEXCEPT noexcept
 
 #else
-// Non-WASI standard configuration
+// Non-WASI fallback configuration used when building host tools during
+// cross-compilation. Provide the minimal macro set expected by the headers
+// above without pulling in the full upstream configuration.
+
+#ifndef V8_EXPORT
+#define V8_EXPORT
+#endif
+#ifndef V8_EXPORT_PRIVATE
+#define V8_EXPORT_PRIVATE
+#endif
+#ifndef V8_INLINE
+#define V8_INLINE inline
+#endif
+#ifndef V8_NOINLINE
+#define V8_NOINLINE __attribute__((noinline))
+#endif
+#ifndef V8_WARN_UNUSED_RESULT
+#define V8_WARN_UNUSED_RESULT __attribute__((warn_unused_result))
+#endif
+#ifndef V8_NODISCARD
+#define V8_NODISCARD [[nodiscard]]
+#endif
+#ifndef V8_NOEXCEPT
+#define V8_NOEXCEPT noexcept
+#endif
+#ifndef V8_LIKELY
+#define V8_LIKELY(x) __builtin_expect(!!(x), 1)
+#endif
+#ifndef V8_UNLIKELY
+#define V8_UNLIKELY(x) __builtin_expect(!!(x), 0)
+#endif
+#ifndef V8_ASSUME
+#define V8_ASSUME(x) do { if (!(x)) __builtin_unreachable(); } while (0)
+#endif
+#ifndef V8_PRESERVE_MOST
+#define V8_PRESERVE_MOST
+#endif
+#ifndef V8_CONSTINIT
+#define V8_CONSTINIT constinit
+#endif
+#ifndef V8_CONST
+#define V8_CONST constexpr
+#endif
+#ifndef V8_THROW_DEFAULT
+#define V8_THROW_DEFAULT noexcept(false)
+#endif
+#ifndef V8_NO_UNIQUE_ADDRESS
+#define V8_NO_UNIQUE_ADDRESS [[no_unique_address]]
+#endif
+
+#define V8_CC_CLANG 1
 #endif
 
 #endif // V8_CONFIG_H_

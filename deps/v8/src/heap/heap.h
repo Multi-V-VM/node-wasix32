@@ -2674,7 +2674,6 @@ class HeapObjectAllocationTracker {
 template <typename T>
 inline Tagged<T> ForwardingAddress(Tagged<T> heap_obj);
 
-#ifndef __wasi__
 // Specialized strong root allocator for blocks of Addresses, retained
 // as strong references.
 template <>
@@ -2694,7 +2693,6 @@ class StrongRootAllocator<Address> : public StrongRootAllocatorBase {
     return deallocate_impl(p, n);
   }
 };
-#endif
 
 class V8_EXPORT_PRIVATE V8_NODISCARD EmbedderStackStateScope final {
  public:

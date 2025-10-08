@@ -8,6 +8,7 @@
 #include <memory>
 
 #include "src/base/template-utils.h"
+#include "src/codegen/assembler.h"
 #include "src/builtins/builtins.h"
 #include "src/codegen/assembler-arch.h"
 #include "src/roots/roots.h"
