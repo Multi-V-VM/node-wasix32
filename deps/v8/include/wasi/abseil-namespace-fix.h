@@ -3,16 +3,15 @@
 
 #ifdef __wasi__
 
-// Abseil sources are frequently included while wrapped inside namespace v8 or
-// v8::internal. Provide a lightweight bridge so that unqualified lookups of
-// "std" resolve to the global standard library instead of creating nested
-// v8::std or v8::internal::std namespaces.
-
-namespace v8 {
-namespace std {
-using namespace ::std;
-}  // namespace std
-}  // namespace v8
+// NOTE: We do NOT create v8::std namespace forwarding here because it causes
+// system headers (iomanip, chrono, mutex, etc.) to fail when they use std::
+// and accidentally resolve to v8::std instead of ::std.
+//
+// Instead, all code in Abseil and V8 that uses std:: must use global
+// qualification (::std::) to bypass nested namespace lookup.
+//
+// The original intent was to help abseil code find std when included in v8
+// namespace blocks, but the side effects are too severe.
 
 #endif  // __wasi__
 

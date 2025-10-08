@@ -368,9 +368,9 @@ class V8_BASE_EXPORT OS {
   friend class AddressSpaceReservation;
   friend class MemoryMappedFile;
   friend class PosixMemoryMappedFile;
-  friend class v8::base::PageAllocator;
-  friend class v8::base::VirtualAddressSpace;
-  friend class v8::base::VirtualAddressSubspace;
+  friend class ::v8::base::PageAllocator;
+  friend class ::v8::base::VirtualAddressSpace;
+  friend class ::v8::base::VirtualAddressSubspace;
   FRIEND_TEST(OS, RemapPages);
 
   static size_t AllocatePageSize();

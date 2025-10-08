@@ -319,7 +319,7 @@ template <typename D>
 inline std::string format(const std::string& fmt, const time_point<D>& tp,
                           const time_zone& tz) {
   const auto p = detail::split_seconds(tp);
-  const auto n = std::chrono::duration_cast<detail::femtoseconds>(p.second);
+  const auto n = ::std::chrono::duration_cast<detail::femtoseconds>(p.second);
   return detail::format(fmt, p.first, n, tz);
 }
 
@@ -387,13 +387,13 @@ namespace detail {
 // of a 64-bit std::time_t.
 template <typename D>
 std::pair<time_point<seconds>, D> split_seconds(const time_point<D>& tp) {
-  auto sec = std::chrono::time_point_cast<seconds>(tp);
+  auto sec = ::std::chrono::time_point_cast<seconds>(tp);
   auto sub = tp - sec;
   if (sub.count() < 0) {
     sec -= seconds(1);
     sub += seconds(1);
   }
-  return {sec, std::chrono::duration_cast<D>(sub)};
+  return {sec, ::std::chrono::duration_cast<D>(sub)};
 }
 
 inline std::pair<time_point<seconds>, seconds> split_seconds(
@@ -410,8 +410,8 @@ bool join_seconds(
     time_point<std::chrono::duration<Rep, std::ratio<1, Denom>>>* tpp) {
   using D = std::chrono::duration<Rep, std::ratio<1, Denom>>;
   // TODO(#199): Return false if result unrepresentable as a time_point<D>.
-  *tpp = std::chrono::time_point_cast<D>(sec);
-  *tpp += std::chrono::duration_cast<D>(fs);
+  *tpp = ::std::chrono::time_point_cast<D>(sec);
+  *tpp += ::std::chrono::duration_cast<D>(fs);
   return true;
 }
 

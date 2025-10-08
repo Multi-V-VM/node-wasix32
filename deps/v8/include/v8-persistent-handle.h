@@ -216,7 +216,7 @@ class PersistentBase : public api_internal::IndirectHandleBase {
    * WASI stub: Check if the persistent handle is empty
    */
   V8_INLINE bool IsEmpty() const {
-    return slot() == nullptr || *slot() == internal::kNullAddress;
+    return slot() == nullptr || *slot() == ::v8::internal::kNullAddress;
   }
   
   /**
