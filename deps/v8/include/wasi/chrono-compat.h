@@ -6,6 +6,9 @@
 
 #ifdef __wasi__
 
+// Close any open v8 namespace before including standard library headers
+}  // close any v8 namespace if open
+
 #include <chrono>
 #include <ratio>
 
@@ -32,6 +35,9 @@ using file_time_type = WasiFileClock::time_point;
 
 }  // namespace internal
 }  // namespace v8
+
+// Re-open the v8 namespace if it was closed at the beginning
+namespace v8 {
 
 #endif  // __wasi__
 

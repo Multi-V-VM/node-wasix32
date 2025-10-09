@@ -20,6 +20,11 @@
 #include "v8-value.h"         // NOLINT(build/include_directory)
 #include "v8config.h"         // NOLINT(build/include_directory)
 
+#ifdef __wasi__
+// Close any open v8 namespace before we declare our own
+}  // close any v8 namespace if open
+#endif
+
 namespace v8 {
 
 class Context;
@@ -44,7 +49,7 @@ class V8_EXPORT Primitive : public Value {};
 class V8_EXPORT Boolean : public Primitive {
  public:
   bool Value() const;
-  V8_INLINE static Boolean* Cast(v8::Data* data) {
+  V8_INLINE static Boolean* Cast(Data* data) {
 #ifdef V8_ENABLE_CHECKS
     CheckCast(data);
 #endif
@@ -58,7 +63,7 @@ class V8_EXPORT Boolean : public Primitive {
   V8_INLINE static Local<Boolean> New(Isolate* isolate, bool value);
 
  private:
-  static void CheckCast(v8::Data* that);
+  static void CheckCast(Data* that);
 };
 
 /**
@@ -519,7 +524,7 @@ class V8_EXPORT String : public Name {
    */
   const ExternalOneByteStringResource* GetExternalOneByteStringResource() const;
 
-  V8_INLINE static String* Cast(v8::Data* data) {
+  V8_INLINE static String* Cast(Data* data) {
 #ifdef V8_ENABLE_CHECKS
     CheckCast(data);
 #endif
@@ -662,7 +667,7 @@ class V8_EXPORT String : public Name {
    */
   class V8_EXPORT Utf8Value {
    public:
-    Utf8Value(Isolate* isolate, Local<v8::Value> obj,
+    Utf8Value(Isolate* isolate, Local<Value> obj,
               WriteOptions options = REPLACE_INVALID_UTF8);
     ~Utf8Value();
     char* operator*() { return str_; }
@@ -690,7 +695,7 @@ class V8_EXPORT String : public Name {
    */
   class V8_EXPORT Value {
    public:
-    Value(Isolate* isolate, Local<v8::Value> obj);
+    Value(Isolate* isolate, Local<Value> obj);
     ~Value();
     uint16_t* operator*() { return str_; }
     const uint16_t* operator*() const { return str_; }
@@ -764,7 +769,7 @@ class V8_EXPORT String : public Name {
                                               const char* literal,
                                               NewStringType type, int length);
 
-  static void CheckCast(v8::Data* that);
+  static void CheckCast(Data* that);
 };
 
 // Zero-length string specialization (templated string size includes
@@ -855,7 +860,7 @@ class V8_EXPORT Symbol : public Name {
 class V8_EXPORT Numeric : public Primitive {
  private:
   Numeric();
-  static void CheckCast(v8::Data* that);
+  static void CheckCast(Data* that);
 };
 
 /**
@@ -865,7 +870,7 @@ class V8_EXPORT Number : public Numeric {
  public:
   double Value() const;
   static Local<Number> New(Isolate* isolate, double value);
-  V8_INLINE static Number* Cast(v8::Data* data) {
+  V8_INLINE static Number* Cast(Data* data) {
 #ifdef V8_ENABLE_CHECKS
     CheckCast(data);
 #endif
@@ -878,7 +883,7 @@ class V8_EXPORT Number : public Numeric {
 
  private:
   Number();
-  static void CheckCast(v8::Data* that);
+  static void CheckCast(Data* that);
 };
 
 /**
@@ -889,7 +894,7 @@ class V8_EXPORT Integer : public Number {
   static Local<Integer> New(Isolate* isolate, int32_t value);
   static Local<Integer> NewFromUnsigned(Isolate* isolate, uint32_t value);
   int64_t Value() const;
-  V8_INLINE static Integer* Cast(v8::Data* data) {
+  V8_INLINE static Integer* Cast(Data* data) {
 #ifdef V8_ENABLE_CHECKS
     CheckCast(data);
 #endif
@@ -902,7 +907,7 @@ class V8_EXPORT Integer : public Number {
 
  private:
   Integer();
-  static void CheckCast(v8::Data* that);
+  static void CheckCast(Data* that);
 };
 
 /**
@@ -911,7 +916,7 @@ class V8_EXPORT Integer : public Number {
 class V8_EXPORT Int32 : public Integer {
  public:
   int32_t Value() const;
-  V8_INLINE static Int32* Cast(v8::Data* data) {
+  V8_INLINE static Int32* Cast(Data* data) {
 #ifdef V8_ENABLE_CHECKS
     CheckCast(data);
 #endif
@@ -924,7 +929,7 @@ class V8_EXPORT Int32 : public Integer {
 
  private:
   Int32();
-  static void CheckCast(v8::Data* that);
+  static void CheckCast(Data* that);
 };
 
 /**
@@ -933,7 +938,7 @@ class V8_EXPORT Int32 : public Integer {
 class V8_EXPORT Uint32 : public Integer {
  public:
   uint32_t Value() const;
-  V8_INLINE static Uint32* Cast(v8::Data* data) {
+  V8_INLINE static Uint32* Cast(Data* data) {
 #ifdef V8_ENABLE_CHECKS
     CheckCast(data);
 #endif
@@ -946,7 +951,7 @@ class V8_EXPORT Uint32 : public Integer {
 
  private:
   Uint32();
-  static void CheckCast(v8::Data* that);
+  static void CheckCast(Data* that);
 };
 
 /**
@@ -997,7 +1002,7 @@ class V8_EXPORT BigInt : public Numeric {
    */
   void ToWordsArray(int* sign_bit, int* word_count, uint64_t* words) const;
 
-  V8_INLINE static BigInt* Cast(v8::Data* data) {
+  V8_INLINE static BigInt* Cast(Data* data) {
 #ifdef V8_ENABLE_CHECKS
     CheckCast(data);
 #endif
@@ -1010,7 +1015,7 @@ class V8_EXPORT BigInt : public Numeric {
 
  private:
   BigInt();
-  static void CheckCast(v8::Data* that);
+  static void CheckCast(Data* that);
 };
 
 Local<String> String::Empty(Isolate* isolate) {
@@ -1133,5 +1138,10 @@ Local<Boolean> Boolean::New(Isolate* isolate, bool value) {
 }
 
 }  // namespace v8
+
+#ifdef __wasi__
+// Re-open the v8 namespace if it was closed at the beginning
+namespace v8 {
+#endif
 
 #endif  // INCLUDE_V8_PRIMITIVE_H_

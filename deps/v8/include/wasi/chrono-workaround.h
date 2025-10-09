@@ -6,6 +6,9 @@
 
 #ifdef __wasi__
 
+// Close any open v8 namespace before including standard library headers
+}  // close any v8 namespace if open
+
 // Prevent inclusion of broken file_clock.h
 #define _LIBCPP_CHRONO_FILE_CLOCK_H 1
 #define _LIBCPP_HAS_NO_FILESYSTEM_LIBRARY 1
@@ -61,6 +64,9 @@ struct _FilesystemClock {
 
 // Now it's safe to include chrono
 #include <chrono>
+
+// Re-open the v8 namespace if it was closed at the beginning
+namespace v8 {
 
 #endif  // __wasi__
 #endif  // WASI_CHRONO_WORKAROUND_H

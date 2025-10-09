@@ -20,6 +20,11 @@
 #include "v8-promise.h"       // NOLINT(build/include_directory)
 #include "v8config.h"         // NOLINT(build/include_directory)
 
+#ifdef __wasi__
+// Close any open v8 namespace before we declare our own
+}  // close any v8 namespace if open
+#endif
+
 #if defined(V8_OS_WIN)
 struct _EXCEPTION_POINTERS;
 #endif
@@ -521,5 +526,10 @@ using FilterETWSessionByURL2Callback = FilterETWSessionByURLResult (*)(
 #endif  // V8_OS_WIN
 
 }  // namespace v8
+
+#ifdef __wasi__
+// Re-open the v8 namespace if it was closed at the beginning
+namespace v8 {
+#endif
 
 #endif  // INCLUDE_V8_ISOLATE_CALLBACKS_H_

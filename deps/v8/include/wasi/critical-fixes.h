@@ -1,6 +1,11 @@
 #ifndef WASI_CRITICAL_FIXES_H
 #define WASI_CRITICAL_FIXES_H
 
+#ifdef __wasi__
+// Close any open v8 namespace before including standard library headers
+}  // close any v8 namespace if open
+#endif
+
 #include <cstddef>
 #include <cstdint>
 
@@ -33,5 +38,10 @@ using IndirectPointerHandle = uint32_t;
 
 }  // namespace internal
 }  // namespace v8
+
+#ifdef __wasi__
+// Re-open the v8 namespace if it was closed at the beginning
+namespace v8 {
+#endif
 
 #endif // WASI_CRITICAL_FIXES_H

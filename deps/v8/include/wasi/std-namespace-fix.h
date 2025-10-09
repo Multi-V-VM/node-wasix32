@@ -10,7 +10,7 @@
 // Ensure global std namespace is accessible
 namespace std {}
 
-// Forward declare v8 types to avoid namespace conflicts  
+// Forward declare v8 types to avoid namespace conflicts
 namespace v8 {
   class Isolate;
   template<typename T> class Local;

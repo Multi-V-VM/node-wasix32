@@ -3,6 +3,9 @@
 
 #ifdef __wasi__
 
+// Close any open v8 namespace before including standard library headers
+}  // close any v8 namespace if open
+
 // Include standard headers first
 #include <cstddef>
 #include <cstdint>
@@ -71,6 +74,9 @@ template<typename T> std::string PrintCheckOperand(T) { return "value"; }
 #define V8_PLATFORM_EXPORT
 #define NON_EXPORTED_BASE(x) x
 #define DISABLE_CFI_ICALL
+
+// Re-open the v8 namespace if it was closed at the beginning
+namespace v8 {
 
 #endif // __wasi__
 #endif // MASTER_WASI_FIX_H

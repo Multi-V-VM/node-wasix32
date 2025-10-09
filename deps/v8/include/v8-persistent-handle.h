@@ -34,7 +34,7 @@ class PersistentValueMap;
 class Value;
 
 namespace api_internal {
-V8_EXPORT internal::Address* Eternalize(v8::Isolate* isolate, Value* handle);
+V8_EXPORT internal::Address* Eternalize(Isolate* isolate, Value* handle);
 V8_EXPORT internal::Address* CopyGlobalReference(internal::Address* from);
 V8_EXPORT void DisposeGlobal(internal::Address* global_handle);
 V8_EXPORT void MakeWeak(internal::Address** location_addr);
@@ -521,7 +521,7 @@ void Persistent<T, M>::Copy(const Persistent<S, M2>& that) {
 
 template <class T>
 bool PersistentBase<T>::IsWeak() const {
-  using I = internal::Internals;
+  using I = ::v8::internal::Internals;
   if (this->IsEmpty()) return false;
   return I::GetNodeState(this->slot()) == I::kNodeStateIsWeakValue;
 }
@@ -595,7 +595,7 @@ void PersistentBase<T>::AnnotateStrongRetainer(const char* label) {
 
 template <class T>
 void PersistentBase<T>::SetWrapperClassId(uint16_t class_id) {
-  using I = internal::Internals;
+  using I = ::v8::internal::Internals;
   if (this->IsEmpty()) return;
   uint8_t* addr = reinterpret_cast<uint8_t*>(slot()) + I::kNodeClassIdOffset;
   *reinterpret_cast<uint16_t*>(addr) = class_id;
@@ -603,7 +603,7 @@ void PersistentBase<T>::SetWrapperClassId(uint16_t class_id) {
 
 template <class T>
 uint16_t PersistentBase<T>::WrapperClassId() const {
-  using I = internal::Internals;
+  using I = ::v8::internal::Internals;
   if (this->IsEmpty()) return 0;
   uint8_t* addr = reinterpret_cast<uint8_t*>(slot()) + I::kNodeClassIdOffset;
   return *reinterpret_cast<uint16_t*>(addr);

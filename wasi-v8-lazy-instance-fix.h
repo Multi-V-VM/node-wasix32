@@ -3,6 +3,9 @@
 
 #ifdef __wasi__
 
+// Close any open v8 namespace before we declare our own
+}  // close any v8 namespace if open
+
 // This header MUST be included AFTER lazy-instance.h has been processed
 // It creates nested namespace aliases for traits defined in lazy-instance.h
 
@@ -34,6 +37,9 @@ template <typename T> using LazyStaticInstance = ::v8::base::LazyStaticInstance<
 }  // namespace v8
 }  // namespace v8
 }  // namespace v8
+
+// Re-open the v8 namespace if it was closed at the beginning
+namespace v8 {
 
 #endif  // __wasi__
 

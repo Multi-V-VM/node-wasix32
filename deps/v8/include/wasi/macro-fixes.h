@@ -5,6 +5,10 @@
 #define V8_WASI_MACRO_FIXES_H_
 
 #ifdef __wasi__
+
+// Close any open v8 namespace before including standard library headers
+}  // close any v8 namespace if open
+
 #include <cstdint>
 
 // Comprehensive macro fixes for WASI - FINAL VERSION
@@ -104,6 +108,9 @@ using Address = uintptr_t;
 #ifndef V8_DEPRECATED
 #define V8_DEPRECATED(message)
 #endif
+
+// Re-open the v8 namespace if it was closed at the beginning
+namespace v8 {
 
 #endif  // __wasi__
 
