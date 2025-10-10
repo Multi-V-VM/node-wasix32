@@ -17,7 +17,7 @@
 
 #include "v8-local-handle.h"  // NOLINT(build/include_directory)
 #include "v8-memory-span.h"   // NOLINT(build/include_directory)
-#include "v8-promise.h"       // NOLINT(build/include_directory)
+#include "v8-maybe-local.h"   // NOLINT(build/include_directory)
 #include "v8config.h"         // NOLINT(build/include_directory)
 
 namespace v8 {
@@ -107,7 +107,12 @@ class V8_EXPORT MeasureMemoryDelegate {
    */
   static std::unique_ptr<MeasureMemoryDelegate> Default(
       Isolate* isolate, Local<Context> context,
-      Local<Promise::Resolver> promise_resolver, MeasureMemoryMode mode);
+#ifdef __wasi__
+      Local<Object> promise_resolver,
+#else
+      Local<Promise::Resolver> promise_resolver,
+#endif
+      MeasureMemoryMode mode);
 };
 
 /**

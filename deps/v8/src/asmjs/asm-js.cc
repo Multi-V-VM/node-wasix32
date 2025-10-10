@@ -140,7 +140,7 @@ void Report(Handle<Script> script, int position, ::v8::base::Vector<const char> 
 void ReportCompilationSuccess(Handle<Script> script, int position,
                               double compile_time, size_t module_size) {
   if (v8_flags.suppress_asm_messages || !v8_flags.trace_asm_time) return;
-  base::Embedded::v8::base::Vector<char, 100> text;
+  v8::base::EmbeddedVector<char, 100> text;
   int length = SNPrintF(text, "success, compile time %0.3f ms, %zu bytes",
                         compile_time, module_size);
   CHECK_NE(-1, length);
@@ -161,7 +161,7 @@ void ReportCompilationFailure(ParseInfo* parse_info, int position,
 void ReportInstantiationSuccess(Handle<Script> script, int position,
                                 double instantiate_time) {
   if (v8_flags.suppress_asm_messages || !v8_flags.trace_asm_time) return;
-  base::Embedded::v8::base::Vector<char, 50> text;
+  v8::base::EmbeddedVector<char, 50> text;
   int length = SNPrintF(text, "success, %0.3f ms", instantiate_time);
   CHECK_NE(-1, length);
   text.Truncate(length);

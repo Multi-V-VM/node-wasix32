@@ -189,7 +189,7 @@ void EmitUnwindData(PlatformEmbeddedFileWriterWin* w,
 
   // Fairly arbitrary but should fit all symbol names.
   static constexpr int kTemporaryStringLength = 256;
-  base::Embedded::v8::base::Vector<char, kTemporaryStringLength> unwind_info_full_symbol;
+  v8::base::EmbeddedVector<char, kTemporaryStringLength> unwind_info_full_symbol;
 
   // Emit a RUNTIME_FUNCTION (PDATA) entry for each builtin function, as
   // documented here:

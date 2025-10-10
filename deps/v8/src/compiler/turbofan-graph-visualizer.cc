@@ -305,7 +305,7 @@ std::unique_ptr<char[]> GetVisualizerLogFileName(OptimizedCompilationInfo* info,
                                                  const char* optional_base_dir,
                                                  const char* phase,
                                                  const char* suffix) {
-  base::Embedded::v8::base::Vector<char, 256> filename(0);
+  v8::base::EmbeddedVector<char, 256> filename(0);
   std::unique_ptr<char[]> debug_name = info->GetDebugName();
   const char* file_prefix = v8_flags.trace_turbo_file_prefix.value();
   int optimization_id = info->IsOptimizing() ? info->optimization_id() : 0;
@@ -324,7 +324,7 @@ std::unique_ptr<char[]> GetVisualizerLogFileName(OptimizedCompilationInfo* info,
   } else {
     SNPrintF(filename, "%s-none-%i", file_prefix, optimization_id);
   }
-  base::Embedded::v8::base::Vector<char, 256> source_file(0);
+  v8::base::EmbeddedVector<char, 256> source_file(0);
   bool source_available = false;
   if (v8_flags.trace_file_names && info->has_shared_info() &&
       IsScript(info->shared_info()->script())) {
@@ -351,7 +351,7 @@ std::unique_ptr<char[]> GetVisualizerLogFileName(OptimizedCompilationInfo* info,
                '}');
 #endif  // V8_OS_WIN
 
-  base::Embedded::v8::base::Vector<char, 256> base_dir;
+  v8::base::EmbeddedVector<char, 256> base_dir;
   if (optional_base_dir != nullptr) {
     SNPrintF(base_dir, "%s%c", optional_base_dir,
              base::OS::DirectorySeparator());
@@ -359,7 +359,7 @@ std::unique_ptr<char[]> GetVisualizerLogFileName(OptimizedCompilationInfo* info,
     base_dir[0] = '\0';
   }
 
-  base::Embedded::v8::base::Vector<char, 256> full_filename;
+  v8::base::EmbeddedVector<char, 256> full_filename;
   if (phase == nullptr && !source_available) {
     SNPrintF(full_filename, "%s%s.%s", base_dir.begin(), filename.begin(),
              suffix);

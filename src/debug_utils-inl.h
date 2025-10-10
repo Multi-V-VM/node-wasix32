@@ -77,26 +77,56 @@ inline std::string SPrintFImpl(const char* format) {
 template <typename Arg, typename... Args>
 std::string COLD_NOINLINE SPrintFImpl(  // NOLINT(runtime/string)
     const char* format, Arg&& arg, Args&&... args) {
-  const char* p = strchr(format, '%');
-  CHECK_NOT_NULL(p);  // If you hit this, you passed in too many arguments.
-  std::string ret(format, p);
-  // Ignore long / size_t modifiers
-  while (strchr("lz", *++p) != nullptr) {}
+  const char* percent = strchr(format, '%');
+  CHECK_NOT_NULL(percent);  // If you hit this, you passed in too many arguments.
+  std::string ret(format, percent);
+
+  // Parse printf-style modifiers to find the conversion specifier.
+  const char* p = percent + 1;
+  if (*p == '%') {
+    // Escaped percent, emit one '%' and continue with same argument list.
+    return ret + '%' + SPrintFImpl(p + 1,
+                                   std::forward<Arg>(arg),
+                                   std::forward<Args>(args)...);
+  }
+
+  // Flags
+  while (*p && strchr("-+ #0", *p) != nullptr) ++p;
+  // Width
+  if (*p == '*') {
+    ++p;  // ignore dynamic width
+  } else {
+    while (*p >= '0' && *p <= '9') ++p;
+  }
+  // Precision
+  if (*p == '.') {
+    ++p;
+    if (*p == '*') {
+      ++p;  // ignore dynamic precision
+    } else {
+      while (*p >= '0' && *p <= '9') ++p;
+    }
+  }
+  // Length modifiers (support a common subset)
+  while (*p && strchr("hljztL", *p) != nullptr) ++p;
+
+  // Conversion specifier
   switch (*p) {
-    case '%': {
-      return ret + '%' + SPrintFImpl(p + 1,
-                                     std::forward<Arg>(arg),
+    case '\0':
+      // Malformed format string; include '%' and restart parsing at next char
+      return ret + '%' + SPrintFImpl(p, std::forward<Arg>(arg),
                                      std::forward<Args>(args)...);
-    }
-    default: {
-      return ret + '%' + SPrintFImpl(p,
-                                     std::forward<Arg>(arg),
-                                     std::forward<Args>(args)...);
-    }
     case 'd':
     case 'i':
     case 'u':
     case 's':
+    case 'c':
+    case 'f':
+    case 'F':
+    case 'e':
+    case 'E':
+    case 'g':
+    case 'G':
       ret += ToString(arg);
       break;
     case 'o':
@@ -110,7 +140,7 @@ std::string COLD_NOINLINE SPrintFImpl(  // NOLINT(runtime/string)
       break;
     case 'p': {
       CHECK(std::is_pointer<typename std::remove_reference<Arg>::type>::value);
-      char out[20];
+      char out[2 + sizeof(void*) * 2 + 2];
       int n = snprintf(out,
                        sizeof(out),
                        "%p",
@@ -118,6 +148,13 @@ std::string COLD_NOINLINE SPrintFImpl(  // NOLINT(runtime/string)
       CHECK_GE(n, 0);
       ret += out;
       break;
+    }
+    default: {
+      // Unknown specifier: include it verbatim and stringify the argument.
+      ret += '%';
+      ret += *p;
+      ret += ToString(arg);
+      return ret + SPrintFImpl(p + 1, std::forward<Args>(args)...);
     }
   }
   return ret + SPrintFImpl(p + 1, std::forward<Args>(args)...);

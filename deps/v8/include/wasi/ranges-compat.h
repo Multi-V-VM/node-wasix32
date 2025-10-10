@@ -9,6 +9,14 @@
 #include <type_traits>
 #include <utility>
 
+// If native <ranges> is available, do not provide a polyfill to avoid
+// ambiguous references with libc++'s std::ranges.
+#if defined(__has_include)
+#  if __has_include(<ranges>)
+#    define V8_WASI_HAS_NATIVE_RANGES 1
+#  endif
+#endif
+
 #ifdef __cpp_concepts
 #include <concepts>
 #define V8_WASI_HAS_CONCEPTS 1
@@ -28,6 +36,7 @@
   template <typename T, typename U> concept name = false
 #endif
 
+#ifndef V8_WASI_HAS_NATIVE_RANGES
 // Disable actual ranges functionality for WASI builds
 #define RANGES_DISABLED_FOR_WASI 1
 
@@ -229,5 +238,6 @@ using __v8_wasi_polyfill::ranges::elements_view;
 #undef V8_WASI_DECLARE_CONCEPT_1
 #undef V8_WASI_DECLARE_CONCEPT_2
 #undef V8_WASI_HAS_CONCEPTS
+#endif // !V8_WASI_HAS_NATIVE_RANGES
 
 #endif // WASI_RANGES_COMPAT_H_

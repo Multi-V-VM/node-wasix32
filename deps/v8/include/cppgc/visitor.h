@@ -9,10 +9,14 @@
 #include "cppgc/trace-trait.h"
 #include "cppgc/source-location.h"
 #include "v8config.h"
+#include "v8-traced-handle.h"  // Ensure v8::TracedReference is visible
 
 namespace cppgc {
 
 class HeapHandle;
+
+// Public WeakCallback function type available to internal visitors.
+using WeakCallback = void(*)(const void*);
 
 // Use existing TraceDescriptor from trace-trait.h
 // WeakCallback is defined in v8-cppgc.h - don't redefine it here
@@ -22,6 +26,9 @@ class V8_EXPORT Visitor {
  public:
   explicit Visitor(HeapHandle& heap_handle) : heap_handle_(heap_handle) {}
   virtual ~Visitor() = default;
+
+  // Pull the function type into the class for convenience in derived code.
+  using WeakCallback = ::cppgc::WeakCallback;
 
   template <typename T>
   void Trace(const T& t) {

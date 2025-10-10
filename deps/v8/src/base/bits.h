@@ -27,10 +27,6 @@ inline uint32_t RoundUpToPowerOfTwo32(uint32_t value) {
   return value + 1;
 }
 
-inline uint32_t RoundUpToPowerOfTwo(uint32_t value) {
-  return RoundUpToPowerOfTwo32(value);
-}
-
 inline uint64_t RoundUpToPowerOfTwo64(uint64_t value) {
   if (value <= 1) return 1;
   value--;
@@ -43,16 +39,14 @@ inline uint64_t RoundUpToPowerOfTwo64(uint64_t value) {
   return value + 1;
 }
 
-inline uint64_t RoundUpToPowerOfTwo(uint64_t value) {
-  return RoundUpToPowerOfTwo64(value);
-}
-
-// Overload for size_t
-inline size_t RoundUpToPowerOfTwo(size_t value) {
-  if constexpr (sizeof(size_t) == sizeof(uint32_t)) {
-    return RoundUpToPowerOfTwo32(static_cast<uint32_t>(value));
+// Generic RoundUpToPowerOfTwo for integral types
+template <typename T>
+inline T RoundUpToPowerOfTwo(T value) {
+  static_assert(::std::is_integral<T>::value, "T must be integral");
+  if constexpr (sizeof(T) <= sizeof(uint32_t)) {
+    return static_cast<T>(RoundUpToPowerOfTwo32(static_cast<uint32_t>(value)));
   } else {
-    return RoundUpToPowerOfTwo64(static_cast<uint64_t>(value));
+    return static_cast<T>(RoundUpToPowerOfTwo64(static_cast<uint64_t>(value)));
   }
 }
 

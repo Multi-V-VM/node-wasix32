@@ -39,7 +39,7 @@ Vector<const char> GetDebugName(Zone* zone,
 
   constexpr int kBufferLength = 24;
 
-  base::Embedded::v8::base::Vector<char, kBufferLength> name_vector;
+  v8::base::EmbeddedVector<char, kBufferLength> name_vector;
   int name_len = SNPrintF(name_vector, "wasm-function#%d", index);
   DCHECK(name_len > 0 && name_len < name_vector.length());
 

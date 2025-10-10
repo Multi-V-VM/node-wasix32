@@ -974,7 +974,7 @@ DirectHandle<Script> CreateWasmScript(
   } else {
     // Limit the printed hash to 8 characters.
     uint32_t hash = static_cast<uint32_t>(GetWireBytesHash(wire_bytes));
-    base::Embedded::v8::base::Vector<char, 32> buffer;
+    v8::base::EmbeddedVector<char, 32> buffer;
     if (module->name.is_empty()) {
       // Build the URL in the form "wasm://wasm/<hash>".
       int url_len = SNPrintF(buffer, "wasm://wasm/%08x", hash);

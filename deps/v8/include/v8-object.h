@@ -35,6 +35,12 @@
 
 namespace v8 {
 
+#ifndef V8_HAVE_LOCALVECTOR
+#include <vector>
+template <typename T> class Local;
+template <typename T> using LocalVector = ::std::vector<Local<T>>;
+#endif
+
 // Type alias for backward compatibility
 // BasicTracedReference is defined separately in v8-function-callback.h
 

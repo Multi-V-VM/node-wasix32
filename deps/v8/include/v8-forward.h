@@ -12,28 +12,34 @@
 // either by pointer or using Local<Type>. The full definitions can be included
 // either via v8.h or the more fine-grained headers.
 
-#include "v8-local-handle.h"  // NOLINT(build/include_directory)
 #include <vector>
 
 namespace v8 {
 
-// LocalVector template for WASI builds
+// Forward declare Local to avoid pulling heavy headers here.
+template <typename T>
+class Local;
+
+// Forward-declare Isolate for LocalVector constructors.
+class Isolate;
+
+// Lightweight LocalVector wrapper that accepts common V8-style constructors
+// taking an Isolate* while storing Locals in a std::vector.
 template <typename T>
 class LocalVector : public ::std::vector<Local<T>> {
+  using Base = ::std::vector<Local<T>>;
  public:
+  using Base::Base;  // inherit std::vector constructors
   LocalVector() = default;
-  explicit LocalVector(Isolate* isolate) : ::std::vector<Local<T>>() {
-    // Isolate parameter is ignored in WASI build
-  }
-  LocalVector(Isolate* isolate, size_t size) : ::std::vector<Local<T>>(size) {
-    // Isolate parameter is ignored in WASI build
-  }
-  LocalVector(Isolate* isolate, ::std::initializer_list<Local<T>> init)
-      : ::std::vector<Local<T>>(init) {
-    // Isolate parameter is ignored in WASI build
-  }
-  using ::std::vector<Local<T>>::vector;
+  explicit LocalVector(Isolate* /*isolate*/) : Base() {}
+  LocalVector(Isolate* /*isolate*/, size_t size) : Base(size) {}
+  LocalVector(Isolate* /*isolate*/, ::std::initializer_list<Local<T>> init)
+      : Base(init) {}
 };
+
+#ifndef V8_HAVE_LOCALVECTOR
+#define V8_HAVE_LOCALVECTOR 1
+#endif
 
 class AccessorSignature;
 class Array;

@@ -6,8 +6,6 @@
 
 #ifdef __wasi__
 
-#include <cstdint>
-
 // Comprehensive macro fixes for WASI - FINAL VERSION
 
 // Only define macros if they haven't been defined yet
@@ -38,9 +36,6 @@
 #ifndef DISABLE_CFI_ICALL
 #define DISABLE_CFI_ICALL
 #endif
-
-// Additional platform-specific types
-using Address = uintptr_t;
 
 // V8 Platform specific macro overrides for WASI
 #ifndef V8_OS_WASI

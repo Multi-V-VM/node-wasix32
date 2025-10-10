@@ -1205,7 +1205,7 @@ class Simulator : public SimulatorBase {
   sreg_t* watch_address_ = nullptr;
   sreg_t watch_value_ = 0;
   int break_count_;
-  base::Embedded::v8::base::Vector<char, 256> trace_buf_;
+  v8::base::EmbeddedVector<char, 256> trace_buf_;
 
   // Debugger input.
   char* last_debugger_input_;

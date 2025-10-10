@@ -8,6 +8,10 @@
 #include "src/base/base-export.h"
 #include "src/base/macros.h"
 #include "src/base/vector.h"
+// Use C headers to ensure ::(global) symbols are available for unqualified
+// uses like `va_list` and `size_t` in these declarations.
+#include <stdarg.h>
+#include <stddef.h>
 
 namespace v8 {
 namespace base {

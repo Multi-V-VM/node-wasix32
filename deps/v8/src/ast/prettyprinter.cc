@@ -832,7 +832,7 @@ void AstPrinter::PrintLiteralWithModeIndented(const char* info, Variable* var,
   if (var == nullptr) {
     PrintLiteralIndented(info, value, true);
   } else {
-    base::Embedded::v8::base::Vector<char, 256> buf;
+    v8::base::EmbeddedVector<char, 256> buf;
     int pos =
         SNPrintF(buf, "%s (%p) (mode = %s, assigned = %s", info,
                  reinterpret_cast<void*>(var), VariableMode2String(var->mode()),
@@ -1178,7 +1178,7 @@ void AstPrinter::PrintClassProperty(ClassLiteral::Property* property) {
       prop_kind = "AUTO ACCESSOR";
       break;
   }
-  base::Embedded::v8::base::Vector<char, 128> buf;
+  v8::base::EmbeddedVector<char, 128> buf;
   SNPrintF(buf, "PROPERTY%s%s - %s", property->is_static() ? " - STATIC" : "",
            property->is_private() ? " - PRIVATE" : " - PUBLIC", prop_kind);
   IndentedScope prop(this, buf.begin());
@@ -1242,7 +1242,7 @@ void AstPrinter::VisitRegExpLiteral(RegExpLiteral* node) {
   IndentedScope indent(this, "REGEXP LITERAL", node->position());
   PrintLiteralIndented("PATTERN", node->raw_pattern(), false);
   int i = 0;
-  base::Embedded::v8::base::Vector<char, 128> buf;
+  v8::base::EmbeddedVector<char, 128> buf;
 #define V(Lower, Camel, LowerCamel, Char, Bit) \
   if (node->flags() & RegExp::k##Camel) buf[i++] = Char;
   REGEXP_FLAG_LIST(V)
@@ -1287,7 +1287,7 @@ void AstPrinter::PrintObjectProperties(
         prop_kind = "SPREAD";
         break;
     }
-    base::Embedded::v8::base::Vector<char, 128> buf;
+    v8::base::EmbeddedVector<char, 128> buf;
     SNPrintF(buf, "PROPERTY - %s", prop_kind);
     IndentedScope prop(this, buf.begin());
     PrintIndentedVisit("KEY", properties->at(i)->key());
@@ -1308,7 +1308,7 @@ void AstPrinter::VisitArrayLiteral(ArrayLiteral* node) {
 
 
 void AstPrinter::VisitVariableProxy(VariableProxy* node) {
-  base::Embedded::v8::base::Vector<char, 128> buf;
+  v8::base::EmbeddedVector<char, 128> buf;
   int pos = SNPrintF(buf, "VAR PROXY");
 
   if (!node->is_resolved()) {
@@ -1355,21 +1355,21 @@ void AstPrinter::VisitCompoundAssignment(CompoundAssignment* node) {
 }
 
 void AstPrinter::VisitYield(Yield* node) {
-  base::Embedded::v8::base::Vector<char, 128> buf;
+  v8::base::EmbeddedVector<char, 128> buf;
   SNPrintF(buf, "YIELD");
   IndentedScope indent(this, buf.begin(), node->position());
   Visit(node->expression());
 }
 
 void AstPrinter::VisitYieldStar(YieldStar* node) {
-  base::Embedded::v8::base::Vector<char, 128> buf;
+  v8::base::EmbeddedVector<char, 128> buf;
   SNPrintF(buf, "YIELD_STAR");
   IndentedScope indent(this, buf.begin(), node->position());
   Visit(node->expression());
 }
 
 void AstPrinter::VisitAwait(Await* node) {
-  base::Embedded::v8::base::Vector<char, 128> buf;
+  v8::base::EmbeddedVector<char, 128> buf;
   SNPrintF(buf, "AWAIT");
   IndentedScope indent(this, buf.begin(), node->position());
   Visit(node->expression());
@@ -1386,7 +1386,7 @@ void AstPrinter::VisitOptionalChain(OptionalChain* node) {
 }
 
 void AstPrinter::VisitProperty(Property* node) {
-  base::Embedded::v8::base::Vector<char, 128> buf;
+  v8::base::EmbeddedVector<char, 128> buf;
   SNPrintF(buf, "PROPERTY");
   IndentedScope indent(this, buf.begin(), node->position());
 
@@ -1429,7 +1429,7 @@ void AstPrinter::VisitProperty(Property* node) {
 }
 
 void AstPrinter::VisitCall(Call* node) {
-  base::Embedded::v8::base::Vector<char, 128> buf;
+  v8::base::EmbeddedVector<char, 128> buf;
   SNPrintF(buf, "CALL");
   IndentedScope indent(this, buf.begin());
 
@@ -1446,7 +1446,7 @@ void AstPrinter::VisitCallNew(CallNew* node) {
 
 
 void AstPrinter::VisitCallRuntime(CallRuntime* node) {
-  base::Embedded::v8::base::Vector<char, 128> buf;
+  v8::base::EmbeddedVector<char, 128> buf;
   SNPrintF(buf, "CALL RUNTIME %s", node->function()->name);
   IndentedScope indent(this, buf.begin(), node->position());
   PrintArguments(node->arguments());
@@ -1460,7 +1460,7 @@ void AstPrinter::VisitUnaryOperation(UnaryOperation* node) {
 
 
 void AstPrinter::VisitCountOperation(CountOperation* node) {
-  base::Embedded::v8::base::Vector<char, 128> buf;
+  v8::base::EmbeddedVector<char, 128> buf;
   SNPrintF(buf, "%s %s", (node->is_prefix() ? "PRE" : "POST"),
            Token::Name(node->op()));
   IndentedScope indent(this, buf.begin(), node->position());

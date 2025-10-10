@@ -3,9 +3,8 @@
 
 #include "../../include/v8config.h"
 #include "base-export.h"
-#ifdef __wasi__
-#include "../../include/v8-internal.h"
-#endif
+// Avoid including heavy V8 internals here to prevent include cycles with
+// lazy-instance.h. The Once wrapper only needs a trivial integral state type.
 
 // Define macros before any namespaces so they're globally visible
 #define V8_ONCE_INIT 0

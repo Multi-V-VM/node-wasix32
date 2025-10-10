@@ -13,6 +13,9 @@
 #include "cppgc/type-traits.h"
 #include "v8config.h"  // NOLINT(build/include_directory)
 
+// Forward declaration to avoid pulling heavy V8 headers.
+namespace v8 { template <typename T> class TracedReference; }
+
 namespace cppgc {
 
 class Visitor;
@@ -126,6 +129,29 @@ struct TraceTraitImpl<T, true> {
 };
 
 }  // namespace internal
+
+#if defined(__wasi__)
+// Treat v8::TracedReference as a traceable holder without requiring a
+// user-defined Trace() method. This sidesteps cppgc's default static_assert
+// for types it doesn't recognize in this WASI configuration.
+template <typename T>
+struct TraceTrait<::v8::TracedReference<T>> {
+  static void Trace(Visitor* visitor, const ::v8::TracedReference<T>* ref) {
+    (void)visitor;
+    (void)ref;
+  }
+  static TraceDescriptor GetTraceDescriptor(const void* self) {
+    return {self, &TraceThunk};
+  }
+
+ private:
+  static void TraceThunk(Visitor* v, const void* obj) {
+    const auto* ref = static_cast<const ::v8::TracedReference<T>*>(obj);
+    Trace(v, ref);
+  }
+};
+#endif  // defined(__wasi__)
+
 }  // namespace cppgc
 
 #endif  // INCLUDE_CPPGC_TRACE_TRAIT_H_

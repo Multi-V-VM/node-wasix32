@@ -39,6 +39,7 @@ class CustomSpace : public CustomSpaceBase {
 
 #ifdef __wasi__
 // WASI-specific: DefaultCustomSpace for default allocation
+#ifndef CPPGC_WASI_DEFAULT_CUSTOM_SPACE_ALIAS
 class DefaultCustomSpace : public CustomSpaceBase {
  public:
   static constexpr size_t kSpaceIndex = 0;
@@ -46,12 +47,16 @@ class DefaultCustomSpace : public CustomSpaceBase {
     return kSpaceIndex;
   }
 };
+#endif
 
 // SpaceTrait template for WASI - use DefaultCustomSpace as default
+// Only define SpaceTrait here if no external WASI stub provided it.
+#ifndef CPPGC_WASI_SPACETRAIT_DEFINED
 template <typename T>
 struct SpaceTrait {
   using Space = DefaultCustomSpace;
 };
+#endif
 #endif  // __wasi__
 
 }  // namespace cppgc

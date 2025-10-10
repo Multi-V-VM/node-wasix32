@@ -101,7 +101,7 @@ void TracedValue::SetUnsignedInteger(const char* name, uint64_t value) {
 void TracedValue::SetDouble(const char* name, double value) {
   DCHECK_CURRENT_CONTAINER_IS(kStackTypeDict);
   WriteName(name);
-  base::Embedded::v8::base::Vector<char, 100> buffer;
+  v8::base::EmbeddedVector<char, 100> buffer;
   data_ += internal::DoubleToStringView(value, buffer);
 }
 
@@ -150,7 +150,7 @@ void TracedValue::AppendInteger(int value) {
 void TracedValue::AppendDouble(double value) {
   DCHECK_CURRENT_CONTAINER_IS(kStackTypeArray);
   WriteComma();
-  base::Embedded::v8::base::Vector<char, 100> buffer;
+  v8::base::EmbeddedVector<char, 100> buffer;
   data_ += internal::DoubleToStringView(value, buffer);
 }
 

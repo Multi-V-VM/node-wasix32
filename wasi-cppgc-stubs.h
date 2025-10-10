@@ -22,6 +22,7 @@ struct CustomSpaceForType {
 
 // Default CustomSpace using size_t as per v8's internal definition
 using DefaultCustomSpace = size_t;
+#define CPPGC_WASI_DEFAULT_CUSTOM_SPACE_ALIAS 1
 
 namespace internal {
 // Define kNone constant
@@ -34,6 +35,7 @@ struct SpaceTrait {
   // Default to no custom space - this will use the default allocation
   using Space = void;
 };
+#define CPPGC_WASI_SPACETRAIT_DEFINED 1
 
 // Note: TraceTrait is already defined in cppgc/trace-trait.h
 // No need to redefine it here for WASI builds

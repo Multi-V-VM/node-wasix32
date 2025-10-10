@@ -7,6 +7,7 @@
 #ifdef __wasi__
 // WASI stub for v8-handle-base
 #include "wasi/v8-wasi-compat.h"
+#include "../v8-internal.h"  // Ensure internal::ValueHelper is available
 
 namespace v8 {
 
@@ -55,6 +56,7 @@ using Address = uintptr_t;
 #endif
 
 // Stub classes needed by v8-persistent-handle.h
+#ifndef V8_WASI_VALUEHELPER_DEFINED
 class ValueHelper {
  public:
   using InternalRepresentationType = Address;
@@ -89,6 +91,7 @@ class ValueHelper {
     return reinterpret_cast<T*>(*slot);
   }
 };
+#endif  // V8_WASI_VALUEHELPER_DEFINED
 
 class HandleHelper {
  public:

@@ -719,7 +719,7 @@ class LiftoffCompiler {
       default:
         UNREACHABLE();
     }
-    base::Embedded::v8::base::Vector<char, 128> buffer;
+    v8::base::EmbeddedVector<char, 128> buffer;
     SNPrintF(buffer, "%s %s", name(kind), context);
     unsupported(decoder, bailout_reason, buffer.begin());
     return false;

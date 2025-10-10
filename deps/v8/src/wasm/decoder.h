@@ -446,7 +446,7 @@ class Decoder {
     // Only report the first error.
     if (!ok()) return;
     constexpr int kMaxErrorMsg = 256;
-    base::Embedded::v8::base::Vector<char, kMaxErrorMsg> buffer;
+    v8::base::EmbeddedVector<char, kMaxErrorMsg> buffer;
     va_list args;
     va_start(args, format);
     int len = base::VSNPrintF(buffer, format, args);

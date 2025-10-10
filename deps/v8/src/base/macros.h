@@ -8,6 +8,8 @@
 #include <limits>
 #include <type_traits>
 #include <cstring>
+#include <cstdint>
+#include <cstddef>
 
 #include "../../include/v8config.h"
 #include "compiler-specific.h"

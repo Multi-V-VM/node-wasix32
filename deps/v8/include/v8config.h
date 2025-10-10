@@ -89,6 +89,17 @@
 // Compiler detection
 #define V8_CC_CLANG 1
 
+// Detect common 64-bit host architectures so AtomicWord matches pointer size.
+#if !defined(V8_HOST_ARCH_64_BIT)
+#if defined(__x86_64__) || defined(_M_X64) || \
+    defined(__aarch64__) || defined(_M_ARM64) || \
+    defined(__ppc64__) || defined(__PPC64__) || \
+    defined(__s390x__) || defined(__mips64) || defined(__mips64__) || \
+    defined(__loongarch_lp64)
+#define V8_HOST_ARCH_64_BIT 1
+#endif
+#endif
+
 // Deprecated API suppression macros
 #define START_ALLOW_USE_DEPRECATED()
 #define END_ALLOW_USE_DEPRECATED()

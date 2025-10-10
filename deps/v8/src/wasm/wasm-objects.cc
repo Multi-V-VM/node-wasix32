@@ -3086,7 +3086,7 @@ DirectHandle<WasmExportedFunction> WasmExportedFunction::New(
   }
   DirectHandle<String> name;
   if (!maybe_name.ToHandle(&name)) {
-    base::Embedded::v8::base::Vector<char, 16> buffer;
+    v8::base::EmbeddedVector<char, 16> buffer;
     int length = SNPrintF(buffer, "%d", func_index);
     name = factory
                ->NewStringFromOneByte(

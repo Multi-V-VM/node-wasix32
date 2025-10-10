@@ -6,6 +6,7 @@
 #include "v8-wasi-compat.h"
 #include "v8-api-stubs.h"
 #include "../v8-local-handle.h"
+#include "../v8-callbacks.h"  // Ensure canonical callback/GC typedefs and forward decls
 #include <cstring>  // for memset
 
 // V8_EXPORT macro for WASI
@@ -14,8 +15,6 @@
 #endif
 
 // Include necessary headers for type definitions BEFORE namespace v8
-#include "../v8-callbacks.h"
-#include "../v8-promise.h"
 #include "../v8-microtask.h"
 #include "../v8-statistics.h"  // For MeasureMemoryMode
 // Don't include v8-snapshot.h here to avoid circular dependency
@@ -31,6 +30,77 @@ struct SnapshotBlobRef {
 
 namespace v8 {
 
+// Forward declarations required by callback typedefs
+class Context;
+class Message;
+class Value;
+class StackTrace;
+class String;
+class Isolate;
+class HeapProfiler;
+class HeapStatistics; // Forward declaration for v8::HeapStatistics
+class Module;
+class Data;
+class Object;
+class Array;
+
+#ifndef V8_WASI_CALLBACK_TYPES_DEFINED
+#define V8_WASI_CALLBACK_TYPES_DEFINED
+// Only provide fallbacks if the canonical header wasn't included (defensive).
+#ifndef INCLUDE_V8_ISOLATE_CALLBACKS_H_
+  // Minimal MaybeLocal fallback when v8-maybe-local.h hasn't been included.
+  #ifndef INCLUDE_V8_MAYBE_LOCAL_H_
+  template <class T>
+  class MaybeLocal {
+   public:
+    MaybeLocal() = default;
+    template <class S>
+    MaybeLocal(Local<S>) {}
+    bool IsEmpty() const { return true; }
+    Local<T> ToLocalChecked() const { return Local<T>(); }
+    bool ToLocal(Local<T>*) const { return false; }
+  };
+  #endif  // INCLUDE_V8_MAYBE_LOCAL_H_
+
+  // Minimal enums and callback typedefs to unblock compilation when the real
+  // declarations are unavailable. These are guarded to avoid redefinitions
+  // once v8-callbacks.h is present.
+  enum GCType { kGCTypeAll = 0 };
+  enum GCCallbackFlags { kNoGCCallbackFlags = 0 };
+  enum class ModuleImportPhase { kSource, kEvaluation };
+
+  using MessageCallback = void (*)(Local<Message> message, Local<Value> data);
+  using FatalErrorCallback = void (*)(const char* location, const char* message);
+  struct OOMDetails;
+  using OOMErrorCallback = void (*)(const char* location, const OOMDetails& details);
+  template <typename T> class FunctionCallbackInfo;  // forward decl
+  class FixedArray;  // forward decl
+  class Promise;     // forward decl
+  using HostImportModuleDynamicallyCallback = MaybeLocal<Promise> (*)(
+      Local<Context> context, Local<Data> host_defined_options,
+      Local<Value> resource_name, Local<String> specifier,
+      Local<FixedArray> import_attributes);
+  using HostImportModuleWithPhaseDynamicallyCallback = MaybeLocal<Promise> (*)(
+      Local<Context> context, Local<Data> host_defined_options,
+      Local<Value> resource_name, Local<String> specifier,
+      ModuleImportPhase phase, Local<FixedArray> import_attributes);
+  using HostInitializeImportMetaObjectCallback = void (*)(Local<Context> context,
+                                                         Local<Module> module,
+                                                         Local<Object> meta);
+  using PrepareStackTraceCallback = MaybeLocal<Value> (*)(Local<Context> context,
+                                                         Local<Value> error,
+                                                         Local<Array> sites);
+  using WasmStreamingCallback = void (*)(const FunctionCallbackInfo<Value>&);
+  using HostCreateShadowRealmContextCallback = MaybeLocal<Context> (*)(Local<Context> initiator_context);
+#endif  // !INCLUDE_V8_ISOLATE_CALLBACKS_H_
+#endif  // V8_WASI_CALLBACK_TYPES_DEFINED
+
+// Forward declare Promise rejection callback types if v8-promise.h isn't used
+#ifndef INCLUDE_V8_PROMISE_H_
+class PromiseRejectMessage;
+using PromiseRejectCallback = void (*)(PromiseRejectMessage message);
+#endif
+
 // Minimal ResourceConstraints stub for WASI builds
 class ResourceConstraints {
  public:
@@ -43,16 +113,6 @@ class ResourceConstraints {
   void set_code_range_size_in_bytes(size_t) {}
   size_t code_range_size_in_bytes() const { return 0; }
 };
-
-// Forward declarations
-class Context;
-class Message;
-class Value;
-class StackTrace;
-class String;
-class Isolate;
-class HeapProfiler;
-class HeapStatistics; // Forward declaration for v8::HeapStatistics
 
 // Type definitions that need to be before Isolate class
 using AbortOnUncaughtExceptionCallback = bool (*)(Isolate*);
@@ -149,17 +209,18 @@ class V8_EXPORT Isolate {
   // GC callbacks - updated to match V8 API signature
   // Note: The standard V8 signature uses GCType and GCCallbackFlags enums,
   // but the callback expects (Isolate*, GCType, GCCallbackFlags, void*)
-  using GCCallback = void (*)(Isolate* isolate, v8::GCType gc_type, v8::GCCallbackFlags gc_flags, void* data);
+  // Use GCType/GCCallbackFlags as declared in v8-callbacks.h
+  using GCCallback = void (*)(Isolate* isolate, GCType gc_type, GCCallbackFlags gc_flags, void* data);
   using GCCallbackWithData = void (*)(Isolate* isolate, int gc_type, int gc_flags, void* data);
   using GetExternallyAllocatedMemoryInBytesCallback = size_t (*)();
 
-  void AddGCPrologueCallback(GCCallback callback, void* data = nullptr, v8::GCType gc_type = v8::GCType::kGCTypeAll) {
+  void AddGCPrologueCallback(GCCallback callback, void* data = nullptr, GCType gc_type = GCType::kGCTypeAll) {
     // WASI stub - no-op
   }
   void RemoveGCPrologueCallback(GCCallback callback, void* data = nullptr) {
     // WASI stub - no-op
   }
-  void AddGCEpilogueCallback(GCCallback callback, void* data = nullptr, v8::GCType gc_type = v8::GCType::kGCTypeAll) {
+  void AddGCEpilogueCallback(GCCallback callback, void* data = nullptr, GCType gc_type = GCType::kGCTypeAll) {
     // WASI stub - no-op
   }
   void RemoveGCEpilogueCallback(GCCallback callback, void* data = nullptr) {

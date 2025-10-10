@@ -165,7 +165,7 @@ inline constexpr uint32_t kMaxCodePointers = 65536;
 inline constexpr uint32_t kMaxTrustedPointers = 65536;
 
 // Should throw on error function - now with proper forward declaration
-inline bool ShouldThrowOnError(v8::internal::Isolate* isolate) {
+inline bool ShouldThrowOnError(::v8::internal::Isolate* isolate) {
   return false;  // WASI stub - never throw
 }
 
@@ -357,7 +357,7 @@ class Internals {
   }
 
   // Root retrieval for basic values
-  static Address GetRoot(v8::Isolate*, int index) {
+  static Address GetRoot(::v8::Isolate*, int index) {
     switch (index) {
       case kUndefinedValueRootIndex: return 0x1000;
       case kNullValueRootIndex: return 0x1004;

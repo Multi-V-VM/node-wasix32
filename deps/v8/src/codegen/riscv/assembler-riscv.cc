@@ -552,7 +552,7 @@ void Assembler::disassembleInstr(uint8_t* pc) {
   if (!v8_flags.riscv_debug) return;
   disasm::NameConverter converter;
   disasm::Disassembler disasm(converter);
-  base::Embedded::v8::base::Vector<char, 128> disasm_buffer;
+  v8::base::EmbeddedVector<char, 128> disasm_buffer;
 
   disasm.InstructionDecode(disasm_buffer, pc);
   DEBUG_PRINTF("%s\n", disasm_buffer.begin());

@@ -6,18 +6,17 @@
 #define V8_BASE_VECTOR_H_
 
 #include <algorithm>
+#include <array>
 #include <cstring>
 #include <iterator>
 #include <limits>
 #include <memory>
 #include <type_traits>
 
-#include "src/base/hashing.h"
 #include "src/base/logging.h"
 #include "src/base/macros.h"
 
-namespace v8 {
-namespace base {
+namespace v8::base {
 
 template <typename T>
 class Vector {
@@ -190,10 +189,6 @@ class Vector {
   size_t length_;
 };
 
-template <typename T>
-V8_INLINE size_t hash_value(::v8::base::Vector<T> v) {
-  return hash_range(v.begin(), v.end());
-}
 
 template <typename T>
 class V8_NODISCARD ScopedVector : public ::v8::base::Vector<T> {
@@ -416,7 +411,6 @@ class EmbeddedVector : public ::v8::base::Vector<T> {
   T buffer_[kSize];
 };
 
-}  // namespace base
-}  // namespace v8
+}  // namespace v8::base
 
 #endif  // V8_BASE_VECTOR_H_

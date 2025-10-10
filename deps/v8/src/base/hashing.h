@@ -24,6 +24,7 @@
 #include "src/base/base-export.h"
 #include "src/base/bits.h"
 #include "src/base/macros.h"
+#include "src/base/vector.h"  // For hash_value(Vector<T>) specialization
 #ifdef __wasi__
 // Also include v8-internal.h to ensure bits namespace is available
 #include "../../include/v8-internal.h"
@@ -131,10 +132,10 @@ class Hasher {
   // Hash a value {t} and combine its hash into this hasher's hash.
   template <typename T>
   Hasher& Add(const T& t) {
-    #ifdef __wasi__
+#ifdef __wasi__
     return AddHash(::std::hash<T>{}(t));
 #else
-    return AddHash(hash<T>{}(t));
+    return AddHash(::v8::base::hash<T>{}(t));
 #endif
   }
 
@@ -372,7 +373,7 @@ V8_BASE_BIT_SPECIALIZE_TRIVIAL(unsigned long long)  // NOLINT(runtime/int)
   template <>                                              \
   struct bit_hash<type> {                                  \
     V8_INLINE size_t operator()(type v) const {            \
-      hash<btype> h;                                       \
+      ::v8::base::hash<btype> h;                           \
       return h(bit_cast<btype>(v));                        \
     }                                                      \
   };
@@ -383,14 +384,12 @@ V8_BASE_BIT_SPECIALIZE_BIT_CAST(double, uint64_t)
 }  // namespace base
 }  // namespace v8
 
-// Also define std::hash for all classes that can be hashed via v8::base::hash.
-// WASI: Commented out to avoid conflicts with std::hash
-// namespace std {
-// // Extend std::hash for types that have v8::base::hash specialization
-// template <typename T>
-// struct hash : v8::base::hash<T> {};
-// 
-// }  // namespace std
+// Specialization for ::v8::base::Vector<T> moved here to avoid including
+// hashing machinery from vector.h
+template <typename T>
+V8_INLINE size_t hash_value(::v8::base::Vector<T> v) {
+  return hash_range(v.begin(), v.end());
+}
 
 
 #endif  // V8_BASE_HASHING_H_

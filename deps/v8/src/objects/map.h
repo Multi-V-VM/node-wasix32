@@ -934,7 +934,9 @@ class Map : public TorqueGeneratedMap<Map, HeapObject> {
   static DirectHandle<Map> TransitionToImmutableProto(Isolate* isolate,
                                                       DirectHandle<Map> map);
 
+#ifndef __wasi__
   static_assert(kInstanceTypeOffset == Internals::kMapInstanceTypeOffset);
+#endif
 
   class BodyDescriptor;
 

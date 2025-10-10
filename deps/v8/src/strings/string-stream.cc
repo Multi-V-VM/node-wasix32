@@ -98,7 +98,7 @@ void StringStream::Add(::v8::base::Vector<const char> format,
       continue;
     }
     // Read this formatting directive into a temporary buffer
-    base::Embedded::v8::base::Vector<char, 24> temp;
+    v8::base::EmbeddedVector<char, 24> temp;
     int format_length = 0;
     // Skip over the whole control character sequence until the
     // format element type
@@ -150,7 +150,7 @@ void StringStream::Add(::v8::base::Vector<const char> format,
       case 'c':
       case 'X': {
         int value = current.data_.u_int_;
-        base::Embedded::v8::base::Vector<char, 24> formatted;
+        v8::base::EmbeddedVector<char, 24> formatted;
         int length = SNPrintF(formatted, temp.begin(), value);
         Add(::v8::base::Vector<const char>(formatted.begin(), length));
         break;
@@ -169,7 +169,7 @@ void StringStream::Add(::v8::base::Vector<const char> format,
         } else if (std::isnan(value)) {
           Add("nan");
         } else {
-          base::Embedded::v8::base::Vector<char, 28> formatted;
+          v8::base::EmbeddedVector<char, 28> formatted;
           SNPrintF(formatted, temp.begin(), value);
           Add(formatted.begin());
         }
@@ -177,7 +177,7 @@ void StringStream::Add(::v8::base::Vector<const char> format,
       }
       case 'p': {
         void* value = current.data_.u_pointer_;
-        base::Embedded::v8::base::Vector<char, 20> formatted;
+        v8::base::EmbeddedVector<char, 20> formatted;
         SNPrintF(formatted, temp.begin(), value);
         Add(formatted.begin());
         break;

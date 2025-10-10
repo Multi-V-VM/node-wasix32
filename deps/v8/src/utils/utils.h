@@ -42,11 +42,6 @@ namespace bits {
   // can be added here if needed
 }  // namespace bits
 }
-// Fix std namespace resolution for WASI
-namespace std {
-using ::std::is_enum_v;
-using ::std::is_pointer_v;
-}
 }
 #endif
 

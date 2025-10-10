@@ -5,6 +5,7 @@
 #ifndef V8_BASE_NUMBERS_DTOA_H_
 #define V8_BASE_NUMBERS_DTOA_H_
 
+#include "src/base/base-export.h"
 #include "src/base/vector.h"
 
 namespace v8 {

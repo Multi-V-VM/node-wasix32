@@ -105,7 +105,7 @@ class CodeTracer final : public Malloced {
  private:
   static bool ShouldRedirect() { return v8_flags.redirect_code_traces; }
 
-  base::Embedded::v8::base::Vector<char, 128> filename_;
+  v8::base::EmbeddedVector<char, 128> filename_;
   FILE* file_;
   int scope_depth_;
 };

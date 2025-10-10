@@ -201,7 +201,7 @@ void DumpProfileToFile(const WasmModule* module,
   // We use the same hash as for reported scripts, to make it easier to
   // correlate files to wasm modules (see {CreateWasmScript}).
   uint32_t hash = static_cast<uint32_t>(GetWireBytesHash(wire_bytes));
-  base::Embedded::v8::base::Vector<char, 32> filename;
+  v8::base::EmbeddedVector<char, 32> filename;
   SNPrintF(filename, "profile-wasm-%08x", hash);
 
   ProfileGenerator profile_generator{module, tiering_budget_array};
@@ -226,7 +226,7 @@ std::unique_ptr<ProfileInformation> LoadProfileFromFile(
   // We use the same hash as for reported scripts, to make it easier to
   // correlate files to wasm modules (see {CreateWasmScript}).
   uint32_t hash = static_cast<uint32_t>(GetWireBytesHash(wire_bytes));
-  base::Embedded::v8::base::Vector<char, 32> filename;
+  v8::base::EmbeddedVector<char, 32> filename;
   SNPrintF(filename, "profile-wasm-%08x", hash);
 
   FILE* file = base::OS::FOpen(filename.begin(), "rb");

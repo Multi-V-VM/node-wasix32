@@ -17,7 +17,7 @@
 #include "v8-data.h"          // NOLINT(build/include_directory)
 #include "v8-forward.h"       // NOLINT(build/include_directory)
 #include "v8-local-handle.h"  // NOLINT(build/include_directory)
-#include "v8-promise.h"       // NOLINT(build/include_directory)
+#include "v8-maybe-local.h"   // NOLINT(build/include_directory)
 #include "v8config.h"         // NOLINT(build/include_directory)
 
 #if defined(V8_OS_WIN)
@@ -28,10 +28,27 @@ namespace v8 {
 
 template <typename T>
 class FunctionCallbackInfo;
+#if defined(__wasi__)
+// Ensure MaybeLocal is available even if the include order prevents
+// v8-maybe-local.h from providing it yet.
+#ifndef INCLUDE_V8_MAYBE_LOCAL_H_
+template <class T>
+class MaybeLocal {
+ public:
+  MaybeLocal() = default;
+  template <class S>
+  MaybeLocal(Local<S>) {}
+  bool IsEmpty() const { return true; }
+  Local<T> ToLocalChecked() const { return Local<T>(); }
+  bool ToLocal(Local<T>*) const { return false; }
+};
+#endif
+#endif
 class Isolate;
 class Message;
 class Module;
 class Object;
+class FixedArray;
 class Promise;
 class ScriptOrModule;
 class String;
@@ -317,9 +334,15 @@ using WasmStreamingCallback = void (*)(const FunctionCallbackInfo<Value>&);
 enum class WasmAsyncSuccess { kSuccess, kFail };
 
 // --- Callback called when async WebAssembly operations finish ---
+#ifdef __wasi__
+using WasmAsyncResolvePromiseCallback = void (*)(
+    Isolate* isolate, Local<Context> context, Local<Object> resolver,
+    Local<Value> result, WasmAsyncSuccess success);
+#else
 using WasmAsyncResolvePromiseCallback = void (*)(
     Isolate* isolate, Local<Context> context, Local<Promise::Resolver> resolver,
     Local<Value> result, WasmAsyncSuccess success);
+#endif
 
 // --- Callback for loading source map file for Wasm profiling support
 using WasmLoadSourceMapCallback = Local<String> (*)(Isolate* isolate,

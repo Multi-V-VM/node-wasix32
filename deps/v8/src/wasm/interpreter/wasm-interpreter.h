@@ -2193,7 +2193,7 @@ class InterpreterTracer final : public Malloced {
   static bool ShouldRedirect() { return v8_flags.redirect_drumbrake_traces; }
 
   int isolate_id_;
-  base::Embedded::v8::base::Vector<char, 128> filename_;
+  v8::base::EmbeddedVector<char, 128> filename_;
   FILE* file_;
   std::unordered_set<int> traced_functions_;
   int current_chunk_index_;

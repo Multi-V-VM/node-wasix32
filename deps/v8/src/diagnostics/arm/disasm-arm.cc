@@ -14,7 +14,7 @@
 //   NameConverter converter;
 //   Disassembler d(converter);
 //   for (uint8_t* pc = begin; pc < end;) {
-//     v8::base::Embedded::v8::base::Vector<char, 256> buffer;
+//     v8::v8::base::EmbeddedVector<char, 256> buffer;
 //     uint8_t* prev_pc = pc;
 //     pc += d.InstructionDecode(buffer, pc);
 //     printf("%p    %08x      %s\n",
@@ -2637,7 +2637,7 @@ void Disassembler::Disassemble(FILE* f, uint8_t* begin, uint8_t* end,
   NameConverter converter;
   Disassembler d(converter, unimplemented_action);
   for (uint8_t* pc = begin; pc < end;) {
-    v8::base::Embedded::v8::base::Vector<char, 128> buffer;
+    v8::v8::base::EmbeddedVector<char, 128> buffer;
     buffer[0] = '\0';
     uint8_t* prev_pc = pc;
     pc += d.InstructionDecode(buffer, pc);

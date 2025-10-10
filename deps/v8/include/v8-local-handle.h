@@ -1,11 +1,10 @@
 #ifndef INCLUDE_V8_LOCAL_HANDLE_H_
 #define INCLUDE_V8_LOCAL_HANDLE_H_
 
-#ifdef __wasi__
-// Include Local template definition first and ensure std namespace is prepared.
+// Always include the lightweight Local<T> implementation to avoid
+// dependency cycles and to provide a usable Local in host builds too.
 #include "wasi/std-namespace-fix.h"
 #include "wasi/wasi-v8-missing-types.h"
-#endif
 
 #include <stddef.h>
 #include <stdint.h>
@@ -22,15 +21,8 @@
 #endif
 
 namespace v8 {
-
-#ifndef __wasi__
-// Original Local template definition for non-WASI builds
-template <typename T>
-class Local {
-  // ... original implementation
-};
-#endif
-
+// Local<T> is defined in wasi/wasi-v8-missing-types.h for both WASI and
+// non-WASI builds to keep public headers self-contained in this tree.
 }  // namespace v8
 
 

@@ -2222,7 +2222,7 @@ const ProfileDataFromFile* ValidateProfileData(
     }
     if (v8_flags.abort_on_bad_builtin_profile_data ||
         v8_flags.warn_about_builtin_profile_data) {
-      base::Embedded::v8::base::Vector<char, 256> msg;
+      v8::base::EmbeddedVector<char, 256> msg;
       SNPrintF(msg,
                "Rejected profile data for %s due to function change. "
                "Please use tools/builtins-pgo/generate.py to refresh it.",

@@ -56,7 +56,7 @@ void EmbeddedFileWriter::WriteBuiltin(PlatformEmbeddedFileWriterBase* w,
   const bool is_default_variant =
       std::strcmp(embedded_variant_, kDefaultEmbeddedVariant) == 0;
 
-  base::Embedded::v8::base::Vector<char, kTemporaryStringLength> builtin_symbol;
+  v8::base::EmbeddedVector<char, kTemporaryStringLength> builtin_symbol;
   if (is_default_variant) {
     // Create nicer symbol names for the default mode.
     base::SNPrintF(builtin_symbol, "Builtins_%s", i::Builtins::name(builtin));
@@ -175,7 +175,7 @@ void EmbeddedFileWriter::WriteCodeSection(PlatformEmbeddedFileWriterBase* w,
 void EmbeddedFileWriter::WriteFileEpilogue(PlatformEmbeddedFileWriterBase* w,
                                            const i::EmbeddedData* blob) const {
   {
-    base::Embedded::v8::base::Vector<char, kTemporaryStringLength>
+    v8::base::EmbeddedVector<char, kTemporaryStringLength>
         embedded_blob_code_size_symbol;
     base::SNPrintF(embedded_blob_code_size_symbol,
                    "v8_%s_embedded_blob_code_size_", embedded_variant_);
@@ -186,7 +186,7 @@ void EmbeddedFileWriter::WriteFileEpilogue(PlatformEmbeddedFileWriterBase* w,
     w->DeclareUint32(embedded_blob_code_size_symbol.begin(), blob->code_size());
     w->Newline();
 
-    base::Embedded::v8::base::Vector<char, kTemporaryStringLength>
+    v8::base::EmbeddedVector<char, kTemporaryStringLength>
         embedded_blob_data_size_symbol;
     base::SNPrintF(embedded_blob_data_size_symbol,
                    "v8_%s_embedded_blob_data_size_", embedded_variant_);
@@ -198,7 +198,7 @@ void EmbeddedFileWriter::WriteFileEpilogue(PlatformEmbeddedFileWriterBase* w,
 
 #if defined(V8_OS_WIN64)
   {
-    base::Embedded::v8::base::Vector<char, kTemporaryStringLength> unwind_info_symbol;
+    v8::base::EmbeddedVector<char, kTemporaryStringLength> unwind_info_symbol;
     base::SNPrintF(unwind_info_symbol, "%s_Builtins_UnwindInfo",
                    embedded_variant_);
 

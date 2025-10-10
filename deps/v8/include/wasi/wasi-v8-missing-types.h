@@ -121,9 +121,9 @@ namespace internal {
 class EmbedderState {};
 }  // namespace internal
 
-// CalleeSavedRegisters is declared in v8-unwinder.h. Provide a trivial stub
-// so host-side utilities that rely on unique_ptr destructors compile.
-class CalleeSavedRegisters {};
+// CalleeSavedRegisters is declared as a struct in v8-unwinder.h. Provide a
+// matching trivial stub so host-side utilities compile without warnings.
+struct CalleeSavedRegisters {};
 
 // Minimal cppgc forward declaration used by public headers (global namespace).
 }  // namespace v8

@@ -7,6 +7,7 @@
 #include <cstdint>
 #include <cstring>
 #include <limits>
+#include <stdarg.h>
 
 #include "src/base/platform/platform.h"
 

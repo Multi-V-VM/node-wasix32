@@ -15,6 +15,9 @@
 // become no-ops thanks to include guards, preventing accidental creation of
 // v8::std shadows.
 #include "wasi/concepts-fix.h"
+// Also bring in base/once.h very early so that ::v8::Once is defined at global
+// scope even if later headers are included from within `namespace v8` blocks.
+#include "src/base/once.h"
 
 #include <algorithm>
 #include <array>

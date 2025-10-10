@@ -2781,3 +2781,32 @@ struct ::std::__asan_annotate_container_with_allocator<
 #endif  // _LIBCPP_HAS_ASAN_CONTAINER_ANNOTATIONS_FOR_ALL_ALLOCATORS
 
 #endif  // V8_HEAP_HEAP_H_
+// Forward declaration for StrongRootAllocator template used below.
+template <typename T>
+class StrongRootAllocator;
+
+// Base class used by StrongRootAllocator specializations. The full
+// implementation lives in heap.cc; this header only provides the
+// declarations required by users and template instantiations.
+class StrongRootAllocatorBase {
+ public:
+  // Overloads used by various call sites; definitions are in heap.cc.
+  class LocalHeap;  // forward decl (real type is declared elsewhere)
+  class LocalIsolate;  // forward decl
+
+  explicit StrongRootAllocatorBase(LocalHeap*);
+  explicit StrongRootAllocatorBase(Isolate*);
+  explicit StrongRootAllocatorBase(v8::Isolate*);
+  explicit StrongRootAllocatorBase(LocalIsolate*);
+
+  template <typename HeapOrIsolateT>
+  explicit StrongRootAllocatorBase(HeapOrIsolateT*) {}
+
+  template <typename U>
+  StrongRootAllocatorBase(const StrongRootAllocator<U>&) {}
+
+ protected:
+  // Allocate/deallocate implementations are defined in heap.cc.
+  Address* allocate_impl(size_t n);
+  void deallocate_impl(Address* p, size_t n) noexcept;
+};

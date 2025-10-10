@@ -31,8 +31,8 @@
 
 #ifdef __wasi__
 // WASI compatibility - provide missing types and disable ranges
-// Don't redefine ranges if they already exist
-#if !defined(_LIBCPP_STD_VER) || _LIBCPP_STD_VER < 20
+// Don't redefine ranges if they already exist (C++20 ranges available)
+#if !defined(__cpp_lib_ranges)
 namespace std {
 namespace ranges {
 template <typename T>

@@ -70,6 +70,7 @@ class V8_EXPORT Isolate {
   };
   
   // Add other minimal methods as needed
+  using AbortOnUncaughtExceptionCallback = bool (*)(Isolate*);
   static Isolate* GetCurrent();
   static Isolate* TryGetCurrent();
   static Isolate* New(const CreateParams& params);

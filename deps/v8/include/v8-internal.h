@@ -72,4 +72,35 @@ static constexpr int kFixedArrayHeaderSize = sizeof(void*) * 2;  // 8 bytes on 3
 #endif
 
 
+#ifndef V8_WASI_VALUEHELPER_DEFINED
+#define V8_WASI_VALUEHELPER_DEFINED
+namespace v8 {
+namespace internal {
+// Lightweight helpers used by public API headers to avoid pulling V8 internals.
+struct ValueHelper {
+  using InternalRepresentationType = Address;
+  static constexpr InternalRepresentationType kEmpty = 0;
+
+  template <typename T>
+  static bool IsEmpty(T* that) { return that == nullptr; }
+
+  template <typename V, bool kCheck = false>
+  static ::v8::Local<V> SlotAsValue(Address* slot) {
+    return ::v8::Local<V>::FromSlot(slot);
+  }
+
+  template <typename T>
+  static Address ValueAsAddress(T* ptr) {
+    return reinterpret_cast<Address>(ptr);
+  }
+
+  template <typename T>
+  static ::v8::Local<T> ReprAsValue(InternalRepresentationType repr) {
+    return ::v8::Local<T>::FromRepr(repr);
+  }
+};
+}  // namespace internal
+}  // namespace v8
+#endif  // V8_WASI_VALUEHELPER_DEFINED
+
 #endif // INCLUDE_V8_INTERNAL_H_

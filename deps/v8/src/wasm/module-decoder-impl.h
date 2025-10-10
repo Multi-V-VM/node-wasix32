@@ -291,7 +291,7 @@ inline void DumpModule(const ::v8::base::Vector<const uint8_t> module_bytes,
   // File are named `<hash>.{ok,failed}.wasm`.
   // Limit the hash to 8 characters (32 bits).
   uint32_t hash = static_cast<uint32_t>(GetWireBytesHash(module_bytes));
-  base::Embedded::v8::base::Vector<char, 32> buf;
+  v8::base::EmbeddedVector<char, 32> buf;
   SNPrintF(buf, "%08x.%s.wasm", hash, ok ? "ok" : "failed");
   path += buf.begin();
   size_t rv = 0;

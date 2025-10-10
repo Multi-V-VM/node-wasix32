@@ -211,7 +211,7 @@ void CodeStubAssembler::FailAssert(
     const char* message, const std::vector<FileAndLine>& files_and_lines,
     std::initializer_list<ExtraNode> extra_nodes) {
   DCHECK_NOT_NULL(message);
-  base::Embedded::v8::base::Vector<char, 1024> chars;
+  v8::base::EmbeddedVector<char, 1024> chars;
   std::stringstream stream;
   for (auto it = files_and_lines.rbegin(); it != files_and_lines.rend(); ++it) {
     if (it->first != nullptr) {

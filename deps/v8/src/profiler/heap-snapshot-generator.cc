@@ -342,7 +342,7 @@ void HeapEntry::Print(const char* prefix, const char* edge_name, int max_depth,
   for (auto i = children_begin(); i != children_end(); ++i) {
     HeapGraphEdge& edge = **i;
     const char* edge_prefix = "";
-    base::Embedded::v8::base::Vector<char, 64> index;
+    v8::base::EmbeddedVector<char, 64> index;
     edge_name = index.begin();
     switch (edge.type()) {
       case HeapGraphEdge::kContextVariable:
