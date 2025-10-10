@@ -114,4 +114,5 @@ inline int32_t VLQDecode(const uint8_t* data_start, int* index) {
 }  // namespace base
 }  // namespace v8
 
+
 #endif  // V8_BASE_VLQ_H_

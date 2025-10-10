@@ -548,4 +548,5 @@ bool is_inbounds(float_t v) {
 #define FRIEND_TEST(test_case_name, test_name)
 #endif
 
+
 #endif  // V8_BASE_MACROS_H_

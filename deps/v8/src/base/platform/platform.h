@@ -717,4 +717,5 @@ V8_BASE_EXPORT void SetJitWriteProtected(int enable);
 // WASI fix: Add missing declaration
 #ifdef V8_OS_WASI
 static const char* GetGCFakeMMapFile();
+
 #endif

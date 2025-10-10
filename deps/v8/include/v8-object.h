@@ -33,11 +33,6 @@
 #include <type_traits>
 #endif
 
-#ifdef __wasi__
-// Close any open v8 namespace before we declare our own
-}  // close any v8 namespace if open
-#endif
-
 namespace v8 {
 
 // Type alias for backward compatibility
@@ -1104,10 +1099,6 @@ Object* Object::Cast(v8::Value* value) {
 
 }  // namespace v8
 
-#ifdef __wasi__
-// Re-open the v8 namespace if it was closed at the beginning
-namespace v8 {
-#endif
 
 #endif  // INCLUDE_V8_OBJECT_H_
 

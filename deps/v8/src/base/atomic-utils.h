@@ -317,4 +317,5 @@ V8_INLINE const ::std::atomic<T>* AsAtomicPtr(const T* t) {
 }  // namespace base
 }  // namespace v8
 
+
 #endif  // V8_BASE_ATOMIC_UTILS_H_

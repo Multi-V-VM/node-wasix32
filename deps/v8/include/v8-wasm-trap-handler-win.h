@@ -28,4 +28,5 @@ namespace v8 {
 V8_EXPORT bool TryHandleWebAssemblyTrapWindows(EXCEPTION_POINTERS* exception);
 
 }  // namespace v8
+
 #endif  // V8_WASM_TRAP_HANDLER_WIN_H_

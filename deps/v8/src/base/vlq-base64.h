@@ -21,4 +21,5 @@ V8_BASE_EXPORT int32_t VLQBase64Decode(const char* start, size_t sz,
                                        size_t* pos);
 }  // namespace base
 }  // namespace v8
+
 #endif  // V8_BASE_VLQ_BASE64_H_

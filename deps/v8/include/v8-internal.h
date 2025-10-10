@@ -5,13 +5,13 @@
 // Include necessary WASI fixes but avoid redefinitions
 #include "wasi/nuclear-fix.h"
 #include "wasi/v8-wasi-compat.h"
-#include "../../../../wasi-v8-internals-minimal.h"
+#include "../../../wasi-v8-internals-minimal.h"
 // Include V8 base headers at global scope first to avoid namespace nesting
-#include "../../../../wasi-v8-base-includes.h"
+#include "../../../wasi-v8-base-includes.h"
 #include "wasi/wasi-v8-missing-types.h"
-#include "../../../../wasi-v8-custom-arguments.h"
+#include "../../../wasi-v8-custom-arguments.h"
 // Provide namespace bridges and base helpers for internal code
-#include "../../../../wasi-v8-namespace-fix.h"
+#include "../../../wasi-v8-namespace-fix.h"
 // #include "../../../../wasi-v8-minimal-missing.h" // Now included from util.h
 #else
 // Non-WASI content would go here
@@ -70,5 +70,6 @@ inline constexpr bool kAllCodeObjectsLiveInTrustedSpace = false;
 #undef kFixedArrayHeaderSize
 static constexpr int kFixedArrayHeaderSize = sizeof(void*) * 2;  // 8 bytes on 32-bit
 #endif
+
 
 #endif // INCLUDE_V8_INTERNAL_H_

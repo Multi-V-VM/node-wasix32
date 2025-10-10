@@ -330,4 +330,5 @@ class VirtualAddressSpace;  // forward declaration for WASI builds
 
 }  // namespace v8
 
+
 #endif  // INCLUDE_V8_INITIALIZATION_H_

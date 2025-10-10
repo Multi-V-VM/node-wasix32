@@ -65,4 +65,5 @@ class TracingController {
 
 #endif // __wasi__
 
+
 #endif // V8_TRACING_H_

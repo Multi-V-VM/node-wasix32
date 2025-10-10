@@ -254,4 +254,5 @@ class LeakyObject {
 }  // namespace base
 }  // namespace v8
 
+
 #endif  // V8_BASE_LAZY_INSTANCE_H_

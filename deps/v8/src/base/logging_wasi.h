@@ -59,4 +59,5 @@ class CheckMessageStream {
 #define DCHECK_NOT_NULL(val) (val)
 #endif
 
+
 #endif  // __wasi__

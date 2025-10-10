@@ -1,11 +1,6 @@
 #ifndef V8_WASI_EMBEDDER_GRAPH_STUB_H_
 #define V8_WASI_EMBEDDER_GRAPH_STUB_H_
 
-#ifdef __wasi__
-// Close any open v8 namespace before including standard library headers
-}  // close any v8 namespace if open
-#endif
-
 #include <memory>
 #include <string>
 
@@ -259,9 +254,5 @@ class HeapGraphNode {
 
 }  // namespace v8
 
-#ifdef __wasi__
-// Re-open the v8 namespace if it was closed at the beginning
-namespace v8 {
-#endif
 
 #endif  // V8_WASI_EMBEDDER_GRAPH_STUB_H_

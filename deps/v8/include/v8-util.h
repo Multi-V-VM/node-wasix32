@@ -554,4 +554,5 @@ class StdGlobalValueMap : public GlobalValueMap<K, V, Traits> {
 
 }  // namespace v8
 
+
 #endif  // V8_UTIL_H

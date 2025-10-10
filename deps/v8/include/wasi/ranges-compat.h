@@ -31,7 +31,6 @@
 // Disable actual ranges functionality for WASI builds
 #define RANGES_DISABLED_FOR_WASI 1
 
-namespace v8 {
 namespace std {
 
 // Additional type traits that might be missing
@@ -41,7 +40,7 @@ constexpr bool __is_std_initializer_list = false;
 template<typename T>
 constexpr bool __is_std_initializer_list<::std::initializer_list<T>> = true;
 
-inline namespace __2 {
+inline namespace __v8_wasi_polyfill {
 namespace ranges {
 
 // Dummy implementations to satisfy compilation
@@ -192,41 +191,40 @@ private:
 } // namespace ranges
 } // namespace __2
 
-// Make ranges types available directly in v8::std
+// Make ranges types available directly in std::ranges
 namespace ranges {
-using __2::ranges::range;
-using __2::ranges::view;
-using __2::ranges::borrowed_range;
-using __2::ranges::common_range;
-using __2::ranges::viewable_range;
-using __2::ranges::sized_range;
-using __2::ranges::contiguous_range;
-using __2::ranges::random_access_range;
-using __2::ranges::forward_range;
-using __2::ranges::ref_view;
-using __2::ranges::owning_view;
-using __2::ranges::common_view;
-using __2::ranges::iterator_t;
-using __2::ranges::range_reference_t;
-using __2::ranges::range_difference_t;
-using __2::ranges::iter_reference_t;
-using __2::ranges::contiguous_iterator;
-using __2::ranges::__range_adaptor_closure;
-using __2::ranges::enable_borrowed_range;
-using __2::ranges::begin;
-using __2::ranges::end;
-using __2::ranges::distance;
-using __2::ranges::next;
-using __2::ranges::data;
-using __2::ranges::size;
-using __2::ranges::__span_compatible_range;
-using __2::ranges::__simple_view;
-using __2::ranges::enable_view;
-using __2::ranges::elements_view;
+using __v8_wasi_polyfill::ranges::range;
+using __v8_wasi_polyfill::ranges::view;
+using __v8_wasi_polyfill::ranges::borrowed_range;
+using __v8_wasi_polyfill::ranges::common_range;
+using __v8_wasi_polyfill::ranges::viewable_range;
+using __v8_wasi_polyfill::ranges::sized_range;
+using __v8_wasi_polyfill::ranges::contiguous_range;
+using __v8_wasi_polyfill::ranges::random_access_range;
+using __v8_wasi_polyfill::ranges::forward_range;
+using __v8_wasi_polyfill::ranges::ref_view;
+using __v8_wasi_polyfill::ranges::owning_view;
+using __v8_wasi_polyfill::ranges::common_view;
+using __v8_wasi_polyfill::ranges::iterator_t;
+using __v8_wasi_polyfill::ranges::range_reference_t;
+using __v8_wasi_polyfill::ranges::range_difference_t;
+using __v8_wasi_polyfill::ranges::iter_reference_t;
+using __v8_wasi_polyfill::ranges::contiguous_iterator;
+using __v8_wasi_polyfill::ranges::__range_adaptor_closure;
+using __v8_wasi_polyfill::ranges::enable_borrowed_range;
+using __v8_wasi_polyfill::ranges::begin;
+using __v8_wasi_polyfill::ranges::end;
+using __v8_wasi_polyfill::ranges::distance;
+using __v8_wasi_polyfill::ranges::next;
+using __v8_wasi_polyfill::ranges::data;
+using __v8_wasi_polyfill::ranges::size;
+using __v8_wasi_polyfill::ranges::__span_compatible_range;
+using __v8_wasi_polyfill::ranges::__simple_view;
+using __v8_wasi_polyfill::ranges::enable_view;
+using __v8_wasi_polyfill::ranges::elements_view;
 }
 
 } // namespace std
-} // namespace v8
 
 #undef V8_WASI_DECLARE_CONCEPT_1
 #undef V8_WASI_DECLARE_CONCEPT_2

@@ -120,4 +120,5 @@ std::ostream& operator<<(std::ostream& os, EnumSet<E, T> set) {
 }  // namespace base
 }  // namespace v8
 
+
 #endif  // V8_BASE_ENUM_SET_H_

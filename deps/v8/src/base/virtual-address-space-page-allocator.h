@@ -5,6 +5,8 @@
 #ifndef V8_BASE_VIRTUAL_ADDRESS_SPACE_PAGE_ALLOCATOR_H_
 #define V8_BASE_VIRTUAL_ADDRESS_SPACE_PAGE_ALLOCATOR_H_
 
+#ifdef __wasi__
+
 #include <unordered_map>
 
 #include "include/v8-platform.h"
@@ -107,4 +109,5 @@ class V8_BASE_EXPORT VirtualAddressSpacePageAllocator
 }  // namespace base
 }  // namespace v8
 
+#endif  // __wasi__
 #endif  // V8_BASE_VIRTUAL_ADDRESS_SPACE_PAGE_ALLOCATOR_H_

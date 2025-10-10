@@ -54,4 +54,5 @@ class TracingController {
 
 }  // namespace v8
 
+
 #endif  // V8_V8_TRACING_BASE_H_

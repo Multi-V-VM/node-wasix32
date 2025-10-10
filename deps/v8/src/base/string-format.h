@@ -187,4 +187,5 @@ FormattedString()->FormattedString<>;
 
 }  // namespace v8::base
 
+
 #endif  // V8_BASE_STRING_FORMAT_H_

@@ -6,8 +6,6 @@
 
 #ifdef __wasi__
 
-// Close any open v8 namespace before including standard library headers
-}  // close any v8 namespace if open
 
 #include <type_traits>
 
@@ -30,9 +28,6 @@ constexpr bool conjunction_v = std::conjunction<Args...>::value;
 
 }  // namespace std
 
-// Re-open the v8 namespace if it was closed at the beginning
-namespace v8 {
+#endif  // __wasi__
 
-#endif // __wasi__
-
-#endif // V8_WASI_CPP20_COMPAT_H_
+#endif  // V8_WASI_CPP20_COMPAT_H_

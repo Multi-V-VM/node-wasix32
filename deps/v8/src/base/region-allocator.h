@@ -5,6 +5,8 @@
 #ifndef V8_BASE_REGION_ALLOCATOR_H_
 #define V8_BASE_REGION_ALLOCATOR_H_
 
+#ifdef __wasi__
+
 #include <functional>
 #include <set>
 
@@ -224,4 +226,5 @@ class V8_BASE_EXPORT RegionAllocator final {
 }  // namespace base
 }  // namespace v8
 
+#endif  // __wasi__
 #endif  // V8_BASE_REGION_ALLOCATOR_H_

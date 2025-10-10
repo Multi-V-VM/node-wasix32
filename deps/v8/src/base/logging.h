@@ -1,6 +1,7 @@
 #ifndef V8_SRC_BASE_LOGGING_H_
 #define V8_SRC_BASE_LOGGING_H_
 
+#ifdef __wasi__
 #include <cstdlib>  // for abort()
 
 // V8_INLINE macro
@@ -119,4 +120,5 @@ enum class OOMType {
 }  // namespace base
 }  // namespace v8
 
+#endif  // __wasi__
 #endif  // V8_SRC_BASE_LOGGING_H_

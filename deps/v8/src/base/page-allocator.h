@@ -5,6 +5,8 @@
 #ifndef V8_BASE_PAGE_ALLOCATOR_H_
 #define V8_BASE_PAGE_ALLOCATOR_H_
 
+#ifdef __wasi__
+
 #include <memory>
 
 #include "include/v8-platform.h"
@@ -68,5 +70,7 @@ class V8_BASE_EXPORT PageAllocator
 
 }  // namespace base
 }  // namespace v8
+
+#endif  // __wasi__
 #endif  // V8_BASE_PAGE_ALLOCATOR_H_
 

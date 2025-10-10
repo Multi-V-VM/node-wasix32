@@ -8,6 +8,8 @@
 #ifndef INCLUDE_SOURCE_LOCATION_H_
 #define INCLUDE_SOURCE_LOCATION_H_
 
+#ifdef __wasi__
+
 #include <cstddef>
 #include "v8config.h"  // NOLINT(build/include_directory)
 
@@ -46,4 +48,5 @@ class SourceLocation final {
 
 }  // namespace v8
 
+#endif  // __wasi__
 #endif  // INCLUDE_SOURCE_LOCATION_H_

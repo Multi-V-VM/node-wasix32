@@ -173,6 +173,7 @@ class BitSetComputer {
 }  // namespace base
 }  // namespace v8
 
+
 #endif  // V8_BASE_BIT_FIELD_H_
 
 // WASI compatibility - BitField<T, position, size> class at line 25 already provides kNumValues

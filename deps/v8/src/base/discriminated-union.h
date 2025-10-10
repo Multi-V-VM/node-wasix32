@@ -120,4 +120,5 @@ class DiscriminatedUnion {
 }  // namespace base
 }  // namespace v8
 
+
 #endif  // V8_BASE_DISCRIMINATED_UNION_H_

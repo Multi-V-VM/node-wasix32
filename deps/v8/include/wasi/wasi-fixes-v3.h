@@ -8,13 +8,11 @@
 #ifdef __wasi__
 namespace v8 {
 namespace internal {
-namespace std {
-  // Re-export standard library functions that are being used
-  using ::std::move;
-  using ::std::swap;
-  using ::std::addressof;
-  using ::std::max;
-}
+// Re-export selected standard library utilities used throughout v8::internal.
+using ::std::move;
+using ::std::swap;
+using ::std::addressof;
+using ::std::max;
 }  // namespace internal
 }  // namespace v8
 #endif

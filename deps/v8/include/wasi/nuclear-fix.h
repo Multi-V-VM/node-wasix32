@@ -445,7 +445,8 @@ inline int CountTrailingZerosNonZero(uint64_t value) {
   return __builtin_ctzll(value);
 }
 
-// Overload for size_t to avoid ambiguous conversions
+#if __SIZEOF_SIZE_T__ != __SIZEOF_LONG_LONG__
+// Provide a size_t overload only when it is not the same type as uint64_t.
 inline int CountTrailingZerosNonZero(size_t value) {
   // Caller guarantees value != 0
   if constexpr (sizeof(size_t) == sizeof(uint32_t)) {
@@ -454,6 +455,7 @@ inline int CountTrailingZerosNonZero(size_t value) {
     return __builtin_ctzll(static_cast<uint64_t>(value));
   }
 }
+#endif
 
 // (IsPowerOfTwo is provided in src/base/bits.h for WASI)
 

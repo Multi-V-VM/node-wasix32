@@ -342,4 +342,5 @@ class SmallVector {
 }  // namespace base
 }  // namespace v8
 
+
 #endif  // V8_BASE_SMALL_VECTOR_H_

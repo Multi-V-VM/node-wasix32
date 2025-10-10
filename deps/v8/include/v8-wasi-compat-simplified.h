@@ -20,4 +20,5 @@ template<typename T> class MaybeLocal;
 
 #endif // __wasi__
 
+
 #endif // V8_WASI_COMPAT_SIMPLIFIED_H_

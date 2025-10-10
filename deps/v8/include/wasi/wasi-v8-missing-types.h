@@ -125,11 +125,15 @@ class EmbedderState {};
 // so host-side utilities that rely on unique_ptr destructors compile.
 class CalleeSavedRegisters {};
 
-// Minimal cppgc forward declaration used by public headers.
+// Minimal cppgc forward declaration used by public headers (global namespace).
+}  // namespace v8
+
 namespace cppgc {
 class Visitor;
 class Heap;
 }  // namespace cppgc
+
+namespace v8 {
 
 // Additional v8 types (only define if not already defined)
 // These are now defined in v8-script.h
@@ -173,6 +177,6 @@ class Heap;
 //   int GetIdentityHash() { return 0; }
 // };
 
-// } // namespace v8
+}  // namespace v8
 
-#endif // WASI_V8_MISSING_TYPES_H_
+#endif  // WASI_V8_MISSING_TYPES_H_

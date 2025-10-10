@@ -234,11 +234,6 @@
 #include "v8-value.h"         // NOLINT(build/include_directory)
 #include "v8config.h"         // NOLINT(build/include_directory)
 
-#ifdef __wasi__
-// Close any open v8 namespace before we declare our own
-}  // close any v8 namespace if open
-#endif
-
 namespace v8 {
 
 class Isolate;
@@ -821,9 +816,5 @@ TryToCopyAndConvertArrayToCppBuffer<CTypeInfoBuilder<double>::Build().GetId(),
 
 }  // namespace v8
 
-#ifdef __wasi__
-// Re-open the v8 namespace if it was closed at the beginning
-namespace v8 {
-#endif
 
 #endif  // INCLUDE_V8_FAST_API_CALLS_H_

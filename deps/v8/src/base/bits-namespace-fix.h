@@ -28,4 +28,5 @@ inline uint64_t RotateLeft64(uint64_t value, uint32_t shift) {
 }  // namespace base
 }  // namespace v8
 
+
 #endif  // V8_BASE_BITS_NAMESPACE_FIX_H_

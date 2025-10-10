@@ -16,11 +16,6 @@
 
 #include "v8.h"  // NOLINT(build/include_directory)
 
-#ifdef __wasi__
-// Close any open v8 namespace before we declare our own
-}  // close any v8 namespace if open
-#endif
-
 namespace v8 {
 template<typename T> class Local;
 class Context;
@@ -441,9 +436,5 @@ class V8_EXPORT V8Inspector {
 
 }  // namespace v8_inspector
 
-#ifdef __wasi__
-// Re-open the v8 namespace if it was closed at the beginning
-namespace v8 {
-#endif
 
 #endif  // V8_V8_INSPECTOR_H_

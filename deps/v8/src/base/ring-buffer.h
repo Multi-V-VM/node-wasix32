@@ -59,4 +59,5 @@ class RingBuffer final {
 
 }  // namespace v8::base
 
+
 #endif  // V8_BASE_RING_BUFFER_H_

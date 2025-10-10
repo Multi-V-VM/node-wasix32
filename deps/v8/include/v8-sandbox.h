@@ -232,4 +232,5 @@ V8_INLINE static T* ReadCppHeapPointerField(v8::Isolate* isolate,
 }  // namespace v8
 
 #endif  // INCLUDE_V8_SANDBOX_H_
+
 #endif // __wasi__

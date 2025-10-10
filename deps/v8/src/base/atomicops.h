@@ -487,4 +487,5 @@ inline int Relaxed_Memcmp(volatile const Atomic8* s1,
 }  // namespace base
 }  // namespace v8
 
+
 #endif  // V8_BASE_ATOMICOPS_H_

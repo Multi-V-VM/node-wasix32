@@ -31,4 +31,5 @@ V8_EXPORT bool TryHandleWebAssemblyTrapPosix(int sig_code, siginfo_t* info,
                                              void* context);
 
 }  // namespace v8
+
 #endif  // V8_WASM_TRAP_HANDLER_POSIX_H_

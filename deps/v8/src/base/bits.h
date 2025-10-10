@@ -1,6 +1,7 @@
 #ifndef V8_SRC_BASE_BITS_H_
 #define V8_SRC_BASE_BITS_H_
 
+#ifdef __wasi__
 #include <cstdint>
 #include <type_traits>
 #include <climits>
@@ -129,4 +130,5 @@ constexpr int BitWidth(T value) {
 }  // namespace base
 }  // namespace v8
 
+#endif  // __wasi__
 #endif  // V8_SRC_BASE_BITS_H_

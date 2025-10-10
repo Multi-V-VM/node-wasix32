@@ -5,9 +5,6 @@
 #include "v8-internal.h"
 #include "v8-maybe.h"
 
-// Close any open v8 namespace before we declare our own
-}  // close any v8 namespace if open
-
 namespace v8 {
 
 // Just is already defined in v8-maybe.h, no need to redefine
@@ -57,8 +54,4 @@ inline Maybe<double> Value::NumberValue(Local<Context> context) const {
 }
 
 } // namespace v8
-
-// Re-open the v8 namespace if it was closed at the beginning
-namespace v8 {
-
 #endif // V8_VALUE_INLINE_IMPL_H_

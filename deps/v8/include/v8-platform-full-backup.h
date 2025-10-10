@@ -92,6 +92,7 @@ class Platform {
 
 }  // namespace v8
 
+
 #endif  // V8_V8_PLATFORM_FULL_H_
 // Additional Platform methods
 class Platform {

@@ -5,6 +5,8 @@
 #ifndef V8_BASE_SYS_INFO_H_
 #define V8_BASE_SYS_INFO_H_
 
+#ifdef __wasi__
+
 #include <stdint.h>
 
 #include "src/base/base-export.h"
@@ -35,4 +37,5 @@ class V8_BASE_EXPORT SysInfo final {
 }  // namespace base
 }  // namespace v8
 
+#endif  // __wasi__
 #endif  // V8_BASE_SYS_INFO_H_

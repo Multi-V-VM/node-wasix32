@@ -1,6 +1,8 @@
 #ifndef V8_V8_PLATFORM_COMPLETE_H_
 #define V8_V8_PLATFORM_COMPLETE_H_
 
+#ifdef __wasi__
+
 #include <memory>
 #include "v8-task-full.h"
 #include "v8-tracing-base.h"
@@ -148,4 +150,5 @@ class ConvertableToTraceFormat;
 
 }  // namespace v8
 
+#endif  // __wasi__
 #endif  // V8_V8_PLATFORM_COMPLETE_H_

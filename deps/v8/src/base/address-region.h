@@ -5,6 +5,8 @@
 #ifndef V8_BASE_ADDRESS_REGION_H_
 #define V8_BASE_ADDRESS_REGION_H_
 
+#ifdef __wasi__
+
 #include <iostream>
 
 #include "src/base/macros.h"
@@ -93,4 +95,5 @@ inline std::ostream& operator<<(std::ostream& out, AddressRegion region) {
 }  // namespace base
 }  // namespace v8
 
+#endif  // __wasi__
 #endif  // V8_BASE_ADDRESS_REGION_H_

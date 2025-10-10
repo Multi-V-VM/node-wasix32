@@ -98,10 +98,6 @@
       'actions': [
         {
           'action_name': 'run_torque_action',
-          'inputs': [  # Order matters.
-            '<(PRODUCT_DIR)/<(EXECUTABLE_PREFIX)torque<(EXECUTABLE_SUFFIX)',
-            '<@(torque_files)',
-          ],
           'outputs': [
             "<(SHARED_INTERMEDIATE_DIR)/torque-generated/bit-fields.h",
             "<(SHARED_INTERMEDIATE_DIR)/torque-generated/builtin-definitions.h",
@@ -129,11 +125,31 @@
             '<@(torque_outputs_cc)',
             '<@(torque_outputs_inc)',
           ],
-          'action': [
-            '<(PRODUCT_DIR)/<(EXECUTABLE_PREFIX)torque<(EXECUTABLE_SUFFIX)',
-            '-o', '<(SHARED_INTERMEDIATE_DIR)/torque-generated',
-            '-v8-root', '<(V8_ROOT)',
-            '<@(torque_files_without_v8_root)',
+          'conditions': [
+            ['v8_target_arch=="wasm32"', {
+              'inputs': [
+                '<(V8_ROOT)/tools/v8_gypfiles/torque_host_wrapper.py',
+                '<@(torque_files)',
+              ],
+              'action': [
+                'python3',
+                '<(V8_ROOT)/tools/v8_gypfiles/torque_host_wrapper.py',
+                '-o', '<(SHARED_INTERMEDIATE_DIR)/torque-generated',
+                '-v8-root', '<(V8_ROOT)',
+                '<@(torque_files_without_v8_root)',
+              ],
+            }, {
+              'inputs': [  # Order matters.
+                '<(PRODUCT_DIR)/<(EXECUTABLE_PREFIX)torque<(EXECUTABLE_SUFFIX)',
+                '<@(torque_files)',
+              ],
+              'action': [
+                '<(PRODUCT_DIR)/<(EXECUTABLE_PREFIX)torque<(EXECUTABLE_SUFFIX)',
+                '-o', '<(SHARED_INTERMEDIATE_DIR)/torque-generated',
+                '-v8-root', '<(V8_ROOT)',
+                '<@(torque_files_without_v8_root)',
+              ],
+            }],
           ],
         },
       ],
