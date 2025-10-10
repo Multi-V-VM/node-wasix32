@@ -260,7 +260,7 @@ class PersistentBase : public api_internal::IndirectHandleBase {
   template <class F1, class F2, class F3>
   friend class PersistentValueMapBase;
   friend class Object;
-  friend class internal::ValueHelper;
+  friend struct internal::ValueHelper;
 
   V8_INLINE PersistentBase() = default;
 

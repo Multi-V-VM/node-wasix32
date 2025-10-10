@@ -11,8 +11,12 @@
 #include "v8-traced-handle.h"  // NOLINT(build/include_directory)
 #include "v8config.h"          // NOLINT(build/include_directory)
 
-// Forward declare global cppgc options for aliasing below
-namespace cppgc { struct HeapOptions; }
+// Forward declare cppgc surface types expected by embedders
+namespace cppgc {
+struct HeapOptions;
+class AllocationHandle;
+class HeapHandle;
+}
 
 namespace v8 {
 namespace internal {

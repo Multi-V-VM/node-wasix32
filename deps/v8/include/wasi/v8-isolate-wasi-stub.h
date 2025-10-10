@@ -6,6 +6,7 @@
 #include "v8-wasi-compat.h"
 #include "v8-api-stubs.h"
 #include "../v8-local-handle.h"
+#include "../v8-maybe-local.h"
 #include "../v8-callbacks.h"  // Ensure canonical callback/GC typedefs and forward decls
 #include <cstring>  // for memset
 
@@ -177,11 +178,12 @@ class V8_EXPORT Isolate {
       TimeZoneDetection detection = TimeZoneDetection::kRedetect) {}
   
   // Host callback methods
-  void SetHostImportModuleDynamicallyCallback(HostImportModuleDynamicallyCallback callback) {}
-  void SetHostImportModuleWithPhaseDynamicallyCallback(
-      HostImportModuleWithPhaseDynamicallyCallback callback) {}
-  void SetHostInitializeImportMetaObjectCallback(
-      HostInitializeImportMetaObjectCallback callback) {}
+  template <typename F>
+  void SetHostImportModuleDynamicallyCallback(F) {}
+  template <typename F>
+  void SetHostImportModuleWithPhaseDynamicallyCallback(F) {}
+  template <typename F>
+  void SetHostInitializeImportMetaObjectCallback(F) {}
   
   // Heap profiler
   HeapProfiler* GetHeapProfiler() { return nullptr; }
@@ -210,22 +212,16 @@ class V8_EXPORT Isolate {
   // Note: The standard V8 signature uses GCType and GCCallbackFlags enums,
   // but the callback expects (Isolate*, GCType, GCCallbackFlags, void*)
   // Use GCType/GCCallbackFlags as declared in v8-callbacks.h
-  using GCCallback = void (*)(Isolate* isolate, GCType gc_type, GCCallbackFlags gc_flags, void* data);
-  using GCCallbackWithData = void (*)(Isolate* isolate, int gc_type, int gc_flags, void* data);
   using GetExternallyAllocatedMemoryInBytesCallback = size_t (*)();
 
-  void AddGCPrologueCallback(GCCallback callback, void* data = nullptr, GCType gc_type = GCType::kGCTypeAll) {
-    // WASI stub - no-op
-  }
-  void RemoveGCPrologueCallback(GCCallback callback, void* data = nullptr) {
-    // WASI stub - no-op
-  }
-  void AddGCEpilogueCallback(GCCallback callback, void* data = nullptr, GCType gc_type = GCType::kGCTypeAll) {
-    // WASI stub - no-op
-  }
-  void RemoveGCEpilogueCallback(GCCallback callback, void* data = nullptr) {
-    // WASI stub - no-op
-  }
+  template <typename... Args>
+  void AddGCPrologueCallback(Args...) {}
+  template <typename... Args>
+  void RemoveGCPrologueCallback(Args...) {}
+  template <typename... Args>
+  void AddGCEpilogueCallback(Args...) {}
+  template <typename... Args>
+  void RemoveGCEpilogueCallback(Args...) {}
   
   // Scope class
   class Scope {
@@ -267,9 +263,9 @@ class V8_EXPORT Isolate {
   };
   
   // Missing methods for Node.js compatibility
-  void AddMessageListenerWithErrorLevel(MessageCallback callback,
-                                        int message_levels,
-                                        Local<Value> data = Local<Value>()) {
+  template <typename F>
+  void AddMessageListenerWithErrorLevel(F /*callback*/, int /*message_levels*/,
+                                        Local<Value> = Local<Value>()) {
     // WASI stub - no-op
   }
   
@@ -277,15 +273,18 @@ class V8_EXPORT Isolate {
     // WASI stub - no-op
   }
   
-  void SetFatalErrorHandler(FatalErrorCallback callback) {
+  template <typename F>
+  void SetFatalErrorHandler(F) {
     // WASI stub - no-op
   }
   
-  void SetOOMErrorHandler(OOMErrorCallback callback) {
+  template <typename F>
+  void SetOOMErrorHandler(F) {
     // WASI stub - no-op
   }
   
-  void SetPrepareStackTraceCallback(PrepareStackTraceCallback callback) {
+  template <typename F>
+  void SetPrepareStackTraceCallback(F) {
     // WASI stub - no-op
   }
   
@@ -293,19 +292,23 @@ class V8_EXPORT Isolate {
     // WASI stub - no-op
   }
   
-  void SetAllowWasmCodeGenerationCallback(AllowWasmCodeGenerationCallback callback) {
+  template <typename F>
+  void SetAllowWasmCodeGenerationCallback(F) {
     // WASI stub - no-op
   }
   
-  void SetModifyCodeGenerationFromStringsCallback(ModifyCodeGenerationFromStringsCallback2 callback) {
+  template <typename F>
+  void SetModifyCodeGenerationFromStringsCallback(F) {
     // WASI stub - no-op
   }
   
-  void SetWasmStreamingCallback(WasmStreamingCallback callback) {
+  template <typename F>
+  void SetWasmStreamingCallback(F) {
     // WASI stub - no-op
   }
   
-  void SetHostCreateShadowRealmContextCallback(HostCreateShadowRealmContextCallback callback) {
+  template <typename F>
+  void SetHostCreateShadowRealmContextCallback(F) {
     // WASI stub - no-op
   }
   

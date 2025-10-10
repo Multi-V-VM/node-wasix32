@@ -79,9 +79,11 @@ struct ObjectTraits<Oddball> {
       FixedBodyDescriptor<offsetof(Oddball, to_string_),
                           offsetof(Oddball, kind_), sizeof(Oddball)>;
 
+#ifndef __wasi__
   static_assert(offsetof(Oddball, kind_) == Internals::kOddballKindOffset);
   static_assert(Oddball::kNull == Internals::kNullOddballKind);
   static_assert(Oddball::kUndefined == Internals::kUndefinedOddballKind);
+#endif
 };
 
 V8_OBJECT class Null : public Oddball {

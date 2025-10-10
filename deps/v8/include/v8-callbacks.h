@@ -17,6 +17,10 @@
 #include "v8-data.h"          // NOLINT(build/include_directory)
 #include "v8-forward.h"       // NOLINT(build/include_directory)
 #include "v8-local-handle.h"  // NOLINT(build/include_directory)
+#include "v8-maybe-local.h"   // Ensure MaybeLocal is available
+#ifndef __wasi__
+#include "v8-promise.h"  // Ensure Promise::Resolver is visible for non-WASI
+#endif
 #include "v8-maybe-local.h"   // NOLINT(build/include_directory)
 #include "v8config.h"         // NOLINT(build/include_directory)
 
@@ -26,9 +30,8 @@ struct _EXCEPTION_POINTERS;
 
 namespace v8 {
 
-template <typename T>
-class FunctionCallbackInfo;
-#if defined(__wasi__)
+template <typename T> class FunctionCallbackInfo;
+template <typename T> class MaybeLocal;  // forward decl for early use
 // Ensure MaybeLocal is available even if the include order prevents
 // v8-maybe-local.h from providing it yet.
 #ifndef INCLUDE_V8_MAYBE_LOCAL_H_
@@ -42,7 +45,6 @@ class MaybeLocal {
   Local<T> ToLocalChecked() const { return Local<T>(); }
   bool ToLocal(Local<T>*) const { return false; }
 };
-#endif
 #endif
 class Isolate;
 class Message;
@@ -287,7 +289,11 @@ struct ModifyCodeGenerationFromStringsResult {
   // Overwrite the original source with this string, if present.
   // Use the original source if empty.
   // This field is considered only if codegen_allowed is true.
+#ifdef __wasi__
+  Local<String> modified_source;
+#else
   MaybeLocal<String> modified_source;
+#endif
 };
 
 /**

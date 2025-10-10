@@ -5,10 +5,8 @@
 #ifndef INCLUDE_CPPGC_HEAP_STATISTICS_H_
 #define INCLUDE_CPPGC_HEAP_STATISTICS_H_
 
-#include "v8-cppgc.h"  // Provides cppgc::HeapStatistics
-
 namespace cppgc {
-// Nothing to add; the type lives in v8-cppgc.h for this WASI configuration.
+struct HeapStatistics;  // forward declaration; defined in cppgc/heap.h
 }
 
 #endif  // INCLUDE_CPPGC_HEAP_STATISTICS_H_

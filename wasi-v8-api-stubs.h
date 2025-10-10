@@ -9,18 +9,13 @@
 
 // Additional cppgc namespace stubs (must be before v8 namespace)
 // Only define if V8 headers haven't been included
-#if !defined(CPPGC_STUBS_DEFINED) && !defined(INCLUDE_V8_CPPGC_H_)
+#if !defined(CPPGC_STUBS_DEFINED) && !defined(INCLUDE_V8_CPPGC_H_) && !defined(INCLUDE_CPPGC_CUSTOM_SPACE_H_)
 #define CPPGC_STUBS_DEFINED
 
 namespace cppgc {
 
-#ifndef CPPGC_CUSTOM_SPACE_BASE_DEFINED
-#define CPPGC_CUSTOM_SPACE_BASE_DEFINED
-class CustomSpaceBase {
- public:
-  virtual ~CustomSpaceBase() = default;
-};
-#endif
+// Forward declarations only; real definitions come from cppgc headers.
+class CustomSpaceBase;
 
 
 } // namespace cppgc

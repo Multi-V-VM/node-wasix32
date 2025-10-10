@@ -148,6 +148,44 @@ using StackTracePrinter = void (*)(void);
 class TracingController;
 class ConvertableToTraceFormat;
 
+// Minimal VirtualAddressSpace interface for WASI builds.
+class VirtualAddressSpace {
+ public:
+  using Address = uintptr_t;
+  static constexpr Address kNoHint = 0;
+
+  virtual ~VirtualAddressSpace() = default;
+
+  virtual void SetRandomSeed(int64_t) {}
+  virtual Address RandomPageAddress() { return 0; }
+
+  virtual Address AllocatePages(Address /*hint*/, size_t /*size*/, size_t /*alignment*/,
+                                PagePermissions /*perms*/) { return 0; }
+  virtual void FreePages(Address /*address*/, size_t /*size*/) {}
+
+  virtual bool SetPagePermissions(Address /*address*/, size_t /*size*/,
+                                  PagePermissions /*perms*/) { return true; }
+  virtual bool AllocateGuardRegion(Address /*address*/, size_t /*size*/) { return false; }
+  virtual void FreeGuardRegion(Address /*address*/, size_t /*size*/) {}
+
+  virtual bool CanAllocateSubspaces() { return false; }
+  virtual std::unique_ptr<VirtualAddressSpace> AllocateSubspace(
+      Address /*hint*/, size_t /*size*/, size_t /*alignment*/,
+      PagePermissions /*max_perms*/) { return nullptr; }
+
+  virtual bool RecommitPages(Address /*address*/, size_t /*size*/,
+                             PagePermissions /*perms*/) { return false; }
+  virtual bool DiscardSystemPages(Address /*address*/, size_t /*size*/) { return false; }
+  virtual bool DecommitPages(Address /*address*/, size_t /*size*/) { return false; }
+
+  // Introspection helpers used by segmented tables.
+  virtual Address base() const { return 0; }
+  virtual size_t size() const { return 0; }
+  virtual size_t page_size() const { return 4096; }
+  virtual size_t allocation_granularity() const { return 4096; }
+  virtual PagePermissions max_page_permissions() const { return PagePermissions::kReadWrite; }
+};
+
 }  // namespace v8
 
 #endif  // __wasi__

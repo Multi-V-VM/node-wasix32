@@ -2956,8 +2956,13 @@ class V8_EXPORT_PRIVATE Isolate final : private HiddenFactory {
 // This is outside the Isolate class with extern storage because in clang-cl,
 // thread_local is incompatible with dllexport linkage caused by
 // V8_EXPORT_PRIVATE being applied to Isolate.
+#ifndef __wasi__
 extern thread_local Isolate::PerIsolateThreadData*
     g_current_per_isolate_thread_data_ V8_CONSTINIT;
+#else
+extern thread_local Isolate::PerIsolateThreadData*
+    g_current_per_isolate_thread_data_;
+#endif
 
 #undef FIELD_ACCESSOR
 #undef THREAD_LOCAL_TOP_ACCESSOR

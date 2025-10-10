@@ -14,8 +14,9 @@
 
 namespace v8 {
 #ifdef __wasi__
-// Forward declare a stub VirtualAddressSpace type for WASI builds.
-namespace internal { class VirtualAddressSpace; }
+// For WASI builds, reuse the public VirtualAddressSpace interface inside
+// the internal namespace to satisfy internal table code.
+namespace internal { using VirtualAddressSpace = ::v8::VirtualAddressSpace; }
 #endif
 namespace internal {
 

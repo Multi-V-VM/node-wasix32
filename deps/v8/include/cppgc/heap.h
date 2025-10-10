@@ -3,26 +3,23 @@
 // found in the LICENSE file.
 
 #ifndef INCLUDE_CPPGC_HEAP_H_
-#define INCLUDE_CPPGC_HEAP_H_
+ #define INCLUDE_CPPGC_HEAP_H_
 
 #include <memory>
 #include <vector>
 #include <string>
 
-#include "cppgc/common.h"
-#include "cppgc/custom-space.h"
-#include "cppgc/platform.h"
-#include "v8config.h"
-
-// Check if v8-cppgc.h has already defined these types
-#ifndef INCLUDE_V8_CPPGC_H_
+ #include "cppgc/common.h"
+ #include "cppgc/custom-space.h"
+ #include "cppgc/platform.h"
+ #include "v8config.h"
 
 namespace cppgc {
 
 class AllocationHandle;
 class HeapHandle;
 
-// These enums and structs should match v8-cppgc.h definitions
+// These enums and structs define the core cppgc surface types
 enum class CollectionType {
   kMinor,
   kMajor,
@@ -133,12 +130,5 @@ class V8_EXPORT Heap {
 };
 
 }  // namespace cppgc
-
-#else // INCLUDE_V8_CPPGC_H_ is defined
-
-// v8-cppgc.h has already defined everything, just use those definitions
-#include "v8-cppgc.h"
-
-#endif // INCLUDE_V8_CPPGC_H_
 
 #endif  // INCLUDE_CPPGC_HEAP_H_
