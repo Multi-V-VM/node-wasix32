@@ -1693,8 +1693,8 @@ std::vector<PrivatePropertyMirror> ValueMirror::getPrivateProperties(
                                       v8::MicrotasksScope::kDoNotRunMicrotasks);
   v8::TryCatch tryCatch(isolate);
 
-  v8::Local::v8::base::Vector<v8::Value> names(isolate);
-  v8::Local::v8::base::Vector<v8::Value> values(isolate);
+  v8::LocalVector<v8::Value> names;
+  v8::LocalVector<v8::Value> values;
   int filter =
       static_cast<int>(v8::debug::PrivateMemberFilter::kPrivateAccessors) |
       static_cast<int>(v8::debug::PrivateMemberFilter::kPrivateFields);

@@ -75,7 +75,7 @@ class SnapshotByteSource final {
          ++p, position_ += sizeof(AtomicTagged_t)) {
       AtomicTagged_t val;
       memcpy(&val, data_ + position_, sizeof(AtomicTagged_t));
-      base::Relaxed_Store(p, val);
+      AsAtomicTagged::Relaxed_Store(p, val);
     }
   }
 #endif

@@ -594,8 +594,15 @@ class V8_EXPORT_PRIVATE Isolate final : private HiddenFactory {
  Isolate& operator=(const Isolate&) = delete;
 
   using HandleScopeType = HandleScope;
+  // In WASI builds, avoid depending on the nested typedef of the public API
+  // (which may not be visible yet due to include order) by providing an
+  // equivalent fallback.
+#ifdef __wasi__
+  using AbortOnUncaughtExceptionCallback = bool (*)(v8::Isolate*);
+#else
   using AbortOnUncaughtExceptionCallback =
       v8::Isolate::AbortOnUncaughtExceptionCallback;
+#endif
   void* operator new(size_t) = delete;
   void operator delete(void*) = delete;
 

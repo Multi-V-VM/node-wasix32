@@ -110,6 +110,8 @@ class V8_EXPORT Isolate {
   };
   
   // Add callback methods
+  using GCCallbackWithData = void (*)(Isolate* isolate, GCType, GCCallbackFlags, void* data);
+  using GCCallback = void (*)(Isolate* isolate, GCType, GCCallbackFlags);
   void AddMessageListenerWithErrorLevel(MessageCallback callback,
                                       int message_levels,
                                       Local<Value> data = Local<Value>());

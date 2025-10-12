@@ -516,7 +516,7 @@ class JSObject : public TorqueGeneratedJSObject<JSObject, JSReceiver> {
   V8_WARN_UNUSED_RESULT static Maybe<bool> CreateDataProperty(
       Isolate* isolate, DirectHandle<JSObject> object, PropertyKey key,
       DirectHandle<Object> value,
-      Maybe<ShouldThrow> should_throw = Just(Internals::kDontThrow));
+      Maybe<ShouldThrow> should_throw = Just(ShouldThrow::kDontThrow));
 
   V8_EXPORT_PRIVATE static void AddProperty(Isolate* isolate,
                                             DirectHandle<JSObject> object,

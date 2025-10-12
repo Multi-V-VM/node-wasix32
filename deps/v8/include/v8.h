@@ -80,10 +80,8 @@
 #include "wasi/v8-wasi-helpers.h"
 #include "wasi/v8-wasi-compat.h"
 #include "wasi/v8-fixed-array-stub.h"  // Include after v8-data.h
-// wasi-v8-complete-missing.h removed - should be included before V8 headers, not after
-#include "../../../wasi-v8-namespace-fix.h"
+// Note: namespace bridging is handled by wasi/v8-namespace-fix.h at the top.
 #include "../../../wasi-v8-flags-fix.h"
-// wasi-v8-internals-constants.h removed - causes redefinition errors
 #endif
 
 #endif  // INCLUDE_V8_H_

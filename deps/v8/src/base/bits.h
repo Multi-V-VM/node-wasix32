@@ -51,11 +51,22 @@ inline T RoundUpToPowerOfTwo(T value) {
 }
 
 // Count functions inline implementations
+// Some code expects explicit 32-bit variant.
+constexpr int CountLeadingZeros32(uint32_t value) { return __builtin_clz(value); }
 constexpr int CountLeadingZeros(uint32_t value) {
   return __builtin_clz(value);
 }
 constexpr int CountLeadingZeros(uint64_t value) {
   return __builtin_clzll(value);
+}
+// Provide a size_t overload to avoid ambiguous calls where sizeof(size_t)
+// differs from builtin overloads.
+constexpr int CountLeadingZeros(size_t value) {
+  if constexpr (sizeof(size_t) == 8) {
+    return __builtin_clzll(static_cast<uint64_t>(value));
+  } else {
+    return __builtin_clz(static_cast<uint32_t>(value));
+  }
 }
 constexpr int CountLeadingZeros(uint8_t value) {
   return __builtin_clz(static_cast<uint32_t>(value)) - (32 - 8);

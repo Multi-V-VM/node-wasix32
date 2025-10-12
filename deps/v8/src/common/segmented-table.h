@@ -13,11 +13,6 @@
 #include "src/common/code-memory-access.h"
 
 namespace v8 {
-#ifdef __wasi__
-// For WASI builds, reuse the public VirtualAddressSpace interface inside
-// the internal namespace to satisfy internal table code.
-namespace internal { using VirtualAddressSpace = ::v8::VirtualAddressSpace; }
-#endif
 namespace internal {
 
 /**

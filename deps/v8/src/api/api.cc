@@ -2321,7 +2321,7 @@ Maybe<bool> Module::SetSyntheticModuleExport(Isolate* v8_isolate,
   return Just(true);
 }
 
-std::pair<Local::v8::base::Vector<Module>, Local::v8::base::Vector<Message>>
+std::pair<LocalVector<Module>, LocalVector<Message>>
 Module::GetStalledTopLevelAwaitMessages(Isolate* isolate) {
   auto i_isolate = reinterpret_cast<i::Isolate*>(isolate);
   auto self = Utils::OpenDirectHandle(this);
@@ -2329,25 +2329,21 @@ Module::GetStalledTopLevelAwaitMessages(Isolate* isolate) {
                   "v8::Module::GetStalledTopLevelAwaitMessages",
                   "v8::Module::GetStalledTopLevelAwaitMessages must only be "
                   "called on a SourceTextModule");
-  std::pair<i::DirectHandle<::v8::base::Vector<i::SourceTextModule>,
-            i::DirectHandle<::v8::base::Vector<i::JSMessageObject>>
-      stalled_awaits =
-          i::Cast<i::SourceTextModule>(self)->GetStalledTopLevelAwaitMessages(
-              i_isolate);
+  auto stalled_awaits =
+      i::Cast<i::SourceTextModule>(self)->GetStalledTopLevelAwaitMessages(
+          i_isolate);
 
-  Local::v8::base::Vector<Module> modules(isolate);
-  if (size_t stalled_awaits_count = stalled_awaits.first.size();
-      stalled_awaits_count > 0) {
-    modules.reserve(stalled_awaits_count);
-    for (auto module : stalled_awaits.first)
-      modules.push_back(ToApiHandle<Module>(module));
+  LocalVector<Module> modules;
+  if (size_t count = stalled_awaits.first.size(); count > 0) {
+    for (size_t i = 0; i < count; ++i) {
+      modules.push_back(ToApiHandle<Module>(stalled_awaits.first[i]));
+    }
   }
-  Local::v8::base::Vector<Message> messages(isolate);
-  if (size_t stalled_awaits_count = stalled_awaits.second.size();
-      stalled_awaits_count > 0) {
-    messages.reserve(stalled_awaits_count);
-    for (auto message : stalled_awaits.second)
-      messages.push_back(ToApiHandle<Message>(message));
+  LocalVector<Message> messages;
+  if (size_t count = stalled_awaits.second.size(); count > 0) {
+    for (size_t i = 0; i < count; ++i) {
+      messages.push_back(ToApiHandle<Message>(stalled_awaits.second[i]));
+    }
   }
 
   return {modules, messages};
@@ -7031,7 +7027,7 @@ class ObjectVisitorDeepFreezer : i::ObjectVisitor {
 
   bool FreezeEmbedderObjectAndVisitChildren(i::DirectHandle<i::JSObject> obj) {
     DCHECK(delegate_);
-    Local::v8::base::Vector<Object> children(reinterpret_cast<Isolate*>(isolate_));
+    LocalVector<Object> children;
     if (!delegate_->FreezeEmbedderObjectAndGetChildren(Utils::ToLocal(obj),
                                                        children)) {
       return false;

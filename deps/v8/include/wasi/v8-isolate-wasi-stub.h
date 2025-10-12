@@ -9,6 +9,8 @@
 #include "../v8-maybe-local.h"
 #include "../v8-callbacks.h"  // Ensure canonical callback/GC typedefs and forward decls
 #include <cstring>  // for memset
+#include <memory>
+#include <string>
 
 // V8_EXPORT macro for WASI
 #ifndef V8_EXPORT
@@ -121,9 +123,11 @@ using AbortOnUncaughtExceptionCallback = bool (*)(Isolate*);
 // Minimal Isolate stub for WASI
 class V8_EXPORT Isolate {
  public:
-  // UseCounter feature enumeration
+  using AbortOnUncaughtExceptionCallback = bool (*)(Isolate*);
+  // UseCounter feature enumeration (add only entries we see referenced)
   enum UseCounterFeature {
-    kUseCounterFeatureCount = 0  // Placeholder
+    kExtendingNonExtensibleWithPrivate = 0,
+    kUseCounterFeatureCount = 1
   };
 
   // Callback types
@@ -135,7 +139,7 @@ class V8_EXPORT Isolate {
     CreateParams() = default;
     
     // Node.js required fields
-    v8::ResourceConstraints constraints;
+    ResourceConstraints constraints;
     
     int embedder_wrapper_object_index = -1;
     int embedder_wrapper_type_index = -1;
@@ -202,16 +206,19 @@ class V8_EXPORT Isolate {
   }
   
   // Use the v8::MeasureMemoryDelegate from v8-statistics.h
-  void MeasureMemory(std::unique_ptr<v8::MeasureMemoryDelegate> delegate,
-                     v8::MeasureMemoryExecution execution = v8::MeasureMemoryExecution::kDefault) {
+  void MeasureMemory(std::unique_ptr<MeasureMemoryDelegate> delegate,
+                     MeasureMemoryExecution execution = MeasureMemoryExecution::kDefault) {
     // WASI stub - no-op
     // Can't call delegate methods without proper implementation
   }
   
   // GC callbacks - updated to match V8 API signature
-  // Note: The standard V8 signature uses GCType and GCCallbackFlags enums,
-  // but the callback expects (Isolate*, GCType, GCCallbackFlags, void*)
-  // Use GCType/GCCallbackFlags as declared in v8-callbacks.h
+  // Note: The standard V8 signature uses GCType and GCCallbackFlags enums.
+  // Fully-qualify to avoid lookup issues in class scope.
+  using GCCallbackWithData = void (*)(Isolate* isolate, ::v8::GCType,
+                                      ::v8::GCCallbackFlags, void* data);
+  using GCCallback = void (*)(Isolate* isolate, ::v8::GCType,
+                              ::v8::GCCallbackFlags);
   using GetExternallyAllocatedMemoryInBytesCallback = size_t (*)();
 
   template <typename... Args>
@@ -249,6 +256,9 @@ class V8_EXPORT Isolate {
       // WASI stub - no-op
     }
   };
+
+  // Minimal usage counter support (implemented above in class definitions)
+  void CountUsage(UseCounterFeature) {}
   
   // AllowJavascriptExecutionScope for WASI
   class AllowJavascriptExecutionScope {

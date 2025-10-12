@@ -10,7 +10,7 @@
 
 #include "src/sandbox/compactible-external-entity-table-inl.h"
 
-#ifdef V8_COMPRESS_POINTERS
+#if defined(V8_COMPRESS_POINTERS) && !defined(__wasi__)
 
 namespace v8 {
 namespace internal {

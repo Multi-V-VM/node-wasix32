@@ -36,7 +36,7 @@ void reportError(v8::Local<v8::Context> context, const v8::TryCatch& tryCatch) {
   v8::Local<v8::String> prefix =
       toV8String(isolate, "Custom Formatter Failed: ");
   message = v8::String::Concat(isolate, prefix, message);
-  v8::Local::v8::base::Vector<v8::Value> arguments(isolate);
+  v8::LocalVector<v8::Value> arguments;
   arguments.push_back(message);
   V8ConsoleMessageStorage* storage =
       inspector->ensureConsoleMessageStorage(groupId);

@@ -1236,6 +1236,12 @@ ExternalPointerSlot HeapObject::RawExternalPointerField(
   return ExternalPointerSlot(field_address(byte_offset), tag_range);
 }
 
+// Convenience overload to accept a single tag where a range is expected.
+ExternalPointerSlot HeapObject::RawExternalPointerField(
+    int byte_offset, ExternalPointerTag tag) const {
+  return RawExternalPointerField(byte_offset, ExternalPointerTagRange(tag));
+}
+
 CppHeapPointerSlot HeapObject::RawCppHeapPointerField(int byte_offset) const {
   return CppHeapPointerSlot(field_address(byte_offset));
 }

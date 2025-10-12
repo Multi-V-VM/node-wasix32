@@ -71,12 +71,21 @@
 #endif
 
 // C++20 constinit support
-#if defined(__cpp_constinit) && __cpp_constinit >= 201907L
-#define V8_CONSTINIT constinit
-#elif __has_attribute(require_constant_initialization)
-#define V8_CONSTINIT __attribute__((require_constant_initialization))
+// For WASI builds, prefer the Clang attribute which is valid on declarations.
+#if defined(__wasi__)
+# if __has_attribute(require_constant_initialization)
+#  define V8_CONSTINIT __attribute__((require_constant_initialization))
+# else
+#  define V8_CONSTINIT
+# endif
 #else
-#define V8_CONSTINIT
+# if defined(__cpp_constinit) && __cpp_constinit >= 201907L
+#  define V8_CONSTINIT constinit
+# elif __has_attribute(require_constant_initialization)
+#  define V8_CONSTINIT __attribute__((require_constant_initialization))
+# else
+#  define V8_CONSTINIT
+# endif
 #endif
 
 // Constexpr support

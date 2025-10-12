@@ -573,12 +573,26 @@ V8_OBJECT class String : public Name {
                                          DirectHandle<String> string);
 
   static inline bool IsAscii(const char* chars, uint32_t length) {
+#ifdef __wasi__
+    for (uint32_t i = 0; i < length; i++) {
+      if (static_cast<unsigned char>(chars[i]) > 0x7f) return false;
+    }
+    return true;
+#else
     return simdutf::validate_ascii(chars, length);
+#endif
   }
 
   static inline bool IsAscii(const uint8_t* chars, uint32_t length) {
+#ifdef __wasi__
+    for (uint32_t i = 0; i < length; i++) {
+      if (chars[i] > 0x7f) return false;
+    }
+    return true;
+#else
     return simdutf::validate_ascii(reinterpret_cast<const char*>(chars),
                                    length);
+#endif
   }
 
   static bool DoesNotContainEscapeCharacters(Tagged<String> string);

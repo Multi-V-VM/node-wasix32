@@ -235,8 +235,8 @@ class SourceTextModuleDescriptor : public ZoneObject {
 
  private:
   ModuleRequestMap module_requests_;
-  ::v8::base::Vector<const Entry*> special_exports_;
-  ::v8::base::Vector<const Entry*> namespace_imports_;
+  ZoneVector<const Entry*> special_exports_;
+  ZoneVector<const Entry*> namespace_imports_;
   RegularExportMap regular_exports_;
   RegularImportMap regular_imports_;
 

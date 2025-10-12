@@ -3,96 +3,53 @@
 
 #ifdef __wasi__
 
-// Note: The actual V8 header includes should happen BEFORE this file
-// via wasi-v8-base-includes.h to avoid namespace nesting issues. At this
-// point we only need to forward declare the minimal surface that Node pulls in
-// before the full V8 headers are available.
+// Keep this shim minimal and avoid creating nested v8::v8 namespaces.
+// Delegate namespace bridging to the in-tree V8 WASI header, and only
+// provide the lightweight wrappers actually referenced by our patches.
 
-namespace v8::metrics {
-class Recorder;
-}  // namespace v8::metrics
+#include <vector>
+// Ensure ::v8::base::Vector is declared before bridging.
+#include "deps/v8/src/base/vector.h"
+// Use the safer in-tree namespace bridge for nested v8 lookups.
+#include "deps/v8/include/wasi/v8-namespace-fix.h"
 
-// If some translation units included V8 headers from within `namespace v8 { … }`
-// scopes we can end up with symbols instantiated as `v8::v8::…`. Provide light
-// weight namespace bridges so those accidental nestings still resolve to the
-// canonical definitions. This mirrors the original workaround, but without
-// touching std:: or other C++ library namespaces.
-
-namespace v8 {
-namespace v8 {
-using namespace ::v8;
-}  // namespace v8
-}  // namespace v8
-
-namespace v8 {
-namespace v8 {
-namespace v8 {
-using namespace ::v8;
-}  // namespace v8
-}  // namespace v8
-}  // namespace v8
-
-// Forward v8::base lookups for the common nested cases.
+// Bridge so GlobalHandle::v8::base::Vector<T> resolves to ::v8::base::Vector<T>
+namespace GlobalHandle {
 namespace v8 {
 namespace base {
-using namespace ::v8::base;
-namespace bits {
-using namespace ::v8::base::bits;
-}  // namespace bits
+template <typename T>
+using Vector = ::v8::base::Vector<T>;
 }  // namespace base
 }  // namespace v8
+}  // namespace GlobalHandle
 
-namespace v8 {
+// Minimal Detachable::v8::base::Vector wrapper for a small API surface.
+namespace Detachable {
 namespace v8 {
 namespace base {
-using namespace ::v8::base;
-namespace bits {
-using namespace ::v8::base::bits;
-}  // namespace bits
+template <typename T>
+class Vector {
+ public:
+  Vector() = default;
+  // Container-like API
+  void detach() { data_.clear(); data_.shrink_to_fit(); }
+  void free() { data_.clear(); data_.shrink_to_fit(); }
+  bool empty() const { return data_.empty(); }
+  size_t size() const { return data_.size(); }
+  void push_back(const T& v) { data_.push_back(v); }
+  void pop_back() { data_.pop_back(); }
+  T& back() { return data_.back(); }
+  const T& back() const { return data_.back(); }
+  // Indexing used in a few places
+  T& operator[](size_t i) { return data_[i]; }
+  const T& operator[](size_t i) const { return data_[i]; }
+
+ private:
+  std::vector<T> data_;
+};
 }  // namespace base
 }  // namespace v8
-}  // namespace v8
-
-namespace v8 {
-namespace v8 {
-namespace v8 {
-namespace base {
-using namespace ::v8::base;
-namespace bits {
-using namespace ::v8::base::bits;
-}  // namespace bits
-}  // namespace base
-}  // namespace v8
-}  // namespace v8
-}  // namespace v8
-
-// Make sure v8::internal and its nested variants point to the global one.
-namespace v8 {
-namespace internal {
-using namespace ::v8::internal;
-namespace base {
-using namespace ::v8::base;
-}  // namespace base
-}  // namespace internal
-}  // namespace v8
-
-namespace v8 {
-namespace v8 {
-namespace internal {
-using namespace ::v8::internal;
-}  // namespace internal
-}  // namespace v8
-}  // namespace v8
-
-namespace v8 {
-namespace v8 {
-namespace v8 {
-namespace internal {
-using namespace ::v8::internal;
-}  // namespace internal
-}  // namespace v8
-}  // namespace v8
-}  // namespace v8
+}  // namespace Detachable
 
 #endif  // __wasi__
 

@@ -94,6 +94,19 @@
 #define UNIMPLEMENTED() FATAL("UNIMPLEMENTED")
 #endif
 
+// Extended CHECK/DCHECK variants used throughout V8
+#ifndef CHECK_WITH_MSG
+#define CHECK_WITH_MSG(condition, message) CHECK(condition)
+#endif
+
+#ifndef DCHECK_WITH_MSG
+#define DCHECK_WITH_MSG(condition, message) DCHECK(condition)
+#endif
+
+#ifndef DCHECK_WITH_MSG_AND_LOC
+#define DCHECK_WITH_MSG_AND_LOC(condition, message, loc) DCHECK(condition)
+#endif
+
 #ifndef V8_GLIBC_PREREQ
 #define V8_GLIBC_PREREQ(maj, min) 0
 #endif

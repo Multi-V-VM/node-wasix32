@@ -1362,19 +1362,19 @@ void SourceTextModule::Reset(Isolate* isolate,
   raw_module->set_dfs_ancestor_index(-1);
 }
 
-std::pair<DirectHandle<::v8::base::Vector<SourceTextModule>,
-          DirectHandle<::v8::base::Vector<JSMessageObject>>
+std::pair<Detachable::v8::base::Vector<DirectHandle<SourceTextModule>>,
+          Detachable::v8::base::Vector<DirectHandle<JSMessageObject>>>
 SourceTextModule::GetStalledTopLevelAwaitMessages(Isolate* isolate) {
   Zone zone(isolate->allocator(), ZONE_NAME);
   UnorderedModuleSet visited(&zone);
-  DirectHandle<::v8::base::Vector<SourceTextModule> stalled_modules(isolate);
-  DirectHandle<::v8::base::Vector<JSMessageObject> messages(isolate);
+  Detachable::v8::base::Vector<DirectHandle<SourceTextModule>> stalled_modules;
+  Detachable::v8::base::Vector<DirectHandle<JSMessageObject>> messages;
   InnerGetStalledTopLevelAwaitModule(isolate, &visited, &stalled_modules);
   size_t stalled_modules_size = stalled_modules.size();
   if (stalled_modules_size == 0) return {stalled_modules, messages};
 
-  messages.reserve(stalled_modules_size);
-  for (DirectHandle<SourceTextModule> found : stalled_modules) {
+  for (size_t i = 0; i < stalled_modules_size; ++i) {
+    DirectHandle<SourceTextModule> found = stalled_modules[i];
     CHECK(IsJSGeneratorObject(found->code()));
     DirectHandle<JSGeneratorObject> code(Cast<JSGeneratorObject>(found->code()),
                                          isolate);
@@ -1392,7 +1392,7 @@ SourceTextModule::GetStalledTopLevelAwaitMessages(Isolate* isolate) {
 
 void SourceTextModule::InnerGetStalledTopLevelAwaitModule(
     Isolate* isolate, UnorderedModuleSet* visited,
-    DirectHandle<::v8::base::Vector<SourceTextModule>* result) {
+    Detachable::v8::base::Vector<DirectHandle<SourceTextModule>>* result) {
   DisallowGarbageCollection no_gc;
   // If it's a module that is waiting for no other modules but itself,
   // it's what we are looking for. Add it to the results.

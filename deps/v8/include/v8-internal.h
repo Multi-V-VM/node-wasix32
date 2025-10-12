@@ -7,12 +7,25 @@
 #include "wasi/v8-wasi-compat.h"
 #include "../../../wasi-v8-internals-minimal.h"
 // Include V8 base headers at global scope first to avoid namespace nesting
-#include "../../../wasi-v8-base-includes.h"
+#include "wasi/v8-base-includes.h"
 #include "wasi/wasi-v8-missing-types.h"
-#include "../../../wasi-v8-custom-arguments.h"
 // Provide namespace bridges and base helpers for internal code
-#include "../../../wasi-v8-namespace-fix.h"
+#include "wasi/v8-namespace-fix.h"
 // #include "../../../../wasi-v8-minimal-missing.h" // Now included from util.h
+#endif
+
+// Forward declarations needed by public API headers that befriend these types
+// before the actual definitions are visible in src/ headers.
+namespace v8 {
+namespace internal {
+template <typename T>
+class CustomArguments;
+void PrintFunctionCallbackInfo(void*);
+void PrintPropertyCallbackInfo(void*);
+}  // namespace internal
+}  // namespace v8
+
+#ifdef __wasi__
 #else
 // Non-WASI content would go here
 #include <cstdint>

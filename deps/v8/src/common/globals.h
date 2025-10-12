@@ -18,6 +18,7 @@
 #include "src/base/logging.h"
 #include "src/base/macros.h"
 #include "src/base/strong-alias.h"
+#include "src/base/template-utils.h"
 #include "src/base/atomic-utils.h"
 #include "src/base/platform/time.h"
 #include "src/base/vector.h"
@@ -36,6 +37,7 @@ namespace v8 {
 class PageAllocator;
 class ArrayBuffer;
 class BackingStore;
+// Defer metrics usage to v8/include headers that define it.
 
 namespace base {
 class Mutex;
@@ -52,22 +54,31 @@ using ::v8::base::TimeDelta;
 using ::v8::base::SmallVector;
 using ::v8::base::Vector;
 using ::v8::base::VectorOf;
+using ::v8::base::make_array;
 using ::v8::base::AtomicWord;
 using ::v8::base::AsAtomicWord;
 using ::v8::base::AsAtomicPointer;
 using ::v8::base::PrintCheckOperand;
 using ::v8::base::ConditionVariable;
-template<typename T, typename S> using EnumSet = ::v8::base::EnumSet<T, S>;
+template<typename T, typename S = int>
+using EnumSet = ::v8::base::EnumSet<T, S>;
 template<typename T> using hash = ::std::hash<T>;
 using ::v8::base::hash_range;
 template <typename T, typename U = int, typename V = U>
 using Flags = ::v8::base::Flags<T, U, V>;
 
 namespace bits {
-using ::v8::base::bits::CountTrailingZeros;
+// Selectively expose commonly-used helpers to avoid ambiguous overloads.
+using ::v8::base::bits::RoundUpToPowerOfTwo32;
+using ::v8::base::bits::RoundUpToPowerOfTwo64;
+using ::v8::base::bits::RoundUpToPowerOfTwo;
+using ::v8::base::bits::CountTrailingZerosNonZero;
+using ::v8::base::bits::CountLeadingZeros32;
+using ::v8::base::bits::CountLeadingZeros;
 using ::v8::base::bits::CountPopulation;
 using ::v8::base::bits::SignedSaturatedAdd64;
 using ::v8::base::bits::SignedSaturatedSub64;
+using ::v8::base::bits::IsPowerOfTwo;
 }  // namespace bits
 }  // namespace base
 
@@ -180,6 +191,17 @@ namespace internal {
 #else
 #define V8_STATIC_ROOTS_GENERATION_BOOL false
 #endif
+
+// Some code expects V8_STATIC_ROOTS_BOOL, mirror the standard V8 define.
+#ifdef V8_STATIC_ROOTS
+#define V8_STATIC_ROOTS_BOOL true
+#else
+#define V8_STATIC_ROOTS_BOOL false
+#endif
+
+// Avoid polluting v8::internal with additional using-aliases that can conflict
+// with other V8 aliases. Access base helpers via fully-qualified names or
+// targeted using declarations where necessary.
 
 #ifdef V8_ENABLE_LEAPTIERING
 #define V8_ENABLE_LEAPTIERING_BOOL true
@@ -1793,12 +1815,15 @@ enum WhereToStart { kStartAtReceiver, kStartAtPrototype };
 enum ResultSentinel { kNotFound = -1, kUnsupported = -2 };
 
 #ifdef __wasi__
-// kDontThrow and kThrowOnError are already defined in v8-internal.h
-using ShouldThrow = int;
+// Mirror the non-WASI enum so unqualified kThrowOnError/kDontThrow resolve.
+enum ShouldThrow {
+  kDontThrow = Internals::kDontThrow,
+  kThrowOnError = Internals::kThrowOnError,
+};
 #else
 enum ShouldThrow {
   kDontThrow = Internals::kDontThrow,
-  kThrowOnError = 1,  // Internals::kThrowOnError,
+  kThrowOnError = Internals::kThrowOnError,
 };
 #endif
 

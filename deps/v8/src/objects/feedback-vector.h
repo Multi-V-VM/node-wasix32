@@ -310,7 +310,7 @@ class NexusConfig;
 // A FeedbackVector has a fixed header followed by an array of feedback slots,
 // of length determined by the feedback metadata.
 class FeedbackVector
-    : public TorqueGeneratedFeedback::v8::base::Vector<FeedbackVector, HeapObject> {
+    : public TorqueGeneratedFeedbackVector<FeedbackVector, HeapObject> {
  public:
   NEVER_READ_ONLY_SPACE
   DEFINE_TORQUE_GENERATED_OSR_STATE()
@@ -693,9 +693,10 @@ class V8_EXPORT_PRIVATE FeedbackVectorSpec {
   void append(FeedbackSlotKind kind) { slot_kinds_.push_back(kind); }
 
   static_assert(sizeof(FeedbackSlotKind) == sizeof(uint8_t));
-  ::v8::base::Vector<FeedbackSlotKind> slot_kinds_;
+  // Zone-backed vectors for slot kinds and create-closure parameter counts.
+  ZoneVector<FeedbackSlotKind> slot_kinds_;
   // A vector containing the parameter count for every create closure slot.
-  ::v8::base::Vector<uint16_t> create_closure_parameter_counts_;
+  ZoneVector<uint16_t> create_closure_parameter_counts_;
 
   friend class SharedFeedbackSlot;
 };

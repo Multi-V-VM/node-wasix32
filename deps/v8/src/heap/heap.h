@@ -2810,4 +2810,4 @@ struct ::std::__asan_annotate_container_with_allocator<
     v8::internal::StrongRootAllocator<T>> : ::std::false_type {};
 #endif  // _LIBCPP_HAS_ASAN_CONTAINER_ANNOTATIONS_FOR_ALL_ALLOCATORS
 
-/* stray */
+#endif  // V8_HEAP_HEAP_H_

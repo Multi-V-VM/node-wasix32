@@ -1113,7 +1113,8 @@ void call_as_function(const v8::FunctionCallbackInfo<v8::Value>& info) {
     target = result.As<Function>();
   }
   int argc = info.Length();
-  v8::Local::v8::base::Vector<v8::Value> args(isolate, argc);
+  v8::LocalVector<v8::Value> args;
+  args.resize(static_cast<size_t>(argc));
   for (int i = 0; i < argc; i++) {
     args[i] = info[i];
   }

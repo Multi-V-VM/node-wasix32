@@ -132,11 +132,8 @@ class Hasher {
   // Hash a value {t} and combine its hash into this hasher's hash.
   template <typename T>
   Hasher& Add(const T& t) {
-#ifdef __wasi__
-    return AddHash(::std::hash<T>{}(t));
-#else
+    // Use ::v8::base::hash to support enums and custom types via hash_value.
     return AddHash(::v8::base::hash<T>{}(t));
-#endif
   }
 
   // Hash a range of values and combine the hashes into this hasher's hash.

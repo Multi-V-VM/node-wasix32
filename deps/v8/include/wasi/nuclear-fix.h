@@ -6,6 +6,11 @@
 #include <limits>
 #include <type_traits>
 
+// Provide no-op inline statement macro if missing
+#ifndef V8_INLINE_STATEMENT
+#define V8_INLINE_STATEMENT
+#endif
+
 // Provide global SmiTagging template and API size fallback expected by Torque
 #ifndef kApiInt32Size
 constexpr int kApiInt32Size = sizeof(int32_t);
@@ -13,7 +18,11 @@ constexpr int kApiInt32Size = sizeof(int32_t);
 
 template <int Size>
 struct SmiTagging {
+  // WASI uses 31-bit Smis for 32-bit pointer size configurations.
+  static constexpr int kSmiTagSize = 1;
   static constexpr int kSmiShiftSize = 0;
+  static constexpr int32_t kSmiMaxValue = 0x3fffffff;  // 2^30 - 1
+  static constexpr int32_t kSmiMinValue = -0x40000000; // -2^30
 };
 
 // Mark that nuclear-fix provides SMI helpers so project stubs can avoid redefs
@@ -47,6 +56,12 @@ using Address = uintptr_t;
 constexpr Address kNullAddress = 0;
 #endif
 
+// Encoded null external pointer used by EPT-related code
+#ifndef V8_NULL_EXTERNAL_POINTER_DEFINED
+#define V8_NULL_EXTERNAL_POINTER_DEFINED
+constexpr Address kNullExternalPointer = kNullAddress;
+#endif
+
 // External pointer tag definitions with guards
 #ifndef V8_EXTERNAL_POINTER_TAGS_DEFINED
 #define V8_EXTERNAL_POINTER_TAGS_DEFINED
@@ -56,6 +71,8 @@ enum ExternalPointerTag : uint64_t {
   kExternalPointerFreeEntryTag = 1,
   // Used by external-pointer-table evacuation stubs
   kExternalPointerEvacuationEntryTag = 2,
+  // Tag used to mark zapped entries; on WASI use the null tag semantics.
+  kExternalPointerZappedEntryTag = kExternalPointerNullTag,
   kAnyExternalPointerTag = ~0ULL,
   // Common tags referenced across the codebase
   kExternalStringResourceTag = 0x0001000000000000ULL,
@@ -89,6 +106,24 @@ enum ExternalPointerTag : uint64_t {
   // Used by Atomics waiters list (slots.h/js-atomics-synchronization)
   kWaiterQueueNodeTag = 0x001d000000000000ULL,
   kWasmWasmStreamingTag = 0x0020000000000000ULL,
+  // API callback tags used by property interceptors and microtasks
+  kApiNamedPropertyGetterCallbackTag = 0x0021000000000000ULL,
+  kApiNamedPropertySetterCallbackTag = 0x0022000000000000ULL,
+  kApiNamedPropertyQueryCallbackTag = 0x0023000000000000ULL,
+  kApiNamedPropertyDescriptorCallbackTag = 0x0024000000000000ULL,
+  kApiNamedPropertyDeleterCallbackTag = 0x0025000000000000ULL,
+  kApiNamedPropertyEnumeratorCallbackTag = 0x0026000000000000ULL,
+  kApiNamedPropertyDefinerCallbackTag = 0x0027000000000000ULL,
+  kApiIndexedPropertyGetterCallbackTag = 0x0028000000000000ULL,
+  kApiIndexedPropertySetterCallbackTag = 0x0029000000000000ULL,
+  kApiIndexedPropertyQueryCallbackTag = 0x002A000000000000ULL,
+  kApiIndexedPropertyDescriptorCallbackTag = 0x002B000000000000ULL,
+  kApiIndexedPropertyDeleterCallbackTag = 0x002C000000000000ULL,
+  kApiIndexedPropertyEnumeratorCallbackTag = 0x002D000000000000ULL,
+  kApiIndexedPropertyDefinerCallbackTag = 0x002E000000000000ULL,
+  kApiAccessCheckCallbackTag = 0x002F000000000000ULL,
+  kApiAbortScriptExecutionCallbackTag = 0x0030000000000000ULL,
+  kMicrotaskCallbackTag = 0x0031000000000000ULL,
   kLastExternalPointerTag = kWasmRefTag,
 };
 
@@ -161,6 +196,14 @@ inline constexpr ExternalPointerHandle kNullExternalPointerHandle = 0;
 inline constexpr size_t kTrustedPointerTableReservationSize = 1024 * 1024;  // 1MB
 inline constexpr size_t kCodePointerTableEntrySize = 8;
 inline constexpr uint32_t kMaxCodePointers = 65536;
+// Code pointer handle helpers for WASI builds (no tagging/marking)
+#ifndef V8_WASI_CODE_POINTER_HANDLE_CONSTANTS
+#define V8_WASI_CODE_POINTER_HANDLE_CONSTANTS
+using CodePointerHandle = uint32_t;
+inline constexpr CodePointerHandle kNullCodePointerHandle = 0;
+inline constexpr int kCodePointerHandleShift = 0;
+inline constexpr uint32_t kCodePointerHandleMarker = 0;
+#endif
 // Trusted pointers capacity sanity check used in table headers
 inline constexpr uint32_t kMaxTrustedPointers = 65536;
 
@@ -267,15 +310,28 @@ class Internals {
   static constexpr int kStringResourceOffset = 8;
   // String representation and encoding masks/tags used by public API helpers
   static constexpr int kStringRepresentationAndEncodingMask = 0x0f;
-  static constexpr int kStringEncodingMask = 0x08;
-  static constexpr int kExternalOneByteRepresentationTag = 0x04;
-  static constexpr int kExternalTwoByteRepresentationTag = 0x02;
+  static constexpr int kStringEncodingMask = 1 << 3;  // 0x08
+  // Match instance-type.h: kExternalOneByteStringTag = kExternalStringTag | kOneByteStringTag
+  static constexpr int kExternalOneByteRepresentationTag = 0x02 | (1 << 3);  // 0x0A
+  static constexpr int kExternalTwoByteRepresentationTag = 0x02;             // kExternalStringTag
   static constexpr uint64_t kExternalStringResourceTag = 0x0002000000000000ULL;
   static constexpr uint64_t kEmbedderDataSlotPayloadTag = 0x0005000000000000ULL;
   static constexpr int kJSAPIObjectWithEmbedderSlotsHeaderSize = 16;
   static constexpr int kEmbedderDataSlotSize = 8;
   static constexpr int kEmbedderDataSlotExternalPointerOffset = 0;
   static constexpr int kJSObjectHeaderSize = 12;
+  // FixedArray header size used by some public header checks.
+  static constexpr int kFixedArrayHeaderSize = sizeof(void*) * 2;
+  // JS API object type id bounds used in templates-inl.h; minimize to a
+  // single value matching JS_API_OBJECT_TYPE in this V8 revision.
+  static constexpr int kFirstJSApiObjectType = 1058;
+  static constexpr int kLastJSApiObjectType = 1058;
+  static constexpr int kFirstEmbedderJSApiObjectType = 0;
+  static constexpr int kLastEmbedderJSApiObjectType = 0;
+  // Forwarding pointer tag constants (non-external-code-space configuration).
+  // Forwarding pointers are raw addresses with kHeapObjectTag cleared.
+  static constexpr Address kForwardingTagMask = 1;  // same as kHeapObjectTag
+  static constexpr Address kForwardingTag = 0;      // even => forwarding pointer
   // Offset differs on 32-bit vs 64-bit configurations. On 32-bit (WASI),
   // contexts.h expects 24; on 64-bit it is 32.
   static constexpr int kNativeContextEmbedderDataOffset =
@@ -494,6 +550,11 @@ inline T* ReadCppHeapPointerField(void* /*isolate*/, Address obj, int offset,
 // Safe buffer size for typed arrays when sandbox is enabled. Use full range in WASI.
 constexpr size_t kMaxSafeBufferSizeForSandbox = static_cast<size_t>(-1);
 
+// Size constants within v8::internal for qualified usages (e.g., v8::internal::KB)
+constexpr size_t KB = static_cast<size_t>(1024);
+constexpr size_t MB = KB * static_cast<size_t>(1024);
+constexpr size_t GB = MB * static_cast<size_t>(1024);
+
 // External pointer tag range used by external-pointer-table APIs
 struct ExternalPointerTagRange {
   ExternalPointerTag start;
@@ -501,7 +562,7 @@ struct ExternalPointerTagRange {
   constexpr ExternalPointerTagRange(ExternalPointerTag s, ExternalPointerTag e)
       : start(s), end(e) {}
   // Single-tag constructor used by callers passing a tag directly
-  constexpr explicit ExternalPointerTagRange(ExternalPointerTag tag)
+  explicit constexpr ExternalPointerTagRange(ExternalPointerTag tag)
       : start(tag), end(tag) {}
   // For WASI stubs, treat all tags as acceptable
   constexpr bool Contains(ExternalPointerTag) const { return true; }
@@ -525,25 +586,46 @@ constexpr bool operator!=(const ExternalPointerTagRange& range,
                           ExternalPointerTag tag) {
   return !(range == tag);
 }
-constexpr bool operator!=(ExternalPointerTag tag,
+  constexpr bool operator!=(ExternalPointerTag tag,
                           const ExternalPointerTagRange& range) {
-  return !(range == tag);
-}
+    return !(range == tag);
+  }
 
-inline bool ExternalPointerCanBeEmpty(ExternalPointerTagRange) { return true; }
+  inline bool ExternalPointerCanBeEmpty(ExternalPointerTagRange) { return true; }
+
+  // Provide permissive tag range constants and helpers for WASI builds.
+  inline constexpr ExternalPointerTagRange kAnyForeignExternalPointerTagRange(
+      kAnyExternalPointerTag);
+  inline constexpr ExternalPointerTagRange kAnyExternalPointerTagRange(
+      kAnyExternalPointerTag);
+
+  inline bool IsManagedExternalPointerType(ExternalPointerTag) { return false; }
+  inline bool IsSharedExternalPointerType(ExternalPointerTagRange) { return false; }
+  inline bool IsSharedExternalPointerType(ExternalPointerTag) { return false; }
+  inline bool IsMaybeReadOnlyExternalPointerType(ExternalPointerTagRange) { return false; }
+
+  // Managed range constant alias used in some code paths.
+  inline constexpr ExternalPointerTagRange kAnyManagedExternalPointerTagRange(
+      kAnyExternalPointerTag);
 
 // External pointer tagging masks and mark bit. On WASI, no tagging is applied,
 // so choose no-op values to keep operations safe.
 constexpr Address kExternalPointerTagMask = static_cast<Address>(0);
 constexpr Address kExternalPointerPayloadMask =
     ~static_cast<Address>(0);
-constexpr Address kExternalPointerMarkBit = static_cast<Address>(0);
+  constexpr Address kExternalPointerMarkBit = static_cast<Address>(0);
 
-// Tag shift used for external pointer tagging
+  // Tag shift used for external pointer tagging
 #ifndef V8_EXTERNAL_POINTER_TAG_SHIFT
 #define V8_EXTERNAL_POINTER_TAG_SHIFT
 // Use an int for shift counts to match other WASI stubs
 constexpr int kExternalPointerTagShift = 48;
+#endif
+
+// Index shift for handles -> table index conversions (no tagging on WASI)
+#ifndef V8_EXTERNAL_POINTER_INDEX_SHIFT
+#define V8_EXTERNAL_POINTER_INDEX_SHIFT
+inline constexpr int kExternalPointerIndexShift = 0;
 #endif
 
 // PerformCastCheck stub

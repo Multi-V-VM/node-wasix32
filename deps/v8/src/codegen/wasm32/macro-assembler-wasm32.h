@@ -5,7 +5,7 @@
 #define V8_CODEGEN_WASM32_MACRO_ASSEMBLER_WASM32_H_
 
 #include "src/codegen/macro-assembler.h"
-#include "src/codegen/wasm32/wasm32-assembler.h"
+#include "src/codegen/wasm32/assembler-wasm32.h"
 #include "src/execution/frame-constants.h"
 
 namespace v8 {
@@ -18,8 +18,9 @@ class V8_EXPORT_PRIVATE MacroAssemblerWASM32 : public MacroAssemblerBase {
   MacroAssemblerWASM32(Isolate* isolate, CodeObjectRequired create_code_object,
                        const AssemblerOptions& options,
                        std::unique_ptr<AssemblerBuffer> buffer = {})
-      : MacroAssemblerBase(isolate, options, std::move(buffer)),
-        assembler_(options, std::move(buffer)) {}
+      : MacroAssemblerBase(isolate, options, create_code_object,
+                           std::move(buffer)),
+        assembler_(options) {}
 
   Assembler* assembler() { return &assembler_; }
 
@@ -149,7 +150,7 @@ class V8_EXPORT_PRIVATE MacroAssemblerWASM32 : public MacroAssemblerBase {
   static constexpr int kFramePointerRegister = 0;  // No real frame pointer in WASM
 
  private:
-  AssemblerWASM32 assembler_;
+  AssemblerWasm32 assembler_;
   int current_stack_depth_ = 0;
 
   uint32_t AddressToFunctionIndex(Address addr) {

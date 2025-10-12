@@ -72,17 +72,10 @@
 #define NO_SANITIZE_CFI_ICALL
 #endif
 
-// Don't redefine V8_PRESERVE_MOST - it's defined in v8config.h
-
-#ifndef V8_CONSTINIT
-#if defined(__cpp_constinit) && __cpp_constinit >= 201907L
-#define V8_CONSTINIT constinit
-#elif __has_attribute(require_constant_initialization)
-#define V8_CONSTINIT __attribute__((require_constant_initialization))
-#else
-#define V8_CONSTINIT
-#endif
-#endif
+// Don't redefine V8_PRESERVE_MOST or V8_CONSTINIT here — both are defined
+// appropriately in v8config.h. Defining V8_CONSTINIT too early can cause
+// it to be applied to extern declarations (e.g., TLS variables), which is
+// ill-formed. Defer to v8config.h for the correct definition.
 
 #ifndef V8_CONST
 #if __cplusplus >= 201402L

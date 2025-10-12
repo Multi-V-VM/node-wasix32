@@ -51,6 +51,11 @@ class RegListBase {
     return (bits_ & (uint32_t{1} << r.code())) != 0;
   }
 
+  // Mutators
+  void set(RegisterType r) { bits_ |= (uint32_t{1} << r.code()); }
+  void clear(RegisterType r) { bits_ &= ~(uint32_t{1} << r.code()); }
+  bool is_empty() const { return bits_ == 0; }
+
   // Set operations
   constexpr RegListBase operator|(const RegListBase& other) const {
     return RegListBase(bits_ | other.bits_);

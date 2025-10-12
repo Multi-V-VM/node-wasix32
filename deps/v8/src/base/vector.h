@@ -413,4 +413,17 @@ class EmbeddedVector : public ::v8::base::Vector<T> {
 
 }  // namespace v8::base
 
+// Provide compatibility alias used in newer V8 sources: base::Owned::v8::base::Vector<T>
+// resolves to OwnedVector<T>.
+namespace v8 {
+namespace base {
+namespace Owned {
+namespace v8 { namespace base {
+template <typename T>
+using Vector = ::v8::base::OwnedVector<T>;
+} }  // namespace v8::base
+}  // namespace Owned
+}  // namespace base
+}  // namespace v8
+
 #endif  // V8_BASE_VECTOR_H_
