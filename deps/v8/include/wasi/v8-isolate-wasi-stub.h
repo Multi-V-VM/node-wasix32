@@ -51,9 +51,12 @@ class Data;
 class Object;
 class Array;
 
-// GC types needed by Isolate class - define outside guards to ensure availability
+// GC types needed by Isolate class - define in v8 namespace
+// Only define if v8-callbacks.h hasn't already provided them
+#ifndef INCLUDE_V8_ISOLATE_CALLBACKS_H_
 enum GCType { kGCTypeAll = 0 };
 enum GCCallbackFlags { kNoGCCallbackFlags = 0 };
+#endif
 
 #ifndef V8_WASI_CALLBACK_TYPES_DEFINED
 #define V8_WASI_CALLBACK_TYPES_DEFINED
@@ -105,9 +108,14 @@ enum GCCallbackFlags { kNoGCCallbackFlags = 0 };
 #endif  // !INCLUDE_V8_ISOLATE_CALLBACKS_H_
 #endif  // V8_WASI_CALLBACK_TYPES_DEFINED
 
-// Forward declare Promise rejection callback types if v8-promise.h isn't used
+// Forward declare Promise rejection callback types
+// Define class if v8-promise.h isn't used, but always provide callback typedef
 #ifndef INCLUDE_V8_PROMISE_H_
 class PromiseRejectMessage;
+#endif
+// Always define the callback type - it's used by Isolate regardless
+#ifndef V8_PROMISE_REJECT_CALLBACK_DEFINED
+#define V8_PROMISE_REJECT_CALLBACK_DEFINED
 using PromiseRejectCallback = void (*)(PromiseRejectMessage message);
 #endif
 
