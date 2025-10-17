@@ -13,6 +13,7 @@
 #include <vector>
 
 #include "v8-data.h"          // NOLINT(build/include_directory)
+#include "v8-internal.h"      // Ensure internal::ValueHelper is visible
 #include "v8-forward.h"       // NOLINT(build/include_directory)
 #include "v8-local-handle.h"  // NOLINT(build/include_directory)
 #include "v8-maybe.h"         // NOLINT(build/include_directory)
@@ -443,7 +444,11 @@ Local<Value> Context::GetEmbedderData(int index) {
 #ifndef V8_ENABLE_CHECKS
   using A = internal::Address;
   using I = internal::Internals;
+#ifdef __wasi__
+  A ctx = reinterpret_cast<A>(this);
+#else
   A ctx = internal::ValueHelper::ValueAsAddress(this);
+#endif
   A embedder_data =
       I::ReadTaggedPointerField(ctx, I::kNativeContextEmbedderDataOffset);
   int value_offset =
@@ -467,7 +472,11 @@ void* Context::GetAlignedPointerFromEmbedderData(Isolate* isolate, int index) {
 #if !defined(V8_ENABLE_CHECKS)
   using A = internal::Address;
   using I = internal::Internals;
+#ifdef __wasi__
+  A ctx = reinterpret_cast<A>(this);
+#else
   A ctx = internal::ValueHelper::ValueAsAddress(this);
+#endif
   A embedder_data =
       I::ReadTaggedPointerField(ctx, I::kNativeContextEmbedderDataOffset);
   int value_offset = I::kEmbedderDataArrayHeaderSize +
@@ -485,7 +494,11 @@ void* Context::GetAlignedPointerFromEmbedderData(int index) {
 #if !defined(V8_ENABLE_CHECKS)
   using A = internal::Address;
   using I = internal::Internals;
+#ifdef __wasi__
+  A ctx = reinterpret_cast<A>(this);
+#else
   A ctx = internal::ValueHelper::ValueAsAddress(this);
+#endif
   A embedder_data =
       I::ReadTaggedPointerField(ctx, I::kNativeContextEmbedderDataOffset);
   int value_offset = I::kEmbedderDataArrayHeaderSize +

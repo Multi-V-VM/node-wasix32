@@ -19,7 +19,6 @@
 #include "src/base/macros.h"
 #include "src/base/numerics/safe_conversions.h"
 #include "src/base/vector.h"
-#include "src/utils/vector-alias.h"
 #include "src/common/globals.h"
 // Needed for ReadUnalignedValue/WriteUnalignedValue declarations.
 #include "src/base/memory.h"

@@ -43,7 +43,11 @@ class V8_EXPORT TypedArray : public ArrayBufferView {
 #ifdef V8_ENABLE_CHECKS
     CheckCast(value);
 #endif
+#ifdef __wasi__
+    return reinterpret_cast<TypedArray*>(value);
+#else
     return static_cast<TypedArray*>(value);
+#endif
   }
 
  private:
@@ -71,7 +75,11 @@ class V8_EXPORT Uint8Array : public TypedArray {
 #ifdef V8_ENABLE_CHECKS
     CheckCast(value);
 #endif
+#ifdef __wasi__
+    return reinterpret_cast<Uint8Array*>(value);
+#else
     return static_cast<Uint8Array*>(value);
+#endif
   }
 
  private:
@@ -100,7 +108,11 @@ class V8_EXPORT Uint8ClampedArray : public TypedArray {
 #ifdef V8_ENABLE_CHECKS
     CheckCast(value);
 #endif
+#ifdef __wasi__
+    return reinterpret_cast<Uint8ClampedArray*>(value);
+#else
     return static_cast<Uint8ClampedArray*>(value);
+#endif
   }
 
  private:
@@ -128,7 +140,11 @@ class V8_EXPORT Int8Array : public TypedArray {
 #ifdef V8_ENABLE_CHECKS
     CheckCast(value);
 #endif
+#ifdef __wasi__
+    return reinterpret_cast<Int8Array*>(value);
+#else
     return static_cast<Int8Array*>(value);
+#endif
   }
 
  private:
@@ -156,7 +172,11 @@ class V8_EXPORT Uint16Array : public TypedArray {
 #ifdef V8_ENABLE_CHECKS
     CheckCast(value);
 #endif
+#ifdef __wasi__
+    return reinterpret_cast<Uint16Array*>(value);
+#else
     return static_cast<Uint16Array*>(value);
+#endif
   }
 
  private:
@@ -184,7 +204,11 @@ class V8_EXPORT Int16Array : public TypedArray {
 #ifdef V8_ENABLE_CHECKS
     CheckCast(value);
 #endif
+#ifdef __wasi__
+    return reinterpret_cast<Int16Array*>(value);
+#else
     return static_cast<Int16Array*>(value);
+#endif
   }
 
  private:
@@ -212,7 +236,11 @@ class V8_EXPORT Uint32Array : public TypedArray {
 #ifdef V8_ENABLE_CHECKS
     CheckCast(value);
 #endif
+#ifdef __wasi__
+    return reinterpret_cast<Uint32Array*>(value);
+#else
     return static_cast<Uint32Array*>(value);
+#endif
   }
 
  private:
@@ -240,7 +268,11 @@ class V8_EXPORT Int32Array : public TypedArray {
 #ifdef V8_ENABLE_CHECKS
     CheckCast(value);
 #endif
+#ifdef __wasi__
+    return reinterpret_cast<Int32Array*>(value);
+#else
     return static_cast<Int32Array*>(value);
+#endif
   }
 
  private:
@@ -264,7 +296,11 @@ class V8_EXPORT Float16Array : public TypedArray {
 #ifdef V8_ENABLE_CHECKS
     CheckCast(value);
 #endif
+#ifdef __wasi__
+    return reinterpret_cast<Float16Array*>(value);
+#else
     return static_cast<Float16Array*>(value);
+#endif
   }
 
  private:
@@ -292,7 +328,11 @@ class V8_EXPORT Float32Array : public TypedArray {
 #ifdef V8_ENABLE_CHECKS
     CheckCast(value);
 #endif
+#ifdef __wasi__
+    return reinterpret_cast<Float32Array*>(value);
+#else
     return static_cast<Float32Array*>(value);
+#endif
   }
 
  private:
@@ -320,7 +360,11 @@ class V8_EXPORT Float64Array : public TypedArray {
 #ifdef V8_ENABLE_CHECKS
     CheckCast(value);
 #endif
+#ifdef __wasi__
+    return reinterpret_cast<Float64Array*>(value);
+#else
     return static_cast<Float64Array*>(value);
+#endif
   }
 
  private:
@@ -348,7 +392,11 @@ class V8_EXPORT BigInt64Array : public TypedArray {
 #ifdef V8_ENABLE_CHECKS
     CheckCast(value);
 #endif
+#ifdef __wasi__
+    return reinterpret_cast<BigInt64Array*>(value);
+#else
     return static_cast<BigInt64Array*>(value);
+#endif
   }
 
  private:
@@ -376,7 +424,11 @@ class V8_EXPORT BigUint64Array : public TypedArray {
 #ifdef V8_ENABLE_CHECKS
     CheckCast(value);
 #endif
+#ifdef __wasi__
+    return reinterpret_cast<BigUint64Array*>(value);
+#else
     return static_cast<BigUint64Array*>(value);
+#endif
   }
 
  private:

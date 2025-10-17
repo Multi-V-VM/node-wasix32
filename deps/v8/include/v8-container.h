@@ -45,7 +45,11 @@ class V8_EXPORT Array : public Object {
 #ifdef V8_ENABLE_CHECKS
     CheckCast(value);
 #endif
+#ifdef __wasi__
+    return reinterpret_cast<Array*>(value);
+#else
     return static_cast<Array*>(value);
+#endif
   }
 
   /**
@@ -137,7 +141,11 @@ class V8_EXPORT Map : public Object {
 #ifdef V8_ENABLE_CHECKS
     CheckCast(value);
 #endif
+#ifdef __wasi__
+    return reinterpret_cast<Map*>(value);
+#else
     return static_cast<Map*>(value);
+#endif
   }
 
  private:
@@ -173,7 +181,11 @@ class V8_EXPORT Set : public Object {
 #ifdef V8_ENABLE_CHECKS
     CheckCast(value);
 #endif
+#ifdef __wasi__
+    return reinterpret_cast<Set*>(value);
+#else
     return static_cast<Set*>(value);
+#endif
   }
 
  private:

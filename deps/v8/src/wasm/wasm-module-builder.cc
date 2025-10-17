@@ -464,8 +464,8 @@ WasmFunctionBuilder* WasmModuleBuilder::AddFunction(ModuleTypeIndex sig_index) {
 
 void WasmModuleBuilder::AddDataSegment(const uint8_t* data, uint32_t size,
                                        uint32_t dest) {
-  data_segments_.push_back({.data = ::v8::base::Vector<uint8_t>(zone()), .dest = dest});
-  ::v8::base::Vector<uint8_t>& vec = data_segments_.back().data;
+  data_segments_.push_back({.data = ZoneVector<uint8_t>(zone()), .dest = dest});
+  ZoneVector<uint8_t>& vec = data_segments_.back().data;
   for (uint32_t i = 0; i < size; i++) {
     vec.push_back(data[i]);
   }
@@ -474,8 +474,8 @@ void WasmModuleBuilder::AddDataSegment(const uint8_t* data, uint32_t size,
 void WasmModuleBuilder::AddPassiveDataSegment(const uint8_t* data,
                                               uint32_t size) {
   data_segments_.push_back(
-      {.data = ::v8::base::Vector<uint8_t>(zone()), .dest = 0, .is_active = false});
-  ::v8::base::Vector<uint8_t>& vec = data_segments_.back().data;
+      {.data = ZoneVector<uint8_t>(zone()), .dest = 0, .is_active = false});
+  ZoneVector<uint8_t>& vec = data_segments_.back().data;
   for (uint32_t i = 0; i < size; i++) {
     vec.push_back(data[i]);
   }

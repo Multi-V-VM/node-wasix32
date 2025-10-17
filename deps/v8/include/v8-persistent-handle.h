@@ -260,7 +260,7 @@ class PersistentBase : public api_internal::IndirectHandleBase {
   template <class F1, class F2, class F3>
   friend class PersistentValueMapBase;
   friend class Object;
-  friend struct internal::ValueHelper;
+  // WASI: avoid dependency on internal::ValueHelper
 
   V8_INLINE PersistentBase() = default;
 
@@ -503,10 +503,14 @@ class V8_EXPORT PersistentHandleVisitor {
 
 template <class T>
 internal::Address* PersistentBase<T>::New(Isolate* isolate, T* that) {
-  if (internal::ValueHelper::IsEmpty(that)) return nullptr;
+  if (that == nullptr) return nullptr;
   return api_internal::GlobalizeReference(
       reinterpret_cast<internal::Isolate*>(isolate),
+#ifdef __wasi__
+      reinterpret_cast<internal::Address>(that));
+#else
       internal::ValueHelper::ValueAsAddress(that));
+#endif
 }
 
 template <class T, class M>

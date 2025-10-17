@@ -6,6 +6,12 @@
 #include <limits>
 #include <type_traits>
 
+#ifdef __wasi__
+// Ensure v8::base atomic types are available when this header is pulled in
+// from public headers before base headers.
+#include "src/base/atomicops.h"
+#endif
+
 // Provide no-op inline statement macro if missing
 #ifndef V8_INLINE_STATEMENT
 #define V8_INLINE_STATEMENT
@@ -103,6 +109,17 @@ enum ExternalPointerTag : uint64_t {
   kTrustedPointerTag = 0x001a000000000000ULL,
   kWasmOnFulfilledDataTag = 0x001b000000000000ULL,
   kWasmRefTag = 0x001c000000000000ULL,
+  // ICU-related tags used by intl objects
+  kIcuUnicodeStringTag = 0x0021000000000000ULL,
+  kIcuBreakIteratorTag = 0x0022000000000000ULL,
+  kIcuLocaleTag = 0x0023000000000000ULL,
+  kIcuSimpleDateFormatTag = 0x0024000000000000ULL,
+  kIcuDateIntervalFormatTag = 0x0025000000000000ULL,
+  kIcuRelativeDateTimeFormatterTag = 0x0026000000000000ULL,
+  kIcuListFormatterTag = 0x0027000000000000ULL,
+  kIcuCollatorTag = 0x0028000000000000ULL,
+  kIcuPluralRulesTag = 0x0029000000000000ULL,
+  kIcuLocalizedNumberFormatterTag = 0x002A000000000000ULL,
   // Used by Atomics waiters list (slots.h/js-atomics-synchronization)
   kWaiterQueueNodeTag = 0x001d000000000000ULL,
   kWasmWasmStreamingTag = 0x0020000000000000ULL,
@@ -307,7 +324,9 @@ class Internals {
   static constexpr int kTrueValueRootIndex = 3;
   static constexpr int kFalseValueRootIndex = 4;
   static constexpr int kTheHoleValueRootIndex = 5;
-  static constexpr int kStringResourceOffset = 8;
+  // On 32-bit layouts, ExternalString::resource_ follows String header fields.
+  // For this port, match the 12-byte offset used by current V8 layout.
+  static constexpr int kStringResourceOffset = 12;
   // String representation and encoding masks/tags used by public API helpers
   static constexpr int kStringRepresentationAndEncodingMask = 0x0f;
   static constexpr int kStringEncodingMask = 1 << 3;  // 0x08
@@ -451,7 +470,8 @@ constexpr int kTaggedSizeLog2 = 2;
 
 // Storage types for tagged values
 using Tagged_t = uintptr_t;
-using AtomicTagged_t = uintptr_t;
+// Use V8 base atomic word type to match atomicops overloads
+using AtomicTagged_t = ::v8::base::AtomicWord;
 
 // External pointer storage types on the heap
 using ExternalPointer_t = uint32_t;
@@ -460,6 +480,10 @@ using IndirectPointerHandle = uint32_t;
 #ifndef V8_CPPHEAP_POINTER_HANDLE_TYPE_DEFINED
 #define V8_CPPHEAP_POINTER_HANDLE_TYPE_DEFINED
 using CppHeapPointerHandle = uint32_t;
+#endif
+#ifndef V8_NULL_INDIRECT_POINTER_HANDLE_DEFINED
+#define V8_NULL_INDIRECT_POINTER_HANDLE_DEFINED
+inline constexpr IndirectPointerHandle kNullIndirectPointerHandle = 0;
 #endif
 #endif  // V8_WASI_CORE_SIZES_DEFINED
 
@@ -562,7 +586,7 @@ struct ExternalPointerTagRange {
   constexpr ExternalPointerTagRange(ExternalPointerTag s, ExternalPointerTag e)
       : start(s), end(e) {}
   // Single-tag constructor used by callers passing a tag directly
-  explicit constexpr ExternalPointerTagRange(ExternalPointerTag tag)
+  /* implicit */ constexpr ExternalPointerTagRange(ExternalPointerTag tag)
       : start(tag), end(tag) {}
   // For WASI stubs, treat all tags as acceptable
   constexpr bool Contains(ExternalPointerTag) const { return true; }

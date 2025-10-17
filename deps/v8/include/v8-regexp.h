@@ -96,7 +96,11 @@ class V8_EXPORT RegExp : public Object {
 #ifdef V8_ENABLE_CHECKS
     CheckCast(value);
 #endif
+#ifdef __wasi__
+    return reinterpret_cast<RegExp*>(value);
+#else
     return static_cast<RegExp*>(value);
+#endif
   }
 
  private:

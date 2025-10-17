@@ -10,6 +10,7 @@
 #include "src/compiler/common-operator.h"
 #include "src/compiler/js-graph.h"
 #include "src/zone/zone-hashmap.h"
+#include "src/zone/zone-containers.h"
 
 namespace v8 {
 namespace internal {
@@ -75,7 +76,7 @@ class V8_EXPORT_PRIVATE StateValuesCache {
 
   JSGraph* js_graph_;
   CustomMatcherZoneHashMap hash_map_;
-  ::v8::base::Vector<WorkingBuffer> working_space_;  // One working space per level.
+  ZoneVector<WorkingBuffer> working_space_;  // One working space per level.
   Node* empty_state_values_;
 };
 

@@ -24,6 +24,7 @@
 #include "src/compiler/frame.h"
 #include "src/compiler/opcodes.h"
 #include "src/zone/zone-allocator.h"
+#include "src/zone/zone-containers.h"
 
 namespace v8 {
 namespace internal {
@@ -1459,19 +1460,19 @@ class StateValueList {
    private:
     friend class StateValueList;
 
-    iterator(::v8::base::Vector<StateValueDescriptor>::iterator it,
-             ::v8::base::Vector<StateValueList*>::iterator nested)
+    iterator(ZoneVector<StateValueDescriptor>::iterator it,
+             ZoneVector<StateValueList*>::iterator nested)
         : field_iterator(it), nested_iterator(nested) {}
 
-    ::v8::base::Vector<StateValueDescriptor>::iterator field_iterator;
-    ::v8::base::Vector<StateValueList*>::iterator nested_iterator;
+    ZoneVector<StateValueDescriptor>::iterator field_iterator;
+    ZoneVector<StateValueList*>::iterator nested_iterator;
   };
 
   struct Slice {
-    Slice(::v8::base::Vector<StateValueDescriptor>::iterator start, size_t fields)
+    Slice(ZoneVector<StateValueDescriptor>::iterator start, size_t fields)
         : start_position(start), fields_count(fields) {}
 
-    ::v8::base::Vector<StateValueDescriptor>::iterator start_position;
+    ZoneVector<StateValueDescriptor>::iterator start_position;
     size_t fields_count;
   };
 
@@ -1532,8 +1533,8 @@ class StateValueList {
     return false;
   }
 
-  ::v8::base::Vector<StateValueDescriptor> fields_;
-  ::v8::base::Vector<StateValueList*> nested_;
+  ZoneVector<StateValueDescriptor> fields_;
+  ZoneVector<StateValueList*> nested_;
 };
 
 class FrameStateDescriptor : public ZoneObject {
@@ -1755,13 +1756,13 @@ class V8_EXPORT_PRIVATE InstructionBlock final
   bool omitted_by_jump_threading() const { return omitted_by_jump_threading_; }
   void set_omitted_by_jump_threading() { omitted_by_jump_threading_ = true; }
 
-  using Predecessors = ::v8::base::Vector<RpoNumber>;
+  using Predecessors = ZoneVector<RpoNumber>;
   Predecessors& predecessors() { return predecessors_; }
   const Predecessors& predecessors() const { return predecessors_; }
   size_t PredecessorCount() const { return predecessors_.size(); }
   size_t PredecessorIndexOf(RpoNumber rpo_number) const;
 
-  using Successors = ::v8::base::Vector<RpoNumber>;
+  using Successors = ZoneVector<RpoNumber>;
   Successors& successors() { return successors_; }
   const Successors& successors() const { return successors_; }
   size_t SuccessorCount() const { return successors_.size(); }
@@ -1769,7 +1770,7 @@ class V8_EXPORT_PRIVATE InstructionBlock final
   RpoNumber dominator() const { return dominator_; }
   void set_dominator(RpoNumber dominator) { dominator_ = dominator; }
 
-  using PhiInstructions = ::v8::base::Vector<PhiInstruction*>;
+  using PhiInstructions = ZoneVector<PhiInstruction*>;
   const PhiInstructions& phis() const { return phis_; }
   PhiInstruction* PhiAt(size_t i) const { return phis_[i]; }
   void AddPhi(PhiInstruction* phi) { phis_.push_back(phi); }
@@ -1826,9 +1827,9 @@ struct PrintableInstructionBlock {
 std::ostream& operator<<(std::ostream&, const PrintableInstructionBlock&);
 
 using ConstantMap = ZoneUnorderedMap</* virtual register */ int, Constant>;
-using Instructions = ::v8::base::Vector<Instruction*>;
-using ReferenceMaps = ::v8::base::Vector<ReferenceMap*>;
-using InstructionBlocks = ::v8::base::Vector<InstructionBlock*>;
+using Instructions = ZoneVector<Instruction*>;
+using ReferenceMaps = ZoneVector<ReferenceMap*>;
+using InstructionBlocks = ZoneVector<InstructionBlock*>;
 
 // Represents architecture-specific generated code before, during, and after
 // register allocation.

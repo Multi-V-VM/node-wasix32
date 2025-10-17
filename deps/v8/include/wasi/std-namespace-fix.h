@@ -88,25 +88,10 @@ struct contiguous_iterator_tag : random_access_iterator_tag {};
 }  // namespace std
 #endif
 
-// Provide namespace aliases so accidental nesting under namespace v8 resolves
-// back to the canonical standard library namespace.
-namespace v8 {
-namespace std = ::std;
-}  // namespace v8
-
-namespace v8 {
-namespace v8 {
-namespace std = ::std;
-}  // namespace v8
-}  // namespace v8
-
-namespace v8 {
-namespace v8 {
-namespace v8 {
-namespace std = ::std;
-}  // namespace v8
-}  // namespace v8
-}  // namespace v8
+// Do NOT create nested aliases like v8::std or v8::v8::std.
+// They introduce a nested `v8::v8` namespace and break qualified lookups
+// such as `v8::String` inside the v8 namespace. Standard library symbols
+// should be referenced as `::std::...` or `std::...` from any namespace.
 
 
 // Do not create aliases in ::std::ranges to avoid conflicts with standard library

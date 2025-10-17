@@ -19,6 +19,8 @@
 
 // Include necessary headers for type definitions BEFORE namespace v8
 #include "../v8-microtask.h"
+// Don't include v8-promise.h here - it will be included after Isolate is defined
+// to avoid circular dependency through v8-object.h -> v8-context.h -> v8-snapshot.h
 #include "../v8-statistics.h"  // For MeasureMemoryMode
 // Don't include v8-snapshot.h here to avoid circular dependency
 
@@ -39,6 +41,8 @@ class Message;
 class Value;
 class StackTrace;
 class String;
+// Promise forward declaration - full definition not needed yet
+class Promise;
 class Isolate;
 class HeapProfiler;
 class HeapStatistics; // Forward declaration for v8::HeapStatistics
@@ -46,6 +50,10 @@ class Module;
 class Data;
 class Object;
 class Array;
+
+// GC types needed by Isolate class - define outside guards to ensure availability
+enum GCType { kGCTypeAll = 0 };
+enum GCCallbackFlags { kNoGCCallbackFlags = 0 };
 
 #ifndef V8_WASI_CALLBACK_TYPES_DEFINED
 #define V8_WASI_CALLBACK_TYPES_DEFINED
@@ -68,8 +76,7 @@ class Array;
   // Minimal enums and callback typedefs to unblock compilation when the real
   // declarations are unavailable. These are guarded to avoid redefinitions
   // once v8-callbacks.h is present.
-  enum GCType { kGCTypeAll = 0 };
-  enum GCCallbackFlags { kNoGCCallbackFlags = 0 };
+  // Note: GCType and GCCallbackFlags are defined outside the guards above
   enum class ModuleImportPhase { kSource, kEvaluation };
 
   using MessageCallback = void (*)(Local<Message> message, Local<Value> data);

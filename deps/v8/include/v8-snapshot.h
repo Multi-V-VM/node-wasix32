@@ -290,12 +290,20 @@ class V8_EXPORT SnapshotCreator {
 
 template <class T>
 size_t SnapshotCreator::AddData(Local<Context> context, Local<T> object) {
+#ifdef __wasi__
+  return AddData(context, reinterpret_cast<internal::Address>(*object));
+#else
   return AddData(context, internal::ValueHelper::ValueAsAddress(*object));
+#endif
 }
 
 template <class T>
 size_t SnapshotCreator::AddData(Local<T> object) {
+#ifdef __wasi__
+  return AddData(reinterpret_cast<internal::Address>(*object));
+#else
   return AddData(internal::ValueHelper::ValueAsAddress(*object));
+#endif
 }
 
 }  // namespace v8

@@ -22,6 +22,10 @@ class StackAllocated {
   StackAllocated() = default;
   // Constructor that accepts no_checking_tag for compatibility
   explicit StackAllocated(internal::no_checking_tag) {}
+
+  // Provide a tag instance accessible from derived classes to bypass checks,
+  // mirroring upstream V8's pattern (used as `Derived::do_not_check`).
+  static constexpr internal::no_checking_tag do_not_check{};
 };
 
 // Simplified handle base for WASI
@@ -56,43 +60,8 @@ namespace internal {
 using Address = uintptr_t;
 #endif
 
-// Stub classes needed by v8-persistent-handle.h
-#ifndef V8_WASI_VALUEHELPER_DEFINED
-class ValueHelper {
- public:
-  using InternalRepresentationType = Address;
-  static constexpr InternalRepresentationType kEmpty = 0;
-
-  static void* Wrap(void* value) { return value; }
-
-  template <typename T>
-  static bool IsEmpty(T* value) {
-    return value == nullptr;
-  }
-
-  // Overload for pointer types (when called with *Local<T>)
-  template <typename T>
-  static InternalRepresentationType ValueAsAddress(T* value) {
-    return reinterpret_cast<InternalRepresentationType>(value);
-  }
-
-  // Overload for const pointer types
-  template <typename T>
-  static InternalRepresentationType ValueAsAddress(const T* value) {
-    return reinterpret_cast<InternalRepresentationType>(const_cast<T*>(value));
-  }
-
-  template <typename T>
-  static T* ReprAsValue(InternalRepresentationType repr) {
-    return reinterpret_cast<T*>(repr);
-  }
-
-  template <typename T>
-  static T* SlotAsValue(Address* slot) {
-    return reinterpret_cast<T*>(*slot);
-  }
-};
-#endif  // V8_WASI_VALUEHELPER_DEFINED
+// ValueHelper is defined centrally in v8-internal.h for WASI builds.
+// Do not forward-declare to avoid incomplete-type issues in nested name use.
 
 class HandleHelper {
  public:

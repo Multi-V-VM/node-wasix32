@@ -9,7 +9,8 @@
 
 #include "src/base/bits.h"
 #ifdef __wasi__
-#include "../../../../node/wasi-v8-bits-fixes.h"
+// Adjusted include path for WASI bits fixes to point to repo root.
+#include "../../../../wasi-v8-bits-fixes.h"
 #endif
 #include "src/base/iterator.h"
 

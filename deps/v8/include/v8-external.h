@@ -26,7 +26,11 @@ class V8_EXPORT External : public Value {
 #ifdef V8_ENABLE_CHECKS
     CheckCast(value);
 #endif
+#ifdef __wasi__
+    return reinterpret_cast<External*>(value);
+#else
     return static_cast<External*>(value);
+#endif
   }
 
   void* Value() const;

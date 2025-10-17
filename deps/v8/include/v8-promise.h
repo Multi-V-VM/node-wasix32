@@ -59,7 +59,11 @@ class V8_EXPORT Promise : public Object {
 #ifdef V8_ENABLE_CHECKS
       CheckCast(value);
 #endif
+#ifdef __wasi__
+      return reinterpret_cast<Promise::Resolver*>(value);
+#else
       return static_cast<Promise::Resolver*>(value);
+#endif
     }
 
    private:
@@ -115,7 +119,11 @@ class V8_EXPORT Promise : public Object {
 #ifdef V8_ENABLE_CHECKS
     CheckCast(value);
 #endif
+#ifdef __wasi__
+    return reinterpret_cast<Promise*>(value);
+#else
     return static_cast<Promise*>(value);
+#endif
   }
 
   static constexpr int kEmbedderFieldCount = V8_PROMISE_INTERNAL_FIELD_COUNT;

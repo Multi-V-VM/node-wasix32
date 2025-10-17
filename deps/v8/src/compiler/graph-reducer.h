@@ -204,7 +204,7 @@ class V8_EXPORT_PRIVATE GraphReducer
   TFGraph* const graph_;
   Node* const dead_;
   NodeMarker<State> state_;
-  ::v8::base::Vector<Reducer*> reducers_;
+  ZoneVector<Reducer*> reducers_;
   ZoneQueue<Node*> revisit_;
   ZoneStack<NodeState> stack_;
   TickCounter* const tick_counter_;

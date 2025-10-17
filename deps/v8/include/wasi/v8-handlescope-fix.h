@@ -9,6 +9,15 @@
 
 namespace v8 {
 
+// Minimal forward declarations for internal types used in signatures.
+namespace internal {
+#ifndef V8_INTERNAL_ADDRESS_DEFINED
+#define V8_INTERNAL_ADDRESS_DEFINED
+using Address = uintptr_t;
+#endif
+class Isolate;
+}  // namespace internal
+
 // Forward declare if not already defined
 class Isolate;
 
@@ -26,6 +35,19 @@ class HandleScope {
   void* operator new[](size_t size) = delete;
   void operator delete(void*, size_t) = delete;
   void operator delete[](void*, size_t) = delete;
+
+  // Methods used by src/api implementations; declared here for ODR.
+  static int NumberOfHandles(Isolate* isolate);
+  // Forward-declared internal types live in v8-internal.h; signatures match src/api/api.cc
+  static ::v8::internal::Address* CreateHandle(::v8::internal::Isolate* i_isolate,
+                                               ::v8::internal::Address value);
+#ifdef V8_ENABLE_DIRECT_HANDLE
+  static ::v8::internal::Address* CreateHandleForCurrentIsolate(
+      ::v8::internal::Address value);
+#endif
+
+  void Initialize(Isolate* isolate);
+  Isolate* GetIsolate() const { return reinterpret_cast<Isolate*>(internal_isolate_); }
 
  private:
   // Implementation details hidden
@@ -59,7 +81,18 @@ class EscapableHandleScope : public HandleScope {
   }
 
  private:
-  void* escape_slot_;
+ void* escape_slot_;
+};
+
+// Base class used internally by V8 API for escapable scopes.
+class EscapableHandleScopeBase : public HandleScope {
+ public:
+  explicit EscapableHandleScopeBase(Isolate* isolate);
+
+ protected:
+  // Implementation provided in src/api/api.cc; declared here for linkage.
+  ::v8::internal::Address* EscapeSlot(::v8::internal::Address* escape_value);
+  ::v8::internal::Address* escape_slot_ = nullptr;
 };
 
 // Also ensure SealHandleScope is available

@@ -1024,7 +1024,11 @@ Local<String> String::Empty(Isolate* isolate) {
 String::ExternalStringResource* String::GetExternalStringResource() const {
   using A = internal::Address;
   using I = internal::Internals;
+#ifdef __wasi__
+  A obj = reinterpret_cast<A>(this);
+#else
   A obj = internal::ValueHelper::ValueAsAddress(this);
+#endif
 
   ExternalStringResource* result;
   if (I::IsExternalTwoByteString(I::GetInstanceType(obj))) {
@@ -1049,7 +1053,11 @@ String::ExternalStringResourceBase* String::GetExternalStringResourceBase(
     v8::Isolate* isolate, String::Encoding* encoding_out) const {
   using A = internal::Address;
   using I = internal::Internals;
+#ifdef __wasi__
+  A obj = reinterpret_cast<A>(this);
+#else
   A obj = internal::ValueHelper::ValueAsAddress(this);
+#endif
   int type = I::GetInstanceType(obj) & I::kStringRepresentationAndEncodingMask;
   *encoding_out = static_cast<Encoding>(type & I::kStringEncodingMask);
   ExternalStringResourceBase* resource;
@@ -1071,7 +1079,11 @@ String::ExternalStringResourceBase* String::GetExternalStringResourceBase(
     String::Encoding* encoding_out) const {
   using A = internal::Address;
   using I = internal::Internals;
+#ifdef __wasi__
+  A obj = reinterpret_cast<A>(this);
+#else
   A obj = internal::ValueHelper::ValueAsAddress(this);
+#endif
   int type = I::GetInstanceType(obj) & I::kStringRepresentationAndEncodingMask;
   *encoding_out = static_cast<Encoding>(type & I::kStringEncodingMask);
   ExternalStringResourceBase* resource;

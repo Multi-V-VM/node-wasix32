@@ -21,7 +21,7 @@ class BasicBlock;
 class BasicBlockInstrumentor;
 class Node;
 
-using BasicBlockVector = ::v8::base::Vector<BasicBlock*>;
+using BasicBlockVector = ZoneVector<BasicBlock*>;
 using NodeVector = ZoneVector<Node*>;
 
 // A basic block contains an ordered list of nodes and ends with a control

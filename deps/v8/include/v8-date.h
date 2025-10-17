@@ -48,7 +48,11 @@ class V8_EXPORT Date : public Object {
 #ifdef V8_ENABLE_CHECKS
     CheckCast(value);
 #endif
+#ifdef __wasi__
+    return reinterpret_cast<Date*>(value);
+#else
     return static_cast<Date*>(value);
+#endif
   }
 
  private:

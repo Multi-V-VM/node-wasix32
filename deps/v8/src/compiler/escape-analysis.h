@@ -11,6 +11,7 @@
 #include "src/compiler/js-graph.h"
 #include "src/compiler/persistent-map.h"
 #include "src/objects/name.h"
+#include "src/zone/zone-containers.h"
 
 namespace v8 {
 namespace internal {
@@ -117,7 +118,7 @@ class Dependable : public ZoneObject {
   }
 
  private:
-  ::v8::base::Vector<Node*> dependants_;
+  ZoneVector<Node*> dependants_;
 };
 
 // A virtual object represents an allocation site and tracks the Variables
@@ -125,7 +126,7 @@ class Dependable : public ZoneObject {
 class VirtualObject : public Dependable {
  public:
   using Id = uint32_t;
-  using const_iterator = ::v8::base::Vector<Variable>::const_iterator;
+  using const_iterator = ZoneVector<Variable>::const_iterator;
   VirtualObject(VariableTracker* var_states, Id id, int size);
   Maybe<Variable> FieldAt(int offset) const {
     CHECK(IsAligned(offset, kTaggedSize));
@@ -156,7 +157,7 @@ class VirtualObject : public Dependable {
  private:
   bool escaped_ = false;
   Id id_;
-  ::v8::base::Vector<Variable> fields_;
+  ZoneVector<Variable> fields_;
 };
 
 class EscapeAnalysisResult {

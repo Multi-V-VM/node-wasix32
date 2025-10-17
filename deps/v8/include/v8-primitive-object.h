@@ -29,7 +29,11 @@ class V8_EXPORT NumberObject : public Object {
 #ifdef V8_ENABLE_CHECKS
     CheckCast(value);
 #endif
+#ifdef __wasi__
+    return reinterpret_cast<NumberObject*>(value);
+#else
     return static_cast<NumberObject*>(value);
+#endif
   }
 
  private:
@@ -49,7 +53,11 @@ class V8_EXPORT BigIntObject : public Object {
 #ifdef V8_ENABLE_CHECKS
     CheckCast(value);
 #endif
+#ifdef __wasi__
+    return reinterpret_cast<BigIntObject*>(value);
+#else
     return static_cast<BigIntObject*>(value);
+#endif
   }
 
  private:
@@ -69,7 +77,11 @@ class V8_EXPORT BooleanObject : public Object {
 #ifdef V8_ENABLE_CHECKS
     CheckCast(value);
 #endif
+#ifdef __wasi__
+    return reinterpret_cast<BooleanObject*>(value);
+#else
     return static_cast<BooleanObject*>(value);
+#endif
   }
 
  private:
@@ -89,7 +101,11 @@ class V8_EXPORT StringObject : public Object {
 #ifdef V8_ENABLE_CHECKS
     CheckCast(value);
 #endif
+#ifdef __wasi__
+    return reinterpret_cast<StringObject*>(value);
+#else
     return static_cast<StringObject*>(value);
+#endif
   }
 
  private:
@@ -109,7 +125,11 @@ class V8_EXPORT SymbolObject : public Object {
 #ifdef V8_ENABLE_CHECKS
     CheckCast(value);
 #endif
+#ifdef __wasi__
+    return reinterpret_cast<SymbolObject*>(value);
+#else
     return static_cast<SymbolObject*>(value);
+#endif
   }
 
  private:

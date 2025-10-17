@@ -39,7 +39,11 @@ class V8_EXPORT Proxy : public Object {
 #ifdef V8_ENABLE_CHECKS
     CheckCast(value);
 #endif
+#ifdef __wasi__
+    return reinterpret_cast<Proxy*>(value);
+#else
     return static_cast<Proxy*>(value);
+#endif
   }
 
  private:

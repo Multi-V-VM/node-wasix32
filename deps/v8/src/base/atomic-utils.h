@@ -225,12 +225,12 @@ class AsAtomicImpl {
   };
 
   template <typename T>
-  static AtomicStorageType* to_storage_addr(T* value) {
-    return reinterpret_cast<AtomicStorageType*>(value);
+  static volatile AtomicStorageType* to_storage_addr(T* value) {
+    return reinterpret_cast<volatile AtomicStorageType*>(value);
   }
   template <typename T>
-  static const AtomicStorageType* to_storage_addr(const T* value) {
-    return reinterpret_cast<const AtomicStorageType*>(value);
+  static const volatile AtomicStorageType* to_storage_addr(const T* value) {
+    return reinterpret_cast<const volatile AtomicStorageType*>(value);
   }
 };
 
@@ -274,7 +274,18 @@ class AsAtomicPointerImpl : public AsAtomicImpl<TAtomicStorageType> {
 
 using AsAtomicPointer = AsAtomicPointerImpl<AtomicWord>;
 
-#ifndef __wasi__
+#if defined(__wasi__)
+template <typename T>
+inline void CheckedIncrement(
+    ::std::atomic<T>* number, T amount,
+    ::std::memory_order order = ::std::memory_order_seq_cst)
+  requires ::std::is_unsigned<T>::value
+{
+  // On WASI, perform the atomic update without extra DCHECK semantics.
+  // The DCHECK macros may be stubbed out, so just do the operation.
+  number->fetch_add(amount, order);
+}
+#else
 template <typename T>
 inline void CheckedIncrement(
     ::std::atomic<T>* number, T amount,
@@ -287,7 +298,17 @@ inline void CheckedIncrement(
 }
 #endif
 
-#ifndef V8_TARGET_ARCH_WASM32
+#if defined(__wasi__)
+template <typename T>
+inline void CheckedDecrement(
+    ::std::atomic<T>* number, T amount,
+    ::std::memory_order order = ::std::memory_order_seq_cst)
+  requires ::std::is_unsigned<T>::value
+{
+  // On WASI, perform the atomic update without extra DCHECK semantics.
+  number->fetch_sub(amount, order);
+}
+#elif !defined(V8_TARGET_ARCH_WASM32)
 template <typename T>
 inline void CheckedDecrement(
     ::std::atomic<T>* number, T amount,

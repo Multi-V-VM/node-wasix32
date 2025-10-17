@@ -5,6 +5,7 @@
 #define V8_CODEGEN_WASM32_MACRO_ASSEMBLER_WASM32_H_
 
 #include "src/codegen/macro-assembler.h"
+#include "src/codegen/bailout-reason.h"  // For AbortReason
 #include "src/codegen/wasm32/assembler-wasm32.h"
 #include "src/execution/frame-constants.h"
 
@@ -150,7 +151,7 @@ class V8_EXPORT_PRIVATE MacroAssemblerWASM32 : public MacroAssemblerBase {
   static constexpr int kFramePointerRegister = 0;  // No real frame pointer in WASM
 
  private:
-  AssemblerWasm32 assembler_;
+  Assembler assembler_;
   int current_stack_depth_ = 0;
 
   uint32_t AddressToFunctionIndex(Address addr) {

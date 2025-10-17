@@ -60,8 +60,8 @@ class V8_EXPORT_PRIVATE WasmAddressReassociation final {
     int64_t imm_offset(size_t i) const;
 
    private:
-    ::v8::base::Vector<Node*> mem_ops_;
-    ::v8::base::Vector<int64_t> imm_offsets_;
+    ZoneVector<Node*> mem_ops_;
+    ZoneVector<int64_t> imm_offsets_;
   };
 
   bool ShouldTryOptimize(const CandidateAddressKey& key) const;

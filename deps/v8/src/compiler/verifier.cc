@@ -2208,7 +2208,7 @@ void ScheduleVerifier::Run(Schedule* schedule) {
 
   {
     // Verify the dominance relation.
-    ::v8::base::Vector<BitVector*> dominators(zone);
+    ZoneVector<BitVector*> dominators(zone);
     dominators.resize(count, nullptr);
 
     // Compute a set of all the nodes that dominate a given node by using

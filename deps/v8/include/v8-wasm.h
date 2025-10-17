@@ -83,7 +83,11 @@ class V8_EXPORT WasmMemoryObject : public Object {
 #ifdef V8_ENABLE_CHECKS
     CheckCast(value);
 #endif
+#ifdef __wasi__
+    return reinterpret_cast<WasmMemoryObject*>(value);
+#else
     return static_cast<WasmMemoryObject*>(value);
+#endif
   }
 
  private:
@@ -118,7 +122,11 @@ class V8_EXPORT WasmModuleObject : public Object {
 #ifdef V8_ENABLE_CHECKS
     CheckCast(value);
 #endif
+#ifdef __wasi__
+    return reinterpret_cast<WasmModuleObject*>(value);
+#else
     return static_cast<WasmModuleObject*>(value);
+#endif
   }
 
  private:
@@ -215,7 +223,11 @@ class V8_EXPORT WasmMemoryMapDescriptor : public Object {
 #ifdef V8_ENABLE_CHECKS
     CheckCast(value);
 #endif
+#ifdef __wasi__
+    return reinterpret_cast<WasmMemoryMapDescriptor*>(value);
+#else
     return static_cast<WasmMemoryMapDescriptor*>(value);
+#endif
   }
 
   using WasmFileDescriptor = int32_t;

@@ -381,7 +381,11 @@ class V8_EXPORT ArrayBuffer : public Object {
 #ifdef V8_ENABLE_CHECKS
     CheckCast(value);
 #endif
+#ifdef __wasi__
+    return reinterpret_cast<ArrayBuffer*>(value);
+#else
     return static_cast<ArrayBuffer*>(value);
+#endif
   }
 
   static constexpr int kInternalFieldCount =
@@ -460,7 +464,11 @@ class V8_EXPORT ArrayBufferView : public Object {
 #ifdef V8_ENABLE_CHECKS
     CheckCast(value);
 #endif
+#ifdef __wasi__
+    return reinterpret_cast<ArrayBufferView*>(value);
+#else
     return static_cast<ArrayBufferView*>(value);
+#endif
   }
 
   static constexpr int kInternalFieldCount =
@@ -485,7 +493,11 @@ class V8_EXPORT DataView : public ArrayBufferView {
 #ifdef V8_ENABLE_CHECKS
     CheckCast(value);
 #endif
+#ifdef __wasi__
+    return reinterpret_cast<DataView*>(value);
+#else
     return static_cast<DataView*>(value);
+#endif
   }
 
  private:
@@ -599,7 +611,11 @@ class V8_EXPORT SharedArrayBuffer : public Object {
 #ifdef V8_ENABLE_CHECKS
     CheckCast(value);
 #endif
+#ifdef __wasi__
+    return reinterpret_cast<SharedArrayBuffer*>(value);
+#else
     return static_cast<SharedArrayBuffer*>(value);
+#endif
   }
 
   static constexpr int kInternalFieldCount =

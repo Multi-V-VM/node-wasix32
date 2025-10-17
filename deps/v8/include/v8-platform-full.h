@@ -102,6 +102,13 @@ using PagePermissions = PageAllocator::PagePermissions;
 class Platform {
  public:
   virtual ~Platform() = default;
+  // Scoped blocking helper used by some GC synchronization paths.
+  enum class BlockingType { kWillBlock, kMayBlock };
+  class BlockingScope {
+   public:
+    BlockingScope() = default;
+    ~BlockingScope() = default;
+  };
   
   virtual PageAllocator* GetPageAllocator() = 0;
   virtual int NumberOfWorkerThreads() = 0;
@@ -110,6 +117,8 @@ class Platform {
   virtual void CallDelayedOnWorkerThread(std::unique_ptr<Task> task, double delay_in_seconds) = 0;
   virtual bool IdleTasksEnabled(Isolate* isolate) = 0;
   virtual double CurrentClockTimeMillis() = 0;
+  // Legacy static accessor used by some internal code paths.
+  static double SystemClockTimeMillis();
   virtual double MonotonicallyIncreasingTime() = 0;
   virtual std::unique_ptr<JobHandle> PostJob(TaskPriority priority, std::unique_ptr<JobTask> job_task) = 0;
   virtual void PostTaskOnWorkerThread(TaskPriority priority, std::unique_ptr<Task> task) = 0;
@@ -120,6 +129,8 @@ class Platform {
   virtual void CallOnForegroundThread(Isolate* isolate, std::unique_ptr<Task> task) {}
   virtual void CallDelayedOnForegroundThread(Isolate* isolate, std::unique_ptr<Task> task, double delay_in_seconds) {}
   virtual void CallIdleOnForegroundThread(Isolate* isolate, std::unique_ptr<IdleTask> task) {}
+  // Default no-op blocking scope creator for WASI builds.
+  virtual BlockingScope CreateBlockingScope(BlockingType) { return BlockingScope{}; }
 };
 
 // Message loop behavior

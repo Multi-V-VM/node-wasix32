@@ -15,6 +15,7 @@
 #ifndef INCLUDE_V8_OBJECT_H_
 #define INCLUDE_V8_OBJECT_H_
 
+#include "v8-context.h"            // NOLINT(build/include_directory)
 #include "v8-forward.h"            // NOLINT(build/include_directory) - for LocalVector
 #include "v8-internal.h"           // NOLINT(build/include_directory)
 #include "v8-local-handle.h"       // NOLINT(build/include_directory)
@@ -887,7 +888,11 @@ Local<Data> Object::GetInternalField(int index) {
 #ifndef V8_ENABLE_CHECKS
   using A = internal::Address;
   using I = internal::Internals;
+#ifdef __wasi__
+  A obj = reinterpret_cast<A>(this);
+#else
   A obj = internal::ValueHelper::ValueAsAddress(this);
+#endif
   // Fast path: If the object is a plain JSObject, which is the common case, we
   // know where to find the internal fields and can return the value directly.
   int instance_type = I::GetInstanceType(obj);
@@ -914,7 +919,11 @@ void* Object::GetAlignedPointerFromInternalField(v8::Isolate* isolate,
 #if !defined(V8_ENABLE_CHECKS)
   using A = internal::Address;
   using I = internal::Internals;
+#ifdef __wasi__
+  A obj = reinterpret_cast<A>(this);
+#else
   A obj = internal::ValueHelper::ValueAsAddress(this);
+#endif
   // Fast path: If the object is a plain JSObject, which is the common case, we
   // know where to find the internal fields and can return the value directly.
   auto instance_type = I::GetInstanceType(obj);
@@ -935,7 +944,11 @@ void* Object::GetAlignedPointerFromInternalField(int index) {
 #if !defined(V8_ENABLE_CHECKS)
   using A = internal::Address;
   using I = internal::Internals;
+#ifdef __wasi__
+  A obj = reinterpret_cast<A>(this);
+#else
   A obj = internal::ValueHelper::ValueAsAddress(this);
+#endif
   // Fast path: If the object is a plain JSObject, which is the common case, we
   // know where to find the internal fields and can return the value directly.
   auto instance_type = I::GetInstanceType(obj);
@@ -957,7 +970,15 @@ void* Object::GetAlignedPointerFromInternalField(int index) {
 template <CppHeapPointerTag tag, typename T>
 T* Object::Unwrap(v8::Isolate* isolate, const v8::Local<v8::Object>& wrapper) {
   internal::CppHeapPointerTagRange tag_range(tag, tag);
+#ifdef __wasi__
+  auto obj = reinterpret_cast<internal::Address>(*wrapper);
+#else
+#ifdef __wasi__
+  auto obj = reinterpret_cast<internal::Address>(*wrapper);
+#else
   auto obj = internal::ValueHelper::ValueAsAddress(*wrapper);
+#endif
+#endif
 #if !defined(V8_ENABLE_CHECKS)
   return internal::ReadCppHeapPointerField<T>(
       isolate, obj, internal::Internals::kJSObjectHeaderSize, tag_range);
@@ -970,8 +991,24 @@ T* Object::Unwrap(v8::Isolate* isolate, const v8::Local<v8::Object>& wrapper) {
 template <CppHeapPointerTag tag, typename T>
 T* Object::Unwrap(v8::Isolate* isolate, const PersistentBase<Object>& wrapper) {
   internal::CppHeapPointerTagRange tag_range(tag, tag);
+#ifdef __wasi__
+  auto obj = reinterpret_cast<internal::Address>(wrapper.template value<Object>());
+#else
+#ifdef __wasi__
+  auto obj = reinterpret_cast<internal::Address>(wrapper.template value<Object>());
+#else
+#ifdef __wasi__
+  auto obj = reinterpret_cast<internal::Address>(wrapper.template value<Object>());
+#else
   auto obj =
+#ifdef __wasi__
+      reinterpret_cast<internal::Address>(wrapper.template value<Object>());
+#else
       internal::ValueHelper::ValueAsAddress(wrapper.template value<Object>());
+#endif
+#endif
+#endif
+#endif
 #if !defined(V8_ENABLE_CHECKS)
   return internal::ReadCppHeapPointerField<T>(
       isolate, obj, internal::Internals::kJSObjectHeaderSize, tag_range);
@@ -985,8 +1022,20 @@ template <CppHeapPointerTag tag, typename T>
 T* Object::Unwrap(v8::Isolate* isolate,
                   const TracedReference<Object>& wrapper) {
   internal::CppHeapPointerTagRange tag_range(tag, tag);
+#ifdef __wasi__
+  auto obj = reinterpret_cast<internal::Address>(wrapper.template value<Object>());
+#else
+#ifdef __wasi__
+  auto obj = reinterpret_cast<internal::Address>(wrapper.template value<Object>());
+#else
   auto obj =
+#ifdef __wasi__
+      reinterpret_cast<internal::Address>(wrapper.template value<Object>());
+#else
       internal::ValueHelper::ValueAsAddress(wrapper.template value<Object>());
+#endif
+#endif
+#endif
 #if !defined(V8_ENABLE_CHECKS)
   return internal::ReadCppHeapPointerField<T>(
       isolate, obj, internal::Internals::kJSObjectHeaderSize, tag_range);
@@ -999,7 +1048,11 @@ T* Object::Unwrap(v8::Isolate* isolate,
 template <typename T>
 T* Object::Unwrap(v8::Isolate* isolate, const v8::Local<v8::Object>& wrapper,
                   internal::CppHeapPointerTagRange tag_range) {
+#ifdef __wasi__
+  auto obj = reinterpret_cast<internal::Address>(*wrapper);
+#else
   auto obj = internal::ValueHelper::ValueAsAddress(*wrapper);
+#endif
 #if !defined(V8_ENABLE_CHECKS)
   return internal::ReadCppHeapPointerField<T>(
       isolate, obj, internal::Internals::kJSObjectHeaderSize, tag_range);
@@ -1012,8 +1065,20 @@ T* Object::Unwrap(v8::Isolate* isolate, const v8::Local<v8::Object>& wrapper,
 template <typename T>
 T* Object::Unwrap(v8::Isolate* isolate, const PersistentBase<Object>& wrapper,
                   internal::CppHeapPointerTagRange tag_range) {
+#ifdef __wasi__
+  auto obj = reinterpret_cast<internal::Address>(wrapper.template value<Object>());
+#else
+#ifdef __wasi__
+  auto obj = reinterpret_cast<internal::Address>(wrapper.template value<Object>());
+#else
   auto obj =
+#ifdef __wasi__
+      reinterpret_cast<internal::Address>(wrapper.template value<Object>());
+#else
       internal::ValueHelper::ValueAsAddress(wrapper.template value<Object>());
+#endif
+#endif
+#endif
 #if !defined(V8_ENABLE_CHECKS)
   return internal::ReadCppHeapPointerField<T>(
       isolate, obj, internal::Internals::kJSObjectHeaderSize, tag_range);
@@ -1029,7 +1094,11 @@ T* Object::Unwrap(v8::Isolate* isolate,
                   const TracedReference<Object>& wrapper,
                   internal::CppHeapPointerTagRange tag_range) {
   auto obj =
+#ifdef __wasi__
+      reinterpret_cast<internal::Address>(wrapper.template value<Object>());
+#else
       internal::ValueHelper::ValueAsAddress(wrapper.template value<Object>());
+#endif
 #if !defined(V8_ENABLE_CHECKS)
   return internal::ReadCppHeapPointerField<T>(
       isolate, obj, internal::Internals::kJSObjectHeaderSize, tag_range);
@@ -1042,7 +1111,11 @@ T* Object::Unwrap(v8::Isolate* isolate,
 template <CppHeapPointerTag tag>
 void Object::Wrap(v8::Isolate* isolate, const v8::Local<v8::Object>& wrapper,
                   void* wrappable) {
+#ifdef __wasi__
+  auto obj = reinterpret_cast<internal::Address>(*wrapper);
+#else
   auto obj = internal::ValueHelper::ValueAsAddress(*wrapper);
+#endif
   Wrap(isolate, obj, tag, wrappable);
 }
 
@@ -1050,8 +1123,16 @@ void Object::Wrap(v8::Isolate* isolate, const v8::Local<v8::Object>& wrapper,
 template <CppHeapPointerTag tag>
 void Object::Wrap(v8::Isolate* isolate, const PersistentBase<Object>& wrapper,
                   void* wrappable) {
+#ifdef __wasi__
+  auto obj = reinterpret_cast<internal::Address>(wrapper.template value<Object>());
+#else
   auto obj =
+#ifdef __wasi__
+      reinterpret_cast<internal::Address>(wrapper.template value<Object>());
+#else
       internal::ValueHelper::ValueAsAddress(wrapper.template value<Object>());
+#endif
+#endif
   Wrap(isolate, obj, tag, wrappable);
 }
 
@@ -1061,22 +1142,38 @@ void Object::Wrap(v8::Isolate* isolate,
                   const TracedReference<Object>& wrapper,
                   void* wrappable) {
   auto obj =
+#ifdef __wasi__
+      reinterpret_cast<internal::Address>(wrapper.template value<Object>());
+#else
       internal::ValueHelper::ValueAsAddress(wrapper.template value<Object>());
+#endif
   Wrap(isolate, obj, tag, wrappable);
 }
 
 // static
 void Object::Wrap(v8::Isolate* isolate, const v8::Local<v8::Object>& wrapper,
                   void* wrappable, CppHeapPointerTag tag) {
+#ifdef __wasi__
+  auto obj = reinterpret_cast<internal::Address>(*wrapper);
+#else
   auto obj = internal::ValueHelper::ValueAsAddress(*wrapper);
+#endif
   Wrap(isolate, obj, tag, wrappable);
 }
 
 // static
 void Object::Wrap(v8::Isolate* isolate, const PersistentBase<Object>& wrapper,
                   void* wrappable, CppHeapPointerTag tag) {
+#ifdef __wasi__
+  auto obj = reinterpret_cast<internal::Address>(wrapper.template value<Object>());
+#else
   auto obj =
+#ifdef __wasi__
+      reinterpret_cast<internal::Address>(wrapper.template value<Object>());
+#else
       internal::ValueHelper::ValueAsAddress(wrapper.template value<Object>());
+#endif
+#endif
   Wrap(isolate, obj, tag, wrappable);
 }
 
@@ -1085,7 +1182,11 @@ void Object::Wrap(v8::Isolate* isolate,
                   const TracedReference<Object>& wrapper, void* wrappable,
                   CppHeapPointerTag tag) {
   auto obj =
+#ifdef __wasi__
+      reinterpret_cast<internal::Address>(wrapper.template value<Object>());
+#else
       internal::ValueHelper::ValueAsAddress(wrapper.template value<Object>());
+#endif
   Wrap(isolate, obj, tag, wrappable);
 }
 
@@ -1100,7 +1201,11 @@ Object* Object::Cast(v8::Value* value) {
 #ifdef V8_ENABLE_CHECKS
   CheckCast(value);
 #endif
+#ifdef __wasi__
+  return reinterpret_cast<Object*>(value);
+#else
   return static_cast<Object*>(value);
+#endif
 }
 
 }  // namespace v8

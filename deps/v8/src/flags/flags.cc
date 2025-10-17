@@ -3,6 +3,7 @@
 // found in the LICENSE file.
 
 #include "src/flags/flags.h"
+#include <vector>
 
 #include <algorithm>
 #include <array>
@@ -799,7 +800,7 @@ int FlagList::SetFlagsFromString(const char* str, size_t len) {
   }
 
   // Allocate argument array.
-  base::Scoped::v8::base::Vector<char*> argv(argc);
+  std::vector<char*> argv(argc);
 
   // Split the flags string into arguments.
   argc = 1;  // be compatible with SetFlagsFromCommandLine()
@@ -810,7 +811,7 @@ int FlagList::SetFlagsFromString(const char* str, size_t len) {
     p = SkipWhiteSpace(p);
   }
 
-  return SetFlagsFromCommandLine(&argc, argv.begin(), false);
+  return SetFlagsFromCommandLine(&argc, argv.data(), false);
 }
 
 // static

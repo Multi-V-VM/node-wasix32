@@ -137,7 +137,11 @@ class V8_EXPORT Function : public Object {
 #ifdef V8_ENABLE_CHECKS
     CheckCast(value);
 #endif
+#ifdef __wasi__
+    return reinterpret_cast<Function*>(value);
+#else
     return static_cast<Function*>(value);
+#endif
   }
 
   static const int kLineOffsetNotFound;

@@ -12,6 +12,7 @@
 #include "src/compiler/state-values-utils.h"
 #include "src/handles/handles-inl.h"
 #include "src/objects/map-inl.h"
+#include "src/zone/zone-containers.h"
 
 #ifdef DEBUG
 #define TRACE(...)                                        \
@@ -39,7 +40,7 @@ class Sidetable {
   }
 
  private:
-  ::v8::base::Vector<T> map_;
+  ZoneVector<T> map_;
 };
 
 template <class T>
@@ -156,7 +157,7 @@ class VariableTracker {
   Zone* zone_;
   JSGraph* graph_;
   SparseSidetable<State> table_;
-  ::v8::base::Vector<Node*> buffer_;
+  ZoneVector<Node*> buffer_;
   EffectGraphReducer* reducer_;
   int next_variable_ = 0;
   TickCounter* const tick_counter_;
