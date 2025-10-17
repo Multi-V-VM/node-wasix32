@@ -15,6 +15,9 @@
 #include "src/base/atomicops.h"
 #include "src/base/memory.h"
 
+// Include missing types implementation
+#include "wasi-v8-missing-types.h"
+
 namespace v8 {
 namespace internal {
 
