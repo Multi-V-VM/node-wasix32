@@ -1,182 +1,221 @@
 #ifndef WASI_V8_MISSING_TYPES_H_
 #define WASI_V8_MISSING_TYPES_H_
 
-#include <memory>
-#include <string>
-#include <cstdint>
+#ifdef __wasi__
 
-// Import Address type
-using Address = uintptr_t;
+// This header imports types from v8::base into v8::internal::base namespace
+// for WASI builds where they are otherwise missing
+
+#include <cstdint>
+#include <functional>
+#include <iterator>
+#include <utility>
+#include <memory>
+#include <cstdlib>
+
+// Include the actual V8 base headers
+#include "src/base/hashmap.h"
+#include "src/base/pointer-with-payload.h"
+#include "src/base/threaded-list.h"
+#include "src/base/bit-field.h"
+#include "src/base/atomicops.h"
+#include "src/base/atomic-utils.h"
+#include "src/base/platform/mutex.h"
+#include "src/base/vector.h"
+#include "src/base/address-region.h"
+#include "src/base/discriminated-union.h"
+#include "src/base/strings.h"
+#include "src/base/hashing.h"
+#include "src/base/container-utils.h"
 
 namespace v8 {
+namespace internal {
+namespace base {
 
-// Forward declarations
-class Isolate;
-class Context;
-class Value;
-class String;
-class Object;
-// Primitive is defined in v8-primitive.h, don't forward declare
-class Boolean;
-class Number;
-class Integer;
-class Uint32;
-class Int32;
-class BigInt;
-class Symbol;
-class Name;
-template <typename T> class PersistentBase;
+// ============================================================================
+// DefaultAllocationPolicy - Simple allocator policy using malloc/free
+// ============================================================================
 
-// Complete Local template definition
-template <typename T>
-class Local {
- public:
-  Local() : ptr_(nullptr) {}
-  
-  explicit Local(T* ptr) : ptr_(ptr) {}
-  
-  template <typename S>
-  Local(Local<S> that) : ptr_(reinterpret_cast<T*>(that.ptr())) {}
-  
-  bool IsEmpty() const { return ptr_ == nullptr; }
-  
-  T* operator->() const { return ptr_; }
-  T* operator*() const { return ptr_; }
-  
-  template <typename S>
-  bool operator==(const Local<S>& that) const {
-    return ptr_ == that.ptr();
-  }
-  
-  template <typename S>
-  bool operator!=(const Local<S>& that) const {
-    return !operator==(that);
-  }
-  
-  // As() method for casting
-  template <typename S>
-  Local<S> As() const {
-    return Local<S>(reinterpret_cast<S*>(ptr_));
-  }
-  
-  // Static factory methods
-  static Local<T> New(Isolate* isolate, T* ptr) {
-    return Local<T>(ptr);
-  }
-  
-  static Local<T> New(Isolate* isolate, Address addr) {
-    return Local<T>(reinterpret_cast<T*>(addr));
-  }
-  
-  static Local<T> FromSlot(Address* slot) {
-    return Local<T>(reinterpret_cast<T*>(*slot));
-  }
-  
-  static Local<T> FromRepr(Address repr) {
-    return Local<T>(reinterpret_cast<T*>(repr));
-  }
-  
-  // Add value method for compatibility with PersistentBase
-  template <typename S>
-  S* value() const {
-    return reinterpret_cast<S*>(ptr_);
-  }
-  
-  // Add UnsafeAs method
-  template <typename S>
-  Local<S> UnsafeAs() const {
-    return Local<S>(reinterpret_cast<S*>(ptr_));
-  }
-  
-  // Add ptr() method for compatibility
-  T* ptr() const { return ptr_; }
-  
-  // Add New overload for PersistentBase
-  template <typename S>
-  static Local<T> New(Isolate* isolate, const PersistentBase<S>& persistent) {
-    // PersistentBase should have a val_ member that is T*
-    return Local<T>(persistent.template value<T>());
-  }
-  
- private:
-  T* ptr_;
-  
-  template <typename S> friend class Local;
-  template <typename S> friend class PersistentBase;
+struct DefaultAllocationPolicy {
+  static void* Allocate(size_t size) { return std::malloc(size); }
+  static void Free(void* ptr) { std::free(ptr); }
 };
 
-// String specific functions
-namespace internal {
-  // Stub for NewFromUtf8Literal - only define if v8-primitive.h not included
-#ifndef INCLUDE_V8_PRIMITIVE_H_
-  template <int N>
-  Local<String> NewFromUtf8Literal(Isolate* isolate, const char (&literal)[N]) {
-    return Local<String>(reinterpret_cast<String*>(const_cast<char*>(literal)));
-  }
+// ============================================================================
+// HashMap and related types - Import from v8::base
+// ============================================================================
+
+// TemplateHashMapImpl takes 4 params: Key, Value, MatchFun, AllocationPolicy
+template <typename Key, typename Value, typename MatchFun, typename AllocationPolicy>
+using TemplateHashMapImpl = ::v8::base::TemplateHashMapImpl<Key, Value, MatchFun, AllocationPolicy>;
+
+// TemplateHashMap also takes 4 params
+template <typename Key, typename Value, typename MatchFun, typename AllocationPolicy>
+using TemplateHashMap = ::v8::base::TemplateHashMap<Key, Value, MatchFun, AllocationPolicy>;
+
+// These template classes only take AllocationPolicy as template parameter
+template <typename AllocationPolicy>
+using PointerTemplateHashMapImpl = ::v8::base::PointerTemplateHashMapImpl<AllocationPolicy>;
+
+template <typename AllocationPolicy>
+using CustomMatcherTemplateHashMapImpl = ::v8::base::CustomMatcherTemplateHashMapImpl<AllocationPolicy>;
+
+// HashMap and CustomMatcherHashMap are shortcuts with DefaultAllocationPolicy
+using HashMap = ::v8::base::HashMap;
+using CustomMatcherHashMap = ::v8::base::CustomMatcherHashMap;
+
+// KeyEqualityMatcher for HashMap
+template <typename Key>
+using KeyEqualityMatcher = ::v8::base::KeyEqualityMatcher<Key>;
+
+// ============================================================================
+// PointerWithPayload - Import from v8::base
+// ============================================================================
+
+template <typename PointerType, typename PayloadType, int NumPayloadBits>
+using PointerWithPayload = ::v8::base::PointerWithPayload<PointerType, PayloadType, NumPayloadBits>;
+
+// ============================================================================
+// ThreadedList and ThreadedListTraits - Import from v8::base
+// ============================================================================
+
+template <typename T>
+using ThreadedListTraits = ::v8::base::ThreadedListTraits<T>;
+
+template <typename T, typename BaseClass = ThreadedListTraits<T>>
+using ThreadedList = ::v8::base::ThreadedList<T, BaseClass>;
+
+// ============================================================================
+// BitSetComputer - Import from v8::base
+// ============================================================================
+
+template <typename T, int kFieldSize, int kShift, typename U>
+using BitSetComputer = ::v8::base::BitSetComputer<T, kFieldSize, kShift, U>;
+
+// ============================================================================
+// Vector types - Import from v8::base
+// ============================================================================
+// Note: Vector is imported by globals.h, so we only add OwnedVector here
+
+template <typename T>
+using OwnedVector = ::v8::base::OwnedVector<T>;
+
+// Owned smart pointer with explicit template instantiation
+template <typename T>
+class Owned : public ::v8::base::OwnedVector<T> {
+ public:
+  using ::v8::base::OwnedVector<T>::OwnedVector;
+};
+
+// ============================================================================
+// Additional utility types
+// ============================================================================
+
+// BitFieldUnion for bit manipulation
+template <typename T, int shift, int size>
+using BitFieldUnion = ::v8::base::BitField<T, shift, size>;
+
+// DiscriminatedUnion - Import from v8::base
+template <typename TagEnum, typename... Ts>
+using DiscriminatedUnion = ::v8::base::DiscriminatedUnion<TagEnum, Ts...>;
+
+// ============================================================================
+// Atomic operations - Import from v8::base
+// ============================================================================
+// Note: AtomicWord, AsAtomicWord, AsAtomicPointer are imported by globals.h
+
+using Atomic8 = ::v8::base::Atomic8;
+using Atomic16 = ::v8::base::Atomic16;
+using Atomic32 = ::v8::base::Atomic32;
+
+#if defined(V8_HOST_ARCH_64_BIT)
+using Atomic64 = ::v8::base::Atomic64;
 #endif
-}
 
-// Provide minimal definitions for internal types expected by V8 headers.
-namespace internal {
-class EmbedderState {};
+using AsAtomic8 = ::v8::base::AsAtomic8;
+using AsAtomic16 = ::v8::base::AsAtomic16;
+using AsAtomic32 = ::v8::base::AsAtomic32;
+
+// Atomic operations functions are available through ADL
+
+// ============================================================================
+// Mutex and locking - Import from v8::base
+// ============================================================================
+
+using Mutex = ::v8::base::Mutex;
+using RecursiveMutex = ::v8::base::RecursiveMutex;
+using MutexGuard = ::v8::base::MutexGuard;
+using MutexGuardIf = ::v8::base::MutexGuardIf;
+using LazyMutex = ::v8::base::LazyMutex;
+
+// ============================================================================
+// Memory and allocation helpers
+// ============================================================================
+
+using AddressRegion = ::v8::base::AddressRegion;
+
+// ============================================================================
+// Utility functions - Import from v8::base
+// ============================================================================
+
+using ::v8::base::VectorOf;
+using ::v8::base::SNPrintF;
+using ::v8::base::VSNPrintF;
+using ::v8::base::vector_append;
+using ::v8::base::hash_combine;
+
+// LeakyObject for objects that are never freed
+template <typename T>
+class LeakyObject {
+ public:
+  template <typename... Args>
+  static T* Get(Args&&... args) {
+    static T* instance = new T(std::forward<Args>(args)...);
+    return instance;
+  }
+};
+
+// AllocationResult for allocation APIs
+struct AllocationResult {
+  void* ptr;
+  size_t size;
+
+  bool IsSuccess() const { return ptr != nullptr; }
+  void* ToAddress() const { return ptr; }
+  operator bool() const { return IsSuccess(); }
+};
+
+// AllocateAtLeast for allocation with size feedback
+template <typename Allocator>
+struct AllocateAtLeast {
+  static AllocationResult Allocate(size_t n) {
+    void* ptr = Allocator::Allocate(n);
+    return AllocationResult{ptr, n};
+  }
+};
+
+// ============================================================================
+// Iterator type aliases for template compatibility
+// ============================================================================
+
+// Provide iterator base for backward compatibility (std::iterator is deprecated in C++17, removed in C++20)
+template <typename Category, typename T, typename Distance = std::ptrdiff_t,
+          typename Pointer = T*, typename Reference = T&>
+struct iterator {
+  using iterator_category = Category;
+  using value_type = T;
+  using difference_type = Distance;
+  using pointer = Pointer;
+  using reference = Reference;
+};
+
+}  // namespace base
 }  // namespace internal
-
-// CalleeSavedRegisters is declared as a struct in v8-unwinder.h. Provide a
-// matching trivial stub so host-side utilities compile without warnings.
-struct CalleeSavedRegisters {};
-
-// Minimal cppgc forward declaration used by public headers (global namespace).
 }  // namespace v8
 
-namespace cppgc {
-class Visitor;
-class Heap;
-}  // namespace cppgc
+// Note: Local<> implementation has been moved to v8-data.h
+// Note: Global Address alias has been moved to v8-data.h
 
-namespace v8 {
-
-// Additional v8 types (only define if not already defined)
-// These are now defined in v8-script.h
-
-// StackTrace stub class for WASI
-// class StackTrace {
-//  public:
-//   enum StackTraceOptions {
-//     kLineNumber = 1 << 0,
-//     kColumnOffset = 1 << 1,
-//     kScriptName = 1 << 2,
-//     kFunctionName = 1 << 3,
-//     kIsEval = 1 << 4,
-//     kIsConstructor = 1 << 5,
-//     kScriptNameOrSourceURL = 1 << 6,
-//     kScriptId = 1 << 7,
-//     kExposeFramesAcrossSecurityOrigins = 1 << 8,
-//     kOverview = kLineNumber | kColumnOffset | kScriptName | kFunctionName,
-//     kDetailed = kOverview | kIsEval | kIsConstructor | kScriptNameOrSourceURL
-//   };
-
-//   static Local<StackTrace> CurrentStackTrace(Isolate* isolate, int frame_limit,
-//                                               StackTraceOptions options = kDetailed) {
-//     return Local<StackTrace>();
-//   }
-// };
-
-// // Module stub class for WASI
-// class Module {
-//  public:
-//   enum Status {
-//     kUninstantiated,
-//     kInstantiating,
-//     kInstantiated,
-//     kEvaluating,
-//     kEvaluated,
-//     kErrored
-//   };
-
-//   Local<Value> GetModuleNamespace() { return Local<Value>(); }
-//   int GetIdentityHash() { return 0; }
-// };
-
-}  // namespace v8
+#endif  // __wasi__
 
 #endif  // WASI_V8_MISSING_TYPES_H_

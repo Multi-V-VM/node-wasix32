@@ -22,8 +22,7 @@
 #include "src/base/utils/random-number-generator.h"
 #include "src/base/vector.h"
 
-// Include V8 profiler stubs for WASI
-#include "wasi/v8-profiler-stubs.h"
+// Note: v8-profiler-stubs.h is included later in v8.h after Local<> is fully defined
 
 #endif  // __wasi__
 

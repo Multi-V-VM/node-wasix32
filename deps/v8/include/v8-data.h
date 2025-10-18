@@ -11,6 +11,110 @@ namespace v8 {
 // Forward declaration for Local template
 template <typename T> class Local;
 
+#ifdef __wasi__
+// Forward declare Isolate and internal::Address for Local<> implementation
+class Isolate;
+namespace internal {
+  using Address = unsigned long;
+}
+
+// ===========================================================================
+// Minimal Local<T> stub implementation for WASI
+// ===========================================================================
+// Full implementation must be here in v8-data.h since many headers include
+// v8-data.h and immediately try to use Local<> before wasi-v8-missing-types.h
+// is included.
+
+template <typename T>
+class Local {
+ public:
+  Local() : val_(nullptr) {}
+
+  // Constructor from pointer
+  explicit Local(T* that) : val_(that) {}
+
+  template <class S>
+  Local(Local<S> that) : val_(reinterpret_cast<T*>(*that)) {}
+
+  bool IsEmpty() const { return val_ == nullptr; }
+  void Clear() { val_ = nullptr; }
+
+  T* operator->() const { return val_; }
+  T* operator*() const { return val_; }
+
+  // Contextual bool conversion
+  explicit operator bool() const { return !IsEmpty(); }
+
+  // Internal pointer access for v8-handle-fixes.h
+  T** ptr() const { return const_cast<T**>(&val_); }
+
+  // Type conversion
+  template <class S>
+  Local<S> As() const {
+    return Local<S>(reinterpret_cast<S*>(val_));
+  }
+
+  // Unsafe type conversion (no checks)
+  template <class S>
+  Local<S> UnsafeAs() const {
+    return Local<S>(reinterpret_cast<S*>(val_));
+  }
+
+  // Template value method for accessing as different type
+  template <class S>
+  S* value() const {
+    return reinterpret_cast<S*>(val_);
+  }
+
+  // Comparison operators
+  template <class S>
+  bool operator==(const Local<S>& that) const {
+    return val_ == reinterpret_cast<T*>(*that);
+  }
+
+  template <class S>
+  bool operator!=(const Local<S>& that) const {
+    return val_ != reinterpret_cast<T*>(*that);
+  }
+
+  // Static factory methods
+  template <class S>
+  static Local<T> New(Isolate* isolate, const Local<S>& that) {
+    return Local<T>(reinterpret_cast<T*>(*that));
+  }
+
+  template <class S>
+  static Local<T> New(Isolate* isolate, S* that) {
+    return Local<T>(reinterpret_cast<T*>(that));
+  }
+
+  // Overload for Address (unsigned long)
+  static Local<T> New(Isolate* isolate, internal::Address value) {
+    return Local<T>(reinterpret_cast<T*>(value));
+  }
+
+  // Overload for PersistentBase and other handle types (accepts by value)
+  template <class S>
+  static Local<T> New(Isolate* isolate, const S& that) {
+    // For persistent handles, we need to dereference to get the raw pointer
+    // This is a stub - in real V8 this would involve more complex handle management
+    return Local<T>(reinterpret_cast<T*>(static_cast<internal::Address>(0)));
+  }
+
+  static Local<T> FromSlot(internal::Address* slot) {
+    return Local<T>(reinterpret_cast<T*>(*slot));
+  }
+
+  // FromRepr creates a Local from an internal representation
+  static Local<T> FromRepr(internal::Address value) {
+    return Local<T>(reinterpret_cast<T*>(value));
+  }
+
+ private:
+  T* val_;
+};
+#endif  // __wasi__
+
 /**
  * The superclass of objects that can be embedded in JavaScript values
  * or passed to most functions defined in V8.
@@ -31,6 +135,11 @@ class V8_EXPORT Data {
 };
 
 } // namespace v8
+
+#ifdef __wasi__
+// Alias Address to global namespace for code that uses ::Address
+using Address = v8::internal::Address;
+#endif
 
 
 #endif // INCLUDE_V8_DATA_H_
