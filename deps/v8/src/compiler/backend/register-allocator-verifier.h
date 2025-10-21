@@ -246,7 +246,7 @@ class RegisterAllocatorVerifier final : public ZoneObject {
     OperandConstraint* operand_constraints_;
   };
 
-  using Constraints = ::v8::base::Vector<InstructionConstraint>;
+  using Constraints = ZoneVector<InstructionConstraint>;
 
   class DelayedAssessments : public ZoneObject {
    public:

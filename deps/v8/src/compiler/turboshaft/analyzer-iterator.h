@@ -126,7 +126,7 @@ class V8_EXPORT_PRIVATE AnalyzerIterator {
   // the .back() of {stack_} is never out-dated (ie, its generation is always
   // greater than the generation for its node recorded in {visited_}), so that
   // "Next" can simply check whether {stack_} is empty or not.
-  ::v8::base::Vector<StackNode> stack_;
+  ZoneVector<StackNode> stack_;
 };
 
 }  // namespace v8::internal::compiler::turboshaft

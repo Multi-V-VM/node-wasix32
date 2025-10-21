@@ -46,7 +46,7 @@ namespace base {
 
 // Import commonly used v8::base utilities into v8::internal::base namespace
 using ::v8::base::IsInRange;
-using ::v8::base::hash_combine;
+// Note: hash_combine is defined in wasi-v8-missing-types.h with wrapper functions
 using ::v8::base::hash_value;
 using ::v8::base::saturated_cast;
 

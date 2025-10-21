@@ -609,7 +609,7 @@ class V8_EXPORT_PRIVATE WasmInterpreter {
     Zone* zone_;
     Isolate* isolate_;
     const WasmModule* module_;
-    ::v8::base::Vector<InterpreterCode> interpreter_code_;
+    ZoneVector<InterpreterCode> interpreter_code_;
 
     base::TimeDelta bytecode_generation_time_;
     std::atomic<size_t> generated_code_size_;
@@ -658,7 +658,7 @@ class V8_EXPORT_PRIVATE WasmInterpreter {
 
   // Create a copy of the module bytes for the interpreter, since the passed
   // pointer might be invalidated after constructing the interpreter.
-  const ::v8::base::Vector<uint8_t> module_bytes_;
+  const ZoneVector<uint8_t> module_bytes_;
 
   CodeMap codemap_;
 

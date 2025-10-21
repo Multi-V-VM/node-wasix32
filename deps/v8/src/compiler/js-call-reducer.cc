@@ -467,7 +467,7 @@ class IteratingArrayBuiltinReducerAssembler : public JSCallReducerAssembler {
       MapInference* inference, const bool has_stability_dependency,
       ElementsKind kind, SharedFunctionInfoRef shared,
       NativeContextRef native_context, ArrayEverySomeVariant variant);
-  TNode<Object> ReduceArrayPrototypeAt(::v8::base::Vector<MapRef> kinds,
+  TNode<Object> ReduceArrayPrototypeAt(ZoneVector<MapRef> kinds,
                                        bool needs_fallback_builtin_call);
   TNode<Object> ReduceArrayPrototypeIndexOfIncludes(
       ElementsKind kind, ArrayIndexOfIncludesVariant variant);
@@ -1279,7 +1279,7 @@ TNode<Object> JSCallReducerAssembler::ReduceJSCallMathMinMaxWithArrayLike(
 }
 
 TNode<Object> IteratingArrayBuiltinReducerAssembler::ReduceArrayPrototypeAt(
-    ::v8::base::Vector<MapRef> maps, bool needs_fallback_builtin_call) {
+    ZoneVector<MapRef> maps, bool needs_fallback_builtin_call) {
   TNode<JSArray> receiver = ReceiverInputAs<JSArray>();
   TNode<Object> index = ArgumentOrZero(0);
 
@@ -5889,7 +5889,7 @@ Reduction JSCallReducer::ReduceArrayPrototypeAt(Node* node) {
 
   // Collecting maps, and checking if a fallback builtin call will be required
   // (it is required if at least one map doesn't support fast array iteration).
-  ::v8::base::Vector<MapRef> maps(broker()->zone());
+  ZoneVector<MapRef> maps(broker()->zone());
   bool needs_fallback_builtin_call = false;
   for (MapRef map : inference.GetMaps()) {
     if (map.supports_fast_array_iteration(broker())) {
@@ -8718,7 +8718,7 @@ Reduction JSCallReducer::ReduceRegExpPrototypeTest(Node* node) {
   if (!inference.Is(regexp_initial_map)) return inference.NoChange();
   ZoneRefSet<Map> const& regexp_maps = inference.GetMaps();
 
-  ::v8::base::Vector<PropertyAccessInfo> access_infos(graph()->zone());
+  ZoneVector<PropertyAccessInfo> access_infos(graph()->zone());
   AccessInfoFactory access_info_factory(broker(), graph()->zone());
 
   for (MapRef map : regexp_maps) {

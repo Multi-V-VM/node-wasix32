@@ -187,7 +187,7 @@ void DeoptimizationData::PrintDeoptimizationData(std::ostream& os) const {
 #endif  // ENABLE_DISASSEMBLER
 
 DeoptTranslationIterator::DeoptTranslationIterator(
-    ::v8::base::Vector<const uint8_t> buffer, int index)
+    ZoneVector<const uint8_t> buffer, int index)
     : buffer_(buffer), index_(index) {
 #ifdef V8_USE_ZLIB
   if (V8_UNLIKELY(v8_flags.turbo_compress_frame_translations)) {
@@ -223,7 +223,7 @@ DeoptTranslationIterator::DeoptTranslationIterator(
 DeoptimizationFrameTranslation::Iterator::Iterator(
     Tagged<DeoptimizationFrameTranslation> buffer, int index)
     : DeoptTranslationIterator(
-          ::v8::base::Vector<uint8_t>(buffer->begin(), buffer->length()), index) {}
+          ZoneVector<uint8_t>(buffer->begin(), buffer->length()), index) {}
 
 int32_t DeoptTranslationIterator::NextOperand() {
   if (V8_UNLIKELY(v8_flags.turbo_compress_frame_translations)) {

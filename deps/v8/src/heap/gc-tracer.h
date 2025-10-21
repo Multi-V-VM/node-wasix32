@@ -597,9 +597,9 @@ class V8_EXPORT_PRIVATE GCTracer {
   // that corresponded to the full GC cycle, and this field is set to true.
   bool young_gc_during_full_gc_sweeping_ = false;
 
-  metrics::GarbageCollectionFullMainThreadBatchedIncrementalMark
+  ::v8::metrics::GarbageCollectionFullMainThreadBatchedIncrementalMark
       incremental_mark_batched_events_;
-  metrics::GarbageCollectionFullMainThreadBatchedIncrementalSweep
+  ::v8::metrics::GarbageCollectionFullMainThreadBatchedIncrementalSweep
       incremental_sweep_batched_events_;
 
   mutable base::Mutex background_scopes_mutex_;

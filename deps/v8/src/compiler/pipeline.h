@@ -59,7 +59,7 @@ class ZoneStats;
 
 struct InstructionRangesAsJSON {
   const InstructionSequence* sequence;
-  const ::v8::base::Vector<std::pair<int, int>>* instr_origins;
+  const ZoneVector<std::pair<int, int>>* instr_origins;
 };
 
 std::ostream& operator<<(std::ostream& out, const InstructionRangesAsJSON& s);

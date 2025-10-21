@@ -141,7 +141,7 @@ void JsonPrintAllSourceWithPositions(std::ostream& os,
 void JsonPrintAllSourceWithPositionsWasm(
     std::ostream& os, const wasm::WasmModule* module,
     const wasm::WireBytesStorage* wire_bytes,
-    ::v8::base::Vector<WasmInliningPosition> positions);
+    ZoneVector<WasmInliningPosition> positions);
 #endif
 
 void JsonPrintFunctionSource(std::ostream& os, int source_id,

@@ -6,6 +6,7 @@
 
 #include "v8-local-handle.h"
 #include "v8-value.h"
+#include "v8-persistent-handle.h"
 
 // Define WASI stubs for profiler
 #define V8_WASI_EMBEDDER_GRAPH_STUB_ACTIVE 1
@@ -137,6 +138,7 @@ class HeapProfiler {
   
   // Callback types
   using BuildEmbedderGraphCallback = void (*)(v8::Isolate* isolate, EmbedderGraph* graph, void* data);
+  using GetDetachednessCallback = bool (*)(Local<Value>, uint16_t, void*);
   
   // WASI: Add missing methods
   void RemoveBuildEmbedderGraphCallback(BuildEmbedderGraphCallback callback, void* data) {
@@ -145,7 +147,7 @@ class HeapProfiler {
   
   void QueryObjects(Local<Context> context,
                     QueryObjectPredicate* predicate,
-                    std::vector<Global<Object>>* objects) {
+                    std::vector<v8::Global<Object>>* objects) {
     // WASI stub - no-op
     // In a real implementation, this would search the heap for objects
     // matching the predicate

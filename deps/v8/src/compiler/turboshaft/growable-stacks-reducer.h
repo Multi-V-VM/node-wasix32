@@ -73,7 +73,7 @@ class GrowableStacksReducer : public Next {
   }
 
   OpIndex REDUCE(Return)(V<Word32> pop_count,
-                         ::v8::base::Vector<const OpIndex> return_values,
+                         ZoneVector<const OpIndex> return_values,
                          bool spill_caller_frame_slots) {
     if (skip_reducer_ || !spill_caller_frame_slots ||
         call_descriptor_->ReturnSlotCount() == 0) {

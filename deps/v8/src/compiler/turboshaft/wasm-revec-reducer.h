@@ -314,7 +314,7 @@ class PackNode : public NON_EXPORTED_BASE(ZoneObject) {
     operands_[index] = pnode;
   }
 
-  ::v8::base::Vector<PackNode*>::size_type GetOperandsSize() const {
+  ZoneVector<PackNode*>::size_type GetOperandsSize() const {
     return operands_.size();
   }
 
@@ -324,7 +324,7 @@ class PackNode : public NON_EXPORTED_BASE(ZoneObject) {
   friend class ForcePackNode;
   NodeGroup nodes_;
   V<Simd256> revectorized_node_;
-  ::v8::base::Vector<PackNode*> operands_;
+  ZoneVector<PackNode*> operands_;
   NodeType node_type_;
 };
 
@@ -493,11 +493,11 @@ class SLPTree : public NON_EXPORTED_BASE(ZoneObject) {
   void DeleteTree();
 
   PackNode* GetPackNode(OpIndex node);
-  ::v8::base::Vector<PackNode*>* GetIntersectPackNodes(OpIndex node);
+  ZoneVector<PackNode*>* GetIntersectPackNodes(OpIndex node);
   ZoneUnorderedMap<OpIndex, PackNode*>& GetNodeMapping() {
     return node_to_packnode_;
   }
-  ZoneUnorderedMap<OpIndex, ::v8::base::Vector<PackNode*>>& GetIntersectNodeMapping() {
+  ZoneUnorderedMap<OpIndex, ZoneVector<PackNode*>>& GetIntersectNodeMapping() {
     return node_to_intersect_packnodes_;
   }
 
@@ -582,7 +582,7 @@ class SLPTree : public NON_EXPORTED_BASE(ZoneObject) {
   // Maps a specific node to PackNode.
   ZoneUnorderedMap<OpIndex, PackNode*> node_to_packnode_;
   // Maps a node to multiple IntersectPackNodes.
-  ZoneUnorderedMap<OpIndex, ::v8::base::Vector<PackNode*>> node_to_intersect_packnodes_;
+  ZoneUnorderedMap<OpIndex, ZoneVector<PackNode*>> node_to_intersect_packnodes_;
   static constexpr size_t RecursionMaxDepth = 1000;
 };
 
@@ -614,7 +614,7 @@ class WasmRevecAnalyzer {
     return nullptr;
   }
 
-  ::v8::base::Vector<PackNode*>* GetIntersectPackNodes(const OpIndex node) {
+  ZoneVector<PackNode*>* GetIntersectPackNodes(const OpIndex node) {
     auto I = revectorizable_intersect_node_.find(node);
     if (I != revectorizable_intersect_node_.end()) {
       return &(I->second);
@@ -636,7 +636,7 @@ class WasmRevecAnalyzer {
     return (start == node) ? op : graph_.Get(start);
   }
 
-  ::v8::base::Vector<const OpIndex> uses(OpIndex node) {
+  ZoneVector<const OpIndex> uses(OpIndex node) {
     return use_map_->uses(node);
   }
 
@@ -649,11 +649,11 @@ class WasmRevecAnalyzer {
   PipelineData* data_;
   Graph& graph_;
   Zone* phase_zone_;
-  ::v8::base::Vector<std::pair<OpIndex, OpIndex>> store_seeds_;
-  ::v8::base::Vector<std::pair<OpIndex, OpIndex>> reduce_seeds_;
+  ZoneVector<std::pair<OpIndex, OpIndex>> store_seeds_;
+  ZoneVector<std::pair<OpIndex, OpIndex>> reduce_seeds_;
   const wasm::WasmModule* module_ = data_->wasm_module();
   ZoneUnorderedMap<OpIndex, PackNode*> revectorizable_node_;
-  ZoneUnorderedMap<OpIndex, ::v8::base::Vector<PackNode*>>
+  ZoneUnorderedMap<OpIndex, ZoneVector<PackNode*>>
       revectorizable_intersect_node_;
   bool should_reduce_;
   SimdUseMap* use_map_;

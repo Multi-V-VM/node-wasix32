@@ -108,7 +108,7 @@ class WasmInitExpr : public ZoneObject {
   }
 
   static WasmInitExpr StructNew(ModuleTypeIndex index,
-                                ::v8::base::Vector<WasmInitExpr>* elements) {
+                                ZoneVector<WasmInitExpr>* elements) {
     WasmInitExpr expr(kStructNew, elements);
     expr.immediate_.index = index.index;
     return expr;
@@ -135,7 +135,7 @@ class WasmInitExpr : public ZoneObject {
   }
 
   static WasmInitExpr ArrayNewFixed(ModuleTypeIndex index,
-                                    ::v8::base::Vector<WasmInitExpr>* elements) {
+                                    ZoneVector<WasmInitExpr>* elements) {
     WasmInitExpr expr(kArrayNewFixed, elements);
     expr.immediate_.index = index.index;
     return expr;
@@ -162,7 +162,7 @@ class WasmInitExpr : public ZoneObject {
 
   Immediate immediate() const { return immediate_; }
   Operator kind() const { return kind_; }
-  const ::v8::base::Vector<WasmInitExpr>* operands() const { return operands_; }
+  const ZoneVector<WasmInitExpr>* operands() const { return operands_; }
 
   bool operator==(const WasmInitExpr& other) const {
     if (kind() != other.kind()) return false;
@@ -244,16 +244,16 @@ class WasmInitExpr : public ZoneObject {
   }
 
  private:
-  WasmInitExpr(Operator kind, const ::v8::base::Vector<WasmInitExpr>* operands)
+  WasmInitExpr(Operator kind, const ZoneVector<WasmInitExpr>* operands)
       : kind_(kind), operands_(operands) {}
   explicit WasmInitExpr(Operator kind) : kind_(kind), operands_(nullptr) {}
   WasmInitExpr(Zone* zone, Operator kind,
                std::initializer_list<WasmInitExpr> operands)
       : kind_(kind),
-        operands_(zone->New<::v8::base::Vector<WasmInitExpr>>(operands, zone)) {}
+        operands_(zone->New<ZoneVector<WasmInitExpr>>(operands, zone)) {}
   Immediate immediate_;
   Operator kind_;
-  const ::v8::base::Vector<WasmInitExpr>* operands_;
+  const ZoneVector<WasmInitExpr>* operands_;
 };
 
 ASSERT_TRIVIALLY_COPYABLE(WasmInitExpr);

@@ -676,7 +676,7 @@ void AstPrinter::Print(const char* format, ...) {
   for (;;) {
     va_list arguments;
     va_start(arguments, format);
-    int n = base::VSNPrintF(::v8::base::Vector<char>(output_, size_) + pos_, format,
+    int n = base::VSNPrintF(ZoneVector<char>(output_, size_) + pos_, format,
                             arguments);
     va_end(arguments);
 
@@ -749,7 +749,7 @@ void AstPrinter::PrintLiteral(const AstRawString* value, bool quote) {
 void AstPrinter::PrintLiteral(const AstConsString* value, bool quote) {
   if (quote) Print("\"");
   if (value != nullptr) {
-    forward_list<const AstRawString*> strings = value->ToRawStrings();
+    ::std::forward_list<const AstRawString*> strings = value->ToRawStrings();
     for (const AstRawString* string : strings) {
       PrintLiteral(string, false);
     }

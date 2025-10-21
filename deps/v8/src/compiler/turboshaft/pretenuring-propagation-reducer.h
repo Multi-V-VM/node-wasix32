@@ -171,20 +171,20 @@ class PretenuringPropagationAnalyzer {
   void BuildStoreInputGraph();
   void PropagateAllocationTypes();
 
-  ::v8::base::Vector<OpIndex>* FindOrCreate(OpIndex idx) {
+  ZoneVector<OpIndex>* FindOrCreate(OpIndex idx) {
     auto it = store_graph_.find(idx);
     if (it != store_graph_.end()) return it->second;
     return Create(idx);
   }
 
-  ::v8::base::Vector<OpIndex>* Create(OpIndex idx) {
+  ZoneVector<OpIndex>* Create(OpIndex idx) {
     DCHECK_EQ(store_graph_.count(idx), 0);
-    ::v8::base::Vector<OpIndex>* stored_items = zone_->New<::v8::base::Vector<OpIndex>>(zone_);
+    ZoneVector<OpIndex>* stored_items = zone_->New<ZoneVector<OpIndex>>(zone_);
     store_graph_.insert({idx, stored_items});
     return stored_items;
   }
 
-  ::v8::base::Vector<OpIndex>* TryFind(OpIndex idx) {
+  ZoneVector<OpIndex>* TryFind(OpIndex idx) {
     auto it = store_graph_.find(idx);
     if (it != store_graph_.end()) return it->second;
     return nullptr;
@@ -192,14 +192,14 @@ class PretenuringPropagationAnalyzer {
 
   Zone* zone_;
   Graph& input_graph_;
-  ::v8::base::Vector<OpIndex> old_allocs_;
+  ZoneVector<OpIndex> old_allocs_;
 
   // (see main comment at the begining of this file for the role of
   // `store_graph_`)
   // `store_graph_` contains mapping from OpIndex to vector<OpIndex>. If for an
   // entry `a` it contains a vector `v`, it means that `a` has edges to all of
   // the values in `v`.
-  ZoneAbslFlatHashMap<OpIndex, ::v8::base::Vector<OpIndex>*> store_graph_;
+  ZoneAbslFlatHashMap<OpIndex, ZoneVector<OpIndex>*> store_graph_;
 
   // AllocateOp have an AllocationType field, which is set to kOld once they've
   // been visited, thus ensuring that recursion ends. However, PhiOp don't have
@@ -210,7 +210,7 @@ class PretenuringPropagationAnalyzer {
   // Used in the final phase to do DFS in the graph from each old store. It
   // could be a local variable, but we instead use an instance variable to reuse
   // memory.
-  ::v8::base::Vector<OpIndex> queue_;
+  ZoneVector<OpIndex> queue_;
 };
 
 // Forward delcaration

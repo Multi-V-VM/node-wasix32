@@ -45,7 +45,7 @@ struct WasmDeoptEntry {
 // bytes.
 class WasmDeoptView {
  public:
-  explicit WasmDeoptView(::v8::base::Vector<const uint8_t> deopt_data)
+  explicit WasmDeoptView(ZoneVector<const uint8_t> deopt_data)
       : deopt_data_(deopt_data) {
     if (!deopt_data.empty()) {
       static_assert(std::is_trivially_copy_assignable_v<WasmDeoptData>);
@@ -61,7 +61,7 @@ class WasmDeoptView {
     return base_data_;
   }
 
-  ::v8::base::Vector<const uint8_t> GetTranslationsArray() const {
+  ZoneVector<const uint8_t> GetTranslationsArray() const {
     DCHECK(HasDeoptData());
     return {deopt_data_.begin() + sizeof(base_data_),
             base_data_.translation_array_size};
@@ -79,16 +79,16 @@ class WasmDeoptView {
   std::vector<DeoptimizationLiteral> BuildDeoptimizationLiteralArray();
 
  private:
-  ::v8::base::Vector<const uint8_t> deopt_data_;
+  ZoneVector<const uint8_t> deopt_data_;
   WasmDeoptData base_data_;
 };
 
 class WasmDeoptDataProcessor {
  public:
-  static base::Owned::v8::base::Vector<uint8_t> Serialize(
+  static base::OwnedZoneVector<uint8_t> Serialize(
       int deopt_exit_start_offset, int eager_deopt_count,
-      ::v8::base::Vector<const uint8_t> translation_array,
-      ::v8::base::Vector<wasm::WasmDeoptEntry> deopt_entries,
+      ZoneVector<const uint8_t> translation_array,
+      ZoneVector<wasm::WasmDeoptEntry> deopt_entries,
       const ZoneDeque<DeoptimizationLiteral>& deopt_literals);
 };
 

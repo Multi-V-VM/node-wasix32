@@ -17,14 +17,16 @@
 
 #include "v8-context.h"            // NOLINT(build/include_directory)
 #include "v8-forward.h"            // NOLINT(build/include_directory) - for LocalVector
+#ifndef __wasi__
 #include "v8-internal.h"           // NOLINT(build/include_directory)
+#endif
 #include "v8-local-handle.h"       // NOLINT(build/include_directory)
 #include "v8-maybe.h"              // NOLINT(build/include_directory)
+#include "v8-value.h"              // NOLINT(build/include_directory) ensure Value is complete
 #include "v8-persistent-handle.h"  // NOLINT(build/include_directory)
 #include "v8-primitive.h"          // NOLINT(build/include_directory)
 #include "v8-sandbox.h"            // NOLINT(build/include_directory)
 #include "v8-traced-handle.h"      // NOLINT(build/include_directory)
-#include "v8-value.h"              // NOLINT(build/include_directory)
 #include "v8config.h"              // NOLINT(build/include_directory)
 
 #ifdef __wasi__

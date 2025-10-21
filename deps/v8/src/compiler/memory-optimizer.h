@@ -60,7 +60,7 @@ class MemoryOptimizer final {
   using AllocationState = MemoryLowering::AllocationState;
 
   // An array of allocation states used to collect states on merges.
-  using AllocationStates = ::v8::base::Vector<AllocationState const*>;
+  using AllocationStates = ZoneVector<AllocationState const*>;
 
   // We thread through tokens to represent the current state on a given effect
   // path through the graph.

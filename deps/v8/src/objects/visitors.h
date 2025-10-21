@@ -242,9 +242,9 @@ class ObjectVisitorWithCageBases : public ObjectVisitor {
 
  private:
 #ifdef V8_COMPRESS_POINTERS
-  const PtrComprCageBase cage_base_;
+  PtrComprCageBase cage_base_;
 #ifdef V8_EXTERNAL_CODE_SPACE
-  const PtrComprCageBase code_cage_base_;
+  PtrComprCageBase code_cage_base_;
 #endif  // V8_EXTERNAL_CODE_SPACE
 #endif  // V8_COMPRESS_POINTERS
 };

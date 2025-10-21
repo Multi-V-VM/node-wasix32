@@ -1987,7 +1987,7 @@ static void AddJITCodeEntry(CodeMap* map, const base::AddressRegion region,
     static const int kMaxFileNameSize = 64;
     char file_name[64];
 
-    SNPrintF(::v8::base::Vector<char>(file_name, kMaxFileNameSize),
+    SNPrintF(ZoneVector<char>(file_name, kMaxFileNameSize),
              "/tmp/elfdump%s%d.o", (name_hint != nullptr) ? name_hint : "",
              file_num++);
     WriteBytes(file_name, reinterpret_cast<uint8_t*>(entry->symfile_addr_),

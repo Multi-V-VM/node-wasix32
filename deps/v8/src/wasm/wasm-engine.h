@@ -74,7 +74,7 @@ class NativeModuleCache {
  public:
   struct Key {
     Key(size_t prefix_hash, CompileTimeImports compile_imports,
-        const ::v8::base::Vector<const uint8_t>& bytes)
+        const ZoneVector<const uint8_t>& bytes)
         : prefix_hash(prefix_hash),
           compile_imports(std::move(compile_imports)),
           bytes(bytes) {}
@@ -83,7 +83,7 @@ class NativeModuleCache {
     // quickly check existing prefixes for streaming compilation.
     size_t prefix_hash;
     CompileTimeImports compile_imports;
-    ::v8::base::Vector<const uint8_t> bytes;
+    ZoneVector<const uint8_t> bytes;
 
     bool operator==(const Key& other) const {
       bool eq = bytes == other.bytes &&
@@ -117,7 +117,7 @@ class NativeModuleCache {
   };
 
   std::shared_ptr<NativeModule> MaybeGetNativeModule(
-      ModuleOrigin origin, ::v8::base::Vector<const uint8_t> wire_bytes,
+      ModuleOrigin origin, ZoneVector<const uint8_t> wire_bytes,
       const CompileTimeImports& compile_imports);
   bool GetStreamingCompilationOwnership(
       size_t prefix_hash, const CompileTimeImports& compile_imports);
@@ -133,7 +133,7 @@ class NativeModuleCache {
   // avoid streaming compilation of modules that are likely already in the
   // cache. See {GetStreamingCompilationOwnership}. Assumes that the bytes have
   // already been validated.
-  static size_t PrefixHash(::v8::base::Vector<const uint8_t> wire_bytes);
+  static size_t PrefixHash(ZoneVector<const uint8_t> wire_bytes);
 
  private:
   // Each key points to the corresponding native module's wire bytes, so they
@@ -172,14 +172,14 @@ class V8_EXPORT_PRIVATE WasmEngine {
   // represent a valid encoded Wasm module.
   bool SyncValidate(Isolate* isolate, WasmEnabledFeatures enabled,
                     CompileTimeImports compile_imports,
-                    ::v8::base::Vector<const uint8_t> bytes);
+                    ZoneVector<const uint8_t> bytes);
 
   // Synchronously compiles the given bytes that represent a translated
   // asm.js module.
   MaybeHandle<AsmWasmData> SyncCompileTranslatedAsmJs(
       Isolate* isolate, ErrorThrower* thrower,
-      base::Owned::v8::base::Vector<const uint8_t> bytes, DirectHandle<Script> script,
-      ::v8::base::Vector<const uint8_t> asm_js_offset_table_bytes,
+      base::OwnedVector<const uint8_t> bytes, DirectHandle<Script> script,
+      ZoneVector<const uint8_t> asm_js_offset_table_bytes,
       DirectHandle<HeapNumber> uses_bitset, LanguageMode language_mode);
   DirectHandle<WasmModuleObject> FinalizeTranslatedAsmJs(
       Isolate* isolate, DirectHandle<AsmWasmData> asm_wasm_data,
@@ -190,7 +190,7 @@ class V8_EXPORT_PRIVATE WasmEngine {
   MaybeDirectHandle<WasmModuleObject> SyncCompile(
       Isolate* isolate, WasmEnabledFeatures enabled,
       CompileTimeImports compile_imports, ErrorThrower* thrower,
-      base::Owned::v8::base::Vector<const uint8_t> bytes);
+      base::OwnedVector<const uint8_t> bytes);
 
   // Synchronously instantiate the given Wasm module with the given imports.
   // If the module represents an asm.js module, then the supplied {memory}
@@ -206,7 +206,7 @@ class V8_EXPORT_PRIVATE WasmEngine {
   void AsyncCompile(Isolate* isolate, WasmEnabledFeatures enabled,
                     CompileTimeImports compile_imports,
                     std::shared_ptr<CompilationResultResolver> resolver,
-                    base::Owned::v8::base::Vector<const uint8_t> bytes,
+                    base::OwnedVector<const uint8_t> bytes,
                     const char* api_method_name_for_errors);
 
   // Begin an asynchronous instantiation of the given Wasm module.
@@ -235,7 +235,7 @@ class V8_EXPORT_PRIVATE WasmEngine {
   // the the same engine, recreating a full module object in the given Isolate.
   DirectHandle<WasmModuleObject> ImportNativeModule(
       Isolate* isolate, std::shared_ptr<NativeModule> shared_module,
-      ::v8::base::Vector<const char> source_url);
+      ZoneVector<const char> source_url);
 
   // Flushes all Liftoff code and returns the sizes of the removed
   // (executable) code and the removed metadata.
@@ -283,7 +283,7 @@ class V8_EXPORT_PRIVATE WasmEngine {
   // Trigger code logging for the given code objects in all Isolates which have
   // access to the NativeModule containing this code. This method can be called
   // from background threads.
-  void LogCode(::v8::base::Vector<WasmCode*>);
+  void LogCode(ZoneVector<WasmCode*>);
   // Trigger code logging for the given code object, which must be a wrapper
   // that is shared engine-wide. This method can be called from background
   // threads.
@@ -323,7 +323,7 @@ class V8_EXPORT_PRIVATE WasmEngine {
   // {imports()} function of any WasmModuleObjects we'll create for this
   // NativeModule later.
   std::shared_ptr<NativeModule> MaybeGetNativeModule(
-      ModuleOrigin origin, ::v8::base::Vector<const uint8_t> wire_bytes,
+      ModuleOrigin origin, ZoneVector<const uint8_t> wire_bytes,
       const CompileTimeImports& compile_imports, Isolate* isolate);
 
   // Replace the temporary {nullopt} with the new native module, or
@@ -384,7 +384,7 @@ class V8_EXPORT_PRIVATE WasmEngine {
 
   DirectHandle<Script> GetOrCreateScript(Isolate*,
                                          const std::shared_ptr<NativeModule>&,
-                                         ::v8::base::Vector<const char> source_url);
+                                         ZoneVector<const char> source_url);
 
   // Returns a barrier allowing background compile operations if valid and
   // preventing this object from being destroyed.
@@ -447,7 +447,7 @@ class V8_EXPORT_PRIVATE WasmEngine {
   AsyncCompileJob* CreateAsyncCompileJob(
       Isolate* isolate, WasmEnabledFeatures enabled,
       CompileTimeImports compile_imports,
-      base::Owned::v8::base::Vector<const uint8_t> bytes, DirectHandle<Context> context,
+      base::OwnedVector<const uint8_t> bytes, DirectHandle<Context> context,
       const char* api_method_name,
       std::shared_ptr<CompilationResultResolver> resolver, int compilation_id);
 

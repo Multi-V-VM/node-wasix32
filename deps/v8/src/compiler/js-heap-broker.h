@@ -209,7 +209,7 @@ class V8_EXPORT_PRIVATE JSHeapBroker {
   FeedbackSlotKind GetFeedbackSlotKind(FeedbackSource const& source) const;
 
   ElementAccessFeedback const& ProcessFeedbackMapsForElementAccess(
-      ::v8::base::Vector<MapRef>& maps, KeyedAccessMode const& keyed_mode,
+      ZoneVector<MapRef>& maps, KeyedAccessMode const& keyed_mode,
       FeedbackSlotKind slot_kind);
 
   // Binary, comparison and for-in hints can be fully expressed via

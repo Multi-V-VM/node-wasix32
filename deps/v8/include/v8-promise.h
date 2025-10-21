@@ -155,6 +155,9 @@ using PromiseHook = void (*)(PromiseHookType type, Local<Promise> promise,
                              Local<Value> parent);
 
 // --- Promise Reject Callback ---
+// Guard against redefinition when already defined in WASI stub
+#ifndef V8_WASI_PROMISE_TYPES_DEFINED
+
 enum PromiseRejectEvent {
   kPromiseRejectWithNoHandler = 0,
   kPromiseHandlerAddedAfterReject = 1,
@@ -179,6 +182,8 @@ class PromiseRejectMessage {
 };
 
 using PromiseRejectCallback = void (*)(PromiseRejectMessage message);
+
+#endif  // V8_WASI_PROMISE_TYPES_DEFINED
 
 }  // namespace v8
 

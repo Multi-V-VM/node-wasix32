@@ -127,8 +127,8 @@ v8::Maybe<v8::PropertyAttribute> DebugPropertyIterator::attributes() {
   // V8 will crash.
 
 #if DEBUG
-  base::Scoped::v8::base::Vector<char> property_message(128);
-  base::Scoped::v8::base::Vector<char> name_buffer(100);
+  base::ScopedZoneVector<char> property_message(128);
+  base::ScopedZoneVector<char> name_buffer(100);
   raw_name()->NameShortPrint(name_buffer);
   v8::base::SNPrintF(property_message, "Invalid result for property \"%s\"\n",
                      name_buffer.begin());

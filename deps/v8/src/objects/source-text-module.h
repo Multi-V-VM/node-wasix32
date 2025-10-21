@@ -9,6 +9,7 @@
 #include "src/objects/module.h"
 #include "src/objects/promise.h"
 #include "src/objects/string.h"
+#include "src/utils/detachable-vector.h"
 #include "src/zone/zone-containers.h"
 #include "torque-generated/bit-fields.h"
 
@@ -87,8 +88,8 @@ class SourceTextModule
   };
 
   V8_EXPORT_PRIVATE
-  std::pair<Detachable::v8::base::Vector<DirectHandle<SourceTextModule>>,
-            Detachable::v8::base::Vector<DirectHandle<JSMessageObject>>>
+  std::pair<DetachableVector<DirectHandle<SourceTextModule>>,
+            DetachableVector<DirectHandle<JSMessageObject>>>
   GetStalledTopLevelAwaitMessages(Isolate* isolate);
 
  private:
@@ -229,7 +230,7 @@ class SourceTextModule
 
   V8_EXPORT_PRIVATE void InnerGetStalledTopLevelAwaitModule(
       Isolate* isolate, UnorderedModuleSet* visited,
-      Detachable::v8::base::Vector<DirectHandle<SourceTextModule>>* result);
+      DetachableVector<DirectHandle<SourceTextModule>>* result);
 
   TQ_OBJECT_CONSTRUCTORS(SourceTextModule)
 };

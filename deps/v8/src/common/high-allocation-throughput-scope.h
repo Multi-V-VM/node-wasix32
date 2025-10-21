@@ -18,14 +18,14 @@ class HighAllocationThroughputScope final {
  public:
   explicit HighAllocationThroughputScope(Platform* platform)
       : observer_(platform->GetHighAllocationThroughputObserver()) {
-    observer_->LeaveSection();
+    observer_->EnterSection();
   }
 
   HighAllocationThroughputScope(const HighAllocationThroughputScope&) = delete;
   HighAllocationThroughputScope& operator=(
       const HighAllocationThroughputScope&) = delete;
 
-  ~HighAllocationThroughputScope() { observer_->EnterSection(); }
+  ~HighAllocationThroughputScope() { observer_->LeaveSection(); }
 
  private:
   HighAllocationThroughputObserver* observer_;

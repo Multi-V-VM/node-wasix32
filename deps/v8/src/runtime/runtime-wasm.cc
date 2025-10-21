@@ -1470,7 +1470,7 @@ RUNTIME_FUNCTION(Runtime_WasmStringNewWtf8) {
     return ThrowWasmError(isolate, MessageTemplate::kWasmTrapMemOutOfBounds);
   }
 
-  const ::v8::base::Vector<const uint8_t> bytes{
+  const ZoneVector<const uint8_t> bytes{
       trusted_instance_data->memory_base(memory) + offset, size};
   MaybeDirectHandle<v8::internal::String> result_string =
       isolate->factory()->NewStringFromUtf8(bytes, utf8_variant);
@@ -1576,9 +1576,9 @@ RUNTIME_FUNCTION(Runtime_WasmStringConst) {
 
   const wasm::WasmStringRefLiteral& literal =
       trusted_instance_data->module()->stringref_literals[index];
-  const ::v8::base::Vector<const uint8_t> module_bytes =
+  const ZoneVector<const uint8_t> module_bytes =
       trusted_instance_data->native_module()->wire_bytes();
-  const ::v8::base::Vector<const uint8_t> string_bytes = module_bytes.SubVector(
+  const ZoneVector<const uint8_t> string_bytes = module_bytes.SubVector(
       literal.source.offset(), literal.source.end_offset());
   // TODO(12868): No need to re-validate WTF-8.  Also, result should be cached.
   return *isolate->factory()
@@ -1622,7 +1622,7 @@ RUNTIME_FUNCTION(Runtime_WasmStringNewSegmentWtf8) {
 namespace {
 // TODO(12868): Consider unifying with api.cc:String::Utf8Length.
 template <typename T>
-int MeasureWtf8(::v8::base::Vector<const T> wtf16) {
+int MeasureWtf8(ZoneVector<const T> wtf16) {
   int previous = unibrow::Utf16::kNoPreviousCharacter;
   int length = 0;
   DCHECK(wtf16.size() <= String::kMaxLength);
@@ -1643,23 +1643,23 @@ int MeasureWtf8(Isolate* isolate, DirectHandle<String> string) {
   return content.IsOneByte() ? MeasureWtf8(content.ToOneByteVector())
                              : MeasureWtf8(content.ToUC16Vector());
 }
-size_t MaxEncodedSize(::v8::base::Vector<const uint8_t> wtf16) {
+size_t MaxEncodedSize(ZoneVector<const uint8_t> wtf16) {
   DCHECK(wtf16.size() < std::numeric_limits<size_t>::max() /
                             unibrow::Utf8::kMax8BitCodeUnitSize);
   return wtf16.size() * unibrow::Utf8::kMax8BitCodeUnitSize;
 }
-size_t MaxEncodedSize(::v8::base::Vector<const base::uc16> wtf16) {
+size_t MaxEncodedSize(ZoneVector<const base::uc16> wtf16) {
   DCHECK(wtf16.size() < std::numeric_limits<size_t>::max() /
                             unibrow::Utf8::kMax16BitCodeUnitSize);
   return wtf16.size() * unibrow::Utf8::kMax16BitCodeUnitSize;
 }
-bool HasUnpairedSurrogate(::v8::base::Vector<const uint8_t> wtf16) { return false; }
-bool HasUnpairedSurrogate(::v8::base::Vector<const base::uc16> wtf16) {
+bool HasUnpairedSurrogate(ZoneVector<const uint8_t> wtf16) { return false; }
+bool HasUnpairedSurrogate(ZoneVector<const base::uc16> wtf16) {
   return unibrow::Utf16::HasUnpairedSurrogate(wtf16.begin(), wtf16.size());
 }
 template <typename T>
-int EncodeWtf8(::v8::base::Vector<char> bytes, size_t offset,
-               ::v8::base::Vector<const T> wtf16, unibrow::Utf8Variant variant,
+int EncodeWtf8(ZoneVector<char> bytes, size_t offset,
+               ZoneVector<const T> wtf16, unibrow::Utf8Variant variant,
                MessageTemplate* message, MessageTemplate out_of_bounds) {
   // The first check is a quick estimate to decide whether the second check
   // is worth the computation.
@@ -1705,7 +1705,7 @@ Tagged<Object> EncodeWtf8(Isolate* isolate, unibrow::Utf8Variant variant,
   {
     DisallowGarbageCollection no_gc;
     String::FlatContent content = string->GetFlatContent(no_gc);
-    ::v8::base::Vector<char> dst = get_writable_bytes(no_gc);
+    ZoneVector<char> dst = get_writable_bytes(no_gc);
     written = content.IsOneByte()
                   ? EncodeWtf8(dst, offset, content.ToOneByteVector(), variant,
                                &message, out_of_bounds_message)
@@ -1757,7 +1757,7 @@ RUNTIME_FUNCTION(Runtime_WasmStringMeasureUtf8) {
     if (content.IsOneByte()) {
       length = MeasureWtf8(content.ToOneByteVector());
     } else {
-      ::v8::base::Vector<const base::uc16> code_units = content.ToUC16Vector();
+      ZoneVector<const base::uc16> code_units = content.ToUC16Vector();
       if (unibrow::Utf16::HasUnpairedSurrogate(code_units.begin(),
                                                code_units.size())) {
         length = -1;
@@ -1798,7 +1798,7 @@ RUNTIME_FUNCTION(Runtime_WasmStringEncodeWtf8) {
       reinterpret_cast<char*>(trusted_instance_data->memory_base(memory));
   auto utf8_variant = static_cast<unibrow::Utf8Variant>(utf8_variant_value);
   auto get_writable_bytes =
-      [&](const DisallowGarbageCollection&) -> ::v8::base::Vector<char> {
+      [&](const DisallowGarbageCollection&) -> ZoneVector<char> {
     return {memory_start, trusted_instance_data->memory_size(memory)};
   };
   return EncodeWtf8(isolate, utf8_variant, string, get_writable_bytes, offset,
@@ -1818,7 +1818,7 @@ RUNTIME_FUNCTION(Runtime_WasmStringEncodeWtf8Array) {
          static_cast<uint32_t>(unibrow::Utf8Variant::kLastUtf8Variant));
   auto utf8_variant = static_cast<unibrow::Utf8Variant>(utf8_variant_value);
   auto get_writable_bytes =
-      [&](const DisallowGarbageCollection&) -> ::v8::base::Vector<char> {
+      [&](const DisallowGarbageCollection&) -> ZoneVector<char> {
     return {reinterpret_cast<char*>(array->ElementAddress(0)), array->length()};
   };
   return EncodeWtf8(isolate, utf8_variant, string, get_writable_bytes, start,
@@ -1843,7 +1843,7 @@ RUNTIME_FUNCTION(Runtime_WasmStringToUtf8Array) {
   DirectHandle<WasmArray> array = isolate->factory()->NewWasmArray(
       wasm::kWasmI8, length, initial_value, map);
   auto get_writable_bytes =
-      [&](const DisallowGarbageCollection&) -> ::v8::base::Vector<char> {
+      [&](const DisallowGarbageCollection&) -> ZoneVector<char> {
     return {reinterpret_cast<char*>(array->ElementAddress(0)), length};
   };
   Tagged<Object> write_result =
@@ -1907,7 +1907,7 @@ RUNTIME_FUNCTION(Runtime_WasmStringAsWtf8) {
 
   auto utf8_variant = unibrow::Utf8Variant::kWtf8;
   auto get_writable_bytes =
-      [&](const DisallowGarbageCollection&) -> ::v8::base::Vector<char> {
+      [&](const DisallowGarbageCollection&) -> ZoneVector<char> {
     return {reinterpret_cast<char*>(array->begin()),
             static_cast<size_t>(wtf8_length)};
   };

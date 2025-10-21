@@ -401,7 +401,7 @@ class Serializer : public SerializerDeserializer {
   RootIndexMap root_index_map_;
   std::unique_ptr<CodeAddressMap> code_address_map_;
   std::vector<uint8_t> code_buffer_;
-  GlobalHandle::v8::base::Vector<HeapObject>
+  GlobalHandleZoneVector<HeapObject>
       deferred_objects_;  // To handle stack overflow.
   int num_back_refs_ = 0;
 
@@ -447,8 +447,8 @@ class Serializer : public SerializerDeserializer {
 #endif  // VERBOSE_SERIALIZATION_STATISTICS
 
 #ifdef DEBUG
-  GlobalHandle::v8::base::Vector<HeapObject> back_refs_;
-  GlobalHandle::v8::base::Vector<HeapObject> stack_;
+  GlobalHandleZoneVector<HeapObject> back_refs_;
+  GlobalHandleZoneVector<HeapObject> stack_;
 #endif  // DEBUG
 };
 

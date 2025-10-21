@@ -32,6 +32,14 @@ class Variable final : public ZoneObject {
   using IsStaticFlagField = MaybeAssignedFlagField::Next<IsStaticFlag, 1>;
 
   using HoleCheckBitmapIndexField = ::v8::base::BitField16<uint8_t, 0, 8>;
+  // Define the enum before using it in the bitfield layout.
+  enum ForceHoleInitializationFlag {
+    kHoleInitializationNotForced = 0,
+    kHasHoleCheckUseInDifferentClosureScope = 1 << 0,
+    kHasHoleCheckUseInSameClosureScope = 1 << 1,
+    kHasHoleCheckUseInUnknownScope = kHasHoleCheckUseInDifferentClosureScope |
+                                     kHasHoleCheckUseInSameClosureScope
+  };
   using ForceHoleInitializationFlagField =
       HoleCheckBitmapIndexField::Next<ForceHoleInitializationFlag, 2>;
   Variable(Scope* scope, const AstRawString* name, VariableMode mode,
@@ -183,13 +191,7 @@ class Variable final : public ZoneObject {
     return initialization_flag() == kNeedsInitialization;
   }
 
-  enum ForceHoleInitializationFlag {
-    kHoleInitializationNotForced = 0,
-    kHasHoleCheckUseInDifferentClosureScope = 1 << 0,
-    kHasHoleCheckUseInSameClosureScope = 1 << 1,
-    kHasHoleCheckUseInUnknownScope = kHasHoleCheckUseInDifferentClosureScope |
-                                     kHasHoleCheckUseInSameClosureScope
-  };
+  // (enum moved above)
   ForceHoleInitializationFlag force_hole_initialization_flag_field() const {
     return ForceHoleInitializationFlagField::decode(
         hole_check_analysis_bit_field_);
@@ -237,7 +239,7 @@ class Variable final : public ZoneObject {
   }
 
   void RememberHoleCheckInBitmap(HoleCheckBitmap& bitmap,
-                                 ::v8::base::Vector<Variable*>& list) {
+                                 ZoneVector<Variable*>& list) {
     DCHECK(v8_flags.ignition_elide_redundant_tdz_checks);
     uint8_t index = HoleCheckBitmapIndex();
     if (V8_UNLIKELY(index == kUncacheableHoleCheckBitmapIndex)) {
@@ -356,7 +358,7 @@ class Variable final : public ZoneObject {
     return HoleCheckBitmapIndexField::decode(hole_check_analysis_bit_field_);
   }
 
-  void AssignHoleCheckBitmapIndex(::v8::base::Vector<Variable*>& list,
+  void AssignHoleCheckBitmapIndex(ZoneVector<Variable*>& list,
                                   uint8_t next_index);
 
   // (Bit field type aliases are declared earlier.)

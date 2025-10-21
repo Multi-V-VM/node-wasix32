@@ -8,7 +8,9 @@
 #define INCLUDE_V8_SANDBOX_H_
 
 #include "v8config.h"
+#ifndef __wasi__
 #include "v8-internal.h"
+#endif
 
 namespace v8 {
 namespace internal {
@@ -68,7 +70,9 @@ enum CppHeapPointerTag : uint32_t {
 
 #include <cstdint>
 
+#ifndef __wasi__
 #include "v8-internal.h"  // NOLINT(build/include_directory)
+#endif
 #include "v8config.h"     // NOLINT(build/include_directory)
 
 namespace v8 {

@@ -163,7 +163,7 @@ MaybeHandle<T> GetSpecialSlotValue(Isolate* isolate, Tagged<Map> instance_map,
 
 // static
 DirectHandle<Map> JSSharedStruct::CreateInstanceMap(
-    Isolate* isolate, const ::v8::base::Vector<const DirectHandle<Name>> field_names,
+    Isolate* isolate, const ZoneVector<const DirectHandle<Name>> field_names,
     const std::set<uint32_t>& element_names,
     MaybeDirectHandle<String> maybe_registry_key) {
   auto* factory = isolate->factory();
@@ -376,7 +376,7 @@ SharedStructTypeRegistry::~SharedStructTypeRegistry() = default;
 
 MaybeDirectHandle<Map> SharedStructTypeRegistry::CheckIfEntryMatches(
     Isolate* isolate, InternalIndex entry, DirectHandle<String> key,
-    const ::v8::base::Vector<const DirectHandle<Name>> field_names,
+    const ZoneVector<const DirectHandle<Name>> field_names,
     const std::set<uint32_t>& element_names) {
   Tagged<Map> existing_map = Cast<Map>(data_->GetKey(isolate, entry));
 
@@ -441,7 +441,7 @@ MaybeDirectHandle<Map> SharedStructTypeRegistry::CheckIfEntryMatches(
 
 MaybeDirectHandle<Map> SharedStructTypeRegistry::RegisterNoThrow(
     Isolate* isolate, Handle<String> key,
-    const ::v8::base::Vector<const DirectHandle<Name>> field_names,
+    const ZoneVector<const DirectHandle<Name>> field_names,
     const std::set<uint32_t>& element_names) {
   key = isolate->factory()->InternalizeString(key);
 
@@ -482,7 +482,7 @@ MaybeDirectHandle<Map> SharedStructTypeRegistry::RegisterNoThrow(
 
 MaybeDirectHandle<Map> SharedStructTypeRegistry::Register(
     Isolate* isolate, Handle<String> key,
-    const ::v8::base::Vector<const DirectHandle<Name>> field_names,
+    const ZoneVector<const DirectHandle<Name>> field_names,
     const std::set<uint32_t>& element_names) {
   MaybeDirectHandle<Map> canonical_map =
       RegisterNoThrow(isolate, key, field_names, element_names);

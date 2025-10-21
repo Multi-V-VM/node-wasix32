@@ -42,12 +42,12 @@ using StoreNodeSet = ZoneSet<Node*, MemoryOffsetComparer>;
 // are mutually independent.
 class PackNode final : public NON_EXPORTED_BASE(ZoneObject) {
  public:
-  explicit PackNode(Zone* zone, const ::v8::base::Vector<Node*>& node_group)
+  explicit PackNode(Zone* zone, const ZoneVector<Node*>& node_group)
       : nodes_(node_group.cbegin(), node_group.cend(), zone),
         operands_(zone),
         revectorized_node_(nullptr) {}
-  const ::v8::base::Vector<Node*>& Nodes() const { return nodes_; }
-  bool IsSame(const ::v8::base::Vector<Node*>& node_group) const {
+  const ZoneVector<Node*>& Nodes() const { return nodes_; }
+  bool IsSame(const ZoneVector<Node*>& node_group) const {
     return nodes_ == node_group;
   }
   Node* RevectorizedNode() const { return revectorized_node_; }
@@ -58,7 +58,7 @@ class PackNode final : public NON_EXPORTED_BASE(ZoneObject) {
     return operands_[index];
   }
 
-  ::v8::base::Vector<PackNode*>::size_type GetOperandsSize() const {
+  ZoneVector<PackNode*>::size_type GetOperandsSize() const {
     return operands_.size();
   }
 
@@ -70,8 +70,8 @@ class PackNode final : public NON_EXPORTED_BASE(ZoneObject) {
   void Print() const;
 
  private:
-  ::v8::base::Vector<Node*> nodes_;
-  ::v8::base::Vector<PackNode*> operands_;
+  ZoneVector<Node*> nodes_;
+  ZoneVector<PackNode*> operands_;
   Node* revectorized_node_;
 };
 
@@ -99,7 +99,7 @@ class SLPTree : public NON_EXPORTED_BASE(ZoneObject) {
     scheduler_ = zone->New<LinearScheduler>(zone, graph);
   }
 
-  PackNode* BuildTree(const ::v8::base::Vector<Node*>& roots);
+  PackNode* BuildTree(const ZoneVector<Node*>& roots);
   void DeleteTree();
 
   PackNode* GetPackNode(Node* node);
@@ -117,30 +117,30 @@ class SLPTree : public NON_EXPORTED_BASE(ZoneObject) {
   friend class LinearScheduler;
 
   // This is the recursive part of BuildTree.
-  PackNode* BuildTreeRec(const ::v8::base::Vector<Node*>& node_group, unsigned depth);
+  PackNode* BuildTreeRec(const ZoneVector<Node*>& node_group, unsigned depth);
 
   // Baseline: create a new PackNode, and return.
-  PackNode* NewPackNode(const ::v8::base::Vector<Node*>& node_group);
+  PackNode* NewPackNode(const ZoneVector<Node*>& node_group);
 
   // Recursion: create a new PackNode and call BuildTreeRec recursively
-  PackNode* NewPackNodeAndRecurs(const ::v8::base::Vector<Node*>& node_group,
+  PackNode* NewPackNodeAndRecurs(const ZoneVector<Node*>& node_group,
                                  int start_index, int count, unsigned depth);
 
-  bool CanBePacked(const ::v8::base::Vector<Node*>& node_group);
+  bool CanBePacked(const ZoneVector<Node*>& node_group);
 
   TFGraph* graph() const { return graph_; }
   Zone* zone() const { return zone_; }
 
   // Node stack operations.
   void PopStack();
-  void PushStack(const ::v8::base::Vector<Node*>& node_group);
+  void PushStack(const ZoneVector<Node*>& node_group);
   void ClearStack();
   bool OnStack(Node* node);
-  bool AllOnStack(const ::v8::base::Vector<Node*>& node_group);
+  bool AllOnStack(const ZoneVector<Node*>& node_group);
   bool StackTopIsPhi();
 
-  void TryReduceLoadChain(const ::v8::base::Vector<Node*>& loads);
-  bool IsSideEffectFreeLoad(const ::v8::base::Vector<Node*>& node_group);
+  void TryReduceLoadChain(const ZoneVector<Node*>& loads);
+  bool IsSideEffectFreeLoad(const ZoneVector<Node*>& node_group);
   bool SameBasicBlock(Node* node0, Node* node1) {
     return scheduler_->SameBasicBlock(node0, node1);
   }
@@ -150,7 +150,7 @@ class SLPTree : public NON_EXPORTED_BASE(ZoneObject) {
   PackNode* root_;
   LinearScheduler* scheduler_;
   ZoneSet<Node*> on_stack_;
-  ZoneStack<::v8::base::Vector<Node*>> stack_;
+  ZoneStack<ZoneVector<Node*>> stack_;
   // Maps a specific node to PackNode.
   ZoneUnorderedMap<Node*, PackNode*> node_to_packnode_;
   static constexpr size_t RecursionMaxDepth = 1000;
@@ -172,7 +172,7 @@ class V8_EXPORT_PRIVATE Revectorizer final
   void CollectSeeds();
 
   bool ReduceStoreChains(ZoneMap<Node*, StoreNodeSet>* store_chains);
-  bool ReduceStoreChain(const ::v8::base::Vector<Node*>& Stores);
+  bool ReduceStoreChain(const ZoneVector<Node*>& Stores);
 
   void PrintStores(ZoneMap<Node*, StoreNodeSet>* store_chains);
   Zone* zone() const { return zone_; }

@@ -805,7 +805,7 @@ class CompileVisitor : private RegExpVisitor {
 
   void* VisitAtom(RegExpAtom* node, void*) override {
     if (reverse_) {
-      ::v8::base::Vector<const base::uc16> data = node->data();
+      ZoneVector<const base::uc16> data = node->data();
       for (int i = data.length() - 1; i >= 0; --i) {
         assembler_.ConsumeRange(data.at(i), data.at(i));
       }

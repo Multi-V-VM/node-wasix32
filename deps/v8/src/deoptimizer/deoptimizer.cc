@@ -920,7 +920,7 @@ CompileWithLiftoffAndGetDeoptInfo(wasm::NativeModule* native_module,
   wasm::CompilationEnv env = wasm::CompilationEnv::ForModule(native_module);
   // We only deopt after the NativeModule is finished, hence wire bytes do not
   // change any more. We can thus hold a non-owning vector here.
-  ::v8::base::Vector<const uint8_t> wire_bytes = native_module->wire_bytes();
+  ZoneVector<const uint8_t> wire_bytes = native_module->wire_bytes();
   const wasm::WasmFunction* function = &env.module->functions[function_index];
   bool is_shared = env.module->type(function->sig_index).is_shared;
   wasm::FunctionBody body{function->sig, function->code.offset(),
@@ -1328,7 +1328,7 @@ void Deoptimizer::DoComputeOutputFramesWasmImpl() {
            fp_to_sp_delta_, PointerAuthentication::StripPAC(from_));
   }
 
-  ::v8::base::Vector<const uint8_t> off_heap_translations =
+  ZoneVector<const uint8_t> off_heap_translations =
       deopt_view.GetTranslationsArray();
 
   DeoptTranslationIterator state_iterator(off_heap_translations,
@@ -2802,7 +2802,7 @@ void Deoptimizer::DoComputeBuiltinContinuation(
       config->num_allocatable_general_registers();
   for (int i = 0; i < allocatable_register_count; ++i) {
     int code = config->GetAllocatableGeneralCode(i);
-    base::Scoped::v8::base::Vector<char> str(128);
+    base::ScopedZoneVector<char> str(128);
     if (verbose_tracing_enabled()) {
       if (BuiltinContinuationModeIsJavaScript(mode) &&
           code == kJavaScriptCallArgCountRegister.code()) {

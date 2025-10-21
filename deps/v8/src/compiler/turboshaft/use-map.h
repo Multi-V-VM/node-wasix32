@@ -30,14 +30,14 @@ class UseMap {
       : UseMap(graph, zone,
                [](const Operation& op, Zone* zone) { return false; }) {}
 
-  ::v8::base::Vector<const OpIndex> uses(OpIndex index) const;
+  ZoneVector<const OpIndex> uses(OpIndex index) const;
 
  private:
   void AddUse(const Graph* graph, OpIndex node, OpIndex use);
 
   FixedOpIndexSidetable<PerOperationUses> table_;
-  ::v8::base::Vector<OpIndex> uses_;
-  ::v8::base::Vector<::v8::base::Vector<OpIndex>> saturated_uses_;
+  ZoneVector<OpIndex> uses_;
+  ZoneVector<ZoneVector<OpIndex>> saturated_uses_;
 };
 
 // SimdUseMap computes uses of SIMD operations of the given turboshaft graph and
@@ -51,7 +51,7 @@ class SimdUseMap : public UseMap, public NON_EXPORTED_BASE(ZoneObject) {
             return false;
           }
 
-          ::v8::base::Vector<MaybeRegisterRepresentation> storage(zone);
+          ZoneVector<MaybeRegisterRepresentation> storage(zone);
           for (auto rep : op.inputs_rep(storage)) {
             if (rep == MaybeRegisterRepresentation::Simd128()) return false;
           }

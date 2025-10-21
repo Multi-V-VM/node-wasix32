@@ -14,6 +14,7 @@
 #include "src/base/platform/platform.h"
 #include "src/base/atomicops.h"
 #include "src/base/memory.h"
+#include "src/base/vlq-base64.h"
 
 // Include missing types implementation
 #include "wasi-v8-missing-types.h"
@@ -46,7 +47,8 @@ namespace base {
 
 // Import commonly used v8::base utilities into v8::internal::base namespace
 using ::v8::base::IsInRange;
-using ::v8::base::hash_combine;
+using ::v8::base::IsInBounds;
+// Note: hash_combine is defined in wasi-v8-missing-types.h with wrapper functions
 using ::v8::base::hash_value;
 using ::v8::base::saturated_cast;
 
@@ -69,6 +71,7 @@ using ::v8::base::AtomicValue;
 using ::v8::base::uc16;
 using ::v8::base::uc32;
 using ::v8::base::Hasher;
+using ::v8::base::double_to_uint64;
 
 // Atomic primitives
 using ::v8::base::Atomic32;
@@ -100,6 +103,8 @@ using ::v8::base::WriteLittleEndianValue;
 using ::v8::base::AsAtomic32;
 using ::v8::base::Atomic16;
 using ::v8::base::Relaxed_Store;
+using ::v8::base::Acquire_Load;
+using ::v8::base::Release_Store;
 using ::v8::base::Relaxed_Load;
 using ::v8::base::SeqCst_MemoryFence;
 using ::v8::base::AcquireRelease_CompareAndSwap;
@@ -138,6 +143,7 @@ using ::v8::base::ArrayVector;
 using ::v8::base::StrNCpy;
 using ::v8::base::StaticOneByteVector;
 using ::v8::base::OwnedCopyOf;
+using ::v8::base::VLQBase64Decode;
 
 // Memory utilities
 using ::v8::base::Memory;
@@ -177,14 +183,45 @@ using ::v8::base::bits::IsPowerOfTwo;
 // Note: WhichPowerOfTwo doesn't exist
 using ::v8::base::bits::RoundUpToPowerOfTwo32;
 using ::v8::base::bits::RoundUpToPowerOfTwo64;
-// Note: RoundDownToPowerOfTwo32 doesn't exist
+// RoundDownToPowerOfTwo32 implementation
+inline constexpr uint32_t RoundDownToPowerOfTwo32(uint32_t value) {
+  if (value == 0) return 0;
+  return uint32_t{1} << (31 - CountLeadingZeros32(value));
+}
 using ::v8::base::bits::RotateRight32;
 using ::v8::base::bits::RotateRight64;
 // Note: Signed*Overflow* functions don't exist - use templates instead
 // Note: Unsigned*Overflow* functions don't exist - use templates instead
 }  // namespace bits
 
-// Note: ieee754 namespace doesn't exist in v8::base
+// ieee754 namespace for math functions
+namespace ieee754 {
+using ::v8::base::ieee754::acos;
+using ::v8::base::ieee754::acosh;
+using ::v8::base::ieee754::asin;
+using ::v8::base::ieee754::asinh;
+using ::v8::base::ieee754::atan;
+using ::v8::base::ieee754::atan2;
+using ::v8::base::ieee754::atanh;
+using ::v8::base::ieee754::cbrt;
+using ::v8::base::ieee754::cos;
+using ::v8::base::ieee754::cosh;
+using ::v8::base::ieee754::exp;
+using ::v8::base::ieee754::expm1;
+using ::v8::base::ieee754::log;
+using ::v8::base::ieee754::log1p;
+using ::v8::base::ieee754::log2;
+using ::v8::base::ieee754::log10;
+using ::v8::base::ieee754::pow;
+using ::v8::base::ieee754::sin;
+using ::v8::base::ieee754::sinh;
+using ::v8::base::ieee754::tan;
+using ::v8::base::ieee754::tanh;
+}  // namespace ieee754
+
+// Expose template meta-programming utilities under v8::internal::base::tmp
+// to satisfy code that references this namespace.
+namespace tmp = ::v8::base::tmp;
 
 }  // namespace base
 }  // namespace internal

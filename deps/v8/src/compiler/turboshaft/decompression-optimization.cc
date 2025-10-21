@@ -26,7 +26,7 @@ struct DecompressionAnalyzer {
   // We use `uint8_t` instead of `bool` here to avoid the bitvector optimization
   // of std::vector.
   FixedOpIndexSidetable<uint8_t> needs_decompression;
-  ::v8::base::Vector<OpIndex> candidates;
+  ZoneVector<OpIndex> candidates;
 
   DecompressionAnalyzer(const Graph& graph, Zone* phase_zone)
       : graph(graph),

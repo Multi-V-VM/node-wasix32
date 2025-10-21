@@ -219,7 +219,7 @@ class V8_EXPORT_PRIVATE BytecodeRegisterOptimizer final
   int max_register_index_;
 
   // Direct mapping to register info.
-  ::v8::base::Vector<RegisterInfo*> register_info_table_;
+  ZoneVector<RegisterInfo*> register_info_table_;
   int register_info_table_offset_;
 
   ZoneDeque<RegisterInfo*> registers_needing_flushed_;

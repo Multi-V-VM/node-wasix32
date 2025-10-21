@@ -138,11 +138,9 @@ class Internals {
     return nullptr;
   }
 
-  template <int tag>
-  static Address ReadExternalPointerField(void* isolate, Address obj,
-                                          int offset) {
-    return 0;
-  }
+  // Intentionally omit ReadExternalPointerField stubs here to avoid
+  // ambiguous overloads; the real definitions live under
+  // deps/v8/src/sandbox/.
 };
 
 #endif // V8_INTERNALS_CLASS_DEFINED

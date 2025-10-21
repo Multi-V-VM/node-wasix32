@@ -404,7 +404,7 @@ int Heap::MaxNumberToStringCacheSize() const {
 
 void Heap::IncrementExternalBackingStoreBytes(ExternalBackingStoreType type,
                                               size_t amount) {
-  base::CheckedIncrement(&backing_store_bytes_, static_cast<uint64_t>(amount),
+  ::v8::base::CheckedIncrement(&backing_store_bytes_, static_cast<uint64_t>(amount),
                          std::memory_order_relaxed);
   // TODO(mlippautz): Implement interrupt for global memory allocations that can
   // trigger garbage collections.
@@ -412,7 +412,7 @@ void Heap::IncrementExternalBackingStoreBytes(ExternalBackingStoreType type,
 
 void Heap::DecrementExternalBackingStoreBytes(ExternalBackingStoreType type,
                                               size_t amount) {
-  base::CheckedDecrement(&backing_store_bytes_, static_cast<uint64_t>(amount),
+  ::v8::base::CheckedDecrement(&backing_store_bytes_, static_cast<uint64_t>(amount),
                          std::memory_order_relaxed);
 }
 

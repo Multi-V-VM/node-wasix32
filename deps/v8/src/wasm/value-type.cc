@@ -177,8 +177,8 @@ std::optional<wasm::ValueKind> WasmReturnTypeFromSignature(
 bool EquivalentNumericSig(const CanonicalSig* a, const FunctionSig* b) {
   if (a->parameter_count() != b->parameter_count()) return false;
   if (a->return_count() != b->return_count()) return false;
-  ::v8::base::Vector<const CanonicalValueType> a_types = a->all();
-  ::v8::base::Vector<const ValueType> b_types = b->all();
+  ZoneVector<const CanonicalValueType> a_types = a->all();
+  ZoneVector<const ValueType> b_types = b->all();
   for (size_t i = 0; i < a_types.size(); i++) {
     if (!a_types[i].is_numeric()) return false;
     if (a_types[i].kind() != b_types[i].kind()) return false;

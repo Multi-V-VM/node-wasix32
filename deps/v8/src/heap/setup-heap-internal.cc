@@ -102,7 +102,7 @@ bool IsMutableMap(InstanceType instance_type, ElementsKind elements_kind) {
 #endif
 
 struct ConstantStringInit {
-  ::v8::base::Vector<const char> contents;
+  ZoneVector<const char> contents;
   RootIndex index;
 };
 

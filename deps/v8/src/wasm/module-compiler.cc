@@ -191,8 +191,8 @@ class CompilationUnitQueues {
     return {};
   }
 
-  void AddUnits(::v8::base::Vector<WasmCompilationUnit> baseline_units,
-                ::v8::base::Vector<WasmCompilationUnit> top_tier_units,
+  void AddUnits(ZoneVector<WasmCompilationUnit> baseline_units,
+                ZoneVector<WasmCompilationUnit> top_tier_units,
                 const WasmModule* module) {
     DCHECK_LT(0, baseline_units.size() + top_tier_units.size());
     // Add to the individual queues in a round-robin fashion. No special care is
@@ -215,7 +215,7 @@ class CompilationUnitQueues {
          {std::make_pair(CompilationTier::kBaseline, baseline_units),
           std::make_pair(CompilationTier::kTopTier, top_tier_units)}) {
       int tier = pair.first;
-      ::v8::base::Vector<WasmCompilationUnit> units = pair.second;
+      ZoneVector<WasmCompilationUnit> units = pair.second;
       if (units.empty()) continue;
       num_units_[tier].fetch_add(units.size(), std::memory_order_relaxed);
       for (WasmCompilationUnit unit : units) {
@@ -613,8 +613,8 @@ class CompilationStateImpl {
   void InitializeCompilationProgress(ProfileInformation* pgo_info);
 
   void InitializeCompilationProgressAfterDeserialization(
-      ::v8::base::Vector<const int> lazy_functions,
-      ::v8::base::Vector<const int> eager_functions);
+      ZoneVector<const int> lazy_functions,
+      ZoneVector<const int> eager_functions);
 
   // Initializes compilation units based on the information encoded in the
   // {compilation_progress_}.
@@ -633,8 +633,8 @@ class CompilationStateImpl {
   void AddCallback(std::unique_ptr<CompilationEventCallback> callback);
 
   // Inserts new functions to compile and kicks off compilation.
-  void CommitCompilationUnits(::v8::base::Vector<WasmCompilationUnit> baseline_units,
-                              ::v8::base::Vector<WasmCompilationUnit> top_tier_units);
+  void CommitCompilationUnits(ZoneVector<WasmCompilationUnit> baseline_units,
+                              ZoneVector<WasmCompilationUnit> top_tier_units);
   void CommitTopTierCompilationUnit(WasmCompilationUnit);
   void AddTopTierPriorityCompilationUnit(WasmCompilationUnit, size_t);
 
@@ -643,7 +643,7 @@ class CompilationStateImpl {
   std::optional<WasmCompilationUnit> GetNextCompilationUnit(
       CompilationUnitQueues::Queue*, CompilationTier tier);
 
-  void OnFinishedUnits(::v8::base::Vector<WasmCode*>);
+  void OnFinishedUnits(ZoneVector<WasmCode*>);
 
   void OnCompilationStopped(WasmDetectedFeatures detected);
   void SchedulePublishCompilationResults(
@@ -728,7 +728,7 @@ class CompilationStateImpl {
   // been compiled to the top tier in the meantime.
   void TriggerCachingAfterTimeout();
 
-  std::vector<WasmCode*> PublishCode(::v8::base::Vector<UnpublishedWasmCode> codes);
+  std::vector<WasmCode*> PublishCode(ZoneVector<UnpublishedWasmCode> codes);
 
  private:
   // Trigger callbacks according to the internal counters below
@@ -809,7 +809,7 @@ class CompilationStateImpl {
   // protected by the {callbacks_mutes_}, with exceptions during
   // initialization (see comment in
   // {CompilationStateImpl::InitializeCompilationUnitForSingleFunction}).
-  base::Owned::v8::base::Vector<uint8_t> compilation_progress_;
+  base::OwnedZoneVector<uint8_t> compilation_progress_;
 
   // The timestamp of the last top-tier compilation.
   // This field is updated on every publishing of top-tier code, and is reset
@@ -932,8 +932,8 @@ void CompilationState::AllowAnotherTopTierJobForAllFunctions() {
 }
 
 void CompilationState::InitializeAfterDeserialization(
-    ::v8::base::Vector<const int> lazy_functions,
-    ::v8::base::Vector<const int> eager_functions) {
+    ZoneVector<const int> lazy_functions,
+    ZoneVector<const int> eager_functions) {
   Impl(this)->InitializeCompilationProgressAfterDeserialization(
       lazy_functions, eager_functions);
 }
@@ -953,7 +953,7 @@ size_t CompilationState::EstimateCurrentMemoryConsumption() const {
 }
 
 std::vector<WasmCode*> CompilationState::PublishCode(
-    ::v8::base::Vector<UnpublishedWasmCode> unpublished_code) {
+    ZoneVector<UnpublishedWasmCode> unpublished_code) {
   return Impl(this)->PublishCode(unpublished_code);
 }
 
@@ -1135,7 +1135,7 @@ class CompilationUnitBuilder {
 
 DecodeResult ValidateSingleFunction(Zone* zone, const WasmModule* module,
                                     int func_index,
-                                    ::v8::base::Vector<const uint8_t> code,
+                                    ZoneVector<const uint8_t> code,
                                     WasmEnabledFeatures enabled_features,
                                     WasmDetectedFeatures* detected_features) {
   // Sometimes functions get validated unpredictably in the background, for
@@ -1261,7 +1261,7 @@ void ThrowLazyCompilationError(Isolate* isolate,
   CompilationStateImpl* compilation_state =
       Impl(native_module->compilation_state());
   const WasmFunction* func = &module->functions[func_index];
-  ::v8::base::Vector<const uint8_t> code =
+  ZoneVector<const uint8_t> code =
       compilation_state->GetWireBytesStorage()->GetCode(func->code);
 
   auto enabled_features = native_module->enabled_features();
@@ -1319,7 +1319,7 @@ class TransitiveTypeFeedbackProcessor {
 
   void ProcessFunction(int func_index);
 
-  void EnqueueCallees(::v8::base::Vector<CallSiteFeedback> feedback) {
+  void EnqueueCallees(ZoneVector<CallSiteFeedback> feedback) {
     for (const CallSiteFeedback& csf : feedback) {
       for (int j = 0; j < csf.num_cases(); j++) {
         int func = csf.function_index(j);
@@ -1363,7 +1363,7 @@ class FeedbackMaker {
       : isolate_(isolate),
         instance_data_(trusted_instance_data),
         result_(
-            base::Owned::v8::base::Vector<CallSiteFeedback>::NewForOverwrite(num_calls)),
+            base::OwnedZoneVector<CallSiteFeedback>::NewForOverwrite(num_calls)),
         num_imported_functions_(static_cast<int>(
             trusted_instance_data->module()->num_imported_functions)),
         func_index_(func_index) {}
@@ -1496,14 +1496,14 @@ class FeedbackMaker {
 
   // {GetResult} can only be called on a r-value reference to make it more
   // obvious at call sites that {this} should not be used after this operation.
-  base::Owned::v8::base::Vector<CallSiteFeedback> GetResult() && {
+  base::OwnedZoneVector<CallSiteFeedback> GetResult() && {
     return std::move(result_);
   }
 
  private:
   Isolate* const isolate_;
   const Tagged<WasmTrustedInstanceData> instance_data_;
-  base::Owned::v8::base::Vector<CallSiteFeedback> result_;
+  base::OwnedZoneVector<CallSiteFeedback> result_;
   int seen_calls_ = 0;
   const int num_imported_functions_;
   const int func_index_;
@@ -1522,7 +1522,7 @@ void TransitiveTypeFeedbackProcessor::ProcessFunction(int func_index) {
       instance_data_->feedback_vectors()->get(which_vector);
   if (!IsFixedArray(maybe_feedback)) return;
   Tagged<FixedArray> feedback = Cast<FixedArray>(maybe_feedback);
-  ::v8::base::Vector<uint32_t> call_targets =
+  ZoneVector<uint32_t> call_targets =
       module_->type_feedback.feedback_for_function[func_index]
           .call_targets.as_vector();
 
@@ -1617,7 +1617,7 @@ void TransitiveTypeFeedbackProcessor::ProcessFunction(int func_index) {
       // feedback to prevent deopt loops where two different instantiations
       // (which have their own on-heap feedback vector) to "flip-flop" between
       // their inlining decisions potentially causing deopt loops.
-      const base::Owned::v8::base::Vector<CallSiteFeedback>& existing =
+      const base::OwnedZoneVector<CallSiteFeedback>& existing =
           feedback_for_function_[func_index].feedback_vector;
       size_t feedback_index = i / 2;
       if (feedback_index < existing.size()) {
@@ -1647,7 +1647,7 @@ void TransitiveTypeFeedbackProcessor::ProcessFunction(int func_index) {
 
     fm.FinalizeCall();
   }
-  base::Owned::v8::base::Vector<CallSiteFeedback> result = std::move(fm).GetResult();
+  base::OwnedZoneVector<CallSiteFeedback> result = std::move(fm).GetResult();
   EnqueueCallees(result.as_vector());
   DCHECK_EQ(result.size(),
             feedback_for_function_[func_index].call_targets.size());
@@ -1826,7 +1826,7 @@ bool IsI8Array(wasm::ValueType type, const WasmModule* module,
 // is preceded by another i32v, which is either a type index (specifying the
 // type of the previous import) or the imports count (in case of the first
 // import). So we scan backwards as long as we find non-last LEB bytes there.
-uint32_t ImportStartOffset(::v8::base::Vector<const uint8_t> wire_bytes,
+uint32_t ImportStartOffset(ZoneVector<const uint8_t> wire_bytes,
                            uint32_t module_name_start) {
   DCHECK_LT(0, module_name_start);
   uint32_t offset = module_name_start - 1;  // Last byte of the string length.
@@ -1842,7 +1842,7 @@ uint32_t ImportStartOffset(::v8::base::Vector<const uint8_t> wire_bytes,
 // Validates the signatures of recognized compile-time imports, and stores
 // them on the {module}'s {well_known_imports} list.
 WasmError ValidateAndSetBuiltinImports(const WasmModule* module,
-                                       ::v8::base::Vector<const uint8_t> wire_bytes,
+                                       ZoneVector<const uint8_t> wire_bytes,
                                        const CompileTimeImports& imports,
                                        WasmDetectedFeatures* detected) {
   DCHECK_EQ(module->origin, kWasmOrigin);
@@ -1896,7 +1896,7 @@ WasmError ValidateAndSetBuiltinImports(const WasmModule* module,
 
     // Check compile-time imported functions.
     if (import.kind != kExternalFunction) continue;
-    ::v8::base::Vector<const uint8_t> module_name = wire_bytes.SubVector(
+    ZoneVector<const uint8_t> module_name = wire_bytes.SubVector(
         import.module_name.offset(), import.module_name.end_offset());
     constexpr size_t kMinInterestingLength = 10;
     if (module_name.size() < kMinInterestingLength ||
@@ -1904,12 +1904,12 @@ WasmError ValidateAndSetBuiltinImports(const WasmModule* module,
       statuses.push_back(WellKnownImport::kUninstantiated);
       continue;
     }
-    ::v8::base::Vector<const uint8_t> collection = module_name.SubVectorFrom(5);
+    ZoneVector<const uint8_t> collection = module_name.SubVectorFrom(5);
     WellKnownImport status = WellKnownImport::kUninstantiated;
     const WasmFunction& func = module->functions[import.index];
     const FunctionSig* sig = func.sig;
     WireBytesRef field_name = import.field_name;
-    ::v8::base::Vector<const uint8_t> name =
+    ZoneVector<const uint8_t> name =
         wire_bytes.SubVector(field_name.offset(), field_name.end_offset());
     if (collection == base::StaticOneByteVector("js-string") &&
         imports.contains(CompileTimeImport::kJsString)) {
@@ -2252,7 +2252,7 @@ class CompilationTimeCallback : public CompilationEventCallback {
 };
 
 WasmError ValidateFunctions(const WasmModule* module,
-                            ::v8::base::Vector<const uint8_t> wire_bytes,
+                            ZoneVector<const uint8_t> wire_bytes,
                             WasmEnabledFeatures enabled_features,
                             OnlyLazyFunctions only_lazy_functions,
                             WasmDetectedFeatures* detected_features) {
@@ -2381,7 +2381,7 @@ std::shared_ptr<NativeModule> GetOrCompileNewNativeModule(
     Isolate* isolate, WasmEnabledFeatures enabled_features,
     WasmDetectedFeatures detected_features, CompileTimeImports compile_imports,
     ErrorThrower* thrower, std::shared_ptr<const WasmModule> module,
-    base::Owned::v8::base::Vector<const uint8_t> wire_bytes, int compilation_id,
+    base::OwnedZoneVector<const uint8_t> wire_bytes, int compilation_id,
     v8::metrics::Recorder::ContextId context_id, ProfileInformation* pgo_info) {
   std::shared_ptr<NativeModule> native_module =
       GetWasmEngine()->MaybeGetNativeModule(
@@ -2426,7 +2426,7 @@ std::shared_ptr<NativeModule> CompileToNativeModule(
     Isolate* isolate, WasmEnabledFeatures enabled_features,
     WasmDetectedFeatures detected_features, CompileTimeImports compile_imports,
     ErrorThrower* thrower, std::shared_ptr<const WasmModule> module,
-    base::Owned::v8::base::Vector<const uint8_t> wire_bytes, int compilation_id,
+    base::OwnedZoneVector<const uint8_t> wire_bytes, int compilation_id,
     v8::metrics::Recorder::ContextId context_id, ProfileInformation* pgo_info) {
   std::shared_ptr<NativeModule> native_module = GetOrCompileNewNativeModule(
       isolate, enabled_features, detected_features, std::move(compile_imports),
@@ -2446,7 +2446,7 @@ std::shared_ptr<NativeModule> CompileToNativeModule(
 
 AsyncCompileJob::AsyncCompileJob(
     Isolate* isolate, WasmEnabledFeatures enabled_features,
-    CompileTimeImports compile_imports, base::Owned::v8::base::Vector<const uint8_t> bytes,
+    CompileTimeImports compile_imports, base::OwnedZoneVector<const uint8_t> bytes,
     DirectHandle<Context> context,
     DirectHandle<NativeContext> incumbent_context, const char* api_method_name,
     std::shared_ptr<CompilationResultResolver> resolver, int compilation_id)
@@ -2492,7 +2492,7 @@ struct ValidateFunctionsStreamingJobData {
   struct Unit {
     // {func_index == -1} represents an "invalid" unit.
     int func_index = -1;
-    ::v8::base::Vector<const uint8_t> code;
+    ZoneVector<const uint8_t> code;
 
     // Check whether the unit is valid.
     operator bool() const {
@@ -2503,13 +2503,13 @@ struct ValidateFunctionsStreamingJobData {
 
   void Initialize(int num_declared_functions) {
     DCHECK_NULL(units);
-    units = base::Owned::v8::base::Vector<Unit>::NewForOverwrite(num_declared_functions);
+    units = base::OwnedZoneVector<Unit>::NewForOverwrite(num_declared_functions);
     // Initially {next == end}.
     next_available_unit.store(units.begin(), std::memory_order_relaxed);
     end_of_available_units.store(units.begin(), std::memory_order_relaxed);
   }
 
-  void AddUnit(int declared_func_index, ::v8::base::Vector<const uint8_t> code,
+  void AddUnit(int declared_func_index, ZoneVector<const uint8_t> code,
                JobHandle* job_handle) {
     DCHECK_NOT_NULL(units);
     // Write new unit to {*end}, then increment {end}. There is only one thread
@@ -2571,7 +2571,7 @@ struct ValidateFunctionsStreamingJobData {
     }
   }
 
-  base::Owned::v8::base::Vector<Unit> units;
+  base::OwnedZoneVector<Unit> units;
   std::atomic<Unit*> next_available_unit;
   std::atomic<Unit*> end_of_available_units;
   std::atomic<bool> found_error{false};
@@ -2621,10 +2621,10 @@ class AsyncStreamingProcessor final : public StreamingProcessor {
  public:
   explicit AsyncStreamingProcessor(AsyncCompileJob* job);
 
-  bool ProcessModuleHeader(::v8::base::Vector<const uint8_t> bytes) override;
+  bool ProcessModuleHeader(ZoneVector<const uint8_t> bytes) override;
 
   bool ProcessSection(SectionCode section_code,
-                      ::v8::base::Vector<const uint8_t> bytes,
+                      ZoneVector<const uint8_t> bytes,
                       uint32_t offset) override;
 
   bool ProcessCodeSectionHeader(int num_functions,
@@ -2633,18 +2633,18 @@ class AsyncStreamingProcessor final : public StreamingProcessor {
                                 int code_section_start,
                                 int code_section_length) override;
 
-  bool ProcessFunctionBody(::v8::base::Vector<const uint8_t> bytes,
+  bool ProcessFunctionBody(ZoneVector<const uint8_t> bytes,
                            uint32_t offset) override;
 
   void OnFinishedChunk() override;
 
-  void OnFinishedStream(base::Owned::v8::base::Vector<const uint8_t> bytes,
+  void OnFinishedStream(base::OwnedZoneVector<const uint8_t> bytes,
                         bool after_error) override;
 
   void OnAbort() override;
 
-  bool Deserialize(::v8::base::Vector<const uint8_t> wire_bytes,
-                   ::v8::base::Vector<const uint8_t> module_bytes) override;
+  bool Deserialize(ZoneVector<const uint8_t> wire_bytes,
+                   ZoneVector<const uint8_t> module_bytes) override;
 
  private:
   void CommitCompilationUnits();
@@ -2726,7 +2726,7 @@ void AsyncCompileJob::PrepareRuntimeObjects() {
   // module object. Asm.js is not compiled asynchronously.
   DCHECK(module_object_.is_null());
   auto source_url =
-      stream_ ? base::VectorOf(stream_->url()) : ::v8::base::Vector<const char>();
+      stream_ ? base::VectorOf(stream_->url()) : ZoneVector<const char>();
   auto script =
       GetWasmEngine()->GetOrCreateScript(isolate_, native_module_, source_url);
   DirectHandle<WasmModuleObject> module_object =
@@ -3233,7 +3233,7 @@ AsyncStreamingProcessor::AsyncStreamingProcessor(AsyncCompileJob* job)
 
 // Process the module header.
 bool AsyncStreamingProcessor::ProcessModuleHeader(
-    ::v8::base::Vector<const uint8_t> bytes) {
+    ZoneVector<const uint8_t> bytes) {
   TRACE_STREAMING("Process module header...\n");
   decoder_.DecodeModuleHeader(bytes);
   if (!decoder_.ok()) return false;
@@ -3244,7 +3244,7 @@ bool AsyncStreamingProcessor::ProcessModuleHeader(
 
 // Process all sections except for the code section.
 bool AsyncStreamingProcessor::ProcessSection(SectionCode section_code,
-                                             ::v8::base::Vector<const uint8_t> bytes,
+                                             ZoneVector<const uint8_t> bytes,
                                              uint32_t offset) {
   TRACE_STREAMING("Process section %d ...\n", section_code);
   if (compilation_unit_builder_) {
@@ -3327,7 +3327,7 @@ bool AsyncStreamingProcessor::ProcessCodeSectionHeader(
 
 // Process a function body.
 bool AsyncStreamingProcessor::ProcessFunctionBody(
-    ::v8::base::Vector<const uint8_t> bytes, uint32_t offset) {
+    ZoneVector<const uint8_t> bytes, uint32_t offset) {
   TRACE_STREAMING("Process function body %d ...\n", num_functions_);
   uint32_t func_index =
       decoder_.module()->num_imported_functions + num_functions_;
@@ -3387,7 +3387,7 @@ void AsyncStreamingProcessor::OnFinishedChunk() {
 
 // Finish the processing of the stream.
 void AsyncStreamingProcessor::OnFinishedStream(
-    base::Owned::v8::base::Vector<const uint8_t> bytes, bool after_error) {
+    base::OwnedZoneVector<const uint8_t> bytes, bool after_error) {
   TRACE_STREAMING("Finish stream...\n");
   ModuleResult module_result = decoder_.FinishDecoding();
   if (module_result.failed()) after_error = true;
@@ -3535,8 +3535,8 @@ void AsyncStreamingProcessor::OnAbort() {
 }
 
 bool AsyncStreamingProcessor::Deserialize(
-    ::v8::base::Vector<const uint8_t> module_bytes,
-    ::v8::base::Vector<const uint8_t> wire_bytes) {
+    ZoneVector<const uint8_t> module_bytes,
+    ZoneVector<const uint8_t> wire_bytes) {
   TRACE_EVENT0("v8.wasm", "wasm.Deserialize");
   std::optional<TimedHistogramScope> time_scope;
   if (base::TimeTicks::IsHighResolution()) {
@@ -3775,7 +3775,7 @@ void CompilationStateImpl::InitializeCompilationProgress(
         RequiredTopTierField::encode(default_tiers.top_tier) |
         ReachedTierField::encode(ExecutionTier::kNone);
     DCHECK_NULL(compilation_progress_);
-    compilation_progress_ = base::Owned::v8::base::Vector<uint8_t>::New(
+    compilation_progress_ = base::OwnedZoneVector<uint8_t>::New(
         module->num_declared_functions, default_progress);
     if (default_tiers.baseline_tier != ExecutionTier::kNone) {
       outstanding_baseline_units_ += module->num_declared_functions;
@@ -3869,8 +3869,8 @@ void CompilationStateImpl::InitializeCompilationUnits(
 }
 
 void CompilationStateImpl::InitializeCompilationProgressAfterDeserialization(
-    ::v8::base::Vector<const int> lazy_functions,
-    ::v8::base::Vector<const int> eager_functions) {
+    ZoneVector<const int> lazy_functions,
+    ZoneVector<const int> eager_functions) {
   TRACE_EVENT2("v8.wasm", "wasm.CompilationAfterDeserialization",
                "num_lazy_functions", lazy_functions.size(),
                "num_eager_functions", eager_functions.size());
@@ -3891,7 +3891,7 @@ void CompilationStateImpl::InitializeCompilationProgressAfterDeserialization(
         RequiredBaselineTierField::encode(ExecutionTier::kLiftoff) |
         RequiredTopTierField::encode(ExecutionTier::kTurbofan) |
         ReachedTierField::encode(ExecutionTier::kTurbofan);
-    compilation_progress_ = base::Owned::v8::base::Vector<uint8_t>::New(
+    compilation_progress_ = base::OwnedZoneVector<uint8_t>::New(
         module->num_declared_functions, kProgressAfterTurbofanDeserialization);
 
     // Update compilation state for lazy functions.
@@ -3954,8 +3954,8 @@ void CompilationStateImpl::AddCallback(
 }
 
 void CompilationStateImpl::CommitCompilationUnits(
-    ::v8::base::Vector<WasmCompilationUnit> baseline_units,
-    ::v8::base::Vector<WasmCompilationUnit> top_tier_units) {
+    ZoneVector<WasmCompilationUnit> baseline_units,
+    ZoneVector<WasmCompilationUnit> top_tier_units) {
   base::MutexGuard guard{&mutex_};
   if (!baseline_units.empty() || !top_tier_units.empty()) {
     compilation_unit_queues_.AddUnits(baseline_units, top_tier_units,
@@ -3996,7 +3996,7 @@ std::optional<WasmCompilationUnit> CompilationStateImpl::GetNextCompilationUnit(
 }
 
 void CompilationStateImpl::OnFinishedUnits(
-    ::v8::base::Vector<WasmCode*> code_vector) {
+    ZoneVector<WasmCode*> code_vector) {
   TRACE_EVENT1(TRACE_DISABLED_BY_DEFAULT("v8.wasm.detailed"),
                "wasm.OnFinishedUnits", "units", code_vector.size());
 
@@ -4276,7 +4276,7 @@ void CompilationStateImpl::PublishCompilationResults(
 }
 
 std::vector<WasmCode*> CompilationStateImpl::PublishCode(
-    ::v8::base::Vector<UnpublishedWasmCode> code) {
+    ZoneVector<UnpublishedWasmCode> code) {
   WasmCodeRefScope code_ref_scope;
   std::vector<WasmCode*> published_code =
       native_module_->PublishCode(std::move(code));

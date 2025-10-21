@@ -169,7 +169,7 @@ bool WasmGraphBuilder::TryWasmInlining(int fct_index,
     TRACE("- not inlining: function is imported");
     return false;
   }
-  ::v8::base::Vector<const uint8_t> bytes(native_module->wire_bytes().SubVector(
+  ZoneVector<const uint8_t> bytes(native_module->wire_bytes().SubVector(
       inlinee.code.offset(), inlinee.code.end_offset()));
   bool is_shared = module->type(inlinee.sig_index).is_shared;
   const wasm::FunctionBody inlinee_body(inlinee.sig, inlinee.code.offset(),
@@ -299,7 +299,7 @@ TrapId WasmGraphBuilder::GetTrapIdForTrap(wasm::TrapReason reason) {
   }
 }
 
-Node* WasmGraphBuilder::Return(::v8::base::Vector<Node*> vals) {
+Node* WasmGraphBuilder::Return(ZoneVector<Node*> vals) {
   unsigned count = static_cast<unsigned>(vals.size());
   base::SmallVector<Node*, 8> buf(count + 3);
 
@@ -346,7 +346,7 @@ void WasmGraphBuilder::SetEffectControl(Node* effect, Node* control) {
 }
 
 Node* WasmGraphBuilder::BuildCallNode(size_t param_count,
-                                      ::v8::base::Vector<Node*> args,
+                                      ZoneVector<Node*> args,
                                       wasm::WasmCodePosition position,
                                       Node* implicit_first_arg,
                                       const Operator* op, Node* frame_state) {
@@ -382,8 +382,8 @@ Node* WasmGraphBuilder::BuildCallNode(size_t param_count,
 
 template <typename T>
 Node* WasmGraphBuilder::BuildWasmCall(const Signature<T>* sig,
-                                      ::v8::base::Vector<Node*> args,
-                                      ::v8::base::Vector<Node*> rets,
+                                      ZoneVector<Node*> args,
+                                      ZoneVector<Node*> rets,
                                       wasm::WasmCodePosition position,
                                       Node* implicit_first_arg, bool indirect,
                                       Node* frame_state) {

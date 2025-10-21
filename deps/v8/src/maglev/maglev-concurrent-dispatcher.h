@@ -81,7 +81,7 @@ class MaglevCompilationJob final : public OptimizedCompilationJob {
                                 std::unique_ptr<MaglevCompilationInfo>&& info);
   void BeginPhaseKind(const char* name);
   void EndPhaseKind();
-  GlobalHandle::v8::base::Vector<Map> CollectRetainedMaps(Isolate* isolate,
+  GlobalHandleZoneVector<Map> CollectRetainedMaps(Isolate* isolate,
                                               DirectHandle<Code> code);
 
   MaglevCompilationInfo* info() const { return info_.get(); }

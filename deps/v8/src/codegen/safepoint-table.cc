@@ -282,7 +282,7 @@ void SafepointTableBuilder::Emit(Assembler* assembler, int stack_slot_count) {
   // Emit bitmaps of tagged stack slots. Note the slot list is reversed in the
   // encoding.
   // TODO(jgruber): Avoid building a reversed copy of the bit vector.
-  ::v8::base::Vector<uint8_t> bits(tagged_slots_bytes, 0, zone_);
+  ZoneVector<uint8_t> bits(tagged_slots_bytes, 0, zone_);
   for (const EntryBuilder& entry : entries_) {
     std::fill(bits.begin(), bits.end(), 0);
 

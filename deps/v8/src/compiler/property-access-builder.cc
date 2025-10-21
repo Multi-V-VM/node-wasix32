@@ -74,7 +74,7 @@ SimplifiedOperatorBuilder* PropertyAccessBuilder::simplified() const {
   return jsgraph()->simplified();
 }
 
-bool HasOnlyStringMaps(JSHeapBroker* broker, ::v8::base::Vector<MapRef> const& maps) {
+bool HasOnlyStringMaps(JSHeapBroker* broker, ZoneVector<MapRef> const& maps) {
   for (MapRef map : maps) {
     if (!map.IsStringMap()) return false;
   }
@@ -82,7 +82,7 @@ bool HasOnlyStringMaps(JSHeapBroker* broker, ::v8::base::Vector<MapRef> const& m
 }
 
 bool HasOnlyStringWrapperMaps(JSHeapBroker* broker,
-                              ::v8::base::Vector<MapRef> const& maps) {
+                              ZoneVector<MapRef> const& maps) {
   for (MapRef map : maps) {
     if (!map.IsJSPrimitiveWrapperMap()) return false;
     auto elements_kind = map.elements_kind();
@@ -95,7 +95,7 @@ bool HasOnlyStringWrapperMaps(JSHeapBroker* broker,
 }
 
 bool HasOnlyNonResizableTypedArrayMaps(JSHeapBroker* broker,
-                                       ::v8::base::Vector<MapRef> const& maps) {
+                                       ZoneVector<MapRef> const& maps) {
   for (MapRef map : maps) {
     if (!map.IsJSTypedArrayMap()) return false;
     if (IsRabGsabTypedArrayElementsKind(map.elements_kind())) {
@@ -107,7 +107,7 @@ bool HasOnlyNonResizableTypedArrayMaps(JSHeapBroker* broker,
 
 namespace {
 
-bool HasOnlyNumberMaps(JSHeapBroker* broker, ::v8::base::Vector<MapRef> const& maps) {
+bool HasOnlyNumberMaps(JSHeapBroker* broker, ZoneVector<MapRef> const& maps) {
   for (MapRef map : maps) {
     if (map.instance_type() != HEAP_NUMBER_TYPE) return false;
   }
@@ -117,7 +117,7 @@ bool HasOnlyNumberMaps(JSHeapBroker* broker, ::v8::base::Vector<MapRef> const& m
 }  // namespace
 
 bool PropertyAccessBuilder::TryBuildStringCheck(JSHeapBroker* broker,
-                                                ::v8::base::Vector<MapRef> const& maps,
+                                                ZoneVector<MapRef> const& maps,
                                                 Node** receiver, Effect* effect,
                                                 Control control) {
   if (HasOnlyStringMaps(broker, maps)) {
@@ -132,7 +132,7 @@ bool PropertyAccessBuilder::TryBuildStringCheck(JSHeapBroker* broker,
 }
 
 bool PropertyAccessBuilder::TryBuildNumberCheck(JSHeapBroker* broker,
-                                                ::v8::base::Vector<MapRef> const& maps,
+                                                ZoneVector<MapRef> const& maps,
                                                 Node** receiver, Effect* effect,
                                                 Control control) {
   if (HasOnlyNumberMaps(broker, maps)) {
@@ -147,7 +147,7 @@ bool PropertyAccessBuilder::TryBuildNumberCheck(JSHeapBroker* broker,
 
 void PropertyAccessBuilder::BuildCheckMaps(
     Node* object, Effect* effect, Control control,
-    ::v8::base::Vector<MapRef> const& maps,
+    ZoneVector<MapRef> const& maps,
     bool has_deprecated_map_without_migration_target) {
   HeapObjectMatcher m(object);
   if (m.HasResolvedValue()) {

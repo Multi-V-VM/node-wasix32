@@ -64,6 +64,10 @@ namespace v8 {
 #include <new>
 #include <bit>
 
+// Do not inject std::hash specializations here; libc++/libstdc++ already provide
+// them, and redefining is undefined. If an environment lacks them, handle it in
+// a targeted layer rather than globally.
+
 #if !defined(__cpp_lib_endian)
 namespace std {
 enum class endian {

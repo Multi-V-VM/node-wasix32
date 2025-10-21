@@ -53,8 +53,8 @@ class V8_EXPORT_PRIVATE StartupSerializer : public RootsSerializer {
   void SerializeObjectImpl(Handle<HeapObject> o, SlotType slot_type) override;
 
   SharedHeapSerializer* const shared_heap_serializer_;
-  GlobalHandle::v8::base::Vector<AccessorInfo> accessor_infos_;
-  GlobalHandle::v8::base::Vector<FunctionTemplateInfo> function_template_infos_;
+  GlobalHandleZoneVector<AccessorInfo> accessor_infos_;
+  GlobalHandleZoneVector<FunctionTemplateInfo> function_template_infos_;
 };
 
 class SerializedHandleChecker : public RootVisitor {

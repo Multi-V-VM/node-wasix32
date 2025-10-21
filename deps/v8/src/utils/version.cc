@@ -26,7 +26,7 @@ const char* Version::soname_ = SONAME;
 const char* Version::version_string_ = V8_VERSION_STRING;
 
 // Calculate the V8 version string.
-void Version::GetString(::v8::base::Vector<char> str) {
+void Version::GetString(ZoneVector<char> str) {
   const char* candidate = IsCandidate() ? " (candidate)" : "";
   if (GetPatch() > 0) {
     base::SNPrintF(str, "%d.%d.%d.%d%s%s", GetMajor(), GetMinor(), GetBuild(),
@@ -38,7 +38,7 @@ void Version::GetString(::v8::base::Vector<char> str) {
 }
 
 // Calculate the SONAME for the V8 shared library.
-void Version::GetSONAME(::v8::base::Vector<char> str) {
+void Version::GetSONAME(ZoneVector<char> str) {
   if (soname_ == nullptr || *soname_ == '\0') {
     // Generate generic SONAME if no specific SONAME is defined.
     const char* candidate = IsCandidate() ? "-candidate" : "";

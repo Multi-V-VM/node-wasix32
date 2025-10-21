@@ -326,15 +326,15 @@ void AsmJsScanner::ConsumeNumber(base::uc32 ch) {
     switch (number[1]) {
       case 'b':
         double_value_ = BinaryStringToDouble(
-            ::v8::base::Vector<const uint8_t>::cast(base::VectorOf(number)));
+            ZoneVector<const uint8_t>::cast(base::VectorOf(number)));
         break;
       case 'o':
         double_value_ = OctalStringToDouble(
-            ::v8::base::Vector<const uint8_t>::cast(base::VectorOf(number)));
+            ZoneVector<const uint8_t>::cast(base::VectorOf(number)));
         break;
       case 'x':
         double_value_ = HexStringToDouble(
-            ::v8::base::Vector<const uint8_t>::cast(base::VectorOf(number)));
+            ZoneVector<const uint8_t>::cast(base::VectorOf(number)));
         break;
       default:
         // If there is a prefix character, but it's not the second character,
@@ -344,10 +344,10 @@ void AsmJsScanner::ConsumeNumber(base::uc32 ch) {
     }
   } else if (number[0] == '0' && !has_prefix && IsValidImplicitOctal(number)) {
     double_value_ = ImplicitOctalStringToDouble(
-        ::v8::base::Vector<const uint8_t>::cast(base::VectorOf(number)));
+        ZoneVector<const uint8_t>::cast(base::VectorOf(number)));
   } else {
     double_value_ = StringToDouble(
-        ::v8::base::Vector<const uint8_t>::cast(base::VectorOf(number)),
+        ZoneVector<const uint8_t>::cast(base::VectorOf(number)),
         NO_CONVERSION_FLAG);
   }
   if (std::isnan(double_value_)) {

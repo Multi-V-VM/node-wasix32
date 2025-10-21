@@ -63,7 +63,7 @@ class LogFile {
 
     void AppendString(Tagged<String> str,
                       std::optional<int> length_limit = std::nullopt);
-    void AppendString(::v8::base::Vector<const char> str);
+    void AppendString(ZoneVector<const char> str);
     void AppendString(const char* str);
     void AppendString(const char* str, size_t length, bool is_one_byte = true);
     void PRINTF_FORMAT(2, 3) AppendFormatString(const char* format, ...);

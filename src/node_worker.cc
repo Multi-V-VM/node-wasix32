@@ -695,8 +695,14 @@ void Worker::New(const FunctionCallbackInfo<Value>& args) {
   CHECK(args[3]->IsFloat64Array());
   Local<Float64Array> limit_info = args[3].As<Float64Array>();
   CHECK_EQ(limit_info->Length(), kTotalResourceLimitCount);
+#ifdef __wasi__
+  // For WASI, cast to ArrayBufferView to call CopyContents
+  limit_info.As<v8::ArrayBufferView>()->CopyContents(worker->resource_limits_,
+                                                       sizeof(worker->resource_limits_));
+#else
   limit_info->CopyContents(worker->resource_limits_,
                            sizeof(worker->resource_limits_));
+#endif
 
   CHECK(args[4]->IsBoolean());
   if (args[4]->IsTrue() || env->tracks_unmanaged_fds())

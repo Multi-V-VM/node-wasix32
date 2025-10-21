@@ -47,7 +47,7 @@ namespace internal {
 // more informative description.
 class Decoder {
  public:
-  Decoder(const disasm::NameConverter& converter, ::v8::base::Vector<char> out_buffer)
+  Decoder(const disasm::NameConverter& converter, ZoneVector<char> out_buffer)
       : converter_(converter), out_buffer_(out_buffer), out_buffer_pos_(0) {
     out_buffer_[out_buffer_pos_] = '\0';
   }
@@ -86,7 +86,7 @@ class Decoder {
   bool DecodeGeneric(Instruction* instr);
 
   const disasm::NameConverter& converter_;
-  ::v8::base::Vector<char> out_buffer_;
+  ZoneVector<char> out_buffer_;
   int out_buffer_pos_;
 };
 

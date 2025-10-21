@@ -17,6 +17,9 @@ namespace v8 {
 
 class Isolate;
 class Object;
+class String;
+class Number;
+class Boolean;
 
 /**
  * The superclass of all JavaScript values and objects.

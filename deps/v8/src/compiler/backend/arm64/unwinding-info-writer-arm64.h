@@ -63,7 +63,7 @@ class UnwindingInfoWriter {
   bool saved_lr_;
   bool block_will_exit_;
 
-  ::v8::base::Vector<const BlockInitialState*> block_initial_states_;
+  ZoneVector<const BlockInitialState*> block_initial_states_;
 };
 
 }  // namespace compiler

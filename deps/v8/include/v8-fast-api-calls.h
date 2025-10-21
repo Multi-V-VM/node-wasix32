@@ -228,7 +228,9 @@
 #include <tuple>
 #include <type_traits>
 
+#ifndef __wasi__
 #include "v8-internal.h"      // NOLINT(build/include_directory)
+#endif
 #include "v8-local-handle.h"  // NOLINT(build/include_directory)
 #include "v8-typed-array.h"   // NOLINT(build/include_directory)
 #include "v8-value.h"         // NOLINT(build/include_directory)

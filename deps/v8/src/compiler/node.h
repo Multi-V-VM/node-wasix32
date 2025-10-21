@@ -105,7 +105,7 @@ class V8_EXPORT_PRIVATE Node final {
 
   class Inputs;
   inline Inputs inputs() const;
-  inline ::v8::base::Vector<Node*> inputs_vector() const;
+  inline ZoneVector<Node*> inputs_vector() const;
 
   class UseEdges final {
    public:
@@ -484,13 +484,13 @@ Node::Inputs Node::inputs() const {
   }
 }
 
-Vector<Node*> Node::inputs_vector() const {
+ZoneVector<Node*> Node::inputs_vector() const {
   int inline_count = InlineCountField::decode(bit_field_);
   if (inline_count != kOutlineMarker) {
-    return base::VectorOf<Node*>(inline_inputs(), inline_count);
+    return ZoneVector<Node*>(inline_inputs(), inline_count);
   } else {
-    return base::VectorOf<Node*>(outline_inputs()->inputs(),
-                                 outline_inputs()->count_);
+    return ZoneVector<Node*>(outline_inputs()->inputs(),
+                             outline_inputs()->count_);
   }
 }
 

@@ -19,6 +19,7 @@
 #include "src/heap/marking.h"
 #include "src/heap/pretenuring-handler-inl.h"
 #include "src/heap/spaces.h"
+#include "include/v8-sandbox.h"
 #include "src/objects/compressed-slots.h"
 #include "src/objects/descriptor-array.h"
 #include "src/objects/heap-object.h"

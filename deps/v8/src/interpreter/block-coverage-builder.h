@@ -80,12 +80,12 @@ class BlockCoverageBuilder final : public ZoneObject {
     IncrementBlockCounter(slot);
   }
 
-  const ::v8::base::Vector<SourceRange>& slots() const { return slots_; }
+  const ZoneVector<SourceRange>& slots() const { return slots_; }
 
  private:
   // Contains source range information for allocated block coverage counter
   // slots. Slot i covers range slots_[i].
-  ::v8::base::Vector<SourceRange> slots_;
+  ZoneVector<SourceRange> slots_;
   BytecodeArrayBuilder* builder_;
   SourceRangeMap* source_range_map_;
 };

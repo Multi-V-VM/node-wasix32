@@ -106,7 +106,7 @@ class VariableReducer : public RequiredOptimizationReducer<AfterNext> {
     std::reverse(predecessors_.begin(), predecessors_.end());
 
     auto merge_variables =
-        [&](Variable var, ::v8::base::Vector<const OpIndex> predecessors) -> OpIndex {
+        [&](Variable var, ZoneVector<const OpIndex> predecessors) -> OpIndex {
       for (OpIndex idx : predecessors) {
         if (!idx.valid()) {
           // If any of the predecessors' value is Invalid, then we shouldn't
@@ -132,7 +132,7 @@ class VariableReducer : public RequiredOptimizationReducer<AfterNext> {
       auto active_loop_variables_begin = table_.active_loop_variables.begin();
       auto active_loop_variables_end = table_.active_loop_variables.end();
       if (active_loop_variables_begin != active_loop_variables_end) {
-        ::v8::base::Vector<std::pair<Variable, OpIndex>> pending_phis(__ phase_zone());
+        ZoneVector<std::pair<Variable, OpIndex>> pending_phis(__ phase_zone());
         for (Variable var : table_.active_loop_variables) {
           MaybeRegisterRepresentation rep = var.data().rep;
           DCHECK_NE(rep, MaybeRegisterRepresentation::None());
@@ -227,7 +227,7 @@ class VariableReducer : public RequiredOptimizationReducer<AfterNext> {
   }
 
  private:
-  OpIndex MergeOpIndices(::v8::base::Vector<const OpIndex> inputs,
+  OpIndex MergeOpIndices(ZoneVector<const OpIndex> inputs,
                          MaybeRegisterRepresentation maybe_rep) {
     if (maybe_rep != MaybeRegisterRepresentation::None()) {
       // Every Operation that has a RegisterRepresentation can be merged with a
@@ -242,7 +242,7 @@ class VariableReducer : public RequiredOptimizationReducer<AfterNext> {
     }
   }
 
-  OpIndex MergeFrameState(::v8::base::Vector<const OpIndex> frame_states_indices) {
+  OpIndex MergeFrameState(ZoneVector<const OpIndex> frame_states_indices) {
     base::SmallVector<const FrameStateOp*, 32> frame_states;
     for (OpIndex idx : frame_states_indices) {
       frame_states.push_back(
@@ -264,7 +264,7 @@ class VariableReducer : public RequiredOptimizationReducer<AfterNext> {
 
     // Merging the parent frame states.
     if (first_frame->inlined) {
-      ::v8::base::Vector<OpIndex> indices_to_merge(__ phase_zone());
+      ZoneVector<OpIndex> indices_to_merge(__ phase_zone());
       bool all_parent_frame_states_are_the_same = true;
       for (auto frame_state : frame_states) {
         indices_to_merge.push_back(frame_state->parent_frame_state());
@@ -284,7 +284,7 @@ class VariableReducer : public RequiredOptimizationReducer<AfterNext> {
 
     // Merging the state values.
     for (int i = 0; i < first_frame->state_values_count(); i++) {
-      ::v8::base::Vector<OpIndex> indices_to_merge(__ phase_zone());
+      ZoneVector<OpIndex> indices_to_merge(__ phase_zone());
       bool all_inputs_are_the_same = true;
       for (auto frame_state : frame_states) {
         indices_to_merge.push_back(frame_state->state_value(i));
@@ -316,12 +316,12 @@ class VariableReducer : public RequiredOptimizationReducer<AfterNext> {
 
   // {predecessors_} is used during merging, but we use an instance variable for
   // it, in order to save memory and not reallocate it for each merge.
-  ::v8::base::Vector<Snapshot> predecessors_{__ phase_zone()};
+  ZoneVector<Snapshot> predecessors_{__ phase_zone()};
 
   // Map from loop headers to the pending loop phis in these headers which have
   // to be patched on backedges.
   ZoneAbslFlatHashMap<BlockIndex,
-                      std::optional<::v8::base::Vector<std::pair<Variable, OpIndex>>>>
+                      std::optional<ZoneVector<std::pair<Variable, OpIndex>>>>
       loop_pending_phis_{__ phase_zone()};
 };
 

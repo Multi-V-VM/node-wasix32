@@ -45,7 +45,7 @@ enum ReturnLocation { kAfterBreakpoint, kAfterWasmCall };
 
 Address FindNewPC(WasmFrame* frame, WasmCode* wasm_code, int byte_offset,
                   ReturnLocation return_location) {
-  ::v8::base::Vector<const uint8_t> new_pos_table = wasm_code->source_positions();
+  ZoneVector<const uint8_t> new_pos_table = wasm_code->source_positions();
 
   DCHECK_LE(0, byte_offset);
 
@@ -53,7 +53,7 @@ Address FindNewPC(WasmFrame* frame, WasmCode* wasm_code, int byte_offset,
   // source position entry to the return address.
   WasmCode* old_code = frame->wasm_code();
   int pc_offset = static_cast<int>(frame->pc() - old_code->instruction_start());
-  ::v8::base::Vector<const uint8_t> old_pos_table = old_code->source_positions();
+  ZoneVector<const uint8_t> old_pos_table = old_code->source_positions();
   SourcePositionTableIterator old_it(old_pos_table);
   int call_offset = -1;
   while (!old_it.done() && old_it.code_offset() < pc_offset) {
@@ -179,7 +179,7 @@ class DebugInfoImpl {
   // position. Return 0 otherwise.
   // This is used to generate a "dead breakpoint" in Liftoff, which is necessary
   // for OSR to find the correct return address.
-  int DeadBreakpoint(WasmFrame* frame, ::v8::base::Vector<const int> breakpoints) {
+  int DeadBreakpoint(WasmFrame* frame, ZoneVector<const int> breakpoints) {
     const auto& function =
         native_module_->module()->functions[frame->function_index()];
     int offset = frame->position() - function.code.offset();
@@ -191,7 +191,7 @@ class DebugInfoImpl {
 
   // Find the dead breakpoint (see above) for the top wasm frame, if that frame
   // is in the function of the given index.
-  int DeadBreakpoint(int func_index, ::v8::base::Vector<const int> breakpoints,
+  int DeadBreakpoint(int func_index, ZoneVector<const int> breakpoints,
                      Isolate* isolate) {
     DebuggableStackFrameIterator it(isolate);
 #if !V8_ENABLE_DRUMBRAKE
@@ -208,7 +208,7 @@ class DebugInfoImpl {
   }
 
   WasmCode* RecompileLiftoffWithBreakpoints(int func_index,
-                                            ::v8::base::Vector<const int> offsets,
+                                            ZoneVector<const int> offsets,
                                             int dead_breakpoint) {
     mutex_.AssertHeld();  // Mutex is held externally.
     DCHECK(!v8_flags.wasm_jitless);
@@ -238,7 +238,7 @@ class DebugInfoImpl {
     // Not thread-safe. The caller is responsible for locking {mutex_}.
     CompilationEnv env = CompilationEnv::ForModule(native_module_);
     const WasmFunction* function = &env.module->functions[func_index];
-    ::v8::base::Vector<const uint8_t> wire_bytes = native_module_->wire_bytes();
+    ZoneVector<const uint8_t> wire_bytes = native_module_->wire_bytes();
     bool is_shared = env.module->type(function->sig_index).is_shared;
     FunctionBody body{function->sig, function->code.offset(),
                       wire_bytes.begin() + function->code.offset(),
@@ -370,7 +370,7 @@ class DebugInfoImpl {
     return {breakpoints.begin(), breakpoints.end()};
   }
 
-  void UpdateBreakpoints(int func_index, ::v8::base::Vector<int> breakpoints,
+  void UpdateBreakpoints(int func_index, ZoneVector<int> breakpoints,
                          Isolate* isolate, StackFrameId stepping_frame,
                          int dead_breakpoint) {
     // TODO(paolosev@microsoft.com) - Add support for breakpoints in Wasm
@@ -488,7 +488,7 @@ class DebugInfoImpl {
                       isolate_data.stepping_frame, dead_breakpoint);
   }
 
-  void RemoveDebugSideTables(::v8::base::Vector<WasmCode* const> codes) {
+  void RemoveDebugSideTables(ZoneVector<WasmCode* const> codes) {
     base::MutexGuard guard(&debug_side_tables_mutex_);
     for (auto* code : codes) {
       debug_side_tables_.erase(code);
@@ -808,7 +808,7 @@ class DebugInfoImpl {
   static constexpr size_t kMaxCachedDebuggingCode = 3;
   struct CachedDebuggingCode {
     int func_index;
-    base::Owned::v8::base::Vector<const int> breakpoint_offsets;
+    base::OwnedZoneVector<const int> breakpoint_offsets;
     int dead_breakpoint;
     WasmCode* code;
   };
@@ -878,7 +878,7 @@ void DebugInfo::RemoveBreakpoint(int func_index, int offset,
   impl_->RemoveBreakpoint(func_index, offset, current_isolate);
 }
 
-void DebugInfo::RemoveDebugSideTables(::v8::base::Vector<WasmCode* const> code) {
+void DebugInfo::RemoveDebugSideTables(ZoneVector<WasmCode* const> code) {
   impl_->RemoveDebugSideTables(code);
 }
 

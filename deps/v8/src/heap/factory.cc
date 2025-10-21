@@ -606,21 +606,21 @@ Factory::CreateCanonicalEmptySwissNameDictionary() {
 }
 
 // Internalized strings are created in the old generation (data space).
-Handle<String> Factory::InternalizeUtf8String(::v8::base::Vector<const char> string) {
-  ::v8::base::Vector<const uint8_t> utf8_data =
-      ::v8::base::Vector<const uint8_t>::cast(string);
+Handle<String> Factory::InternalizeUtf8String(ZoneVector<const char> string) {
+  ZoneVector<const uint8_t> utf8_data =
+      ZoneVector<const uint8_t>::cast(string);
   Utf8Decoder decoder(utf8_data);
   if (decoder.is_ascii()) return InternalizeString(utf8_data);
   if (decoder.is_one_byte()) {
     std::unique_ptr<uint8_t[]> buffer(new uint8_t[decoder.utf16_length()]);
     decoder.Decode(buffer.get(), utf8_data);
     return InternalizeString(
-        ::v8::base::Vector<const uint8_t>(buffer.get(), decoder.utf16_length()));
+        ZoneVector<const uint8_t>(buffer.get(), decoder.utf16_length()));
   }
   std::unique_ptr<uint16_t[]> buffer(new uint16_t[decoder.utf16_length()]);
   decoder.Decode(buffer.get(), utf8_data);
   return InternalizeString(
-      ::v8::base::Vector<const base::uc16>(buffer.get(), decoder.utf16_length()));
+      ZoneVector<const base::uc16>(buffer.get(), decoder.utf16_length()));
 }
 
 template <typename SeqString, template <typename> typename HandleType>
@@ -739,21 +739,21 @@ MaybeHandle<String> NewStringFromUtf8Variant(Isolate* isolate,
 }  // namespace
 
 MaybeHandle<String> Factory::NewStringFromUtf8(
-    ::v8::base::Vector<const uint8_t> string, unibrow::Utf8Variant utf8_variant,
+    ZoneVector<const uint8_t> string, unibrow::Utf8Variant utf8_variant,
     AllocationType allocation) {
   if (string.size() > kMaxInt) {
     // The Utf8Decode can't handle longer inputs, and we couldn't create
     // strings from them anyway.
     THROW_NEW_ERROR(isolate(), NewInvalidStringLengthError());
   }
-  auto peek_bytes = [&]() -> ::v8::base::Vector<const uint8_t> { return string; };
+  auto peek_bytes = [&]() -> ZoneVector<const uint8_t> { return string; };
   return NewStringFromUtf8Variant(isolate(), peek_bytes, utf8_variant,
                                   allocation);
 }
 
-MaybeHandle<String> Factory::NewStringFromUtf8(::v8::base::Vector<const char> string,
+MaybeHandle<String> Factory::NewStringFromUtf8(ZoneVector<const char> string,
                                                AllocationType allocation) {
-  return NewStringFromUtf8(::v8::base::Vector<const uint8_t>::cast(string),
+  return NewStringFromUtf8(ZoneVector<const uint8_t>::cast(string),
                            unibrow::Utf8Variant::kLossyUtf8, allocation);
 }
 
@@ -766,7 +766,7 @@ MaybeDirectHandle<String> Factory::NewStringFromUtf8(
   DCHECK_LE(end, array->length());
   // {end - start} can never be more than what the Utf8Decoder can handle.
   static_assert(WasmArray::MaxLength(sizeof(uint8_t)) <= kMaxInt);
-  auto peek_bytes = [&]() -> ::v8::base::Vector<const uint8_t> {
+  auto peek_bytes = [&]() -> ZoneVector<const uint8_t> {
     const uint8_t* contents =
         reinterpret_cast<const uint8_t*>(array->ElementAddress(0));
     return {contents + start, end - start};
@@ -782,7 +782,7 @@ MaybeHandle<String> Factory::NewStringFromUtf8(
   DCHECK_LE(end, array->length());
   // {end - start} can never be more than what the Utf8Decoder can handle.
   static_assert(ByteArray::kMaxLength <= kMaxInt);
-  auto peek_bytes = [&]() -> ::v8::base::Vector<const uint8_t> {
+  auto peek_bytes = [&]() -> ZoneVector<const uint8_t> {
     const uint8_t* contents = reinterpret_cast<const uint8_t*>(array->begin());
     return {contents + start, end - start};
   };
@@ -794,14 +794,14 @@ namespace {
 struct Wtf16Decoder {
   int length_;
   bool is_one_byte_;
-  explicit Wtf16Decoder(::v8::base::Vector<const uint16_t> data)
+  explicit Wtf16Decoder(ZoneVector<const uint16_t> data)
       : length_(data.length()),
         is_one_byte_(String::IsOneByte(data.begin(), length_)) {}
   bool is_invalid() const { return false; }
   bool is_one_byte() const { return is_one_byte_; }
   int utf16_length() const { return length_; }
   template <typename Char>
-  void Decode(Char* out, ::v8::base::Vector<const uint16_t> data) {
+  void Decode(Char* out, ZoneVector<const uint16_t> data) {
     CopyChars(out, data.begin(), length_);
   }
 };
@@ -816,7 +816,7 @@ MaybeDirectHandle<String> Factory::NewStringFromUtf16(
   DCHECK_LE(end, array->length());
   // {end - start} can never be more than what the Utf8Decoder can handle.
   static_assert(WasmArray::MaxLength(sizeof(uint16_t)) <= kMaxInt);
-  auto peek_bytes = [&]() -> ::v8::base::Vector<const uint16_t> {
+  auto peek_bytes = [&]() -> ZoneVector<const uint16_t> {
     const uint16_t* contents =
         reinterpret_cast<const uint16_t*>(array->ElementAddress(0));
     return {contents + start, end - start};
@@ -829,11 +829,11 @@ MaybeDirectHandle<String> Factory::NewStringFromUtf16(
 MaybeHandle<String> Factory::NewStringFromUtf8SubString(
     Handle<SeqOneByteString> str, int begin, int length,
     AllocationType allocation) {
-  ::v8::base::Vector<const uint8_t> utf8_data;
+  ZoneVector<const uint8_t> utf8_data;
   {
     DisallowGarbageCollection no_gc;
     utf8_data =
-        ::v8::base::Vector<const uint8_t>(str->GetChars(no_gc) + begin, length);
+        ZoneVector<const uint8_t>(str->GetChars(no_gc) + begin, length);
   }
   Utf8Decoder decoder(utf8_data);
 
@@ -862,7 +862,7 @@ MaybeHandle<String> Factory::NewStringFromUtf8SubString(
     // Update pointer references, since the original string may have moved after
     // allocation.
     utf8_data =
-        ::v8::base::Vector<const uint8_t>(str->GetChars(no_gc) + begin, length);
+        ZoneVector<const uint8_t>(str->GetChars(no_gc) + begin, length);
     decoder.Decode(result->GetChars(no_gc), utf8_data);
     return result;
   }
@@ -876,7 +876,7 @@ MaybeHandle<String> Factory::NewStringFromUtf8SubString(
   DisallowGarbageCollection no_gc;
   // Update pointer references, since the original string may have moved after
   // allocation.
-  utf8_data = ::v8::base::Vector<const uint8_t>(str->GetChars(no_gc) + begin, length);
+  utf8_data = ZoneVector<const uint8_t>(str->GetChars(no_gc) + begin, length);
   decoder.Decode(result->GetChars(no_gc), utf8_data);
   return result;
 }
@@ -905,19 +905,19 @@ MaybeHandle<String> Factory::NewStringFromTwoByte(const base::uc16* string,
 }
 
 MaybeHandle<String> Factory::NewStringFromTwoByte(
-    ::v8::base::Vector<const base::uc16> string, AllocationType allocation) {
+    ZoneVector<const base::uc16> string, AllocationType allocation) {
   return NewStringFromTwoByte(string.begin(), string.length(), allocation);
 }
 
 MaybeDirectHandle<String> Factory::NewStringFromTwoByte(
-    const ::v8::base::Vector<base::uc16>* string, AllocationType allocation) {
+    const ZoneVector<base::uc16>* string, AllocationType allocation) {
   return NewStringFromTwoByte(string->data(), static_cast<int>(string->size()),
                               allocation);
 }
 
 #if V8_ENABLE_WEBASSEMBLY
 MaybeDirectHandle<String> Factory::NewStringFromTwoByteLittleEndian(
-    ::v8::base::Vector<const base::uc16> str, AllocationType allocation) {
+    ZoneVector<const base::uc16> str, AllocationType allocation) {
 #if defined(V8_TARGET_LITTLE_ENDIAN)
   return NewStringFromTwoByte(str, allocation);
 #elif defined(V8_TARGET_BIG_ENDIAN)
@@ -1729,7 +1729,7 @@ DirectHandle<WasmTypeInfo> Factory::NewWasmTypeInfo(
   // (2) The object visitors need to read the WasmTypeInfo to find tagged
   //     fields in Wasm structs; in the middle of a GC cycle that's only
   //     safe to do if the WTI is in old space.
-  DirectHandle<::v8::base::Vector<Object> supertypes(isolate());
+  DirectHandle<ZoneVector<Object> supertypes(isolate());
   if (opt_parent.is_null()) {
     supertypes.resize(wasm::kMinimumSupertypeArraySize, undefined_value());
   } else {
@@ -2042,7 +2042,7 @@ DirectHandle<WasmArray> Factory::NewWasmArray(wasm::ValueType element_type,
 }
 
 DirectHandle<WasmArray> Factory::NewWasmArrayFromElements(
-    const wasm::ArrayType* type, ::v8::base::Vector<wasm::WasmValue> elements,
+    const wasm::ArrayType* type, ZoneVector<wasm::WasmValue> elements,
     DirectHandle<Map> map) {
   uint32_t length = static_cast<uint32_t>(elements.size());
   Tagged<WasmArray> result = NewWasmArrayUninitialized(length, map);
@@ -2800,7 +2800,7 @@ Handle<HeapNumber> Factory::NewHeapNumberForCodeAssembler(double value) {
 
 Handle<JSObject> Factory::NewError(
     DirectHandle<JSFunction> constructor, MessageTemplate template_index,
-    ::v8::base::Vector<const DirectHandle<Object>> args) {
+    ZoneVector<const DirectHandle<Object>> args) {
   HandleScope scope(isolate());
 
   return scope.CloseAndEscape(ErrorUtils::MakeGenericError(
@@ -2823,7 +2823,7 @@ Handle<JSObject> Factory::NewError(DirectHandle<JSFunction> constructor,
 
 DirectHandle<JSObject> Factory::ShadowRealmNewTypeErrorCopy(
     DirectHandle<Object> original, MessageTemplate template_index,
-    ::v8::base::Vector<const DirectHandle<Object>> args) {
+    ZoneVector<const DirectHandle<Object>> args) {
   return ErrorUtils::ShadowRealmConstructTypeErrorCopy(isolate(), original,
                                                        template_index, args);
 }
@@ -2859,7 +2859,7 @@ DirectHandle<JSObject> Factory::NewSuppressedErrorAtDisposal(
 #define DEFINE_ERROR(NAME, name)                                         \
   Handle<JSObject> Factory::New##NAME(                                   \
       MessageTemplate template_index,                                    \
-      ::v8::base::Vector<const DirectHandle<Object>> args) {                   \
+      ZoneVector<const DirectHandle<Object>> args) {                   \
     return NewError(isolate()->name##_function(), template_index, args); \
   }
 DEFINE_ERROR(Error, error)
@@ -3751,7 +3751,7 @@ DirectHandle<JSUint8ArraySetFromResult> Factory::NewJSUint8ArraySetFromResult(
 
 MaybeDirectHandle<JSBoundFunction> Factory::NewJSBoundFunction(
     DirectHandle<JSReceiver> target_function, DirectHandle<JSAny> bound_this,
-    ::v8::base::Vector<DirectHandle<Object>> bound_args,
+    ZoneVector<DirectHandle<Object>> bound_args,
     DirectHandle<JSPrototype> prototype) {
   DCHECK(IsCallable(*target_function));
   static_assert(Code::kMaxArguments <= FixedArray::kMaxLength);
@@ -3971,7 +3971,7 @@ Handle<String> Factory::SizeToString(size_t value, bool check_cache) {
     result = HeapNumberToString(NewHeapNumber(double_value), value, cache_mode);
   } else {
     char arr[kNumberToStringBufferSize];
-    ::v8::base::Vector<char> buffer(arr, arraysize(arr));
+    ZoneVector<char> buffer(arr, arraysize(arr));
     // Build the string backwards from the least significant digit.
     int i = buffer.length();
     size_t value_copy = value;

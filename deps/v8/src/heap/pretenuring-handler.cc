@@ -287,7 +287,7 @@ void PretenuringHandler::PretenureAllocationSiteOnNextCollection(
     Tagged<AllocationSite> site) {
   if (!allocation_sites_to_pretenure_) {
     allocation_sites_to_pretenure_.reset(
-        new GlobalHandle::v8::base::Vector<AllocationSite>(heap_));
+        new GlobalHandleZoneVector<AllocationSite>(heap_));
   }
   allocation_sites_to_pretenure_->Push(site);
 }

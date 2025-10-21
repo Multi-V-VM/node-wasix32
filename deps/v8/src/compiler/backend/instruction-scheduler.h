@@ -217,7 +217,7 @@ class InstructionScheduler final : public ZoneObject {
 
   Zone* zone_;
   InstructionSequence* sequence_;
-  ::v8::base::Vector<ScheduleGraphNode*> graph_;
+  ZoneVector<ScheduleGraphNode*> graph_;
 
   friend class InstructionSchedulerTester;
 
@@ -227,7 +227,7 @@ class InstructionScheduler final : public ZoneObject {
   // Set of load instructions encountered since the last side effect instruction
   // which will be added as predecessors of the next instruction with side
   // effects.
-  ::v8::base::Vector<ScheduleGraphNode*> pending_loads_;
+  ZoneVector<ScheduleGraphNode*> pending_loads_;
 
   // Live-in register markers are nop instructions which are emitted at the
   // beginning of a basic block so that the register allocator will find a

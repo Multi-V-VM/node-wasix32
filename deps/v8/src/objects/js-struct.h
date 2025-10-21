@@ -50,7 +50,7 @@ class JSSharedStruct
  public:
   static DirectHandle<Map> CreateInstanceMap(
       Isolate* isolate,
-      const ::v8::base::Vector<const DirectHandle<Name>> field_names,
+      const ZoneVector<const DirectHandle<Name>> field_names,
       const std::set<uint32_t>& element_names,
       MaybeDirectHandle<String> maybe_registry_key);
 
@@ -85,7 +85,7 @@ class SharedStructTypeRegistry final {
 
   MaybeDirectHandle<Map> Register(
       Isolate* isolate, Handle<String> key,
-      const ::v8::base::Vector<const DirectHandle<Name>> field_names,
+      const ZoneVector<const DirectHandle<Name>> field_names,
       const std::set<uint32_t>& element_names);
 
   void IterateElements(Isolate* isolate, RootVisitor* visitor);
@@ -96,12 +96,12 @@ class SharedStructTypeRegistry final {
 
   MaybeDirectHandle<Map> RegisterNoThrow(
       Isolate* isolate, Handle<String> key,
-      const ::v8::base::Vector<const DirectHandle<Name>> field_names,
+      const ZoneVector<const DirectHandle<Name>> field_names,
       const std::set<uint32_t>& element_names);
 
   MaybeDirectHandle<Map> CheckIfEntryMatches(
       Isolate* isolate, InternalIndex entry, DirectHandle<String> key,
-      const ::v8::base::Vector<const DirectHandle<Name>> field_names,
+      const ZoneVector<const DirectHandle<Name>> field_names,
       const std::set<uint32_t>& element_names);
 
   void EnsureCapacity(PtrComprCageBase cage_base, int additional_elements);

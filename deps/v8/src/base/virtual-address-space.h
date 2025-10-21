@@ -1,23 +1,17 @@
+#ifndef V8_BASE_VIRTUAL_ADDRESS_SPACE_H_
+#define V8_BASE_VIRTUAL_ADDRESS_SPACE_H_
+
 #ifdef __wasi__
-#include "../../include/v8-platform-full.h"
+#include "include/v8-platform.h"
 namespace v8 { namespace internal {
 using Address = uintptr_t;
-// constexpr Address kNullAddress = 0;
-// Provide a stub class that reuses the public v8::VirtualAddressSpace API
 class VirtualAddressSpace : public ::v8::VirtualAddressSpace {
  public:
   using ::v8::VirtualAddressSpace::VirtualAddressSpace;
 };
 class VirtualAddressSubspace {};
 } }  // namespace v8::internal
-// NON_EXPORTED_BASE is already defined in compiler-specific.h
 #else
-// Copyright 2021 the V8 project authors. All rights reserved.
-// Use of this source code is governed by a BSD-style license that can be
-// found in the LICENSE file.
-
-#ifndef V8_BASE_VIRTUAL_ADDRESS_SPACE_H_
-#define V8_BASE_VIRTUAL_ADDRESS_SPACE_H_
 
 #include "include/v8-platform.h"
 #include "src/base/base-export.h"
@@ -183,5 +177,5 @@ class V8_BASE_EXPORT VirtualAddressSubspace : public VirtualAddressSpaceBase {
 
 }  // namespace base
 }  // namespace v8
+#endif  // __wasi__
 #endif  // V8_BASE_VIRTUAL_ADDRESS_SPACE_H_
-#endif // __wasi__

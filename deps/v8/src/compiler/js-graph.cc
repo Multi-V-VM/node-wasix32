@@ -291,7 +291,7 @@ DEFINE_GETTER(EmptyStateValues, UntaggedT,
 DEFINE_GETTER(
     SingleDeadTypedStateValues, UntaggedT,
     graph()->NewNode(common()->TypedStateValues(
-        graph()->zone()->New<::v8::base::Vector<MachineType>>(0, graph()->zone()),
+        graph()->zone()->New<ZoneVector<MachineType>>(0, graph()->zone()),
         SparseInputMask(SparseInputMask::kEndMarker << 1))))
 
 DEFINE_GETTER(ExternalObjectMapConstant, Map,

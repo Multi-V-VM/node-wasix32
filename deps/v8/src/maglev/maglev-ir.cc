@@ -6627,7 +6627,7 @@ namespace {
 template <typename NodeT>
 void GenerateTransitionElementsKind(
     MaglevAssembler* masm, NodeT* node, Register object, Register map,
-    ::v8::base::Vector<const compiler::MapRef> transition_sources,
+    ZoneVector<const compiler::MapRef> transition_sources,
     const compiler::MapRef transition_target, ZoneLabelRef done,
     std::optional<Register> result_opt) {
   DCHECK(!compiler::AnyMapIsHeapNumber(transition_sources));

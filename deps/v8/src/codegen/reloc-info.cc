@@ -202,8 +202,8 @@ RelocIterator::RelocIterator(EmbeddedData* embedded_data, Tagged<Code> code,
                     code->constant_pool(), code->relocation_end(),
                     code->relocation_start(), mode_mask) {}
 
-RelocIterator::RelocIterator(::v8::base::Vector<uint8_t> instructions,
-                             ::v8::base::Vector<const uint8_t> reloc_info,
+RelocIterator::RelocIterator(ZoneVector<uint8_t> instructions,
+                             ZoneVector<const uint8_t> reloc_info,
                              Address const_pool, int mode_mask)
     : RelocIterator(reinterpret_cast<Address>(instructions.begin()), const_pool,
                     reloc_info.begin() + reloc_info.size(), reloc_info.begin(),
@@ -227,8 +227,8 @@ WritableRelocIterator::WritableRelocIterator(
           istream->unchecked_relocation_info()->begin(), mode_mask) {}
 
 WritableRelocIterator::WritableRelocIterator(
-    WritableJitAllocation& jit_allocation, ::v8::base::Vector<uint8_t> instructions,
-    ::v8::base::Vector<const uint8_t> reloc_info, Address constant_pool,
+    WritableJitAllocation& jit_allocation, ZoneVector<uint8_t> instructions,
+    ZoneVector<const uint8_t> reloc_info, Address constant_pool,
     int mode_mask)
     : RelocIteratorBase<WritableRelocInfo>(
           WritableRelocInfo(jit_allocation,

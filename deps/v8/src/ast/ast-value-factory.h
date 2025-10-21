@@ -102,7 +102,7 @@ class AstRawString final : public ZoneObject {
   friend Zone;
 
   // Members accessed only by the AstValueFactory & related classes:
-  AstRawString(bool is_one_byte, ::v8::base::Vector<const uint8_t> literal_bytes,
+  AstRawString(bool is_one_byte, ZoneVector<const uint8_t> literal_bytes,
                uint32_t raw_hash_field)
       : next_(nullptr),
         literal_bytes_(literal_bytes),
@@ -131,7 +131,7 @@ class AstRawString final : public ZoneObject {
     IndirectHandle<String> string_;
   };
 
-  ::v8::base::Vector<const uint8_t> literal_bytes_;  // Memory owned by Zone.
+  ZoneVector<const uint8_t> literal_bytes_;  // Memory owned by Zone.
   uint32_t raw_hash_field_;
   bool is_one_byte_;
 #ifdef DEBUG
@@ -373,11 +373,12 @@ class AstValueFactory {
     return single_parse_zone_;
   }
 
-  const AstRawString* GetOneByteString(::v8::base::Vector<const uint8_t> literal) {
+  const AstRawString* GetOneByteString(ZoneVector<const uint8_t> literal) {
     return GetOneByteStringInternal(literal);
   }
   const AstRawString* GetOneByteString(const char* string) {
-    return GetOneByteString(::v8::base::OneByteVector(string));
+    return GetOneByteString(ZoneVector<const uint8_t>(
+        ::v8::base::OneByteVector(string)));
   }
   const AstRawString* GetTwoByteString(Vector<const uint16_t> literal) {
     return GetTwoByteStringInternal(literal);
@@ -413,11 +414,11 @@ class AstValueFactory {
     strings_end_ = &strings_;
   }
   V8_EXPORT_PRIVATE const AstRawString* GetOneByteStringInternal(
-      ::v8::base::Vector<const uint8_t> literal);
+      ZoneVector<const uint8_t> literal);
   const AstRawString* GetTwoByteStringInternal(
       Vector<const uint16_t> literal);
   const AstRawString* GetString(uint32_t raw_hash_field, bool is_one_byte,
-                                ::v8::base::Vector<const uint8_t> literal_bytes);
+                                ZoneVector<const uint8_t> literal_bytes);
 
   // All strings are copied here.
   AstRawStringMap string_table_;

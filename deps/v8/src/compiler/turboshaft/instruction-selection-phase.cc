@@ -50,9 +50,9 @@ void TraceSequence(OptimizedCompilationInfo* info,
 
 }  // namespace
 
-::v8::base::Vector<uint32_t> TurboshaftSpecialRPONumberer::ComputeSpecialRPO() {
-  ::v8::base::Vector<SpecialRPOStackFrame> stack(zone());
-  ::v8::base::Vector<Backedge> backedges(zone());
+ZoneVector<uint32_t> TurboshaftSpecialRPONumberer::ComputeSpecialRPO() {
+  ZoneVector<SpecialRPOStackFrame> stack(zone());
+  ZoneVector<Backedge> backedges(zone());
   // Determined empirically on a large Wasm module. Since they are allocated
   // only once per function compilation, the memory usage is not critical.
   stack.reserve(64);
@@ -202,8 +202,8 @@ void TraceSequence(OptimizedCompilationInfo* info,
 
 // Computes loop membership from the backedges of the control flow graph.
 void TurboshaftSpecialRPONumberer::ComputeLoopInfo(
-    size_t num_loops, ::v8::base::Vector<Backedge>& backedges) {
-  ::v8::base::Vector<const Block*> stack(zone());
+    size_t num_loops, ZoneVector<Backedge>& backedges) {
+  ZoneVector<const Block*> stack(zone());
 
   // Extend loop information vector.
   loops_.resize(num_loops, LoopInfo{});
@@ -243,9 +243,9 @@ void TurboshaftSpecialRPONumberer::ComputeLoopInfo(
   }
 }
 
-::v8::base::Vector<uint32_t> TurboshaftSpecialRPONumberer::ComputeBlockPermutation(
+ZoneVector<uint32_t> TurboshaftSpecialRPONumberer::ComputeBlockPermutation(
     const Block* entry) {
-  ::v8::base::Vector<uint32_t> result(graph_->block_count(), zone());
+  ZoneVector<uint32_t> result(graph_->block_count(), zone());
   size_t i = 0;
   for (const Block* b = entry; b; b = block_data_[b->index()].rpo_next) {
     result[i++] = b->index().id();

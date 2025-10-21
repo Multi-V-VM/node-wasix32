@@ -75,10 +75,10 @@ class Utf8DecoderBase {
   }
 
   template <typename Char>
-  void Decode(Char* out, ::v8::base::Vector<const uint8_t> data);
+  void Decode(Char* out, ZoneVector<const uint8_t> data);
 
  protected:
-  explicit Utf8DecoderBase(::v8::base::Vector<const uint8_t> data);
+  explicit Utf8DecoderBase(ZoneVector<const uint8_t> data);
   Encoding encoding_;
   int non_ascii_start_;
   int utf16_length_;
@@ -87,7 +87,7 @@ class Utf8DecoderBase {
 class V8_EXPORT_PRIVATE Utf8Decoder final
     : public Utf8DecoderBase<Utf8Decoder> {
  public:
-  explicit Utf8Decoder(::v8::base::Vector<const uint8_t> data)
+  explicit Utf8Decoder(ZoneVector<const uint8_t> data)
       : Utf8DecoderBase(data) {}
 
   // This decoder never fails; an invalid byte sequence decodes to U+FFFD and
@@ -104,7 +104,7 @@ class V8_EXPORT_PRIVATE Utf8Decoder final
 // isolated surrogates.
 class Wtf8Decoder : public Utf8DecoderBase<Wtf8Decoder> {
  public:
-  explicit Wtf8Decoder(::v8::base::Vector<const uint8_t> data)
+  explicit Wtf8Decoder(ZoneVector<const uint8_t> data)
       : Utf8DecoderBase(data) {}
 
   bool is_invalid() const { return encoding_ == Encoding::kInvalid; }
@@ -114,7 +114,7 @@ class Wtf8Decoder : public Utf8DecoderBase<Wtf8Decoder> {
 // with U+FFFD, we have a separate Encoding::kInvalid state.
 class StrictUtf8Decoder : public Utf8DecoderBase<StrictUtf8Decoder> {
  public:
-  explicit StrictUtf8Decoder(::v8::base::Vector<const uint8_t> data)
+  explicit StrictUtf8Decoder(ZoneVector<const uint8_t> data)
       : Utf8DecoderBase(data) {}
 
   bool is_invalid() const { return encoding_ == Encoding::kInvalid; }

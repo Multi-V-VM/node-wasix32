@@ -3356,9 +3356,9 @@ void Assembler::GrowBuffer() {
   // Relocate pc-relative references.
   int mode_mask = RelocInfo::ModeMask(RelocInfo::OFF_HEAP_TARGET);
   DCHECK_EQ(mode_mask, RelocInfo::kApplyMask & mode_mask);
-  ::v8::base::Vector<uint8_t> instructions{buffer_start_,
+  ZoneVector<uint8_t> instructions{buffer_start_,
                                      static_cast<size_t>(pc_offset())};
-  ::v8::base::Vector<const uint8_t> reloc_info{reloc_info_writer.pos(), reloc_size};
+  ZoneVector<const uint8_t> reloc_info{reloc_info_writer.pos(), reloc_size};
   WritableJitAllocation jit_allocation =
       WritableJitAllocation::ForNonExecutableMemory(
           reinterpret_cast<Address>(instructions.begin()), instructions.size(),

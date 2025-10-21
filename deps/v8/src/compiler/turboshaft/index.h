@@ -53,7 +53,7 @@ class OpIndex {
   constexpr OpIndex() : offset_(std::numeric_limits<uint32_t>::max()) {}
   template <typename T, typename C>
   OpIndex(const ConstOrV<T, C>&) {  // NOLINT(runtime/explicit)
-    static_assert(base::tmp::lazy_false<T>::value,
+    static_assert(::v8::base::tmp::lazy_false<T>::value,
                   "Cannot initialize OpIndex from ConstOrV<>. Did you forget "
                   "to resolve() it in the assembler?");
   }
@@ -244,14 +244,14 @@ struct FrameState : public InternalTag {};
 // TODO(nicohartmann@): We should think about a more uniform solution some day.
 template <typename... Ts>
 struct UntaggedUnion : public Any {
-  using to_list_t = base::tmp::list<Ts...>;
+  using to_list_t = ::v8::base::tmp::list<Ts...>;
 };
 
 template <typename... Ts>
 struct Tuple : public Any {
-  using to_list_t = base::tmp::list<Ts...>;
+  using to_list_t = ::v8::base::tmp::list<Ts...>;
   template <int Index>
-  using element_t = base::tmp::element_t<to_list_t, Index>;
+  using element_t = ::v8::base::tmp::element_t<to_list_t, Index>;
 };
 
 // Traits classes `v_traits<T>` to provide additional T-specific information for
@@ -466,12 +466,12 @@ struct RepresentationForUnion<UntaggedUnion<T, Ts...>>
   struct to_rep_type {
     using type = typename v_traits<U>::rep_type;
   };
-  using rep_types = base::tmp::map_t<to_rep_type, base::tmp::list<T, Ts...>>;
+  using rep_types = ::v8::base::tmp::map_t<to_rep_type, ::v8::base::tmp::list<T, Ts...>>;
 
  public:
   using rep_type =
-      std::conditional_t<base::tmp::contains_v<rep_types, nullrep_t>, nullrep_t,
-                         std::conditional_t<base::tmp::all_equal_v<rep_types>,
+      std::conditional_t<::v8::base::tmp::contains_v<rep_types, nullrep_t>, nullrep_t,
+                         std::conditional_t<::v8::base::tmp::all_equal_v<rep_types>,
                                             typename v_traits<T>::rep_type,
                                             RegisterRepresentation>>;
 };
@@ -821,41 +821,41 @@ class ShadowyOpIndex : public OpIndex {
 
 // Similarly to how `ShadowyOpIndex` is a wrapper around `OpIndex` that allows
 // arbitrary conversion to `V<>`, `ShadowyOpIndexVectorWrapper` is a wrapper
-// around `::v8::base::Vector<const OpIndex>` that allows implicit conversion to
-// `::v8::base::Vector<const V<U>>` for any `U`.
+// around `ZoneVector<const OpIndex>` that allows implicit conversion to
+// `ZoneVector<const V<U>>` for any `U`.
 class ShadowyOpIndexVectorWrapper {
  public:
   template <typename T>
   ShadowyOpIndexVectorWrapper(
-      ::v8::base::Vector<const V<T>> indices)  // NOLINT(runtime/explicit)
+      ZoneVector<const V<T>> indices)  // NOLINT(runtime/explicit)
       : indices_(indices.data(), indices.size()) {}
   ShadowyOpIndexVectorWrapper(
-      ::v8::base::Vector<const OpIndex> indices)  // NOLINT(runtime/explicit)
+      ZoneVector<const OpIndex> indices)  // NOLINT(runtime/explicit)
       : indices_(indices) {}
   template <typename T>
   ShadowyOpIndexVectorWrapper(
-      ::v8::base::Vector<V<T>> indices)  // NOLINT(runtime/explicit)
+      ZoneVector<V<T>> indices)  // NOLINT(runtime/explicit)
       : indices_(indices.data(), indices.size()) {}
   ShadowyOpIndexVectorWrapper(
-      ::v8::base::Vector<OpIndex> indices)  // NOLINT(runtime/explicit)
+      ZoneVector<OpIndex> indices)  // NOLINT(runtime/explicit)
       : indices_(indices) {}
 
-  operator ::v8::base::Vector<const OpIndex>() const {  // NOLINT(runtime/explicit)
+  operator ZoneVector<const OpIndex>() const {  // NOLINT(runtime/explicit)
     return indices_;
   }
   template <typename U>
-  operator ::v8::base::Vector<V<U>>() const {  // NOLINT(runtime/explicit)
-    return ::v8::base::Vector<V<U>>{indices_.data(), indices_.size()};
+  operator ZoneVector<V<U>>() const {  // NOLINT(runtime/explicit)
+    return ZoneVector<V<U>>{indices_.data(), indices_.size()};
   }
   template <typename U>
-  operator ::v8::base::Vector<const V<U>>() const {  // NOLINT(runtime/explicit)
+  operator ZoneVector<const V<U>>() const {  // NOLINT(runtime/explicit)
     return {static_cast<const V<U>*>(indices_.data()), indices_.size()};
   }
 
   size_t size() const noexcept { return indices_.size(); }
 
  private:
-  ::v8::base::Vector<const OpIndex> indices_;
+  ZoneVector<const OpIndex> indices_;
 };
 
 // `BlockIndex` is the index of a bound block.

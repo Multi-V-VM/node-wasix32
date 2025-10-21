@@ -209,7 +209,7 @@ PackNode* SLPTree::GetPackNode(OpIndex node) {
   return analyzer_->GetPackNode(node);
 }
 
-::v8::base::Vector<PackNode*>* SLPTree::GetIntersectPackNodes(OpIndex node) {
+ZoneVector<PackNode*>* SLPTree::GetIntersectPackNodes(OpIndex node) {
   auto I = node_to_intersect_packnodes_.find(node);
   if (I != node_to_intersect_packnodes_.end()) {
     return &(I->second);
@@ -235,7 +235,7 @@ void ForEach(FunctionType callback,
 
 template <typename FunctionType>
 void ForEach(FunctionType callback,
-             const ZoneUnorderedMap<OpIndex, ::v8::base::Vector<PackNode*>>& node_map) {
+             const ZoneUnorderedMap<OpIndex, ZoneVector<PackNode*>>& node_map) {
   absl::flat_hash_set<PackNode const*> visited;
 
   for (const auto& entry : node_map) {
@@ -373,7 +373,7 @@ PackNode* SLPTree::NewIntersectPackNode(const NodeGroup& node_group) {
     if (it == node_to_intersect_packnodes_.end()) {
       bool result;
       std::tie(it, result) = node_to_intersect_packnodes_.emplace(
-          op_idx, ::v8::base::Vector<PackNode*>(phase_zone_));
+          op_idx, ZoneVector<PackNode*>(phase_zone_));
       DCHECK(result);
     }
     it->second.push_back(intersect_pnode);
@@ -1313,10 +1313,10 @@ void WasmRevecAnalyzer::MergeSLPTree(SLPTree& slp_tree) {
     if (it == revectorizable_intersect_node_.end()) {
       bool result;
       std::tie(it, result) = revectorizable_intersect_node_.emplace(
-          entry.first, ::v8::base::Vector<PackNode*>(phase_zone_));
+          entry.first, ZoneVector<PackNode*>(phase_zone_));
       DCHECK(result);
     }
-    ::v8::base::Vector<PackNode*>& intersect_pnodes = it->second;
+    ZoneVector<PackNode*>& intersect_pnodes = it->second;
     intersect_pnodes.insert(intersect_pnodes.end(), entry.second.begin(),
                             entry.second.end());
     SLOW_DCHECK(std::unique(intersect_pnodes.begin(), intersect_pnodes.end()) ==
@@ -1421,7 +1421,7 @@ void WasmRevecAnalyzer::Run() {
     }
   }
 
-  ::v8::base::Vector<std::pair<OpIndex, OpIndex>> all_seeds(
+  ZoneVector<std::pair<OpIndex, OpIndex>> all_seeds(
       store_seeds_.begin(), store_seeds_.end(), phase_zone_);
   all_seeds.insert(all_seeds.end(), reduce_seeds_.begin(), reduce_seeds_.end());
 

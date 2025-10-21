@@ -122,7 +122,7 @@ void OptimizingCompileTaskExecutor::EnsureInitialized() {
     }
 
     task_states_ =
-        base::Owned::v8::base::Vector<OptimizingCompileTaskState>::New(max_tasks);
+        base::OwnedZoneVector<OptimizingCompileTaskState>::New(max_tasks);
     job_handle_ = V8::GetCurrentPlatform()->PostJob(
         kTaskPriority, std::make_unique<CompileTask>(this));
   }

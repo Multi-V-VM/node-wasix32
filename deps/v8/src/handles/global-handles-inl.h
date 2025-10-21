@@ -24,18 +24,18 @@ IndirectHandle<T> GlobalHandles::Create(Tagged<T> value) {
 }
 
 template <typename T>
-Tagged<T> GlobalHandle::v8::base::Vector<T>::Pop() {
+Tagged<T> GlobalHandleZoneVector<T>::Pop() {
   Tagged<T> obj = Cast<T>(Tagged<Object>(locations_.back()));
   locations_.pop_back();
   return obj;
 }
 
 template <typename T>
-GlobalHandle::v8::base::Vector<T>::GlobalHandleVector(LocalHeap* local_heap)
+GlobalHandleZoneVector<T>::GlobalHandleVector(LocalHeap* local_heap)
     : GlobalHandleVector(local_heap->AsHeap()) {}
 
 template <typename T>
-GlobalHandle::v8::base::Vector<T>::GlobalHandleVector(Heap* heap)
+GlobalHandleZoneVector<T>::GlobalHandleVector(Heap* heap)
     : locations_(StrongRootAllocator<Address>(heap)) {}
 
 }  // namespace internal

@@ -763,7 +763,7 @@ RUNTIME_FUNCTION(Runtime_DoubleToStringWithRadix) {
   CHECK(Object::ToInt32(args[1], &radix));
 
   char chars[kDoubleToRadixMaxChars];
-  ::v8::base::Vector<char> buffer = base::ArrayVector(chars);
+  ZoneVector<char> buffer = base::ArrayVector(chars);
   std::string_view str = DoubleToRadixStringView(number, radix, buffer);
   DirectHandle<String> result =
       isolate->factory()->NewStringFromAsciiChecked(str);

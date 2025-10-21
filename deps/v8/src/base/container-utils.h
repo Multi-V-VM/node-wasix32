@@ -143,5 +143,22 @@ inline void vector_append(V& v, const C& container) {
 
 }  // namespace v8::base
 
+#ifdef __wasi__
+// Bring container utilities into v8::internal::base
+namespace v8 {
+namespace internal {
+namespace base {
+using ::v8::base::all_of;
+using ::v8::base::any_of;
+using ::v8::base::none_of;
+using ::v8::base::sort;
+using ::v8::base::count_if;
+using ::v8::base::erase_if;
+// Bring iterator utilities
+using ::v8::base::DerefPtrIterator;
+}  // namespace base
+}  // namespace internal
+}  // namespace v8
+#endif
 
 #endif  // V8_BASE_CONTAINER_UTILS_H_

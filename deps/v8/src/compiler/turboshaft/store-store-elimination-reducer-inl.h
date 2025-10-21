@@ -161,7 +161,7 @@ class MaybeRedundantStoresTable
     // successors.
     StartNewSnapshot(
         base::VectorOf(successor_snapshots_),
-        [](Key, ::v8::base::Vector<const StoreObservability> successors) {
+        [](Key, ZoneVector<const StoreObservability> successors) {
           return static_cast<StoreObservability>(
               *std::max_element(successors.begin(), successors.end()));
         });
@@ -228,7 +228,7 @@ class MaybeRedundantStoresTable
       *snapshot_has_changed = false;
       StartNewSnapshot(
           base::VectorOf({snapshot.value(), new_snapshot}),
-          [&](Key key, ::v8::base::Vector<const StoreObservability> successors) {
+          [&](Key key, ZoneVector<const StoreObservability> successors) {
             DCHECK_LE(successors[0], successors[1]);
             if (successors[0] != successors[1]) *snapshot_has_changed = true;
             return static_cast<StoreObservability>(
@@ -274,7 +274,7 @@ class MaybeRedundantStoresTable
   const Block* current_block_ = nullptr;
   // {successor_snapshots_} and {temp_key_vector_} are used as temporary vectors
   // inside functions. We store them as members to avoid reallocation.
-  ::v8::base::Vector<Snapshot> successor_snapshots_;
+  ZoneVector<Snapshot> successor_snapshots_;
 };
 
 class RedundantStoreAnalysis {

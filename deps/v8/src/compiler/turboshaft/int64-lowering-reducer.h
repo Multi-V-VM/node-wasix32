@@ -149,7 +149,7 @@ class Int64LoweringReducer : public Next {
   }
 
   V<Any> REDUCE(Call)(V<CallTarget> callee, OptionalV<FrameState> frame_state,
-                      ::v8::base::Vector<const OpIndex> arguments,
+                      ZoneVector<const OpIndex> arguments,
                       const TSCallDescriptor* descriptor, OpEffects effects) {
     const bool is_tail_call = false;
     return LowerCall(callee, frame_state, arguments, descriptor, effects,
@@ -157,7 +157,7 @@ class Int64LoweringReducer : public Next {
   }
 
   OpIndex REDUCE(TailCall)(OpIndex callee,
-                           ::v8::base::Vector<const OpIndex> arguments,
+                           ZoneVector<const OpIndex> arguments,
                            const TSCallDescriptor* descriptor) {
     const bool is_tail_call = true;
     OptionalV<FrameState> frame_state = OptionalV<FrameState>::Nullopt();
@@ -199,7 +199,7 @@ class Int64LoweringReducer : public Next {
   }
 
   V<None> REDUCE(Return)(V<Word32> pop_count,
-                         ::v8::base::Vector<const OpIndex> return_values,
+                         ZoneVector<const OpIndex> return_values,
                          bool spill_caller_frame_slots) {
     if (!returns_i64_) {
       return Next::ReduceReturn(pop_count, return_values,
@@ -425,7 +425,7 @@ class Int64LoweringReducer : public Next {
                     __ Word32Constant(0));
   }
 
-  OpIndex REDUCE(Phi)(::v8::base::Vector<const OpIndex> inputs,
+  OpIndex REDUCE(Phi)(ZoneVector<const OpIndex> inputs,
                       RegisterRepresentation rep) {
     if (rep == RegisterRepresentation::Word64()) {
       base::SmallVector<OpIndex, 8> inputs_low;
@@ -528,7 +528,7 @@ class Int64LoweringReducer : public Next {
   }
 
   V<turboshaft::FrameState> REDUCE(FrameState)(
-      ::v8::base::Vector<const OpIndex> inputs, bool inlined,
+      ZoneVector<const OpIndex> inputs, bool inlined,
       const FrameStateData* data) {
     bool has_int64_input = false;
 
@@ -773,7 +773,7 @@ class Int64LoweringReducer : public Next {
   }
 
   V<Any> LowerCall(V<CallTarget> callee, OptionalV<FrameState> frame_state,
-                   ::v8::base::Vector<const OpIndex> arguments,
+                   ZoneVector<const OpIndex> arguments,
                    const TSCallDescriptor* descriptor, OpEffects effects,
                    bool is_tail_call) {
     // Iterate over the call descriptor to skip lowering if the signature does
@@ -903,7 +903,7 @@ class Int64LoweringReducer : public Next {
 
   const Signature<MachineRepresentation>* sig_;
   Zone* zone_ = __ graph_zone();
-  ::v8::base::Vector<int32_t> param_index_map_{__ phase_zone()};
+  ZoneVector<int32_t> param_index_map_{__ phase_zone()};
   bool returns_i64_ = false;  // Returns at least one i64.
   const OperationMatcher& matcher_{__ matcher()};
 };

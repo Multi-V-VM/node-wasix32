@@ -19,13 +19,29 @@
 #include "src/base/macros.h"
 #include "src/base/strong-alias.h"
 #include "src/base/template-utils.h"
+#include "src/base/template-meta-programming/list.h"
+#include "src/base/template-meta-programming/functional.h"
+#include "src/base/template-meta-programming/string-literal.h"
 #include "src/base/atomic-utils.h"
+#include "src/base/vlq.h"
+#include "src/base/vlq-base64.h"
 #include "src/base/platform/time.h"
 #include "src/base/vector.h"
+#include "src/base/hashing.h"
 #include "src/base/small-vector.h"
+#include "src/base/bits-iterator.h"
+#include "src/base/division-by-constant.h"
+#include "src/base/overflowing-math.h"
+#include "src/base/ieee754.h"
 
 // WASI 兼容性修复
 #ifdef __wasi__
+#ifdef V8_TARGET_ARCH_IA32
+#undef V8_TARGET_ARCH_IA32
+#endif
+#ifndef V8_TARGET_ARCH_WASM32
+#define V8_TARGET_ARCH_WASM32 1
+#endif
 #include "../../../../wasi-v8-essential-constants.h"
 #include "wasi/concepts-fix.h"
 #endif
@@ -46,29 +62,64 @@ class ConditionVariable;
 
 namespace internal {
 
+// In many src/* files, references to `v8::...` appear inside the
+// `v8::internal` namespace. Provide a namespace alias so that
+// `v8::internal::v8::...` resolves to the global `::v8::...` and
+// unqualified `v8::...` inside this namespace also resolves correctly.
+namespace v8 = ::v8;
+
 // Bridge commonly used ::v8::base symbols into v8::internal::base to satisfy
 // code referencing internal::base::...
 namespace base {
 using ::v8::base::TimeTicks;
 using ::v8::base::TimeDelta;
 using ::v8::base::SmallVector;
+using ::v8::base::double_to_uint64;
+template <typename T>
+using ScopedZoneVector = ::v8::base::ScopedZoneVector<T>;
 using ::v8::base::Vector;
 using ::v8::base::VectorOf;
 using ::v8::base::make_array;
 using ::v8::base::AtomicWord;
 using ::v8::base::AsAtomicWord;
 using ::v8::base::AsAtomicPointer;
+using ::v8::base::AsAtomicPtr;
+using ::v8::base::CheckedIncrement;
+using ::v8::base::CheckedDecrement;
+using ::v8::base::Acquire_Load;
+using ::v8::base::Release_Store;
+using ::v8::base::MagicNumbersForDivision;
+using ::v8::base::SignedDivisionByConstant;
+using ::v8::base::UnsignedDivisionByConstant;
+using ::v8::base::Divide;
+using ::v8::base::MulWithWraparound;
+using ::v8::base::AddWithWraparound;
+using ::v8::base::SubWithWraparound;
+using ::v8::base::NegateWithWraparound;
+using ::v8::base::ShlWithWraparound;
+using ::v8::base::IsValueInRangeForNumericType;
+namespace ieee754 = ::v8::base::ieee754;
 using ::v8::base::PrintCheckOperand;
 using ::v8::base::ConditionVariable;
+using ::v8::base::HexValue;
+using ::v8::base::checked_cast;
+using ::v8::base::VLQBase64Decode;
+using ::v8::base::hash_combine;
+using ::std::all_of;
+using ::std::sort;
+
+template <typename T>
+using OwnedZoneVector = ::v8::base::OwnedVector<T>;
+using ::v8::base::VLQEncodeUnsigned;
 template<typename T, typename S = int>
 using EnumSet = ::v8::base::EnumSet<T, S>;
-template<typename T> using hash = ::std::hash<T>;
+template<typename T> using hash = ::v8::base::hash<T>;
 using ::v8::base::hash_range;
 template <typename T, typename U = int, typename V = U>
 using Flags = ::v8::base::Flags<T, U, V>;
 
+
 namespace bits {
-// Selectively expose commonly-used helpers to avoid ambiguous overloads.
 using ::v8::base::bits::RoundUpToPowerOfTwo32;
 using ::v8::base::bits::RoundUpToPowerOfTwo64;
 using ::v8::base::bits::RoundUpToPowerOfTwo;
@@ -79,8 +130,16 @@ using ::v8::base::bits::CountPopulation;
 using ::v8::base::bits::SignedSaturatedAdd64;
 using ::v8::base::bits::SignedSaturatedSub64;
 using ::v8::base::bits::IsPowerOfTwo;
+using ::v8::base::bits::IterateBits;
+using ::v8::base::bits::IterateBitsBackwards;
+using ::v8::base::bits::RotateRight32;
+using ::v8::base::bits::RotateLeft32;
+using ::v8::base::bits::RotateRight64;
+using ::v8::base::bits::RotateLeft64;
 }  // namespace bits
 }  // namespace base
+
+// (DefaultAllocationPolicy is imported above via using-declaration.)
 
 #define V8_INFINITY std::numeric_limits<double>::infinity()
 
@@ -2549,9 +2608,9 @@ enum class DefineKeyedOwnPropertyInLiteralFlag {
   kNoFlags = 0,
   kSetFunctionName = 1 << 0
 };
-// using DefineKeyedOwnPropertyInLiteralFlag =
-//     ::v8::base::Flags<DefineKeyedOwnPropertyInLiteralFlag>;
-// DEFINE_OPERATORS_FOR_FLAGS(DefineKeyedOwnPropertyInLiteralFlag)
+using DefineKeyedOwnPropertyInLiteralFlags =
+    ::v8::base::Flags<DefineKeyedOwnPropertyInLiteralFlag>;
+DEFINE_OPERATORS_FOR_FLAGS(DefineKeyedOwnPropertyInLiteralFlags)
 
 enum class DefineKeyedOwnPropertyFlag {
   kNoFlags = 0,

@@ -299,7 +299,7 @@ std::vector<std::shared_ptr<NativeModule>>* native_modules_kept_alive_for_pgo;
 }  // namespace
 
 std::shared_ptr<NativeModule> NativeModuleCache::MaybeGetNativeModule(
-    ModuleOrigin origin, ::v8::base::Vector<const uint8_t> wire_bytes,
+    ModuleOrigin origin, ZoneVector<const uint8_t> wire_bytes,
     const CompileTimeImports& compile_imports) {
   if (!v8_flags.wasm_native_module_cache) return nullptr;
   if (origin != kWasmOrigin) return nullptr;
@@ -368,7 +368,7 @@ std::shared_ptr<NativeModule> NativeModuleCache::Update(
   DCHECK_NOT_NULL(native_module);
   if (!v8_flags.wasm_native_module_cache) return native_module;
   if (native_module->module()->origin != kWasmOrigin) return native_module;
-  ::v8::base::Vector<const uint8_t> wire_bytes = native_module->wire_bytes();
+  ZoneVector<const uint8_t> wire_bytes = native_module->wire_bytes();
   DCHECK(!wire_bytes.empty());
   size_t prefix_hash = PrefixHash(native_module->wire_bytes());
   base::MutexGuard lock(&mutex_);
@@ -415,7 +415,7 @@ void NativeModuleCache::Erase(NativeModule* native_module) {
 }
 
 // static
-size_t NativeModuleCache::PrefixHash(::v8::base::Vector<const uint8_t> wire_bytes) {
+size_t NativeModuleCache::PrefixHash(ZoneVector<const uint8_t> wire_bytes) {
   // Compute the hash as a combined hash of the sections up to the code section
   // header, to mirror the way streaming compilation does it.
   Decoder decoder(wire_bytes.begin(), wire_bytes.end());
@@ -590,7 +590,7 @@ WasmEngine::~WasmEngine() {
 
 bool WasmEngine::SyncValidate(Isolate* isolate, WasmEnabledFeatures enabled,
                               CompileTimeImports compile_imports,
-                              ::v8::base::Vector<const uint8_t> bytes) {
+                              ZoneVector<const uint8_t> bytes) {
   TRACE_EVENT0("v8.wasm", "wasm.SyncValidate");
   if (bytes.empty()) return false;
 
@@ -608,8 +608,8 @@ bool WasmEngine::SyncValidate(Isolate* isolate, WasmEnabledFeatures enabled,
 
 MaybeHandle<AsmWasmData> WasmEngine::SyncCompileTranslatedAsmJs(
     Isolate* isolate, ErrorThrower* thrower,
-    base::Owned::v8::base::Vector<const uint8_t> bytes, DirectHandle<Script> script,
-    ::v8::base::Vector<const uint8_t> asm_js_offset_table_bytes,
+    base::OwnedZoneVector<const uint8_t> bytes, DirectHandle<Script> script,
+    ZoneVector<const uint8_t> asm_js_offset_table_bytes,
     DirectHandle<HeapNumber> uses_bitset, LanguageMode language_mode) {
   int compilation_id = next_compilation_id_.fetch_add(1);
   TRACE_EVENT1("v8.wasm", "wasm.SyncCompileTranslatedAsmJs", "id",
@@ -675,7 +675,7 @@ DirectHandle<WasmModuleObject> WasmEngine::FinalizeTranslatedAsmJs(
 MaybeDirectHandle<WasmModuleObject> WasmEngine::SyncCompile(
     Isolate* isolate, WasmEnabledFeatures enabled_features,
     CompileTimeImports compile_imports, ErrorThrower* thrower,
-    base::Owned::v8::base::Vector<const uint8_t> bytes) {
+    base::OwnedZoneVector<const uint8_t> bytes) {
   int compilation_id = next_compilation_id_.fetch_add(1);
   TRACE_EVENT1("v8.wasm", "wasm.SyncCompile", "id", compilation_id);
   v8::metrics::Recorder::ContextId context_id =
@@ -728,7 +728,7 @@ MaybeDirectHandle<WasmModuleObject> WasmEngine::SyncCompile(
   }
 #endif
 
-  constexpr ::v8::base::Vector<const char> kNoSourceUrl;
+  constexpr ZoneVector<const char> kNoSourceUrl;
   DirectHandle<Script> script =
       GetOrCreateScript(isolate, native_module, kNoSourceUrl);
 
@@ -797,7 +797,7 @@ void WasmEngine::AsyncCompile(
     Isolate* isolate, WasmEnabledFeatures enabled,
     CompileTimeImports compile_imports,
     std::shared_ptr<CompilationResultResolver> resolver,
-    base::Owned::v8::base::Vector<const uint8_t> bytes,
+    base::OwnedZoneVector<const uint8_t> bytes,
     const char* api_method_name_for_errors) {
   int compilation_id = next_compilation_id_.fetch_add(1);
   TRACE_EVENT1("v8.wasm", "wasm.AsyncCompile", "id", compilation_id);
@@ -958,8 +958,8 @@ void WasmEngine::LeaveDebuggingForIsolate(Isolate* isolate) {
 namespace {
 DirectHandle<Script> CreateWasmScript(
     Isolate* isolate, std::shared_ptr<NativeModule> native_module,
-    ::v8::base::Vector<const char> source_url) {
-  ::v8::base::Vector<const uint8_t> wire_bytes = native_module->wire_bytes();
+    ZoneVector<const char> source_url) {
+  ZoneVector<const uint8_t> wire_bytes = native_module->wire_bytes();
 
   // The source URL of the script is
   // - the original source URL if available (from the streaming API),
@@ -1011,7 +1011,7 @@ DirectHandle<Script> CreateWasmScript(
       WasmDebugSymbols::Type::None) {
     auto source_map_symbols =
         module->debug_symbols[WasmDebugSymbols::Type::SourceMap];
-    ::v8::base::Vector<const char> external_url =
+    ZoneVector<const char> external_url =
         ModuleWireBytes(wire_bytes)
             .GetNameOrNull(source_map_symbols.external_url);
     MaybeDirectHandle<String> src_map_str =
@@ -1068,7 +1068,7 @@ DirectHandle<Script> CreateWasmScript(
 
 DirectHandle<WasmModuleObject> WasmEngine::ImportNativeModule(
     Isolate* isolate, std::shared_ptr<NativeModule> shared_native_module,
-    ::v8::base::Vector<const char> source_url) {
+    ZoneVector<const char> source_url) {
   NativeModule* native_module = shared_native_module.get();
   ModuleWireBytes wire_bytes(native_module->wire_bytes());
   DirectHandle<Script> script =
@@ -1161,7 +1161,7 @@ CodeTracer* WasmEngine::GetCodeTracer() {
 
 AsyncCompileJob* WasmEngine::CreateAsyncCompileJob(
     Isolate* isolate, WasmEnabledFeatures enabled,
-    CompileTimeImports compile_imports, base::Owned::v8::base::Vector<const uint8_t> bytes,
+    CompileTimeImports compile_imports, base::OwnedZoneVector<const uint8_t> bytes,
     DirectHandle<Context> context, const char* api_method_name,
     std::shared_ptr<CompilationResultResolver> resolver, int compilation_id) {
   DirectHandle<NativeContext> incumbent_context =
@@ -1376,7 +1376,7 @@ void WasmEngine::RemoveIsolate(Isolate* isolate) {
   isolates_.erase(isolates_it);
 }
 
-void WasmEngine::LogCode(::v8::base::Vector<WasmCode*> code_vec) {
+void WasmEngine::LogCode(ZoneVector<WasmCode*> code_vec) {
   if (code_vec.empty()) return;
   NativeModule* native_module = code_vec[0]->native_module();
   if (!native_module->log_code()) return;
@@ -1614,7 +1614,7 @@ std::shared_ptr<NativeModule> WasmEngine::NewNativeModule(
 }
 
 std::shared_ptr<NativeModule> WasmEngine::MaybeGetNativeModule(
-    ModuleOrigin origin, ::v8::base::Vector<const uint8_t> wire_bytes,
+    ModuleOrigin origin, ZoneVector<const uint8_t> wire_bytes,
     const CompileTimeImports& compile_imports, Isolate* isolate) {
   TRACE_EVENT1("v8.wasm", "wasm.GetNativeModuleFromCache", "wire_bytes",
                wire_bytes.size());
@@ -1907,7 +1907,7 @@ void WasmEngine::FreeDeadCodeLocked(const DeadCodeMap& dead_code,
 
 DirectHandle<Script> WasmEngine::GetOrCreateScript(
     Isolate* isolate, const std::shared_ptr<NativeModule>& native_module,
-    ::v8::base::Vector<const char> source_url) {
+    ZoneVector<const char> source_url) {
   {
     base::MutexGuard guard(&mutex_);
     DCHECK_EQ(1, isolates_.count(isolate));

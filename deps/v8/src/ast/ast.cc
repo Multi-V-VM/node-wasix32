@@ -246,7 +246,8 @@ std::unique_ptr<char[]> FunctionLiteral::GetDebugName() const {
 
   // TODO(rmcilroy): Deal with two-character strings.
   std::vector<char> result_vec;
-  forward_list<const AstRawString*> strings = cons_string->ToRawStrings();
+  ::std::forward_list<const AstRawString*> strings =
+      cons_string->ToRawStrings();
   for (const AstRawString* string : strings) {
     if (!string->is_one_byte()) break;
     for (int i = 0; i < string->length(); i++) {

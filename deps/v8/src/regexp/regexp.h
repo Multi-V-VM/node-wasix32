@@ -49,7 +49,7 @@ struct RegExpCompileData {
 
   // Only set if the pattern contains named captures.
   // Note: the lifetime equals that of the parse/compile zone.
-  ::v8::base::Vector<RegExpCapture*>* named_captures = nullptr;
+  ZoneVector<RegExpCapture*>* named_captures = nullptr;
 
   // The error message. Only used if an error occurred during parsing or
   // compilation.
@@ -174,7 +174,7 @@ class RegExp final : public AllStatic {
                                  DirectHandle<JSRegExp> regexp);
 
   static DirectHandle<FixedArray> CreateCaptureNameMap(
-      Isolate* isolate, ::v8::base::Vector<RegExpCapture*>* named_captures);
+      Isolate* isolate, ZoneVector<RegExpCapture*>* named_captures);
 };
 
 // Uses a special global mode of irregexp-generated code to perform a global

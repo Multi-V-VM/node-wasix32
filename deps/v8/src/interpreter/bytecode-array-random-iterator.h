@@ -67,7 +67,7 @@ class V8_EXPORT_PRIVATE BytecodeArrayRandomIterator final
   bool IsValid() const;
 
  private:
-  ::v8::base::Vector<int> offsets_;
+  ZoneVector<int> offsets_;
   int current_index_;
 
   void Initialize();

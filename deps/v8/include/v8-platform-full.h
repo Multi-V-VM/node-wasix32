@@ -12,6 +12,9 @@
 
 namespace v8 {
 
+// Forward declarations of type aliases needed by Platform interface
+using StackTracePrinter = void (*)(void);
+
 // Job priorities
 enum class TaskPriority {
   kUserVisible,
@@ -19,6 +22,12 @@ enum class TaskPriority {
   kBestEffort,
   kMaxPriority = kBestEffort
 };
+
+// Priority mode
+enum class PriorityMode { kDontApply, kApply };
+
+// Forward-declare PriorityMode before use
+enum class PriorityMode;
 
 // JobHandle interface
 class JobHandle {
@@ -121,6 +130,16 @@ class Platform {
   static double SystemClockTimeMillis();
   virtual double MonotonicallyIncreasingTime() = 0;
   virtual std::unique_ptr<JobHandle> PostJob(TaskPriority priority, std::unique_ptr<JobTask> job_task) = 0;
+  // Compatibility shim for internal callers expecting CreateJob; forward to PostJob.
+  virtual std::unique_ptr<JobHandle> CreateJob(TaskPriority priority,
+                                               std::unique_ptr<JobTask> job_task,
+                                               PriorityMode /*mode*/) {
+    return PostJob(priority, std::move(job_task));
+  }
+  virtual std::unique_ptr<JobHandle> CreateJob(TaskPriority priority,
+                                               std::unique_ptr<JobTask> job_task) {
+    return PostJob(priority, std::move(job_task));
+  }
   virtual void PostTaskOnWorkerThread(TaskPriority priority, std::unique_ptr<Task> task) = 0;
   virtual TracingController* GetTracingController() = 0;
   virtual StackTracePrinter GetStackTracePrinter() = 0;
@@ -135,9 +154,6 @@ class Platform {
 
 // Message loop behavior
 enum class MessageLoopBehavior { kDoNotWait, kWaitForWork };
-
-// Priority mode
-enum class PriorityMode { kDontApply, kApply };
 
 // Time function type
 using TimeFunction = double (*)();

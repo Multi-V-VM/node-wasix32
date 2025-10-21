@@ -1233,7 +1233,7 @@ struct ControlBase : public PcForErrors<ValidationTag::validate> {
   Reachability reachability = kReachable;
 
   // For try-table.
-  ::v8::base::Vector<CatchCase> catch_cases;
+  ZoneVector<CatchCase> catch_cases;
 
   uint32_t stack_depth = 0;  // Stack height at the beginning of the construct.
   uint32_t init_stack_depth = 0;  // Height of "locals initialization" stack
@@ -1343,7 +1343,7 @@ struct ControlBase : public PcForErrors<ValidationTag::validate> {
   F(Try, Control* block)                                                       \
   F(TryTable, Control* block)                                                  \
   F(CatchCase, Control* block, const CatchCase& catch_case,                    \
-    ::v8::base::Vector<Value> caught_values)                                         \
+    ZoneVector<Value> caught_values)                                         \
   F(If, const Value& cond, Control* if_block)                                  \
   F(FallThruTo, Control* c)                                                    \
   F(PopControl, Control* block)                                                \
@@ -1396,24 +1396,24 @@ struct ControlBase : public PcForErrors<ValidationTag::validate> {
     bool drop_null_on_fallthrough)                                             \
   F(SimdOp, WasmOpcode opcode, const Value args[], Value* result)              \
   F(SimdLaneOp, WasmOpcode opcode, const SimdLaneImmediate& imm,               \
-    ::v8::base::Vector<const Value> inputs, Value* result)                           \
+    ZoneVector<const Value> inputs, Value* result)                           \
   F(Simd8x16ShuffleOp, const Simd128Immediate& imm, const Value& input0,       \
     const Value& input1, Value* result)                                        \
   F(Throw, const TagIndexImmediate& imm, const Value args[])                   \
   F(ThrowRef, Value* value)                                                    \
   F(Rethrow, Control* block)                                                   \
   F(CatchException, const TagIndexImmediate& imm, Control* block,              \
-    ::v8::base::Vector<Value> caught_values)                                         \
+    ZoneVector<Value> caught_values)                                         \
   F(Delegate, uint32_t depth, Control* block)                                  \
   F(CatchAll, Control* block)                                                  \
   F(ContNew, const ContIndexImmediate& imm, const Value& func_ref,             \
     Value* result)                                                             \
   F(ContBind, const ContIndexImmediate& orig_imm, Value input_cont,            \
     const Value args[], const ContIndexImmediate& new_imm, Value* result)      \
-  F(Resume, const ContIndexImmediate& imm, ::v8::base::Vector<HandlerCase> handlers, \
+  F(Resume, const ContIndexImmediate& imm, ZoneVector<HandlerCase> handlers, \
     const Value args[], const Value returns[])                                 \
   F(ResumeThrow, const ContIndexImmediate& cont_imm,                           \
-    const TagIndexImmediate& exc_imm, ::v8::base::Vector<HandlerCase> handlers,      \
+    const TagIndexImmediate& exc_imm, ZoneVector<HandlerCase> handlers,      \
     const Value args[], const Value returns[])                                 \
   F(Suspend, const TagIndexImmediate& imm, const Value args[],                 \
     const Value returns[])                                                     \
@@ -1687,7 +1687,7 @@ class WasmDecoder : public Decoder {
 
   uint32_t num_locals() const { return num_locals_; }
 
-  ::v8::base::Vector<ValueType> local_types() const {
+  ZoneVector<ValueType> local_types() const {
     return base::VectorOf(local_types_, num_locals_);
   }
   ValueType local_type(uint32_t index) const {
@@ -2908,7 +2908,7 @@ template <typename ValidationTag, typename Interface,
 class WasmFullDecoder : public WasmDecoder<ValidationTag, decoding_mode> {
   using Value = typename Interface::Value;
   using Control = typename Interface::Control;
-  using ArgVector = ::v8::base::Vector<Value>;
+  using ArgVector = ZoneVector<Value>;
   using PoppedArgVector =
       std::conditional_t<Interface::kUsesPoppedArgs,
                          base::SmallVector<Value, 8>, NoVector>;
@@ -3198,7 +3198,7 @@ class WasmFullDecoder : public WasmDecoder<ValidationTag, decoding_mode> {
   Interface interface_;
 
   // The value stack, stored as individual pointers for maximum performance.
-  Fast::v8::base::Vector<Value> stack_;
+  FastZoneVector<Value> stack_;
 
   // Indicates whether the local with the given index is currently initialized.
   // Entries for defaultable locals are meaningless; we have a byte for each
@@ -3209,10 +3209,10 @@ class WasmFullDecoder : public WasmDecoder<ValidationTag, decoding_mode> {
   // happened, so they can be discarded at the end of the current block.
   // Contains no duplicates, so the size of this stack is bounded (and pre-
   // allocated) to the number of non-defaultable locals in the function.
-  Fast::v8::base::Vector<uint32_t> locals_initializers_stack_;
+  FastZoneVector<uint32_t> locals_initializers_stack_;
 
   // Control stack (blocks, loops, ifs, ...).
-  Fast::v8::base::Vector<Control> control_;
+  FastZoneVector<Control> control_;
 
   // Controls whether code should be generated for the current block (basically
   // a cache for {ok() && control_.back().reachable()}).
@@ -3285,7 +3285,7 @@ class WasmFullDecoder : public WasmDecoder<ValidationTag, decoding_mode> {
       va_list va_args;
       va_start(va_args, format);
       size_t remaining_len = kMaxLen - len_;
-      ::v8::base::Vector<char> remaining_msg_space(buffer_ + len_, remaining_len);
+      ZoneVector<char> remaining_msg_space(buffer_ + len_, remaining_len);
       int len = base::VSNPrintF(remaining_msg_space, format, va_args);
       va_end(va_args);
       len_ += len < 0 ? remaining_len : len;
@@ -3482,7 +3482,7 @@ class WasmFullDecoder : public WasmDecoder<ValidationTag, decoding_mode> {
     stack_.EnsureMoreCapacity(static_cast<int>(sig->parameter_count()),
                               this->zone_);
     for (ValueType type : sig->parameters()) Push(type);
-    ::v8::base::Vector<Value> values(stack_.begin() + c->stack_depth,
+    ZoneVector<Value> values(stack_.begin() + c->stack_depth,
                                sig->parameter_count());
     current_catch_ = c->previous_catch;  // Pop try scope.
     // If there is a throwing instruction in `c`, generate the header for a
@@ -3581,7 +3581,7 @@ class WasmFullDecoder : public WasmDecoder<ValidationTag, decoding_mode> {
     }
     if (!this->Validate(this->pc_ + 2, try_table_imm)) return 0;
     TryTableIterator<ValidationTag> try_table_iterator(this, try_table_imm);
-    try_block->catch_cases = this->zone_->template Allocate::v8::base::Vector<CatchCase>(
+    try_block->catch_cases = this->zone_->template AllocateZoneVector<CatchCase>(
         try_table_imm.table_count);
     int i = 0;
     while (try_table_iterator.has_next()) {
@@ -3856,7 +3856,7 @@ class WasmFullDecoder : public WasmDecoder<ValidationTag, decoding_mode> {
             Push(ValueType::Ref(kWasmExnRef));
             push_count += 1;
           }
-          ::v8::base::Vector<Value> values(
+          ZoneVector<Value> values(
               stack_.begin() + stack_.size() - push_count, push_count);
           if (c->might_throw) {
             // Already type checked on block entry.
@@ -4367,8 +4367,8 @@ class WasmFullDecoder : public WasmDecoder<ValidationTag, decoding_mode> {
     return 1;
   }
 
-  bool IsSubtypeVec(::v8::base::Vector<const ValueType> subtypes,
-                    ::v8::base::Vector<const ValueType> supertypes) {
+  bool IsSubtypeVec(ZoneVector<const ValueType> subtypes,
+                    ZoneVector<const ValueType> supertypes) {
     if (subtypes.size() != supertypes.size()) return false;
 
     auto super_it = supertypes.begin();
@@ -4424,9 +4424,9 @@ class WasmFullDecoder : public WasmDecoder<ValidationTag, decoding_mode> {
       return 0;
     }
 
-    const ::v8::base::Vector<const ValueType> sig_parameters =
+    const ZoneVector<const ValueType> sig_parameters =
         orig_cont_sig->parameters();
-    const ::v8::base::Vector<const ValueType> new_sig_parameters =
+    const ZoneVector<const ValueType> new_sig_parameters =
         new_cont_sig->parameters();
 
     if (!VALIDATE(IsSubtypeVec(new_sig_parameters,
@@ -4447,7 +4447,7 @@ class WasmFullDecoder : public WasmDecoder<ValidationTag, decoding_mode> {
 
   V8_INLINE int DecodeEffectHandlerTable(
       EffectHandlerTableImmediate& handler_table_imm,
-      ::v8::base::Vector<HandlerCase>& handlers) {
+      ZoneVector<HandlerCase>& handlers) {
     EffectHandlerTableIterator<ValidationTag> handle_iterator(
         this, handler_table_imm);
     int i = 0;
@@ -4508,8 +4508,8 @@ class WasmFullDecoder : public WasmDecoder<ValidationTag, decoding_mode> {
     if (!this->Validate(this->pc_ + imm.length + 1, handler_table_imm))
       return 0;
 
-    ::v8::base::Vector<HandlerCase> handlers =
-        this->zone_->template Allocate::v8::base::Vector<HandlerCase>(
+    ZoneVector<HandlerCase> handlers =
+        this->zone_->template AllocateZoneVector<HandlerCase>(
             handler_table_imm.table_count);
 
     int table_length = DecodeEffectHandlerTable(handler_table_imm, handlers);
@@ -4547,8 +4547,8 @@ class WasmFullDecoder : public WasmDecoder<ValidationTag, decoding_mode> {
                         handler_table_imm))
       return 0;
 
-    ::v8::base::Vector<HandlerCase> handlers =
-        this->zone_->template Allocate::v8::base::Vector<HandlerCase>(
+    ZoneVector<HandlerCase> handlers =
+        this->zone_->template AllocateZoneVector<HandlerCase>(
             handler_table_imm.table_count);
 
     int table_length = DecodeEffectHandlerTable(handler_table_imm, handlers);
@@ -4598,7 +4598,7 @@ class WasmFullDecoder : public WasmDecoder<ValidationTag, decoding_mode> {
       return 0;
     }
 
-    const ::v8::base::Vector<const ValueType> cont_args = cont_sig->parameters();
+    const ZoneVector<const ValueType> cont_args = cont_sig->parameters();
 
     if (!VALIDATE(cont_args.size() >= 1 &&
                   IsSubtypeOf(cont_args.last(), kWasmContRef, this->module_))) {
@@ -6928,7 +6928,7 @@ class WasmFullDecoder : public WasmDecoder<ValidationTag, decoding_mode> {
     for (Value& value : values) Push(value);
   }
 
-  Value* PushValueTypes(const ::v8::base::Vector<const ValueType> types) {
+  Value* PushValueTypes(const ZoneVector<const ValueType> types) {
     size_t count = types.size();
     stack_.EnsureMoreCapacity(static_cast<int>(count), this->zone_);
     for (size_t i = 0; i < count; ++i) {

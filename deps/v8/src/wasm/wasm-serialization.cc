@@ -40,13 +40,13 @@ constexpr uint8_t kTurboFanFunction = 4;
 // in Wasm, e.g. StreamProcessor and ZoneBuffer, with these.
 class Writer {
  public:
-  explicit Writer(::v8::base::Vector<uint8_t> buffer)
+  explicit Writer(ZoneVector<uint8_t> buffer)
       : start_(buffer.begin()), end_(buffer.end()), pos_(buffer.begin()) {}
 
   size_t bytes_written() const { return pos_ - start_; }
   uint8_t* current_location() const { return pos_; }
   size_t current_size() const { return end_ - pos_; }
-  ::v8::base::Vector<uint8_t> current_buffer() const {
+  ZoneVector<uint8_t> current_buffer() const {
     return {current_location(), current_size()};
   }
 
@@ -62,8 +62,8 @@ class Writer {
   }
 
   template <typename T>
-  void WriteVector(const ::v8::base::Vector<T> v) {
-    ::v8::base::Vector<const uint8_t> bytes = ::v8::base::Vector<const uint8_t>::cast(v);
+  void WriteVector(const ZoneVector<T> v) {
+    ZoneVector<const uint8_t> bytes = ZoneVector<const uint8_t>::cast(v);
     DCHECK_GE(current_size(), bytes.size());
     if (!bytes.empty()) {
       memcpy(current_location(), bytes.begin(), bytes.size());
@@ -86,13 +86,13 @@ class Writer {
 
 class Reader {
  public:
-  explicit Reader(::v8::base::Vector<const uint8_t> buffer)
+  explicit Reader(ZoneVector<const uint8_t> buffer)
       : start_(buffer.begin()), end_(buffer.end()), pos_(buffer.begin()) {}
 
   size_t bytes_read() const { return pos_ - start_; }
   const uint8_t* current_location() const { return pos_; }
   size_t current_size() const { return end_ - pos_; }
-  ::v8::base::Vector<const uint8_t> current_buffer() const {
+  ZoneVector<const uint8_t> current_buffer() const {
     return {current_location(), current_size()};
   }
 
@@ -110,16 +110,16 @@ class Reader {
   }
 
   template <typename T>
-  ::v8::base::Vector<const T> ReadVector(size_t size) {
+  ZoneVector<const T> ReadVector(size_t size) {
     DCHECK_GE(current_size(), size);
-    ::v8::base::Vector<const uint8_t> bytes{pos_, size * sizeof(T)};
+    ZoneVector<const uint8_t> bytes{pos_, size * sizeof(T)};
     pos_ += size * sizeof(T);
     if (v8_flags.trace_wasm_serialization) {
       StdoutStream{} << "read vector of " << size << " elements of size "
                      << sizeof(T) << " (total size " << size * sizeof(T) << ")"
                      << std::endl;
     }
-    return ::v8::base::Vector<const T>::cast(bytes);
+    return ZoneVector<const T>::cast(bytes);
   }
 
   void Skip(size_t size) { pos_ += size; }
@@ -311,8 +311,8 @@ static_assert(std::is_trivially_destructible_v<ExternalReferenceList>,
 
 class V8_EXPORT_PRIVATE NativeModuleSerializer {
  public:
-  NativeModuleSerializer(const NativeModule*, ::v8::base::Vector<WasmCode* const>,
-                         ::v8::base::Vector<WellKnownImport const>);
+  NativeModuleSerializer(const NativeModule*, ZoneVector<WasmCode* const>,
+                         ZoneVector<WellKnownImport const>);
   NativeModuleSerializer(const NativeModuleSerializer&) = delete;
   NativeModuleSerializer& operator=(const NativeModuleSerializer&) = delete;
 
@@ -329,8 +329,8 @@ class V8_EXPORT_PRIVATE NativeModuleSerializer {
   uint32_t CanonicalSigIdToModuleLocalTypeId(uint32_t canonical_sig_id);
 
   const NativeModule* const native_module_;
-  const ::v8::base::Vector<WasmCode* const> code_table_;
-  const ::v8::base::Vector<WellKnownImport const> import_statuses_;
+  const ZoneVector<WasmCode* const> code_table_;
+  const ZoneVector<WellKnownImport const> import_statuses_;
   // Map back canonical signature IDs to module-local IDs. Initialized lazily.
   std::unordered_map<uint32_t, uint32_t> canonical_sig_ids_to_module_local_ids_;
   bool write_called_ = false;
@@ -339,8 +339,8 @@ class V8_EXPORT_PRIVATE NativeModuleSerializer {
 };
 
 NativeModuleSerializer::NativeModuleSerializer(
-    const NativeModule* module, ::v8::base::Vector<WasmCode* const> code_table,
-    ::v8::base::Vector<WellKnownImport const> import_statuses)
+    const NativeModule* module, ZoneVector<WasmCode* const> code_table,
+    ZoneVector<WellKnownImport const> import_statuses)
     : native_module_(module),
       code_table_(code_table),
       import_statuses_(import_statuses) {
@@ -642,7 +642,7 @@ size_t WasmSerializer::GetSerializedNativeModuleSize() const {
   return kHeaderSize + serializer.Measure();
 }
 
-bool WasmSerializer::SerializeNativeModule(::v8::base::Vector<uint8_t> buffer) const {
+bool WasmSerializer::SerializeNativeModule(ZoneVector<uint8_t> buffer) const {
   NativeModuleSerializer serializer(native_module_, base::VectorOf(code_table_),
                                     base::VectorOf(import_statuses_));
   size_t measured_size = kHeaderSize + serializer.Measure();
@@ -657,7 +657,7 @@ bool WasmSerializer::SerializeNativeModule(::v8::base::Vector<uint8_t> buffer) c
 }
 
 struct DeserializationUnit {
-  ::v8::base::Vector<const uint8_t> src_code_buffer;
+  ZoneVector<const uint8_t> src_code_buffer;
   std::unique_ptr<WasmCode> code;
   NativeModule::JumpTablesRef jump_tables;
 };
@@ -709,11 +709,11 @@ class V8_EXPORT_PRIVATE NativeModuleDeserializer {
 
   bool Read(Reader* reader);
 
-  ::v8::base::Vector<const int> lazy_functions() {
+  ZoneVector<const int> lazy_functions() {
     return base::VectorOf(lazy_functions_);
   }
 
-  ::v8::base::Vector<const int> eager_functions() {
+  ZoneVector<const int> eager_functions() {
     return base::VectorOf(eager_functions_);
   }
 
@@ -735,7 +735,7 @@ class V8_EXPORT_PRIVATE NativeModuleDeserializer {
   size_t remaining_code_size_ = 0;
   bool all_functions_validated_ = false;
   CompileTimeImports compile_imports_;
-  ::v8::base::Vector<uint8_t> current_code_space_;
+  ZoneVector<uint8_t> current_code_space_;
   NativeModule::JumpTablesRef current_jump_tables_;
   std::vector<int> lazy_functions_;
   std::vector<int> eager_functions_;
@@ -886,15 +886,15 @@ void NativeModuleDeserializer::ReadHeader(Reader* reader) {
   auto compile_imports_flags =
       reader->Read<CompileTimeImportFlags::StorageType>();
   uint32_t constants_module_size = reader->Read<uint32_t>();
-  ::v8::base::Vector<const char> constants_module_data =
-      reader->Read::v8::base::Vector<char>(constants_module_size);
+  ZoneVector<const char> constants_module_data =
+      reader->ReadZoneVector<char>(constants_module_size);
   compile_imports_ = CompileTimeImports::FromSerialized(compile_imports_flags,
                                                         constants_module_data);
 
   uint32_t imported = native_module_->module()->num_imported_functions;
   if (imported > 0) {
-    ::v8::base::Vector<const WellKnownImport> well_known_imports =
-        reader->Read::v8::base::Vector<WellKnownImport>(imported);
+    ZoneVector<const WellKnownImport> well_known_imports =
+        reader->ReadZoneVector<WellKnownImport>(imported);
     native_module_->module()->type_feedback.well_known_imports.Initialize(
         well_known_imports);
   }
@@ -947,15 +947,15 @@ DeserializationUnit NativeModuleDeserializer::ReadCode(int fn_index,
   }
 
   DeserializationUnit unit;
-  unit.src_code_buffer = reader->Read::v8::base::Vector<uint8_t>(code_size);
-  auto reloc_info = reader->Read::v8::base::Vector<uint8_t>(reloc_size);
-  auto source_pos = reader->Read::v8::base::Vector<uint8_t>(source_position_size);
-  auto inlining_pos = reader->Read::v8::base::Vector<uint8_t>(inlining_position_size);
-  auto deopt_data = reader->Read::v8::base::Vector<uint8_t>(deopt_data_size);
+  unit.src_code_buffer = reader->ReadZoneVector<uint8_t>(code_size);
+  auto reloc_info = reader->ReadZoneVector<uint8_t>(reloc_size);
+  auto source_pos = reader->ReadZoneVector<uint8_t>(source_position_size);
+  auto inlining_pos = reader->ReadZoneVector<uint8_t>(inlining_position_size);
+  auto deopt_data = reader->ReadZoneVector<uint8_t>(deopt_data_size);
   auto protected_instructions =
-      reader->Read::v8::base::Vector<uint8_t>(protected_instructions_size);
+      reader->ReadZoneVector<uint8_t>(protected_instructions_size);
 
-  ::v8::base::Vector<uint8_t> instructions =
+  ZoneVector<uint8_t> instructions =
       current_code_space_.SubVector(0, code_size);
   current_code_space_ += code_size;
   remaining_code_size_ -= code_size;
@@ -1058,8 +1058,8 @@ void NativeModuleDeserializer::ReadTieringBudget(Reader* reader) {
   if (size_of_tiering_budget > reader->current_size()) {
     return;
   }
-  ::v8::base::Vector<const uint8_t> serialized_budget =
-      reader->Read::v8::base::Vector<const uint8_t>(size_of_tiering_budget);
+  ZoneVector<const uint8_t> serialized_budget =
+      reader->ReadZoneVector<const uint8_t>(size_of_tiering_budget);
 
   memcpy(native_module_->tiering_budget_array(), serialized_budget.begin(),
          size_of_tiering_budget);
@@ -1084,7 +1084,7 @@ void NativeModuleDeserializer::Publish(std::vector<DeserializationUnit> batch) {
   }
 }
 
-bool IsSupportedVersion(::v8::base::Vector<const uint8_t> header,
+bool IsSupportedVersion(ZoneVector<const uint8_t> header,
                         WasmEnabledFeatures enabled_features) {
   if (header.size() < WasmSerializer::kHeaderSize) return false;
   uint8_t current_version[WasmSerializer::kHeaderSize];
@@ -1095,10 +1095,10 @@ bool IsSupportedVersion(::v8::base::Vector<const uint8_t> header,
 }
 
 MaybeDirectHandle<WasmModuleObject> DeserializeNativeModule(
-    Isolate* isolate, ::v8::base::Vector<const uint8_t> data,
-    ::v8::base::Vector<const uint8_t> wire_bytes_vec,
+    Isolate* isolate, ZoneVector<const uint8_t> data,
+    ZoneVector<const uint8_t> wire_bytes_vec,
     const CompileTimeImports& compile_imports,
-    ::v8::base::Vector<const char> source_url) {
+    ZoneVector<const char> source_url) {
   WasmEnabledFeatures enabled_features =
       WasmEnabledFeatures::FromIsolate(isolate);
   if (!IsWasmCodegenAllowed(isolate, isolate->native_context())) return {};
@@ -1106,7 +1106,7 @@ MaybeDirectHandle<WasmModuleObject> DeserializeNativeModule(
 
   // Make the copy of the wire bytes early, so we use the same memory for
   // decoding, lookup in the native module cache, and insertion into the cache.
-  base::Owned::v8::base::Vector<const uint8_t> owned_wire_bytes =
+  base::OwnedZoneVector<const uint8_t> owned_wire_bytes =
       base::OwnedCopyOf(wire_bytes_vec);
 
   WasmDetectedFeatures detected_features;

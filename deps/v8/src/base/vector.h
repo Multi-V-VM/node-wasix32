@@ -200,6 +200,11 @@ class V8_NODISCARD ScopedVector : public ::v8::base::Vector<T> {
   DISALLOW_IMPLICIT_CONSTRUCTORS(ScopedVector);
 };
 
+// Some code refers to ScopedZoneVector for a scoped, heap-allocated
+// sequential buffer. On platforms without a zone, alias it to ScopedVector.
+template <typename T>
+using ScopedZoneVector = ScopedVector<T>;
+
 template <typename T>
 class OwnedVector {
  public:

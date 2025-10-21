@@ -574,7 +574,7 @@ class RegExpCompiler {
   int next_register_;
   int unicode_lookaround_stack_register_;
   int unicode_lookaround_position_register_;
-  ::v8::base::Vector<RegExpNode*>* work_list_;
+  ZoneVector<RegExpNode*>* work_list_;
   int recursion_depth_;
   RegExpFlags flags_;
   RegExpMacroAssembler* macro_assembler_;

@@ -24,14 +24,14 @@ using uc32 = uint32_t;
 constexpr int kUC16Size = sizeof(uc16);
 
 V8_BASE_EXPORT int PRINTF_FORMAT(2, 0)
-    VSNPrintF(::v8::base::Vector<char> str, const char* format, va_list args);
+    VSNPrintF(Vector<char> str, const char* format, va_list args);
 
 // Safe formatting print. Ensures that str is always null-terminated.
 // Returns the number of chars written, or -1 if output was truncated.
 V8_BASE_EXPORT int PRINTF_FORMAT(2, 3)
-    SNPrintF(::v8::base::Vector<char> str, const char* format, ...);
+    SNPrintF(Vector<char> str, const char* format, ...);
 
-V8_BASE_EXPORT void StrNCpy(::v8::base::Vector<char> dest, const char* src, size_t n);
+V8_BASE_EXPORT void StrNCpy(Vector<char> dest, const char* src, size_t n);
 
 // Returns the value (0 .. 15) of a hexadecimal character c.
 // If c is not a legal hexadecimal character, returns a value < 0.

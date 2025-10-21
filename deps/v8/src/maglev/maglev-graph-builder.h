@@ -182,7 +182,7 @@ struct CatchBlockDetails {
 };
 
 struct MaglevCallerDetails {
-  ::v8::base::Vector<ValueNode*> arguments;
+  ZoneVector<ValueNode*> arguments;
   DeoptFrame* deopt_frame;
   KnownNodeAspects* known_node_aspects;
   LoopEffects* loop_effects;
@@ -449,9 +449,9 @@ class MaglevGraphBuilder {
 
   void set_current_block(BasicBlock* block) { current_block_ = block; }
   BasicBlock* FinishInlinedBlockForCaller(
-      ControlNode* control_node, ::v8::base::Vector<Node*> rem_nodes_in_call_block);
+      ControlNode* control_node, ZoneVector<Node*> rem_nodes_in_call_block);
 
-  ::v8::base::Vector<Node*>& node_buffer() { return graph_->node_buffer(); }
+  ZoneVector<Node*>& node_buffer() { return graph_->node_buffer(); }
 
   uint32_t NewObjectId() { return graph_->NewObjectId(); }
 
@@ -498,7 +498,7 @@ class MaglevGraphBuilder {
   DeoptFrame* AddInlinedArgumentsToDeoptFrame(DeoptFrame* deopt_frame,
                                               const MaglevCompilationUnit* unit,
                                               ValueNode* closure,
-                                              ::v8::base::Vector<ValueNode*> args);
+                                              ZoneVector<ValueNode*> args);
 
  private:
   // Helper class for building a subgraph with its own control flow, that is not
@@ -1849,7 +1849,7 @@ class MaglevGraphBuilder {
   DeoptFrame* GetCallerDeoptFrame();
   DeoptFrame* GetDeoptFrameForEagerCall(const MaglevCompilationUnit* unit,
                                         ValueNode* closure,
-                                        ::v8::base::Vector<ValueNode*> args);
+                                        ZoneVector<ValueNode*> args);
   DeoptFrame GetDeoptFrameForLazyDeopt(interpreter::Register result_location,
                                        int result_size);
   DeoptFrame GetDeoptFrameForLazyDeoptHelper(
@@ -2004,7 +2004,7 @@ class MaglevGraphBuilder {
   }
 
   void FlushNodesToBlock() {
-    ::v8::base::Vector<Node*>& nodes = current_block_->nodes();
+    ZoneVector<Node*>& nodes = current_block_->nodes();
     size_t old_size = nodes.size();
     nodes.resize(old_size + node_buffer().size());
     std::copy(node_buffer().begin(), node_buffer().end(),
@@ -2083,7 +2083,7 @@ class MaglevGraphBuilder {
 
   ValueNode* GetConvertReceiver(compiler::SharedFunctionInfoRef shared,
                                 const CallArguments& args);
-  ::v8::base::Vector<ValueNode*> GetArgumentsAsArrayOfValueNodes(
+  ZoneVector<ValueNode*> GetArgumentsAsArrayOfValueNodes(
       compiler::SharedFunctionInfoRef shared, const CallArguments& args);
 
   compiler::OptionalHeapObjectRef TryGetConstant(
@@ -2215,7 +2215,7 @@ class MaglevGraphBuilder {
       JSDispatchHandle dispatch_handle,
 #endif
       compiler::SharedFunctionInfoRef shared,
-      ::v8::base::Vector<ValueNode*> arguments);
+      ZoneVector<ValueNode*> arguments);
   MaybeReduceResult TryBuildCallKnownJSFunction(
       compiler::JSFunctionRef function, ValueNode* new_target,
       CallArguments& args, const compiler::FeedbackSource& feedback_source);
@@ -2362,21 +2362,21 @@ class MaglevGraphBuilder {
   ReduceResult BuildCheckStringOrStringWrapper(ValueNode* object);
   ReduceResult BuildCheckSymbol(ValueNode* object);
   ReduceResult BuildCheckMaps(
-      ValueNode* object, ::v8::base::Vector<const compiler::MapRef> maps,
+      ValueNode* object, ZoneVector<const compiler::MapRef> maps,
       std::optional<ValueNode*> map = {},
       bool has_deprecated_map_without_migration_target = false);
   ReduceResult BuildTransitionElementsKindOrCheckMap(
       ValueNode* heap_object, ValueNode* object_map,
-      const ::v8::base::Vector<compiler::MapRef>& transition_sources,
+      const ZoneVector<compiler::MapRef>& transition_sources,
       compiler::MapRef transition_target);
   ReduceResult BuildCompareMaps(
       ValueNode* heap_object, ValueNode* object_map,
-      ::v8::base::Vector<const compiler::MapRef> maps,
+      ZoneVector<const compiler::MapRef> maps,
       MaglevSubGraphBuilder* sub_graph,
       std::optional<MaglevSubGraphBuilder::Label>& if_not_matched);
   ReduceResult BuildTransitionElementsKindAndCompareMaps(
       ValueNode* heap_object, ValueNode* object_map,
-      const ::v8::base::Vector<compiler::MapRef>& transition_sources,
+      const ZoneVector<compiler::MapRef>& transition_sources,
       compiler::MapRef transition_target, MaglevSubGraphBuilder* sub_graph,
       std::optional<MaglevSubGraphBuilder::Label>& if_not_matched);
   // Emits an unconditional deopt and returns false if the node is a constant
@@ -2476,7 +2476,7 @@ class MaglevGraphBuilder {
   ReduceResult GetUint32ElementIndex(ValueNode* index_object);
 
   bool CanTreatHoleAsUndefined(
-      ::v8::base::Vector<const compiler::MapRef> const& receiver_maps);
+      ZoneVector<const compiler::MapRef> const& receiver_maps);
 
   compiler::OptionalObjectRef TryFoldLoadDictPrototypeConstant(
       compiler::PropertyAccessInfo const& access_info);
@@ -2569,11 +2569,11 @@ class MaglevGraphBuilder {
       compiler::KeyedAccessMode const& keyed_mode);
   MaybeReduceResult TryBuildElementLoadOnJSArrayOrJSObject(
       ValueNode* object, ValueNode* index,
-      ::v8::base::Vector<const compiler::MapRef> maps, ElementsKind kind,
+      ZoneVector<const compiler::MapRef> maps, ElementsKind kind,
       KeyedAccessLoadMode load_mode);
   MaybeReduceResult TryBuildElementStoreOnJSArrayOrJSObject(
       ValueNode* object, ValueNode* index_object, ValueNode* value,
-      ::v8::base::Vector<const compiler::MapRef> maps, ElementsKind kind,
+      ZoneVector<const compiler::MapRef> maps, ElementsKind kind,
       const compiler::KeyedAccessMode& keyed_mode);
   MaybeReduceResult TryBuildElementAccessOnJSArrayOrJSObject(
       ValueNode* object, ValueNode* index,
@@ -2589,14 +2589,14 @@ class MaglevGraphBuilder {
   MaybeReduceResult TryBuildPolymorphicElementAccess(
       ValueNode* object, ValueNode* index,
       const compiler::KeyedAccessMode& keyed_mode,
-      const ::v8::base::Vector<compiler::ElementAccessInfo>& access_infos,
+      const ZoneVector<compiler::ElementAccessInfo>& access_infos,
       GenericAccessFunc&& build_generic_access);
   template <typename GenericAccessFunc>
   MaybeReduceResult TryBuildPolymorphicPropertyAccess(
       ValueNode* receiver, ValueNode* lookup_start_object,
       compiler::NamedAccessFeedback const& feedback,
       compiler::AccessMode access_mode,
-      const ::v8::base::Vector<compiler::PropertyAccessInfo>& access_infos,
+      const ZoneVector<compiler::PropertyAccessInfo>& access_infos,
       GenericAccessFunc&& build_generic_access);
 
   // Load elimination -- when loading or storing a simple property without
@@ -3250,7 +3250,7 @@ class MaglevGraphBuilder {
   // decremented predecessor counts inside of the loop before processing the
   // body again. For this, we record offsets where we decremented the
   // predecessor count.
-  ::v8::base::Vector<int> decremented_predecessor_offsets_;
+  ZoneVector<int> decremented_predecessor_offsets_;
   // The set of loop headers for which we decided to do loop peeling.
   BitVector loop_headers_to_peel_;
 
@@ -3352,7 +3352,7 @@ class MaglevGraphBuilder {
   }
 
   template <typename T>
-  static size_t gvn_hash_value(const v8::internal::::v8::base::Vector<T>& vector) {
+  static size_t gvn_hash_value(const v8::internal::ZoneVector<T>& vector) {
     size_t hash = base::hash_value(vector.size());
     for (auto e : vector) {
       hash = fast_hash_combine(hash, gvn_hash_value(e));

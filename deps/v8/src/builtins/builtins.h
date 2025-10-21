@@ -11,6 +11,7 @@
 #include "src/common/globals.h"
 #include "src/objects/type-hints.h"
 #include "src/sandbox/code-entrypoint-tag.h"
+#include "src/zone/zone-containers.h"
 
 #ifdef V8_ENABLE_WEBASSEMBLY
 #include "src/wasm/wasm-code-pointer-table.h"
@@ -290,7 +291,7 @@ class Builtins {
       Isolate* isolate, bool is_construct,
       DirectHandle<FunctionTemplateInfo> function,
       DirectHandle<Object> receiver,
-      ::v8::base::Vector<const DirectHandle<Object>> args,
+      ZoneVector<const DirectHandle<Object>> args,
       DirectHandle<HeapObject> new_target);
 
   static void Generate_Adaptor(MacroAssembler* masm, int formal_parameter_count,

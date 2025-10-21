@@ -1,6 +1,6 @@
 #ifdef __wasi__
 #define V8_TARGET_ARCH_WASM32 1
-#endif
+#else
 // Copyright 2021 the V8 project authors. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
@@ -1050,3 +1050,4 @@ class V8_EXPORT_PRIVATE SharedMacroAssembler : public SharedMacroAssemblerBase {
 }  // namespace internal
 }  // namespace v8
 #endif  // V8_CODEGEN_SHARED_IA32_X64_MACRO_ASSEMBLER_SHARED_IA32_X64_H_
+#endif

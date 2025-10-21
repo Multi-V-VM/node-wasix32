@@ -8,6 +8,7 @@
 #include "../../../wasi-v8-internals-minimal.h"
 // Include V8 base headers at global scope first to avoid namespace nesting
 #include "wasi/v8-base-includes.h"
+#include "src/base/hashing.h"
 #include "wasi/wasi-v8-missing-types.h"
 // Provide namespace bridges and base helpers for internal code
 #include "wasi/v8-namespace-fix.h"

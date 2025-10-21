@@ -19,9 +19,9 @@
 // Prepare std first, then bridge V8 namespace nestings.
 #include "wasi/std-namespace-fix.h"
 #include "wasi/v8-namespace-fix.h"
-// Ensure internal types (like i::Address) are visible before WASI HandleScope fixes.
-#include "v8-internal.h"
-// Finally, apply HandleScope/EscapableHandleScope fixes that may depend on i::Address.
+// Note: Removed v8-internal.h include to prevent circular dependencies
+// Individual headers now handle their own v8-internal.h needs with #ifndef __wasi__ guards
+// Finally, apply HandleScope/EscapableHandleScope fixes
 #include "wasi/v8-handlescope-fix.h"
 #endif
 

@@ -118,9 +118,9 @@ class LoopFinderImpl {
   Node* end_;
   NodeDeque queue_;
   NodeMarker<bool> queued_;
-  ::v8::base::Vector<NodeInfo> info_;
-  ::v8::base::Vector<TempLoopInfo> loops_;
-  ::v8::base::Vector<int> loop_num_;
+  ZoneVector<NodeInfo> info_;
+  ZoneVector<TempLoopInfo> loops_;
+  ZoneVector<int> loop_num_;
   LoopTree* loop_tree_;
   int loops_found_;
   int width_;

@@ -12,6 +12,7 @@
 #include <vector>
 
 #include "src/base/vector.h"
+#include "src/zone/zone-containers.h"
 
 namespace v8::internal::wasm {
 
@@ -28,10 +29,10 @@ class ProfileInformation {
   ProfileInformation(const ProfileInformation&) = delete;
   ProfileInformation& operator=(const ProfileInformation&) = delete;
 
-  ::v8::base::Vector<const uint32_t> executed_functions() const {
+  ZoneVector<const uint32_t> executed_functions() const {
     return base::VectorOf(executed_functions_);
   }
-  ::v8::base::Vector<const uint32_t> tiered_up_functions() const {
+  ZoneVector<const uint32_t> tiered_up_functions() const {
     return base::VectorOf(tiered_up_functions_);
   }
 
@@ -41,11 +42,11 @@ class ProfileInformation {
 };
 
 void DumpProfileToFile(const WasmModule* module,
-                       ::v8::base::Vector<const uint8_t> wire_bytes,
+                       ZoneVector<const uint8_t> wire_bytes,
                        std::atomic<uint32_t>* tiering_budget_array);
 
 V8_WARN_UNUSED_RESULT std::unique_ptr<ProfileInformation> LoadProfileFromFile(
-    const WasmModule* module, ::v8::base::Vector<const uint8_t> wire_bytes);
+    const WasmModule* module, ZoneVector<const uint8_t> wire_bytes);
 
 }  // namespace v8::internal::wasm
 

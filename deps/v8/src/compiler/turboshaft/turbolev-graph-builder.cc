@@ -411,7 +411,7 @@ class GeneratorAnalyzer {
   // {visit_queue_} is used in FindLoopBody to store nodes that still need to be
   // visited. It is an instance variable in order to reuse its memory more
   // efficiently.
-  ::v8::base::Vector<const maglev::BasicBlock*> visit_queue_;
+  ZoneVector<const maglev::BasicBlock*> visit_queue_;
 };
 
 #define GET_FRAME_STATE_MAYBE_ABORT(name, deopt_info)                       \
@@ -1117,8 +1117,8 @@ class GraphBuildingNodeProcessor {
     // it has to be zone allocated rather than heap-allocated, since it won't be
     // freed and this would thus cause a leak.
     std::string reg_string_name = node->source().ToString();
-    ::v8::base::Vector<char> debug_name_arr =
-        graph_zone()->New::v8::base::Vector<char>(reg_string_name.length() + /* \n */ 1);
+    ZoneVector<char> debug_name_arr =
+        graph_zone()->NewZoneVector<char>(reg_string_name.length() + /* \n */ 1);
     snprintf(debug_name_arr.data(), debug_name_arr.length(), "%s",
              reg_string_name.c_str());
     char* debug_name = debug_name_arr.data();
@@ -1434,7 +1434,7 @@ class GraphBuildingNodeProcessor {
   }
   V<Any> GenerateBuiltinCall(
       maglev::NodeBase* node, Builtin builtin,
-      OptionalV<FrameState> frame_state, ::v8::base::Vector<const OpIndex> arguments,
+      OptionalV<FrameState> frame_state, ZoneVector<const OpIndex> arguments,
       std::optional<int> stack_arg_count = std::nullopt) {
     ThrowingScope throwing_scope(this, node);
     DCHECK(!TooManyArgumentsForCall(arguments.size()));

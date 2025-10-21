@@ -112,7 +112,7 @@ class V8_EXPORT_PRIVATE OptimizedCompilationInfo final {
       : OptimizedCompilationInfo(zone, isolate, shared, closure, code_kind,
                                  BytecodeOffset::None()) {}
   // Construct a compilation info for stub compilation, Wasm, and testing.
-  OptimizedCompilationInfo(::v8::base::Vector<const char> debug_name, Zone* zone,
+  OptimizedCompilationInfo(ZoneVector<const char> debug_name, Zone* zone,
                            CodeKind code_kind,
                            Builtin builtin = Builtin::kNoBuiltinId);
 
@@ -330,7 +330,7 @@ class V8_EXPORT_PRIVATE OptimizedCompilationInfo final {
   const int optimization_id_;
   unsigned inlined_bytecode_size_ = 0;
 
-  ::v8::base::Vector<const char> debug_name_;
+  ZoneVector<const char> debug_name_;
   std::unique_ptr<char[]> trace_turbo_filename_;
 
   TickCounter tick_counter_;

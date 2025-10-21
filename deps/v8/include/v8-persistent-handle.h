@@ -12,7 +12,9 @@
 #ifndef INCLUDE_V8_PERSISTENT_HANDLE_H_
 #define INCLUDE_V8_PERSISTENT_HANDLE_H_
 
+#ifndef __wasi__
 #include "v8-internal.h"            // NOLINT(build/include_directory)
+#endif
 #include "v8-handle-base.h"         // NOLINT(build/include_directory)
 #include "v8-local-handle.h"        // NOLINT(build/include_directory)
 #include "v8-weak-callback-info.h"  // NOLINT(build/include_directory)

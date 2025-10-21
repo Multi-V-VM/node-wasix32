@@ -3156,7 +3156,7 @@ void CodeGenerator::AssembleSwap(InstructionOperand* source,
   }
 }
 
-void CodeGenerator::AssembleJumpTable(::v8::base::Vector<Label*> targets) {
+void CodeGenerator::AssembleJumpTable(ZoneVector<Label*> targets) {
   // On 64-bit LOONG64 we emit the jump tables inline.
   UNREACHABLE();
 }

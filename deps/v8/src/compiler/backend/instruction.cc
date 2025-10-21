@@ -336,7 +336,7 @@ bool ParallelMove::IsRedundant() const {
 }
 
 void ParallelMove::PrepareInsertAfter(
-    MoveOperands* move, ::v8::base::Vector<MoveOperands*>* to_eliminate) const {
+    MoveOperands* move, ZoneVector<MoveOperands*>* to_eliminate) const {
   bool no_aliasing = kFPAliasing != AliasingKind::kCombine ||
                      !move->destination().IsFPLocationOperand();
   MoveOperands* replacement = nullptr;

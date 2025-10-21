@@ -1165,7 +1165,7 @@ void MaglevPhiRepresentationSelector::PreparePhiTaggings(
   }
 
   auto merge_taggings =
-      [&](Key key, ::v8::base::Vector<ValueNode* const> predecessors) -> ValueNode* {
+      [&](Key key, ZoneVector<ValueNode* const> predecessors) -> ValueNode* {
     for (ValueNode* node : predecessors) {
       if (node == nullptr) {
         // There is a predecessor that doesn't have this Tagging, so we'll

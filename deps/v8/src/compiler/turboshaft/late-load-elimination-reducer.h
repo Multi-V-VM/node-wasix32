@@ -769,9 +769,9 @@ class V8_EXPORT_PRIVATE LateLoadEliminationAnalyzer {
   // {predecessor_alias_napshots_}, {predecessor_maps_snapshots_} and
   // {predecessor_memory_snapshots_} are used as temporary vectors when starting
   // to process a block. We store them as members to avoid reallocation.
-  ::v8::base::Vector<AliasSnapshot> predecessor_alias_snapshots_;
-  ::v8::base::Vector<MapSnapshot> predecessor_maps_snapshots_;
-  ::v8::base::Vector<MemorySnapshot> predecessor_memory_snapshots_;
+  ZoneVector<AliasSnapshot> predecessor_alias_snapshots_;
+  ZoneVector<MapSnapshot> predecessor_maps_snapshots_;
+  ZoneVector<MemorySnapshot> predecessor_memory_snapshots_;
 };
 
 template <class Next>

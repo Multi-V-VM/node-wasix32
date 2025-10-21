@@ -51,6 +51,34 @@ class RegListBase {
     return (bits_ & (uint32_t{1} << r.code())) != 0;
   }
 
+  // Alias for contains() - some code uses has() instead
+  constexpr bool has(RegisterType r) const {
+    return contains(r);
+  }
+
+  // Get first register in the list
+  constexpr RegisterType first() const {
+    if (bits_ == 0) {
+      return RegisterType::no_reg();
+    }
+    int first_code = __builtin_ctz(bits_);
+    return RegisterType::from_code(first_code);
+  }
+
+  // Get last register in the list
+  constexpr RegisterType last() const {
+    if (bits_ == 0) {
+      return RegisterType::no_reg();
+    }
+    int last_code = 31 - __builtin_clz(bits_);
+    return RegisterType::from_code(last_code);
+  }
+
+  // Static factory method to create from bits
+  static constexpr RegListBase FromBits(uint32_t bits) {
+    return RegListBase(bits);
+  }
+
   // Mutators
   void set(RegisterType r) { bits_ |= (uint32_t{1} << r.code()); }
   void clear(RegisterType r) { bits_ &= ~(uint32_t{1} << r.code()); }
@@ -62,6 +90,14 @@ class RegListBase {
   }
   constexpr RegListBase operator&(const RegListBase& other) const {
     return RegListBase(bits_ & other.bits_);
+  }
+
+  // Equality comparisons
+  constexpr bool operator==(const RegListBase& other) const {
+    return bits_ == other.bits_;
+  }
+  constexpr bool operator!=(const RegListBase& other) const {
+    return bits_ != other.bits_;
   }
 
  private:

@@ -42,7 +42,7 @@ class WasmInJSInliningReducer : public Next {
 
   V<Any> REDUCE(Call)(V<CallTarget> callee,
                       OptionalV<turboshaft::FrameState> frame_state,
-                      ::v8::base::Vector<const OpIndex> arguments,
+                      ZoneVector<const OpIndex> arguments,
                       const TSCallDescriptor* descriptor, OpEffects effects) {
     if (!descriptor->js_wasm_call_parameters) {
       // Regular call, nothing to do with Wasm or inlining. Proceed untouched...
@@ -96,7 +96,7 @@ class WasmInJSInliningReducer : public Next {
  private:
   V<Any> TryInlineWasmCall(const wasm::WasmModule* module,
                            wasm::NativeModule* native_module, uint32_t func_idx,
-                           ::v8::base::Vector<const OpIndex> arguments);
+                           ZoneVector<const OpIndex> arguments);
 };
 
 using wasm::ArrayIndexImmediate;
@@ -139,7 +139,7 @@ class WasmInJsInliningInterface {
   static constexpr bool kUsesPoppedArgs = false;
 
   WasmInJsInliningInterface(Assembler& assembler,
-                            ::v8::base::Vector<const OpIndex> arguments,
+                            ZoneVector<const OpIndex> arguments,
                             V<WasmTrustedInstanceData> trusted_instance_data)
       : asm_(assembler),
         locals_(assembler.phase_zone()),
@@ -642,7 +642,7 @@ class WasmInJsInliningInterface {
   }
   void Rethrow(FullDecoder* decoder, Control* block) { Bailout(decoder); }
   void CatchException(FullDecoder* decoder, const TagIndexImmediate& imm,
-                      Control* block, ::v8::base::Vector<Value> values) {
+                      Control* block, ZoneVector<Value> values) {
     Bailout(decoder);
   }
   void Delegate(FullDecoder* decoder, uint32_t depth, Control* block) {
@@ -653,7 +653,7 @@ class WasmInJsInliningInterface {
   void TryTable(FullDecoder* decoder, Control* block) { Bailout(decoder); }
   void CatchCase(FullDecoder* decoder, Control* block,
                  const wasm::CatchCase& catch_case,
-                 ::v8::base::Vector<Value> values) {
+                 ZoneVector<Value> values) {
     Bailout(decoder);
   }
   void ThrowRef(FullDecoder* decoder, Value* value) { Bailout(decoder); }
@@ -670,7 +670,7 @@ class WasmInJsInliningInterface {
   }
 
   void Resume(FullDecoder* decoder, const wasm::ContIndexImmediate& imm,
-              ::v8::base::Vector<wasm::HandlerCase> handlers, const Value args[],
+              ZoneVector<wasm::HandlerCase> handlers, const Value args[],
               const Value returns[]) {
     Bailout(decoder);
   }
@@ -678,7 +678,7 @@ class WasmInJsInliningInterface {
   void ResumeThrow(FullDecoder* decoder,
                    const wasm::ContIndexImmediate& cont_imm,
                    const TagIndexImmediate& exc_imm,
-                   ::v8::base::Vector<wasm::HandlerCase> handlers, const Value args[],
+                   ZoneVector<wasm::HandlerCase> handlers, const Value args[],
                    const Value returns[]) {
     Bailout(decoder);
   }
@@ -1004,7 +1004,7 @@ class WasmInJsInliningInterface {
   }
   void SimdLaneOp(FullDecoder* decoder, WasmOpcode opcode,
                   const SimdLaneImmediate& imm,
-                  ::v8::base::Vector<const Value> inputs, Value* result) {
+                  ZoneVector<const Value> inputs, Value* result) {
     Bailout(decoder);
   }
   void Simd8x16ShuffleOp(FullDecoder* decoder, const Simd128Immediate& imm,
@@ -1191,11 +1191,11 @@ class WasmInJsInliningInterface {
   // Since we don't have support for blocks and control-flow yet, this is
   // essentially a stripped-down version of `ssa_env_` from
   // `TurboshaftGraphBuildingInterface`.
-  ::v8::base::Vector<OpIndex> locals_;
+  ZoneVector<OpIndex> locals_;
 
   // The arguments passed to the to-be-inlined function, _excluding_ the
   // Wasm instance.
-  ::v8::base::Vector<const OpIndex> arguments_;
+  ZoneVector<const OpIndex> arguments_;
   V<WasmTrustedInstanceData> trusted_instance_data_;
 
   // Populated only after decoding finished successfully, i.e., didn't bail out.
@@ -1205,7 +1205,7 @@ class WasmInJsInliningInterface {
 template <class Next>
 V<Any> WasmInJSInliningReducer<Next>::TryInlineWasmCall(
     const wasm::WasmModule* module, wasm::NativeModule* native_module,
-    uint32_t func_idx, ::v8::base::Vector<const OpIndex> arguments) {
+    uint32_t func_idx, ZoneVector<const OpIndex> arguments) {
   const wasm::WasmFunction& func = module->functions[func_idx];
 
   TRACE("Considering wasm function ["
@@ -1233,7 +1233,7 @@ V<Any> WasmInJSInliningReducer<Next>::TryInlineWasmCall(
     return OpIndex::Invalid();
   }
 
-  ::v8::base::Vector<const uint8_t> module_bytes = native_module->wire_bytes();
+  ZoneVector<const uint8_t> module_bytes = native_module->wire_bytes();
   const uint8_t* start = module_bytes.begin() + func.code.offset();
   const uint8_t* end = module_bytes.begin() + func.code.end_offset();
 
@@ -1246,7 +1246,7 @@ V<Any> WasmInJSInliningReducer<Next>::TryInlineWasmCall(
   // JS-to-Wasm wrapper inlining doesn't support multi-value at the moment,
   // so we should never reach here with more than 1 return value.
   DCHECK_LE(func.sig->return_count(), 1);
-  ::v8::base::Vector<const OpIndex> arguments_without_instance =
+  ZoneVector<const OpIndex> arguments_without_instance =
       arguments.SubVectorFrom(1);
   V<WasmTrustedInstanceData> trusted_instance_data =
       arguments[wasm::kWasmInstanceDataParameterIndex];

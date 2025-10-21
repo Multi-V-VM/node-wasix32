@@ -126,5 +126,11 @@ namespace v8 { namespace internal { namespace base {
 using ::v8::base::make_array;
 } } }
 
+// Bridge the meta-programming utilities namespace for code that refers to
+// v8::internal::base::tmp.
+// namespace v8 { namespace internal { namespace base {
+// namespace tmp = ::v8::base::tmp;
+// } } }
+
 
 #endif  // V8_BASE_TEMPLATE_UTILS_H_

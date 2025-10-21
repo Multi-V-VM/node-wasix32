@@ -31,7 +31,7 @@ class WasmIntoJSInliner {
  public:
   static bool TryInlining(Zone* zone, const wasm::WasmModule* module,
                           MachineGraph* mcgraph, const wasm::FunctionBody& body,
-                          ::v8::base::Vector<const uint8_t> bytes,
+                          ZoneVector<const uint8_t> bytes,
                           SourcePositionTable* source_position_table,
                           int inlining_id);
 };

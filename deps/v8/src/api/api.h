@@ -380,7 +380,7 @@ class HandleScopeImplementer {
   inline Tagged<Context> RestoreContext();
   inline bool HasSavedContexts();
 
-  inline Detachable::v8::base::Vector<Address*>* blocks() { return &blocks_; }
+  inline DetachableVector<Address*>* blocks() { return &blocks_; }
   Isolate* isolate() const { return isolate_; }
 
   void ReturnBlock(Address* block) {
@@ -425,13 +425,13 @@ class HandleScopeImplementer {
   std::unique_ptr<PersistentHandles> DetachPersistent(Address* first_block);
 
   Isolate* isolate_;
-  Detachable::v8::base::Vector<Address*> blocks_;
+  DetachableVector<Address*> blocks_;
 
   // Used as a stack to keep track of entered contexts.
-  Detachable::v8::base::Vector<Tagged<NativeContext>> entered_contexts_;
+  DetachableVector<Tagged<NativeContext>> entered_contexts_;
 
   // Used as a stack to keep track of saved contexts.
-  Detachable::v8::base::Vector<Tagged<Context>> saved_contexts_;
+  DetachableVector<Tagged<Context>> saved_contexts_;
   Address* spare_;
   std::optional<Address*> last_handle_before_persistent_block_;
   // This is only used for threading support.

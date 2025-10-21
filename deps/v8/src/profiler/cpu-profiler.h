@@ -356,13 +356,13 @@ class V8_EXPORT_PRIVATE CpuProfiler {
   void CollectSample(const std::optional<uint64_t> trace_id = std::nullopt);
   size_t GetEstimatedMemoryUsage() const;
   CpuProfilingResult StartProfiling(
-      CpuProfilingOptions options = {},
+      v8::CpuProfilingOptions options = {},
       std::unique_ptr<DiscardedSamplesDelegate> delegate = nullptr);
   CpuProfilingResult StartProfiling(
-      const char* title, CpuProfilingOptions options = {},
+      const char* title, v8::CpuProfilingOptions options = {},
       std::unique_ptr<DiscardedSamplesDelegate> delegate = nullptr);
   CpuProfilingResult StartProfiling(
-      Tagged<String> title, CpuProfilingOptions options = {},
+      Tagged<String> title, v8::CpuProfilingOptions options = {},
       std::unique_ptr<DiscardedSamplesDelegate> delegate = nullptr);
 
   CpuProfile* StopProfiling(const char* title);

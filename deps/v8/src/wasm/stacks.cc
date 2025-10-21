@@ -12,7 +12,7 @@ namespace v8::internal::wasm {
 
 // static
 StackMemory* StackMemory::GetCentralStackView(Isolate* isolate) {
-  ::v8::base::Vector<uint8_t> view = SimulatorStack::GetCentralStackView(isolate);
+  ZoneVector<uint8_t> view = SimulatorStack::GetCentralStackView(isolate);
   return new StackMemory(view.begin(), view.size());
 }
 

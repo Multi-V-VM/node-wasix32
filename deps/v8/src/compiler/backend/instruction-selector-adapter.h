@@ -314,7 +314,7 @@ struct TurboshaftAdapter : public turboshaft::OperationMatcher {
     return RpoNumber::FromInt(block->index().id());
   }
 
-  const ::v8::base::Vector<turboshaft::Block*>& rpo_order(turboshaft::Graph* schedule) {
+  const ZoneVector<turboshaft::Block*>& rpo_order(turboshaft::Graph* schedule) {
     return schedule->blocks_vector();
   }
 
@@ -387,7 +387,7 @@ struct TurboshaftAdapter : public turboshaft::OperationMatcher {
   turboshaft::OpIndex input_at(turboshaft::OpIndex node, size_t index) const {
     return graph_->Get(node).input(index);
   }
-  ::v8::base::Vector<const turboshaft::OpIndex> inputs(
+  ZoneVector<const turboshaft::OpIndex> inputs(
       turboshaft::OpIndex node) const {
     return graph_->Get(node).inputs();
   }

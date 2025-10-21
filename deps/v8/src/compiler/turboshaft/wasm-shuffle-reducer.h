@@ -49,7 +49,7 @@ class DemandedElementAnalysis {
 
   using LaneBitSet = std::bitset<16>;
   using DemandedElementMap =
-      ::v8::base::Vector<std::pair<const Operation*, LaneBitSet>>;
+      ZoneVector<std::pair<const Operation*, LaneBitSet>>;
 
   DemandedElementAnalysis(Zone* phase_zone, const Graph& input_graph)
       : phase_zone_(phase_zone), input_graph_(input_graph) {}

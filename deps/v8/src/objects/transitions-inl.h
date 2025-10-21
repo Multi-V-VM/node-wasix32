@@ -471,7 +471,7 @@ void TransitionArray::SetNumberOfTransitions(int number_of_transitions) {
 template <typename Char>
 bool TransitionsAccessor::IsExpectedTransition(
     Tagged<Name> transition_name, Tagged<Map> transition_target,
-    ::v8::base::Vector<const Char> key_chars) {
+    ZoneVector<const Char> key_chars) {
   if (transition_target->NumberOfOwnDescriptors() == 0) return false;
   PropertyDetails details = GetSimpleTargetDetails(transition_target);
   if (details.location() != PropertyLocation::kField) return false;
@@ -484,7 +484,7 @@ bool TransitionsAccessor::IsExpectedTransition(
 
 template <typename Char>
 std::pair<Handle<String>, Handle<Map>> TransitionsAccessor::ExpectedTransition(
-    ::v8::base::Vector<const Char> key_chars) {
+    ZoneVector<const Char> key_chars) {
   DisallowGarbageCollection no_gc;
   switch (encoding()) {
     case kPrototypeInfo:

@@ -98,12 +98,12 @@ class ErrorUtils : public AllStatic {
 
   static Handle<JSObject> MakeGenericError(
       Isolate* isolate, DirectHandle<JSFunction> constructor,
-      MessageTemplate index, ::v8::base::Vector<const DirectHandle<Object>> args,
+      MessageTemplate index, ZoneVector<const DirectHandle<Object>> args,
       FrameSkipMode mode);
 
   static DirectHandle<JSObject> ShadowRealmConstructTypeErrorCopy(
       Isolate* isolate, DirectHandle<Object> original, MessageTemplate index,
-      ::v8::base::Vector<const DirectHandle<Object>> args);
+      ZoneVector<const DirectHandle<Object>> args);
 
   // Formats a textual stack trace from the given structured stack trace.
   // Note that this can call arbitrary JS code through Error.prepareStackTrace.
@@ -159,11 +159,11 @@ class MessageFormatter {
 
   V8_EXPORT_PRIVATE static MaybeHandle<String> TryFormat(
       Isolate* isolate, MessageTemplate index,
-      ::v8::base::Vector<const DirectHandle<String>> args);
+      ZoneVector<const DirectHandle<String>> args);
 
   static DirectHandle<String> Format(
       Isolate* isolate, MessageTemplate index,
-      ::v8::base::Vector<const DirectHandle<Object>> args);
+      ZoneVector<const DirectHandle<Object>> args);
 };
 
 // A message handler is a convenience interface for accessing the list

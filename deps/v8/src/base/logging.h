@@ -3,10 +3,29 @@
 
 #ifdef __wasi__
 #include <cstdlib>  // for abort()
+#include <cstdio>   // for fprintf
 
 // V8_INLINE macro
 #ifndef V8_INLINE
 #define V8_INLINE inline
+#endif
+
+// V8_Fatal and V8_Dcheck macros for WASI
+#ifndef V8_Fatal
+#define V8_Fatal(...) do { \
+  fprintf(stderr, "V8 Fatal: "); \
+  fprintf(stderr, __VA_ARGS__); \
+  fprintf(stderr, "\n"); \
+  abort(); \
+} while (0)
+#endif
+
+#ifndef V8_Dcheck
+#define V8_Dcheck(...) do { \
+  fprintf(stderr, "V8 Dcheck: "); \
+  fprintf(stderr, __VA_ARGS__); \
+  fprintf(stderr, "\n"); \
+} while (0)
 #endif
 
 // Minimal logging stubs for WASI
@@ -28,6 +47,14 @@
 
 #ifndef CHECK_NOT_NULL
 #define CHECK_NOT_NULL(val) (val)
+#endif
+
+#ifndef CHECK_NULL
+#define CHECK_NULL(val) do { \
+  if ((val) != nullptr) { \
+    V8_Fatal("CHECK_NULL failed: %s is not null", #val); \
+  } \
+} while (0)
 #endif
 
 #ifndef CHECK_EQ

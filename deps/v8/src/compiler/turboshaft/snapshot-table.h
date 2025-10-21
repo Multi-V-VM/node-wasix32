@@ -149,7 +149,7 @@ class SnapshotTable {
   // new state. The motivation for this feature are secondary indices that need
   // to be kept in sync with the main table.
   template <class ChangeCallback = NoChangeCallback>
-  void StartNewSnapshot(::v8::base::Vector<const Snapshot> predecessors,
+  void StartNewSnapshot(ZoneVector<const Snapshot> predecessors,
                         const ChangeCallback& change_callback = {})
     requires(std::is_invocable_v<ChangeCallback, Key, Value, Value>)
   {
@@ -174,10 +174,10 @@ class SnapshotTable {
     StartNewSnapshot({parent}, change_callback);
   }
   template <class MergeFun, class ChangeCallback = NoChangeCallback>
-  void StartNewSnapshot(::v8::base::Vector<const Snapshot> predecessors,
+  void StartNewSnapshot(ZoneVector<const Snapshot> predecessors,
                         const MergeFun& merge_fun,
                         const ChangeCallback& change_callback = {})
-    requires(std::is_invocable_v<MergeFun, Key, ::v8::base::Vector<const Value>> &&
+    requires(std::is_invocable_v<MergeFun, Key, ZoneVector<const Value>> &&
              std::is_invocable_v<ChangeCallback, Key, Value, Value>)
   {
     StartNewSnapshot(predecessors, change_callback);
@@ -190,7 +190,7 @@ class SnapshotTable {
   void StartNewSnapshot(std::initializer_list<Snapshot> predecessors,
                         const MergeFun& merge_fun,
                         const ChangeCallback& change_callback = {})
-    requires(std::is_invocable_v<MergeFun, Key, ::v8::base::Vector<const Value>> &&
+    requires(std::is_invocable_v<MergeFun, Key, ZoneVector<const Value>> &&
              std::is_invocable_v<ChangeCallback, Key, Value, Value>)
   {
     StartNewSnapshot(base::VectorOf(predecessors), merge_fun, change_callback);
@@ -272,7 +272,7 @@ class SnapshotTable {
   // While logically each snapshot has its own log, we allocate the memory as a
   // single global log with each snapshot pointing to a section of it to reduce
   // the number of allocations.
-  ::v8::base::Vector<LogEntry> log_{zone_};
+  ZoneVector<LogEntry> log_{zone_};
   SnapshotData* root_snapshot_;
   SnapshotData* current_snapshot_;
 
@@ -280,9 +280,9 @@ class SnapshotTable {
   // or when creating a new snapshot.
   // They are declared here to recycle the memory, avoiding repeated
   // Zone-allocation.
-  ::v8::base::Vector<TableEntry*> merging_entries_{zone_};
-  ::v8::base::Vector<Value> merge_values_{zone_};
-  ::v8::base::Vector<SnapshotData*> path_{zone_};
+  ZoneVector<TableEntry*> merging_entries_{zone_};
+  ZoneVector<Value> merge_values_{zone_};
+  ZoneVector<SnapshotData*> path_{zone_};
 
 #ifdef DEBUG
   bool snapshot_was_created_with_merge = false;
@@ -292,14 +292,14 @@ class SnapshotTable {
     return snapshots_.emplace_back(parent, log_.size());
   }
 
-  ::v8::base::Vector<LogEntry> LogEntries(SnapshotData* s) {
+  ZoneVector<LogEntry> LogEntries(SnapshotData* s) {
     return base::VectorOf(&log_[s->log_begin], s->log_end - s->log_begin);
   }
 
   template <class ChangeCallback = NoChangeCallback>
   void RevertCurrentSnapshot(ChangeCallback& change_callback) {
     DCHECK(current_snapshot_->IsSealed());
-    ::v8::base::Vector<LogEntry> log_entries = LogEntries(current_snapshot_);
+    ZoneVector<LogEntry> log_entries = LogEntries(current_snapshot_);
     for (const LogEntry& entry : ::v8::base::Reversed(log_entries)) {
       DCHECK_EQ(entry.table_entry.value, entry.new_value);
       DCHECK_NE(entry.new_value, entry.old_value);
@@ -325,10 +325,10 @@ class SnapshotTable {
   void RecordMergeValue(TableEntry& entry, const Value& value,
                         uint32_t predecessor_index, uint32_t predecessor_count);
   template <class ChangeCallback>
-  SnapshotData& MoveToNewSnapshot(::v8::base::Vector<const Snapshot> predecessors,
+  SnapshotData& MoveToNewSnapshot(ZoneVector<const Snapshot> predecessors,
                                   const ChangeCallback& change_callback);
   template <class MergeFun, class ChangeCallback>
-  void MergePredecessors(::v8::base::Vector<const Snapshot> predecessors,
+  void MergePredecessors(ZoneVector<const Snapshot> predecessors,
                          const MergeFun& merge_fun,
                          const ChangeCallback& change_callback);
 
@@ -426,7 +426,7 @@ template <class Value, class KeyData>
 template <class ChangeCallback>
 typename SnapshotTable<Value, KeyData>::SnapshotData&
 SnapshotTable<Value, KeyData>::MoveToNewSnapshot(
-    ::v8::base::Vector<const Snapshot> predecessors,
+    ZoneVector<const Snapshot> predecessors,
     const ChangeCallback& change_callback) {
   DCHECK_WITH_MSG(
       current_snapshot_->IsSealed(),
@@ -467,7 +467,7 @@ SnapshotTable<Value, KeyData>::MoveToNewSnapshot(
 template <class Value, class KeyData>
 template <class MergeFun, class ChangeCallback>
 void SnapshotTable<Value, KeyData>::MergePredecessors(
-    ::v8::base::Vector<const Snapshot> predecessors, const MergeFun& merge_fun,
+    ZoneVector<const Snapshot> predecessors, const MergeFun& merge_fun,
     const ChangeCallback& change_callback) {
   CHECK_LE(predecessors.size(), std::numeric_limits<uint32_t>::max());
   uint32_t predecessor_count = static_cast<uint32_t>(predecessors.size());
@@ -487,7 +487,7 @@ void SnapshotTable<Value, KeyData>::MergePredecessors(
   for (uint32_t i = 0; i < predecessor_count; ++i) {
     for (SnapshotData* predecessor = predecessors[i].data_;
          predecessor != common_ancestor; predecessor = predecessor->parent) {
-      ::v8::base::Vector<LogEntry> log_entries = LogEntries(predecessor);
+      ZoneVector<LogEntry> log_entries = LogEntries(predecessor);
       for (const LogEntry& entry : ::v8::base::Reversed(log_entries)) {
         RecordMergeValue(entry.table_entry, entry.new_value, i,
                          predecessor_count);
@@ -523,7 +523,7 @@ class ChangeTrackingSnapshotTable : public SnapshotTable<Value, KeyData> {
   using typename Super::Key;
   using typename Super::Snapshot;
 
-  void StartNewSnapshot(::v8::base::Vector<const Snapshot> predecessors) {
+  void StartNewSnapshot(ZoneVector<const Snapshot> predecessors) {
     Super::StartNewSnapshot(
         predecessors,
         [this](Key key, const Value& old_value, const Value& new_value) {
@@ -535,9 +535,9 @@ class ChangeTrackingSnapshotTable : public SnapshotTable<Value, KeyData> {
   }
   void StartNewSnapshot(Snapshot parent) { StartNewSnapshot({parent}); }
   template <class MergeFun>
-  void StartNewSnapshot(::v8::base::Vector<const Snapshot> predecessors,
+  void StartNewSnapshot(ZoneVector<const Snapshot> predecessors,
                         const MergeFun& merge_fun)
-    requires(std::is_invocable_v<MergeFun, Key, ::v8::base::Vector<const Value>>)
+    requires(std::is_invocable_v<MergeFun, Key, ZoneVector<const Value>>)
   {
     Super::StartNewSnapshot(
         predecessors, merge_fun,
@@ -548,7 +548,7 @@ class ChangeTrackingSnapshotTable : public SnapshotTable<Value, KeyData> {
   template <class MergeFun>
   void StartNewSnapshot(std::initializer_list<Snapshot> predecessors,
                         const MergeFun& merge_fun)
-    requires(std::is_invocable_v<MergeFun, Key, ::v8::base::Vector<const Value>>)
+    requires(std::is_invocable_v<MergeFun, Key, ZoneVector<const Value>>)
   {
     StartNewSnapshot(base::VectorOf(predecessors), merge_fun);
   }

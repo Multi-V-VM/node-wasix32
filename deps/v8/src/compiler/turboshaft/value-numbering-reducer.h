@@ -266,8 +266,8 @@ class ValueNumberingReducer : public Next {
   // If the table is too full, double its size and re-insert the old entries.
   void RehashIfNeeded() {
     if (V8_LIKELY(table_.size() - (table_.size() / 4) > entry_count_)) return;
-    ::v8::base::Vector<Entry> new_table = table_ =
-        Asm().phase_zone()->template New::v8::base::Vector<Entry>(table_.size() * 2);
+    ZoneVector<Entry> new_table = table_ =
+        Asm().phase_zone()->template NewZoneVector<Entry>(table_.size() * 2);
     size_t mask = mask_ = table_.size() - 1;
 
     for (size_t depth_idx = 0; depth_idx < depths_heads_.size(); depth_idx++) {
@@ -341,13 +341,13 @@ class ValueNumberingReducer : public Next {
 
   bool is_disabled() { return disabled_scope_.is_active(); }
 
-  ::v8::base::Vector<Block*> dominator_path_{Asm().phase_zone()};
-  ::v8::base::Vector<Entry> table_ = Asm().phase_zone()->template New::v8::base::Vector<Entry>(
+  ZoneVector<Block*> dominator_path_{Asm().phase_zone()};
+  ZoneVector<Entry> table_ = Asm().phase_zone()->template NewZoneVector<Entry>(
       base::bits::RoundUpToPowerOfTwo(
           std::max<size_t>(128, Asm().input_graph().op_id_capacity() / 2)));
   size_t mask_ = table_.size() - 1;
   size_t entry_count_ = 0;
-  ::v8::base::Vector<Entry*> depths_heads_{Asm().phase_zone()};
+  ZoneVector<Entry*> depths_heads_{Asm().phase_zone()};
   ScopeCounter disabled_scope_;
 };
 

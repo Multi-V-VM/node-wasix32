@@ -845,7 +845,7 @@ Vector<const uint8_t> SerializedCodeData::Payload() const {
   DCHECK(IsAligned(reinterpret_cast<intptr_t>(payload), kPointerAlignment));
   int length = GetHeaderValue(kPayloadLengthOffset);
   DCHECK_EQ(data_ + size_, payload + length);
-  return ::v8::base::Vector<const uint8_t>(payload, length);
+  return ZoneVector<const uint8_t>(payload, length);
 }
 
 SerializedCodeData::SerializedCodeData(AlignedCachedData* data)

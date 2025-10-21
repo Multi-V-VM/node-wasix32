@@ -48,13 +48,13 @@ class SnapshotImpl : public AllStatic {
   static uint32_t ExtractNumContexts(const v8::StartupData* data);
   static uint32_t ExtractContextOffset(const v8::StartupData* data,
                                        uint32_t index);
-  static ::v8::base::Vector<const uint8_t> ExtractStartupData(
+  static ZoneVector<const uint8_t> ExtractStartupData(
       const v8::StartupData* data);
-  static ::v8::base::Vector<const uint8_t> ExtractReadOnlyData(
+  static ZoneVector<const uint8_t> ExtractReadOnlyData(
       const v8::StartupData* data);
-  static ::v8::base::Vector<const uint8_t> ExtractSharedHeapData(
+  static ZoneVector<const uint8_t> ExtractSharedHeapData(
       const v8::StartupData* data);
-  static ::v8::base::Vector<const uint8_t> ExtractContextData(
+  static ZoneVector<const uint8_t> ExtractContextData(
       const v8::StartupData* data, uint32_t index);
 
   static uint32_t GetHeaderValue(const v8::StartupData* data, uint32_t offset) {
@@ -105,7 +105,7 @@ class SnapshotImpl : public AllStatic {
   static const uint32_t kFirstContextOffsetOffset =
       kSharedHeapOffsetOffset + kUInt32Size;
 
-  static ::v8::base::Vector<const uint8_t> ChecksummedContent(
+  static ZoneVector<const uint8_t> ChecksummedContent(
       const v8::StartupData* data) {
     // The hashed region is everything but the header slots up-to-and-including
     // the checksum slot itself.
@@ -115,7 +115,7 @@ class SnapshotImpl : public AllStatic {
     static_assert(kReadOnlySnapshotChecksumOffset ==
                   kChecksumOffset + kUInt32Size);
     const uint32_t kChecksumStart = kReadOnlySnapshotChecksumOffset;
-    return ::v8::base::Vector<const uint8_t>(
+    return ZoneVector<const uint8_t>(
         reinterpret_cast<const uint8_t*>(data->data + kChecksumStart),
         data->raw_size - kChecksumStart);
   }
@@ -133,7 +133,7 @@ class SnapshotImpl : public AllStatic {
 }  // namespace
 
 SnapshotData MaybeDecompress(Isolate* isolate,
-                             ::v8::base::Vector<const uint8_t> snapshot_data) {
+                             ZoneVector<const uint8_t> snapshot_data) {
 #ifdef V8_SNAPSHOT_COMPRESSION
   TRACE_EVENT0("v8", "V8.SnapshotDecompress");
   RCS_SCOPE(isolate, RuntimeCallCounterId::kSnapshotDecompress);
@@ -168,7 +168,7 @@ bool Snapshot::VersionIsValid(const v8::StartupData* data) {
       SnapshotImpl::kVersionStringOffset + SnapshotImpl::kVersionStringLength,
       static_cast<uint32_t>(data->raw_size));
   Version::GetString(
-      ::v8::base::Vector<char>(version, SnapshotImpl::kVersionStringLength));
+      ZoneVector<char>(version, SnapshotImpl::kVersionStringLength));
   return strncmp(version, data->data + SnapshotImpl::kVersionStringOffset,
                  SnapshotImpl::kVersionStringLength) == 0;
 }
@@ -182,11 +182,11 @@ bool Snapshot::Initialize(Isolate* isolate) {
     CHECK(VerifyChecksum(blob));
   }
 
-  ::v8::base::Vector<const uint8_t> startup_data =
+  ZoneVector<const uint8_t> startup_data =
       SnapshotImpl::ExtractStartupData(blob);
-  ::v8::base::Vector<const uint8_t> read_only_data =
+  ZoneVector<const uint8_t> read_only_data =
       SnapshotImpl::ExtractReadOnlyData(blob);
-  ::v8::base::Vector<const uint8_t> shared_heap_data =
+  ZoneVector<const uint8_t> shared_heap_data =
       SnapshotImpl::ExtractSharedHeapData(blob);
 
   SnapshotData startup_snapshot_data(MaybeDecompress(isolate, startup_data));
@@ -208,7 +208,7 @@ MaybeDirectHandle<Context> Snapshot::NewContextFromSnapshot(
 
   const v8::StartupData* blob = isolate->snapshot_blob();
   bool can_rehash = ExtractRehashability(blob);
-  ::v8::base::Vector<const uint8_t> context_data = SnapshotImpl::ExtractContextData(
+  ZoneVector<const uint8_t> context_data = SnapshotImpl::ExtractContextData(
       blob, static_cast<uint32_t>(context_index));
   SnapshotData snapshot_data(MaybeDecompress(isolate, context_data));
 
@@ -555,7 +555,7 @@ v8::StartupData SnapshotImpl::CreateSnapshotBlob(
   memset(data + SnapshotImpl::kVersionStringOffset, 0,
          SnapshotImpl::kVersionStringLength);
   Version::GetString(
-      ::v8::base::Vector<char>(data + SnapshotImpl::kVersionStringOffset,
+      ZoneVector<char>(data + SnapshotImpl::kVersionStringOffset,
                          SnapshotImpl::kVersionStringLength));
 
   // Startup snapshot (isolate-specific data).
@@ -689,7 +689,7 @@ Vector<const uint8_t> ExtractData(const v8::StartupData* snapshot,
   uint32_t length = end_offset - start_offset;
   const uint8_t* data =
       reinterpret_cast<const uint8_t*>(snapshot->data + start_offset);
-  return ::v8::base::Vector<const uint8_t>(data, length);
+  return ZoneVector<const uint8_t>(data, length);
 }
 }  // namespace
 
@@ -735,7 +735,7 @@ Vector<const uint8_t> SnapshotImpl::ExtractContextData(
   const uint8_t* context_data =
       reinterpret_cast<const uint8_t*>(data->data + context_offset);
   uint32_t context_length = next_context_offset - context_offset;
-  return ::v8::base::Vector<const uint8_t>(context_data, context_length);
+  return ZoneVector<const uint8_t>(context_data, context_length);
 }
 
 void SnapshotImpl::CheckVersion(const v8::StartupData* data) {
@@ -744,7 +744,7 @@ void SnapshotImpl::CheckVersion(const v8::StartupData* data) {
     memset(version, 0, kVersionStringLength);
     CHECK_LT(kVersionStringOffset + kVersionStringLength,
              static_cast<uint32_t>(data->raw_size));
-    Version::GetString(::v8::base::Vector<char>(version, kVersionStringLength));
+    Version::GetString(ZoneVector<char>(version, kVersionStringLength));
     FATAL(
         "Version mismatch between V8 binary and snapshot.\n"
         "#   V8 binary version: %.*s\n"

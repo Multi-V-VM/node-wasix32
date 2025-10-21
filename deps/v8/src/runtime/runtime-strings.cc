@@ -370,7 +370,7 @@ RUNTIME_FUNCTION(Runtime_StringToArray) {
     // two-byte string that has only one-byte chars, in that case we will do
     // a LookupSingleCharacterStringFromCode for each of the characters.
     if (content.IsOneByte()) {
-      ::v8::base::Vector<const uint8_t> chars = content.ToOneByteVector();
+      ZoneVector<const uint8_t> chars = content.ToOneByteVector();
       ReadOnlyRoots roots(isolate);
       for (int i = 0; i < length; ++i) {
         Tagged<String> value = roots.single_character_string(chars[i]);

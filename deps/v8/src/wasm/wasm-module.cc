@@ -131,7 +131,7 @@ void LazilyGeneratedNames::AddForTesting(int function_index,
 }
 
 AsmJsOffsetInformation::AsmJsOffsetInformation(
-    ::v8::base::Vector<const uint8_t> encoded_offsets)
+    ZoneVector<const uint8_t> encoded_offsets)
     : encoded_offsets_(base::OwnedCopyOf(encoded_offsets)) {}
 
 AsmJsOffsetInformation::~AsmJsOffsetInformation() = default;
@@ -627,12 +627,12 @@ DirectHandle<JSArray> GetCustomSections(
     DirectHandle<String> name, ErrorThrower* thrower) {
   Factory* factory = isolate->factory();
 
-  ::v8::base::Vector<const uint8_t> wire_bytes =
+  ZoneVector<const uint8_t> wire_bytes =
       module_object->native_module()->wire_bytes();
   std::vector<CustomSectionOffset> custom_sections =
       DecodeCustomSections(wire_bytes);
 
-  DirectHandle<::v8::base::Vector<Object> matching_sections(isolate);
+  DirectHandle<ZoneVector<Object> matching_sections(isolate);
 
   // Gather matching sections.
   for (auto& section : custom_sections) {
@@ -794,7 +794,7 @@ size_t WasmModule::EstimateCurrentMemoryConsumption() const {
   return result;
 }
 
-size_t PrintSignature(::v8::base::Vector<char> buffer, const CanonicalSig* sig,
+size_t PrintSignature(ZoneVector<char> buffer, const CanonicalSig* sig,
                       char delimiter) {
   if (buffer.empty()) return 0;
   size_t old_size = buffer.size();
@@ -819,7 +819,7 @@ int JumpTableOffset(const WasmModule* module, int func_index) {
       declared_function_index(module, func_index));
 }
 
-size_t GetWireBytesHash(::v8::base::Vector<const uint8_t> wire_bytes) {
+size_t GetWireBytesHash(ZoneVector<const uint8_t> wire_bytes) {
   return StringHasher::HashSequentialString(
       reinterpret_cast<const char*>(wire_bytes.begin()), wire_bytes.length(),
       kZeroHashSeed);

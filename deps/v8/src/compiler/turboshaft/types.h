@@ -379,7 +379,7 @@ class WordType : public Type {
                       Zone* zone) {
     return Set(base::VectorOf(elements), zone);
   }
-  static WordType Set(::v8::base::Vector<const word_t> elements, Zone* zone) {
+  static WordType Set(ZoneVector<const word_t> elements, Zone* zone) {
     DCHECK(detail::is_unique_and_sorted(elements));
     DCHECK_IMPLIES(elements.size() > kMaxInlineSetSize, zone != nullptr);
     DCHECK_GT(elements.size(), 0);
@@ -441,13 +441,13 @@ class WordType : public Type {
     DCHECK_LT(index, set_size());
     return set_elements()[index];
   }
-  ::v8::base::Vector<const word_t> set_elements() const {
+  ZoneVector<const word_t> set_elements() const {
     DCHECK(is_set());
     if (set_size() <= kMaxInlineSetSize) {
-      return ::v8::base::Vector<const word_t>(
+      return ZoneVector<const word_t>(
           get_payload<Payload_InlineSet>().elements, set_size());
     } else {
-      return ::v8::base::Vector<const word_t>(get_payload<Payload_OutlineSet>().array,
+      return ZoneVector<const word_t>(get_payload<Payload_OutlineSet>().array,
                                         set_size());
     }
   }
@@ -583,7 +583,7 @@ class FloatType : public Type {
                        uint32_t special_values, Zone* zone) {
     return Set(base::VectorOf(elements), special_values, zone);
   }
-  static FloatType Set(::v8::base::Vector<const float_t> elements,
+  static FloatType Set(ZoneVector<const float_t> elements,
                        uint32_t special_values, Zone* zone) {
     DCHECK(detail::is_unique_and_sorted(elements));
     // NaN should be passed via {special_values} rather than {elements}.
@@ -673,13 +673,13 @@ class FloatType : public Type {
     DCHECK_LT(index, set_size());
     return set_elements()[index];
   }
-  ::v8::base::Vector<const float_t> set_elements() const {
+  ZoneVector<const float_t> set_elements() const {
     DCHECK(is_set());
     if (set_size() <= kMaxInlineSetSize) {
-      return ::v8::base::Vector<const float_t>(
+      return ZoneVector<const float_t>(
           get_payload<Payload_InlineSet>().elements, set_size());
     } else {
-      return ::v8::base::Vector<const float_t>(
+      return ZoneVector<const float_t>(
           get_payload<Payload_OutlineSet>().array, set_size());
     }
   }
@@ -820,7 +820,7 @@ class TupleType : public Type {
     return TupleType{2, p};
   }
 
-  static TupleType Tuple(::v8::base::Vector<Type> elements, Zone* zone) {
+  static TupleType Tuple(ZoneVector<Type> elements, Zone* zone) {
     DCHECK_LE(elements.size(), kMaxTupleSize);
     Payload p;
     p.array = zone->AllocateArray<Type>(elements.size());
@@ -838,7 +838,7 @@ class TupleType : public Type {
     DCHECK_LT(index, size());
     return get_payload<Payload>().array[index];
   }
-  ::v8::base::Vector<Type> elements() const {
+  ZoneVector<Type> elements() const {
     return {get_payload<Payload>().array, static_cast<size_t>(size())};
   }
 

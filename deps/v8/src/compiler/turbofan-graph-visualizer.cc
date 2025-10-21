@@ -250,7 +250,7 @@ void JsonPrintAllSourceWithPositions(std::ostream& os,
 void JsonPrintAllSourceWithPositionsWasm(
     std::ostream& os, const wasm::WasmModule* module,
     const wasm::WireBytesStorage* wire_bytes,
-    ::v8::base::Vector<WasmInliningPosition> positions) {
+    ZoneVector<WasmInliningPosition> positions) {
   // Filter out duplicate sources. (A single wasm function might be inlined more
   // than once.)
   std::vector<int /*function id*/> sources;
@@ -274,7 +274,7 @@ void JsonPrintAllSourceWithPositionsWasm(
     const wasm::WasmFunction& fct = module->functions[function_id];
     os << '"' << i << "\": {\"sourceId\": " << i << ", \"functionName\": \""
        << fct.func_index << "\", \"sourceName\": \"\", \"sourceText\": \"";
-    ::v8::base::Vector<const uint8_t> module_bytes{nullptr, 0};
+    ZoneVector<const uint8_t> module_bytes{nullptr, 0};
     std::optional<wasm::ModuleWireBytes> maybe_wire_bytes =
         wire_bytes->GetModuleBytes();
     if (maybe_wire_bytes) module_bytes = maybe_wire_bytes->module_bytes();
@@ -937,7 +937,7 @@ std::ostream& operator<<(std::ostream& os, const AsRPO& ar) {
   // the node itself, if there are no cycles. Any cycles are broken
   // arbitrarily.
 
-  ::v8::base::Vector<uint8_t> state(ar.graph.NodeCount(), kUnvisited, &local_zone);
+  ZoneVector<uint8_t> state(ar.graph.NodeCount(), kUnvisited, &local_zone);
   ZoneStack<Node*> stack(&local_zone);
 
   stack.push(ar.graph.end());
@@ -1142,7 +1142,7 @@ std::ostream& operator<<(
 }
 
 void PrintTopLevelLiveRanges(std::ostream& os,
-                             const ::v8::base::Vector<TopLevelLiveRange*> ranges,
+                             const ZoneVector<TopLevelLiveRange*> ranges,
                              const InstructionSequence& code) {
   bool first = true;
   os << "{";

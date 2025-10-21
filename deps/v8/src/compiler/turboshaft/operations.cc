@@ -105,7 +105,7 @@ void ValidateOpInputRep(
     std::initializer_list<RegisterRepresentation> expected_reps,
     const Operation* checked_op, std::optional<size_t> projection_index) {
   const Operation& input_op = graph.Get(input);
-  ::v8::base::Vector<const RegisterRepresentation> input_reps =
+  ZoneVector<const RegisterRepresentation> input_reps =
       input_op.outputs_rep();
   RegisterRepresentation input_rep;
   if (projection_index) {

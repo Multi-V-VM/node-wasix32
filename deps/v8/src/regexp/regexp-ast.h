@@ -366,8 +366,8 @@ class RegExpClassRanges final : public RegExpTree {
 };
 
 struct CharacterClassStringLess {
-  bool operator()(::v8::base::Vector<const base::uc32> lhs,
-                  ::v8::base::Vector<const base::uc32> rhs) const {
+  bool operator()(ZoneVector<const base::uc32> lhs,
+                  ZoneVector<const base::uc32> rhs) const {
     // Longer strings first so we generate matches for the largest string
     // possible.
     if (lhs.length() != rhs.length()) {
@@ -389,7 +389,7 @@ struct CharacterClassStringLess {
 // we can avoid sorting before assembling the code.
 // Strings are likely short (the largest string in current unicode properties
 // consists of 10 code points).
-using CharacterClassStrings = ZoneMap<::v8::base::Vector<const base::uc32>,
+using CharacterClassStrings = ZoneMap<ZoneVector<const base::uc32>,
                                       RegExpTree*, CharacterClassStringLess>;
 
 // TODO(pthier): If we are sure we don't want to use icu::UnicodeSets
@@ -471,7 +471,7 @@ class RegExpClassSetExpression final : public RegExpTree {
 
 class RegExpAtom final : public RegExpTree {
  public:
-  explicit RegExpAtom(::v8::base::Vector<const base::uc16> data) : data_(data) {}
+  explicit RegExpAtom(ZoneVector<const base::uc16> data) : data_(data) {}
 
   DECL_BOILERPLATE(Atom);
 
@@ -480,11 +480,11 @@ class RegExpAtom final : public RegExpTree {
   int max_match() override { return data_.length(); }
   void AppendToText(RegExpText* text, Zone* zone) override;
 
-  ::v8::base::Vector<const base::uc16> data() const { return data_; }
+  ZoneVector<const base::uc16> data() const { return data_; }
   int length() const { return data_.length(); }
 
  private:
-  ::v8::base::Vector<const base::uc16> data_;
+  ZoneVector<const base::uc16> data_;
 };
 
 class TextElement final {
@@ -616,8 +616,8 @@ class RegExpCapture final : public RegExpTree {
     max_match_ = body->max_match();
   }
   int index() const { return index_; }
-  const ::v8::base::Vector<base::uc16>* name() const { return name_; }
-  void set_name(const ::v8::base::Vector<base::uc16>* name) { name_ = name; }
+  const ZoneVector<base::uc16>* name() const { return name_; }
+  void set_name(const ZoneVector<base::uc16>* name) { name_ = name; }
   static int StartRegister(int index) { return index * 2; }
   static int EndRegister(int index) { return index * 2 + 1; }
 
@@ -626,7 +626,7 @@ class RegExpCapture final : public RegExpTree {
   int index_;
   int min_match_ = 0;
   int max_match_ = 0;
-  const ::v8::base::Vector<base::uc16>* name_ = nullptr;
+  const ZoneVector<base::uc16>* name_ = nullptr;
 };
 
 class RegExpGroup final : public RegExpTree {
@@ -723,12 +723,12 @@ class RegExpBackReference final : public RegExpTree {
   void add_capture(RegExpCapture* capture, Zone* zone) {
     captures_.Add(capture, zone);
   }
-  const ::v8::base::Vector<base::uc16>* name() const { return name_; }
-  void set_name(const ::v8::base::Vector<base::uc16>* name) { name_ = name; }
+  const ZoneVector<base::uc16>* name() const { return name_; }
+  void set_name(const ZoneVector<base::uc16>* name) { name_ = name; }
 
  private:
   ZoneList<RegExpCapture*> captures_;
-  const ::v8::base::Vector<base::uc16>* name_ = nullptr;
+  const ZoneVector<base::uc16>* name_ = nullptr;
 };
 
 class RegExpEmpty final : public RegExpTree {

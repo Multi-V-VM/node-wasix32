@@ -1071,7 +1071,7 @@ class ParserBase {
       impl()->ReportMessageAt(octal, message);
       scanner()->clear_octal_position();
       if (message == MessageTemplate::kStrictDecimalWithLeadingZero) {
-        impl()->CountUsage(v8::Isolate::kDecimalWithLeadingZeroInStrictMode);
+        impl()->CountUsage(v8::Isolate::UseCounterFeature::kDecimalWithLeadingZeroInStrictMode);
       }
     }
   }
@@ -3542,7 +3542,7 @@ ParserBase<Impl>::ParseConditionalChainExpression(ExpressionT condition,
   ExpressionT expr = impl()->NullExpression();
   ExpressionT else_expression = impl()->NullExpression();
   bool else_found = false;
-  ::v8::base::Vector<int> else_ranges_beg_pos(impl()->zone());
+  ZoneVector<int> else_ranges_beg_pos(impl()->zone());
   do {
     SourceRange then_range;
     ExpressionT then_expression;

@@ -3794,9 +3794,9 @@ void Assembler::GrowBuffer() {
                                reloc_info_writer.last_pc() + pc_delta);
 
   // Relocate runtime entries.
-  ::v8::base::Vector<uint8_t> instructions{buffer_start_,
+  ZoneVector<uint8_t> instructions{buffer_start_,
                                      static_cast<size_t>(pc_offset())};
-  ::v8::base::Vector<const uint8_t> reloc_info{reloc_info_writer.pos(), reloc_size};
+  ZoneVector<const uint8_t> reloc_info{reloc_info_writer.pos(), reloc_size};
   for (RelocIterator it(instructions, reloc_info, 0); !it.done(); it.next()) {
     RelocInfo::Mode rmode = it.rinfo()->rmode();
     if (rmode == RelocInfo::INTERNAL_REFERENCE) {

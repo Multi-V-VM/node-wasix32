@@ -168,7 +168,7 @@ class V8_EXPORT_PRIVATE INSTRUCTION_OPERAND_ALIGN InstructionOperand {
   uint64_t value_;
 };
 
-using InstructionOperandVector = ::v8::base::Vector<InstructionOperand>;
+using InstructionOperandVector = ZoneVector<InstructionOperand>;
 
 std::ostream& operator<<(std::ostream&, const InstructionOperand&);
 
@@ -849,10 +849,10 @@ class V8_EXPORT_PRIVATE MoveOperands final
 V8_EXPORT_PRIVATE std::ostream& operator<<(std::ostream&, const MoveOperands&);
 
 class V8_EXPORT_PRIVATE ParallelMove final
-    : public NON_EXPORTED_BASE(::v8::base::Vector<MoveOperands*>),
+    : public NON_EXPORTED_BASE(ZoneVector<MoveOperands*>),
       public NON_EXPORTED_BASE(ZoneObject) {
  public:
-  explicit ParallelMove(Zone* zone) : ::v8::base::Vector<MoveOperands*>(zone) {}
+  explicit ParallelMove(Zone* zone) : ZoneVector<MoveOperands*>(zone) {}
   ParallelMove(const ParallelMove&) = delete;
   ParallelMove& operator=(const ParallelMove&) = delete;
 
@@ -877,7 +877,7 @@ class V8_EXPORT_PRIVATE ParallelMove final
   // ParallelMove.  move->source() may be changed.  Any MoveOperands added to
   // to_eliminate must be Eliminated.
   void PrepareInsertAfter(MoveOperands* move,
-                          ::v8::base::Vector<MoveOperands*>* to_eliminate) const;
+                          ZoneVector<MoveOperands*>* to_eliminate) const;
 
   bool Equals(const ParallelMove& that) const;
 
@@ -894,7 +894,7 @@ class ReferenceMap final : public ZoneObject {
   explicit ReferenceMap(Zone* zone)
       : reference_operands_(zone), instruction_position_(-1) {}
 
-  const ::v8::base::Vector<InstructionOperand>& reference_operands() const {
+  const ZoneVector<InstructionOperand>& reference_operands() const {
     return reference_operands_;
   }
   int instruction_position() const { return instruction_position_; }
@@ -909,7 +909,7 @@ class ReferenceMap final : public ZoneObject {
  private:
   friend std::ostream& operator<<(std::ostream&, const ReferenceMap&);
 
-  ::v8::base::Vector<InstructionOperand> reference_operands_;
+  ZoneVector<InstructionOperand> reference_operands_;
   int instruction_position_;
 };
 
@@ -1680,12 +1680,12 @@ class DeoptimizationEntry final {
   const FeedbackSource feedback_;
 };
 
-using DeoptimizationVector = ::v8::base::Vector<DeoptimizationEntry>;
+using DeoptimizationVector = ZoneVector<DeoptimizationEntry>;
 
 class V8_EXPORT_PRIVATE PhiInstruction final
     : public NON_EXPORTED_BASE(ZoneObject) {
  public:
-  using Inputs = ::v8::base::Vector<InstructionOperand>;
+  using Inputs = ZoneVector<InstructionOperand>;
 
   PhiInstruction(Zone* zone, int virtual_register, size_t input_count);
 
@@ -1943,10 +1943,10 @@ class V8_EXPORT_PRIVATE InstructionSequence final
     return it->second;
   }
 
-  using Immediates = ::v8::base::Vector<Constant>;
+  using Immediates = ZoneVector<Constant>;
   Immediates& immediates() { return immediates_; }
 
-  using RpoImmediates = ::v8::base::Vector<RpoNumber>;
+  using RpoImmediates = ZoneVector<RpoNumber>;
   RpoImmediates& rpo_immediates() { return rpo_immediates_; }
 
   ImmediateOperand AddImmediate(const Constant& constant) {
@@ -2065,7 +2065,7 @@ class V8_EXPORT_PRIVATE InstructionSequence final
   Instructions instructions_;
   int next_virtual_register_;
   ReferenceMaps reference_maps_;
-  ::v8::base::Vector<MachineRepresentation> representations_;
+  ZoneVector<MachineRepresentation> representations_;
   int representation_mask_;
   DeoptimizationVector deoptimization_entries_;
 

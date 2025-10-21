@@ -300,8 +300,8 @@ class JsonParser final {
   JsonString ScanJsonString(bool needs_internalization);
   JsonString ScanJsonPropertyKey(JsonContinuation* cont);
   base::uc32 ScanUnicodeCharacter();
-  ::v8::base::Vector<const Char> GetKeyChars(JsonString key) {
-    return ::v8::base::Vector<const Char>(chars_ + key.start(), key.length());
+  ZoneVector<const Char> GetKeyChars(JsonString key) {
+    return ZoneVector<const Char>(chars_ + key.start(), key.length());
   }
   Handle<String> MakeString(const JsonString& string,
                             Handle<String> hint = Handle<String>());

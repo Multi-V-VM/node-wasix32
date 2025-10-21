@@ -1989,7 +1989,7 @@ class NaryOperation final : public Expression {
     NaryOperationEntry(Expression* e, int pos)
         : expression(e), op_position(pos) {}
   };
-  ::v8::base::Vector<NaryOperationEntry> subsequent_;
+  ZoneVector<NaryOperationEntry> subsequent_;
 
   using OperatorField = Expression::NextBitField<Token::Value, 7>;
 };
@@ -2135,7 +2135,7 @@ class ConditionalChain : public Expression {
     ConditionalChainEntry(Expression* cond, Expression* then, int pos)
         : condition(cond), then_expression(then), condition_position(pos) {}
   };
-  ::v8::base::Vector<ConditionalChainEntry> conditional_chain_entries_;
+  ZoneVector<ConditionalChainEntry> conditional_chain_entries_;
   Expression* else_expression_;
 };
 

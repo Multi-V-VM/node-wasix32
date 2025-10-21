@@ -16,10 +16,10 @@ namespace internal {
 // Static register constants
 const int kRegisterCodeByAllocationIndex[] = {
     // Allocatable registers in allocation order
-    r0().code(),  r1().code(),  r2().code(),  r3().code(),
-    r4().code(),  r5().code(),  r6().code(),  r7().code(),
-    r8().code(),  r9().code(),  r10().code(), r11().code(),
-    r12().code()
+    Register::r0().code(),  Register::r1().code(),  Register::r2().code(),  Register::r3().code(),
+    Register::r4().code(),  Register::r5().code(),  Register::r6().code(),  Register::r7().code(),
+    Register::r8().code(),  Register::r9().code(),  Register::r10().code(), Register::r11().code(),
+    Register::r12().code()
 };
 
 const char* const RegisterNames[] = {
@@ -157,9 +157,7 @@ void RelocInfo::set_target_object(Heap* heap, HeapObject target,
   DCHECK(IsCodeTarget(rmode_) || IsFullEmbeddedObject(rmode_));
   Assembler::set_target_address_at(pc_, constant_pool_, target.ptr(),
                                    icache_flush_mode);
-  if (!host().is_null() && !v8_flags.disable_write_barriers) {
-    WriteBarrierForCode(host(), this, target, write_barrier_mode);
-  }
+  // WASM32 stub: omit host write barriers.
 }
 
 Address RelocInfo::target_internal_reference() {

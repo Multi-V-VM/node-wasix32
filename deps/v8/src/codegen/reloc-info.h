@@ -575,8 +575,8 @@ class V8_EXPORT_PRIVATE RelocIterator : public RelocIteratorBase<RelocInfo> {
   explicit RelocIterator(Tagged<Code> code, int mode_mask = kAllModesMask);
 
   // For Wasm.
-  explicit RelocIterator(::v8::base::Vector<uint8_t> instructions,
-                         ::v8::base::Vector<const uint8_t> reloc_info,
+  explicit RelocIterator(ZoneVector<uint8_t> instructions,
+                         ZoneVector<const uint8_t> reloc_info,
                          Address const_pool, int mode_mask = kAllModesMask);
   // For the disassembler.
   explicit RelocIterator(const CodeReference code_reference);
@@ -602,8 +602,8 @@ class V8_EXPORT_PRIVATE WritableRelocIterator
                         Address constant_pool, int mode_mask);
   // Constructor for iterating Wasm code.
   WritableRelocIterator(WritableJitAllocation& jit_allocation,
-                        ::v8::base::Vector<uint8_t> instructions,
-                        ::v8::base::Vector<const uint8_t> reloc_info,
+                        ZoneVector<uint8_t> instructions,
+                        ZoneVector<const uint8_t> reloc_info,
                         Address constant_pool, int mode_mask = kAllModesMask);
 };
 

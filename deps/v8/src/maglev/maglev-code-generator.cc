@@ -749,7 +749,7 @@ class MaglevCodeGeneratingNodeProcessor {
     // Reorder the blocks so that dererred blocks are at the end.
     int non_deferred_count = graph->num_blocks() - deferred_count;
 
-    ::v8::base::Vector<BasicBlock*> new_blocks(graph->num_blocks(), zone_);
+    ZoneVector<BasicBlock*> new_blocks(graph->num_blocks(), zone_);
 
     size_t ix_non_deferred = 0;
     size_t ix_deferred = non_deferred_count;
@@ -766,7 +766,7 @@ class MaglevCodeGeneratingNodeProcessor {
     graph->set_blocks(new_blocks);
 
     // Remove empty blocks.
-    ::v8::base::Vector<BasicBlock*>& blocks = graph->blocks();
+    ZoneVector<BasicBlock*>& blocks = graph->blocks();
     size_t current_ix = 0;
     for (size_t i = 0; i < blocks.size(); ++i) {
       BasicBlock* block = blocks[i];
@@ -1753,9 +1753,9 @@ MaybeHandle<Code> MaglevCodeGenerator::Generate(Isolate* isolate) {
   return BuildCodeObject(isolate->main_thread_local_isolate());
 }
 
-GlobalHandle::v8::base::Vector<Map> MaglevCodeGenerator::RetainedMaps(Isolate* isolate) {
+GlobalHandleZoneVector<Map> MaglevCodeGenerator::RetainedMaps(Isolate* isolate) {
   DisallowGarbageCollection no_gc;
-  GlobalHandle::v8::base::Vector<Map> maps(isolate->heap());
+  GlobalHandleZoneVector<Map> maps(isolate->heap());
   maps.Reserve(retained_maps_.size());
   for (DirectHandle<Map> map : retained_maps_) maps.Push(*map);
   return maps;
@@ -1949,12 +1949,12 @@ MaybeHandle<Code> MaglevCodeGenerator::BuildCodeObject(
   return builder.TryBuild();
 }
 
-GlobalHandle::v8::base::Vector<Map> MaglevCodeGenerator::CollectRetainedMaps(
+GlobalHandleZoneVector<Map> MaglevCodeGenerator::CollectRetainedMaps(
     DirectHandle<Code> code) {
   DCHECK(code->is_optimized_code());
 
   DisallowGarbageCollection no_gc;
-  GlobalHandle::v8::base::Vector<Map> maps(local_isolate_->heap());
+  GlobalHandleZoneVector<Map> maps(local_isolate_->heap());
   PtrComprCageBase cage_base(local_isolate_);
   int const mode_mask = RelocInfo::EmbeddedObjectModeMask();
   for (RelocIterator it(*code, mode_mask); !it.done(); it.next()) {

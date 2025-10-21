@@ -22,6 +22,7 @@
 #include "include/v8-embedder-heap.h"
 #include "include/v8-internal.h"
 #include "include/v8-isolate.h"
+#include "include/v8-promise.h"
 #include "src/base/atomic-utils.h"
 #include "src/base/enum-set.h"
 #include "src/base/platform/condition-variable.h"
@@ -598,7 +599,7 @@ class Heap final {
 
 #ifndef __wasi__
   void IncrementDeferredCounts(
-      ::v8::base::Vector<const v8::Isolate::UseCounterFeature> features);
+      ZoneVector<const v8::Isolate::UseCounterFeature> features);
 #endif
 
   int NextScriptId();

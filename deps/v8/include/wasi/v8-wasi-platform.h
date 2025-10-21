@@ -196,6 +196,10 @@ class Platform {
                                       std::unique_ptr<Task> task) {}
   virtual double MonotonicallyIncreasingTime() { return 0.0; }
   virtual double CurrentClockTimeMillis() { return 0.0; }
+  virtual std::unique_ptr<JobHandle> CreateJob(TaskPriority /*priority*/, std::unique_ptr<JobTask> /*job_task*/,
+                                               int /*priority_mode*/ = 0) {
+    return std::unique_ptr<JobHandle>(new JobHandle());
+  }
 };
 
 }  // namespace internal

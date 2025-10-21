@@ -1408,7 +1408,7 @@ DirectHandle<String> TemporalDurationToString(Isolate* isolate,
   IncrementalStringBuilder date_part(isolate);
   // Number.MAX_VALUE.toString() is "1.7976931348623157e+308"
   // We add several more spaces to 320.
-  base::Scoped::v8::base::Vector<char> buf(320);
+  base::ScopedZoneVector<char> buf(320);
 
   // 9. If years is not 0, then
   if (dur.years != 0) {
@@ -11096,7 +11096,7 @@ MaybeDirectHandle<JSArray> GetIANATimeZoneEpochValueAsArrayOfInstant(
   DirectHandle<BigInt> nanoseconds_in_local_time =
       GetEpochFromISOParts(isolate, date_time);
 
-  DirectHandle<::v8::base::Vector<BigInt> possible_offset =
+  DirectHandle<ZoneVector<BigInt> possible_offset =
       Intl::GetTimeZonePossibleOffsetNanoseconds(isolate, time_zone_index,
                                                  nanoseconds_in_local_time);
 

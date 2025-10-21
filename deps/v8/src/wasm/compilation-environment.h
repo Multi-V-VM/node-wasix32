@@ -85,7 +85,7 @@ struct CompilationEnv {
 class WireBytesStorage {
  public:
   virtual ~WireBytesStorage() = default;
-  virtual ::v8::base::Vector<const uint8_t> GetCode(WireBytesRef) const = 0;
+  virtual ZoneVector<const uint8_t> GetCode(WireBytesRef) const = 0;
   // Returns the ModuleWireBytes corresponding to the underlying module if
   // available. Not supported if the wire bytes are owned by a StreamingDecoder.
   virtual std::optional<ModuleWireBytes> GetModuleBytes() const = 0;
@@ -145,8 +145,8 @@ class V8_EXPORT_PRIVATE CompilationState {
 
   void AddCallback(std::unique_ptr<CompilationEventCallback> callback);
 
-  void InitializeAfterDeserialization(::v8::base::Vector<const int> lazy_functions,
-                                      ::v8::base::Vector<const int> eager_functions);
+  void InitializeAfterDeserialization(ZoneVector<const int> lazy_functions,
+                                      ZoneVector<const int> eager_functions);
 
   // Set a higher priority for the compilation job.
   void SetHighPriority();
@@ -167,7 +167,7 @@ class V8_EXPORT_PRIVATE CompilationState {
   size_t EstimateCurrentMemoryConsumption() const;
 
   std::vector<WasmCode*> PublishCode(
-      ::v8::base::Vector<UnpublishedWasmCode> unpublished_code);
+      ZoneVector<UnpublishedWasmCode> unpublished_code);
 
   WasmDetectedFeatures detected_features() const;
 

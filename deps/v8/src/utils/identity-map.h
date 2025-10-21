@@ -8,6 +8,7 @@
 #include <type_traits>
 
 #include "src/base/hashing.h"
+#include "src/base/hashmap.h"
 #include "src/handles/handles.h"
 #include "src/objects/tagged.h"
 

@@ -1,7 +1,8 @@
 // Copyright 2015 the V8 project authors. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
-
+#if __wasi__
+#else
 #include "src/base/logging.h"
 #include "src/compiler/backend/instruction-codes.h"
 #include "src/compiler/backend/instruction-scheduler.h"
@@ -466,3 +467,4 @@ int InstructionScheduler::GetInstructionLatency(const Instruction* instr) {
 }  // namespace compiler
 }  // namespace internal
 }  // namespace v8
+#endif  // __wasi__

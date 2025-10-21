@@ -706,7 +706,7 @@ class SpecialRPONumberer : public ZoneObject {
 #endif
   }
 
-  const ::v8::base::Vector<BasicBlock*>& GetOutgoingBlocks(BasicBlock* block) {
+  const ZoneVector<BasicBlock*>& GetOutgoingBlocks(BasicBlock* block) {
     if (HasLoopNumber(block)) {
       LoopInfo const& loop = loops_[GetLoopNumber(block)];
       if (loop.outgoing) return *loop.outgoing;
@@ -733,7 +733,7 @@ class SpecialRPONumberer : public ZoneObject {
 
   struct LoopInfo {
     BasicBlock* header;
-    ::v8::base::Vector<BasicBlock*>* outgoing;
+    ZoneVector<BasicBlock*>* outgoing;
     BitVector* members;
     LoopInfo* prev;
     BasicBlock* end;
@@ -741,7 +741,7 @@ class SpecialRPONumberer : public ZoneObject {
 
     void AddOutgoing(Zone* zone, BasicBlock* block) {
       if (outgoing == nullptr) {
-        outgoing = zone->New<::v8::base::Vector<BasicBlock*>>(zone);
+        outgoing = zone->New<ZoneVector<BasicBlock*>>(zone);
       }
       outgoing->push_back(block);
     }
@@ -976,8 +976,8 @@ class SpecialRPONumberer : public ZoneObject {
   }
 
   // Computes loop membership from the backedges of the control flow graph.
-  void ComputeLoopInfo(::v8::base::Vector<SpecialRPOStackFrame>* queue,
-                       size_t num_loops, ::v8::base::Vector<Backedge>* backedges) {
+  void ComputeLoopInfo(ZoneVector<SpecialRPOStackFrame>* queue,
+                       size_t num_loops, ZoneVector<Backedge>* backedges) {
     // Extend existing loop membership vectors.
     for (LoopInfo& loop : loops_) {
       loop.members->Resize(static_cast<int>(schedule_->BasicBlockCount()),
@@ -1131,11 +1131,11 @@ class SpecialRPONumberer : public ZoneObject {
   Schedule* schedule_;
   BasicBlock* order_;
   BasicBlock* beyond_end_;
-  ::v8::base::Vector<LoopInfo> loops_;
-  ::v8::base::Vector<Backedge> backedges_;
-  ::v8::base::Vector<SpecialRPOStackFrame> stack_;
+  ZoneVector<LoopInfo> loops_;
+  ZoneVector<Backedge> backedges_;
+  ZoneVector<SpecialRPOStackFrame> stack_;
   size_t previous_block_count_;
-  ::v8::base::Vector<BasicBlock*> const empty_;
+  ZoneVector<BasicBlock*> const empty_;
 };
 
 

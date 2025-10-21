@@ -2055,7 +2055,7 @@ void V8HeapExplorer::ExtractNumberReference(HeapEntry* entry,
 
   // Must be large enough to fit any double, int, or size_t.
   char arr[32];
-  ::v8::base::Vector<char> buffer = base::ArrayVector(arr);
+  ZoneVector<char> buffer = base::ArrayVector(arr);
 
   std::string_view string;
   if (IsSmi(number)) {
@@ -3694,7 +3694,7 @@ void HeapSnapshotJSONSerializer::SerializeString(const unsigned char* s) {
 }
 
 void HeapSnapshotJSONSerializer::SerializeStrings() {
-  base::Scoped::v8::base::Vector<const unsigned char*> sorted_strings(strings_.occupancy() +
+  base::ScopedZoneVector<const unsigned char*> sorted_strings(strings_.occupancy() +
                                                           1);
   for (base::HashMap::Entry* entry = strings_.Start(); entry != nullptr;
        entry = strings_.Next(entry)) {

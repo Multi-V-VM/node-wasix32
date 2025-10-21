@@ -6196,7 +6196,7 @@ void Isolate::MaybeInitializeVectorListFromHeap() {
   }
 
   // Collect existing feedback vectors.
-  DirectHandle<::v8::base::Vector<FeedbackVector> vectors(this);
+  DirectHandle<ZoneVector<FeedbackVector> vectors(this);
 
   {
     HeapObjectIterator heap_iterator(heap());
@@ -7071,7 +7071,7 @@ void Isolate::CountUsage(v8::Isolate::UseCounterFeature feature) {
 }
 
 void Isolate::CountUsage(
-    ::v8::base::Vector<const v8::Isolate::UseCounterFeature> features) {
+    ZoneVector<const v8::Isolate::UseCounterFeature> features) {
   // The counter callback
   // - may cause the embedder to call into V8, which is not generally possible
   //   during GC.

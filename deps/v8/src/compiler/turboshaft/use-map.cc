@@ -12,7 +12,7 @@ UseMap::UseMap(const Graph& graph, Zone* zone, FunctionType filter)
     : table_(graph.op_id_count(), zone, &graph),
       uses_(zone),
       saturated_uses_(zone) {
-  ::v8::base::Vector<std::pair<OpIndex, OpIndex>> delayed_phi_uses(zone);
+  ZoneVector<std::pair<OpIndex, OpIndex>> delayed_phi_uses(zone);
 
   // We preallocate for 2 uses per operation.
   uses_.reserve(graph.op_id_count() * 2);
@@ -72,10 +72,10 @@ Vector<const OpIndex> UseMap::uses(OpIndex index) const {
   uint32_t count = table_[index].count;
   DCHECK_NE(offset, 0);
   if (V8_LIKELY(offset > 0)) {
-    return ::v8::base::Vector<const OpIndex>(uses_.data() + offset, count);
+    return ZoneVector<const OpIndex>(uses_.data() + offset, count);
   } else {
     DCHECK_EQ(count, saturated_uses_[-offset - 1].size());
-    return ::v8::base::Vector<const OpIndex>(saturated_uses_[-offset - 1].data(),
+    return ZoneVector<const OpIndex>(saturated_uses_[-offset - 1].data(),
                                        count);
   }
 }
@@ -89,7 +89,7 @@ void UseMap::AddUse(const Graph* graph, OpIndex node, OpIndex use) {
     DCHECK(!uses_[input_offset + input_count].valid());
     uses_[input_offset + input_count] = use;
   } else {
-    ::v8::base::Vector<OpIndex>& uses = saturated_uses_[-input_offset - 1];
+    ZoneVector<OpIndex>& uses = saturated_uses_[-input_offset - 1];
     DCHECK_EQ(uses.size(), input_count);
     uses.emplace_back(use);
   }

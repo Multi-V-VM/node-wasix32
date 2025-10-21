@@ -356,7 +356,7 @@ bool SharedFunctionInfo::PassesFilter(const char* raw_filter) {
   if (V8_LIKELY(raw_filter[0] == '*' && raw_filter[1] == '\0')) {
     return true;
   }
-  ::v8::base::Vector<const char> filter = base::CStrVector(raw_filter);
+  ZoneVector<const char> filter = base::CStrVector(raw_filter);
   return v8::internal::PassesFilter(base::CStrVector(DebugNameCStr().get()),
                                     filter);
 }

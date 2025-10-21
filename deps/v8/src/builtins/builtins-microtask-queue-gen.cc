@@ -392,7 +392,7 @@ TNode<IntPtrT> MicrotaskQueueBuiltinsAssembler::GetEnteredContextCount() {
   auto ref = ExternalReference::handle_scope_implementer_address(isolate());
   TNode<RawPtrT> hsi = Load<RawPtrT>(ExternalConstant(ref));
 
-  using ContextStack = Detachable::v8::base::Vector<Context>;
+  using ContextStack = DetachableZoneVector<Context>;
   TNode<IntPtrT> size_offset =
       IntPtrConstant(HandleScopeImplementer::kEnteredContextsOffset +
                      ContextStack::kSizeOffset);
@@ -406,7 +406,7 @@ void MicrotaskQueueBuiltinsAssembler::EnterContext(
   auto ref = ExternalReference::handle_scope_implementer_address(isolate());
   TNode<RawPtrT> hsi = Load<RawPtrT>(ExternalConstant(ref));
 
-  using ContextStack = Detachable::v8::base::Vector<Context>;
+  using ContextStack = DetachableZoneVector<Context>;
   TNode<IntPtrT> capacity_offset =
       IntPtrConstant(HandleScopeImplementer::kEnteredContextsOffset +
                      ContextStack::kCapacityOffset);
@@ -453,7 +453,7 @@ void MicrotaskQueueBuiltinsAssembler::RewindEnteredContext(
   auto ref = ExternalReference::handle_scope_implementer_address(isolate());
   TNode<RawPtrT> hsi = Load<RawPtrT>(ExternalConstant(ref));
 
-  using ContextStack = Detachable::v8::base::Vector<Context>;
+  using ContextStack = DetachableZoneVector<Context>;
   TNode<IntPtrT> size_offset =
       IntPtrConstant(HandleScopeImplementer::kEnteredContextsOffset +
                      ContextStack::kSizeOffset);

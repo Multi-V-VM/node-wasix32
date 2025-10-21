@@ -173,7 +173,9 @@ class MapsAndHandlers {
   Iterator begin() const { return Iterator(this, 0); }
   Iterator end() const { return Iterator(this, size()); }
 
-  ::v8::base::Vector<DirectHandle<Map>> maps() { return base::VectorOf(maps_); }
+  ZoneVector<DirectHandle<Map>> maps() {
+    return ZoneVector<DirectHandle<Map>>(base::VectorOf(maps_));
+  }
 
  private:
   DirectHandleSmallVector<Map, DEFAULT_MAX_POLYMORPHIC_MAP_COUNT> maps_;

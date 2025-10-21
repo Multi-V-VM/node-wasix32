@@ -37,6 +37,8 @@
 #include "src/codegen/loong64/interface-descriptors-loong64-inl.h"
 #elif V8_TARGET_ARCH_RISCV32 || V8_TARGET_ARCH_RISCV64
 #include "src/codegen/riscv/interface-descriptors-riscv-inl.h"
+#elif V8_TARGET_ARCH_WASM32
+// WASM32/WASI: no architecture-specific calling convention headers.
 #else
 #error Unsupported target architecture.
 #endif
@@ -291,6 +293,9 @@ constexpr Register FastNewObjectDescriptor::NewTargetRegister() {
   return kJavaScriptCallNewTargetRegister;
 }
 
+#if !V8_TARGET_ARCH_WASM32
+// On wasm32, these are provided by the arch-specific inline header to avoid
+// referencing a function with deduced return type before its definition.
 // static
 constexpr Register WriteBarrierDescriptor::ObjectRegister() {
   return ::std::get<kObject>(registers());
@@ -304,6 +309,7 @@ constexpr Register WriteBarrierDescriptor::SlotAddressRegister() {
 constexpr Register WriteBarrierDescriptor::ValueRegister() {
   return ::std::get<kSlotAddress + 1>(registers());
 }
+#endif  // !V8_TARGET_ARCH_WASM32
 
 // static
 constexpr RegList WriteBarrierDescriptor::ComputeSavedRegisters(

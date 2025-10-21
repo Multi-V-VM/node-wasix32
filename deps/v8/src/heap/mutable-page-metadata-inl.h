@@ -26,14 +26,14 @@ MutablePageMetadata* MutablePageMetadata::FromHeapObject(Tagged<HeapObject> o) {
 
 void MutablePageMetadata::IncrementExternalBackingStoreBytes(
     ExternalBackingStoreType type, size_t amount) {
-  base::CheckedIncrement(&external_backing_store_bytes_[static_cast<int>(type)],
+  ::v8::base::CheckedIncrement(&external_backing_store_bytes_[static_cast<int>(type)],
                          amount);
   owner()->IncrementExternalBackingStoreBytes(type, amount);
 }
 
 void MutablePageMetadata::DecrementExternalBackingStoreBytes(
     ExternalBackingStoreType type, size_t amount) {
-  base::CheckedDecrement(&external_backing_store_bytes_[static_cast<int>(type)],
+  ::v8::base::CheckedDecrement(&external_backing_store_bytes_[static_cast<int>(type)],
                          amount);
   owner()->DecrementExternalBackingStoreBytes(type, amount);
 }
@@ -43,9 +43,9 @@ void MutablePageMetadata::MoveExternalBackingStoreBytes(
     MutablePageMetadata* to, size_t amount) {
   DCHECK_NOT_NULL(from->owner());
   DCHECK_NOT_NULL(to->owner());
-  base::CheckedDecrement(
+  ::v8::base::CheckedDecrement(
       &(from->external_backing_store_bytes_[static_cast<int>(type)]), amount);
-  base::CheckedIncrement(
+  ::v8::base::CheckedIncrement(
       &(to->external_backing_store_bytes_[static_cast<int>(type)]), amount);
   Space::MoveExternalBackingStoreBytes(type, from->owner(), to->owner(),
                                        amount);

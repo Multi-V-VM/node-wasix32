@@ -77,7 +77,7 @@ const char* SectionName(SectionCode code) {
 
 ModuleResult DecodeWasmModule(
     WasmEnabledFeatures enabled_features,
-    ::v8::base::Vector<const uint8_t> wire_bytes, bool validate_functions,
+    ZoneVector<const uint8_t> wire_bytes, bool validate_functions,
     ModuleOrigin origin, Counters* counters,
     std::shared_ptr<metrics::Recorder> metrics_recorder,
     v8::metrics::Recorder::ContextId context_id, DecodingMethod decoding_method,
@@ -120,7 +120,7 @@ ModuleResult DecodeWasmModule(
 }
 
 ModuleResult DecodeWasmModule(WasmEnabledFeatures enabled_features,
-                              ::v8::base::Vector<const uint8_t> wire_bytes,
+                              ZoneVector<const uint8_t> wire_bytes,
                               bool validate_functions, ModuleOrigin origin,
                               WasmDetectedFeatures* detected_features) {
   TRACE_EVENT0(TRACE_DISABLED_BY_DEFAULT("v8.wasm.detailed"),
@@ -132,7 +132,7 @@ ModuleResult DecodeWasmModule(WasmEnabledFeatures enabled_features,
 }
 
 ModuleResult DecodeWasmModuleForDisassembler(
-    ::v8::base::Vector<const uint8_t> wire_bytes, ITracer* tracer) {
+    ZoneVector<const uint8_t> wire_bytes, ITracer* tracer) {
   constexpr bool kNoValidateFunctions = false;
   WasmDetectedFeatures unused_detected_features;
   ModuleDecoderImpl decoder{WasmEnabledFeatures::All(), wire_bytes, kWasmOrigin,
@@ -143,7 +143,7 @@ ModuleResult DecodeWasmModuleForDisassembler(
 ModuleDecoder::ModuleDecoder(WasmEnabledFeatures enabled_features,
                              WasmDetectedFeatures* detected_features)
     : impl_(std::make_unique<ModuleDecoderImpl>(
-          enabled_features, ::v8::base::Vector<const uint8_t>{}, kWasmOrigin,
+          enabled_features, ZoneVector<const uint8_t>{}, kWasmOrigin,
           detected_features)) {}
 
 ModuleDecoder::~ModuleDecoder() = default;
@@ -152,12 +152,12 @@ const std::shared_ptr<WasmModule>& ModuleDecoder::shared_module() const {
   return impl_->shared_module();
 }
 
-void ModuleDecoder::DecodeModuleHeader(::v8::base::Vector<const uint8_t> bytes) {
+void ModuleDecoder::DecodeModuleHeader(ZoneVector<const uint8_t> bytes) {
   impl_->DecodeModuleHeader(bytes);
 }
 
 void ModuleDecoder::DecodeSection(SectionCode section_code,
-                                  ::v8::base::Vector<const uint8_t> bytes,
+                                  ZoneVector<const uint8_t> bytes,
                                   uint32_t offset) {
   impl_->DecodeSection(section_code, bytes, offset);
 }
@@ -179,7 +179,7 @@ bool ModuleDecoder::CheckFunctionsCount(uint32_t functions_count,
 ModuleResult ModuleDecoder::FinishDecoding() { return impl_->FinishDecoding(); }
 
 size_t ModuleDecoder::IdentifyUnknownSection(ModuleDecoder* decoder,
-                                             ::v8::base::Vector<const uint8_t> bytes,
+                                             ZoneVector<const uint8_t> bytes,
                                              uint32_t offset,
                                              SectionCode* result) {
   if (!decoder->ok()) return 0;
@@ -193,7 +193,7 @@ bool ModuleDecoder::ok() const { return impl_->ok(); }
 
 Result<const FunctionSig*> DecodeWasmSignatureForTesting(
     WasmEnabledFeatures enabled_features, Zone* zone,
-    ::v8::base::Vector<const uint8_t> bytes) {
+    ZoneVector<const uint8_t> bytes) {
   WasmDetectedFeatures unused_detected_features;
   ModuleDecoderImpl decoder{enabled_features, bytes, kWasmOrigin,
                             &unused_detected_features};
@@ -202,7 +202,7 @@ Result<const FunctionSig*> DecodeWasmSignatureForTesting(
 }
 
 ConstantExpression DecodeWasmInitExprForTesting(
-    WasmEnabledFeatures enabled_features, ::v8::base::Vector<const uint8_t> bytes,
+    WasmEnabledFeatures enabled_features, ZoneVector<const uint8_t> bytes,
     ValueType expected) {
   WasmDetectedFeatures unused_detected_features;
   ModuleDecoderImpl decoder{enabled_features, bytes, kWasmOrigin,
@@ -213,7 +213,7 @@ ConstantExpression DecodeWasmInitExprForTesting(
 FunctionResult DecodeWasmFunctionForTesting(
     WasmEnabledFeatures enabled_features, Zone* zone,
     ModuleWireBytes wire_bytes, const WasmModule* module,
-    ::v8::base::Vector<const uint8_t> function_bytes) {
+    ZoneVector<const uint8_t> function_bytes) {
   if (function_bytes.size() > kV8MaxWasmFunctionSize) {
     return FunctionResult{
         WasmError{0, "size > maximum function size (%zu): %zu",
@@ -226,7 +226,7 @@ FunctionResult DecodeWasmFunctionForTesting(
 }
 
 AsmJsOffsetsResult DecodeAsmJsOffsets(
-    ::v8::base::Vector<const uint8_t> encoded_offsets) {
+    ZoneVector<const uint8_t> encoded_offsets) {
   std::vector<AsmJsOffsetFunctionEntries> functions;
 
   Decoder decoder(encoded_offsets);
@@ -282,7 +282,7 @@ AsmJsOffsetsResult DecodeAsmJsOffsets(
 }
 
 std::vector<CustomSectionOffset> DecodeCustomSections(
-    ::v8::base::Vector<const uint8_t> bytes) {
+    ZoneVector<const uint8_t> bytes) {
   Decoder decoder(bytes);
   decoder.consume_bytes(4, "wasm magic");
   decoder.consume_bytes(4, "wasm version");
@@ -385,7 +385,7 @@ void DecodeIndirectNameMap(IndirectNameMap& target, Decoder& decoder,
 
 }  // namespace
 
-void DecodeFunctionNames(::v8::base::Vector<const uint8_t> wire_bytes,
+void DecodeFunctionNames(ZoneVector<const uint8_t> wire_bytes,
                          NameMap& names) {
   Decoder decoder(wire_bytes);
   if (!FindNameSection(&decoder)) return;
@@ -420,9 +420,9 @@ void DecodeFunctionNames(::v8::base::Vector<const uint8_t> wire_bytes,
 //   {typenames} and {fieldnames}; existing entries are not overwritten.
 // - all name payloads are copied out of the wire bytes.
 void DecodeCanonicalTypeNames(
-    ::v8::base::Vector<const uint8_t> wire_bytes, const WasmModule* module,
-    std::vector<base::Owned::v8::base::Vector<char>>& typenames,
-    std::map<uint32_t, std::vector<base::Owned::v8::base::Vector<char>>>& fieldnames,
+    ZoneVector<const uint8_t> wire_bytes, const WasmModule* module,
+    std::vector<base::OwnedZoneVector<char>>& typenames,
+    std::map<uint32_t, std::vector<base::OwnedZoneVector<char>>>& fieldnames,
     size_t* total_allocated_size) {
   bool types_done = false;
   bool fields_done = false;
@@ -461,7 +461,7 @@ void DecodeCanonicalTypeNames(
         if (!validate_utf8(&decoder, name)) continue;
         uint32_t length = name.length();
         typenames[index] =
-            base::Owned::v8::base::Vector<char>::NewByCopying(base + name.offset(), length);
+            base::OwnedZoneVector<char>::NewByCopying(base + name.offset(), length);
         *total_allocated_size += length;
       }
     } else if (name_type == NameSectionKindCode::kFieldCode) {
@@ -484,7 +484,7 @@ void DecodeCanonicalTypeNames(
             GetTypeCanonicalizer()->LookupStruct(canonical_index);
         auto const& entry = fieldnames.try_emplace(
             struct_index, size_t{struct_type->field_count()});
-        std::vector<base::Owned::v8::base::Vector<char>>& field_names = entry.first->second;
+        std::vector<base::OwnedZoneVector<char>>& field_names = entry.first->second;
         uint32_t fields_count = decoder.consume_u32v("fields count");
         for (uint32_t j = 0; j < fields_count; j++) {
           uint32_t field_index = decoder.consume_u32v("field index");
@@ -495,7 +495,7 @@ void DecodeCanonicalTypeNames(
           if (!field_names[field_index].empty()) continue;
           if (!validate_utf8(&decoder, name)) continue;
           uint32_t length = name.length();
-          field_names[field_index] = base::Owned::v8::base::Vector<char>::NewByCopying(
+          field_names[field_index] = base::OwnedZoneVector<char>::NewByCopying(
               base + name.offset(), length);
           *total_allocated_size += length;
         }
@@ -514,7 +514,7 @@ namespace {
 class ValidateFunctionsTask : public JobTask {
  public:
   explicit ValidateFunctionsTask(
-      ::v8::base::Vector<const uint8_t> wire_bytes, const WasmModule* module,
+      ZoneVector<const uint8_t> wire_bytes, const WasmModule* module,
       WasmEnabledFeatures enabled_features, std::function<bool(int)> filter,
       WasmError* error_out,
       std::atomic<WasmDetectedFeatures>* detected_features)
@@ -607,7 +607,7 @@ class ValidateFunctionsTask : public JobTask {
     }
   }
 
-  const ::v8::base::Vector<const uint8_t> wire_bytes_;
+  const ZoneVector<const uint8_t> wire_bytes_;
   const WasmModule* const module_;
   const WasmEnabledFeatures enabled_features_;
   const std::function<bool(int)> filter_;
@@ -621,7 +621,7 @@ class ValidateFunctionsTask : public JobTask {
 
 WasmError ValidateFunctions(const WasmModule* module,
                             WasmEnabledFeatures enabled_features,
-                            ::v8::base::Vector<const uint8_t> wire_bytes,
+                            ZoneVector<const uint8_t> wire_bytes,
                             std::function<bool(int)> filter,
                             WasmDetectedFeatures* detected_features_out) {
   TRACE_EVENT2(TRACE_DISABLED_BY_DEFAULT("v8.wasm.detailed"),
@@ -662,7 +662,7 @@ WasmError ValidateFunctions(const WasmModule* module,
   return validation_error;
 }
 
-WasmError GetWasmErrorWithName(::v8::base::Vector<const uint8_t> wire_bytes,
+WasmError GetWasmErrorWithName(ZoneVector<const uint8_t> wire_bytes,
                                int func_index, const WasmModule* module,
                                WasmError error) {
   WasmName name = ModuleWireBytes{wire_bytes}.GetNameOrNull(func_index, module);
@@ -678,7 +678,7 @@ WasmError GetWasmErrorWithName(::v8::base::Vector<const uint8_t> wire_bytes,
   }
 }
 
-DecodedNameSection::DecodedNameSection(::v8::base::Vector<const uint8_t> wire_bytes,
+DecodedNameSection::DecodedNameSection(ZoneVector<const uint8_t> wire_bytes,
                                        WireBytesRef name_section) {
   if (name_section.is_empty()) return;  // No name section.
   Decoder decoder(wire_bytes.begin() + name_section.offset(),

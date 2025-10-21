@@ -259,7 +259,7 @@ Maybe<bool> JSReceiver::CheckPrivateNameStore(LookupIterator* it,
 
 namespace {
 
-bool HasExcludedProperty(::v8::base::Vector<DirectHandle<Object>> excluded_properties,
+bool HasExcludedProperty(ZoneVector<DirectHandle<Object>> excluded_properties,
                          DirectHandle<Object> search_element) {
   // TODO(gsathya): Change this to be a hashtable.
   for (DirectHandle<Object> object : excluded_properties) {
@@ -273,11 +273,11 @@ bool HasExcludedProperty(::v8::base::Vector<DirectHandle<Object>> excluded_prope
 
 // If direct handles are enabled, it is the responsibility of the caller to
 // ensure that the memory pointed to by `excluded_properties` is scanned
-// during CSS, e.g., it comes from a `DirectHandle<::v8::base::Vector<Object>`.
+// during CSS, e.g., it comes from a `DirectHandle<ZoneVector<Object>`.
 V8_WARN_UNUSED_RESULT Maybe<bool> FastAssign(
     Isolate* isolate, DirectHandle<JSReceiver> target,
     DirectHandle<Object> source, PropertiesEnumerationMode mode,
-    ::v8::base::Vector<DirectHandle<Object>> excluded_properties, bool use_set) {
+    ZoneVector<DirectHandle<Object>> excluded_properties, bool use_set) {
   // Non-empty strings are the only non-JSReceivers that need to be handled
   // explicitly by Object.assign.
   if (!IsJSReceiver(*source)) {
@@ -410,7 +410,7 @@ V8_WARN_UNUSED_RESULT Maybe<bool> FastAssign(
 Maybe<bool> JSReceiver::SetOrCopyDataProperties(
     Isolate* isolate, DirectHandle<JSReceiver> target,
     DirectHandle<Object> source, PropertiesEnumerationMode mode,
-    ::v8::base::Vector<DirectHandle<Object>> excluded_properties, bool use_set) {
+    ZoneVector<DirectHandle<Object>> excluded_properties, bool use_set) {
   Maybe<bool> fast_assign =
       FastAssign(isolate, target, source, mode, excluded_properties, use_set);
   if (fast_assign.IsNothing()) return Nothing<bool>();

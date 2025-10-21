@@ -181,7 +181,7 @@ class SourceTextModuleDescriptor : public ZoneObject {
   const ModuleRequestMap& module_requests() const { return module_requests_; }
 
   // Namespace imports.
-  const ::v8::base::Vector<const Entry*>& namespace_imports() const {
+  const ZoneVector<const Entry*>& namespace_imports() const {
     return namespace_imports_;
   }
 
@@ -189,7 +189,7 @@ class SourceTextModuleDescriptor : public ZoneObject {
   const RegularImportMap& regular_imports() const { return regular_imports_; }
 
   // Star exports and explicitly indirect exports.
-  const ::v8::base::Vector<const Entry*>& special_exports() const {
+  const ZoneVector<const Entry*>& special_exports() const {
     return special_exports_;
   }
 

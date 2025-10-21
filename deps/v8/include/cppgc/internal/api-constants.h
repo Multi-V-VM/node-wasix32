@@ -62,6 +62,8 @@ constexpr size_t kCagedHeapReservationAlignment = kCagedHeapMaxReservationSize;
 static constexpr size_t kDefaultAlignment = sizeof(void*);
 
 // Maximum support alignment for a type as in `alignof(T)`.
+// Maximum supported alignment for a type as in alignof(T).
+// Must also equal 2 * kAllocationGranularity (see object-allocator.h).
 static constexpr size_t kMaxSupportedAlignment = 2 * kDefaultAlignment;
 
 // Granularity of heap allocations.

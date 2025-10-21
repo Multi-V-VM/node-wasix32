@@ -667,7 +667,7 @@ void InstructionSelectorT::VisitMemoryBarrier(OpIndex node) {
 bool InstructionSelectorT::IsTailCallAddressImmediate() { return false; }
 
 void InstructionSelectorT::EmitPrepareResults(
-    ::v8::base::Vector<PushParameter>* results, const CallDescriptor* call_descriptor,
+    ZoneVector<PushParameter>* results, const CallDescriptor* call_descriptor,
     OpIndex node) {
   RiscvOperandGeneratorT g(this);
 

@@ -292,22 +292,22 @@ class FactoryBase : public TorqueGeneratedFactory<Impl> {
       int slot_count, int create_closure_slot_count,
       AllocationType allocation = AllocationType::kOld);
 
-  Handle<CoverageInfo> NewCoverageInfo(const ::v8::base::Vector<SourceRange>& slots);
+  Handle<CoverageInfo> NewCoverageInfo(const ZoneVector<SourceRange>& slots);
 
-  Handle<String> InternalizeString(::v8::base::Vector<const uint8_t> string,
+  Handle<String> InternalizeString(ZoneVector<const uint8_t> string,
                                    bool convert_encoding = false);
-  Handle<String> InternalizeString(::v8::base::Vector<const uint16_t> string,
+  Handle<String> InternalizeString(ZoneVector<const uint16_t> string,
                                    bool convert_encoding = false);
 
   template <class StringTableKey>
   Handle<String> InternalizeStringWithKey(StringTableKey* key);
 
   Handle<SeqOneByteString> NewOneByteInternalizedString(
-      ::v8::base::Vector<const uint8_t> str, uint32_t raw_hash_field);
+      ZoneVector<const uint8_t> str, uint32_t raw_hash_field);
   Handle<SeqTwoByteString> NewTwoByteInternalizedString(
-      ::v8::base::Vector<const ::v8::base::uc16> str, uint32_t raw_hash_field);
+      ZoneVector<const ::v8::base::uc16> str, uint32_t raw_hash_field);
   DirectHandle<SeqOneByteString> NewOneByteInternalizedStringFromTwoByte(
-      ::v8::base::Vector<const ::v8::base::uc16> str, uint32_t raw_hash_field);
+      ZoneVector<const ::v8::base::uc16> str, uint32_t raw_hash_field);
 
   Handle<SeqOneByteString> AllocateRawOneByteInternalizedString(
       int length, uint32_t raw_hash_field);
@@ -319,7 +319,7 @@ class FactoryBase : public TorqueGeneratedFactory<Impl> {
   Handle<String> LookupSingleCharacterStringFromCode(uint16_t code);
 
   MaybeHandle<String> NewStringFromOneByte(
-      ::v8::base::Vector<const uint8_t> string,
+      ZoneVector<const uint8_t> string,
       AllocationType allocation = AllocationType::kYoung);
 
   inline Handle<String> NewStringFromAsciiChecked(

@@ -146,8 +146,13 @@ CommonEnvironmentSetup::CommonEnvironmentSetup(
 #endif
     platform->RegisterIsolate(isolate, loop);
 
+#ifdef __wasi__
+    // For WASI, use the constructor that takes Isolate* and external_references
+    impl_->snapshot_creator.emplace(isolate, params.external_references, nullptr, true);
+#else
     impl_->snapshot_creator.emplace(isolate, params);
-    
+#endif
+
 #ifndef __wasi__
     isolate->SetCaptureStackTraceForUncaughtExceptions(
         true,

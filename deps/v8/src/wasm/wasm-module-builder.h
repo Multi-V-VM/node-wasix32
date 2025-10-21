@@ -99,7 +99,7 @@ class ZoneBuffer : public ZoneObject {
     pos_ += size;
   }
 
-  void write_string(::v8::base::Vector<const char> name) {
+  void write_string(ZoneVector<const char> name) {
     write_size(name.length());
     write(reinterpret_cast<const uint8_t*>(name.begin()), name.length());
   }
@@ -202,7 +202,7 @@ class V8_EXPORT_PRIVATE WasmFunctionBuilder : public ZoneObject {
   void EmitValueType(ValueType type);
   void EmitDirectCallIndex(uint32_t index);
   void EmitFromInitializerExpression(const WasmInitExpr& init_expr);
-  void SetName(::v8::base::Vector<const char> name);
+  void SetName(ZoneVector<const char> name);
   void AddAsmWasmOffset(size_t call_position, size_t to_number_position);
   void SetAsmFunctionStartPosition(size_t function_position);
   void SetCompilationHint(WasmCompilationHintStrategy strategy,
@@ -239,7 +239,7 @@ class V8_EXPORT_PRIVATE WasmFunctionBuilder : public ZoneObject {
   ModuleTypeIndex signature_index_;
   uint32_t func_index_;
   ZoneBuffer body_;
-  ::v8::base::Vector<const char> name_;
+  ZoneVector<const char> name_;
   ZoneVector<uint32_t> i32_temps_;
   ZoneVector<uint32_t> i64_temps_;
   ZoneVector<uint32_t> f32_temps_;
@@ -327,14 +327,14 @@ class V8_EXPORT_PRIVATE WasmModuleBuilder : public ZoneObject {
   };
 
   // Building methods.
-  uint32_t AddImport(::v8::base::Vector<const char> name, const FunctionSig* sig,
-                     ::v8::base::Vector<const char> module = {});
+  uint32_t AddImport(ZoneVector<const char> name, const FunctionSig* sig,
+                     ZoneVector<const char> module = {});
   WasmFunctionBuilder* AddFunction(const FunctionSig* sig = nullptr);
   WasmFunctionBuilder* AddFunction(ModuleTypeIndex sig_index);
   uint32_t AddGlobal(ValueType type, bool mutability, WasmInitExpr init);
-  uint32_t AddGlobalImport(::v8::base::Vector<const char> name, ValueType type,
+  uint32_t AddGlobalImport(ZoneVector<const char> name, ValueType type,
                            bool mutability,
-                           ::v8::base::Vector<const char> module = {});
+                           ZoneVector<const char> module = {});
   void AddDataSegment(const uint8_t* data, uint32_t size, uint32_t dest);
   void AddPassiveDataSegment(const uint8_t* data, uint32_t size);
   // Add an element segment to this {WasmModuleBuilder}. {segment}'s enties
@@ -372,14 +372,14 @@ class V8_EXPORT_PRIVATE WasmModuleBuilder : public ZoneObject {
   uint32_t AddMemory64(uint32_t min_pages);
   uint32_t AddMemory64(uint32_t min_pages, uint32_t max_pages);
   void MarkStartFunction(WasmFunctionBuilder* builder);
-  void AddExport(::v8::base::Vector<const char> name, ImportExportKindCode kind,
+  void AddExport(ZoneVector<const char> name, ImportExportKindCode kind,
                  uint32_t index);
-  void AddExport(::v8::base::Vector<const char> name, WasmFunctionBuilder* builder) {
+  void AddExport(ZoneVector<const char> name, WasmFunctionBuilder* builder) {
     AddExport(name, kExternalFunction, builder->func_index());
   }
   uint32_t AddExportedGlobal(ValueType type, bool mutability, WasmInitExpr init,
-                             ::v8::base::Vector<const char> name);
-  void ExportImportedFunction(::v8::base::Vector<const char> name, int import_index);
+                             ZoneVector<const char> name);
+  void ExportImportedFunction(ZoneVector<const char> name, int import_index);
 
   void StartRecursiveTypeGroup() {
     DCHECK_EQ(current_recursive_group_start_, -1);
@@ -480,21 +480,21 @@ class V8_EXPORT_PRIVATE WasmModuleBuilder : public ZoneObject {
 
  private:
   struct WasmFunctionImport {
-    ::v8::base::Vector<const char> module;
-    ::v8::base::Vector<const char> name;
+    ZoneVector<const char> module;
+    ZoneVector<const char> name;
     ModuleTypeIndex sig_index;
   };
 
   struct WasmGlobalImport {
-    ::v8::base::Vector<const char> module;
-    ::v8::base::Vector<const char> name;
+    ZoneVector<const char> module;
+    ZoneVector<const char> name;
     // TODO(manoskouk): Extend to full value type.
     ValueTypeCode type_code;
     bool mutability;
   };
 
   struct WasmExport {
-    ::v8::base::Vector<const char> name;
+    ZoneVector<const char> name;
     ImportExportKindCode kind;
     int index;  // Can be negative for re-exported imports.
   };

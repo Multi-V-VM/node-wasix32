@@ -643,7 +643,7 @@ Maybe<uint8_t> HexToUint8(base::uc16 hex) {
 
 template <typename T>
 std::optional<uint8_t> HandleRemainingHexValues(
-    const ::v8::base::Vector<T>& input_vector, size_t i) {
+    const ZoneVector<T>& input_vector, size_t i) {
   T higher = input_vector[i];
   T lower = input_vector[i + 1];
 
@@ -726,7 +726,7 @@ inline std::optional<__m128i> HexToUint8FastWithSSE(__m128i nibbles) {
 }
 
 template <typename T>
-bool Uint8ArrayFromHexWithSSE(const ::v8::base::Vector<T>& input_vector,
+bool Uint8ArrayFromHexWithSSE(const ZoneVector<T>& input_vector,
                               uint8_t* buffer, size_t output_length) {
   //  Example:
   //  input_vector: 666f6f6261726172666f6f62617261ff
@@ -910,7 +910,7 @@ inline std::optional<uint8x16_t> HexToUint8FastWithNeon(uint8x16_t nibbles) {
 }
 
 template <typename T>
-bool Uint8ArrayFromHexWithNeon(const ::v8::base::Vector<T>& input_vector,
+bool Uint8ArrayFromHexWithNeon(const ZoneVector<T>& input_vector,
                                uint8_t* buffer, size_t output_length) {
   // Example: 666f6F6261726172666f6f62617261ff
 
@@ -1029,7 +1029,7 @@ bool Uint8ArrayFromHexWithNeon(const ::v8::base::Vector<T>& input_vector,
 }  // namespace
 
 template <typename T>
-bool ArrayBufferFromHex(const ::v8::base::Vector<T>& input_vector, uint8_t* buffer,
+bool ArrayBufferFromHex(const ZoneVector<T>& input_vector, uint8_t* buffer,
                         size_t output_length) {
   size_t input_length = input_vector.size();
   DCHECK_LE(output_length, input_length / 2);
@@ -1061,10 +1061,10 @@ bool ArrayBufferFromHex(const ::v8::base::Vector<T>& input_vector, uint8_t* buff
 }
 
 template bool ArrayBufferFromHex(
-    const ::v8::base::Vector<const uint8_t>& input_vector, uint8_t* buffer,
+    const ZoneVector<const uint8_t>& input_vector, uint8_t* buffer,
     size_t output_length);
 template bool ArrayBufferFromHex(
-    const ::v8::base::Vector<const base::uc16>& input_vector, uint8_t* buffer,
+    const ZoneVector<const base::uc16>& input_vector, uint8_t* buffer,
     size_t output_length);
 
 #ifdef NEON64

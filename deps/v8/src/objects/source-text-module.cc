@@ -1362,13 +1362,13 @@ void SourceTextModule::Reset(Isolate* isolate,
   raw_module->set_dfs_ancestor_index(-1);
 }
 
-std::pair<Detachable::v8::base::Vector<DirectHandle<SourceTextModule>>,
-          Detachable::v8::base::Vector<DirectHandle<JSMessageObject>>>
+std::pair<DetachableZoneVector<DirectHandle<SourceTextModule>>,
+          DetachableZoneVector<DirectHandle<JSMessageObject>>>
 SourceTextModule::GetStalledTopLevelAwaitMessages(Isolate* isolate) {
   Zone zone(isolate->allocator(), ZONE_NAME);
   UnorderedModuleSet visited(&zone);
-  Detachable::v8::base::Vector<DirectHandle<SourceTextModule>> stalled_modules;
-  Detachable::v8::base::Vector<DirectHandle<JSMessageObject>> messages;
+  DetachableZoneVector<DirectHandle<SourceTextModule>> stalled_modules;
+  DetachableZoneVector<DirectHandle<JSMessageObject>> messages;
   InnerGetStalledTopLevelAwaitModule(isolate, &visited, &stalled_modules);
   size_t stalled_modules_size = stalled_modules.size();
   if (stalled_modules_size == 0) return {stalled_modules, messages};
@@ -1392,7 +1392,7 @@ SourceTextModule::GetStalledTopLevelAwaitMessages(Isolate* isolate) {
 
 void SourceTextModule::InnerGetStalledTopLevelAwaitModule(
     Isolate* isolate, UnorderedModuleSet* visited,
-    Detachable::v8::base::Vector<DirectHandle<SourceTextModule>>* result) {
+    DetachableZoneVector<DirectHandle<SourceTextModule>>* result) {
   DisallowGarbageCollection no_gc;
   // If it's a module that is waiting for no other modules but itself,
   // it's what we are looking for. Add it to the results.

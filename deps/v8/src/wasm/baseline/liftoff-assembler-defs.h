@@ -153,11 +153,15 @@ constexpr RegList kLiftoffAssemblerGpCacheRegs = RegList::FromBits(0xff);
 constexpr DoubleRegList kLiftoffAssemblerFpCacheRegs =
     DoubleRegList::FromBits(0xff);
 
+// Provide a reasonable default for the frame-setup function register on
+// fallback architectures (e.g. WASI/wasm32 without a dedicated backend).
+constexpr Register kLiftoffFrameSetupFunctionReg = no_reg;
+
 #endif
 
 static_assert(kLiftoffFrameSetupFunctionReg != kWasmImplicitArgRegister);
 static_assert(kLiftoffFrameSetupFunctionReg != kRootRegister);
-#ifdef V8_COMPRESS_POINTERS
+#if defined(V8_COMPRESS_POINTERS) && defined(kPtrComprCageBaseRegister)
 static_assert(kLiftoffFrameSetupFunctionReg != kPtrComprCageBaseRegister);
 #endif
 

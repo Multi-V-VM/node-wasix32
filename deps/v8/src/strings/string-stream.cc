@@ -85,8 +85,8 @@ static bool IsControlChar(char c) {
   }
 }
 
-void StringStream::Add(::v8::base::Vector<const char> format,
-                       ::v8::base::Vector<FmtElm> elms) {
+void StringStream::Add(ZoneVector<const char> format,
+                       ZoneVector<FmtElm> elms) {
   // If we already ran out of space then return immediately.
   if (full()) return;
   int offset = 0;
@@ -120,7 +120,7 @@ void StringStream::Add(::v8::base::Vector<const char> format,
       }
       case 'w': {
         DCHECK_EQ(FmtElm::LC_STR, current.type_);
-        ::v8::base::Vector<const base::uc16> value = *current.data_.u_lc_str_;
+        ZoneVector<const base::uc16> value = *current.data_.u_lc_str_;
         for (int i = 0; i < value.length(); i++)
           Put(static_cast<char>(value[i]));
         break;
@@ -152,7 +152,7 @@ void StringStream::Add(::v8::base::Vector<const char> format,
         int value = current.data_.u_int_;
         v8::base::EmbeddedVector<char, 24> formatted;
         int length = SNPrintF(formatted, temp.begin(), value);
-        Add(::v8::base::Vector<const char>(formatted.begin(), length));
+        Add(ZoneVector<const char>(formatted.begin(), length));
         break;
       }
       case 'f':
@@ -249,7 +249,7 @@ void StringStream::OutputToFile(FILE* out) {
 
 DirectHandle<String> StringStream::ToString(Isolate* isolate) {
   return isolate->factory()
-      ->NewStringFromUtf8(::v8::base::Vector<const char>(buffer_, length_))
+      ->NewStringFromUtf8(ZoneVector<const char>(buffer_, length_))
       .ToHandleChecked();
 }
 

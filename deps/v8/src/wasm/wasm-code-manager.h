@@ -334,7 +334,7 @@ class V8_EXPORT_PRIVATE WasmCode final {
 
   // Decrement the ref count on a set of {WasmCode} objects, potentially
   // belonging to different {NativeModule}s. Dead code will be deleted.
-  static void DecrementRefCount(::v8::base::Vector<WasmCode* const>);
+  static void DecrementRefCount(ZoneVector<WasmCode* const>);
 
   // Called by the WasmEngine when it shuts down for code it thinks is
   // probably dead (i.e. is in the "potentially_dead_code_" set). Wrapped
@@ -556,19 +556,19 @@ class WasmCodeAllocator {
 
   // Allocate code space. Returns a valid buffer or fails with OOM (crash).
   // Hold the {NativeModule}'s {allocation_mutex_} when calling this method.
-  ::v8::base::Vector<uint8_t> AllocateForCode(NativeModule*, size_t size);
+  ZoneVector<uint8_t> AllocateForCode(NativeModule*, size_t size);
   // Same, but for wrappers (which are shared across NativeModules).
-  ::v8::base::Vector<uint8_t> AllocateForWrapper(size_t size);
+  ZoneVector<uint8_t> AllocateForWrapper(size_t size);
 
   // Allocate code space within a specific region. Returns a valid buffer or
   // fails with OOM (crash).
   // Hold the {NativeModule}'s {allocation_mutex_} when calling this method.
-  ::v8::base::Vector<uint8_t> AllocateForCodeInRegion(NativeModule*, size_t size,
+  ZoneVector<uint8_t> AllocateForCodeInRegion(NativeModule*, size_t size,
                                                 ::v8::base::AddressRegion);
 
   // Free memory pages of all given code objects. Used for wasm code GC.
   // Hold the {NativeModule}'s {allocation_mutex_} when calling this method.
-  void FreeCode(::v8::base::Vector<WasmCode* const>);
+  void FreeCode(ZoneVector<WasmCode* const>);
 
   // Retrieve the number of separately reserved code spaces.
   // Hold the {NativeModule}'s {allocation_mutex_} when calling this method.
@@ -626,10 +626,10 @@ class V8_EXPORT_PRIVATE NativeModule final {
   std::unique_ptr<WasmCode> AddCode(
       int index, const CodeDesc& desc, int stack_slots, int ool_spill_count,
       uint32_t tagged_parameter_slots,
-      ::v8::base::Vector<const uint8_t> protected_instructions,
-      ::v8::base::Vector<const uint8_t> source_position_table,
-      ::v8::base::Vector<const uint8_t> inlining_positions,
-      ::v8::base::Vector<const uint8_t> deopt_data, WasmCode::Kind kind,
+      ZoneVector<const uint8_t> protected_instructions,
+      ZoneVector<const uint8_t> source_position_table,
+      ZoneVector<const uint8_t> inlining_positions,
+      ZoneVector<const uint8_t> deopt_data, WasmCode::Kind kind,
       ExecutionTier tier, ForDebugging for_debugging);
 
   // {PublishCode} makes the code available to the system by entering it into
@@ -638,11 +638,11 @@ class V8_EXPORT_PRIVATE NativeModule final {
   // {NativeModule}. Returns {nullptr} if the {AssumptionsJournal} in the
   // argument is non-nullptr and contains invalid assumptions.
   WasmCode* PublishCode(UnpublishedWasmCode);
-  std::vector<WasmCode*> PublishCode(::v8::base::Vector<UnpublishedWasmCode>);
+  std::vector<WasmCode*> PublishCode(ZoneVector<UnpublishedWasmCode>);
 
   // Clears outdated code as necessary when a new instantiation's imports
   // conflict with previously seen well-known imports.
-  void UpdateWellKnownImports(::v8::base::Vector<WellKnownImport> entries);
+  void UpdateWellKnownImports(ZoneVector<WellKnownImport> entries);
 
   // ReinstallDebugCode does a subset of PublishCode: It installs the code in
   // the code table and patches the jump table. The given code must be debug
@@ -658,20 +658,20 @@ class V8_EXPORT_PRIVATE NativeModule final {
     bool is_valid() const { return far_jump_table_start != kNullAddress; }
   };
 
-  std::pair<::v8::base::Vector<uint8_t>, JumpTablesRef> AllocateForDeserializedCode(
+  std::pair<ZoneVector<uint8_t>, JumpTablesRef> AllocateForDeserializedCode(
       size_t total_code_size);
 
   std::unique_ptr<WasmCode> AddDeserializedCode(
-      int index, ::v8::base::Vector<uint8_t> instructions, int stack_slots,
+      int index, ZoneVector<uint8_t> instructions, int stack_slots,
       int ool_spills, uint32_t tagged_parameter_slots,
       int safepoint_table_offset, int handler_table_offset,
       int constant_pool_offset, int code_comments_offset,
       int jump_table_info_offset, int unpadded_binary_size,
-      ::v8::base::Vector<const uint8_t> protected_instructions_data,
-      ::v8::base::Vector<const uint8_t> reloc_info,
-      ::v8::base::Vector<const uint8_t> source_position_table,
-      ::v8::base::Vector<const uint8_t> inlining_positions,
-      ::v8::base::Vector<const uint8_t> deopt_data, WasmCode::Kind kind,
+      ZoneVector<const uint8_t> protected_instructions_data,
+      ZoneVector<const uint8_t> reloc_info,
+      ZoneVector<const uint8_t> source_position_table,
+      ZoneVector<const uint8_t> inlining_positions,
+      ZoneVector<const uint8_t> deopt_data, WasmCode::Kind kind,
       ExecutionTier tier);
 
   // Adds anonymous code for testing purposes.
@@ -747,8 +747,10 @@ class V8_EXPORT_PRIVATE NativeModule final {
   }
   void set_lazy_compile_frozen(bool frozen) { lazy_compile_frozen_ = frozen; }
   bool lazy_compile_frozen() const { return lazy_compile_frozen_; }
-  ::v8::base::Vector<const uint8_t> wire_bytes() const {
-    return ::std::atomic_load(&wire_bytes_)->as_vector();
+  ZoneVector<const uint8_t> wire_bytes() const {
+    // Convert from base::Vector to ZoneVector view to match API.
+    return ZoneVector<const uint8_t>(
+        ::std::atomic_load(&wire_bytes_)->as_vector());
   }
   const WasmModule* module() const { return module_.get(); }
   std::shared_ptr<const WasmModule> shared_module() const { return module_; }
@@ -825,7 +827,7 @@ class V8_EXPORT_PRIVATE NativeModule final {
   V8_WARN_UNUSED_RESULT UnpublishedWasmCode
   AddCompiledCode(WasmCompilationResult&);
   V8_WARN_UNUSED_RESULT std::vector<UnpublishedWasmCode> AddCompiledCode(
-      ::v8::base::Vector<WasmCompilationResult>);
+      ZoneVector<WasmCompilationResult>);
 
   // Set a new debugging state, but don't trigger any recompilation;
   // recompilation happens lazily.
@@ -857,7 +859,7 @@ class V8_EXPORT_PRIVATE NativeModule final {
   // {WasmCode} objects must not be used any more.
   // Should only be called via {WasmEngine::FreeDeadCode}, so the engine can do
   // its accounting.
-  void FreeCode(::v8::base::Vector<WasmCode* const>);
+  void FreeCode(ZoneVector<WasmCode* const>);
 
   // Retrieve the number of separately reserved code spaces for this module.
   size_t GetNumberOfCodeSpacesForTesting() const;
@@ -970,12 +972,12 @@ class V8_EXPORT_PRIVATE NativeModule final {
   std::unique_ptr<WasmCode> AddCodeWithCodeSpace(
       int index, const CodeDesc& desc, int stack_slots, int ool_spill_count,
       uint32_t tagged_parameter_slots,
-      ::v8::base::Vector<const uint8_t> protected_instructions_data,
-      ::v8::base::Vector<const uint8_t> source_position_table,
-      ::v8::base::Vector<const uint8_t> inlining_positions,
-      ::v8::base::Vector<const uint8_t> deopt_data, WasmCode::Kind kind,
+      ZoneVector<const uint8_t> protected_instructions_data,
+      ZoneVector<const uint8_t> source_position_table,
+      ZoneVector<const uint8_t> inlining_positions,
+      ZoneVector<const uint8_t> deopt_data, WasmCode::Kind kind,
       ExecutionTier tier, ForDebugging for_debugging,
-      bool frame_has_feedback_slot, ::v8::base::Vector<uint8_t> code_space,
+      bool frame_has_feedback_slot, ZoneVector<uint8_t> code_space,
       const JumpTablesRef& jump_tables_ref);
 
   WasmCode* CreateEmptyJumpTableLocked(int jump_table_size, JumpTableType type);
@@ -1218,7 +1220,7 @@ class V8_EXPORT_PRIVATE WasmCodeManager final {
   void Commit(::v8::base::AddressRegion);
   void Decommit(::v8::base::AddressRegion);
 
-  void FreeNativeModule(::v8::base::Vector<VirtualMemory> owned_code,
+  void FreeNativeModule(ZoneVector<VirtualMemory> owned_code,
                         size_t committed_size);
 
   void AssignRange(::v8::base::AddressRegion, NativeModule*);

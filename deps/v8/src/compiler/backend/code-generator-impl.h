@@ -263,10 +263,10 @@ class DeoptimizationExit : public ZoneObject {
   DeoptimizeKind kind() const { return kind_; }
   DeoptimizeReason reason() const { return reason_; }
   NodeId node_id() const { return node_id_; }
-  const ::v8::base::Vector<ImmediateOperand*>* immediate_args() const {
+  const ZoneVector<ImmediateOperand*>* immediate_args() const {
     return immediate_args_;
   }
-  void set_immediate_args(::v8::base::Vector<ImmediateOperand*>* immediate_args) {
+  void set_immediate_args(ZoneVector<ImmediateOperand*>* immediate_args) {
     immediate_args_ = immediate_args;
   }
   // Returns whether the deopt exit has already been emitted. Most deopt exits
@@ -287,7 +287,7 @@ class DeoptimizationExit : public ZoneObject {
   const DeoptimizeKind kind_;
   const DeoptimizeReason reason_;
   const NodeId node_id_;
-  ::v8::base::Vector<ImmediateOperand*>* immediate_args_;
+  ZoneVector<ImmediateOperand*>* immediate_args_;
   bool emitted_;
 };
 

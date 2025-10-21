@@ -37,7 +37,7 @@ class InliningTree : public ZoneObject {
   struct Data;
 
  public:
-  using CasesPerCallSite = ::v8::base::Vector<InliningTree*>;
+  using CasesPerCallSite = ZoneVector<InliningTree*>;
 
   static InliningTree* CreateRoot(Zone* zone, const WasmModule* module,
                                   uint32_t function_index) {
@@ -93,8 +93,8 @@ class InliningTree : public ZoneObject {
   // could be explored like penalizing nested inlinees.
   static constexpr uint32_t kMaxInliningNestingDepth = 7;
 
-  ::v8::base::Vector<CasesPerCallSite> function_calls() { return function_calls_; }
-  ::v8::base::Vector<bool> has_non_inlineable_targets() {
+  ZoneVector<CasesPerCallSite> function_calls() { return function_calls_; }
+  ZoneVector<bool> has_non_inlineable_targets() {
     return has_non_inlineable_targets_;
   }
   bool feedback_found() { return feedback_found_; }
@@ -195,8 +195,8 @@ class InliningTree : public ZoneObject {
   bool is_inlined_ = false;
   bool feedback_found_ = false;
 
-  ::v8::base::Vector<CasesPerCallSite> function_calls_{};
-  ::v8::base::Vector<bool> has_non_inlineable_targets_{};
+  ZoneVector<CasesPerCallSite> function_calls_{};
+  ZoneVector<bool> has_non_inlineable_targets_{};
 
   uint32_t depth_;
 
@@ -212,17 +212,17 @@ void InliningTree::Inline() {
   auto feedback_it = feedback_map.find(function_index_);
   if (feedback_it == feedback_map.end()) return;
   const FunctionTypeFeedback& feedback = feedback_it->second;
-  ::v8::base::Vector<CallSiteFeedback> type_feedback =
+  ZoneVector<CallSiteFeedback> type_feedback =
       feedback.feedback_vector.as_vector();
   if (type_feedback.empty()) return;  // No feedback yet.
   DCHECK_EQ(type_feedback.size(), feedback.call_targets.size());
   feedback_found_ = true;
   function_calls_ =
-      data_->zone->Allocate::v8::base::Vector<CasesPerCallSite>(type_feedback.size());
+      data_->zone->AllocateZoneVector<CasesPerCallSite>(type_feedback.size());
   has_non_inlineable_targets_ =
-      data_->zone->Allocate::v8::base::Vector<bool>(type_feedback.size());
+      data_->zone->AllocateZoneVector<bool>(type_feedback.size());
   for (size_t i = 0; i < type_feedback.size(); i++) {
-    function_calls_[i] = data_->zone->Allocate::v8::base::Vector<InliningTree*>(
+    function_calls_[i] = data_->zone->AllocateZoneVector<InliningTree*>(
         type_feedback[i].num_cases());
     has_non_inlineable_targets_[i] =
         type_feedback[i].has_non_inlineable_targets();

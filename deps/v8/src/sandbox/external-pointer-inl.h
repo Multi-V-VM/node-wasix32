@@ -88,6 +88,18 @@ V8_INLINE Address ReadExternalPointerField(Address field_address,
 #endif  // V8_ENABLE_SANDBOX
 }
 
+// Convenience overload that forwards to the tag range variant.
+template <ExternalPointerTag tag>
+V8_INLINE Address ReadExternalPointerField(Address field_address,
+                                           IsolateForSandbox isolate) {
+#ifdef V8_ENABLE_SANDBOX
+  return ReadExternalPointerField<ExternalPointerTagRange(tag)>(field_address,
+                                                                isolate);
+#else
+  return ReadMaybeUnalignedValue<Address>(field_address);
+#endif  // V8_ENABLE_SANDBOX
+}
+
 template <ExternalPointerTag tag>
 V8_INLINE void WriteExternalPointerField(Address field_address,
                                          IsolateForSandbox isolate,

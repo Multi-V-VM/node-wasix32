@@ -171,7 +171,8 @@ class V8_EXPORT_PRIVATE MacroAssemblerWASM32 : public MacroAssemblerBase {
   }
 };
 
-using MacroAssembler = MacroAssemblerWASM32;
+// Do not alias MacroAssembler to avoid conflicts with the generic
+// v8::internal::MacroAssembler on other architectures.
 
 }  // namespace internal
 }  // namespace v8

@@ -452,9 +452,9 @@ TurbofanPipelineStatistics* CreatePipelineStatistics(
     json_of << "{\"function\":\"" << function_name.get() << "\", \"source\":\"";
     std::ostringstream disassembly;
     std::vector<uint32_t> source_positions;
-    ::v8::base::Vector<const uint8_t> function_bytes{compilation_data.func_body.start,
+    ZoneVector<const uint8_t> function_bytes{compilation_data.func_body.start,
                                                compilation_data.body_size()};
-    ::v8::base::Vector<const uint8_t> module_bytes{nullptr, 0};
+    ZoneVector<const uint8_t> module_bytes{nullptr, 0};
     std::optional<wasm::ModuleWireBytes> maybe_wire_bytes =
         compilation_data.wire_bytes_storage->GetModuleBytes();
     if (maybe_wire_bytes) module_bytes = maybe_wire_bytes->module_bytes();
@@ -835,7 +835,7 @@ PipelineCompilationJob::Status PipelineCompilationJob::FinalizeJobImpl(
     return RetryOptimization(BailoutReason::kBailedOutDueToDependencyChange);
   }
   compilation_info()->SetCode(code);
-  GlobalHandle::v8::base::Vector<Map> maps = CollectRetainedMaps(isolate, code);
+  GlobalHandleZoneVector<Map> maps = CollectRetainedMaps(isolate, code);
   RegisterWeakObjectsInOptimizedCode(isolate, context, code, std::move(maps));
   return SUCCEEDED;
 }
@@ -2158,8 +2158,8 @@ int HashGraphForPGO(const TFGraph* graph) {
   // What's a traversal number? We can't use node IDs because they're not stable
   // build-to-build, so we assign a new number for each node as it is visited.
 
-  ::v8::base::Vector<uint8_t> state(graph->NodeCount(), kUnvisited, &local_zone);
-  ::v8::base::Vector<NodeId> traversal_numbers(graph->NodeCount(), kUnassigned,
+  ZoneVector<uint8_t> state(graph->NodeCount(), kUnvisited, &local_zone);
+  ZoneVector<NodeId> traversal_numbers(graph->NodeCount(), kUnassigned,
                                        &local_zone);
   ZoneStack<Node*> stack(&local_zone);
 
@@ -2790,12 +2790,12 @@ Pipeline::GenerateCodeForWasmNativeStubFromTurboshaft(
 
 namespace {
 
-base::Owned::v8::base::Vector<uint8_t> SerializeInliningPositions(
-    const ::v8::base::Vector<WasmInliningPosition>& positions) {
+base::OwnedZoneVector<uint8_t> SerializeInliningPositions(
+    const ZoneVector<WasmInliningPosition>& positions) {
   const size_t entry_size = sizeof positions[0].inlinee_func_index +
                             sizeof positions[0].was_tail_call +
                             sizeof positions[0].caller_pos;
-  auto result = base::Owned::v8::base::Vector<uint8_t>::New(positions.size() * entry_size);
+  auto result = base::OwnedZoneVector<uint8_t>::New(positions.size() * entry_size);
   uint8_t* iter = result.begin();
   for (const auto& [func_index, was_tail_call, caller_pos] : positions) {
     size_t index_size = sizeof func_index;
@@ -2882,7 +2882,7 @@ wasm::WasmCompilationResult Pipeline::GenerateWasmCode(
   Linkage linkage(call_descriptor);
 
   Zone inlining_positions_zone(wasm_engine->allocator(), ZONE_NAME);
-  ::v8::base::Vector<WasmInliningPosition> inlining_positions(&inlining_positions_zone);
+  ZoneVector<WasmInliningPosition> inlining_positions(&inlining_positions_zone);
 
   turboshaft::PipelineData turboshaft_data(
       &zone_stats, turboshaft::TurboshaftPipelineKind::kWasm, nullptr, &info,

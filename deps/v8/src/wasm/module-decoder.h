@@ -58,7 +58,7 @@ using AsmJsOffsetsResult = Result<AsmJsOffsets>;
 
 class DecodedNameSection {
  public:
-  explicit DecodedNameSection(::v8::base::Vector<const uint8_t> wire_bytes,
+  explicit DecodedNameSection(ZoneVector<const uint8_t> wire_bytes,
                               WireBytesRef name_section);
 
  private:
@@ -88,7 +88,7 @@ enum class DecodingMethod {
 // updating counters.
 V8_EXPORT_PRIVATE ModuleResult DecodeWasmModule(
     WasmEnabledFeatures enabled_features,
-    ::v8::base::Vector<const uint8_t> wire_bytes, bool validate_functions,
+    ZoneVector<const uint8_t> wire_bytes, bool validate_functions,
     ModuleOrigin origin, Counters* counters,
     std::shared_ptr<metrics::Recorder> metrics_recorder,
     v8::metrics::Recorder::ContextId context_id, DecodingMethod decoding_method,
@@ -97,26 +97,26 @@ V8_EXPORT_PRIVATE ModuleResult DecodeWasmModule(
 // or updating counters.
 V8_EXPORT_PRIVATE ModuleResult DecodeWasmModule(
     WasmEnabledFeatures enabled_features,
-    ::v8::base::Vector<const uint8_t> wire_bytes, bool validate_functions,
+    ZoneVector<const uint8_t> wire_bytes, bool validate_functions,
     ModuleOrigin origin, WasmDetectedFeatures* detected_features);
 // Stripped down version for disassembler needs.
 V8_EXPORT_PRIVATE ModuleResult DecodeWasmModuleForDisassembler(
-    ::v8::base::Vector<const uint8_t> wire_bytes, ITracer* tracer);
+    ZoneVector<const uint8_t> wire_bytes, ITracer* tracer);
 
 // Exposed for testing. Decodes a single function signature, allocating it
 // in the given zone.
 V8_EXPORT_PRIVATE Result<const FunctionSig*> DecodeWasmSignatureForTesting(
     WasmEnabledFeatures enabled_features, Zone* zone,
-    ::v8::base::Vector<const uint8_t> bytes);
+    ZoneVector<const uint8_t> bytes);
 
 // Decodes the bytes of a wasm function in {function_bytes} (part of
 // {wire_bytes}).
 V8_EXPORT_PRIVATE FunctionResult DecodeWasmFunctionForTesting(
     WasmEnabledFeatures enabled, Zone* zone, ModuleWireBytes wire_bytes,
-    const WasmModule* module, ::v8::base::Vector<const uint8_t> function_bytes);
+    const WasmModule* module, ZoneVector<const uint8_t> function_bytes);
 
 V8_EXPORT_PRIVATE ConstantExpression DecodeWasmInitExprForTesting(
-    WasmEnabledFeatures enabled_features, ::v8::base::Vector<const uint8_t> bytes,
+    WasmEnabledFeatures enabled_features, ZoneVector<const uint8_t> bytes,
     ValueType expected);
 
 struct CustomSectionOffset {
@@ -126,17 +126,17 @@ struct CustomSectionOffset {
 };
 
 V8_EXPORT_PRIVATE std::vector<CustomSectionOffset> DecodeCustomSections(
-    ::v8::base::Vector<const uint8_t> wire_bytes);
+    ZoneVector<const uint8_t> wire_bytes);
 
 // Extracts the mapping from wasm byte offset to asm.js source position per
 // function.
 AsmJsOffsetsResult DecodeAsmJsOffsets(
-    ::v8::base::Vector<const uint8_t> encoded_offsets);
+    ZoneVector<const uint8_t> encoded_offsets);
 
 // Decode the function names from the name section. Returns the result as an
 // unordered map. Only names with valid utf8 encoding are stored and conflicts
 // are resolved by choosing the last name read.
-void DecodeFunctionNames(::v8::base::Vector<const uint8_t> wire_bytes,
+void DecodeFunctionNames(ZoneVector<const uint8_t> wire_bytes,
                          NameMap& names);
 // Decode the type names from the type section, store them in the provided
 // vector/map indexed by *canonical* index.
@@ -144,9 +144,9 @@ void DecodeFunctionNames(::v8::base::Vector<const uint8_t> wire_bytes,
 // Existing non-empty names won't be overwritten.
 // The number of allocated characters will be added to {total_allocated_size}.
 void DecodeCanonicalTypeNames(
-    ::v8::base::Vector<const uint8_t> wire_bytes, const WasmModule* module,
-    std::vector<base::Owned::v8::base::Vector<char>>& typenames,
-    std::map<uint32_t, std::vector<base::Owned::v8::base::Vector<char>>>& fieldnames,
+    ZoneVector<const uint8_t> wire_bytes, const WasmModule* module,
+    std::vector<base::OwnedVector<char>>& typenames,
+    std::map<uint32_t, std::vector<base::OwnedVector<char>>>& fieldnames,
     size_t* total_allocated_size);
 
 // Validate specific functions in the module. Return the first validation error
@@ -155,10 +155,10 @@ void DecodeCanonicalTypeNames(
 // function for "all functions". The {filter} callback needs to be thread-safe.
 V8_EXPORT_PRIVATE WasmError ValidateFunctions(
     const WasmModule*, WasmEnabledFeatures enabled_features,
-    ::v8::base::Vector<const uint8_t> wire_bytes, std::function<bool(int)> filter,
+    ZoneVector<const uint8_t> wire_bytes, std::function<bool(int)> filter,
     WasmDetectedFeatures* detected_features);
 
-WasmError GetWasmErrorWithName(::v8::base::Vector<const uint8_t> wire_bytes,
+WasmError GetWasmErrorWithName(ZoneVector<const uint8_t> wire_bytes,
                                int func_index, const WasmModule* module,
                                WasmError error);
 
@@ -170,10 +170,10 @@ class ModuleDecoder {
                          WasmDetectedFeatures* detected_features);
   ~ModuleDecoder();
 
-  void DecodeModuleHeader(::v8::base::Vector<const uint8_t> bytes);
+  void DecodeModuleHeader(ZoneVector<const uint8_t> bytes);
 
   void DecodeSection(SectionCode section_code,
-                     ::v8::base::Vector<const uint8_t> bytes, uint32_t offset);
+                     ZoneVector<const uint8_t> bytes, uint32_t offset);
 
   void StartCodeSection(WireBytesRef section_bytes);
 
@@ -195,7 +195,7 @@ class ModuleDecoder {
   // the identifier string of the unknown section.
   // The return value is the number of bytes that were consumed.
   static size_t IdentifyUnknownSection(ModuleDecoder* decoder,
-                                       ::v8::base::Vector<const uint8_t> bytes,
+                                       ZoneVector<const uint8_t> bytes,
                                        uint32_t offset, SectionCode* result);
 
  private:

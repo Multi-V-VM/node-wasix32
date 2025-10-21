@@ -14,6 +14,9 @@
 
 #include "src/base/vector.h"
 
+// Forward declaration for ZoneVector to avoid heavy includes.
+namespace v8 { namespace internal { template <typename T> class ZoneVector; } }
+
 namespace v8::internal::wasm {
 
 enum class WellKnownImport : uint8_t {
@@ -139,7 +142,7 @@ class WellKnownImportsList {
   }
 
   // Intended for deserialization. Does not check consistency with code.
-  void Initialize(::v8::base::Vector<const WellKnownImport> entries);
+  void Initialize(ZoneVector<const WellKnownImport> entries);
 
   WellKnownImport get(int index) const {
     DCHECK_LT(index, size_);
@@ -149,7 +152,7 @@ class WellKnownImportsList {
   // Note: you probably want to be holding the associated NativeModule's
   // {allocation_lock_} when calling this method.
   V8_WARN_UNUSED_RESULT UpdateResult
-  Update(::v8::base::Vector<WellKnownImport> entries);
+  Update(ZoneVector<WellKnownImport> entries);
 
  private:
   // Operations that need to ensure that they see a consistent view of

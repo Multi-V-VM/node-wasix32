@@ -312,7 +312,7 @@ class StraightForwardRegisterAllocator {
     ptrdiff_t diff;
     Node* new_node;
   };
-  ::v8::base::Vector<BlockPatch> patches_;
+  ZoneVector<BlockPatch> patches_;
 
   BlockConstIterator block_it_;
   NodeIterator node_it_;

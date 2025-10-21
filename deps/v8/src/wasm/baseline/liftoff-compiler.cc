@@ -252,14 +252,14 @@ class DebugSideTableBuilder {
 
   // Adds a new entry in regular code.
   void NewEntry(int pc_offset,
-                ::v8::base::Vector<DebugSideTable::Entry::Value> values) {
+                ZoneVector<DebugSideTable::Entry::Value> values) {
     entries_.emplace_back(pc_offset, static_cast<int>(values.size()),
                           GetChangedStackValues(last_values_, values));
   }
 
   // Adds a new entry for OOL code, and returns a pointer to a builder for
   // modifying that entry.
-  EntryBuilder* NewOOLEntry(::v8::base::Vector<DebugSideTable::Entry::Value> values) {
+  EntryBuilder* NewOOLEntry(ZoneVector<DebugSideTable::Entry::Value> values) {
     constexpr int kNoPcOffsetYet = -1;
     ool_entries_.emplace_back(kNoPcOffsetYet, static_cast<int>(values.size()),
                               GetChangedStackValues(last_ool_values_, values));
@@ -294,7 +294,7 @@ class DebugSideTableBuilder {
 
  private:
   static std::vector<Value> GetChangedStackValues(
-      std::vector<Value>& last_values, ::v8::base::Vector<Value> values) {
+      std::vector<Value>& last_values, ZoneVector<Value> values) {
     std::vector<Value> changed_values;
     int old_stack_size = static_cast<int>(last_values.size());
     last_values.resize(values.size());
@@ -525,13 +525,13 @@ class LiftoffCompiler {
       LiftoffRegister reg;
       ValueKind kind;
     };
-    ::v8::base::Vector<Entry> entries;
+    ZoneVector<Entry> entries;
 
     explicit SpilledRegistersForInspection(Zone* zone) : entries(zone) {}
   };
 
   struct OutOfLineSafepointInfo {
-    ::v8::base::Vector<int> slots;
+    ZoneVector<int> slots;
     LiftoffRegList spills;
 
     explicit OutOfLineSafepointInfo(Zone* zone) : slots(zone) {}
@@ -663,12 +663,12 @@ class LiftoffCompiler {
     return std::move(frame_description_);
   }
 
-  base::Owned::v8::base::Vector<uint8_t> GetSourcePositionTable() {
+  base::OwnedZoneVector<uint8_t> GetSourcePositionTable() {
     return source_position_table_builder_.ToSourcePositionTableVector();
   }
 
-  base::Owned::v8::base::Vector<uint8_t> GetProtectedInstructionsData() const {
-    return base::OwnedCopyOf(::v8::base::Vector<const uint8_t>::cast(
+  base::OwnedZoneVector<uint8_t> GetProtectedInstructionsData() const {
+    return base::OwnedCopyOf(ZoneVector<const uint8_t>::cast(
         base::VectorOf(protected_instructions_)));
   }
 
@@ -1235,7 +1235,7 @@ class LiftoffCompiler {
       FunctionTypeFeedback& function_feedback =
           type_feedback.feedback_for_function[func_index_];
       function_feedback.liftoff_frame_size = __ GetTotalFrameSize();
-      base::Owned::v8::base::Vector<uint32_t>& call_targets =
+      base::OwnedZoneVector<uint32_t>& call_targets =
           function_feedback.call_targets;
       if (call_targets.empty()) {
         call_targets = base::OwnedCopyOf(encountered_call_instructions_);
@@ -1463,7 +1463,7 @@ class LiftoffCompiler {
   }
 
   void CatchException(FullDecoder* decoder, const TagIndexImmediate& imm,
-                      Control* block, ::v8::base::Vector<Value> values) {
+                      Control* block, ZoneVector<Value> values) {
     DCHECK(block->is_try_catch());
     __ emit_jump(block->label.get());
 
@@ -1644,7 +1644,7 @@ class LiftoffCompiler {
   }
 
   void CatchCase(FullDecoder* decoder, Control* block,
-                 const CatchCase& catch_case, ::v8::base::Vector<Value> values) {
+                 const CatchCase& catch_case, ZoneVector<Value> values) {
     DCHECK(block->is_try_table());
 
     // This is the last use of this label. Reuse the field for the label of the
@@ -1818,7 +1818,7 @@ class LiftoffCompiler {
   }
 
   void Resume(FullDecoder* decoder, const ContIndexImmediate& imm,
-              ::v8::base::Vector<HandlerCase> handlers, const Value args[],
+              ZoneVector<HandlerCase> handlers, const Value args[],
               const Value returns[]) {
     UNIMPLEMENTED();
   }
@@ -1826,7 +1826,7 @@ class LiftoffCompiler {
   void ResumeThrow(FullDecoder* decoder,
                    const wasm::ContIndexImmediate& cont_imm,
                    const TagIndexImmediate& exc_imm,
-                   ::v8::base::Vector<wasm::HandlerCase> handlers, const Value args[],
+                   ZoneVector<wasm::HandlerCase> handlers, const Value args[],
                    const Value returns[]) {
     UNIMPLEMENTED();
   }
@@ -2891,7 +2891,7 @@ class LiftoffCompiler {
     // A function returning an uninhabitable type can't ever actually reach
     // a {ret} instruction (it can only return by throwing or trapping). So
     // if we do get here, there must have been a bug. Crash to flush it out.
-    ::v8::base::Vector<const ValueType> returns = decoder->sig_->returns();
+    ZoneVector<const ValueType> returns = decoder->sig_->returns();
     if (V8_UNLIKELY(std::any_of(
             returns.begin(), returns.end(),
             [](const ValueType type) { return type.is_uninhabited(); }))) {
@@ -4134,11 +4134,11 @@ class LiftoffCompiler {
     }
   }
 
-  base::Owned::v8::base::Vector<ValueType> GetStackValueTypesForDebugging(
+  base::OwnedZoneVector<ValueType> GetStackValueTypesForDebugging(
       FullDecoder* decoder) {
     DCHECK(for_debugging_);
     auto stack_value_types =
-        base::Owned::v8::base::Vector<ValueType>::NewForOverwrite(decoder->stack_size());
+        base::OwnedZoneVector<ValueType>::NewForOverwrite(decoder->stack_size());
 
     int depth = 0;
     for (ValueType& type : base::Reversed(stack_value_types)) {
@@ -4147,7 +4147,7 @@ class LiftoffCompiler {
     return stack_value_types;
   }
 
-  base::Owned::v8::base::Vector<DebugSideTable::Entry::Value>
+  base::OwnedZoneVector<DebugSideTable::Entry::Value>
   GetCurrentDebugSideTableEntries(
       FullDecoder* decoder,
       DebugSideTableBuilder::AssumeSpilling assume_spilling) {
@@ -4166,7 +4166,7 @@ class LiftoffCompiler {
 #endif
 
     auto values =
-        base::Owned::v8::base::Vector<DebugSideTable::Entry::Value>::NewForOverwrite(
+        base::OwnedZoneVector<DebugSideTable::Entry::Value>::NewForOverwrite(
             stack_state.size());
 
     int index = 0;
@@ -5257,7 +5257,7 @@ class LiftoffCompiler {
 
   void SimdLaneOp(FullDecoder* decoder, WasmOpcode opcode,
                   const SimdLaneImmediate& imm,
-                  ::v8::base::Vector<const Value> inputs, Value* result) {
+                  ZoneVector<const Value> inputs, Value* result) {
     CHECK(CpuFeatures::SupportsWasmSimd128());
     switch (opcode) {
 #define CASE_SIMD_EXTRACT_LANE_OP(opcode, kind, fn)      \
@@ -9518,13 +9518,13 @@ class LiftoffCompiler {
   compiler::CallDescriptor* const descriptor_;
   CompilationEnv* const env_;
   DebugSideTableBuilder* const debug_sidetable_builder_;
-  base::Owned::v8::base::Vector<ValueType> stack_value_types_for_debugging_;
+  base::OwnedZoneVector<ValueType> stack_value_types_for_debugging_;
   const ForDebugging for_debugging_;
   LiftoffBailoutReason bailout_reason_ = kSuccess;
   const int func_index_;
-  ::v8::base::Vector<OutOfLineCode> out_of_line_code_;
+  ZoneVector<OutOfLineCode> out_of_line_code_;
   SourcePositionTableBuilder source_position_table_builder_;
-  ::v8::base::Vector<trap_handler::ProtectedInstructionData> protected_instructions_;
+  ZoneVector<trap_handler::ProtectedInstructionData> protected_instructions_;
   // Zone used to store information during compilation. The result will be
   // stored independently, such that this zone can die together with the
   // LiftoffCompiler after compilation.
@@ -9554,7 +9554,7 @@ class LiftoffCompiler {
     int pc_offset;
   };
 
-  ::v8::base::Vector<HandlerInfo> handlers_;
+  ZoneVector<HandlerInfo> handlers_;
   int handler_table_offset_ = Assembler::kNoHandlerTable;
 
   // Current number of exception refs on the stack.
@@ -9700,7 +9700,7 @@ std::unique_ptr<DebugSideTable> GenerateLiftoffDebugSideTable(
   auto* native_module = code->native_module();
   auto* function = &native_module->module()->functions[code->index()];
   ModuleWireBytes wire_bytes{native_module->wire_bytes()};
-  ::v8::base::Vector<const uint8_t> function_bytes =
+  ZoneVector<const uint8_t> function_bytes =
       wire_bytes.GetFunctionBytes(function);
   CompilationEnv env = CompilationEnv::ForModule(native_module);
   bool is_shared = native_module->module()->type(function->sig_index).is_shared;
@@ -9714,10 +9714,10 @@ std::unique_ptr<DebugSideTable> GenerateLiftoffDebugSideTable(
   constexpr int kSteppingBreakpoints[] = {0};
   DCHECK(code->for_debugging() == kForDebugging ||
          code->for_debugging() == kForStepping);
-  ::v8::base::Vector<const int> breakpoints =
+  ZoneVector<const int> breakpoints =
       code->for_debugging() == kForStepping
           ? base::ArrayVector(kSteppingBreakpoints)
-          : ::v8::base::Vector<const int>{};
+          : ZoneVector<const int>{};
   WasmFullDecoder<Decoder::NoValidationTag, LiftoffCompiler> decoder(
       &zone, native_module->module(), env.enabled_features, &detected,
       func_body, call_descriptor, &env, &zone,

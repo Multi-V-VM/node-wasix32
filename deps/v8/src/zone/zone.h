@@ -43,6 +43,7 @@ namespace internal {
 // from multi-threaded code.
 
 class ZoneSnapshot;
+template <typename T> class ZoneVector;  // Forward declaration
 
 class V8_EXPORT_PRIVATE Zone final {
  public:
@@ -159,6 +160,12 @@ class V8_EXPORT_PRIVATE Zone final {
     return {new_array, length};
   }
 
+  // Convenience helper to construct a ZoneVector<T> with the given length
+  // backed by this Zone. Defined inline in zone-containers.h after
+  // ZoneVector is declared.
+  template <typename T>
+  ZoneVector<T> AllocateZoneVector(size_t length);
+
   template <typename T, typename TypeTag = std::remove_const_t<T>[]>
   ::v8::base::Vector<std::remove_const_t<T>> CloneVector(::v8::base::Vector<T> v) {
     auto* new_array = AllocateArray<std::remove_const_t<T>, TypeTag>(v.size());
@@ -173,7 +180,8 @@ class V8_EXPORT_PRIVATE Zone final {
   // associated with the provided TypeTag type.
   template <typename T, typename TypeTag = T[]>
   void DeleteArray(T* pointer, size_t length) {
-    Delete<TypeTag>(pointer, length * sizeof(T));
+    this->template Delete<TypeTag>(
+        const_cast<std::remove_const_t<T>*>(pointer), length * sizeof(T));
   }
 
   // Seals the zone to prevent any further allocation.

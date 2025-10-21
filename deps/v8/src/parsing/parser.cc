@@ -413,7 +413,7 @@ bool Parser::CollapseNaryExpression(Expression** x, Expression* y,
 }
 
 const AstRawString* Parser::GetBigIntAsSymbol() {
-  ::v8::base::Vector<const uint8_t> literal = scanner()->BigIntLiteral();
+  ZoneVector<const uint8_t> literal = scanner()->BigIntLiteral();
   if (literal[0] != '0' || literal.length() == 1) {
     return ast_value_factory()->GetOneByteString(literal);
   }

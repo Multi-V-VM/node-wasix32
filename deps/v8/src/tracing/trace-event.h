@@ -314,6 +314,23 @@ class TraceEventHelper {
   V8_EXPORT_PRIVATE static TracingController* GetTracingController();
 };
 
+// Bridge to v8::tracing namespace for users including libplatform APIs.
+}  // namespace tracing
+}  // namespace internal
+}  // namespace v8
+
+// Now create global v8::tracing alias
+namespace v8 {
+namespace tracing {
+using ::v8::internal::tracing::TraceEventHelper;
+}  // namespace tracing
+}  // namespace v8
+
+// Reopen v8::internal::tracing
+namespace v8 {
+namespace internal {
+namespace tracing {
+
 // TraceID encapsulates an ID that can either be an integer or pointer.
 class TraceID {
  public:

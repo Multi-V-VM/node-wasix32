@@ -88,7 +88,7 @@ enum class BoundsCheckResult {
 enum CheckForNull : bool { kWithoutNullCheck, kWithNullCheck };
 std::ostream& operator<<(std::ostream& os, CheckForNull null_check);
 
-::v8::base::Vector<const char> GetDebugName(Zone* zone,
+ZoneVector<const char> GetDebugName(Zone* zone,
                                       const wasm::WasmModule* module,
                                       const wasm::WireBytesStorage* wire_bytes,
                                       int index);

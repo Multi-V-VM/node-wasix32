@@ -29,7 +29,7 @@ class V8_EXPORT_PRIVATE NameConverter {
   virtual const char* RootRelativeName(int offset) const { UNREACHABLE(); }
 
  protected:
-  ::v8::base::Vector<char, 128> tmp_buffer_;
+  ZoneVector<char, 128> tmp_buffer_;
 };
 
 // A generic Disassembler interface
@@ -53,7 +53,7 @@ class Disassembler {
 
   // Writes one disassembled instruction into 'buffer' (0-terminated).
   // Returns the length of the disassembled machine instruction in bytes.
-  V8_EXPORT_PRIVATE int InstructionDecode(::v8::base::Vector<char> buffer,
+  V8_EXPORT_PRIVATE int InstructionDecode(ZoneVector<char> buffer,
                                           uint8_t* instruction);
 
   // Returns -1 if instruction does not mark the beginning of a constant pool,

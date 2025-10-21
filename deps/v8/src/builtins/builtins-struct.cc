@@ -57,7 +57,7 @@ namespace {
 Maybe<bool> CollectFieldsAndElements(Isolate* isolate,
                                      DirectHandle<JSReceiver> property_names,
                                      int num_properties,
-                                     DirectHandle<::v8::base::Vector<Name>& field_names,
+                                     DirectHandle<ZoneVector<Name>& field_names,
                                      std::set<uint32_t>& element_names) {
   Handle<Object> raw_property_name;
   Handle<Name> property_name;
@@ -136,7 +136,7 @@ BUILTIN(SharedStructTypeConstructor) {
     }
     int num_properties = static_cast<int>(num_properties_double);
 
-    DirectHandle<::v8::base::Vector<Name> field_names(isolate);
+    DirectHandle<ZoneVector<Name> field_names(isolate);
     std::set<uint32_t> element_names;
     if (num_properties != 0) {
       MAYBE_RETURN(

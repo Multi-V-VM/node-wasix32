@@ -123,7 +123,7 @@ bool AreStdlibMembersValid(Isolate* isolate, DirectHandle<JSReceiver> stdlib,
   return true;
 }
 
-void Report(Handle<Script> script, int position, ::v8::base::Vector<const char> text,
+void Report(Handle<Script> script, int position, ZoneVector<const char> text,
             MessageTemplate message_template,
             v8::Isolate::MessageErrorLevel level) {
   Isolate* isolate = script->GetIsolate();
@@ -173,7 +173,7 @@ void ReportInstantiationSuccess(Handle<Script> script, int position,
 void ReportInstantiationFailure(Handle<Script> script, int position,
                                 const char* reason) {
   if (v8_flags.suppress_asm_messages) return;
-  ::v8::base::Vector<const char> text = base::CStrVector(reason);
+  ZoneVector<const char> text = base::CStrVector(reason);
   Report(script, position, text, MessageTemplate::kAsmJsLinkingFailed,
          v8::Isolate::kMessageWarning);
 }
@@ -423,7 +423,7 @@ MaybeDirectHandle<Object> AsmJs::InstantiateAsmWasm(
     if (isolate->is_execution_terminating()) return {};
     if (isolate->has_exception()) isolate->clear_exception();
     if (thrower.error()) {
-      base::Scoped::v8::base::Vector<char> error_reason(100);
+      base::ScopedZoneVector<char> error_reason(100);
       SNPrintF(error_reason, "Internal wasm failure: %s", thrower.error_msg());
       ReportInstantiationFailure(script, position, error_reason.begin());
     } else {

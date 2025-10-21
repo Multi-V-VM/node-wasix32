@@ -38,17 +38,17 @@ struct InvokeParams {
   static InvokeParams SetUpForNew(
       Isolate* isolate, DirectHandle<Object> constructor,
       DirectHandle<Object> new_target,
-      ::v8::base::Vector<const DirectHandle<Object>> args);
+      ZoneVector<const DirectHandle<Object>> args);
 
   static InvokeParams SetUpForCall(
       Isolate* isolate, DirectHandle<Object> callable,
       DirectHandle<Object> receiver,
-      ::v8::base::Vector<const DirectHandle<Object>> args);
+      ZoneVector<const DirectHandle<Object>> args);
 
   static InvokeParams SetUpForTryCall(
       Isolate* isolate, DirectHandle<Object> callable,
       DirectHandle<Object> receiver,
-      ::v8::base::Vector<const DirectHandle<Object>> args,
+      ZoneVector<const DirectHandle<Object>> args,
       Execution::MessageHandling message_handling,
       MaybeDirectHandle<Object>* exception_out);
 
@@ -71,7 +71,7 @@ struct InvokeParams {
 
   DirectHandle<Object> target;
   DirectHandle<Object> receiver;
-  ::v8::base::Vector<const DirectHandle<Object>> args;
+  ZoneVector<const DirectHandle<Object>> args;
   DirectHandle<Object> new_target;
 
   MicrotaskQueue* microtask_queue;
@@ -87,7 +87,7 @@ struct InvokeParams {
 InvokeParams InvokeParams::SetUpForNew(
     Isolate* isolate, DirectHandle<Object> constructor,
     DirectHandle<Object> new_target,
-    ::v8::base::Vector<const DirectHandle<Object>> args) {
+    ZoneVector<const DirectHandle<Object>> args) {
   InvokeParams params;
   params.target = constructor;
   params.receiver = isolate->factory()->undefined_value();
@@ -106,7 +106,7 @@ InvokeParams InvokeParams::SetUpForNew(
 InvokeParams InvokeParams::SetUpForCall(
     Isolate* isolate, DirectHandle<Object> callable,
     DirectHandle<Object> receiver,
-    ::v8::base::Vector<const DirectHandle<Object>> args) {
+    ZoneVector<const DirectHandle<Object>> args) {
   InvokeParams params;
   params.target = callable;
   params.receiver = NormalizeReceiver(isolate, receiver);
@@ -127,7 +127,7 @@ InvokeParams InvokeParams::SetUpForCall(
 InvokeParams InvokeParams::SetUpForTryCall(
     Isolate* isolate, DirectHandle<Object> callable,
     DirectHandle<Object> receiver,
-    ::v8::base::Vector<const DirectHandle<Object>> args,
+    ZoneVector<const DirectHandle<Object>> args,
     Execution::MessageHandling message_handling,
     MaybeDirectHandle<Object>* exception_out) {
   InvokeParams params;
@@ -523,7 +523,7 @@ MaybeDirectHandle<Object> InvokeWithTryCatch(Isolate* isolate,
 MaybeHandle<Object> Execution::Call(
     Isolate* isolate, DirectHandle<Object> callable,
     DirectHandle<Object> receiver,
-    ::v8::base::Vector<const DirectHandle<Object>> args) {
+    ZoneVector<const DirectHandle<Object>> args) {
   // Use Execution::CallScript instead for scripts:
   DCHECK_IMPLIES(IsJSFunction(*callable),
                  !Cast<JSFunction>(*callable)->shared()->is_script());
@@ -545,7 +545,7 @@ MaybeHandle<Object> Execution::CallScript(
 MaybeHandle<Object> Execution::CallBuiltin(
     Isolate* isolate, DirectHandle<JSFunction> builtin,
     DirectHandle<Object> receiver,
-    ::v8::base::Vector<const DirectHandle<Object>> args) {
+    ZoneVector<const DirectHandle<Object>> args) {
   DCHECK(builtin->code(isolate)->is_builtin());
   DisableBreak no_break(isolate->debug());
   return Invoke(isolate,
@@ -555,7 +555,7 @@ MaybeHandle<Object> Execution::CallBuiltin(
 // static
 MaybeDirectHandle<JSReceiver> Execution::New(
     Isolate* isolate, DirectHandle<Object> constructor,
-    ::v8::base::Vector<const DirectHandle<Object>> args) {
+    ZoneVector<const DirectHandle<Object>> args) {
   return New(isolate, constructor, constructor, args);
 }
 
@@ -563,7 +563,7 @@ MaybeDirectHandle<JSReceiver> Execution::New(
 MaybeDirectHandle<JSReceiver> Execution::New(
     Isolate* isolate, DirectHandle<Object> constructor,
     DirectHandle<Object> new_target,
-    ::v8::base::Vector<const DirectHandle<Object>> args) {
+    ZoneVector<const DirectHandle<Object>> args) {
   return Cast<JSReceiver>(Invoke(
       isolate,
       InvokeParams::SetUpForNew(isolate, constructor, new_target, args)));
@@ -587,7 +587,7 @@ MaybeDirectHandle<Object> Execution::TryCallScript(
 MaybeDirectHandle<Object> Execution::TryCall(
     Isolate* isolate, DirectHandle<Object> callable,
     DirectHandle<Object> receiver,
-    ::v8::base::Vector<const DirectHandle<Object>> args,
+    ZoneVector<const DirectHandle<Object>> args,
     MessageHandling message_handling,
     MaybeDirectHandle<Object>* exception_out) {
   // Use Execution::TryCallScript instead for scripts:

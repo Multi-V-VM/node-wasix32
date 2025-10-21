@@ -13,7 +13,7 @@ namespace base {
 
 // The buffer must only contain digits in the range [0-9]. It must not
 // contain a dot or a sign. It must not start with '0', and must not be empty.
-V8_BASE_EXPORT double Strtod(::v8::base::Vector<const char> buffer, int exponent);
+V8_BASE_EXPORT double Strtod(Vector<const char> buffer, int exponent);
 
 }  // namespace base
 }  // namespace v8

@@ -825,10 +825,10 @@ class InstanceBuilder {
   DirectHandle<JSArrayBuffer> shared_untagged_globals_;
   DirectHandle<FixedArray> tagged_globals_;
   DirectHandle<FixedArray> shared_tagged_globals_;
-  DirectHandle<::v8::base::Vector<WasmTagObject> tags_wrappers_;
-  DirectHandle<::v8::base::Vector<WasmTagObject> shared_tags_wrappers_;
+  DirectHandle<ZoneVector<WasmTagObject> tags_wrappers_;
+  DirectHandle<ZoneVector<WasmTagObject> shared_tags_wrappers_;
   DirectHandle<JSFunction> start_function_;
-  DirectHandle<::v8::base::Vector<Object> sanitized_imports_;
+  DirectHandle<ZoneVector<Object> sanitized_imports_;
   std::vector<WellKnownImport> well_known_imports_;
   // We pass this {Zone} to the temporary {WasmFullDecoder} we allocate during
   // each call to {EvaluateConstantExpression}, and reset it after each such
@@ -1697,7 +1697,7 @@ MaybeDirectHandle<Object> InstanceBuilder::LookupImportAsm(
 void InstanceBuilder::LoadDataSegments(
     DirectHandle<WasmTrustedInstanceData> trusted_instance_data,
     DirectHandle<WasmTrustedInstanceData> shared_trusted_instance_data) {
-  ::v8::base::Vector<const uint8_t> wire_bytes =
+  ZoneVector<const uint8_t> wire_bytes =
       module_object_->native_module()->wire_bytes();
   for (const WasmDataSegment& segment : module_->data_segments) {
     uint32_t size = segment.source.length();
@@ -1808,7 +1808,7 @@ DirectHandle<JSFunction> CreateFunctionForCompileTimeImport(
 
 void InstanceBuilder::SanitizeImports() {
   NativeModule* native_module = module_object_->native_module();
-  ::v8::base::Vector<const uint8_t> wire_bytes = native_module->wire_bytes();
+  ZoneVector<const uint8_t> wire_bytes = native_module->wire_bytes();
   const WellKnownImportsList& well_known_imports =
       module_->type_feedback.well_known_imports;
   const std::string& magic_string_constants =
@@ -2954,7 +2954,7 @@ std::optional<MessageTemplate> InitializeElementSegment(
   const WasmModule* module = native_module->module();
   const WasmElemSegment& elem_segment = module->elem_segments[segment_index];
 
-  ::v8::base::Vector<const uint8_t> module_bytes = native_module->wire_bytes();
+  ZoneVector<const uint8_t> module_bytes = native_module->wire_bytes();
 
   Decoder decoder(module_bytes);
   decoder.consume_bytes(elem_segment.elements_wire_bytes_offset);
@@ -3020,7 +3020,7 @@ void InstanceBuilder::LoadTableSegments(
       return;
     }
 
-    ::v8::base::Vector<const uint8_t> module_bytes =
+    ZoneVector<const uint8_t> module_bytes =
         trusted_instance_data->native_module()->wire_bytes();
     Decoder decoder(module_bytes);
     decoder.consume_bytes(elem_segment.elements_wire_bytes_offset);

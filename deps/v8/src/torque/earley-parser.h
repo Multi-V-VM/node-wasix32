@@ -552,14 +552,9 @@ struct hash<v8::internal::torque::Item> {
   }
 };
 
-template <typename T1, typename T2>
-struct hash<std::pair<T1, T2>> {
-  size_t operator()(const std::pair<T1, T2>& p) const {
-    return ::v8::base::hash_combine(
-        std::hash<T1>{}(p.first),
-        std::hash<T2>{}(p.second));
-  }
-};
+// Do not provide a generic std::pair hash here; modern standard libraries
+// already provide one, and redefining it is undefined behavior. If needed,
+// platform-specific compatibility should be implemented outside this header.
 
 }  // namespace std
 

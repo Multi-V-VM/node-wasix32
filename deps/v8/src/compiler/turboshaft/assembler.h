@@ -1052,11 +1052,11 @@ inline ShadowyOpIndex MakeShadowy(V<T> value) {
   return ShadowyOpIndex{value};
 }
 inline ShadowyOpIndexVectorWrapper MakeShadowy(
-    ::v8::base::Vector<const OpIndex> value) {
+    ZoneVector<const OpIndex> value) {
   return ShadowyOpIndexVectorWrapper{value};
 }
 template <typename T>
-inline ShadowyOpIndexVectorWrapper MakeShadowy(::v8::base::Vector<const V<T>> value) {
+inline ShadowyOpIndexVectorWrapper MakeShadowy(ZoneVector<const V<T>> value) {
   return ShadowyOpIndexVectorWrapper{value};
 }
 }  // namespace detail
@@ -1138,7 +1138,7 @@ class GenericReducerBase : public ReducerBaseForwarder<Next> {
         input_phi.rep);
   }
 
-  OpIndex REDUCE(Phi)(::v8::base::Vector<const OpIndex> inputs,
+  OpIndex REDUCE(Phi)(ZoneVector<const OpIndex> inputs,
                       RegisterRepresentation rep) {
     DCHECK(Asm().current_block()->IsMerge() &&
            inputs.size() == Asm().current_block()->Predecessors().size());
@@ -1204,7 +1204,7 @@ class GenericReducerBase : public ReducerBaseForwarder<Next> {
                      RegisterRepresentation::Tagged());
   }
 
-  V<None> REDUCE(Switch)(V<Word32> input, ::v8::base::Vector<SwitchOp::Case> cases,
+  V<None> REDUCE(Switch)(V<Word32> input, ZoneVector<SwitchOp::Case> cases,
                          Block* default_case, BranchHint default_hint) {
 #ifdef DEBUG
     // Making sure that all cases and {default_case} are different. If we ever
@@ -1229,7 +1229,7 @@ class GenericReducerBase : public ReducerBaseForwarder<Next> {
 
   V<Any> REDUCE(Call)(V<CallTarget> callee,
                       OptionalV<turboshaft::FrameState> frame_state,
-                      ::v8::base::Vector<const OpIndex> arguments,
+                      ZoneVector<const OpIndex> arguments,
                       const TSCallDescriptor* descriptor, OpEffects effects) {
     V<Any> raw_call =
         Base::ReduceCall(callee, frame_state, arguments, descriptor, effects);
@@ -1248,9 +1248,9 @@ class GenericReducerBase : public ReducerBaseForwarder<Next> {
 
   OpIndex REDUCE(FastApiCall)(
       V<FrameState> frame_state, V<Object> data_argument, V<Context> context,
-      ::v8::base::Vector<const OpIndex> arguments,
+      ZoneVector<const OpIndex> arguments,
       const FastApiCallParameters* parameters,
-      ::v8::base::Vector<const RegisterRepresentation> out_reps) {
+      ZoneVector<const RegisterRepresentation> out_reps) {
     OpIndex raw_call = Base::ReduceFastApiCall(
         frame_state, data_argument, context, arguments, parameters, out_reps);
     bool has_catch_block = CatchIfInCatchScope(raw_call);
@@ -3294,7 +3294,7 @@ class TurboshaftAssemblerOpInterface
                   V<std::common_type_t<T, U>>::rep, hint,
                   SelectOp::Implementation::kBranch);
   }
-  void Switch(V<Word32> input, ::v8::base::Vector<SwitchOp::Case> cases,
+  void Switch(V<Word32> input, ZoneVector<SwitchOp::Case> cases,
               Block* default_case,
               BranchHint default_hint = BranchHint::kNone) {
     ReduceIfReachableSwitch(input, cases, default_case, default_hint);
@@ -3325,7 +3325,7 @@ class TurboshaftAssemblerOpInterface
     return Parameter(index, V<T>::rep, debug_name);
   }
   V<Object> OsrValue(int index) { return ReduceIfReachableOsrValue(index); }
-  void Return(V<Word32> pop_count, ::v8::base::Vector<const OpIndex> return_values,
+  void Return(V<Word32> pop_count, ZoneVector<const OpIndex> return_values,
               bool spill_caller_frame_slots = false) {
     ReduceIfReachableReturn(pop_count, return_values, spill_caller_frame_slots);
   }
@@ -3335,7 +3335,7 @@ class TurboshaftAssemblerOpInterface
 
   template <typename R = AnyOrNone>
   V<R> Call(V<CallTarget> callee, OptionalV<turboshaft::FrameState> frame_state,
-            ::v8::base::Vector<const OpIndex> arguments,
+            ZoneVector<const OpIndex> arguments,
             const TSCallDescriptor* descriptor,
             OpEffects effects = OpEffects().CanCallAnything()) {
     return ReduceIfReachableCall(callee, frame_state, arguments, descriptor,
@@ -3513,7 +3513,7 @@ class TurboshaftAssemblerOpInterface
 
   V<Any> CallBuiltinImpl(Isolate* isolate, Builtin builtin,
                          OptionalV<turboshaft::FrameState> frame_state,
-                         ::v8::base::Vector<const OpIndex> arguments,
+                         ZoneVector<const OpIndex> arguments,
                          const TSCallDescriptor* desc, OpEffects effects) {
     Callable callable = Builtins::CallableFor(isolate, builtin);
     return Call(HeapConstant(callable.code()), frame_state, arguments, desc,
@@ -3743,7 +3743,7 @@ class TurboshaftAssemblerOpInterface
                                         Builtin builtin,
                                         V<turboshaft::FrameState> frame_state,
                                         int num_stack_args,
-                                        ::v8::base::Vector<OpIndex> arguments,
+                                        ZoneVector<OpIndex> arguments,
                                         LazyDeoptOnThrow lazy_deopt_on_throw) {
     Callable callable = Builtins::CallableFor(isolate, builtin);
     const CallInterfaceDescriptor& descriptor = callable.descriptor();
@@ -3762,7 +3762,7 @@ class TurboshaftAssemblerOpInterface
                                        V<turboshaft::FrameState> frame_state,
                                        V<Context> context, V<Object> function,
                                        int num_args_no_spread, V<Object> spread,
-                                       ::v8::base::Vector<V<Object>> args_no_spread,
+                                       ZoneVector<V<Object>> args_no_spread,
                                        LazyDeoptOnThrow lazy_deopt_on_throw) {
     base::SmallVector<OpIndex, 16> arguments;
     arguments.push_back(function);
@@ -3797,7 +3797,7 @@ class TurboshaftAssemblerOpInterface
       Isolate* isolate, Zone* graph_zone, Builtin builtin,
       V<turboshaft::FrameState> frame_state, V<Context> context,
       V<JSFunction> function, int num_args, int start_index,
-      ::v8::base::Vector<V<Object>> args, LazyDeoptOnThrow lazy_deopt_on_throw) {
+      ZoneVector<V<Object>> args, LazyDeoptOnThrow lazy_deopt_on_throw) {
     DCHECK(builtin == Builtin::kCallFunctionForwardVarargs ||
            builtin == Builtin::kCallForwardVarargs);
     base::SmallVector<OpIndex, 16> arguments;
@@ -4031,12 +4031,12 @@ class TurboshaftAssemblerOpInterface
         {object, prototype});
   }
 
-  void TailCall(V<CallTarget> callee, ::v8::base::Vector<const OpIndex> arguments,
+  void TailCall(V<CallTarget> callee, ZoneVector<const OpIndex> arguments,
                 const TSCallDescriptor* descriptor) {
     ReduceIfReachableTailCall(callee, arguments, descriptor);
   }
 
-  V<turboshaft::FrameState> FrameState(::v8::base::Vector<const OpIndex> inputs,
+  V<turboshaft::FrameState> FrameState(ZoneVector<const OpIndex> inputs,
                                        bool inlined,
                                        const FrameStateData* data) {
     return ReduceIfReachableFrameState(inputs, inlined, data);
@@ -4115,7 +4115,7 @@ class TurboshaftAssemblerOpInterface
     ReduceIfReachableStaticAssert(condition, source);
   }
 
-  OpIndex Phi(::v8::base::Vector<const OpIndex> inputs, RegisterRepresentation rep) {
+  OpIndex Phi(ZoneVector<const OpIndex> inputs, RegisterRepresentation rep) {
     return ReduceIfReachablePhi(inputs, rep);
   }
   OpIndex Phi(std::initializer_list<OpIndex> inputs,
@@ -4123,7 +4123,7 @@ class TurboshaftAssemblerOpInterface
     return Phi(base::VectorOf(inputs), rep);
   }
   template <typename T>
-  V<T> Phi(const ::v8::base::Vector<V<T>>& inputs) {
+  V<T> Phi(const ZoneVector<V<T>>& inputs) {
     if (V8_UNLIKELY(Asm().generating_unreachable_operations())) {
       return OpIndex::Invalid();
     }
@@ -4140,7 +4140,7 @@ class TurboshaftAssemblerOpInterface
     return PendingLoopPhi(first, V<T>::rep);
   }
 
-  V<Any> Tuple(::v8::base::Vector<const V<Any>> indices) {
+  V<Any> Tuple(ZoneVector<const V<Any>> indices) {
     return ReduceIfReachableTuple(indices);
   }
   V<Any> Tuple(std::initializer_list<V<Any>> indices) {
@@ -4382,7 +4382,7 @@ class TurboshaftAssemblerOpInterface
   }
 
   OpIndex CallBuiltin(Builtin builtin, V<turboshaft::FrameState> frame_state,
-                      ::v8::base::Vector<OpIndex> arguments, CanThrow can_throw,
+                      ZoneVector<OpIndex> arguments, CanThrow can_throw,
                       Isolate* isolate) {
     if (V8_UNLIKELY(Asm().generating_unreachable_operations())) {
       return OpIndex::Invalid();
@@ -4442,8 +4442,8 @@ class TurboshaftAssemblerOpInterface
     // We use 256 characters as a buffer size. This can be increased if
     // necessary.
     static constexpr size_t kMaxAssertCommentLength = 256;
-    ::v8::base::Vector<char> buffer =
-        Asm().data()->compilation_zone()->template Allocate::v8::base::Vector<char>(
+    ZoneVector<char> buffer =
+        Asm().data()->compilation_zone()->template AllocateZoneVector<char>(
             kMaxAssertCommentLength);
     int result = base::SNPrintF(buffer, "Assert: %s    [%s:%d]",
                                 condition_string, file, line);
@@ -4730,9 +4730,9 @@ class TurboshaftAssemblerOpInterface
 
   OpIndex FastApiCall(V<turboshaft::FrameState> frame_state,
                       V<Object> data_argument, V<Context> context,
-                      ::v8::base::Vector<const OpIndex> arguments,
+                      ZoneVector<const OpIndex> arguments,
                       const FastApiCallParameters* parameters,
-                      ::v8::base::Vector<const RegisterRepresentation> out_reps) {
+                      ZoneVector<const RegisterRepresentation> out_reps) {
     return ReduceIfReachableFastApiCall(frame_state, data_argument, context,
                                         arguments, parameters, out_reps);
   }

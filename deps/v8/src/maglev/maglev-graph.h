@@ -16,9 +16,9 @@ namespace v8 {
 namespace internal {
 namespace maglev {
 
-using BlockConstIterator = ::v8::base::Vector<BasicBlock*>::const_iterator;
+using BlockConstIterator = ZoneVector<BasicBlock*>::const_iterator;
 using BlockConstReverseIterator =
-    ::v8::base::Vector<BasicBlock*>::const_reverse_iterator;
+    ZoneVector<BasicBlock*>::const_reverse_iterator;
 
 struct MaglevCallSiteInfo;
 
@@ -58,7 +58,7 @@ class Graph final : public ZoneObject {
   const BasicBlock* operator[](int i) const { return blocks_[i]; }
 
   int num_blocks() const { return static_cast<int>(blocks_.size()); }
-  ::v8::base::Vector<BasicBlock*>& blocks() { return blocks_; }
+  ZoneVector<BasicBlock*>& blocks() { return blocks_; }
 
   BlockConstIterator begin() const { return blocks_.begin(); }
   BlockConstIterator end() const { return blocks_.end(); }
@@ -78,7 +78,7 @@ class Graph final : public ZoneObject {
     blocks_.push_back(block);
   }
 
-  void set_blocks(::v8::base::Vector<BasicBlock*> blocks) { blocks_ = blocks; }
+  void set_blocks(ZoneVector<BasicBlock*> blocks) { blocks_ = blocks; }
 
   template <typename Function>
   void IterateGraphAndSweepDeadBlocks(Function&& is_dead) {
@@ -139,7 +139,7 @@ class Graph final : public ZoneObject {
   }
 
   ZoneMap<RootIndex, RootConstant*>& root() { return root_; }
-  ::v8::base::Vector<InitialValue*>& osr_values() { return osr_values_; }
+  ZoneVector<InitialValue*>& osr_values() { return osr_values_; }
   ZoneMap<int, SmiConstant*>& smi() { return smi_; }
   ZoneMap<int, TaggedIndexConstant*>& tagged_index() { return tagged_index_; }
   ZoneMap<int32_t, Int32Constant*>& int32() { return int32_; }
@@ -149,13 +149,13 @@ class Graph final : public ZoneObject {
   ZoneMap<Address, ExternalConstant*>& external_references() {
     return external_references_;
   }
-  ::v8::base::Vector<InitialValue*>& parameters() { return parameters_; }
+  ZoneVector<InitialValue*>& parameters() { return parameters_; }
 
-  ::v8::base::Vector<MaglevCallSiteInfo*>& inlineable_calls() {
+  ZoneVector<MaglevCallSiteInfo*>& inlineable_calls() {
     return inlineable_calls_;
   }
 
-  ::v8::base::Vector<Node*>& node_buffer() { return node_buffer_; }
+  ZoneVector<Node*>& node_buffer() { return node_buffer_; }
 
   // Running JS2, 99.99% of the cases, we have less than 2 dependencies.
   using SmallAllocationVector = SmallVector<InlinedAllocation*, 2>;
@@ -181,7 +181,7 @@ class Graph final : public ZoneObject {
     return trusted_constants_;
   }
 
-  ::v8::base::Vector<OptimizedCompilationInfo::InlinedFunctionHolder>&
+  ZoneVector<OptimizedCompilationInfo::InlinedFunctionHolder>&
   inlined_functions() {
     return inlined_functions_;
   }
@@ -273,9 +273,9 @@ class Graph final : public ZoneObject {
   uint32_t untagged_stack_slots_ = kMaxUInt32;
   uint32_t max_call_stack_args_ = kMaxUInt32;
   uint32_t max_deopted_stack_size_ = kMaxUInt32;
-  ::v8::base::Vector<BasicBlock*> blocks_;
+  ZoneVector<BasicBlock*> blocks_;
   ZoneMap<RootIndex, RootConstant*> root_;
-  ::v8::base::Vector<InitialValue*> osr_values_;
+  ZoneVector<InitialValue*> osr_values_;
   ZoneMap<int, SmiConstant*> smi_;
   ZoneMap<int, TaggedIndexConstant*> tagged_index_;
   ZoneMap<int32_t, Int32Constant*> int32_;
@@ -284,17 +284,17 @@ class Graph final : public ZoneObject {
   // Use the bits of the float as the key.
   ZoneMap<uint64_t, Float64Constant*> float_;
   ZoneMap<Address, ExternalConstant*> external_references_;
-  ::v8::base::Vector<InitialValue*> parameters_;
-  ::v8::base::Vector<MaglevCallSiteInfo*> inlineable_calls_;
+  ZoneVector<InitialValue*> parameters_;
+  ZoneVector<MaglevCallSiteInfo*> inlineable_calls_;
   ZoneMap<InlinedAllocation*, SmallAllocationVector> allocations_escape_map_;
   ZoneMap<InlinedAllocation*, SmallAllocationVector> allocations_elide_map_;
   RegList register_inputs_;
   compiler::ZoneRefMap<compiler::ObjectRef, Constant*> constants_;
   compiler::ZoneRefMap<compiler::HeapObjectRef, TrustedConstant*>
       trusted_constants_;
-  ::v8::base::Vector<OptimizedCompilationInfo::InlinedFunctionHolder>
+  ZoneVector<OptimizedCompilationInfo::InlinedFunctionHolder>
       inlined_functions_;
-  ::v8::base::Vector<Node*> node_buffer_;
+  ZoneVector<Node*> node_buffer_;
   bool has_recursive_calls_ = false;
   int total_inlined_bytecode_size_ = 0;
   int total_peeled_bytecode_size_ = 0;

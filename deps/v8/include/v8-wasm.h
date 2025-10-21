@@ -12,7 +12,9 @@
 #include <memory>
 #include <string>
 
+#ifndef __wasi__
 #include "v8-internal.h"      // NOLINT(build/include_directory)
+#endif
 #include "v8-local-handle.h"  // NOLINT(build/include_directory)
 #include "v8-memory-span.h"   // NOLINT(build/include_directory)
 #include "v8-object.h"        // NOLINT(build/include_directory)

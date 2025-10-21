@@ -305,23 +305,23 @@ void MacroAssembler::JumpIfNotSmi(Register value, Label* not_smi_label) {
 // Runtime calls
 void MacroAssembler::CallRuntime(const Runtime::Function* f, int num_arguments) {
   // All arguments must be on the stack
-  li(r0(), ExternalReference::Create(f));
-  li(r1(), num_arguments);
+  li(Register::r0(), ExternalReference::Create(f));
+  li(Register::r1(), num_arguments);
   CallBuiltin(Builtin::kCEntry_Return1_DontSaveFPRegs_ArgvOnStack_NoBuiltinExit);
 }
 
 void MacroAssembler::TailCallRuntime(Runtime::FunctionId fid) {
   const Runtime::Function* function = Runtime::FunctionForId(fid);
   DCHECK_EQ(1, function->result_size());
-  li(r1(), function->nargs);
-  li(r0(), ExternalReference::Create(fid));
+  li(Register::r1(), function->nargs);
+  li(Register::r0(), ExternalReference::Create(fid));
   TailCallBuiltin(Builtin::kCEntry_Return1_DontSaveFPRegs_ArgvOnStack_NoBuiltinExit);
 }
 
 void MacroAssembler::CallExternalReference(const ExternalReference& ref,
                                           int num_arguments) {
-  li(r0(), ref);
-  li(r1(), num_arguments);
+  li(Register::r0(), ref);
+  li(Register::r1(), num_arguments);
   CallBuiltin(Builtin::kCEntry_Return1_DontSaveFPRegs_ArgvOnStack_NoBuiltinExit);
 }
 
@@ -340,8 +340,8 @@ void MacroAssembler::CallCFunction(Register function, int num_arguments) {
 
 // Debugging
 void MacroAssembler::Abort(AbortReason reason) {
-  li(r0(), static_cast<int>(reason));
-  Push(r0());
+  li(Register::r0(), static_cast<int>(reason));
+  Push(Register::r0());
   CallRuntime(Runtime::kAbort);
   // Unreachable
   assembler_.brk(0);

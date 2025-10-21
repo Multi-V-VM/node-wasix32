@@ -6,7 +6,9 @@
 
 #ifdef __wasi__
 // WASI stub for v8-handle-base
+#ifndef __wasi__
 #include "v8-internal.h"  // Ensure internal::ValueHelper is available
+#endif
 #include "wasi/v8-wasi-compat.h"
 
 namespace v8 {

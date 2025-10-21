@@ -74,7 +74,7 @@ class ConsoleHelper {
 
   void reportCall(ConsoleAPIType type) {
     if (!m_info.Length()) return;
-    ::v8::base::Vector<v8::Value> arguments(isolate());
+    ZoneVector<v8::Value> arguments(isolate());
     arguments.reserve(m_info.Length());
     for (int i = 0; i < m_info.Length(); ++i) arguments.push_back(m_info[i]);
     reportCall(type, {arguments.begin(), arguments.end()});
@@ -82,7 +82,7 @@ class ConsoleHelper {
 
   void reportCallWithDefaultArgument(ConsoleAPIType type,
                                      const String16& message) {
-    ::v8::base::Vector<v8::Value> arguments(isolate());
+    ZoneVector<v8::Value> arguments(isolate());
     arguments.reserve(m_info.Length());
     for (int i = 0; i < m_info.Length(); ++i) arguments.push_back(m_info[i]);
     if (!m_info.Length()) arguments.push_back(toV8String(isolate(), message));
@@ -91,7 +91,7 @@ class ConsoleHelper {
 
   void reportCallAndReplaceFirstArgument(ConsoleAPIType type,
                                          const String16& message) {
-    ::v8::base::Vector<v8::Value> arguments(isolate());
+    ZoneVector<v8::Value> arguments(isolate());
     arguments.push_back(toV8String(isolate(), message));
     for (int i = 1; i < m_info.Length(); ++i) arguments.push_back(m_info[i]);
     reportCall(type, {arguments.begin(), arguments.end()});
@@ -362,7 +362,7 @@ void V8Console::Assert(const v8::debug::ConsoleCallArguments& info,
   DCHECK(!helper.firstArgToBoolean(false));
 
   v8::Isolate* isolate = m_inspector->isolate();
-  ::v8::base::Vector<v8::Value> arguments(isolate);
+  ZoneVector<v8::Value> arguments(isolate);
   for (int i = 1; i < info.Length(); ++i) arguments.push_back(info[i]);
   if (info.Length() < 2)
     arguments.push_back(toV8String(isolate, String16("console.assert")));
@@ -464,7 +464,7 @@ void V8Console::TimeStamp(const v8::debug::ConsoleCallArguments& info,
   v8::Local<v8::String> label = helper.firstArgToString();
 
   v8::Isolate* isolate = m_inspector->isolate();
-  ::v8::base::Vector<v8::Value> args(isolate);
+  ZoneVector<v8::Value> args(isolate);
   args.reserve(info.Length());
   for (int i = 0; i < info.Length(); i++) {
     args.push_back(info[i]);

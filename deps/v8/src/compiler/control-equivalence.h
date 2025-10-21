@@ -94,7 +94,7 @@ class V8_EXPORT_PRIVATE ControlEquivalence final
   };
 
   // The per-node data computed during the DFS walk.
-  using Data = ::v8::base::Vector<NodeData*>;
+  using Data = ZoneVector<NodeData*>;
 
   // Called at pre-visit during DFS walk.
   void VisitPre(Node* node);

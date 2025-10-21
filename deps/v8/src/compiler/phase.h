@@ -56,7 +56,7 @@ enum class PhaseKind {
 };
 
 struct InstructionStartsAsJSON {
-  const ::v8::base::Vector<TurbolizerInstructionStartInfo>* instr_starts;
+  const ZoneVector<TurbolizerInstructionStartInfo>* instr_starts;
 };
 
 inline std::ostream& operator<<(std::ostream& out, InstructionStartsAsJSON s) {
@@ -97,7 +97,7 @@ inline std::ostream& operator<<(std::ostream& out,
 }
 
 struct BlockStartsAsJSON {
-  const ::v8::base::Vector<int>* block_starts;
+  const ZoneVector<int>* block_starts;
 };
 
 inline std::ostream& operator<<(std::ostream& out, BlockStartsAsJSON s) {

@@ -100,7 +100,7 @@ class StringStream final {
     FmtElm(const char* value) : FmtElm(C_STR) {  // NOLINT
       data_.u_c_str_ = value;
     }
-    FmtElm(const ::v8::base::Vector<const base::uc16>& value)  // NOLINT
+    FmtElm(const ZoneVector<const base::uc16>& value)  // NOLINT
         : FmtElm(LC_STR) {
       data_.u_lc_str_ = &value;
     }
@@ -131,7 +131,7 @@ class StringStream final {
       int u_int_;
       double u_double_;
       const char* u_c_str_;
-      const ::v8::base::Vector<const base::uc16>* u_lc_str_;
+      const ZoneVector<const base::uc16>* u_lc_str_;
       Address u_obj_;
       Address* u_handle_;
       void* u_pointer_;
@@ -154,8 +154,8 @@ class StringStream final {
   bool Put(Tagged<String> str);
   bool Put(Tagged<String> str, int start, int end);
   void Add(const char* format) { Add(base::CStrVector(format)); }
-  void Add(::v8::base::Vector<const char> format) {
-    Add(format, ::v8::base::Vector<FmtElm>());
+  void Add(ZoneVector<const char> format) {
+    Add(format, ZoneVector<FmtElm>());
   }
 
   template <typename... Args>
@@ -164,7 +164,7 @@ class StringStream final {
   }
 
   template <typename... Args>
-  void Add(::v8::base::Vector<const char> format, Args... args) {
+  void Add(ZoneVector<const char> format, Args... args) {
     FmtElm elems[]{args...};
     Add(format, base::ArrayVector(elems));
   }
@@ -205,7 +205,7 @@ class StringStream final {
   static const int kInitialCapacity = 16;
 
  private:
-  void Add(::v8::base::Vector<const char> format, ::v8::base::Vector<FmtElm> elms);
+  void Add(ZoneVector<const char> format, ZoneVector<FmtElm> elms);
   void PrintObject(Tagged<Object> obj);
 
   StringAllocator* allocator_;

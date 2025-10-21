@@ -8,7 +8,9 @@
 #ifndef INCLUDE_V8_SNAPSHOT_H_
 #define INCLUDE_V8_SNAPSHOT_H_
 
+#ifndef __wasi__
 #include "v8-internal.h"      // NOLINT(build/include_directory)
+#endif
 #include "v8-isolate.h"       // NOLINT(build/include_directory)
 #include "v8-local-handle.h"  // NOLINT(build/include_directory)
 #include "v8config.h"         // NOLINT(build/include_directory)
@@ -175,7 +177,9 @@ class V8_EXPORT SnapshotCreator {
    *               - `params.existing_blob` is an optional snapshot blob from
    *                 which can be used to initialize the new blob.
    */
+  #if !defined(__wasi__)
   explicit SnapshotCreator(const Isolate::CreateParams& params);
+  #endif
 
   /**
    * Initializes an Isolate for serialization and enters it. The creator does
@@ -188,8 +192,10 @@ class V8_EXPORT SnapshotCreator {
    *               - `params.existing_blob` is an optional snapshot blob from
    *                 which can be used to initialize the new blob.
    */
+  #if !defined(__wasi__)
   SnapshotCreator(v8::Isolate* isolate,
                   const v8::Isolate::CreateParams& params);
+  #endif
 
   /**
    * Destroy the snapshot creator, and exit and dispose of the Isolate

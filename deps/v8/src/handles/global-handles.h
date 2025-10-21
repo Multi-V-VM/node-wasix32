@@ -281,6 +281,10 @@ class GlobalHandleVector {
   std::vector<Address, StrongRootAllocator<Address>> locations_;
 };
 
+// Alias for compatibility
+template <typename T>
+using GlobalHandleZoneVector = GlobalHandleVector<T>;
+
 }  // namespace internal
 }  // namespace v8
 

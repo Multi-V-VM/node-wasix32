@@ -136,15 +136,15 @@ V8_OBJECT class String : public Name {
 
     // Return the one byte content of the string. Only use if IsOneByte()
     // returns true.
-    ::v8::base::Vector<const uint8_t> ToOneByteVector() const {
+    ZoneVector<const uint8_t> ToOneByteVector() const {
       DCHECK_EQ(ONE_BYTE, state_);
-      return ::v8::base::Vector<const uint8_t>(onebyte_start, length_);
+      return ZoneVector<const uint8_t>(onebyte_start, length_);
     }
     // Return the two-byte content of the string. Only use if IsTwoByte()
     // returns true.
-    ::v8::base::Vector<const base::uc16> ToUC16Vector() const {
+    ZoneVector<const base::uc16> ToUC16Vector() const {
       DCHECK_EQ(TWO_BYTE, state_);
-      return ::v8::base::Vector<const base::uc16>(twobyte_start, length_);
+      return ZoneVector<const base::uc16>(twobyte_start, length_);
     }
 
     base::uc16 Get(uint32_t i) const {
@@ -207,7 +207,7 @@ V8_OBJECT class String : public Name {
   void MakeThin(IsolateT* isolate, Tagged<String> canonical);
 
   template <typename Char>
-  V8_INLINE ::v8::base::Vector<const Char> GetCharVector(
+  V8_INLINE ZoneVector<const Char> GetCharVector(
       const DisallowGarbageCollection& no_gc);
 
   // Get chars from sequential or external strings. May only be called when a
@@ -397,7 +397,7 @@ V8_OBJECT class String : public Name {
   // The Isolate is passed as "evidence" that this call is on the main thread,
   // and to distinguish from the LocalIsolate overload.
   template <EqualityType kEqType = EqualityType::kWholeString, typename Char>
-  inline bool IsEqualTo(::v8::base::Vector<const Char> str, Isolate* isolate) const;
+  inline bool IsEqualTo(ZoneVector<const Char> str, Isolate* isolate) const;
 
   // Check if this string matches the given vector of characters, either as a
   // whole string or just a prefix.
@@ -405,7 +405,7 @@ V8_OBJECT class String : public Name {
   // This is main-thread only, like the Isolate* overload, but additionally
   // computes the PtrComprCageBase for IsEqualToImpl.
   template <EqualityType kEqType = EqualityType::kWholeString, typename Char>
-  inline bool IsEqualTo(::v8::base::Vector<const Char> str) const;
+  inline bool IsEqualTo(ZoneVector<const Char> str) const;
 
   // Check if this string matches the given vector of characters, either as a
   // whole string or just a prefix.
@@ -413,11 +413,11 @@ V8_OBJECT class String : public Name {
   // The LocalIsolate is passed to provide access to the string access lock,
   // which is taken when reading the string's contents on a background thread.
   template <EqualityType kEqType = EqualityType::kWholeString, typename Char>
-  inline bool IsEqualTo(::v8::base::Vector<const Char> str,
+  inline bool IsEqualTo(ZoneVector<const Char> str,
                         LocalIsolate* isolate) const;
 
-  V8_EXPORT_PRIVATE bool HasOneBytePrefix(::v8::base::Vector<const char> str);
-  V8_EXPORT_PRIVATE inline bool IsOneByteEqualTo(::v8::base::Vector<const char> str);
+  V8_EXPORT_PRIVATE bool HasOneBytePrefix(ZoneVector<const char> str);
+  V8_EXPORT_PRIVATE inline bool IsOneByteEqualTo(ZoneVector<const char> str);
 
   // Returns true if the |str| is a valid ECMAScript identifier.
   static bool IsIdentifier(Isolate* isolate, DirectHandle<String> str);
@@ -723,13 +723,13 @@ V8_OBJECT class String : public Name {
   // Implementation of the IsEqualTo() public methods. Do not use directly.
   template <EqualityType kEqType, typename Char>
   V8_INLINE bool IsEqualToImpl(
-      ::v8::base::Vector<const Char> str,
+      ZoneVector<const Char> str,
       const SharedStringAccessGuardIfNeeded& access_guard) const;
 
   // Out-of-line IsEqualToImpl for ConsString.
   template <typename Char>
   V8_NOINLINE static bool IsConsStringEqualToImpl(
-      Tagged<ConsString> string, ::v8::base::Vector<const Char> str,
+      Tagged<ConsString> string, ZoneVector<const Char> str,
       const SharedStringAccessGuardIfNeeded& access_guard);
 
   // Note: This is an inline method template and exporting it for windows

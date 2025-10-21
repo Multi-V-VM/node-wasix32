@@ -139,7 +139,7 @@ void PerfJitLogger::OpenJitDumpFile() {
 
   size_t bufferSize = strlen(v8_flags.perf_prof_path) +
                       sizeof(kFilenameFormatString) + kFilenameBufferPadding;
-  base::Scoped::v8::base::Vector<char> perf_dump_name(bufferSize);
+  base::ScopedZoneVector<char> perf_dump_name(bufferSize);
   int size = SNPrintF(perf_dump_name, kFilenameFormatString,
                       v8_flags.perf_prof_path.value(), process_id_);
   CHECK_NE(size, -1);
@@ -363,7 +363,7 @@ void PerfJitLogger::LogWriteDebugInfo(Tagged<Code> code,
   uint32_t entry_count = 0;
   Tagged<Object> last_script = Smi::zero();
   size_t last_script_name_size = 0;
-  std::vector<::v8::base::Vector<const char>> script_names;
+  std::vector<ZoneVector<const char>> script_names;
   for (SourcePositionTableIterator iterator(source_position_table);
        !iterator.done(); iterator.Advance()) {
     SourcePositionInfo info(GetSourcePositionInfo(isolate_, code, shared,

@@ -154,6 +154,16 @@ class V8_NODISCARD FrameScope {
   bool const old_has_frame_;
 };
 
+// On wasm32 build variants, MacroAssembler may be incomplete here; provide a
+// minimal no-op scope to avoid referencing members of an incomplete type.
+#if V8_TARGET_ARCH_WASM32
+class V8_NODISCARD FrameAndConstantPoolScope {
+ public:
+  explicit FrameAndConstantPoolScope(MacroAssembler* /*masm*/,
+                                     StackFrame::Type /*type*/) {}
+  ~FrameAndConstantPoolScope() = default;
+};
+#else
 class V8_NODISCARD FrameAndConstantPoolScope {
  public:
   FrameAndConstantPoolScope(MacroAssembler* masm, StackFrame::Type type)
@@ -187,8 +197,9 @@ class V8_NODISCARD FrameAndConstantPoolScope {
 
   DISALLOW_IMPLICIT_CONSTRUCTORS(FrameAndConstantPoolScope);
 };
+#endif  // V8_TARGET_ARCH_WASM32
 
-// Class for scoping the the unavailability of constant pool access.
+  // Class for scoping the the unavailability of constant pool access.
 class V8_NODISCARD ConstantPoolUnavailableScope {
  public:
   explicit ConstantPoolUnavailableScope(Assembler* assembler)

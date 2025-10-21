@@ -12,7 +12,9 @@
 #include <stdint.h>
 
 #include "v8-callbacks.h"  // NOLINT(build/include_directory)
+#ifndef __wasi__
 #include "v8-internal.h"   // NOLINT(build/include_directory)
+#endif
 #include "v8-isolate.h"    // NOLINT(build/include_directory)
 #include "v8-platform.h"   // NOLINT(build/include_directory)
 #include "v8config.h"      // NOLINT(build/include_directory)

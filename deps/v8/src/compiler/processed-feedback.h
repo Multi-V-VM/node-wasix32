@@ -132,8 +132,8 @@ class ElementAccessFeedback : public ProcessedFeedback {
   // A transition group is a target and a possibly empty set of sources that can
   // transition to the target. It is represented as a non-empty vector with the
   // target at index 0.
-  using TransitionGroup = ::v8::base::Vector<MapRef>;
-  ::v8::base::Vector<TransitionGroup> const& transition_groups() const;
+  using TransitionGroup = ZoneVector<MapRef>;
+  ZoneVector<TransitionGroup> const& transition_groups() const;
 
   bool HasOnlyStringMaps(JSHeapBroker* broker) const;
 
@@ -154,7 +154,7 @@ class ElementAccessFeedback : public ProcessedFeedback {
   // [e0, e1]                           [e0, e1]
   //
   ElementAccessFeedback const& Refine(
-      JSHeapBroker* broker, ::v8::base::Vector<MapRef> const& inferred_maps) const;
+      JSHeapBroker* broker, ZoneVector<MapRef> const& inferred_maps) const;
   ElementAccessFeedback const& Refine(
       JSHeapBroker* broker, ZoneRefSet<Map> const& inferred_maps,
       bool always_keep_group_target = true) const;
@@ -162,24 +162,24 @@ class ElementAccessFeedback : public ProcessedFeedback {
 
  private:
   KeyedAccessMode const keyed_mode_;
-  ::v8::base::Vector<TransitionGroup> transition_groups_;
+  ZoneVector<TransitionGroup> transition_groups_;
 };
 
 class NamedAccessFeedback : public ProcessedFeedback {
  public:
-  NamedAccessFeedback(NameRef name, ::v8::base::Vector<MapRef> const& maps,
+  NamedAccessFeedback(NameRef name, ZoneVector<MapRef> const& maps,
                       FeedbackSlotKind slot_kind,
                       bool has_deprecated_map_without_migration_target = false);
 
   NameRef name() const { return name_; }
-  ::v8::base::Vector<MapRef> const& maps() const { return maps_; }
+  ZoneVector<MapRef> const& maps() const { return maps_; }
   bool has_deprecated_map_without_migration_target() const {
     return has_deprecated_map_without_migration_target_;
   }
 
  private:
   NameRef const name_;
-  ::v8::base::Vector<MapRef> const maps_;
+  ZoneVector<MapRef> const maps_;
   bool has_deprecated_map_without_migration_target_;
 };
 

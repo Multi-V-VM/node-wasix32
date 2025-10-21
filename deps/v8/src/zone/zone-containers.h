@@ -6,8 +6,11 @@
 #define V8_ZONE_ZONE_CONTAINERS_H_
 
 #include <deque>
+#include <cstring>
+#include <new>
 #include <forward_list>
 #include <initializer_list>
+#include <utility>
 #include <iterator>
 #include <list>
 #include <map>
@@ -25,10 +28,16 @@
 #include "src/base/small-map.h"
 #include "src/base/small-vector.h"
 #include "src/zone/zone-allocator.h"
+#include "src/utils/allocation.h"
+#include "src/base/vector.h"
 
 namespace v8 {
 
 namespace internal {
+
+// Ensure C library memory functions are visible in this namespace
+using ::memcpy;
+using ::memmove;
 
 // A drop-in replacement for std::vector that uses a Zone for its allocations,
 // and (contrary to a std::vector subclass with custom allocator) gives us
@@ -53,6 +62,8 @@ namespace internal {
 template <typename T>
 class ZoneVector {
  public:
+  // Default constructs an empty non-owning vector.
+  ZoneVector() : zone_(nullptr), data_(nullptr), end_(nullptr), capacity_(nullptr) {}
   using iterator = T*;
   using const_iterator = const T*;
   using reverse_iterator = std::reverse_iterator<T*>;
@@ -64,6 +75,48 @@ class ZoneVector {
 
   // Constructs an empty vector.
   explicit ZoneVector(Zone* zone) : zone_(zone) {}
+
+  // Constructs a non-owning view over existing memory. The lifetime of the
+  // underlying storage is managed externally. No deallocation is performed
+  // in the destructor when constructed this way.
+  ZoneVector(T* data, size_t length) : zone_(nullptr) {
+    data_ = data;
+    end_ = capacity_ = data ? (data + length) : nullptr;
+  }
+
+  // Allocate a raw buffer-backed vector using the global allocator. The
+  // returned ZoneVector is a non-owning view that should be paired with
+  // DeleteArray(ptr) by the caller when finished.
+  static ZoneVector<T> New(size_t length) {
+    T* buffer = NewArray<T>(length);
+    return ZoneVector<T>(buffer, length);
+  }
+
+  // Construct a non-owning view from a base::Vector when both source and target
+  // element types are trivially copyable and layout-compatible.
+  template <typename S,
+            typename = std::enable_if_t<std::is_trivially_copyable_v<S> &&
+                                        std::is_trivially_copyable_v<T> &&
+                                        (sizeof(S) == sizeof(T))>>
+  ZoneVector(::v8::base::Vector<S> v) : zone_(nullptr) {
+    data_ = reinterpret_cast<T*>(v.begin());
+    end_ = capacity_ = data_ + v.size();
+  }
+
+  // Produce a sliced non-owning view advanced by offset elements.
+  ZoneVector<T> operator+(size_t offset) const {
+    DCHECK_LE(offset, size());
+    ZoneVector<T> out = *this;
+    out.data_ += offset;
+    return out;
+  }
+
+  // Advance this non-owning view by offset elements in-place.
+  ZoneVector<T>& operator+=(size_t offset) {
+    DCHECK_LE(offset, size());
+    data_ += offset;
+    return *this;
+  }
 
   // Constructs a new vector and fills it with {size} elements, each
   // constructed via the default constructor.
@@ -120,7 +173,7 @@ class ZoneVector {
 
   ~ZoneVector() {
     for (T* p = data_; p < end_; p++) p->~T();
-    if (data_) zone_->DeleteArray(data_, capacity());
+    if (zone_ && data_) zone_->DeleteArray(data_, capacity());
   }
 
   // Assignment operators.
@@ -133,7 +186,11 @@ class ZoneVector {
       T* dst = data_;
       if constexpr (std::is_trivially_copyable_v<T>) {
         size_t size = other.size();
-        if (size) memcpy(dst, src, size * sizeof(T));
+        if (size) {
+          void* d_void = static_cast<void*>(const_cast<std::remove_const_t<T>*>(dst));
+          const void* s_void = static_cast<const void*>(src);
+          ::memcpy(d_void, s_void, size * sizeof(T));
+        }
         end_ = dst + size;
       } else if constexpr (std::is_copy_assignable_v<T>) {
         while (dst < end_ && src < other.end_) *dst++ = *src++;
@@ -191,7 +248,7 @@ class ZoneVector {
     return *this;
   }
 
-  void swap(::v8::base::Vector<T>& other) noexcept {
+  void swap(ZoneVector<T>& other) noexcept {
     DCHECK_EQ(zone_, other.zone_);
     std::swap(data_, other.data_);
     std::swap(end_, other.end_);
@@ -244,6 +301,33 @@ class ZoneVector {
   const T* data() const { return data_; }
   Zone* zone() const { return zone_; }
 
+  // Implicit conversion to ZoneVector<const T> for view semantics
+  template <typename U = T, typename = std::enable_if_t<!std::is_const_v<U>>>
+  operator ZoneVector<const T>() const {
+    return ZoneVector<const T>(data_, size());
+  }
+
+  // Compatibility methods for v8::base::Vector-like interface
+  size_t length() const { return size(); }
+  T* ptr() { return data(); }
+  const T* ptr() const { return data(); }
+
+  // Cast method for type conversion (similar to v8::base::Vector::cast)
+  template <typename S>
+  static ZoneVector<T> cast(const ZoneVector<S>& input) {
+    static_assert(std::is_trivial_v<S> && std::is_standard_layout_v<S>);
+    static_assert(std::is_trivial_v<T> && std::is_standard_layout_v<T>);
+    static_assert(sizeof(S) == sizeof(T));
+    ZoneVector<T> result(input.zone());
+    result.resize(input.size());
+    if (input.size() > 0) {
+      ::memcpy(const_cast<void*>(static_cast<const void*>(result.data())),
+               static_cast<const void*>(input.data()),
+               input.size() * sizeof(S));
+    }
+    return result;
+  }
+
   T& at(size_t pos) {
     DCHECK_LT(pos, size());
     return data_[pos];
@@ -281,6 +365,14 @@ class ZoneVector {
   T* end() V8_NOEXCEPT { return end_; }
   const T* end() const V8_NOEXCEPT { return end_; }
   const T* cend() const V8_NOEXCEPT { return end_; }
+
+  // Subvector views similar to base::Vector
+  ZoneVector<T> SubVector(size_t from, size_t to) const {
+    DCHECK_LE(from, to);
+    DCHECK_LE(to, size());
+    return ZoneVector<T>(data_ + from, to - from);
+  }
+  ZoneVector<T> SubVectorFrom(size_t from) const { return SubVector(from, size()); }
 
   reverse_iterator rbegin() V8_NOEXCEPT {
     return std::make_reverse_iterator(end());
@@ -332,7 +424,10 @@ class ZoneVector {
       size_t assignable;
       position = PrepareForInsertion(pos, count, &assignable);
       if constexpr (std::is_trivially_copyable_v<T>) {
-        if (count > 0) memcpy(position, first, count * sizeof(T));
+        if (count > 0) {
+          ::memcpy(static_cast<void*>(position),
+                   static_cast<const void*>(first), count * sizeof(T));
+        }
       } else {
         CopyingOverwrite(position, first, first + assignable);
         CopyToNewStorage(position + assignable, first + assignable, last);
@@ -428,25 +523,27 @@ class ZoneVector {
     }
   }
 
-#define EMIT_TRIVIAL_CASE(memcpy_function)                 \
-  DCHECK_LE(src, src_end);                                 \
-  if constexpr (std::is_trivially_copyable_v<T>) {         \
-    size_t count = src_end - src;                          \
-    /* Add V8_ASSUME to silence gcc null check warning. */ \
-    V8_ASSUME(src != nullptr);                             \
-    memcpy_function(dst, src, count * sizeof(T));          \
-    return;                                                \
+#define EMIT_TRIVIAL_CASE(memcpy_function)                              \
+  DCHECK_LE(src, src_end);                                              \
+  if constexpr (std::is_trivially_copyable_v<T>) {                      \
+    size_t count = src_end - src;                                       \
+    /* Add V8_ASSUME to silence gcc null check warning. */              \
+    V8_ASSUME(src != nullptr);                                          \
+    void* d_void = static_cast<void*>(const_cast<std::remove_const_t<T>*>(dst)); \
+    const void* s_void = static_cast<const void*>(src);                 \
+    memcpy_function(d_void, s_void, count * sizeof(T));                 \
+    return;                                                             \
   }
 
   V8_INLINE void CopyToNewStorage(T* dst, const T* src, const T* src_end) {
-    EMIT_TRIVIAL_CASE(memcpy)
+    EMIT_TRIVIAL_CASE(::memcpy)
     for (; src < src_end; dst++, src++) {
       CopyToNewStorage(dst, src);
     }
   }
 
   V8_INLINE void MoveToNewStorage(T* dst, T* src, const T* src_end) {
-    EMIT_TRIVIAL_CASE(memcpy)
+    EMIT_TRIVIAL_CASE(::memcpy)
     for (; src < src_end; dst++, src++) {
       MoveToNewStorage(dst, src);
       src->~T();
@@ -454,14 +551,14 @@ class ZoneVector {
   }
 
   V8_INLINE void CopyingOverwrite(T* dst, const T* src, const T* src_end) {
-    EMIT_TRIVIAL_CASE(memmove)
+    EMIT_TRIVIAL_CASE(::memmove)
     for (; src < src_end; dst++, src++) {
       CopyingOverwrite(dst, src);
     }
   }
 
   V8_INLINE void MovingOverwrite(T* dst, T* src, const T* src_end) {
-    EMIT_TRIVIAL_CASE(memmove)
+    EMIT_TRIVIAL_CASE(::memmove)
     for (; src < src_end; dst++, src++) {
       MovingOverwrite(dst, src);
     }
@@ -580,28 +677,28 @@ class ZoneVector {
 };
 
 template <class T>
-bool operator==(const ::v8::base::Vector<T>& lhs, const ::v8::base::Vector<T>& rhs) {
+bool operator==(const ZoneVector<T>& lhs, const ZoneVector<T>& rhs) {
   return std::equal(lhs.begin(), lhs.end(), rhs.begin(), rhs.end());
 }
 
 template <class T>
-bool operator!=(const ::v8::base::Vector<T>& lhs, const ::v8::base::Vector<T>& rhs) {
+bool operator!=(const ZoneVector<T>& lhs, const ZoneVector<T>& rhs) {
   return !(lhs == rhs);
 }
 
 template <class T>
-bool operator<(const ::v8::base::Vector<T>& lhs, const ::v8::base::Vector<T>& rhs) {
+bool operator<(const ZoneVector<T>& lhs, const ZoneVector<T>& rhs) {
   return std::lexicographical_compare(lhs.begin(), lhs.end(), rhs.begin(),
                                       rhs.end());
 }
 
 template <class T, class GetIntrusiveSetIndex>
 class ZoneIntrusiveSet
-    : public ::v8::base::IntrusiveSet<T, GetIntrusiveSetIndex, ::v8::base::Vector<T>> {
+    : public ::v8::base::IntrusiveSet<T, GetIntrusiveSetIndex, ZoneVector<T>> {
  public:
   explicit ZoneIntrusiveSet(Zone* zone, GetIntrusiveSetIndex index_functor = {})
-      : ::v8::base::IntrusiveSet<T, GetIntrusiveSetIndex, ::v8::base::Vector<T>>(
-            ::v8::base::Vector<T>(zone), std::move(index_functor)) {}
+      : ::v8::base::IntrusiveSet<T, GetIntrusiveSetIndex, ZoneVector<T>>(
+            ZoneVector<T>(zone), std::move(index_functor)) {}
 };
 using ::v8::base::IntrusiveSetIndex;
 
@@ -642,12 +739,12 @@ class ZoneForwardList : public std::forward_list<T, ZoneAllocator<T>> {
 // that uses a zone allocator.
 template <typename T, typename Compare = std::less<T>>
 class ZonePriorityQueue
-    : public std::priority_queue<T, ::v8::base::Vector<T>, Compare> {
+    : public std::priority_queue<T, ZoneVector<T>, Compare> {
  public:
   // Constructs an empty list.
   explicit ZonePriorityQueue(Zone* zone)
-      : std::priority_queue<T, ::v8::base::Vector<T>, Compare>(Compare(),
-                                                       ::v8::base::Vector<T>(zone)) {}
+      : std::priority_queue<T, ZoneVector<T>, Compare>(Compare(),
+                                                       ZoneVector<T>(zone)) {}
 };
 
 // A wrapper subclass for std::queue to make it easy to construct one
@@ -706,7 +803,7 @@ class ZoneMap
 
 // A wrapper subclass for std::unordered_map to make it easy to construct one
 // that uses a zone allocator.
-template <typename K, typename V, typename Hash = ::std::hash<K>,
+template <typename K, typename V, typename Hash = ::v8::base::hash<K>,
           typename KeyEqual = std::equal_to<K>>
 class ZoneUnorderedMap
     : public std::unordered_map<K, V, Hash, KeyEqual,
@@ -722,7 +819,7 @@ class ZoneUnorderedMap
 
 // A wrapper subclass for std::unordered_set to make it easy to construct one
 // that uses a zone allocator.
-template <typename K, typename Hash = ::std::hash<K>,
+template <typename K, typename Hash = ::v8::base::hash<K>,
           typename KeyEqual = std::equal_to<K>>
 class ZoneUnorderedSet
     : public std::unordered_set<K, Hash, KeyEqual, ZoneAllocator<K>> {
@@ -838,9 +935,28 @@ class ZoneAbslBTreeMap
 };
 
 // Typedefs to shorten commonly used vectors.
-using IntVector = ::v8::base::Vector<int>;
+using IntVector = ZoneVector<int>;
+
+// Define Zone::AllocateZoneVector now that ZoneVector is available.
+template <typename T>
+inline ZoneVector<T> Zone::AllocateZoneVector(size_t length) {
+  return ZoneVector<T>(length, this);
+}
 
 }  // namespace internal
 }  // namespace v8
 
+// Hash function specialization for ZoneVector (must be outside v8 namespace)
+#include "src/base/hashing.h"  // for hash_range
+template <typename T>
+inline size_t hash_value(v8::internal::ZoneVector<T> const& v) {
+  return v8::base::hash_range(v.begin(), v.end());
+}
+
 #endif  // V8_ZONE_ZONE_CONTAINERS_H_
+// Provide compatibility alias for code expecting v8::internal::base::OwnedZoneVector.
+// Map it to the existing ::v8::base::OwnedVector implementation.
+namespace base {
+template <typename T>
+using OwnedZoneVector = ::v8::base::OwnedVector<T>;
+}  // namespace base

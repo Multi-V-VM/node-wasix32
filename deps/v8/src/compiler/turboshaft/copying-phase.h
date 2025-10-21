@@ -60,7 +60,7 @@ class OutputGraphAssembler : public Base {
   }
 
   template <size_t N>
-  base::SmallVector<OpIndex, N> Map(::v8::base::Vector<const OpIndex> indices) {
+  base::SmallVector<OpIndex, N> Map(ZoneVector<const OpIndex> indices) {
     return derived_this()->template MapToNewGraph<N>(indices);
   }
 
@@ -294,7 +294,7 @@ class GraphVisitor : public OutputGraphAssembler<GraphVisitor<AfterNext>,
       return Asm().PendingLoopPhi(og_index, rep);
     }
 
-    ::v8::base::Vector<const OpIndex> old_inputs = op.inputs();
+    ZoneVector<const OpIndex> old_inputs = op.inputs();
     base::SmallVector<OpIndex, 64> new_inputs;
     int predecessor_count = Asm().current_block()->PredecessorCount();
     Block* old_pred = current_input_block_->LastPredecessor();
@@ -426,7 +426,7 @@ class GraphVisitor : public OutputGraphAssembler<GraphVisitor<AfterNext>,
     // this CloneSubGraph will insert, rather than to a version inserted by a
     // previous call to CloneSubGraph or the version that the regular
     // VisitAllBlock function will emit.
-    ::v8::base::Vector<Block*> old_mappings(sub_graph.size(), Asm().phase_zone());
+    ZoneVector<Block*> old_mappings(sub_graph.size(), Asm().phase_zone());
     for (auto&& [input_block, old_mapping] :
          base::zip(sub_graph, old_mappings)) {
       old_mapping = block_mapping_[input_block->index()];
@@ -470,7 +470,7 @@ class GraphVisitor : public OutputGraphAssembler<GraphVisitor<AfterNext>,
 
   template <size_t expected_size>
   base::SmallVector<OpIndex, expected_size> MapToNewGraph(
-      ::v8::base::Vector<const OpIndex> inputs) {
+      ZoneVector<const OpIndex> inputs) {
     base::SmallVector<OpIndex, expected_size> result;
     for (OpIndex input : inputs) {
       result.push_back(MapToNewGraph(input));
@@ -1027,7 +1027,7 @@ class GraphVisitor : public OutputGraphAssembler<GraphVisitor<AfterNext>,
     int added_block_phi_input;
     Block* new_output_block;
   };
-  ::v8::base::Vector<BlockToClone> blocks_to_clone_;
+  ZoneVector<BlockToClone> blocks_to_clone_;
 
 #ifdef DEBUG
   // Recursively inlining blocks is still allowed (mainly for

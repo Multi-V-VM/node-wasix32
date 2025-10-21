@@ -27,7 +27,7 @@ class String;
 
 namespace wasm {
 class WasmCode;
-using WasmName = ::v8::base::Vector<const char>;
+using WasmName = ZoneVector<const char>;
 }  // namespace wasm
 
 #define LOG_EVENT_LIST(V)                         \

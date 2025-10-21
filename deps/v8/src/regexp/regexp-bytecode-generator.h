@@ -118,7 +118,7 @@ class V8_EXPORT_PRIVATE RegExpBytecodeGenerator : public RegExpMacroAssembler {
 
   // The buffer into which code and relocation info are generated.
   static constexpr int kInitialBufferSize = 1024;
-  ::v8::base::Vector<uint8_t> buffer_;
+  ZoneVector<uint8_t> buffer_;
 
   // The program counter.
   int pc_;

@@ -593,7 +593,7 @@ Address StringTable::Data::TryStringToIndexOrLookupExisting(
   }
   // TODO(verwaest): Internalize to one-byte when possible.
   SequentialStringKey<Char> key(raw_hash_field,
-                                ::v8::base::Vector<const Char>(chars, length), seed);
+                                ZoneVector<const Char>(chars, length), seed);
 
   // String could be an array index.
   if (Name::ContainsCachedArrayIndex(raw_hash_field)) {
@@ -674,7 +674,7 @@ Address StringTable::TryStringToIndexOrLookupExisting(Isolate* isolate,
 }
 
 void StringTable::InsertForIsolateDeserialization(
-    Isolate* isolate, const ::v8::base::Vector<DirectHandle<String>>& strings) {
+    Isolate* isolate, const ZoneVector<DirectHandle<String>>& strings) {
   DCHECK_EQ(NumberOfElements(), 0);
 
   const int length = static_cast<int>(strings.size());

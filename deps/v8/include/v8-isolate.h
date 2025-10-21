@@ -20,7 +20,9 @@
 #include "v8-embedder-heap.h"      // NOLINT(build/include_directory)
 #include "v8-exception.h"          // NOLINT(build/include_directory)
 #include "v8-function-callback.h"  // NOLINT(build/include_directory)
+#ifndef __wasi__
 #include "v8-internal.h"           // NOLINT(build/include_directory)
+#endif
 #include "v8-local-handle.h"       // NOLINT(build/include_directory)
 #include "v8-microtask.h"          // NOLINT(build/include_directory)
 #include "v8-persistent-handle.h"  // NOLINT(build/include_directory)

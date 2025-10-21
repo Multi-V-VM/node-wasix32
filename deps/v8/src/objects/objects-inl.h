@@ -1275,7 +1275,7 @@ bool MapWord::IsForwardingAddress() const {
   // chunks.
   return HAS_SMI_TAG(value_);
 #else
-  return (value_ & kForwardingTagMask) == kForwardingTag;
+  return (value_ & Internals::kForwardingTagMask) == Internals::kForwardingTag;
 #endif  // V8_EXTERNAL_CODE_SPACE
 }
 

@@ -614,17 +614,17 @@ class BytecodeGenerator final : public AstVisitor<BytecodeGenerator> {
 
   TopLevelDeclarationsBuilder* top_level_builder_;
   BlockCoverageBuilder* block_coverage_builder_;
-  ::v8::base::Vector<std::pair<FunctionLiteral*, size_t>> function_literals_;
-  ::v8::base::Vector<std::pair<NativeFunctionLiteral*, size_t>>
+  ZoneVector<std::pair<FunctionLiteral*, size_t>> function_literals_;
+  ZoneVector<std::pair<NativeFunctionLiteral*, size_t>>
       native_function_literals_;
-  ::v8::base::Vector<std::pair<ObjectLiteralBoilerplateBuilder*, size_t>>
+  ZoneVector<std::pair<ObjectLiteralBoilerplateBuilder*, size_t>>
       object_literals_;
-  ::v8::base::Vector<std::pair<ArrayLiteralBoilerplateBuilder*, size_t>>
+  ZoneVector<std::pair<ArrayLiteralBoilerplateBuilder*, size_t>>
       array_literals_;
-  ::v8::base::Vector<std::pair<ClassLiteral*, size_t>> class_literals_;
-  ::v8::base::Vector<std::pair<GetTemplateObject*, size_t>> template_objects_;
-  ::v8::base::Vector<Variable*> vars_in_hole_check_bitmap_;
-  ::v8::base::Vector<std::pair<Call*, Scope*>> eval_calls_;
+  ZoneVector<std::pair<ClassLiteral*, size_t>> class_literals_;
+  ZoneVector<std::pair<GetTemplateObject*, size_t>> template_objects_;
+  ZoneVector<Variable*> vars_in_hole_check_bitmap_;
+  ZoneVector<std::pair<Call*, Scope*>> eval_calls_;
 
   ControlScope* execution_control_;
   ContextScope* execution_context_;

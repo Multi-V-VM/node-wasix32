@@ -1,5 +1,7 @@
+// On WASI builds, this file may be compiled even though neither IA32 nor X64
+// backends are targeted. Provide stub implementations to avoid build breaks.
 #ifdef __wasi__
-#define V8_TARGET_ARCH_WASM32 1
+#define V8_SHARED_IA32_X64_WASI_STUBS 1
 #endif
 // Copyright 2021 the V8 project authors. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
@@ -15,6 +17,8 @@
 #include "src/codegen/ia32/register-ia32.h"
 #elif V8_TARGET_ARCH_X64
 #include "src/codegen/x64/register-x64.h"
+#elif defined(V8_SHARED_IA32_X64_WASI_STUBS)
+// No register headers needed for WASI stub.
 #else
 #error Unsupported target architecture.
 #endif
@@ -36,6 +40,8 @@ void SharedMacroAssemblerBase::Move(Register dst, uint32_t src) {
   mov(dst, Immediate(src));
 #elif V8_TARGET_ARCH_X64
   movl(dst, Immediate(src));
+#elif defined(V8_SHARED_IA32_X64_WASI_STUBS)
+  // No-op in WASI stub.
 #else
 #error Unsupported target architecture.
 #endif
@@ -48,6 +54,8 @@ void SharedMacroAssemblerBase::Move(Register dst, Register src) {
     mov(dst, src);
 #elif V8_TARGET_ARCH_X64
     movq(dst, src);
+#elif defined(V8_SHARED_IA32_X64_WASI_STUBS)
+    // No-op in WASI stub.
 #else
 #error Unsupported target architecture.
 #endif
@@ -60,6 +68,8 @@ void SharedMacroAssemblerBase::Add(Register dst, Immediate src) {
   add(dst, src);
 #elif V8_TARGET_ARCH_X64
   addq(dst, src);
+#elif defined(V8_SHARED_IA32_X64_WASI_STUBS)
+  // No-op in WASI stub.
 #else
 #error Unsupported target architecture.
 #endif
@@ -75,6 +85,8 @@ void SharedMacroAssemblerBase::And(Register dst, Immediate src) {
   } else {
     andq(dst, src);
   }
+#elif defined(V8_SHARED_IA32_X64_WASI_STUBS)
+  // No-op in WASI stub.
 #else
 #error Unsupported target architecture.
 #endif

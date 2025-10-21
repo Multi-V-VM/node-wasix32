@@ -26,7 +26,7 @@ class V8_EXPORT_PRIVATE WasmSerializer {
 
   // Serialize the {NativeModule} into the provided {buffer}. Returns true on
   // success and false if the given buffer it too small for serialization.
-  bool SerializeNativeModule(::v8::base::Vector<uint8_t> buffer) const;
+  bool SerializeNativeModule(ZoneVector<uint8_t> buffer) const;
 
   // The data header consists of uint32_t-sized entries (see {WriteVersion}):
   // [0] magic number
@@ -54,15 +54,15 @@ class V8_EXPORT_PRIVATE WasmSerializer {
 
 // Support for deserializing WebAssembly {NativeModule} objects.
 // Checks the version header of the data against the current version.
-bool IsSupportedVersion(::v8::base::Vector<const uint8_t> data,
+bool IsSupportedVersion(ZoneVector<const uint8_t> data,
                         WasmEnabledFeatures enabled_features);
 
 // Deserializes the given data to create a Wasm module object.
 V8_EXPORT_PRIVATE MaybeDirectHandle<WasmModuleObject> DeserializeNativeModule(
-    Isolate*, ::v8::base::Vector<const uint8_t> data,
-    ::v8::base::Vector<const uint8_t> wire_bytes,
+    Isolate*, ZoneVector<const uint8_t> data,
+    ZoneVector<const uint8_t> wire_bytes,
     const CompileTimeImports& compile_imports,
-    ::v8::base::Vector<const char> source_url);
+    ZoneVector<const char> source_url);
 
 }  // namespace v8::internal::wasm
 

@@ -57,7 +57,7 @@ bool ExperimentalRegExp::IsCompiled(DirectHandle<IrRegExpData> re_data,
 
 template <class T>
 DirectHandle<TrustedByteArray> VectorToByteArray(Isolate* isolate,
-                                                 ::v8::base::Vector<T> data) {
+                                                 ZoneVector<T> data) {
   static_assert(std::is_trivial_v<T>);
 
   int byte_length = sizeof(T) * data.length();
@@ -142,7 +142,7 @@ Vector<RegExpInstruction> AsInstructionSequence(
       reinterpret_cast<RegExpInstruction*>(raw_bytes->begin());
   int inst_num = raw_bytes->length() / sizeof(RegExpInstruction);
   DCHECK_EQ(sizeof(RegExpInstruction) * inst_num, raw_bytes->length());
-  return ::v8::base::Vector<RegExpInstruction>(inst_begin, inst_num);
+  return ZoneVector<RegExpInstruction>(inst_begin, inst_num);
 }
 
 namespace {

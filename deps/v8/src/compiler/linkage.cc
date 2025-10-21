@@ -21,6 +21,10 @@ namespace v8 {
 namespace internal {
 namespace compiler {
 
+// Define empty callee-saved register lists for targets that don't use them.
+constexpr RegList kNoCalleeSaved{};
+constexpr DoubleRegList kNoCalleeSavedFp{};
+
 namespace {
 
 // Offsets from callee to caller frame, in slots.

@@ -522,11 +522,11 @@ RUNTIME_FUNCTION(Runtime_DeserializeWasmModule) {
   CHECK(!wire_bytes->WasDetached());
 
   DirectHandle<JSArrayBuffer> wire_bytes_buffer = wire_bytes->GetBuffer();
-  ::v8::base::Vector<const uint8_t> wire_bytes_vec{
+  ZoneVector<const uint8_t> wire_bytes_vec{
       reinterpret_cast<const uint8_t*>(wire_bytes_buffer->backing_store()) +
           wire_bytes->byte_offset(),
       wire_bytes->byte_length()};
-  ::v8::base::Vector<uint8_t> buffer_vec{
+  ZoneVector<uint8_t> buffer_vec{
       reinterpret_cast<uint8_t*>(buffer->backing_store()),
       buffer->byte_length()};
 
@@ -687,7 +687,7 @@ bool ValidateFunctionNowIfNeeded(Isolate* isolate,
   wasm::WasmDetectedFeatures unused_detected_features;
   const wasm::WasmFunction* func = &module->functions[func_index];
   bool is_shared = module->type(func->sig_index).is_shared;
-  ::v8::base::Vector<const uint8_t> wire_bytes = native_module->wire_bytes();
+  ZoneVector<const uint8_t> wire_bytes = native_module->wire_bytes();
   wasm::FunctionBody body{
       func->sig, func->code.offset(), wire_bytes.begin() + func->code.offset(),
       wire_bytes.begin() + func->code.end_offset(), is_shared};
@@ -756,14 +756,14 @@ RUNTIME_FUNCTION(Runtime_WasmNull) {
 }
 
 static Tagged<Object> CreateWasmObject(Isolate* isolate,
-                                       ::v8::base::Vector<const uint8_t> module_bytes,
+                                       ZoneVector<const uint8_t> module_bytes,
                                        bool is_struct) {
   if (module_bytes.size() > v8_flags.wasm_max_module_size) {
     return CrashUnlessFuzzing(isolate);
   }
   // Create and compile the wasm module.
   wasm::ErrorThrower thrower(isolate, "CreateWasmObject");
-  base::Owned::v8::base::Vector<const uint8_t> bytes = base::OwnedCopyOf(module_bytes);
+  base::OwnedZoneVector<const uint8_t> bytes = base::OwnedCopyOf(module_bytes);
   wasm::WasmEngine* engine = wasm::GetWasmEngine();
   MaybeDirectHandle<WasmModuleObject> maybe_module_object = engine->SyncCompile(
       isolate, wasm::WasmEnabledFeatures(), wasm::CompileTimeImports(),
@@ -1082,7 +1082,7 @@ RUNTIME_FUNCTION(Runtime_WasmGenerateRandomModule) {
   HandleScope scope{isolate};
   Zone temporary_zone{isolate->allocator(), "WasmGenerateRandomModule"};
   constexpr size_t kMaxInputBytes = 512;
-  ::v8::base::Vector<uint8_t> input_bytes{&temporary_zone};
+  ZoneVector<uint8_t> input_bytes{&temporary_zone};
   auto add_input_bytes = [&input_bytes](void* bytes, size_t max_bytes) {
     size_t num_bytes = std::min(kMaxInputBytes - input_bytes.size(), max_bytes);
     input_bytes.resize(input_bytes.size() + num_bytes);
@@ -1131,7 +1131,7 @@ RUNTIME_FUNCTION(Runtime_WasmGenerateRandomModule) {
   auto options =
       wasm::CheckHardwareSupportsSimd() ? kAllOptions : kNoSimdOptions;
 
-  ::v8::base::Vector<const uint8_t> module_bytes =
+  ZoneVector<const uint8_t> module_bytes =
       wasm::fuzzing::GenerateRandomWasmModule(&temporary_zone, options,
                                               base::VectorOf(input_bytes));
 

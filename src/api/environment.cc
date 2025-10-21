@@ -451,7 +451,11 @@ Environment* CreateEnvironment(
                                     v8::DeserializeInternalFieldsCallback(
                                         DeserializeNodeInternalFields, env),
                                     nullptr,
+#ifdef __wasi__
+                                    Local<Value>(),
+#else
                                     MaybeLocal<Value>(),
+#endif
                                     nullptr,
                                     v8::DeserializeContextDataCallback(
                                         DeserializeNodeContextData, env))

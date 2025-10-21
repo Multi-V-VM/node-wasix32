@@ -29,7 +29,7 @@ WasmCompilationResult WasmCompilationUnit::ExecuteCompilation(
     Counters* counters, WasmDetectedFeatures* detected) {
   DCHECK_GE(func_index_, static_cast<int>(env->module->num_imported_functions));
   const WasmFunction* func = &env->module->functions[func_index_];
-  ::v8::base::Vector<const uint8_t> code = wire_bytes_storage->GetCode(func->code);
+  ZoneVector<const uint8_t> code = wire_bytes_storage->GetCode(func->code);
   bool is_shared = env->module->type(func->sig_index).is_shared;
   wasm::FunctionBody func_body{func->sig, func->code.offset(), code.begin(),
                                code.end(), is_shared};

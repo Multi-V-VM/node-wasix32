@@ -235,8 +235,8 @@ uintptr_t GetCurrentStackPosition() {
 //   "name"   only the function "name"
 //   "name*"  only functions starting with "name"
 //   "~"      none; the tilde is not an identifier
-bool PassesFilter(::v8::base::Vector<const char> name,
-                  ::v8::base::Vector<const char> filter) {
+bool PassesFilter(ZoneVector<const char> name,
+                  ZoneVector<const char> filter) {
   if (filter.empty()) return name.empty();
   auto filter_it = filter.begin();
   bool positive_filter = true;

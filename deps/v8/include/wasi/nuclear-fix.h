@@ -285,13 +285,8 @@ inline bool IsConstructor(uint32_t) { return false; }
 inline ::v8::Isolate* TryGetCurrent() { return nullptr; }
 inline void IncrementLongTasksStatsCounter(::v8::Isolate* isolate) {}
 
-// Add ReadExternalPointerField stub
-template <bool check_statically_enabled>
-inline Address ReadExternalPointerField(Address field_address,
-                                       const void* cage_base,
-                                       ExternalPointerTag tag) {
-  return 0;
-}
+// ReadExternalPointerField stub removed - causes ambiguity with actual V8 implementation
+// The real implementation is in deps/v8/src/sandbox/external-pointer-inl.h
 
 // Slot and embedder field operations
 inline void InternalWriteRawField(Address object, int offset, Address value) {}
@@ -376,13 +371,20 @@ class Internals {
   static int GetInstanceType(Address) { return 0; }
   static ::v8::Isolate* GetIsolateForSandbox(Address) { return nullptr; }
 
-  // External pointer field read used by some API accessors
-  static Address ReadExternalPointerField(void*, Address /*obj*/, int /*offset*/, uint64_t /*tag*/) {
-    return 0;
-  }
+  // ReadExternalPointerField for V8 public API (used by v8-context.h, v8-object.h, etc.)
+  // This is different from the HeapObject::ReadExternalPointerField which is for internal use
+
+  // Template version (tag as template parameter)
   template <uint64_t tag>
-  static Address ReadExternalPointerField(void* isolate, Address obj, int offset) {
-    return ReadExternalPointerField(isolate, obj, offset, tag);
+  static Address ReadExternalPointerField(void* /*isolate*/, Address obj, int offset) {
+    // In sandbox-disabled mode, external pointer fields just contain the raw pointer
+    return *reinterpret_cast<Address*>(obj + offset);
+  }
+
+  // Non-template version (tag as function parameter)
+  static Address ReadExternalPointerField(void* /*isolate*/, Address obj, int offset, uint64_t /*tag*/) {
+    // In sandbox-disabled mode, external pointer fields just contain the raw pointer
+    return *reinterpret_cast<Address*>(obj + offset);
   }
 
   // Node state helpers for persistent handles
@@ -586,7 +588,9 @@ struct ExternalPointerTagRange {
   constexpr ExternalPointerTagRange(ExternalPointerTag s, ExternalPointerTag e)
       : start(s), end(e) {}
   // Single-tag constructor used by callers passing a tag directly
-  /* implicit */ constexpr ExternalPointerTagRange(ExternalPointerTag tag)
+  // Make this constructor explicit to avoid ambiguous template resolution
+  // when choosing between <ExternalPointerTagRange> and <ExternalPointerTag>
+  explicit constexpr ExternalPointerTagRange(ExternalPointerTag tag)
       : start(tag), end(tag) {}
   // For WASI stubs, treat all tags as acceptable
   constexpr bool Contains(ExternalPointerTag) const { return true; }
@@ -631,6 +635,11 @@ constexpr bool operator!=(const ExternalPointerTagRange& range,
   // Managed range constant alias used in some code paths.
   inline constexpr ExternalPointerTagRange kAnyManagedExternalPointerTagRange(
       kAnyExternalPointerTag);
+
+  // Specific tag ranges for wasm-related external pointers used in body
+  // descriptors. These mirror single-tag usages in accessor macros.
+  inline constexpr ExternalPointerTagRange kWasmStackMemoryTagRange(
+      kWasmStackMemoryTag);
 
 // External pointer tagging masks and mark bit. On WASI, no tagging is applied,
 // so choose no-op values to keep operations safe.

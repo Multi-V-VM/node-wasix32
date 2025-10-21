@@ -62,7 +62,7 @@ OptimizedCompilationInfo::OptimizedCompilationInfo(
 }
 
 OptimizedCompilationInfo::OptimizedCompilationInfo(
-    ::v8::base::Vector<const char> debug_name, Zone* zone, CodeKind code_kind,
+    ZoneVector<const char> debug_name, Zone* zone, CodeKind code_kind,
     Builtin builtin)
     : isolate_unsafe_(nullptr),
       code_kind_(code_kind),
@@ -167,7 +167,7 @@ std::unique_ptr<char[]> OptimizedCompilationInfo::GetDebugName() const {
   if (!shared_info().is_null()) {
     return shared_info()->DebugNameCStr();
   }
-  ::v8::base::Vector<const char> name_vec = debug_name_;
+  ZoneVector<const char> name_vec = debug_name_;
   if (name_vec.empty()) name_vec = base::ArrayVector("unknown");
   std::unique_ptr<char[]> name(new char[name_vec.length() + 1]);
   memcpy(name.get(), name_vec.begin(), name_vec.length());

@@ -81,11 +81,11 @@ class AsmJsParser {
   // function is used with different signatures. {cache} keeps the wasm
   // imports for the single asm.js import of name {function_name}.
   struct FunctionImportInfo {
-    ::v8::base::Vector<const char> function_name;
+    ZoneVector<const char> function_name;
     ZoneUnorderedMap<FunctionSig, uint32_t> cache;
 
     // Constructor.
-    FunctionImportInfo(::v8::base::Vector<const char> name, Zone* zone)
+    FunctionImportInfo(ZoneVector<const char> name, Zone* zone)
         : function_name(name), cache(zone) {}
   };
 
@@ -101,7 +101,7 @@ class AsmJsParser {
   };
 
   struct GlobalImport {
-    ::v8::base::Vector<const char> import_name;
+    ZoneVector<const char> import_name;
     ValueType value_type;
     VarInfo* var_info;
   };
@@ -135,26 +135,26 @@ class AsmJsParser {
 
     Zone* zone() const { return reusable_vectors_.zone(); }
 
-    inline void fill(::v8::base::Vector<T>* vec) {
+    inline void fill(ZoneVector<T>* vec) {
       if (reusable_vectors_.empty()) return;
       reusable_vectors_.back().swap(*vec);
       reusable_vectors_.pop_back();
       vec->clear();
     }
 
-    inline void reuse(::v8::base::Vector<T>* vec) {
+    inline void reuse(ZoneVector<T>* vec) {
       reusable_vectors_.emplace_back(std::move(*vec));
     }
 
    private:
-    ::v8::base::Vector<::v8::base::Vector<T>> reusable_vectors_;
+    ZoneVector<ZoneVector<T>> reusable_vectors_;
   };
 
   template <typename T>
-  class CachedVector final : public ::v8::base::Vector<T> {
+  class CachedVector final : public ZoneVector<T> {
    public:
     explicit CachedVector(CachedVectors<T>* cache)
-        : ::v8::base::Vector<T>(cache->zone()), cache_(cache) {
+        : ZoneVector<T>(cache->zone()), cache_(cache) {
       cache->fill(this);
     }
     ~CachedVector() { cache_->reuse(this); }
@@ -170,8 +170,8 @@ class AsmJsParser {
   AsmType* return_type_ = nullptr;
   uintptr_t stack_limit_;
   StdlibSet stdlib_uses_;
-  ::v8::base::Vector<VarInfo> global_var_info_;
-  ::v8::base::Vector<VarInfo> local_var_info_;
+  ZoneVector<VarInfo> global_var_info_;
+  ZoneVector<VarInfo> local_var_info_;
   size_t num_globals_ = 0;
 
   CachedVectors<ValueType> cached_valuetype_vectors_{zone_};
@@ -199,7 +199,7 @@ class AsmJsParser {
   bool inside_heap_assignment_ = false;
   AsmType* heap_access_type_ = nullptr;
 
-  ::v8::base::Vector<BlockInfo> block_stack_;
+  ZoneVector<BlockInfo> block_stack_;
 
   // Types used for stdlib function and their set up.
   AsmType* stdlib_dq2d_;
@@ -315,7 +315,7 @@ class AsmJsParser {
   void DeclareGlobal(VarInfo* info, bool mutable_variable, AsmType* type,
                      ValueType vtype, WasmInitExpr init);
   void DeclareStdlibFunc(VarInfo* info, VarKind kind, AsmType* type);
-  void AddGlobalImport(::v8::base::Vector<const char> name, AsmType* type,
+  void AddGlobalImport(ZoneVector<const char> name, AsmType* type,
                        ValueType vtype, bool mutable_variable, VarInfo* info);
 
   // Allocates a temporary local variable. The given {index} is absolute within
@@ -323,7 +323,7 @@ class AsmJsParser {
   uint32_t TempVariable(int index);
 
   // Preserves a copy of the scanner's current identifier string in the zone.
-  ::v8::base::Vector<const char> CopyCurrentIdentifierString();
+  ZoneVector<const char> CopyCurrentIdentifierString();
 
   // Use to set up block stack layers (including synthetic ones for if-else).
   // Begin/Loop/End below are implemented with these plus code generation.
@@ -340,7 +340,7 @@ class AsmJsParser {
   void InitializeStdlibTypes();
 
   FunctionSig* ConvertSignature(AsmType* return_type,
-                                const ::v8::base::Vector<AsmType*>& params);
+                                const ZoneVector<AsmType*>& params);
 
   void ValidateModule();            // 6.1 ValidateModule
   void ValidateModuleParameters();  // 6.1 ValidateModule - parameters
@@ -354,9 +354,9 @@ class AsmJsParser {
   void ValidateExport();         // 6.2 ValidateExport
   void ValidateFunctionTable();  // 6.3 ValidateFunctionTable
   void ValidateFunction();       // 6.4 ValidateFunction
-  void ValidateFunctionParams(::v8::base::Vector<AsmType*>* params);
+  void ValidateFunctionParams(ZoneVector<AsmType*>* params);
   void ValidateFunctionLocals(size_t param_count,
-                              ::v8::base::Vector<ValueType>* locals);
+                              ZoneVector<ValueType>* locals);
   void ValidateStatement();              // 6.5 ValidateStatement
   void Block();                          // 6.5.1 Block
   void ExpressionStatement();            // 6.5.2 ExpressionStatement
@@ -404,7 +404,7 @@ class AsmJsParser {
   // Used as part of {SwitchStatement}. Collects all case labels in the current
   // switch-statement, then resets the scanner position. This is one piece that
   // makes this parser not be a pure single-pass.
-  void GatherCases(::v8::base::Vector<int32_t>* cases);
+  void GatherCases(ZoneVector<int32_t>* cases);
 };
 
 }  // namespace wasm

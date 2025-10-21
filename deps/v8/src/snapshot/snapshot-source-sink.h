@@ -29,7 +29,7 @@ class SnapshotByteSource final {
         length_(length),
         position_(0) {}
 
-  explicit SnapshotByteSource(::v8::base::Vector<const uint8_t> payload)
+  explicit SnapshotByteSource(ZoneVector<const uint8_t> payload)
       : data_(payload.begin()), length_(payload.length()), position_(0) {}
 
   ~SnapshotByteSource() = default;

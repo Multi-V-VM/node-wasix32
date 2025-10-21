@@ -9,6 +9,7 @@
 #define V8_WASM_BASELINE_LIFTOFF_REGISTER_H_
 
 #include <iosfwd>
+#include <cstdint>
 #include <memory>
 
 #include "src/base/bits.h"
@@ -147,9 +148,15 @@ class LiftoffRegister {
   static constexpr int needed_bits =
       std::max(kNeedI64RegPair || kNeedS128RegPair ? kBitsPerRegPair : 0,
                kBitsPerLiftoffRegCode);
-  using storage_t = std::conditional<
+
+#ifdef __wasi__
+  // Simplified storage_t definition for WASI to avoid template resolution issues
+  using storage_t = uint32_t;
+#else
+  using storage_t = typename std::conditional<
       needed_bits <= 8, uint8_t,
-      std::conditional<needed_bits <= 16, uint16_t, uint32_t>::type>::type;
+      typename std::conditional<needed_bits <= 16, uint16_t, uint32_t>::type>::type;
+#endif
 
   static_assert(8 * sizeof(storage_t) >= needed_bits,
                 "chosen type is big enough");
@@ -350,9 +357,15 @@ class LiftoffRegList {
 
   static constexpr bool use_u16 = kAfterMaxLiftoffRegCode <= 16;
   static constexpr bool use_u32 = !use_u16 && kAfterMaxLiftoffRegCode <= 32;
+
+#ifdef __wasi__
+  // Simplified storage_t definition for WASI to avoid template resolution issues
+  using storage_t = uint64_t;
+#else
   using storage_t = std::conditional<
       use_u16, uint16_t,
       std::conditional<use_u32, uint32_t, uint64_t>::type>::type;
+#endif
 
   static constexpr storage_t kGpMask =
       storage_t{kLiftoffAssemblerGpCacheRegs.bits()};

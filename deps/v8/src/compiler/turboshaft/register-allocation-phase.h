@@ -183,7 +183,7 @@ struct JumpThreadingPhase {
   static constexpr bool kOutputIsTraceableGraph = false;
 
   void Run(PipelineData* data, Zone* temp_zone, bool frame_at_start) {
-    ::v8::base::Vector<RpoNumber> result(temp_zone);
+    ZoneVector<RpoNumber> result(temp_zone);
     if (JumpThreading::ComputeForwarding(temp_zone, &result, data->sequence(),
                                          frame_at_start)) {
       JumpThreading::ApplyForwarding(temp_zone, result, data->sequence());

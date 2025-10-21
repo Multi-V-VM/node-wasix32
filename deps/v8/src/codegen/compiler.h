@@ -444,12 +444,12 @@ class OptimizedCompilationJob : public CompilationJob {
   virtual Status FinalizeJobImpl(Isolate* isolate) = 0;
 
   // Register weak object to optimized code dependencies.
-  GlobalHandle::v8::base::Vector<Map> CollectRetainedMaps(Isolate* isolate,
+  GlobalHandleZoneVector<Map> CollectRetainedMaps(Isolate* isolate,
                                               DirectHandle<Code> code);
   void RegisterWeakObjectsInOptimizedCode(Isolate* isolate,
                                           DirectHandle<NativeContext> context,
                                           DirectHandle<Code> code,
-                                          GlobalHandle::v8::base::Vector<Map> maps);
+                                          GlobalHandleZoneVector<Map> maps);
 
   base::TimeDelta time_taken_to_prepare_;
   base::TimeDelta time_taken_to_execute_;

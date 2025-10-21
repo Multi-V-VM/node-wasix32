@@ -189,7 +189,7 @@ class WasmModuleObject
   // given index.
   // Meant to be used for debugging or frame printing.
   // Does not allocate, hence gc-safe.
-  ::v8::base::Vector<const uint8_t> GetRawFunctionName(int func_index);
+  ZoneVector<const uint8_t> GetRawFunctionName(int func_index);
 
   // Extract a portion of the wire bytes as UTF-8 string, optionally
   // internalized. (Prefer to internalize early if the string will be used for a
@@ -198,7 +198,7 @@ class WasmModuleObject
       Isolate*, DirectHandle<WasmModuleObject>, wasm::WireBytesRef,
       InternalizeString);
   static DirectHandle<String> ExtractUtf8StringFromModuleBytes(
-      Isolate*, ::v8::base::Vector<const uint8_t> wire_byte, wasm::WireBytesRef,
+      Isolate*, ZoneVector<const uint8_t> wire_byte, wasm::WireBytesRef,
       InternalizeString);
 
   TQ_OBJECT_CONSTRUCTORS(WasmModuleObject)
@@ -1531,7 +1531,7 @@ class WasmSuspenderObject
  public:
   using BodyDescriptor = StackedBodyDescriptor<
       FixedBodyDescriptorFor<WasmSuspenderObject>,
-      WithExternalPointer<kStackOffset, kWasmStackMemoryTag>>;
+      WithExternalPointer<kStackOffset, kWasmStackMemoryTagRange>>;
   enum State : int { kInactive = 0, kActive, kSuspended };
   DECL_EXTERNAL_POINTER_ACCESSORS(stack, wasm::StackMemory*)
   DECL_PRINTER(WasmSuspenderObject)

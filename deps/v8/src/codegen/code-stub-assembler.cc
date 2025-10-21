@@ -18111,7 +18111,7 @@ TNode<String> CodeStubAssembler::TaggedToDirectString(TNode<Object> value,
 PrototypeCheckAssembler::PrototypeCheckAssembler(
     compiler::CodeAssemblerState* state, Flags flags,
     TNode<NativeContext> native_context, TNode<Map> initial_prototype_map,
-    ::v8::base::Vector<DescriptorIndexNameValue> properties)
+    ZoneVector<DescriptorIndexNameValue> properties)
     : CodeStubAssembler(state),
       flags_(flags),
       native_context_(native_context),

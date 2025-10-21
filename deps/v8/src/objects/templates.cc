@@ -207,7 +207,7 @@ DirectHandle<DictionaryTemplateInfo> DictionaryTemplateInfo::Create(
   for (const std::string_view& name : names) {
     DirectHandle<String> internalized_name =
         isolate->factory()->InternalizeString(
-            ::v8::base::Vector<const char>(name.data(), name.length()));
+            ZoneVector<const char>(name.data(), name.length()));
     // Check that property name cannot be used as index.
     CHECK(!internalized_name->AsArrayIndex(&unused_array_index));
     property_names->set(index, *internalized_name);

@@ -481,12 +481,12 @@ CompilationJob::Status OptimizedCompilationJob::FinalizeJob(Isolate* isolate) {
   return UpdateState(FinalizeJobImpl(isolate), State::kSucceeded);
 }
 
-GlobalHandle::v8::base::Vector<Map> OptimizedCompilationJob::CollectRetainedMaps(
+GlobalHandleZoneVector<Map> OptimizedCompilationJob::CollectRetainedMaps(
     Isolate* isolate, DirectHandle<Code> code) {
   DCHECK(code->is_optimized_code());
 
   DisallowGarbageCollection no_gc;
-  GlobalHandle::v8::base::Vector<Map> maps(isolate->heap());
+  GlobalHandleZoneVector<Map> maps(isolate->heap());
   PtrComprCageBase cage_base(isolate);
   int const mode_mask = RelocInfo::EmbeddedObjectModeMask();
   for (RelocIterator it(*code, mode_mask); !it.done(); it.next()) {
@@ -503,7 +503,7 @@ GlobalHandle::v8::base::Vector<Map> OptimizedCompilationJob::CollectRetainedMaps
 
 void OptimizedCompilationJob::RegisterWeakObjectsInOptimizedCode(
     Isolate* isolate, DirectHandle<NativeContext> context,
-    DirectHandle<Code> code, GlobalHandle::v8::base::Vector<Map> maps) {
+    DirectHandle<Code> code, GlobalHandleZoneVector<Map> maps) {
   isolate->heap()->AddRetainedMaps(context, std::move(maps));
   code->set_can_have_weak_objects(true);
 }

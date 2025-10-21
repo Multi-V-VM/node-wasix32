@@ -13,7 +13,9 @@
 #include <vector>
 
 #include "v8-data.h"          // NOLINT(build/include_directory)
+#ifndef __wasi__
 #include "v8-internal.h"      // Ensure internal::ValueHelper is visible
+#endif
 #include "v8-forward.h"       // NOLINT(build/include_directory)
 #include "v8-local-handle.h"  // NOLINT(build/include_directory)
 #include "v8-maybe.h"         // NOLINT(build/include_directory)
@@ -119,8 +121,13 @@ class V8_EXPORT Context : public Data {
    */
   static Local<Context> New(
       Isolate* isolate, ExtensionConfiguration* extensions = nullptr,
+#ifdef __wasi__
+      Local<ObjectTemplate> global_template = Local<ObjectTemplate>(),
+      Local<Value> global_object = Local<Value>(),
+#else
       MaybeLocal<ObjectTemplate> global_template = MaybeLocal<ObjectTemplate>(),
       MaybeLocal<Value> global_object = MaybeLocal<Value>(),
+#endif
       DeserializeInternalFieldsCallback internal_fields_deserializer =
           DeserializeInternalFieldsCallback(),
       MicrotaskQueue* microtask_queue = nullptr,
@@ -170,7 +177,11 @@ class V8_EXPORT Context : public Data {
       DeserializeInternalFieldsCallback internal_fields_deserializer =
           DeserializeInternalFieldsCallback(),
       ExtensionConfiguration* extensions = nullptr,
+#ifdef __wasi__
+      Local<Value> global_object = Local<Value>(),
+#else
       MaybeLocal<Value> global_object = MaybeLocal<Value>(),
+#endif
       MicrotaskQueue* microtask_queue = nullptr,
       DeserializeContextDataCallback context_data_deserializer =
           DeserializeContextDataCallback(),
@@ -196,7 +207,11 @@ class V8_EXPORT Context : public Data {
    */
   static MaybeLocal<Object> NewRemoteContext(
       Isolate* isolate, Local<ObjectTemplate> global_template,
+#ifdef __wasi__
+      Local<Value> global_object = Local<Value>());
+#else
       MaybeLocal<Value> global_object = MaybeLocal<Value>());
+#endif
 
   /**
    * Sets the security token for the context.  To access an object in
@@ -432,8 +447,7 @@ class V8_EXPORT Context : public Data {
 
   static void CheckCast(Data* obj);
 
-  internal::ValueHelper::InternalRepresentationType GetDataFromSnapshotOnce(
-      size_t index);
+  internal::Address GetDataFromSnapshotOnce(size_t index);
   Local<Value> SlowGetEmbedderData(int index);
   void* SlowGetAlignedPointerFromEmbedderData(int index);
 };
@@ -515,9 +529,8 @@ void* Context::GetAlignedPointerFromEmbedderData(int index) {
 
 template <class T>
 MaybeLocal<T> Context::GetDataFromSnapshotOnce(size_t index) {
-  if (auto repr = GetDataFromSnapshotOnce(index);
-      repr != internal::ValueHelper::kEmpty) {
-    internal::PerformCastCheck(internal::ValueHelper::ReprAsValue<T>(repr));
+  if (auto repr = GetDataFromSnapshotOnce(index); repr != 0) {
+    internal::PerformCastCheck(Local<T>::FromRepr(repr));
     return Local<T>::FromRepr(repr);
   }
   return {};

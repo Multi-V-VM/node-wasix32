@@ -52,7 +52,7 @@ class V8_EXPORT_PRIVATE HandlerTableBuilder final {
     HandlerTable::CatchPrediction catch_prediction_;
   };
 
-  ::v8::base::Vector<Entry> entries_;
+  ZoneVector<Entry> entries_;
 };
 
 }  // namespace interpreter

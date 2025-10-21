@@ -339,7 +339,7 @@ class BytecodeGraphBuilder {
 
   void BuildSwitchOnSmi(Node* condition);
   void BuildSwitchOnGeneratorState(
-      const ::v8::base::Vector<ResumeJumpTarget>& resume_jump_targets,
+      const ZoneVector<ResumeJumpTarget>& resume_jump_targets,
       bool allow_fallthrough_on_executing);
 
   // Simulates control flow by forward-propagating environments.
@@ -488,7 +488,7 @@ class BytecodeGraphBuilder {
   // the "resuming" ones. They are indexed by the suspend id of the resume.
   ZoneMap<int, Environment*> generator_merge_environments_;
 
-  ::v8::base::Vector<Node*> cached_parameters_;
+  ZoneVector<Node*> cached_parameters_;
 
   // Exception handlers currently entered by the iteration.
   ZoneStack<ExceptionHandler> exception_handlers_;
@@ -511,7 +511,7 @@ class BytecodeGraphBuilder {
   SetOncePointer<Node> function_closure_;
 
   // Control nodes that exit the function body.
-  ::v8::base::Vector<Node*> exit_controls_;
+  ZoneVector<Node*> exit_controls_;
 
   StateValuesCache state_values_cache_;
 
@@ -1268,7 +1268,7 @@ class BytecodeGraphBuilder::OsrIteratorState {
         saved_states_(graph_builder->local_zone()) {}
 
   void ProcessOsrPrelude() {
-    ::v8::base::Vector<int> outer_loop_offsets(graph_builder_->local_zone());
+    ZoneVector<int> outer_loop_offsets(graph_builder_->local_zone());
     int osr_entry = graph_builder_->bytecode_analysis().osr_entry_point();
 
     // We find here the outermost loop which contains the OSR loop.
@@ -1285,7 +1285,7 @@ class BytecodeGraphBuilder::OsrIteratorState {
     // We save some iterators states at the offsets of the loop headers of the
     // outer loops (the ones containing the OSR loop). They will be used for
     // jumping back in the bytecode.
-    for (::v8::base::Vector<int>::const_reverse_iterator it =
+    for (ZoneVector<int>::const_reverse_iterator it =
              outer_loop_offsets.crbegin();
          it != outer_loop_offsets.crend(); ++it) {
       graph_builder_->AdvanceIteratorsTo(*it);
@@ -3948,7 +3948,7 @@ void BytecodeGraphBuilder::VisitSuspendGenerator() {
 }
 
 void BytecodeGraphBuilder::BuildSwitchOnGeneratorState(
-    const ::v8::base::Vector<ResumeJumpTarget>& resume_jump_targets,
+    const ZoneVector<ResumeJumpTarget>& resume_jump_targets,
     bool allow_fallthrough_on_executing) {
   Node* generator_state = environment()->LookupGeneratorState();
 

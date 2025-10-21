@@ -12,7 +12,9 @@
 #include <cstdint>
 #include <limits>
 
+#ifndef __wasi__
 #include "v8-internal.h"      // NOLINT(build/include_directory)
+#endif
 #include "v8-local-handle.h"  // NOLINT(build/include_directory)
 #include "v8-primitive.h"     // NOLINT(build/include_directory)
 #include "v8-container.h"     // NOLINT(build/include_directory)
@@ -404,7 +406,9 @@ void ReturnValue<T>::Set(const Local<S> handle) {
 #else
   static constexpr bool is_allowed_void = std::is_void<T>::value;
 #endif  // V8_IMMINENT_DEPRECATION_WARNINGS
+  #ifndef __wasi__
   static_assert(is_allowed_void || std::is_base_of<T, S>::value, "type check");
+  #endif
   if (V8_UNLIKELY(handle.IsEmpty())) {
     SetDefaultValue();
   } else if constexpr (is_allowed_void) {
@@ -435,7 +439,9 @@ void ReturnValue<T>::SetNonEmpty(const Local<S> handle) {
 #else
   static constexpr bool is_allowed_void = ::std::is_void<T>::value;
 #endif  // V8_IMMINENT_DEPRECATION_WARNINGS
+  #ifndef __wasi__
   static_assert(is_allowed_void || ::std::is_base_of<T, S>::value, "type check");
+  #endif
 #ifdef V8_ENABLE_CHECKS
   internal::VerifyHandleIsNonEmpty(handle.IsEmpty());
 #endif  // V8_ENABLE_CHECKS
@@ -454,13 +460,17 @@ void ReturnValue<T>::SetNonEmpty(const Local<S> handle) {
 
 template <typename T>
 void ReturnValue<T>::Set(double i) {
+  #ifndef __wasi__
   static_assert(std::is_base_of<T, Number>::value, "type check");
+  #endif
   SetNonEmpty(Number::New(GetIsolate(), i));
 }
 
 template <typename T>
 void ReturnValue<T>::Set(int16_t i) {
+  #ifndef __wasi__
   static_assert(std::is_base_of<T, Integer>::value, "type check");
+  #endif
   using I = internal::Internals;
   static_assert(I::IsValidSmi(::std::numeric_limits<int16_t>::min()));
   static_assert(I::IsValidSmi(::std::numeric_limits<int16_t>::max()));
@@ -469,7 +479,9 @@ void ReturnValue<T>::Set(int16_t i) {
 
 template <typename T>
 void ReturnValue<T>::Set(int32_t i) {
+  #ifndef __wasi__
   static_assert(std::is_base_of<T, Integer>::value, "type check");
+  #endif
   if (const auto result = internal::Internals::TryIntegralToSmi(i)) {
     SetInternal(*result);
     return;
@@ -479,7 +491,9 @@ void ReturnValue<T>::Set(int32_t i) {
 
 template <typename T>
 void ReturnValue<T>::Set(int64_t i) {
+  #ifndef __wasi__
   static_assert(std::is_base_of<T, Integer>::value, "type check");
+  #endif
   if (const auto result = internal::Internals::TryIntegralToSmi(i)) {
     SetInternal(*result);
     return;
@@ -489,7 +503,9 @@ void ReturnValue<T>::Set(int64_t i) {
 
 template <typename T>
 void ReturnValue<T>::Set(uint16_t i) {
+  #ifndef __wasi__
   static_assert(std::is_base_of<T, Integer>::value, "type check");
+  #endif
   using I = internal::Internals;
   static_assert(I::IsValidSmi(std::numeric_limits<uint16_t>::min()));
   static_assert(I::IsValidSmi(std::numeric_limits<uint16_t>::max()));
@@ -498,7 +514,9 @@ void ReturnValue<T>::Set(uint16_t i) {
 
 template <typename T>
 void ReturnValue<T>::Set(uint32_t i) {
+  #ifndef __wasi__
   static_assert(std::is_base_of<T, Integer>::value, "type check");
+  #endif
   if (const auto result = internal::Internals::TryIntegralToSmi(i)) {
     SetInternal(*result);
     return;
@@ -518,8 +536,10 @@ void ReturnValue<T>::Set(uint64_t i) {
 
 template <typename T>
 void ReturnValue<T>::Set(bool value) {
+  #ifndef __wasi__
   static_assert(std::is_void<T>::value || std::is_base_of<T, Boolean>::value,
                 "type check");
+  #endif
   using I = internal::Internals;
 #if V8_STATIC_ROOTS_BOOL
 #ifdef V8_ENABLE_CHECKS

@@ -1869,7 +1869,7 @@ class MachineOptimizationReducer : public Next {
     goto no_change;
   }
 
-  V<None> REDUCE(Switch)(V<Word32> input, ::v8::base::Vector<SwitchOp::Case> cases,
+  V<None> REDUCE(Switch)(V<Word32> input, ZoneVector<SwitchOp::Case> cases,
                          Block* default_case, BranchHint default_hint) {
     LABEL_BLOCK(no_change) {
       return Next::ReduceSwitch(input, cases, default_case, default_hint);

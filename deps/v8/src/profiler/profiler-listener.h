@@ -90,7 +90,7 @@ class V8_EXPORT_PRIVATE ProfilerListener : public LogEventListener,
   const char* GetName(const char* name) {
     return code_entries_.strings().GetCopy(name);
   }
-  const char* GetName(::v8::base::Vector<const char> name);
+  const char* GetName(ZoneVector<const char> name);
   const char* GetConsName(const char* prefix, Tagged<Name> name) {
     return code_entries_.strings().GetConsName(prefix, name);
   }

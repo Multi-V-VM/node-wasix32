@@ -275,14 +275,3 @@ class V8_EXPORT_PRIVATE EnsureSpace {
 }  // namespace v8
 
 #endif  // V8_CODEGEN_WASM32_ASSEMBLER_WASM32_H_
-  // WASM stack machine helpers (no-ops for stub backend)
-  void local_get(int /*idx*/) {}
-  void local_set(int /*idx*/) {}
-  void i32_const(int32_t /*imm*/) {}
-  void i32_add() {}
-  void i32_sub() {}
-  void i32_mul() {}
-  void i32_eq() {}
-  void i32_ne() {}
-  void i32_lt_s() {}
-  void i32_gt_s() {}

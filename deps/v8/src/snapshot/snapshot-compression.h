@@ -16,7 +16,7 @@ class SnapshotCompression : public AllStatic {
   V8_EXPORT_PRIVATE static SnapshotData Compress(
       const SnapshotData* uncompressed_data);
   V8_EXPORT_PRIVATE static SnapshotData Decompress(
-      ::v8::base::Vector<const uint8_t> compressed_data);
+      ZoneVector<const uint8_t> compressed_data);
 };
 
 }  // namespace internal

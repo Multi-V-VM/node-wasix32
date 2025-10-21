@@ -374,7 +374,7 @@ class V8_NODISCARD MaglevGraphBuilder::DeoptFrameScope {
 
   DeoptFrameScope(MaglevGraphBuilder* builder, Builtin continuation,
                   compiler::OptionalJSFunctionRef maybe_js_target,
-                  ::v8::base::Vector<ValueNode* const> parameters)
+                  ZoneVector<ValueNode* const> parameters)
       : builder_(builder),
         parent_(builder->current_deopt_scope_),
         data_(DeoptFrame::BuiltinContinuationFrameData{
@@ -1295,7 +1295,7 @@ bool MaglevGraphBuilder::HasOutputRegister(interpreter::Register reg) const {
 
 DeoptFrame* MaglevGraphBuilder::AddInlinedArgumentsToDeoptFrame(
     DeoptFrame* deopt_frame, const MaglevCompilationUnit* unit,
-    ValueNode* closure, ::v8::base::Vector<ValueNode*> args) {
+    ValueNode* closure, ZoneVector<ValueNode*> args) {
   // Only create InlinedArgumentsDeoptFrame if we have a mismatch between
   // formal parameter and arguments count.
   if (static_cast<int>(args.size()) != unit->parameter_count()) {
@@ -1312,7 +1312,7 @@ DeoptFrame* MaglevGraphBuilder::AddInlinedArgumentsToDeoptFrame(
 
 DeoptFrame* MaglevGraphBuilder::GetDeoptFrameForEagerCall(
     const MaglevCompilationUnit* unit, ValueNode* closure,
-    ::v8::base::Vector<ValueNode*> args) {
+    ZoneVector<ValueNode*> args) {
   // The parent resumes after the call, which is roughly equivalent to a lazy
   // deopt. Use the helper function directly so that we can mark the
   // accumulator as dead (since it'll be overwritten by this function's
@@ -4967,7 +4967,7 @@ namespace {
 class KnownMapsMerger {
  public:
   explicit KnownMapsMerger(compiler::JSHeapBroker* broker, Zone* zone,
-                           ::v8::base::Vector<const compiler::MapRef> requested_maps)
+                           ZoneVector<const compiler::MapRef> requested_maps)
       : broker_(broker), zone_(zone), requested_maps_(requested_maps) {}
 
   void IntersectWithKnownNodeAspects(
@@ -5061,7 +5061,7 @@ class KnownMapsMerger {
  private:
   compiler::JSHeapBroker* broker_;
   Zone* zone_;
-  ::v8::base::Vector<const compiler::MapRef> requested_maps_;
+  ZoneVector<const compiler::MapRef> requested_maps_;
   compiler::ZoneRefSet<Map> intersect_set_;
   bool known_maps_are_subset_of_requested_maps_ = true;
   bool existing_known_maps_found_ = true;
@@ -5090,7 +5090,7 @@ class KnownMapsMerger {
 }  // namespace
 
 ReduceResult MaglevGraphBuilder::BuildCheckMaps(
-    ValueNode* object, ::v8::base::Vector<const compiler::MapRef> maps,
+    ValueNode* object, ZoneVector<const compiler::MapRef> maps,
     std::optional<ValueNode*> map,
     bool has_deprecated_map_without_migration_target) {
   // TODO(verwaest): Support other objects with possible known stable maps as
@@ -5173,7 +5173,7 @@ ReduceResult MaglevGraphBuilder::BuildCheckMaps(
 
 ReduceResult MaglevGraphBuilder::BuildTransitionElementsKindOrCheckMap(
     ValueNode* heap_object, ValueNode* object_map,
-    const ::v8::base::Vector<compiler::MapRef>& transition_sources,
+    const ZoneVector<compiler::MapRef>& transition_sources,
     compiler::MapRef transition_target) {
   // TODO(marja): Optimizations based on what we know about the intersection of
   // known maps and transition sources or transition target.
@@ -5205,7 +5205,7 @@ ReduceResult MaglevGraphBuilder::BuildTransitionElementsKindOrCheckMap(
 
 ReduceResult MaglevGraphBuilder::BuildCompareMaps(
     ValueNode* heap_object, ValueNode* object_map,
-    ::v8::base::Vector<const compiler::MapRef> maps, MaglevSubGraphBuilder* sub_graph,
+    ZoneVector<const compiler::MapRef> maps, MaglevSubGraphBuilder* sub_graph,
     std::optional<MaglevSubGraphBuilder::Label>& if_not_matched) {
   GetOrCreateInfoFor(heap_object);
   KnownMapsMerger merger(broker(), zone(), maps);
@@ -5242,7 +5242,7 @@ ReduceResult MaglevGraphBuilder::BuildCompareMaps(
 
 ReduceResult MaglevGraphBuilder::BuildTransitionElementsKindAndCompareMaps(
     ValueNode* heap_object, ValueNode* object_map,
-    const ::v8::base::Vector<compiler::MapRef>& transition_sources,
+    const ZoneVector<compiler::MapRef>& transition_sources,
     compiler::MapRef transition_target, MaglevSubGraphBuilder* sub_graph,
     std::optional<MaglevSubGraphBuilder::Label>& if_not_matched) {
   DCHECK(!transition_target.is_migration_target());
@@ -5629,7 +5629,7 @@ ValueNode* MaglevGraphBuilder::BuildLoadHoleyFixedDoubleArrayElement(
 }
 
 bool MaglevGraphBuilder::CanTreatHoleAsUndefined(
-    ::v8::base::Vector<const compiler::MapRef> const& receiver_maps) {
+    ZoneVector<const compiler::MapRef> const& receiver_maps) {
   // Check if all {receiver_maps} have one of the initial Array.prototype
   // or Object.prototype objects as their prototype (in any of the current
   // native contexts, as the global Array protector works isolate-wide).
@@ -6193,8 +6193,8 @@ MaybeReduceResult MaglevGraphBuilder::TryBuildNamedAccess(
     return EmitUnconditionalDeopt(DeoptimizeReason::kWrongMap);
   }
 
-  ::v8::base::Vector<compiler::PropertyAccessInfo> access_infos(zone());
-  ::v8::base::Vector<compiler::PropertyAccessInfo> access_infos_for_feedback(zone());
+  ZoneVector<compiler::PropertyAccessInfo> access_infos(zone());
+  ZoneVector<compiler::PropertyAccessInfo> access_infos_for_feedback(zone());
 
   for (compiler::MapRef map : inferred_maps) {
     if (map.is_deprecated()) continue;
@@ -6221,7 +6221,7 @@ MaybeReduceResult MaglevGraphBuilder::TryBuildNamedAccess(
   // Check for monomorphic case.
   if (access_infos.size() == 1) {
     compiler::PropertyAccessInfo const& access_info = access_infos.front();
-    ::v8::base::Vector<const compiler::MapRef> maps =
+    ZoneVector<const compiler::MapRef> maps =
         base::VectorOf(access_info.lookup_start_object_maps());
     if (HasOnlyStringMaps(maps)) {
       // Check for string maps before checking if we need to do an access
@@ -6723,7 +6723,7 @@ MaybeReduceResult MaglevGraphBuilder::TryBuildElementAccessOnTypedArray(
 
 MaybeReduceResult MaglevGraphBuilder::TryBuildElementLoadOnJSArrayOrJSObject(
     ValueNode* object, ValueNode* index_object,
-    ::v8::base::Vector<const compiler::MapRef> maps, ElementsKind elements_kind,
+    ZoneVector<const compiler::MapRef> maps, ElementsKind elements_kind,
     KeyedAccessLoadMode load_mode) {
   DCHECK(IsFastElementsKind(elements_kind));
   bool is_jsarray = HasOnlyJSArrayMaps(maps);
@@ -6793,7 +6793,7 @@ ReduceResult MaglevGraphBuilder::ConvertForStoring(ValueNode* value,
 
 MaybeReduceResult MaglevGraphBuilder::TryBuildElementStoreOnJSArrayOrJSObject(
     ValueNode* object, ValueNode* index_object, ValueNode* value,
-    ::v8::base::Vector<const compiler::MapRef> maps, ElementsKind elements_kind,
+    ZoneVector<const compiler::MapRef> maps, ElementsKind elements_kind,
     const compiler::KeyedAccessMode& keyed_mode) {
   DCHECK(IsFastElementsKind(elements_kind));
 
@@ -6919,7 +6919,7 @@ MaybeReduceResult MaglevGraphBuilder::TryBuildElementAccessOnJSArrayOrJSObject(
           access_info.elements_kind(), keyed_mode.load_mode());
     case compiler::AccessMode::kStoreInLiteral:
     case compiler::AccessMode::kStore: {
-      ::v8::base::Vector<const compiler::MapRef> maps =
+      ZoneVector<const compiler::MapRef> maps =
           base::VectorOf(access_info.lookup_start_object_maps());
       ElementsKind elements_kind = access_info.elements_kind();
       return TryBuildElementStoreOnJSArrayOrJSObject(object, index_object,
@@ -6965,7 +6965,7 @@ MaybeReduceResult MaglevGraphBuilder::TryBuildElementAccess(
   }
 
   compiler::AccessInfoFactory access_info_factory(broker(), zone());
-  ::v8::base::Vector<compiler::ElementAccessInfo> access_infos(zone());
+  ZoneVector<compiler::ElementAccessInfo> access_infos(zone());
   if (!access_info_factory.ComputeElementAccessInfos(refined_feedback,
                                                      &access_infos) ||
       access_infos.empty()) {
@@ -6982,7 +6982,7 @@ MaybeReduceResult MaglevGraphBuilder::TryBuildElementAccess(
     // TODO(v8:7700): We could have a fast path here, that checks for the
     // common case of Array or Object prototype only and therefore avoids
     // the zone allocation of this vector.
-    ::v8::base::Vector<compiler::MapRef> prototype_maps(zone());
+    ZoneVector<compiler::MapRef> prototype_maps(zone());
     for (compiler::ElementAccessInfo const& access_info : access_infos) {
       for (compiler::MapRef receiver_map :
            access_info.lookup_start_object_maps()) {
@@ -7023,7 +7023,7 @@ MaybeReduceResult MaglevGraphBuilder::TryBuildElementAccess(
     if (!access_info.transition_sources().empty()) {
       compiler::MapRef transition_target =
           access_info.lookup_start_object_maps().front();
-      const ::v8::base::Vector<compiler::MapRef>& transition_sources =
+      const ZoneVector<compiler::MapRef>& transition_sources =
           access_info.transition_sources();
 
       // There are no transitions in heap number maps. If `object` is a SMI, we
@@ -7063,7 +7063,7 @@ template <typename GenericAccessFunc>
 MaybeReduceResult MaglevGraphBuilder::TryBuildPolymorphicElementAccess(
     ValueNode* object, ValueNode* index_object,
     const compiler::KeyedAccessMode& keyed_mode,
-    const ::v8::base::Vector<compiler::ElementAccessInfo>& access_infos,
+    const ZoneVector<compiler::ElementAccessInfo>& access_infos,
     GenericAccessFunc&& build_generic_access) {
   if (keyed_mode.access_mode() == compiler::AccessMode::kLoad &&
       LoadModeHandlesOOB(keyed_mode.load_mode())) {
@@ -7200,7 +7200,7 @@ MaybeReduceResult MaglevGraphBuilder::TryBuildPolymorphicPropertyAccess(
     ValueNode* receiver, ValueNode* lookup_start_object,
     compiler::NamedAccessFeedback const& feedback,
     compiler::AccessMode access_mode,
-    const ::v8::base::Vector<compiler::PropertyAccessInfo>& access_infos,
+    const ZoneVector<compiler::PropertyAccessInfo>& access_infos,
     GenericAccessFunc&& build_generic_access) {
   const bool is_any_store = compiler::IsAnyStore(access_mode);
   const int access_info_count = static_cast<int>(access_infos.size());
@@ -10617,7 +10617,7 @@ Vector<ValueNode*> MaglevGraphBuilder::GetArgumentsAsArrayOfValueNodes(
     compiler::SharedFunctionInfoRef shared, const CallArguments& args) {
   // TODO(victorgomes): Investigate if we can avoid this copy.
   int arg_count = static_cast<int>(args.count());
-  auto arguments = zone()->Allocate::v8::base::Vector<ValueNode*>(arg_count + 1);
+  auto arguments = zone()->AllocateZoneVector<ValueNode*>(arg_count + 1);
   arguments[0] = GetConvertReceiver(shared, args);
   for (int i = 0; i < arg_count; i++) {
     arguments[i + 1] = args[i];
@@ -10893,7 +10893,7 @@ CallKnownJSFunction* MaglevGraphBuilder::BuildCallKnownJSFunction(
     JSDispatchHandle dispatch_handle,
 #endif
     compiler::SharedFunctionInfoRef shared,
-    ::v8::base::Vector<ValueNode*> arguments) {
+    ZoneVector<ValueNode*> arguments) {
   DCHECK_GT(arguments.size(), 0);
   constexpr int kSkipReceiver = 1;
   int argcount_without_receiver =
@@ -12017,8 +12017,8 @@ MaybeReduceResult MaglevGraphBuilder::TryReduceConstructGeneric(
       target, function, DeoptimizeReason::kWrongConstructor));
 
   int construct_arg_count = static_cast<int>(args.count());
-  ::v8::base::Vector<ValueNode*> construct_arguments_without_receiver =
-      zone()->Allocate::v8::base::Vector<ValueNode*>(construct_arg_count);
+  ZoneVector<ValueNode*> construct_arguments_without_receiver =
+      zone()->AllocateZoneVector<ValueNode*>(construct_arg_count);
   for (int i = 0; i < construct_arg_count; i++) {
     construct_arguments_without_receiver[i] = args[i];
   }
@@ -12281,7 +12281,7 @@ MaglevGraphBuilder::InferHasInPrototypeChain(
     return kIsNotInPrototypeChain;
   }
 
-  ::v8::base::Vector<compiler::MapRef> receiver_map_refs(zone());
+  ZoneVector<compiler::MapRef> receiver_map_refs(zone());
 
   // Try to determine either that all of the {receiver_maps} have the given
   // {prototype} in their chain, or that none do. If we can't tell, return
@@ -13962,7 +13962,7 @@ void MaglevGraphBuilder::PeelLoop() {
 }
 
 BasicBlock* MaglevGraphBuilder::FinishInlinedBlockForCaller(
-    ControlNode* control_node, ::v8::base::Vector<Node*> rem_nodes_in_call_block) {
+    ControlNode* control_node, ZoneVector<Node*> rem_nodes_in_call_block) {
   BasicBlock* result = current_block_;
   result->nodes().reserve(node_buffer().size() +
                           rem_nodes_in_call_block.size());

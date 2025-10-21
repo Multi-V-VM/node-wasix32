@@ -485,7 +485,7 @@ void LocalHeap::NotifyObjectSizeChange(
 }
 
 void LocalHeap::WeakenDescriptorArrays(
-    GlobalHandle::v8::base::Vector<DescriptorArray> strong_descriptor_arrays) {
+    GlobalHandleZoneVector<DescriptorArray> strong_descriptor_arrays) {
   AsHeap()->WeakenDescriptorArrays(std::move(strong_descriptor_arrays));
 }
 

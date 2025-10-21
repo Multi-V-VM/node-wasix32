@@ -12,6 +12,12 @@
 #include "src/base/template-utils.h"
 #ifdef __wasi__
 #include "../../../../wasi-v8-template-utils.h"
+// On WASI builds we allow non-trivially-destructible types in
+// DiscriminatedUnion to avoid a strict compile-time check that doesn't
+// play well with ZoneVector and other zone-backed containers.
+#ifndef V8_WASI_SKIP_DISCRIMINATED_UNION_TRIVIAL_CHECK
+#define V8_WASI_SKIP_DISCRIMINATED_UNION_TRIVIAL_CHECK 1
+#endif
 #endif
 
 namespace v8 {
@@ -43,8 +49,11 @@ template <typename TagEnum, typename... Ts>
 class DiscriminatedUnion {
  public:
   // All Ts must be trivially destructible to avoid DiscriminatedUnion needing a
-  // destructor.
+  // destructor. On WASI, relax this constraint as zone-backed containers are
+  // reclaimed with the Zone lifetime and do not rely on destructors.
+#if !defined(V8_WASI_SKIP_DISCRIMINATED_UNION_TRIVIAL_CHECK)
   static_assert((std::is_trivially_destructible_v<Ts> && ...));
+#endif
 
   using Tag = TagEnum;
 

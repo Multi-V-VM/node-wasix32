@@ -157,7 +157,7 @@ class BytecodeSequenceNode {
   int start_offset_;
   BytecodeSequenceNode* parent_;
   ZoneUnorderedMap<int, BytecodeSequenceNode*> children_;
-  ::v8::base::Vector<BytecodeArgumentMapping>* argument_mapping_;
+  ZoneVector<BytecodeArgumentMapping>* argument_mapping_;
   ZoneLinkedList<BytecodeArgumentCheck>* argument_check_;
   ZoneLinkedList<BytecodeArgument>* argument_ignored_;
 
@@ -224,7 +224,7 @@ class RegExpBytecodePeephole {
   int pc() const;
   Zone* zone() const;
 
-  ::v8::base::Vector<uint8_t> optimized_bytecode_buffer_;
+  ZoneVector<uint8_t> optimized_bytecode_buffer_;
   BytecodeSequenceNode* sequences_;
   // Jumps used in old bytecode.
   // Key: Jump source (offset where destination is stored in old bytecode)
@@ -280,7 +280,7 @@ BytecodeSequenceNode::BytecodeSequenceNode(int bytecode, Zone* zone)
       start_offset_(0),
       parent_(nullptr),
       children_(ZoneUnorderedMap<int, BytecodeSequenceNode*>(zone)),
-      argument_mapping_(zone->New<::v8::base::Vector<BytecodeArgumentMapping>>(zone)),
+      argument_mapping_(zone->New<ZoneVector<BytecodeArgumentMapping>>(zone)),
       argument_check_(zone->New<ZoneLinkedList<BytecodeArgumentCheck>>(zone)),
       argument_ignored_(zone->New<ZoneLinkedList<BytecodeArgument>>(zone)),
       zone_(zone) {}

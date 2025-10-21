@@ -66,6 +66,29 @@ class RegListBase {
     return bits_;
   }
 
+  // Get first register in the list
+  constexpr RegisterT first() const {
+    if (bits_ == 0) {
+      return RegisterT::no_reg();
+    }
+    int first_code = __builtin_ctz(bits_);
+    return RegisterT::from_code(first_code);
+  }
+
+  // Get last register in the list
+  constexpr RegisterT last() const {
+    if (bits_ == 0) {
+      return RegisterT::no_reg();
+    }
+    int last_code = 31 - __builtin_clz(bits_);
+    return RegisterT::from_code(last_code);
+  }
+
+  // Static factory method to create from bits
+  static constexpr RegListBase FromBits(storage_t bits) {
+    return RegListBase(bits);
+  }
+
   // Bitwise OR
   constexpr RegListBase operator|(const RegListBase& other) const {
     return RegListBase(bits_ | other.bits_);

@@ -178,7 +178,7 @@ class RawMachineAssembler;
 class RawMachineLabel;
 class SourcePositionTable;
 
-using CodeAssemblerVariableList = ::v8::base::Vector<CodeAssemblerVariable*>;
+using CodeAssemblerVariableList = ZoneVector<CodeAssemblerVariable*>;
 
 using CodeAssemblerCallback = std::function<void()>;
 

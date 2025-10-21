@@ -127,7 +127,7 @@ class LiftoffAssembler : public MacroAssembler {
     // values in the registers will be written back to their stack slots.
     // {kTopOfStack} means that the registers will be spilled on the stack with
     // a {push} instruction.
-    void GetTaggedSlotsForOOLCode(/*out*/ ::v8::base::Vector<int>* slots,
+    void GetTaggedSlotsForOOLCode(/*out*/ ZoneVector<int>* slots,
                                   /*out*/ LiftoffRegList* spills,
                                   SpillLocation spill_location);
 
@@ -635,7 +635,7 @@ class LiftoffAssembler : public MacroAssembler {
         : dst(dst), src(src), kind(kind) {}
   };
 
-  void ParallelRegisterMove(::v8::base::Vector<const ParallelRegisterMoveTuple>);
+  void ParallelRegisterMove(ZoneVector<const ParallelRegisterMoveTuple>);
 
   void ParallelRegisterMove(
       std::initializer_list<ParallelRegisterMoveTuple> moves) {

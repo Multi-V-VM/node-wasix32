@@ -29,12 +29,12 @@ class V8_EXPORT_PRIVATE StreamingProcessor {
   virtual ~StreamingProcessor() = default;
   // Process the first 8 bytes of a WebAssembly module. Returns true if the
   // processing finished successfully and the decoding should continue.
-  virtual bool ProcessModuleHeader(::v8::base::Vector<const uint8_t> bytes) = 0;
+  virtual bool ProcessModuleHeader(ZoneVector<const uint8_t> bytes) = 0;
 
   // Process all sections but the code section. Returns true if the processing
   // finished successfully and the decoding should continue.
   virtual bool ProcessSection(SectionCode section_code,
-                              ::v8::base::Vector<const uint8_t> bytes,
+                              ZoneVector<const uint8_t> bytes,
                               uint32_t offset) = 0;
 
   // Process the start of the code section. Returns true if the processing
@@ -46,21 +46,21 @@ class V8_EXPORT_PRIVATE StreamingProcessor {
 
   // Process a function body. Returns true if the processing finished
   // successfully and the decoding should continue.
-  virtual bool ProcessFunctionBody(::v8::base::Vector<const uint8_t> bytes,
+  virtual bool ProcessFunctionBody(ZoneVector<const uint8_t> bytes,
                                    uint32_t offset) = 0;
 
   // Report the end of a chunk.
   virtual void OnFinishedChunk() = 0;
   // Report the end of the stream. This will be called even after an error has
   // been detected. In any case, the parameter is the total received bytes.
-  virtual void OnFinishedStream(base::Owned::v8::base::Vector<const uint8_t> bytes,
+  virtual void OnFinishedStream(base::OwnedZoneVector<const uint8_t> bytes,
                                 bool after_error) = 0;
   // Report the abortion of the stream.
   virtual void OnAbort() = 0;
 
   // Attempt to deserialize the module. Supports embedder caching.
-  virtual bool Deserialize(::v8::base::Vector<const uint8_t> module_bytes,
-                           ::v8::base::Vector<const uint8_t> wire_bytes) = 0;
+  virtual bool Deserialize(ZoneVector<const uint8_t> module_bytes,
+                           ZoneVector<const uint8_t> wire_bytes) = 0;
 };
 
 // The StreamingDecoder takes a sequence of byte arrays, each received by a call
@@ -71,7 +71,7 @@ class V8_EXPORT_PRIVATE StreamingDecoder {
   virtual ~StreamingDecoder() = default;
 
   // The buffer passed into OnBytesReceived is owned by the caller.
-  virtual void OnBytesReceived(::v8::base::Vector<const uint8_t> bytes) = 0;
+  virtual void OnBytesReceived(ZoneVector<const uint8_t> bytes) = 0;
 
   virtual void Finish(bool can_use_compiled_module = true) = 0;
 
@@ -94,7 +94,7 @@ class V8_EXPORT_PRIVATE StreamingDecoder {
 
   // Passes previously compiled module bytes from the embedder's cache.
   // The content shouldn't be used until Finish(true) is called.
-  void SetCompiledModuleBytes(::v8::base::Vector<const uint8_t> bytes) {
+  void SetCompiledModuleBytes(ZoneVector<const uint8_t> bytes) {
     compiled_module_bytes_ = bytes;
   }
 
@@ -104,7 +104,7 @@ class V8_EXPORT_PRIVATE StreamingDecoder {
   const std::string& url() const { return *url_; }
   std::shared_ptr<const std::string> shared_url() const { return url_; }
 
-  void SetUrl(::v8::base::Vector<const char> url) {
+  void SetUrl(ZoneVector<const char> url) {
     url_->assign(url.begin(), url.size());
   }
 
@@ -125,7 +125,7 @@ class V8_EXPORT_PRIVATE StreamingDecoder {
       more_functions_can_be_serialized_callback_;
   // The content of `compiled_module_bytes_` shouldn't be used until
   // Finish(true) is called.
-  ::v8::base::Vector<const uint8_t> compiled_module_bytes_;
+  ZoneVector<const uint8_t> compiled_module_bytes_;
 };
 
 }  // namespace v8::internal::wasm

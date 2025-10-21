@@ -9,6 +9,7 @@
 
 #include "src/codegen/cpu-features.h"
 #include "src/compiler/globals.h"
+#include "include/v8-local-handle.h"
 
 namespace v8 {
 
@@ -391,7 +392,7 @@ FastApiCallFunction GetFastApiCallTarget(
 
   static constexpr int kReceiver = 1;
 
-  const ::v8::base::Vector<const CFunctionInfo*>& signatures =
+  const ZoneVector<const CFunctionInfo*>& signatures =
       function_template_info.c_signatures(broker);
   const size_t overloads_count = signatures.size();
 

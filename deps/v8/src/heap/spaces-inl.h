@@ -35,14 +35,14 @@ PageIteratorImpl<PageType> PageIteratorImpl<PageType>::operator++(int) {
 
 void Space::IncrementExternalBackingStoreBytes(ExternalBackingStoreType type,
                                                size_t amount) {
-  base::CheckedIncrement(&external_backing_store_bytes_[static_cast<int>(type)],
+  ::v8::base::CheckedIncrement(&external_backing_store_bytes_[static_cast<int>(type)],
                          amount);
   heap()->IncrementExternalBackingStoreBytes(type, amount);
 }
 
 void Space::DecrementExternalBackingStoreBytes(ExternalBackingStoreType type,
                                                size_t amount) {
-  base::CheckedDecrement(&external_backing_store_bytes_[static_cast<int>(type)],
+  ::v8::base::CheckedDecrement(&external_backing_store_bytes_[static_cast<int>(type)],
                          amount);
   heap()->DecrementExternalBackingStoreBytes(type, amount);
 }
@@ -52,9 +52,9 @@ void Space::MoveExternalBackingStoreBytes(ExternalBackingStoreType type,
                                           size_t amount) {
   if (from == to) return;
 
-  base::CheckedDecrement(
+  ::v8::base::CheckedDecrement(
       &(from->external_backing_store_bytes_[static_cast<int>(type)]), amount);
-  base::CheckedIncrement(
+  ::v8::base::CheckedIncrement(
       &(to->external_backing_store_bytes_[static_cast<int>(type)]), amount);
 }
 

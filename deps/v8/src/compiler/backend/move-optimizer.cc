@@ -29,7 +29,7 @@ struct MoveKey {
 
 class OperandSet {
  public:
-  explicit OperandSet(::v8::base::Vector<InstructionOperand>* buffer)
+  explicit OperandSet(ZoneVector<InstructionOperand>* buffer)
       : set_(buffer), fp_reps_(0) {
     buffer->clear();
   }
@@ -104,7 +104,7 @@ class OperandSet {
     return reps && !base::bits::IsPowerOfTwo(reps);
   }
 
-  ::v8::base::Vector<InstructionOperand>* set_;
+  ZoneVector<InstructionOperand>* set_;
   int fp_reps_;
 };
 

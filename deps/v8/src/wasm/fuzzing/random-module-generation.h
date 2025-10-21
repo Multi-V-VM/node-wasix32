@@ -40,14 +40,14 @@ struct WasmModuleGenerationOptions
 // Returns an empty buffer on failure, valid module wire bytes otherwise.
 // The bytes will be allocated in the zone.
 // Defined in random-module-generation.cc.
-V8_EXPORT_PRIVATE ::v8::base::Vector<uint8_t> GenerateRandomWasmModule(
-    Zone*, WasmModuleGenerationOptions, ::v8::base::Vector<const uint8_t> data);
+V8_EXPORT_PRIVATE ZoneVector<uint8_t> GenerateRandomWasmModule(
+    Zone*, WasmModuleGenerationOptions, ZoneVector<const uint8_t> data);
 
-V8_EXPORT_PRIVATE ::v8::base::Vector<uint8_t> GenerateWasmModuleForInitExpressions(
-    Zone*, ::v8::base::Vector<const uint8_t> data, size_t* count);
+V8_EXPORT_PRIVATE ZoneVector<uint8_t> GenerateWasmModuleForInitExpressions(
+    Zone*, ZoneVector<const uint8_t> data, size_t* count);
 
-V8_EXPORT_PRIVATE ::v8::base::Vector<uint8_t> GenerateWasmModuleForDeopt(
-    Zone*, ::v8::base::Vector<const uint8_t> data, std::vector<std::string>& callees,
+V8_EXPORT_PRIVATE ZoneVector<uint8_t> GenerateWasmModuleForDeopt(
+    Zone*, ZoneVector<const uint8_t> data, std::vector<std::string>& callees,
     std::vector<std::string>& inlinees);
 #endif
 

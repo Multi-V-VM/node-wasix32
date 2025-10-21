@@ -163,7 +163,7 @@ class CompileTimeImports {
   }
   static CompileTimeImports FromSerialized(
       CompileTimeImportFlags::StorageType flags,
-      ::v8::base::Vector<const char> constants_module) {
+      ZoneVector<const char> constants_module) {
     CompileTimeImports result;
     result.bits_ = CompileTimeImportFlags::FromIntegral(flags);
     result.constants_module_.assign(constants_module.begin(),
@@ -172,7 +172,7 @@ class CompileTimeImports {
   }
 
   bool empty() const { return bits_.empty(); }
-  bool has_string_constants(::v8::base::Vector<const uint8_t> name) const {
+  bool has_string_constants(ZoneVector<const uint8_t> name) const {
     return bits_.contains(CompileTimeImport::kStringConstants) &&
            constants_module_.size() == name.size() &&
            std::equal(name.begin(), name.end(), constants_module_.begin());

@@ -34,7 +34,7 @@ class SmallUnsignedOperand : public OperandBase {
   explicit SmallUnsignedOperand(uint32_t value) : OperandBase(value) {
     DCHECK_LE(value, base::kDataMask);
   }
-  void WriteVLQ(::v8::base::Vector<uint8_t>* buffer) { buffer->push_back(value()); }
+  void WriteVLQ(ZoneVector<uint8_t>* buffer) { buffer->push_back(value()); }
   bool IsSigned() const { return false; }
 };
 
@@ -45,7 +45,7 @@ class UnsignedOperand : public OperandBase {
     DCHECK_GE(value, 0);
   }
   explicit UnsignedOperand(uint32_t value) : OperandBase(value) {}
-  void WriteVLQ(::v8::base::Vector<uint8_t>* buffer) {
+  void WriteVLQ(ZoneVector<uint8_t>* buffer) {
     base::VLQEncodeUnsigned(
         [buffer](uint8_t value) { buffer->push_back(value); }, value());
   }
@@ -57,7 +57,7 @@ class SignedOperand : public OperandBase {
   explicit SignedOperand(int32_t value) : OperandBase(value) {}
   // Use UnsignedOperand for unsigned values.
   explicit SignedOperand(uint32_t value) = delete;
-  void WriteVLQ(::v8::base::Vector<uint8_t>* buffer) {
+  void WriteVLQ(ZoneVector<uint8_t>* buffer) {
     base::VLQEncode(
         [buffer](uint8_t value) {
           buffer->push_back(value);
@@ -256,7 +256,7 @@ FrameTranslationBuilder::ToFrameTranslation(LocalFactory* factory) {
 Vector<const uint8_t> FrameTranslationBuilder::ToFrameTranslationWasm() {
   DCHECK(!v8_flags.turbo_compress_frame_translations);
   FinishPendingInstructionIfNeeded();
-  ::v8::base::Vector<const uint8_t> result(contents_.data(), contents_.size());
+  ZoneVector<const uint8_t> result(contents_.data(), contents_.size());
 #ifdef ENABLE_SLOW_DCHECKS
   DeoptTranslationIterator iter(result, 0);
   ValidateBytes(iter);

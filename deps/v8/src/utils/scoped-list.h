@@ -70,9 +70,9 @@ class V8_NODISCARD ScopedList final {
     return *reinterpret_cast<T*>(&buffer_[index]);
   }
 
-  ::v8::base::Vector<const T> ToConstVector() const {
+  ZoneVector<const T> ToConstVector() const {
     T* data = reinterpret_cast<T*>(buffer_.data() + start_);
-    return ::v8::base::Vector<const T>(data, length());
+    return ZoneVector<const T>(data, length());
   }
 
   void Add(const T& value) {
@@ -81,7 +81,7 @@ class V8_NODISCARD ScopedList final {
     ++end_;
   }
 
-  void AddAll(::v8::base::Vector<const T> list) {
+  void AddAll(ZoneVector<const T> list) {
     DCHECK_EQ(buffer_.size(), end_);
     buffer_.reserve(buffer_.size() + list.length());
     for (int i = 0; i < list.length(); i++) {

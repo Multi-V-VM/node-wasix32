@@ -18,9 +18,11 @@
 #endif
 
 // Include necessary headers for type definitions BEFORE namespace v8
+// IMPORTANT: Include v8-value.h first to ensure Value base class is complete
+#include "../v8-value.h"
 #include "../v8-microtask.h"
-// Don't include v8-promise.h here - it will be included after Isolate is defined
-// to avoid circular dependency through v8-object.h -> v8-context.h -> v8-snapshot.h
+// Note: Do NOT include v8-promise.h here - it creates circular dependency
+// because Object isn't defined yet. Forward declare Promise instead.
 #include "../v8-statistics.h"  // For MeasureMemoryMode
 // Don't include v8-snapshot.h here to avoid circular dependency
 
@@ -50,6 +52,41 @@ class Module;
 class Data;
 class Object;
 class Array;
+
+// Promise reject types - use unique guard to prevent double definition
+// This guard prevents redefinition when v8-promise.h is later included
+#ifndef V8_WASI_PROMISE_TYPES_DEFINED
+#define V8_WASI_PROMISE_TYPES_DEFINED
+
+enum PromiseRejectEvent {
+  kPromiseRejectWithNoHandler = 0,
+  kPromiseHandlerAddedAfterReject = 1,
+  kPromiseRejectAfterResolved = 2,
+  kPromiseResolveAfterResolved = 3,
+};
+
+// PromiseRejectMessage class (from v8-promise.h)
+// Defined here to avoid circular dependency with v8-promise.h
+class PromiseRejectMessage {
+ public:
+  PromiseRejectMessage(Local<Promise> promise, PromiseRejectEvent event,
+                       Local<Value> value)
+      : promise_(promise), event_(event), value_(value) {}
+
+  V8_INLINE Local<Promise> GetPromise() const { return promise_; }
+  V8_INLINE PromiseRejectEvent GetEvent() const { return event_; }
+  V8_INLINE Local<Value> GetValue() const { return value_; }
+
+ private:
+  Local<Promise> promise_;
+  PromiseRejectEvent event_;
+  Local<Value> value_;
+};
+
+// Promise-related callback typedef (from v8-promise.h)
+using PromiseRejectCallback = void (*)(PromiseRejectMessage message);
+
+#endif  // V8_WASI_PROMISE_TYPES_DEFINED
 
 // GC types needed by Isolate class - define in v8 namespace
 // Only define if v8-callbacks.h hasn't already provided them
@@ -108,16 +145,7 @@ enum GCCallbackFlags { kNoGCCallbackFlags = 0 };
 #endif  // !INCLUDE_V8_ISOLATE_CALLBACKS_H_
 #endif  // V8_WASI_CALLBACK_TYPES_DEFINED
 
-// Forward declare Promise rejection callback types
-// Define class if v8-promise.h isn't used, but always provide callback typedef
-#ifndef INCLUDE_V8_PROMISE_H_
-class PromiseRejectMessage;
-#endif
-// Always define the callback type - it's used by Isolate regardless
-#ifndef V8_PROMISE_REJECT_CALLBACK_DEFINED
-#define V8_PROMISE_REJECT_CALLBACK_DEFINED
-using PromiseRejectCallback = void (*)(PromiseRejectMessage message);
-#endif
+// PromiseRejectCallback is provided by v8-promise.h
 
 // Minimal ResourceConstraints stub for WASI builds
 class ResourceConstraints {
@@ -139,10 +167,49 @@ using AbortOnUncaughtExceptionCallback = bool (*)(Isolate*);
 class V8_EXPORT Isolate {
  public:
   using AbortOnUncaughtExceptionCallback = bool (*)(Isolate*);
-  // UseCounter feature enumeration (add only entries we see referenced)
+  // UseCounter feature enumeration (include commonly referenced entries).
   enum UseCounterFeature {
     kExtendingNonExtensibleWithPrivate = 0,
-    kUseCounterFeatureCount = 1
+    kDateToLocaleDateString,
+    kDateToLocaleString,
+    kDateToLocaleTimeString,
+    kNumberToLocaleString,
+    kResizableArrayBuffer,
+    kGrowableSharedArrayBuffer,
+    kDocumentAllLegacyCall,
+    kDocumentAllLegacyConstruct,
+    kStringLocaleCompare,
+    kConsoleContext,
+    kStringNormalize,
+    kDisplayNames,
+    kDurationFormat,
+    kNumberFormat,
+    kDateTimeFormat,
+    kListFormat,
+    kLocale,
+    kLocaleInfoFunctions,
+    kLocaleInfoObsoletedGetters,
+    kRelativeTimeFormat,
+    kPluralRules,
+    kCollator,
+    kSegmenter,
+    kArrayInstanceConstructorModified,
+    kArrayPrototypeConstructorModified,
+    kArraySpeciesModified,
+    kNumberFormatStyleUnit,
+    kBreakIteratorTypeLine,
+    kBreakIteratorTypeWord,
+    kBreakIterator,
+    kDateTimeFormatDateTimeStyle,
+    kDateTimeFormatRange,
+    kSharedArrayBufferConstructed,
+    kFunctionTokenOffsetTooLongForToString,
+    kWasmSharedMemory,
+    kWebAssemblyInstantiation,
+    kStringToLocaleLowerCase,
+    kDecimalWithLeadingZeroInStrictMode,
+    // Reserve space for unknown future features.
+    kUseCounterFeatureCount = 256
   };
 
   // Callback types
@@ -226,10 +293,13 @@ class V8_EXPORT Isolate {
     // WASI stub - no-op
     // Can't call delegate methods without proper implementation
   }
+
+  // Restore original heap limit (used by inspector for OOM breakpoints)
+  void RestoreOriginalHeapLimit() {}
   
   // GC callbacks - updated to match V8 API signature
   // Note: The standard V8 signature uses GCType and GCCallbackFlags enums.
-  // Fully-qualify to avoid lookup issues in class scope.
+  // These are defined in v8-callbacks.h (included at the top of this file)
   using GCCallbackWithData = void (*)(Isolate* isolate, ::v8::GCType,
                                       ::v8::GCCallbackFlags, void* data);
   using GCCallback = void (*)(Isolate* isolate, ::v8::GCType,

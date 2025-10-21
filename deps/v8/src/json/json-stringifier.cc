@@ -163,22 +163,22 @@ class JsonStringifier {
       if (String::IsOneByteRepresentationUnderneath(string)) {
         CopyChars<uint8_t, uint8_t>(
             one_byte_ptr_ + current_index_,
-            string->GetChar::v8::base::Vector<uint8_t>(no_gc).begin(), length);
+            string->GetCharZoneVector<uint8_t>(no_gc).begin(), length);
       } else {
         ChangeEncoding();
         CopyChars<uint16_t, uint16_t>(
             two_byte_ptr_ + current_index_,
-            string->GetChar::v8::base::Vector<uint16_t>(no_gc).begin(), length);
+            string->GetCharZoneVector<uint16_t>(no_gc).begin(), length);
       }
     } else {
       if (String::IsOneByteRepresentationUnderneath(string)) {
         CopyChars<uint8_t, uint16_t>(
             two_byte_ptr_ + current_index_,
-            string->GetChar::v8::base::Vector<uint8_t>(no_gc).begin(), length);
+            string->GetCharZoneVector<uint8_t>(no_gc).begin(), length);
       } else {
         CopyChars<uint16_t, uint16_t>(
             two_byte_ptr_ + current_index_,
-            string->GetChar::v8::base::Vector<uint16_t>(no_gc).begin(), length);
+            string->GetCharZoneVector<uint16_t>(no_gc).begin(), length);
       }
     }
     current_index_ += length;
@@ -292,7 +292,7 @@ class JsonStringifier {
     }
     V8_INLINE void AppendString(std::string_view str) {
       AppendChars(
-          ::v8::base::Vector<const uint8_t>(
+          ZoneVector<const uint8_t>(
               reinterpret_cast<const uint8_t*>(str.data()), str.length()),
           str.length());
     }
@@ -300,7 +300,7 @@ class JsonStringifier {
     // Appends all of the chars from the provided span, but only increases the
     // cursor by `length`. This allows oversizing the span to the nearest
     // convenient multiple, allowing CopyChars to run slightly faster.
-    V8_INLINE void AppendChars(::v8::base::Vector<const uint8_t> chars,
+    V8_INLINE void AppendChars(ZoneVector<const uint8_t> chars,
                                size_t length) {
       DCHECK_GE(chars.size(), length);
       CopyChars(cursor_, chars.begin(), chars.size());
@@ -389,7 +389,7 @@ class JsonStringifier {
   // Returns whether any escape sequences were used.
   template <typename SrcChar, typename DestChar, bool raw_json>
   V8_INLINE static bool SerializeStringUnchecked_(
-      ::v8::base::Vector<const SrcChar> src, NoExtendBuilder<DestChar>* dest);
+      ZoneVector<const SrcChar> src, NoExtendBuilder<DestChar>* dest);
 
   // Returns whether any escape sequences were used.
   template <typename SrcChar, typename DestChar, bool raw_json>
@@ -638,7 +638,7 @@ MaybeDirectHandle<Object> JsonStringifier::Stringify(Handle<JSAny> object,
           .ToHandleChecked();
     } else {
       return isolate_->factory()->NewStringFromTwoByte(
-          ::v8::base::Vector<const base::uc16>(two_byte_ptr_, current_index_));
+          ZoneVector<const base::uc16>(two_byte_ptr_, current_index_));
     }
   }
   DCHECK(result == EXCEPTION);
@@ -895,7 +895,7 @@ class CircularStructureMessageBuilder {
     // sizeof(string) includes \0.
     static constexpr uint32_t kBufferSize = sizeof("-2147483648") - 1;
     char chars[kBufferSize];
-    ::v8::base::Vector<char> buffer(chars, kBufferSize);
+    ZoneVector<char> buffer(chars, kBufferSize);
     builder_.AppendString(IntToStringView(smi.value(), buffer));
   }
 
@@ -1127,7 +1127,7 @@ JsonStringifier::Result JsonStringifier::SerializeSmi(Tagged<Smi> object) {
   // sizeof(string) includes \0.
   static constexpr uint32_t kBufferSize = sizeof("-2147483648") - 1;
   char chars[kBufferSize];
-  ::v8::base::Vector<char> buffer(chars, kBufferSize);
+  ZoneVector<char> buffer(chars, kBufferSize);
   AppendString(IntToStringView(object.value(), buffer));
   return SUCCESS;
 }
@@ -1139,7 +1139,7 @@ JsonStringifier::Result JsonStringifier::SerializeDouble(double number) {
   }
   static constexpr uint32_t kBufferSize = 100;
   char chars[kBufferSize];
-  ::v8::base::Vector<char> buffer(chars, kBufferSize);
+  ZoneVector<char> buffer(chars, kBufferSize);
   std::string_view str = DoubleToStringView(number, buffer);
   AppendString(str);
   return SUCCESS;
@@ -1501,7 +1501,7 @@ JsonStringifier::Result JsonStringifier::SerializeJSProxy(
 
 template <typename SrcChar, typename DestChar, bool raw_json>
 bool JsonStringifier::SerializeStringUnchecked_(
-    ::v8::base::Vector<const SrcChar> src, NoExtendBuilder<DestChar>* dest) {
+    ZoneVector<const SrcChar> src, NoExtendBuilder<DestChar>* dest) {
   // Assert that base::uc16 character is not truncated down to 8 bit.
   // The <base::uc16, char> version of this method must not be called.
   DCHECK(sizeof(DestChar) >= sizeof(SrcChar));
@@ -1519,7 +1519,7 @@ bool JsonStringifier::SerializeStringUnchecked_(
       dest->AppendSubstring(src.data(), uncopied_src_index, i);
 
       char double_to_radix_chars[kDoubleToRadixMaxChars];
-      ::v8::base::Vector<char> double_to_radix_buffer =
+      ZoneVector<char> double_to_radix_buffer =
           base::ArrayVector(double_to_radix_chars);
       if (c <= 0xDBFF) {
         // The current character is a leading surrogate.
@@ -1579,7 +1579,7 @@ bool JsonStringifier::SerializeString_(Tagged<String> string,
   if (!raw_json) Append<uint8_t, DestChar>('"');
   // We might be able to fit the whole escaped string in the current string
   // part, or we might need to allocate.
-  ::v8::base::Vector<const SrcChar> vector = string->GetChar::v8::base::Vector<SrcChar>(no_gc);
+  ZoneVector<const SrcChar> vector = string->GetCharZoneVector<SrcChar>(no_gc);
   if V8_LIKELY (EscapedLengthIfCurrentPartFits(vector.size())) {
     NoExtendBuilder<DestChar> no_extend(
         reinterpret_cast<DestChar*>(part_ptr_) + current_index_,
@@ -1603,7 +1603,7 @@ bool JsonStringifier::SerializeString_(Tagged<String> string,
         AppendSubstring(vector.data(), uncopied_src_index, i);
 
         char double_to_radix_chars[kDoubleToRadixMaxChars];
-        ::v8::base::Vector<char> double_to_radix_buffer =
+        ZoneVector<char> double_to_radix_buffer =
             base::ArrayVector(double_to_radix_chars);
         if (c <= 0xDBFF) {
           // The current character is a leading surrogate.
@@ -1690,7 +1690,7 @@ bool JsonStringifier::TrySerializeSimplePropertyKey(
   NoExtendBuilder<DestChar> no_extend(
       reinterpret_cast<DestChar*>(part_ptr_) + current_index_, &current_index_);
   no_extend.Append('"');
-  ::v8::base::Vector<const uint8_t> chars(
+  ZoneVector<const uint8_t> chars(
       Cast<SeqOneByteString>(key)->GetChars(no_gc), copy_length);
   DCHECK_LE(reinterpret_cast<Address>(chars.end()),
             key.address() + key->Size());
@@ -1852,13 +1852,13 @@ class OutBuffer {
       // Copy full segments.
       DCHECK_GT(segments_->length(), 0);
       for (int i = 0; i < segments_->length() - 1; i++) {
-        ::v8::base::Vector<Char> segment = segments_.value()[i];
+        ZoneVector<Char> segment = segments_.value()[i];
         size_t segment_length = segment.size();
         CopyChars(dst, segment.begin(), segment_length);
         dst += segment_length;
       }
       // Copy last (partially filled) segment.
-      ::v8::base::Vector<Char> segment = segments_->last();
+      ZoneVector<Char> segment = segments_->last();
       CopyChars(dst, segment.begin(), CurSegmentLength());
     } else {
       // Copy (partially filled) stack segment.
@@ -1889,7 +1889,7 @@ class OutBuffer {
     }
     const size_t new_segment_size =
         std::max(min_size, SegmentCapacity(segments_->length()));
-    segments_->Add(zone_->Allocate::v8::base::Vector<Char>(new_segment_size),
+    segments_->Add(zone_->AllocateZoneVector<Char>(new_segment_size),
                    &zone_.value());
     cur_ = segments_->last().begin();
     segment_end_ = segments_->last().end();
@@ -1926,7 +1926,7 @@ class OutBuffer {
   Char* cur_;
   Char* segment_end_;
   std::optional<Zone> zone_;
-  std::optional<ZoneList<::v8::base::Vector<Char>>> segments_;
+  std::optional<ZoneList<ZoneVector<Char>>> segments_;
 #ifdef DEBUG
   size_t current_requested_capacity_;
 #endif
@@ -2361,7 +2361,7 @@ void FastJsonStringifier<Char>::SerializeSmi(Tagged<Smi> object) {
   // sizeof(string) includes \0.
   static constexpr uint32_t kBufferSize = sizeof("-2147483648") - 1;
   char chars[kBufferSize];
-  ::v8::base::Vector<char> buffer(chars, kBufferSize);
+  ZoneVector<char> buffer(chars, kBufferSize);
   std::string_view str = IntToStringView(object.value(), buffer);
   AppendString(str);
 }
@@ -2374,7 +2374,7 @@ void FastJsonStringifier<Char>::SerializeDouble(double number) {
   }
   static constexpr uint32_t kBufferSize = 100;
   char chars[kBufferSize];
-  ::v8::base::Vector<char> buffer(chars, kBufferSize);
+  ZoneVector<char> buffer(chars, kBufferSize);
   std::string_view str = DoubleToStringView(number, buffer);
   AppendString(str);
 }
@@ -3431,7 +3431,7 @@ bool FastJsonStringifier<Char>::AppendString(
       // The current character is a surrogate.
       buffer_.Append(chars + uncopied_src_index, i - uncopied_src_index);
       char double_to_radix_chars[kDoubleToRadixMaxChars];
-      ::v8::base::Vector<char> double_to_radix_buffer =
+      ZoneVector<char> double_to_radix_buffer =
           base::ArrayVector(double_to_radix_chars);
       if (c <= 0xDBFF) {
         // The current character is a leading surrogate.

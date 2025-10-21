@@ -204,7 +204,7 @@ class DeoptimizationFrameTranslation : public TrustedByteArray {
 
 class DeoptTranslationIterator {
  public:
-  DeoptTranslationIterator(::v8::base::Vector<const uint8_t> buffer, int index);
+  DeoptTranslationIterator(ZoneVector<const uint8_t> buffer, int index);
 
   int32_t NextOperand();
 
@@ -229,7 +229,7 @@ class DeoptTranslationIterator {
   void SkipOpcodeAndItsOperandsAtPreviousIndex();
 
   std::vector<int32_t> uncompressed_contents_;
-  const ::v8::base::Vector<const uint8_t> buffer_;
+  const ZoneVector<const uint8_t> buffer_;
   int index_;
 
   // This decrementing counter indicates how many more times to read operations

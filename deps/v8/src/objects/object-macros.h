@@ -478,7 +478,8 @@
     /* reinterpret casts to the same type. */                               \
     struct C2440 {};                                                        \
     Address result =                                                        \
-        HeapObject::ReadExternalPointerField<tag>(offset, isolate);         \
+        HeapObject::ReadExternalPointerField<                               \
+            ExternalPointerTagRange(tag)>(offset, isolate);                 \
     return reinterpret_cast<type>(reinterpret_cast<C2440*>(result));        \
   }                                                                         \
   void holder::set_##name(i::IsolateForSandbox isolate, const type value) { \
@@ -517,7 +518,8 @@
     /* reinterpret casts to the same type. */                               \
     struct C2440 {};                                                        \
     Address result =                                                        \
-        HeapObject::ReadExternalPointerField<tag>(offset, isolate);         \
+        HeapObject::ReadExternalPointerField<                               \
+            ExternalPointerTagRange(tag)>(offset, isolate);                 \
     return reinterpret_cast<type>(reinterpret_cast<C2440*>(result));        \
   }                                                                         \
   void holder::init_##name(i::IsolateForSandbox isolate,                    \

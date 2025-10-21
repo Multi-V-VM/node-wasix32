@@ -15,7 +15,7 @@ namespace v8 {
 namespace internal {
 
 constexpr auto CallInterfaceDescriptor::DefaultRegisterArray() {
-  auto registers = RegisterArray(r0(), r1(), r2(), r3(), r4());
+  auto registers = RegisterArray(Register::r0(), Register::r1(), Register::r2(), Register::r3(), Register::r4());
   return registers;
 }
 
@@ -25,7 +25,7 @@ constexpr auto CallInterfaceDescriptor::DefaultDoubleRegisterArray() {
 }
 
 constexpr auto CallInterfaceDescriptor::DefaultReturnRegisterArray() {
-  auto registers = RegisterArray(r0(), r1());
+  auto registers = RegisterArray(Register::r0(), Register::r1());
   return registers;
 }
 
@@ -61,82 +61,82 @@ struct CallInterfaceDescriptorFor<CallDescriptors::FastApiCallNoOptions> {
 
 // Load descriptors
 static constexpr inline Register LoadDescriptor::ReceiverRegister() {
-  return r1();
+  return Register::r1();
 }
 static constexpr inline Register LoadDescriptor::NameRegister() {
-  return r2();
+  return Register::r2();
 }
 static constexpr inline Register LoadDescriptor::SlotRegister() {
-  return r0();
+  return Register::r0();
 }
 
 static constexpr inline Register LoadGlobalDescriptor::SlotRegister() {
-  return r2();
+  return Register::r2();
 }
 
 static constexpr inline Register LoadWithVectorDescriptor::VectorRegister() {
-  return r3();
+  return Register::r3();
 }
 
 static constexpr inline Register KeyedLoadWithVectorDescriptor::VectorRegister() {
-  return r3();
+  return Register::r3();
 }
 
 static constexpr inline Register KeyedHasICDescriptor::VectorRegister() {
-  return r3();
+  return Register::r3();
 }
 
 static constexpr inline Register
 LoadGlobalWithVectorDescriptor::VectorRegister() {
-  return r3();
+  return Register::r3();
 }
 
 // Store descriptors
 static constexpr inline Register StoreDescriptor::ReceiverRegister() {
-  return r1();
+  return Register::r1();
 }
 static constexpr inline Register StoreDescriptor::NameRegister() {
-  return r2();
+  return Register::r2();
 }
 static constexpr inline Register StoreDescriptor::ValueRegister() {
-  return r0();
+  return Register::r0();
 }
 static constexpr inline Register StoreDescriptor::SlotRegister() {
-  return r4();
+  return Register::r4();
 }
 
 static constexpr inline Register StoreWithVectorDescriptor::VectorRegister() {
-  return r3();
+  return Register::r3();
 }
 
 static constexpr inline Register StoreGlobalDescriptor::SlotRegister() {
-  return r4();
+  return Register::r4();
 }
 
 static constexpr inline Register
 StoreGlobalWithVectorDescriptor::VectorRegister() {
-  return r3();
+  return Register::r3();
 }
 
 static constexpr inline Register KeyedStoreGenericDescriptor::VectorRegister() {
-  return r4();
+  return Register::r4();
 }
 
 static constexpr inline Register InterpreterDispatchDescriptor::kAccumulatorRegister() {
-  return r0();
+  return Register::r0();
 }
 static constexpr inline Register InterpreterDispatchDescriptor::kBytecodeOffsetRegister() {
-  return r2();
+  return Register::r2();
 }
 static constexpr inline Register InterpreterDispatchDescriptor::kBytecodeArrayRegister() {
-  return r3();
+  return Register::r3();
 }
 static constexpr inline Register InterpreterDispatchDescriptor::kDispatchTableRegister() {
-  return r4();
+  return Register::r4();
 }
 
 static constexpr inline Register ApiGetterDescriptor::HolderRegister() {
-  return r0();
+  return Register::r0();
 }
 static constexpr inline Register ApiGetterDescriptor::CallbackRegister() {
   return r3();
@@ -318,7 +318,7 @@ static constexpr inline auto CallTrampoline_WithFeedbackDescriptor::registers() 
 }
 
 static constexpr inline auto ConstructStub_BaselineDescriptor::registers() {
-  return RegisterArray(r1(), r3(), r0(), kJavaScriptCallSlotCountRegister);
+  return RegisterArray(Register::r1(), Register::r3(), Register::r0(), kJavaScriptCallSlotCountRegister);
 }
 
 static constexpr inline auto ConstructStub_WithFeedbackDescriptor::registers() {
@@ -326,31 +326,31 @@ static constexpr inline auto ConstructStub_WithFeedbackDescriptor::registers() {
 }
 
 static constexpr inline auto FastNewObjectDescriptor::registers() {
-  return RegisterArray(r1(), r3());
+  return RegisterArray(Register::r1(), Register::r3());
 }
 
 static constexpr inline auto WriteBarrierDescriptor::registers() {
-  return RegisterArray(r1(), r5(), r4(), r2(), r0(), r3());
+  return RegisterArray(Register::r1(), Register::r5(), Register::r4(), Register::r2(), Register::r0(), Register::r3());
 }
 
 static constexpr inline auto IndirectPointerWriteBarrierDescriptor::registers() {
-  return RegisterArray(r1(), r0(), r5(), r4(), r2());
+  return RegisterArray(Register::r1(), Register::r0(), Register::r5(), Register::r4(), Register::r2());
 }
 
 static constexpr inline auto ForInPrepareDescriptor::registers() {
-  return RegisterArray(r0(), r1());
+  return RegisterArray(Register::r0(), Register::r1());
 }
 
 static constexpr inline auto GetIteratorStackParameterDescriptor::registers() {
-  return RegisterArray(r0());
+  return RegisterArray(Register::r0());
 }
 
 static constexpr inline auto UnaryOp_BaselineDescriptor::registers() {
-  return RegisterArray(r0(), r1(), r2());
+  return RegisterArray(Register::r0(), Register::r1(), Register::r2());
 }
 
 static constexpr inline auto UnaryOp_WithFeedbackDescriptor::registers() {
-  return RegisterArray(r0(), r1(), r2(), r3());
+  return RegisterArray(Register::r0(), Register::r1(), Register::r2(), Register::r3());
 }
 
 }  // namespace internal

@@ -33,7 +33,7 @@ class WasmModuleObject;
 
 namespace v8::internal::wasm {
 
-using WasmName = ::v8::base::Vector<const char>;
+using WasmName = ZoneVector<const char>;
 
 struct AsmJsOffsets;
 class ErrorThrower;
@@ -418,7 +418,7 @@ class V8_EXPORT_PRIVATE LazilyGeneratedNames {
 
 class V8_EXPORT_PRIVATE AsmJsOffsetInformation {
  public:
-  explicit AsmJsOffsetInformation(::v8::base::Vector<const uint8_t> encoded_offsets);
+  explicit AsmJsOffsetInformation(ZoneVector<const uint8_t> encoded_offsets);
 
   // Destructor defined in wasm-module.cc, where the definition of
   // {AsmJsOffsets} is available.
@@ -977,8 +977,10 @@ struct V8_EXPORT_PRIVATE WasmModule {
     }
   }
 
-  ::v8::base::Vector<const WasmFunction> declared_functions() const {
-    return ::v8::base::VectorOf(functions) + num_imported_functions;
+  ZoneVector<const WasmFunction> declared_functions() const {
+    auto all = ::v8::base::VectorOf(functions);
+    auto decl = all + num_imported_functions;
+    return ZoneVector<const WasmFunction>(decl.begin(), decl.size());
   }
 
 #if V8_ENABLE_DRUMBRAKE
@@ -1025,7 +1027,7 @@ V8_EXPORT_PRIVATE int GetSubtypingDepth(const WasmModule* module,
 // It is illegal for anyone receiving a ModuleWireBytes to store pointers based
 // on module_bytes, as this storage is only guaranteed to be alive as long as
 // this struct is alive.
-// As {ModuleWireBytes} is just a wrapper around a {::v8::base::Vector<const
+// As {ModuleWireBytes} is just a wrapper around a {Vector<const
 // uint8_t>}, it should generally be passed by value.
 struct V8_EXPORT_PRIVATE ModuleWireBytes {
   explicit ModuleWireBytes(::v8::base::Vector<const uint8_t> module_bytes)
@@ -1131,7 +1133,7 @@ class TruncatedUserString {
 
  public:
   template <typename T>
-  explicit TruncatedUserString(::v8::base::Vector<T> name)
+  explicit TruncatedUserString(ZoneVector<T> name)
       : TruncatedUserString(name.begin(), name.length()) {}
 
   TruncatedUserString(const uint8_t* start, size_t len)
@@ -1160,11 +1162,11 @@ class TruncatedUserString {
 // between parameter types and return types. If {buffer} is non-empty, it will
 // be null-terminated, even if the signature is cut off. Returns the number of
 // characters written, excluding the terminating null-byte.
-size_t PrintSignature(::v8::base::Vector<char> buffer, const CanonicalSig* sig,
+size_t PrintSignature(ZoneVector<char> buffer, const CanonicalSig* sig,
                       char delimiter = ':');
 
 V8_EXPORT_PRIVATE size_t
-GetWireBytesHash(::v8::base::Vector<const uint8_t> wire_bytes);
+GetWireBytesHash(ZoneVector<const uint8_t> wire_bytes);
 
 // Get the required number of feedback slots for a function.
 int NumFeedbackSlots(const WasmModule* module, int func_index);

@@ -31,7 +31,7 @@ class FrameTranslationBuilder {
 
   DirectHandle<DeoptimizationFrameTranslation> ToFrameTranslation(
       LocalFactory* factory);
-  ::v8::base::Vector<const uint8_t> ToFrameTranslationWasm();
+  ZoneVector<const uint8_t> ToFrameTranslationWasm();
 
   int BeginTranslation(int frame_count, int jsframe_count,
                        bool update_feedback);

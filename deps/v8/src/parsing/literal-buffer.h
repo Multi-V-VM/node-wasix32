@@ -40,24 +40,24 @@ class LiteralBuffer final {
 
   bool is_one_byte() const { return is_one_byte_; }
 
-  bool Equals(::v8::base::Vector<const char> keyword) const {
+  bool Equals(ZoneVector<const char> keyword) const {
     return is_one_byte() && keyword.length() == position_ &&
            (memcmp(keyword.begin(), backing_store_.begin(), position_) == 0);
   }
 
-  ::v8::base::Vector<const uint16_t> two_byte_literal() const {
+  ZoneVector<const uint16_t> two_byte_literal() const {
     return literal<uint16_t>();
   }
 
-  ::v8::base::Vector<const uint8_t> one_byte_literal() const {
+  ZoneVector<const uint8_t> one_byte_literal() const {
     return literal<uint8_t>();
   }
 
   template <typename Char>
-  ::v8::base::Vector<const Char> literal() const {
+  ZoneVector<const Char> literal() const {
     DCHECK_EQ(is_one_byte_, sizeof(Char) == 1);
     DCHECK_EQ(position_ & (sizeof(Char) - 1), 0);
-    return ::v8::base::Vector<const Char>(
+    return ZoneVector<const Char>(
         reinterpret_cast<const Char*>(backing_store_.begin()),
         position_ >> (sizeof(Char) - 1));
   }
@@ -97,7 +97,7 @@ class LiteralBuffer final {
   V8_NOINLINE V8_PRESERVE_MOST void ExpandBuffer();
   void ConvertToTwoByte();
 
-  ::v8::base::Vector<uint8_t> backing_store_;
+  ZoneVector<uint8_t> backing_store_;
   int position_ = 0;
   bool is_one_byte_ = true;
 };

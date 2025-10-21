@@ -46,7 +46,7 @@ Vector<const uint8_t> SnapshotData::Payload() const {
   const uint8_t* payload = data_ + kHeaderSize;
   uint32_t length = GetHeaderValue(kPayloadLengthOffset);
   DCHECK_EQ(data_ + size_, payload + length);
-  return ::v8::base::Vector<const uint8_t>(payload, length);
+  return ZoneVector<const uint8_t>(payload, length);
 }
 
 }  // namespace internal

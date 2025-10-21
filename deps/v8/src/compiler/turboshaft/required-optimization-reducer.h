@@ -27,7 +27,7 @@ class RequiredOptimizationReducer : public Next {
  public:
   TURBOSHAFT_REDUCER_BOILERPLATE(RequiredOptimization)
 
-  OpIndex REDUCE(Phi)(::v8::base::Vector<const OpIndex> inputs,
+  OpIndex REDUCE(Phi)(ZoneVector<const OpIndex> inputs,
                       RegisterRepresentation rep) {
     LABEL_BLOCK(no_change) { return Next::ReducePhi(inputs, rep); }
     if (inputs.size() == 0) goto no_change;

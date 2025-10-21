@@ -35,7 +35,7 @@ void Disassemble(const WasmModule* module, ModuleWireBytes wire_bytes,
   out.ToDisassemblyCollector(collector);
 }
 
-void Disassemble(::v8::base::Vector<const uint8_t> wire_bytes,
+void Disassemble(ZoneVector<const uint8_t> wire_bytes,
                  v8::debug::DisassemblyCollector* collector,
                  std::vector<int>* function_body_offsets) {
   std::unique_ptr<OffsetsProvider> offsets = AllocateOffsetsProvider();
@@ -70,7 +70,7 @@ void MultiLineStringBuilder::ToDisassemblyCollector(
 }
 
 void DisassembleFunctionImpl(const WasmModule* module, int func_index,
-                             ::v8::base::Vector<const uint8_t> function_body,
+                             ZoneVector<const uint8_t> function_body,
                              ModuleWireBytes module_bytes, NamesProvider* names,
                              std::ostream& os, std::vector<uint32_t>* offsets) {
   MultiLineStringBuilder sb;
@@ -89,12 +89,12 @@ void DisassembleFunctionImpl(const WasmModule* module, int func_index,
 }
 
 void DisassembleFunction(const WasmModule* module, int func_index,
-                         ::v8::base::Vector<const uint8_t> wire_bytes,
+                         ZoneVector<const uint8_t> wire_bytes,
                          NamesProvider* names, std::ostream& os) {
   DCHECK(func_index < static_cast<int>(module->functions.size()) &&
          func_index >= static_cast<int>(module->num_imported_functions));
   ModuleWireBytes module_bytes(wire_bytes);
-  ::v8::base::Vector<const uint8_t> code =
+  ZoneVector<const uint8_t> code =
       module_bytes.GetFunctionBytes(&module->functions[func_index]);
   std::vector<uint32_t>* collect_offsets = nullptr;
   DisassembleFunctionImpl(module, func_index, code, module_bytes, names, os,
@@ -102,8 +102,8 @@ void DisassembleFunction(const WasmModule* module, int func_index,
 }
 
 void DisassembleFunction(const WasmModule* module, int func_index,
-                         ::v8::base::Vector<const uint8_t> function_body,
-                         ::v8::base::Vector<const uint8_t> maybe_wire_bytes,
+                         ZoneVector<const uint8_t> function_body,
+                         ZoneVector<const uint8_t> maybe_wire_bytes,
                          uint32_t function_body_offset, std::ostream& os,
                          std::vector<uint32_t>* offsets) {
   DCHECK(func_index < static_cast<int>(module->functions.size()) &&
@@ -729,7 +729,7 @@ uint32_t FunctionBodyDisassembler::PrintImmediatesAndGetLength(
 // OffsetsProvider.
 
 void OffsetsProvider::CollectOffsets(const WasmModule* module,
-                                     ::v8::base::Vector<const uint8_t> wire_bytes) {
+                                     ZoneVector<const uint8_t> wire_bytes) {
   num_imported_tables_ = module->num_imported_tables;
   num_imported_globals_ = module->num_imported_globals;
   num_imported_tags_ = module->num_imported_tags;
@@ -1081,7 +1081,7 @@ void ModuleDisassembler::PrintModule(Indentation indentation, size_t max_mb) {
     out_.NextLine(func->code.offset());
     bool shared = module_->type(func->sig_index).is_shared;
     WasmDetectedFeatures detected;
-    ::v8::base::Vector<const uint8_t> code = wire_bytes_.GetFunctionBytes(func);
+    ZoneVector<const uint8_t> code = wire_bytes_.GetFunctionBytes(func);
     FunctionBodyDisassembler d(&zone_, module_, i, shared, &detected, func->sig,
                                code.begin(), code.end(), func->code.offset(),
                                wire_bytes_, names_);

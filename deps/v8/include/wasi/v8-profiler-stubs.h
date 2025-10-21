@@ -14,6 +14,7 @@ class Isolate;
 // Forward declarations
 class CpuProfile;
 class CpuProfileNode;
+class EmbedderGraph;
 
 // CpuProfileDeoptFrame stub - defined before CpuProfileDeoptInfo
 struct CpuProfileDeoptFrame {
@@ -30,6 +31,14 @@ struct CpuProfileDeoptInfo {
 // CpuProfileNode stub
 class CpuProfileNode {
  public:
+  // Stubbed constants for API compatibility
+  static constexpr int kNoLineNumberInfo = 0;
+  static constexpr int kNoColumnNumberInfo = 0;
+
+  struct LineTick {
+    int line;
+    unsigned hit_count;
+  };
   enum SourceType {
     kScript = 0,
     kBuiltin = 1,
@@ -48,6 +57,7 @@ class CpuProfileNode {
   int GetChildrenCount() const { return 0; }
   const CpuProfileNode* GetChild(int index) const { return nullptr; }
   SourceType GetSourceType() const { return kScript; }
+  const LineTick* GetLineTicks() const { return nullptr; }
   const std::vector<CpuProfileDeoptInfo>& GetDeoptInfos() const {
     static std::vector<CpuProfileDeoptInfo> empty;
     return empty;
@@ -111,6 +121,27 @@ class CpuProfiler {
   static void CollectSample(Isolate* isolate) {}
 };
 
+// Provide a top-level CpuProfilingOptions compatible with src/* expectations.
+struct CpuProfilingOptions {
+  using CpuProfilingMode = CpuProfiler::CpuProfilingMode;
+  static constexpr unsigned kNoSampleLimit = 0;
+  CpuProfilingMode mode_;
+  unsigned max_samples_limit_;
+  int sampling_interval_us_;
+  CpuProfilingOptions()
+      : mode_(CpuProfiler::kLeafNodeLineNumbers),
+        max_samples_limit_(kNoSampleLimit),
+        sampling_interval_us_(0) {}
+  explicit CpuProfilingOptions(CpuProfilingMode mode,
+                               unsigned max_samples_arg = kNoSampleLimit,
+                               int sampling_interval_us_arg = 0)
+      : mode_(mode),
+        max_samples_limit_(max_samples_arg),
+        sampling_interval_us_(sampling_interval_us_arg) {}
+  unsigned max_samples() const { return max_samples_limit_; }
+  int sampling_interval_us() const { return sampling_interval_us_; }
+};
+
 // CodeEvent types for logging
 struct CodeEvent {
   enum Type {
@@ -160,6 +191,8 @@ class AllocationProfile {
 // Note: HeapGraphNode, HeapSnapshot, and HeapProfiler are defined in embedder-graph-stub.h
 
 }  // namespace v8
+
+// (HeapProfiler is defined in embedder-graph-stub.h for WASI builds)
 
 #endif  // __wasi__
 

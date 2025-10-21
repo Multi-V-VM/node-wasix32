@@ -185,7 +185,7 @@ class V8_EXPORT_PRIVATE SwitchBuilder final
 
  private:
   // Unbound labels that identify jumps for case statements in the code.
-  ::v8::base::Vector<BytecodeLabel> case_sites_;
+  ZoneVector<BytecodeLabel> case_sites_;
   BytecodeLabels default_;
   BytecodeLabels fall_through_;
   BytecodeJumpTable* jump_table_;
@@ -331,8 +331,8 @@ class V8_EXPORT_PRIVATE ConditionalChainControlFlowBuilder final
   ZonePtrList<BytecodeLabels> then_labels_list_;
   ZonePtrList<BytecodeLabels> else_labels_list_;
 
-  ::v8::base::Vector<int> block_coverage_then_slots_;
-  ::v8::base::Vector<int> block_coverage_else_slots_;
+  ZoneVector<int> block_coverage_then_slots_;
+  ZoneVector<int> block_coverage_else_slots_;
   BlockCoverageBuilder* block_coverage_builder_;
 };
 

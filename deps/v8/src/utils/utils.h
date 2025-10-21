@@ -20,6 +20,7 @@
 #include "src/base/numerics/safe_conversions.h"
 #include "src/base/vector.h"
 #include "src/common/globals.h"
+#include "src/zone/zone-containers.h"
 // Needed for ReadUnalignedValue/WriteUnalignedValue declarations.
 #include "src/base/memory.h"
 
@@ -853,8 +854,8 @@ inline Float16 FpOpWorkaround(Float16 input, Float16 value) {
 
 #endif
 
-V8_EXPORT_PRIVATE bool PassesFilter(::v8::base::Vector<const char> name,
-                                    ::v8::base::Vector<const char> filter);
+V8_EXPORT_PRIVATE bool PassesFilter(ZoneVector<const char> name,
+                                    ZoneVector<const char> filter);
 
 // Zap the specified area with a specific byte pattern. This currently defaults
 // to int3 on x64 and ia32. On other architectures this will produce unspecified

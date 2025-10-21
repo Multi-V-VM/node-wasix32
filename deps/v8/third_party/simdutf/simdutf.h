@@ -14,15 +14,27 @@
 
 namespace simdutf {
 
-struct result {
-    size_t count;
-    int error;
+// Minimal structures and enums to satisfy V8 usage on WASI.
+// Keep signatures compatible with V8's expectations.
+enum class error_code : int {
+    SUCCESS = 0,
+    INVALID_UTF8 = 1,
+    INVALID_BASE64_CHARACTER = 2,
+    BASE64_INPUT_REMAINDER = 3,
+    BASE64_EXTRA_BITS = 4,
 };
 
-namespace error_code {
-    constexpr int SUCCESS = 0;
-    constexpr int INVALID_UTF8 = 1;
-}
+struct result {
+    size_t count;
+    error_code error;
+};
+
+// Base64 option enums used by TypedArray builtins in newer V8 versions.
+enum class base64_options { base64_default, base64_url };
+enum class last_chunk_handling_options { loose, strict, stop_before_partial };
+// Backward-compatible constants
+constexpr base64_options base64_default = base64_options::base64_default;
+constexpr base64_options base64_url = base64_options::base64_url;
 
 // Function declarations (these are implemented in simdutf_wasi.cpp)
 simdutf_warn_unused bool validate_utf8(const char* buf, size_t len) noexcept;
@@ -45,14 +57,15 @@ inline size_t convert_utf8_to_utf16(const char* input, size_t length, char16_t* 
 }
 
 inline result convert_utf8_to_latin1_with_errors(const char* input, size_t length, char* output) noexcept {
-    result res;
-    res.count = length;
-    res.error = error_code::SUCCESS;
-    for (size_t i = 0; i < length; ++i) {
-        output[i] = input[i];
-    }
-    return res;
+    for (size_t i = 0; i < length; ++i) output[i] = input[i];
+    return {length, error_code::SUCCESS};
 }
+
+// Minimal base64 API used by V8; implemented in simdutf_wasi.cpp
+size_t maximal_binary_length_from_base64(const char* input, size_t length) noexcept;
+result base64_to_binary_safe(const char* input, size_t input_length, char* output,
+                             size_t output_length, base64_options alphabet,
+                             last_chunk_handling_options last_chunk) noexcept;
 
 }  // namespace simdutf
 

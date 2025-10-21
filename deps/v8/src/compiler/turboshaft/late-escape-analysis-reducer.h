@@ -36,11 +36,11 @@ class LateEscapeAnalysisAnalyzer {
   Zone* phase_zone_;
 
   // {alloc_uses_} records all the uses of each AllocateOp.
-  ZoneAbslFlatHashMap<OpIndex, ::v8::base::Vector<OpIndex>> alloc_uses_;
+  ZoneAbslFlatHashMap<OpIndex, ZoneVector<OpIndex>> alloc_uses_;
   // {allocs_} is filled with all of the AllocateOp of the graph, and then
   // iterated upon to determine which allocations can be removed and which
   // cannot.
-  ::v8::base::Vector<OpIndex> allocs_;
+  ZoneVector<OpIndex> allocs_;
 };
 
 template <class Next>

@@ -28,7 +28,7 @@ std::atomic<JSSynchronizationPrimitive::StateT>*
 JSSynchronizationPrimitive::AtomicStatePtr() {
   StateT* state_ptr = reinterpret_cast<StateT*>(field_address(kStateOffset));
   DCHECK(IsAligned(reinterpret_cast<uintptr_t>(state_ptr), sizeof(StateT)));
-  return base::AsAtomicPtr(state_ptr);
+  return ::v8::base::AsAtomicPtr(state_ptr);
 }
 
 void JSSynchronizationPrimitive::SetNullWaiterQueueHead() {

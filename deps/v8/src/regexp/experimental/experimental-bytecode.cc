@@ -129,7 +129,7 @@ int DigitsRequiredBelow(int n) {
 }  // namespace
 
 std::ostream& operator<<(std::ostream& os,
-                         ::v8::base::Vector<const RegExpInstruction> insts) {
+                         ZoneVector<const RegExpInstruction> insts) {
   int inst_num = insts.length();
   int line_digit_num = DigitsRequiredBelow(inst_num);
 

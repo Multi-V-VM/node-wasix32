@@ -64,7 +64,7 @@ SnapshotData SnapshotCompression::Compress(
 }
 
 SnapshotData SnapshotCompression::Decompress(
-    ::v8::base::Vector<const uint8_t> compressed_data) {
+    ZoneVector<const uint8_t> compressed_data) {
   SnapshotData snapshot_data;
   base::ElapsedTimer timer;
   if (v8_flags.profile_deserialization) timer.Start();

@@ -257,12 +257,12 @@ class V8_EXPORT_PRIVATE BackingStore : public BackingStoreBase {
     // If this backing store was allocated through the ArrayBufferAllocator API,
     // this is a direct pointer to the API object for freeing the backing
     // store.
-    v8::ArrayBuffer::Allocator* v8_api_array_buffer_allocator;
+    ::v8::ArrayBuffer::Allocator* v8_api_array_buffer_allocator;
 
     // Holds a shared_ptr to the ArrayBuffer::Allocator instance, if requested
     // so by the embedder through setting
     // Isolate::CreateParams::array_buffer_allocator_shared.
-    std::shared_ptr<v8::ArrayBuffer::Allocator>
+    std::shared_ptr<::v8::ArrayBuffer::Allocator>
         v8_api_array_buffer_allocator_shared;
 
     // For shared Wasm memories, this is a list of all the attached memory
@@ -272,7 +272,7 @@ class V8_EXPORT_PRIVATE BackingStore : public BackingStoreBase {
     // Custom deleter for the backing stores that wrap memory blocks that are
     // allocated with a custom allocator.
     struct DeleterInfo {
-      v8::BackingStore::DeleterCallback callback;
+      ::v8::BackingStore::DeleterCallback callback;
       void* data;
     } deleter;
   } type_specific_data_;

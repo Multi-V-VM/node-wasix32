@@ -217,7 +217,7 @@ class CodeEventLogger::NameBuffer {
   void AppendInt(int n) {
     if (utf8_pos_ >= kUtf8BufferSize) return;
     size_t space = kUtf8BufferSize - utf8_pos_;
-    ::v8::base::Vector<char> buffer(utf8_buffer_ + utf8_pos_, space);
+    ZoneVector<char> buffer(utf8_buffer_ + utf8_pos_, space);
     int size = SNPrintF(buffer, "%d", n);
     if (size > 0 && utf8_pos_ + size <= kUtf8BufferSize) {
       utf8_pos_ += size;
@@ -227,7 +227,7 @@ class CodeEventLogger::NameBuffer {
   void AppendHex(uint32_t n) {
     if (utf8_pos_ >= kUtf8BufferSize) return;
     size_t space = kUtf8BufferSize - utf8_pos_;
-    ::v8::base::Vector<char> buffer(utf8_buffer_ + utf8_pos_, space);
+    ZoneVector<char> buffer(utf8_buffer_ + utf8_pos_, space);
     int size = SNPrintF(buffer, "%x", n);
     if (size > 0 && utf8_pos_ + size <= kUtf8BufferSize) {
       utf8_pos_ += size;
@@ -414,7 +414,7 @@ PerfBasicLogger::PerfBasicLogger(Isolate* isolate) : CodeEventLogger(isolate) {
     CHECK_NOT_NULL(v8_flags.perf_basic_prof_path);
     const char* base_dir = v8_flags.perf_basic_prof_path;
     // Open the perf JIT dump file.
-    base::Scoped::v8::base::Vector<char> perf_dump_name(strlen(base_dir) +
+    base::ScopedZoneVector<char> perf_dump_name(strlen(base_dir) +
                                             kFilenameBufferPadding);
     int size =
         SNPrintF(perf_dump_name, "%s/perf-%d.map", base_dir, process_id_);
@@ -735,7 +735,7 @@ LowLevelLogger::LowLevelLogger(Isolate* isolate, const char* name)
     : CodeEventLogger(isolate), ll_output_handle_(nullptr) {
   // Open the low-level log file.
   size_t len = strlen(name);
-  base::Scoped::v8::base::Vector<char> ll_name(static_cast<int>(len + sizeof(kLogExt)));
+  base::ScopedZoneVector<char> ll_name(static_cast<int>(len + sizeof(kLogExt)));
   MemCopy(ll_name.begin(), name, len);
   MemCopy(ll_name.begin() + len, kLogExt, sizeof(kLogExt));
   ll_output_handle_ =
@@ -1787,7 +1787,7 @@ void V8FileLogger::CodeLinePosInfoRecordEvent(
 
 #if V8_ENABLE_WEBASSEMBLY
 void V8FileLogger::WasmCodeLinePosInfoRecordEvent(
-    Address code_start, ::v8::base::Vector<const uint8_t> source_position_table) {
+    Address code_start, ZoneVector<const uint8_t> source_position_table) {
   if (!jit_logger_) return;
   VMStateIfMainThread<LOGGING> state(isolate_);
   SourcePositionTableIterator iter(source_position_table);

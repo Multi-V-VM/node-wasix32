@@ -7,6 +7,7 @@
 // for WASI builds where they are otherwise missing
 
 #include <cstdint>
+#include <cstdio>
 #include <functional>
 #include <iterator>
 #include <utility>
@@ -33,12 +34,22 @@ namespace internal {
 namespace base {
 
 // ============================================================================
-// DefaultAllocationPolicy - Simple allocator policy using malloc/free
+// DefaultAllocationPolicy - Simple allocator policy compatible with V8 usage
 // ============================================================================
 
 struct DefaultAllocationPolicy {
   static void* Allocate(size_t size) { return std::malloc(size); }
   static void Free(void* ptr) { std::free(ptr); }
+
+  template <typename T, typename TypeTag = T[]>
+  V8_INLINE T* AllocateArray(size_t length) {
+    return static_cast<T*>(Allocate(length * sizeof(T)));
+  }
+
+  template <typename T, typename TypeTag = T[]>
+  V8_INLINE void DeleteArray(T* p, size_t /*length*/) {
+    Free(static_cast<void*>(p));
+  }
 };
 
 // ============================================================================
@@ -162,7 +173,9 @@ using ::v8::base::VectorOf;
 using ::v8::base::SNPrintF;
 using ::v8::base::VSNPrintF;
 using ::v8::base::vector_append;
-using ::v8::base::hash_combine;
+
+  // Note: avoid defining custom hashing helpers here; rely on ::v8::base::hash
+  // and base::Hasher from src/base/hashing.h to prevent conflicts.
 
 // LeakyObject for objects that are never freed
 template <typename T>
@@ -208,6 +221,37 @@ struct iterator {
   using pointer = Pointer;
   using reference = Reference;
 };
+
+// File operations wrapper
+inline int Fclose(FILE* file) {
+  return file ? fclose(file) : 0;
+}
+
+// Atomic type selector template
+template <int ByteWidth>
+struct AtomicTypeFromByteWidth;
+
+template <>
+struct AtomicTypeFromByteWidth<1> {
+  using type = Atomic8;
+};
+
+template <>
+struct AtomicTypeFromByteWidth<2> {
+  using type = Atomic16;
+};
+
+template <>
+struct AtomicTypeFromByteWidth<4> {
+  using type = Atomic32;
+};
+
+#if defined(V8_HOST_ARCH_64_BIT)
+template <>
+struct AtomicTypeFromByteWidth<8> {
+  using type = Atomic64;
+};
+#endif
 
 }  // namespace base
 }  // namespace internal

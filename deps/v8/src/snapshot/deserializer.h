@@ -49,7 +49,7 @@ class Deserializer : public SerializerDeserializer {
 
  protected:
   // Create a deserializer from a snapshot byte source.
-  Deserializer(IsolateT* isolate, ::v8::base::Vector<const uint8_t> payload,
+  Deserializer(IsolateT* isolate, ZoneVector<const uint8_t> payload,
                uint32_t magic_number, bool deserializing_user_code,
                bool can_rehash);
 
@@ -82,24 +82,24 @@ class Deserializer : public SerializerDeserializer {
 
   SnapshotByteSource* source() { return &source_; }
 
-  ::v8::base::Vector<const DirectHandle<AllocationSite>> new_allocation_sites()
+  ZoneVector<const DirectHandle<AllocationSite>> new_allocation_sites()
       const {
     return {new_allocation_sites_.data(), new_allocation_sites_.size()};
   }
-  ::v8::base::Vector<const DirectHandle<InstructionStream>> new_code_objects() const {
+  ZoneVector<const DirectHandle<InstructionStream>> new_code_objects() const {
     return {new_code_objects_.data(), new_code_objects_.size()};
   }
-  ::v8::base::Vector<const DirectHandle<Map>> new_maps() const {
+  ZoneVector<const DirectHandle<Map>> new_maps() const {
     return {new_maps_.data(), new_maps_.size()};
   }
-  ::v8::base::Vector<const DirectHandle<AccessorInfo>> accessor_infos() const {
+  ZoneVector<const DirectHandle<AccessorInfo>> accessor_infos() const {
     return {accessor_infos_.data(), accessor_infos_.size()};
   }
-  ::v8::base::Vector<const DirectHandle<FunctionTemplateInfo>>
+  ZoneVector<const DirectHandle<FunctionTemplateInfo>>
   function_template_infos() const {
     return {function_template_infos_.data(), function_template_infos_.size()};
   }
-  ::v8::base::Vector<const DirectHandle<Script>> new_scripts() const {
+  ZoneVector<const DirectHandle<Script>> new_scripts() const {
     return {new_scripts_.data(), new_scripts_.size()};
   }
 
@@ -275,23 +275,23 @@ class Deserializer : public SerializerDeserializer {
   IsolateT* isolate_;
 
   // Objects from the attached object descriptions in the serialized user code.
-  DirectHandle<::v8::base::Vector<HeapObject> attached_objects_;
+  DirectHandle<ZoneVector<HeapObject> attached_objects_;
 
   SnapshotByteSource source_;
   uint32_t magic_number_;
 
   HotObjectsList hot_objects_;
-  DirectHandle<::v8::base::Vector<Map> new_maps_;
-  DirectHandle<::v8::base::Vector<AllocationSite> new_allocation_sites_;
-  DirectHandle<::v8::base::Vector<InstructionStream> new_code_objects_;
-  DirectHandle<::v8::base::Vector<AccessorInfo> accessor_infos_;
-  DirectHandle<::v8::base::Vector<FunctionTemplateInfo> function_template_infos_;
-  DirectHandle<::v8::base::Vector<Script> new_scripts_;
+  DirectHandle<ZoneVector<Map> new_maps_;
+  DirectHandle<ZoneVector<AllocationSite> new_allocation_sites_;
+  DirectHandle<ZoneVector<InstructionStream> new_code_objects_;
+  DirectHandle<ZoneVector<AccessorInfo> accessor_infos_;
+  DirectHandle<ZoneVector<FunctionTemplateInfo> function_template_infos_;
+  DirectHandle<ZoneVector<Script> new_scripts_;
   std::vector<std::shared_ptr<BackingStore>> backing_stores_;
 
   // Roots vector as those arrays are passed to Heap, see
   // WeakenDescriptorArrays().
-  GlobalHandle::v8::base::Vector<DescriptorArray> new_descriptor_arrays_;
+  GlobalHandleZoneVector<DescriptorArray> new_descriptor_arrays_;
 
   // Vector of allocated objects that can be accessed by a backref, by index.
   std::vector<IndirectHandle<HeapObject>> back_refs_;
@@ -325,7 +325,7 @@ class Deserializer : public SerializerDeserializer {
 
   // TODO(6593): generalize rehashing, and remove this flag.
   const bool should_rehash_;
-  DirectHandle<::v8::base::Vector<HeapObject> to_rehash_;
+  DirectHandle<ZoneVector<HeapObject> to_rehash_;
 
   // Do not collect any gc stats during deserialization since objects might
   // be in an invalid state

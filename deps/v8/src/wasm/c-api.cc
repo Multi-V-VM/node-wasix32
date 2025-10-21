@@ -1238,7 +1238,7 @@ WASM_EXPORT auto Module::make(Store* store_abs, const vec<byte_t>& binary)
   v8::Isolate::Scope isolate_scope(store->isolate());
   i::HandleScope scope(isolate);
   CheckAndHandleInterrupts(isolate);
-  v8::base::Owned::v8::base::Vector<const uint8_t> bytes = ::v8::base::OwnedCopyOf(
+  v8::base::OwnedZoneVector<const uint8_t> bytes = ::v8::base::OwnedCopyOf(
       reinterpret_cast<const uint8_t*>(binary.get()), binary.size());
   i::wasm::WasmEnabledFeatures features =
       i::wasm::WasmEnabledFeatures::FromIsolate(isolate);

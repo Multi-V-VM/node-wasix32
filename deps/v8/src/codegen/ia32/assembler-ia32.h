@@ -281,7 +281,7 @@ class V8_EXPORT_PRIVATE Operand {
   // register.
   Register reg() const;
 
-  ::v8::base::Vector<const uint8_t> encoded_bytes() const { return {buf_, len_}; }
+  ZoneVector<const uint8_t> encoded_bytes() const { return {buf_, len_}; }
   RelocInfo::Mode rmode() { return rmode_; }
 
  private:

@@ -3048,7 +3048,7 @@ void InstructionSelectorT::EmitMoveFPRToParam(InstructionOperand* op,
                                               LinkageLocation location) {}
 
 void InstructionSelectorT::EmitPrepareArguments(
-    ::v8::base::Vector<PushParameter>* arguments, const CallDescriptor* call_descriptor,
+    ZoneVector<PushParameter>* arguments, const CallDescriptor* call_descriptor,
     OpIndex node) {
   X64OperandGeneratorT g(this);
 
@@ -3105,7 +3105,7 @@ void InstructionSelectorT::EmitPrepareArguments(
 }
 
 void InstructionSelectorT::EmitPrepareResults(
-    ::v8::base::Vector<PushParameter>* results, const CallDescriptor* call_descriptor,
+    ZoneVector<PushParameter>* results, const CallDescriptor* call_descriptor,
     OpIndex node) {
   X64OperandGeneratorT g(this);
   for (PushParameter output : *results) {

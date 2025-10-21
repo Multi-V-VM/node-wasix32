@@ -480,7 +480,7 @@ class TurboshaftGraphBuildingInterface : public WasmGraphBuilderBase {
   TurboshaftGraphBuildingInterface(
       Zone* zone, CompilationEnv* env, Assembler& assembler,
       std::unique_ptr<AssumptionsJournal>* assumptions,
-      ::v8::base::Vector<WasmInliningPosition>* inlining_positions, int func_index,
+      ZoneVector<WasmInliningPosition>* inlining_positions, int func_index,
       bool shared, const WireBytesStorage* wire_bytes)
       : WasmGraphBuilderBase(zone, assembler),
         mode_(kRegular),
@@ -505,9 +505,9 @@ class TurboshaftGraphBuildingInterface : public WasmGraphBuilderBase {
       Zone* zone, CompilationEnv* env, Assembler& assembler, Mode mode,
       InstanceCache& instance_cache,
       std::unique_ptr<AssumptionsJournal>* assumptions,
-      ::v8::base::Vector<WasmInliningPosition>* inlining_positions, int func_index,
+      ZoneVector<WasmInliningPosition>* inlining_positions, int func_index,
       bool shared, const WireBytesStorage* wire_bytes,
-      ::v8::base::Vector<OpIndex> real_parameters, TSBlock* return_block,
+      ZoneVector<OpIndex> real_parameters, TSBlock* return_block,
       BlockPhis* return_phis, TSBlock* catch_block, bool is_inlined_tail_call,
       OptionalV<FrameState> parent_frame_state)
       : WasmGraphBuilderBase(zone, assembler),
@@ -2824,7 +2824,7 @@ class TurboshaftGraphBuildingInterface : public WasmGraphBuilderBase {
             decoder, index_wordptr, imm, kNeedsTypeOrNullCheck);
 
         size_t return_count = imm.sig->return_count();
-        ::v8::base::Vector<InliningTree*> feedback_cases =
+        ZoneVector<InliningTree*> feedback_cases =
             inlining_decisions_->function_calls()[feedback_slot_];
         std::vector<base::SmallVector<OpIndex, 2>> case_returns(return_count);
         // The slow path is the non-inlined generic `call_indirect`,
@@ -3007,7 +3007,7 @@ class TurboshaftGraphBuildingInterface : public WasmGraphBuilderBase {
         auto [target, implicit_arg] = BuildIndirectCallTargetAndImplicitArg(
             decoder, index_wordptr, imm, kNeedsTypeOrNullCheck);
 
-        ::v8::base::Vector<InliningTree*> feedback_cases =
+        ZoneVector<InliningTree*> feedback_cases =
             inlining_decisions_->function_calls()[feedback_slot_];
         constexpr int kSlowpathCase = 1;
         base::SmallVector<TSBlock*, wasm::kMaxPolymorphism + kSlowpathCase>
@@ -3109,7 +3109,7 @@ class TurboshaftGraphBuildingInterface : public WasmGraphBuilderBase {
           MemoryRepresentation::TaggedPointer());
 
       size_t return_count = sig->return_count();
-      ::v8::base::Vector<InliningTree*> feedback_cases =
+      ZoneVector<InliningTree*> feedback_cases =
           inlining_decisions_->function_calls()[feedback_slot_];
       std::vector<base::SmallVector<OpIndex, 2>> case_returns(return_count);
       // The slow path is the non-inlined generic `call_ref`,
@@ -3238,7 +3238,7 @@ class TurboshaftGraphBuildingInterface : public WasmGraphBuilderBase {
           trusted_instance_data(kNotShared), FuncRefs,
           MemoryRepresentation::TaggedPointer());
 
-      ::v8::base::Vector<InliningTree*> feedback_cases =
+      ZoneVector<InliningTree*> feedback_cases =
           inlining_decisions_->function_calls()[feedback_slot_];
       constexpr int kSlowpathCase = 1;
       base::SmallVector<TSBlock*, wasm::kMaxPolymorphism + kSlowpathCase>
@@ -3551,7 +3551,7 @@ class TurboshaftGraphBuildingInterface : public WasmGraphBuilderBase {
 
   void SimdLaneOp(FullDecoder* decoder, WasmOpcode opcode,
                   const SimdLaneImmediate& imm,
-                  ::v8::base::Vector<const Value> inputs, Value* result) {
+                  ZoneVector<const Value> inputs, Value* result) {
     using compiler::turboshaft::Simd128ExtractLaneOp;
     using compiler::turboshaft::Simd128ReplaceLaneOp;
     using Simd128 = compiler::turboshaft::Simd128;
@@ -3762,7 +3762,7 @@ class TurboshaftGraphBuildingInterface : public WasmGraphBuilderBase {
   }
 
   void CatchException(FullDecoder* decoder, const TagIndexImmediate& imm,
-                      Control* block, ::v8::base::Vector<Value> values) {
+                      Control* block, ZoneVector<Value> values) {
     if (deopts_enabled()) {
       if (v8_flags.trace_wasm_inlining) {
         PrintF(
@@ -3892,7 +3892,7 @@ class TurboshaftGraphBuildingInterface : public WasmGraphBuilderBase {
   void TryTable(FullDecoder* decoder, Control* block) { Try(decoder, block); }
 
   void CatchCase(FullDecoder* decoder, Control* block,
-                 const CatchCase& catch_case, ::v8::base::Vector<Value> values) {
+                 const CatchCase& catch_case, ZoneVector<Value> values) {
     // If this is the first catch case, {block->false_or_loop_or_catch_block} is
     // the block that was created on block entry, and is where all throwing
     // instructions in the try-table jump to if they throw.
@@ -4013,7 +4013,7 @@ class TurboshaftGraphBuildingInterface : public WasmGraphBuilderBase {
   }
 
   void Resume(FullDecoder* decoder, const ContIndexImmediate& imm,
-              ::v8::base::Vector<HandlerCase> handlers, const Value args[],
+              ZoneVector<HandlerCase> handlers, const Value args[],
               const Value returns[]) {
     UNIMPLEMENTED();
   }
@@ -4021,7 +4021,7 @@ class TurboshaftGraphBuildingInterface : public WasmGraphBuilderBase {
   void ResumeThrow(FullDecoder* decoder,
                    const wasm::ContIndexImmediate& cont_imm,
                    const TagIndexImmediate& exc_imm,
-                   ::v8::base::Vector<wasm::HandlerCase> handlers, const Value args[],
+                   ZoneVector<wasm::HandlerCase> handlers, const Value args[],
                    const Value returns[]) {
     UNIMPLEMENTED();
   }
@@ -5755,7 +5755,7 @@ class TurboshaftGraphBuildingInterface : public WasmGraphBuilderBase {
       phi_count_ = num_locals + merge_arity;
       phi_types_ = decoder->zone()->AllocateArray<ValueType>(phi_count_);
 
-      ::v8::base::Vector<ValueType> locals = decoder->local_types();
+      ZoneVector<ValueType> locals = decoder->local_types();
       std::uninitialized_copy(locals.begin(), locals.end(), phi_types_);
       for (uint32_t i = 0; i < merge_arity; i++) {
         new (&phi_types_[num_locals + i]) ValueType((*merge)[i].type);
@@ -5778,7 +5778,7 @@ class TurboshaftGraphBuildingInterface : public WasmGraphBuilderBase {
 
     // Default ctor and later initialization for function returns.
     explicit BlockPhis(Zone* zone) : incoming_exceptions_(zone) {}
-    void InitReturnPhis(::v8::base::Vector<const ValueType> return_types) {
+    void InitReturnPhis(ZoneVector<const ValueType> return_types) {
       // For `return_phis_`, nobody should have inserted into `this` before
       // calling `InitReturnPhis`.
       DCHECK_EQ(phi_count_, 0);
@@ -5825,7 +5825,7 @@ class TurboshaftGraphBuildingInterface : public WasmGraphBuilderBase {
 
     ValueType phi_type(size_t phi_i) const { return phi_types_[phi_i]; }
 
-    ::v8::base::Vector<const OpIndex> phi_inputs(size_t phi_i) const {
+    ZoneVector<const OpIndex> phi_inputs(size_t phi_i) const {
       size_t phi_inputs_start = phi_i * input_capacity_per_phi_;
       return base::VectorOf(&phi_inputs_[phi_inputs_start], inputs_per_phi_);
     }
@@ -5834,7 +5834,7 @@ class TurboshaftGraphBuildingInterface : public WasmGraphBuilderBase {
       incoming_exceptions_.push_back(exception);
     }
 
-    ::v8::base::Vector<const OpIndex> incoming_exceptions() const {
+    ZoneVector<const OpIndex> incoming_exceptions() const {
       return base::VectorOf(incoming_exceptions_);
     }
 
@@ -5893,7 +5893,7 @@ class TurboshaftGraphBuildingInterface : public WasmGraphBuilderBase {
     // The number of `incoming_exceptions` is also not known when constructing
     // the block, but at least it is only one-dimensional, so we can use a
     // simple `ZoneVector`.
-    ::v8::base::Vector<OpIndex> incoming_exceptions_;
+    ZoneVector<OpIndex> incoming_exceptions_;
 
     Zone* zone() { return incoming_exceptions_.zone(); }
 
@@ -5981,7 +5981,7 @@ class TurboshaftGraphBuildingInterface : public WasmGraphBuilderBase {
     }
   }
 
-  OpIndex MaybePhi(::v8::base::Vector<const OpIndex> elements, ValueType type) {
+  OpIndex MaybePhi(ZoneVector<const OpIndex> elements, ValueType type) {
     if (elements.empty()) return OpIndex::Invalid();
     for (size_t i = 1; i < elements.size(); i++) {
       if (elements[i] != elements[0]) {
@@ -7783,7 +7783,7 @@ class TurboshaftGraphBuildingInterface : public WasmGraphBuilderBase {
   }
 
   OpIndex CallAndMaybeCatchException(FullDecoder* decoder, V<CallTarget> callee,
-                                     ::v8::base::Vector<const OpIndex> args,
+                                     ZoneVector<const OpIndex> args,
                                      const TSCallDescriptor* descriptor,
                                      CheckForException check_for_exception,
                                      OpEffects effects) {
@@ -7997,7 +7997,7 @@ class TurboshaftGraphBuildingInterface : public WasmGraphBuilderBase {
   }
 
   void UnpackWasmException(FullDecoder* decoder, V<Object> exception,
-                           ::v8::base::Vector<Value> values) {
+                           ZoneVector<Value> values) {
     V<FixedArray> exception_values_array = V<FixedArray>::Cast(
         CallBuiltinThroughJumptable<BuiltinCallDescriptor::WasmGetOwnProperty>(
             decoder, instance_cache_.native_context(),
@@ -8395,7 +8395,7 @@ class TurboshaftGraphBuildingInterface : public WasmGraphBuilderBase {
       inlinee_args[i + 1] = args[i].op;
     }
 
-    ::v8::base::Vector<const uint8_t> function_bytes =
+    ZoneVector<const uint8_t> function_bytes =
         wire_bytes_->GetCode(inlinee.code);
 
     const wasm::FunctionBody inlinee_body{
@@ -8732,9 +8732,9 @@ class TurboshaftGraphBuildingInterface : public WasmGraphBuilderBase {
   // Yes, a *pointer* to a `unique_ptr`. The `unique_ptr` is allocated lazily
   // when adding the first assumption.
   std::unique_ptr<AssumptionsJournal>* assumptions_;
-  ::v8::base::Vector<WasmInliningPosition>* inlining_positions_;
+  ZoneVector<WasmInliningPosition>* inlining_positions_;
   uint8_t inlining_id_ = kNoInliningId;
-  ::v8::base::Vector<OpIndex> ssa_env_;
+  ZoneVector<OpIndex> ssa_env_;
   compiler::NullCheckStrategy null_check_strategy_ =
       trap_handler::IsTrapHandlerEnabled() && V8_STATIC_ROOTS_BOOL
           ? compiler::NullCheckStrategy::kTrapHandler
@@ -8755,7 +8755,7 @@ class TurboshaftGraphBuildingInterface : public WasmGraphBuilderBase {
   /* Used for inlining modes */
   // Contains real parameters for this inlined function, including the instance.
   // Used only in StartFunction();
-  ::v8::base::Vector<OpIndex> real_parameters_;
+  ZoneVector<OpIndex> real_parameters_;
   // The block where this function returns its values (passed by the caller).
   TSBlock* return_block_ = nullptr;
   // The return values and exception values for this function.
@@ -8777,7 +8777,7 @@ V8_EXPORT_PRIVATE void BuildTSGraph(
     CompilationEnv* env, WasmDetectedFeatures* detected, Graph& graph,
     const FunctionBody& func_body, const WireBytesStorage* wire_bytes,
     std::unique_ptr<AssumptionsJournal>* assumptions,
-    ::v8::base::Vector<WasmInliningPosition>* inlining_positions, int func_index) {
+    ZoneVector<WasmInliningPosition>* inlining_positions, int func_index) {
   DCHECK(env->module->function_was_validated(func_index));
   Zone zone(allocator, ZONE_NAME);
   WasmGraphBuilderBase::Assembler assembler(data, graph, graph, &zone);

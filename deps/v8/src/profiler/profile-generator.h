@@ -419,7 +419,7 @@ class CpuProfile {
 
   V8_EXPORT_PRIVATE CpuProfile(
       CpuProfiler* profiler, ProfilerId id, const char* title,
-      CpuProfilingOptions options,
+      v8::CpuProfilingOptions options,
       std::unique_ptr<DiscardedSamplesDelegate> delegate = nullptr);
   CpuProfile(const CpuProfile&) = delete;
   CpuProfile& operator=(const CpuProfile&) = delete;
@@ -459,7 +459,7 @@ class CpuProfile {
   void StreamPendingTraceEvents();
 
   const char* title_;
-  const CpuProfilingOptions options_;
+  const v8::CpuProfilingOptions options_;
   std::unique_ptr<DiscardedSamplesDelegate> delegate_;
   ContextFilter context_filter_;
   base::TimeTicks start_time_;
@@ -549,7 +549,7 @@ class V8_EXPORT_PRIVATE CpuProfilesCollection {
 
   void set_cpu_profiler(CpuProfiler* profiler) { profiler_ = profiler; }
   CpuProfilingResult StartProfiling(
-      const char* title = nullptr, CpuProfilingOptions options = {},
+      const char* title = nullptr, v8::CpuProfilingOptions options = {},
       std::unique_ptr<DiscardedSamplesDelegate> delegate = nullptr);
 
   // This Method is only visible for testing
@@ -589,7 +589,7 @@ class V8_EXPORT_PRIVATE CpuProfilesCollection {
  private:
   CpuProfilingResult StartProfiling(
       ProfilerId id, const char* title = nullptr,
-      CpuProfilingOptions options = {},
+      v8::CpuProfilingOptions options = {},
       std::unique_ptr<DiscardedSamplesDelegate> delegate = nullptr);
   StringsStorage resource_names_;
   std::vector<std::unique_ptr<CpuProfile>> finished_profiles_;

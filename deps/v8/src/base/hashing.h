@@ -381,12 +381,21 @@ V8_BASE_BIT_SPECIALIZE_BIT_CAST(double, uint64_t)
 }  // namespace base
 }  // namespace v8
 
-// Specialization for ::v8::base::Vector<T> moved here to avoid including
-// hashing machinery from vector.h
-template <typename T>
-V8_INLINE size_t hash_value(::v8::base::Vector<T> v) {
-  return hash_range(v.begin(), v.end());
-}
+#ifdef __wasi__
+// Include namespace aliases AFTER v8::base is defined
+#include "../../include/wasi/v8-internal-base-namespace.h"
+#endif
+
+// Note: std::hash<std::pair<...>> specializations should be defined by users
+// close to use-sites to avoid ODR conflicts. V8-specific specializations
+// should live in V8 headers that own their usage (e.g., torque headers).
+
+// Specialization for ZoneVector<T> commented out - ZoneVector is not available in base/
+// This should be defined in zone/zone-containers.h or a zone-specific header
+// template <typename T>
+// V8_INLINE size_t hash_value(ZoneVector<T> v) {
+//   return hash_range(v.begin(), v.end());
+// }
 
 
 #endif  // V8_BASE_HASHING_H_

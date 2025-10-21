@@ -1061,8 +1061,8 @@ SpillRange::SpillRange(TopLevelLiveRange* parent, Zone* zone)
 // Checks if the `UseInterval`s in `a` intersect with those in `b`.
 // Returns the two intervals that intersected, or `std::nullopt` if none did.
 static std::optional<std::pair<UseInterval, UseInterval>>
-AreUseIntervalsIntersectingVector(::v8::base::Vector<const UseInterval> a,
-                                  ::v8::base::Vector<const UseInterval> b) {
+AreUseIntervalsIntersectingVector(ZoneVector<const UseInterval> a,
+                                  ZoneVector<const UseInterval> b) {
   SLOW_DCHECK(std::is_sorted(a.begin(), a.end()) &&
               std::is_sorted(b.begin(), b.end()));
   if (a.empty() || b.empty() || a.last().end() <= b.first().start() ||
@@ -1195,7 +1195,7 @@ RegisterAllocationData::RegisterAllocationData(
       assigned_double_registers_(nullptr),
       virtual_register_count_(code->VirtualRegisterCount()),
       preassigned_slot_ranges_(zone),
-      spill_state_(code->InstructionBlockCount(), ::v8::base::Vector<LiveRange*>(zone),
+      spill_state_(code->InstructionBlockCount(), ZoneVector<LiveRange*>(zone),
                    zone),
       tick_counter_(tick_counter),
       slot_for_const_range_(zone) {
@@ -1664,7 +1664,7 @@ void ConstraintBuilder::MeetConstraintsAfter(int instr_index) {
 void ConstraintBuilder::MeetConstraintsBefore(int instr_index) {
   Instruction* second = code()->InstructionAt(instr_index);
   // Handle fixed input operands of second instruction.
-  ::v8::base::Vector<TopLevelLiveRange*>* spilled_consts = nullptr;
+  ZoneVector<TopLevelLiveRange*>* spilled_consts = nullptr;
   for (size_t i = 0; i < second->InputCount(); i++) {
     InstructionOperand* input = second->InputAt(i);
     if (input->IsImmediate()) {
@@ -1678,7 +1678,7 @@ void ConstraintBuilder::MeetConstraintsBefore(int instr_index) {
         bool already_spilled = false;
         if (spilled_consts == nullptr) {
           spilled_consts =
-              allocation_zone()->New<::v8::base::Vector<TopLevelLiveRange*>>(
+              allocation_zone()->New<ZoneVector<TopLevelLiveRange*>>(
                   allocation_zone());
         } else {
           auto it =
@@ -1881,7 +1881,7 @@ TopLevelLiveRange* LiveRangeBuilder::FixedLiveRangeFor(int index,
 TopLevelLiveRange* LiveRangeBuilder::FixedFPLiveRangeFor(
     int index, MachineRepresentation rep, SpillMode spill_mode) {
   int num_regs = config()->num_double_registers();
-  ::v8::base::Vector<TopLevelLiveRange*>* live_ranges =
+  ZoneVector<TopLevelLiveRange*>* live_ranges =
       &data()->fixed_double_live_ranges();
   if (kFPAliasing == AliasingKind::kCombine) {
     switch (rep) {
@@ -1921,7 +1921,7 @@ TopLevelLiveRange* LiveRangeBuilder::FixedSIMD128LiveRangeFor(
     int index, SpillMode spill_mode) {
   DCHECK_EQ(kFPAliasing, AliasingKind::kIndependent);
   int num_regs = config()->num_simd128_registers();
-  ::v8::base::Vector<TopLevelLiveRange*>* live_ranges =
+  ZoneVector<TopLevelLiveRange*>* live_ranges =
       &data()->fixed_simd128_live_ranges();
   int offset = spill_mode == SpillMode::kSpillAtDefinition ? 0 : num_regs;
 
@@ -3869,15 +3869,15 @@ void LinearScanAllocator::AddToUnhandled(LiveRange* range) {
   unhandled_live_ranges().insert(range);
 }
 
-::v8::base::Vector<LiveRange*>::iterator LinearScanAllocator::ActiveToHandled(
-    const ::v8::base::Vector<LiveRange*>::iterator it) {
+ZoneVector<LiveRange*>::iterator LinearScanAllocator::ActiveToHandled(
+    const ZoneVector<LiveRange*>::iterator it) {
   TRACE("Moving live range %d:%d from active to handled\n",
         (*it)->TopLevel()->vreg(), (*it)->relative_id());
   return active_live_ranges().erase(it);
 }
 
-::v8::base::Vector<LiveRange*>::iterator LinearScanAllocator::ActiveToInactive(
-    const ::v8::base::Vector<LiveRange*>::iterator it, LifetimePosition position) {
+ZoneVector<LiveRange*>::iterator LinearScanAllocator::ActiveToInactive(
+    const ZoneVector<LiveRange*>::iterator it, LifetimePosition position) {
   LiveRange* range = *it;
   TRACE("Moving live range %d:%d from active to inactive\n",
         (range)->TopLevel()->vreg(), range->relative_id());
@@ -4015,7 +4015,7 @@ void LinearScanAllocator::GetSIMD128RegisterSet(int* num_regs, int* num_codes,
 }
 
 void LinearScanAllocator::FindFreeRegistersForRange(
-    LiveRange* range, ::v8::base::Vector<LifetimePosition> positions) {
+    LiveRange* range, ZoneVector<LifetimePosition> positions) {
   int num_regs = num_registers();
   int num_codes = num_allocatable_registers();
   const int* codes = allocatable_register_codes();
@@ -4112,7 +4112,7 @@ void LinearScanAllocator::ProcessCurrentRange(LiveRange* current,
 }
 
 bool LinearScanAllocator::TryAllocatePreferredReg(
-    LiveRange* current, ::v8::base::Vector<const LifetimePosition> free_until_pos) {
+    LiveRange* current, ZoneVector<const LifetimePosition> free_until_pos) {
   int hint_register;
   if (current->RegisterFromControlFlow(&hint_register) ||
       current->RegisterFromFirstHint(&hint_register) ||
@@ -4137,7 +4137,7 @@ bool LinearScanAllocator::TryAllocatePreferredReg(
 
 int LinearScanAllocator::PickRegisterThatIsAvailableLongest(
     LiveRange* current, int hint_reg,
-    ::v8::base::Vector<const LifetimePosition> free_until_pos) {
+    ZoneVector<const LifetimePosition> free_until_pos) {
   int num_regs = 0;  // used only for the call to GetFPRegisterSet.
   int num_codes = num_allocatable_registers();
   const int* codes = allocatable_register_codes();
@@ -4183,7 +4183,7 @@ int LinearScanAllocator::PickRegisterThatIsAvailableLongest(
 }
 
 bool LinearScanAllocator::TryAllocateFreeReg(
-    LiveRange* current, ::v8::base::Vector<const LifetimePosition> free_until_pos) {
+    LiveRange* current, ZoneVector<const LifetimePosition> free_until_pos) {
   // Compute register hint, if such exists.
   int hint_reg = kUnassignedRegister;
   current->RegisterFromControlFlow(&hint_reg) ||
@@ -4623,7 +4623,7 @@ void OperandAssigner::DecideSpillingMode() {
 }
 
 void OperandAssigner::AssignSpillSlots() {
-  ::v8::base::Vector<SpillRange*> spill_ranges(data()->allocation_zone());
+  ZoneVector<SpillRange*> spill_ranges(data()->allocation_zone());
   for (const TopLevelLiveRange* range : data()->live_ranges()) {
     DCHECK_NOT_NULL(range);
     if (range->HasSpillRange()) {
@@ -4774,7 +4774,7 @@ void ReferenceMapPopulator::PopulateReferenceMaps() {
   ReferenceMaps::const_iterator first_it = reference_maps->begin();
   const size_t live_ranges_size = data()->live_ranges().size();
   // Select subset of `TopLevelLiveRange`s to process, sort them by their start.
-  ::v8::base::Vector<TopLevelLiveRange*> candidate_ranges(data()->allocation_zone());
+  ZoneVector<TopLevelLiveRange*> candidate_ranges(data()->allocation_zone());
   candidate_ranges.reserve(data()->live_ranges().size());
   for (TopLevelLiveRange* range : data()->live_ranges()) {
     CHECK_EQ(live_ranges_size,
@@ -4903,7 +4903,7 @@ bool LiveRangeConnector::CanEagerlyResolveControlFlow(
 }
 
 void LiveRangeConnector::ResolveControlFlow(Zone* local_zone) {
-  ::v8::base::Vector<SparseBitVector*>& live_in_sets = data()->live_in_sets();
+  ZoneVector<SparseBitVector*>& live_in_sets = data()->live_in_sets();
   for (const InstructionBlock* block : code()->instruction_blocks()) {
     if (CanEagerlyResolveControlFlow(block)) continue;
     SparseBitVector* live = live_in_sets[block->rpo_number().ToInt()];
@@ -5109,8 +5109,8 @@ void LiveRangeConnector::ConnectRanges(Zone* local_zone) {
   }
   if (delayed_insertion_map.empty()) return;
   // Insert all the moves which should occur after the stored move.
-  ::v8::base::Vector<MoveOperands*> to_insert(local_zone);
-  ::v8::base::Vector<MoveOperands*> to_eliminate(local_zone);
+  ZoneVector<MoveOperands*> to_insert(local_zone);
+  ZoneVector<MoveOperands*> to_eliminate(local_zone);
   to_insert.reserve(4);
   to_eliminate.reserve(4);
   ParallelMove* moves = delayed_insertion_map.begin()->first.first;

@@ -27,7 +27,7 @@ void VPrintFToString(std::string* str, size_t str_offset, const char* format,
     va_list args_copy;
     va_copy(args_copy, args);
     int written =
-        base::VSNPrintF(::v8::base::Vector<char>(&str->front() + str_offset,
+        base::VSNPrintF(ZoneVector<char>(&str->front() + str_offset,
                                            static_cast<int>(len - str_offset)),
                         format, args_copy);
     va_end(args_copy);

@@ -152,7 +152,7 @@ static bool RoundWeed(char* last_digit, uint64_t distance_too_high_w,
 // unambiguously determined.
 //
 // Precondition: rest < ten_kappa.
-static bool RoundWeedCounted(::v8::base::Vector<char> buffer, int length, uint64_t rest,
+static bool RoundWeedCounted(Vector<char> buffer, int length, uint64_t rest,
                              uint64_t ten_kappa, uint64_t unit, int* kappa) {
   DCHECK(rest < ten_kappa);
   // The following tests are done in a specific order to avoid overflows. They
@@ -526,7 +526,7 @@ static bool DigitGen(DiyFp low, DiyFp w, DiyFp high, char** outptr,
 //   numbers. If the precision is not enough to guarantee all the postconditions
 //   then false is returned. This usually happens rarely, but the failure-rate
 //   increases with higher requested_digits.
-static bool DigitGenCounted(DiyFp w, int requested_digits, ::v8::base::Vector<char> buffer,
+static bool DigitGenCounted(DiyFp w, int requested_digits, Vector<char> buffer,
                             int* length, int* kappa) {
   DCHECK(kMinimalTargetExponent <= w.e() && w.e() <= kMaximalTargetExponent);
   DCHECK_GE(kMinimalTargetExponent, -60);
@@ -671,7 +671,7 @@ static bool Grisu3(double v, char** outptr, int* decimal_exponent) {
 // and with enough requested digits 0.1 will at some point print as 0.9999999...
 // Grisu3 is too imprecise for real halfway cases (1.5 will not work) and
 // therefore the rounding strategy for halfway cases is irrelevant.
-static bool Grisu3Counted(double v, int requested_digits, ::v8::base::Vector<char> buffer,
+static bool Grisu3Counted(double v, int requested_digits, Vector<char> buffer,
                           int* length, int* decimal_exponent) {
   DiyFp w = Double(v).AsNormalizedDiyFp();
   DiyFp ten_mk;  // Cached power of ten: 10^-k
@@ -711,7 +711,7 @@ static bool Grisu3Counted(double v, int requested_digits, ::v8::base::Vector<cha
 }
 
 bool FastDtoa(double v, FastDtoaMode mode, int requested_digits,
-              ::v8::base::Vector<char> buffer, int* length, int* decimal_point) {
+              Vector<char> buffer, int* length, int* decimal_point) {
   DCHECK_GT(v, 0);
   DCHECK(!Double(v).IsSpecial());
 

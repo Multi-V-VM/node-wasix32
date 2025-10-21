@@ -59,7 +59,7 @@ ValueOrError EvaluateConstantExpression(
     case ConstantExpression::Kind::kWireBytesRef: {
       WireBytesRef ref = expr.wire_bytes_ref();
 
-      ::v8::base::Vector<const uint8_t> module_bytes =
+      ZoneVector<const uint8_t> module_bytes =
           trusted_instance_data->native_module()->wire_bytes();
 
       const uint8_t* start = module_bytes.begin() + ref.offset();

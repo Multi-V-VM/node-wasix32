@@ -115,7 +115,7 @@ void TFGraph::Print() const { StdoutStream{} << AsRPO(*this); }
 
 void TFGraph::RecordSimdStore(Node* store) { simd_stores_.push_back(store); }
 
-::v8::base::Vector<Node*> const& TFGraph::GetSimdStoreNodes() { return simd_stores_; }
+ZoneVector<Node*> const& TFGraph::GetSimdStoreNodes() { return simd_stores_; }
 
 }  // namespace compiler
 }  // namespace internal

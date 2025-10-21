@@ -143,7 +143,7 @@ const char* WellKnownImportName(WellKnownImport wki) {
 }
 
 WellKnownImportsList::UpdateResult WellKnownImportsList::Update(
-    ::v8::base::Vector<WellKnownImport> entries) {
+    ZoneVector<WellKnownImport> entries) {
   DCHECK_EQ(entries.size(), static_cast<size_t>(size_));
   for (size_t i = 0; i < entries.size(); i++) {
     WellKnownImport entry = entries[i];
@@ -172,7 +172,7 @@ WellKnownImportsList::UpdateResult WellKnownImportsList::Update(
 }
 
 void WellKnownImportsList::Initialize(
-    ::v8::base::Vector<const WellKnownImport> entries) {
+    ZoneVector<const WellKnownImport> entries) {
   DCHECK_EQ(entries.size(), static_cast<size_t>(size_));
   for (size_t i = 0; i < entries.size(); i++) {
     DCHECK_EQ(WellKnownImport::kUninstantiated,

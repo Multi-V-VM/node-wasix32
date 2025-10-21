@@ -35,7 +35,7 @@ inline size_t ContentSize(const std::vector<T>& vector) {
 }
 
 template <typename T>
-inline size_t ContentSize(const base::Owned::v8::base::Vector<T>& vector) {
+inline size_t ContentSize(const base::OwnedZoneVector<T>& vector) {
   return vector.size() * sizeof(T);
 }
 

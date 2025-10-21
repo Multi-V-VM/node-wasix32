@@ -499,7 +499,7 @@ inline void MemsetTagged(Tagged_t* start, Tagged<MaybeObject> value,
 #ifdef V8_COMPRESS_POINTERS
   // CompressAny since many callers pass values which are not valid objects.
   Tagged_t raw_value = V8HeapCompressionScheme::CompressAny(value.ptr());
-  MemsetUint32(start, raw_value, counter);
+  MemsetUint32(reinterpret_cast<uint32_t*>(start), raw_value, counter);
 #else
   Address raw_value = value.ptr();
   MemsetPointer(start, raw_value, counter);

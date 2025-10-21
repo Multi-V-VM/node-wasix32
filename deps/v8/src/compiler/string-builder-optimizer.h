@@ -207,7 +207,7 @@ class OneOrTwoByteAnalysis final {
 
   JSHeapBroker* broker() { return broker_; }
 
-  ::v8::base::Vector<State> states_;
+  ZoneVector<State> states_;
   JSHeapBroker* broker_;
 };
 
@@ -221,7 +221,7 @@ class V8_EXPORT_PRIVATE StringBuilderOptimizer final {
   bool BlockShouldFinalizeStringBuilders(BasicBlock* block);
   // Returns which nodes should be trimmed at the beginning of {block} to
   // finalize some string builders.
-  ::v8::base::Vector<Node*> GetStringBuildersToFinalize(BasicBlock* block);
+  ZoneVector<Node*> GetStringBuildersToFinalize(BasicBlock* block);
 
   // Returns true if {node} is the last node of a StringBuilder (which means
   // that trimming code should be inserted after {node}).
@@ -363,12 +363,12 @@ class V8_EXPORT_PRIVATE StringBuilderOptimizer final {
   // SlicedString indirection; the only thing that would be an issue is that the
   // rest of the VM could have access to a SlicedString that is less than
   // SlicedString::kMinLength characters, which may or may not break things).
-  ::v8::base::Vector<std::optional<::v8::base::Vector<Node*>>> blocks_to_trimmings_map_;
-  ::v8::base::Vector<Status> status_;
-  ::v8::base::Vector<StringBuilder> string_builders_;
+  ZoneVector<std::optional<ZoneVector<Node*>>> blocks_to_trimmings_map_;
+  ZoneVector<Status> status_;
+  ZoneVector<StringBuilder> string_builders_;
   // {loop_headers_} is used to keep track ot the start of each loop that the
   // block currently being visited is part of.
-  ::v8::base::Vector<BasicBlock*> loop_headers_;
+  ZoneVector<BasicBlock*> loop_headers_;
 };
 
 }  // namespace compiler

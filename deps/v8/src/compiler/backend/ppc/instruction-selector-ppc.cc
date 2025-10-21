@@ -1987,7 +1987,7 @@ void InstructionSelectorT::EmitMoveFPRToParam(InstructionOperand* op,
                                               LinkageLocation location) {}
 
 void InstructionSelectorT::EmitPrepareArguments(
-    ::v8::base::Vector<PushParameter>* arguments, const CallDescriptor* call_descriptor,
+    ZoneVector<PushParameter>* arguments, const CallDescriptor* call_descriptor,
     OpIndex node) {
   PPCOperandGeneratorT g(this);
 
@@ -2742,7 +2742,7 @@ void InstructionSelectorT::VisitI32x4DotI8x16I7x16AddS(OpIndex node) {
 }
 
 void InstructionSelectorT::EmitPrepareResults(
-    ::v8::base::Vector<PushParameter>* results, const CallDescriptor* call_descriptor,
+    ZoneVector<PushParameter>* results, const CallDescriptor* call_descriptor,
     OpIndex node) {
   PPCOperandGeneratorT g(this);
 

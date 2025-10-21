@@ -220,9 +220,9 @@ bool Utf8::IsValidCharacter(uchar c) {
 }
 
 template <typename Char>
-Utf8::EncodingResult Utf8::Encode(v8::Vector<const Char> string,
-                                  char* buffer, size_t capacity,
-                                  bool write_null, bool replace_invalid_utf8) {
+Utf8::EncodingResult Utf8::Encode(
+    ::v8::internal::ZoneVector<const Char> string, char* buffer,
+    size_t capacity, bool write_null, bool replace_invalid_utf8) {
   constexpr bool kSourceIsOneByte = sizeof(Char) == 1;
 
   if constexpr (kSourceIsOneByte) {

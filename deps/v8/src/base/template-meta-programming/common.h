@@ -38,3 +38,9 @@ struct is_instantiation_of<T<U>, T> : std::bool_constant<true> {};
 #undef TYPENAME1
 
 #endif  // V8_BASE_TEMPLATE_META_PROGRAMMING_COMMON_H_
+
+// Bridge base::tmp into v8::internal::base for users that refer to
+// v8::internal::base::tmp.
+namespace v8 { namespace internal { namespace base {
+namespace tmp = ::v8::base::tmp;
+} } }

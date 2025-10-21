@@ -48,6 +48,10 @@ inline Runtime::FunctionId GetBuiltinForStackCheckKind(StackCheckKind kind) {
 enum class CanThrow : uint8_t { kNo, kYes };
 enum class LazyDeoptOnThrow : uint8_t { kNo, kYes };
 
+// Helper function to check if we're on a 64-bit platform
+// Used by various compiler components
+constexpr bool Is64() { return kSystemPointerSize == 8; }
+
 inline std::ostream& operator<<(std::ostream& os,
                                 LazyDeoptOnThrow lazy_deopt_on_throw) {
   switch (lazy_deopt_on_throw) {

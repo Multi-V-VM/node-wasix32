@@ -305,7 +305,7 @@ V8_OBJECT class BigInt : public BigIntBase {
   void SerializeDigits(uint8_t* storage, size_t storage_length);
   V8_WARN_UNUSED_RESULT static MaybeDirectHandle<BigInt> FromSerializedDigits(
       Isolate* isolate, uint32_t bitfield,
-      ::v8::base::Vector<const uint8_t> digits_storage);
+      ZoneVector<const uint8_t> digits_storage);
 } V8_OBJECT_END;
 
 }  // namespace internal

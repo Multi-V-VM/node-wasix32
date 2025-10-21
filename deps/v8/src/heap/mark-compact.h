@@ -149,7 +149,7 @@ class MarkCompactCollector final {
   V8_INLINE void AddTransitionArray(Tagged<TransitionArray> array);
 
   void RecordStrongDescriptorArraysForWeakening(
-      GlobalHandle::v8::base::Vector<DescriptorArray> strong_descriptor_arrays);
+      GlobalHandleZoneVector<DescriptorArray> strong_descriptor_arrays);
 
 #ifdef DEBUG
   // Checks whether performing mark-compact collection.
@@ -429,7 +429,7 @@ class MarkCompactCollector final {
   NativeContextInferrer native_context_inferrer_;
   NativeContextStats native_context_stats_;
 
-  std::vector<GlobalHandle::v8::base::Vector<DescriptorArray>> strong_descriptor_arrays_;
+  std::vector<GlobalHandleZoneVector<DescriptorArray>> strong_descriptor_arrays_;
   base::Mutex strong_descriptor_arrays_mutex_;
 
   // Candidates for pages that should be evacuated.

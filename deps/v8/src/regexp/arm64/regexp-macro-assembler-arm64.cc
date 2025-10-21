@@ -257,7 +257,7 @@ void RegExpMacroAssemblerARM64::CheckCharacterLT(base::uc16 limit,
 }
 
 void RegExpMacroAssemblerARM64::CheckCharacters(
-    ::v8::base::Vector<const base::uc16> str, int cp_offset, Label* on_failure,
+    ZoneVector<const base::uc16> str, int cp_offset, Label* on_failure,
     bool check_end_of_string) {
   // This method is only ever called from the cctests.
 

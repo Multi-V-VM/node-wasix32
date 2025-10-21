@@ -69,7 +69,7 @@ struct LiftoffOptions {
   ForDebugging for_debugging = kNotForDebugging;
   Counters* counters = nullptr;
   WasmDetectedFeatures* detected_features = nullptr;
-  ::v8::base::Vector<const int> breakpoints = {};
+  ZoneVector<const int> breakpoints = {};
   std::unique_ptr<DebugSideTable>* debug_sidetable = nullptr;
   int dead_breakpoint = 0;
   int32_t* max_steps = nullptr;

@@ -313,7 +313,7 @@ class V8_EXPORT_PRIVATE LoadElimination final
     Zone* zone() const { return info_for_node_.zone(); }
 
    private:
-    ::v8::base::Vector<AbstractState const*> info_for_node_;
+    ZoneVector<AbstractState const*> info_for_node_;
   };
 
   Reduction ReduceCheckMaps(Node* node);

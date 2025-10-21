@@ -6,7 +6,7 @@
 namespace v8 {
 namespace internal {
 
-// Make Vector available without base:: prefix
+// Make Vector available without base:: prefix as an alias to v8::base::Vector
 template<typename T>
 using Vector = ::v8::base::Vector<T>;
 

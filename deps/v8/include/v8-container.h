@@ -14,6 +14,9 @@
 #include <functional>
 
 #include "v8-local-handle.h"  // NOLINT(build/include_directory)
+#include "v8-maybe.h"         // NOLINT(build/include_directory)
+#include "v8-context.h"       // NOLINT(build/include_directory)
+#include "v8-value.h"         // NOLINT(build/include_directory)
 #include "v8-object.h"        // NOLINT(build/include_directory)
 #include "v8config.h"         // NOLINT(build/include_directory)
 
@@ -67,6 +70,42 @@ class V8_EXPORT Array : public Object {
   static MaybeLocal<Array> New(
       Local<Context> context, size_t length,
       std::function<MaybeLocal<v8::Value>()> next_value_callback);
+
+  // Forward selected Object methods explicitly to avoid lookup issues
+  V8_WARN_UNUSED_RESULT inline Maybe<bool> Set(Local<Context> context,
+                                              uint32_t index,
+                                              Local<Value> value) {
+#ifdef __wasi__
+    return reinterpret_cast<Object*>(this)->Set(context, index, value);
+#else
+    return Object::Set(context, index, value);
+#endif
+  }
+  V8_WARN_UNUSED_RESULT inline Maybe<bool> Set(Local<Context> context,
+                                              Local<Value> key,
+                                              Local<Value> value) {
+#ifdef __wasi__
+    return reinterpret_cast<Object*>(this)->Set(context, key, value);
+#else
+    return Object::Set(context, key, value);
+#endif
+  }
+  V8_WARN_UNUSED_RESULT inline MaybeLocal<Value> Get(Local<Context> context,
+                                                    Local<Value> key) {
+#ifdef __wasi__
+    return reinterpret_cast<Object*>(this)->Get(context, key);
+#else
+    return Object::Get(context, key);
+#endif
+  }
+  V8_WARN_UNUSED_RESULT inline MaybeLocal<Value> Get(Local<Context> context,
+                                                    uint32_t index) {
+#ifdef __wasi__
+    return reinterpret_cast<Object*>(this)->Get(context, index);
+#else
+    return Object::Get(context, index);
+#endif
+  }
 
   enum class CallbackResult {
     kException,

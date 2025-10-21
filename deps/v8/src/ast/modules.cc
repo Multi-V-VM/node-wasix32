@@ -188,7 +188,7 @@ DirectHandle<FixedArray> SourceTextModuleDescriptor::SerializeRegularExports(
   // local names and for each local name immediately access all its export
   // names.  (Regular exports have neither import name nor module request.)
 
-  ::v8::base::Vector<IndirectHandle<Object>> data(
+  ZoneVector<IndirectHandle<Object>> data(
       SourceTextModuleInfo::kRegularExportLength * regular_exports_.size(),
       zone);
   int index = 0;

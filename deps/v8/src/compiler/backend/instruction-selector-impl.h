@@ -30,7 +30,7 @@ inline bool operator<(const CaseInfoT& l, const CaseInfoT& r) {
 class SwitchInfoT {
  public:
   using CaseInfo = CaseInfoT;
-  SwitchInfoT(::v8::base::Vector<CaseInfo> const& cases, int32_t min_value,
+  SwitchInfoT(ZoneVector<CaseInfo> const& cases, int32_t min_value,
               int32_t max_value, turboshaft::Block* default_branch)
       : cases_(cases),
         min_value_(min_value),
@@ -53,7 +53,7 @@ class SwitchInfoT {
                      [](CaseInfo a, CaseInfo b) { return a.value < b.value; });
     return result;
   }
-  const ::v8::base::Vector<CaseInfo>& CasesUnsorted() const { return cases_; }
+  const ZoneVector<CaseInfo>& CasesUnsorted() const { return cases_; }
   int32_t min_value() const { return min_value_; }
   int32_t max_value() const { return max_value_; }
   size_t value_range() const { return value_range_; }
@@ -61,7 +61,7 @@ class SwitchInfoT {
   turboshaft::Block* default_branch() const { return default_branch_; }
 
  private:
-  const ::v8::base::Vector<CaseInfo>& cases_;
+  const ZoneVector<CaseInfo>& cases_;
   int32_t min_value_;   // minimum value of {cases_}
   int32_t max_value_;   // maximum value of {cases_}
   size_t value_range_;  // |max_value - min_value| + 1

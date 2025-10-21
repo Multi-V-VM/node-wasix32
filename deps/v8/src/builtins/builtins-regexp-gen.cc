@@ -992,7 +992,7 @@ void RegExpBuiltinsAssembler::BranchIfFastRegExp(
 
   PrototypeCheckAssembler prototype_check_assembler(
       state(), prototype_check_flags, native_context, initial_proto_initial_map,
-      ::v8::base::Vector<DescriptorIndexNameValue>(properties_to_check,
+      ZoneVector<DescriptorIndexNameValue>(properties_to_check,
                                              property_count));
 
   TNode<HeapObject> prototype = LoadMapPrototype(map);

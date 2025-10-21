@@ -14,7 +14,9 @@
 
 #include "v8-data.h"          // NOLINT(build/include_directory)
 #include "v8-handle-base.h"   // NOLINT(build/include_directory)
+#ifndef __wasi__
 #include "v8-internal.h"      // NOLINT(build/include_directory)
+#endif
 #include "v8-local-handle.h"  // NOLINT(build/include_directory)
 #include "v8-maybe-local.h"   // NOLINT(build/include_directory)
 #include "v8-value.h"         // NOLINT(build/include_directory)
