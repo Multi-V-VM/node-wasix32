@@ -7,6 +7,7 @@
 
 #include <stddef.h>
 #include <stdint.h>
+#include <new>
 
 #include <limits>
 #include <ostream>
@@ -25,10 +26,12 @@
 #include "src/base/atomic-utils.h"
 #include "src/base/vlq.h"
 #include "src/base/vlq-base64.h"
+#include "src/base/contextual.h"
 #include "src/base/platform/time.h"
 #include "src/base/vector.h"
 #include "src/base/hashing.h"
 #include "src/base/small-vector.h"
+#include "src/base/small-map.h"
 #include "src/base/bits-iterator.h"
 #include "src/base/division-by-constant.h"
 #include "src/base/overflowing-math.h"
@@ -44,6 +47,21 @@
 #endif
 #include "../../../../wasi-v8-essential-constants.h"
 #include "wasi/concepts-fix.h"
+#ifndef V8_INTERNAL_IS64_DEFINED
+#define V8_INTERNAL_IS64_DEFINED
+namespace v8 { namespace internal {
+constexpr bool Is64() { return false; }
+} }
+#endif
+#endif
+
+#ifdef __wasi__
+// Some freestanding libc++/WASI configurations require an explicit declaration
+// of placement new/delete to satisfy uses in headers compiled across TUs.
+void* operator new(std::size_t, void*) noexcept;
+void* operator new[](std::size_t, void*) noexcept;
+void operator delete(void*, void*) noexcept;
+void operator delete[](void*, void*) noexcept;
 #endif
 
 namespace v8 {
@@ -74,6 +92,12 @@ namespace base {
 using ::v8::base::TimeTicks;
 using ::v8::base::TimeDelta;
 using ::v8::base::SmallVector;
+// Forward alias to ::v8::base::SmallMap with matching signature.
+template <typename NormalMap, size_t kArraySize = 4,
+          typename EqualKey = typename ::v8::base::internal::select_equal_key<
+              NormalMap, ::v8::base::internal::has_key_equal<NormalMap>::value>::equal_key,
+          typename MapInit = ::v8::base::internal::SmallMapDefaultInit<NormalMap>>
+using SmallMap = ::v8::base::SmallMap<NormalMap, kArraySize, EqualKey, MapInit>;
 using ::v8::base::double_to_uint64;
 template <typename T>
 using ScopedZoneVector = ::v8::base::ScopedZoneVector<T>;
@@ -107,6 +131,22 @@ using ::v8::base::VLQBase64Decode;
 using ::v8::base::hash_combine;
 using ::std::all_of;
 using ::std::sort;
+using ::v8::base::OneByteVector;
+using ::v8::base::StaticOneByteVector;
+using ::v8::base::kDataMask;
+using ::v8::base::nth_type_t;
+template <typename Tuple>
+using tuple_head = ::v8::base::tuple_head<Tuple>;
+using ::v8::base::tuple_head_t;
+using ::v8::base::prepend_tuple_type;
+using ::v8::base::tuple_drop;
+using ::v8::base::zip;
+using ::v8::base::IterateWithoutLast;
+using ::v8::base::base_tuple_head_rt;
+using ::v8::base::base_tuple_drop_rt;
+using ::v8::base::IsInBounds;
+template <class T>
+using ContextualClass = ::v8::base::ContextualClass<T>;
 
 template <typename T>
 using OwnedZoneVector = ::v8::base::OwnedVector<T>;
@@ -115,8 +155,27 @@ template<typename T, typename S = int>
 using EnumSet = ::v8::base::EnumSet<T, S>;
 template<typename T> using hash = ::v8::base::hash<T>;
 using ::v8::base::hash_range;
+using ::v8::base::AbortMode;
 template <typename T, typename U = int, typename V = U>
 using Flags = ::v8::base::Flags<T, U, V>;
+// Concurrency/once helpers
+using ::v8::base::CallOnce;
+using OnceType = ::v8::Once::OnceType;
+// Memory helpers
+using ::v8::base::Relaxed_Memcpy;
+using ::v8::base::Free;
+using ::v8::base::AlignedFree;
+// Page allocator & modes
+using ::v8::base::BoundedPageAllocator;
+using ::v8::base::PageInitializationMode;
+using ::v8::base::PageFreeingMode;
+// Formatting, strings, helpers
+using ::v8::base::FormattedString;
+using ::v8::base::StaticCharVector;
+using ::v8::base::uint64_to_double;
+// Lazy/static wrappers
+template <typename T>
+using LeakyObject = ::v8::base::LeakyObject<T>;
 
 
 namespace bits {
@@ -139,6 +198,15 @@ using ::v8::base::bits::RotateLeft64;
 }  // namespace bits
 }  // namespace base
 
+namespace compiler {
+// Forward declare DoubleEndedSplitVector and provide an alias for
+// DoubleEndedSplitZoneVector used by some code paths.
+template <typename T>
+class DoubleEndedSplitVector;
+// Provide alias expected by some backend headers on non-zone builds.
+template <typename T>
+using DoubleEndedSplitZoneVector = DoubleEndedSplitVector<T>;
+}  // namespace compiler
 // (DefaultAllocationPolicy is imported above via using-declaration.)
 
 #define V8_INFINITY std::numeric_limits<double>::infinity()
@@ -3096,3 +3164,6 @@ constexpr int kSmiMaxValue = (1 << 30) - 1;
 namespace i = v8::internal;
 
 #endif  // V8_COMMON_GLOBALS_H_
+// Utility constant used in various bit-manipulation helpers.
+// Define here to ensure availability across headers on WASI builds.
+constexpr uintptr_t kUintptrAllBitsSet = ~uintptr_t{0};

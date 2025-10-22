@@ -2,7 +2,8 @@
 #define V8_V8_PROFILER_H_
 
 #ifdef __wasi__
-// For WASI builds, include the stub files
+// For WASI builds, include the script API and profiler stubs
+#include "v8-script.h"
 #include "wasi/embedder-graph-stub.h"
 #include "wasi/v8-profiler-stubs.h"
 #else

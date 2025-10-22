@@ -33,8 +33,8 @@ class OptimizedCompilationInfo;
 
 namespace compiler {
 
-constexpr RegList kNoCalleeSaved;
-constexpr DoubleRegList kNoCalleeSavedFp;
+extern const RegList kNoCalleeSaved;
+extern const DoubleRegList kNoCalleeSavedFp;
 
 class OsrHelper;
 

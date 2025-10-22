@@ -88,7 +88,7 @@ class V8_EXPORT_PRIVATE Pipeline {
       }
       return !data_->info()->was_cancelled();
     } else {
-      static_assert(std::is_same<result_t, std::optional<BailoutReason>::value>);
+      static_assert(std::is_same<result_t, std::optional<BailoutReason>>::value);
       auto result = phase.Run(data_, temp_zone, std::forward<Args>(args)...);
       if constexpr (produces_printable_graph<Phase>::value) {
         PrintGraph(temp_zone, Phase::phase_name());

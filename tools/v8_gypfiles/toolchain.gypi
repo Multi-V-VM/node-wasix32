@@ -323,6 +323,11 @@
         ],
       }],  # ppc64
       ['v8_target_arch=="ia32"', {
+        # For WASI builds we repurpose the ia32 target to mean wasm32.
+        # Ensure any accidental IA32 define is stripped and wasm32 is defined.
+        'defines!': [
+          'V8_TARGET_ARCH_IA32',
+        ],
         'defines': [
           'V8_TARGET_ARCH_WASM32',
         ],

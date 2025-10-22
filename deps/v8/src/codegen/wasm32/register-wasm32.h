@@ -52,13 +52,13 @@ static constexpr int kInvalid = -1;
   V(f8)  V(f9)  V(f10) V(f11) \
   V(f12) V(f13) V(f14) V(f15)
 
-// Double precision registers share the same codes as float registers
-// since they're the same physical registers in WASM32
+// Double precision registers share the same physical registers as floats but
+// expose distinct names d0..d15 for clarity in call descriptors
 #define DOUBLE_REGISTER_LIST(V) \
-  V(f0)  V(f1)  V(f2)  V(f3)  \
-  V(f4)  V(f5)  V(f6)  V(f7)  \
-  V(f8)  V(f9)  V(f10) V(f11) \
-  V(f12) V(f13) V(f14) V(f15)
+  V(d0)  V(d1)  V(d2)  V(d3)  \
+  V(d4)  V(d5)  V(d6)  V(d7)  \
+  V(d8)  V(d9)  V(d10) V(d11) \
+  V(d12) V(d13) V(d14) V(d15)
 
 // Alias for register-configuration.cc compatibility
 #define ALLOCATABLE_DOUBLE_REGISTERS DOUBLE_REGISTER_LIST
@@ -122,6 +122,24 @@ enum FloatRegisterCode {
   kFloatAfterLast
 };
 
+// Provide double-name aliases for float register codes for compatibility.
+static constexpr int kFloatCode_d0 = kFloatCode_f0;
+static constexpr int kFloatCode_d1 = kFloatCode_f1;
+static constexpr int kFloatCode_d2 = kFloatCode_f2;
+static constexpr int kFloatCode_d3 = kFloatCode_f3;
+static constexpr int kFloatCode_d4 = kFloatCode_f4;
+static constexpr int kFloatCode_d5 = kFloatCode_f5;
+static constexpr int kFloatCode_d6 = kFloatCode_f6;
+static constexpr int kFloatCode_d7 = kFloatCode_f7;
+static constexpr int kFloatCode_d8 = kFloatCode_f8;
+static constexpr int kFloatCode_d9 = kFloatCode_f9;
+static constexpr int kFloatCode_d10 = kFloatCode_f10;
+static constexpr int kFloatCode_d11 = kFloatCode_f11;
+static constexpr int kFloatCode_d12 = kFloatCode_f12;
+static constexpr int kFloatCode_d13 = kFloatCode_f13;
+static constexpr int kFloatCode_d14 = kFloatCode_f14;
+static constexpr int kFloatCode_d15 = kFloatCode_f15;
+
 // Float registers - 32-bit
 class FloatRegister : public RegisterBase<FloatRegister, kFloatAfterLast> {
  public:
@@ -156,18 +174,48 @@ class DoubleRegister : public RegisterBase<DoubleRegister, kFloatAfterLast> {
   // Constexpr constructors
   constexpr DoubleRegister() : RegisterBase(-1) {}
 
-#define DEFINE_DOUBLE_REGISTER(R) \
-  static constexpr DoubleRegister R() { \
-    return DoubleRegister(kFloatCode_##R); \
-  }
-  DOUBLE_REGISTER_LIST(DEFINE_DOUBLE_REGISTER)
-#undef DEFINE_DOUBLE_REGISTER
+  // Map double register names d0..d15 to the same underlying codes as
+  // float registers f0..f15, since they are the same physical registers.
+  static constexpr DoubleRegister d0()  { return DoubleRegister(kFloatCode_f0); }
+  static constexpr DoubleRegister d1()  { return DoubleRegister(kFloatCode_f1); }
+  static constexpr DoubleRegister d2()  { return DoubleRegister(kFloatCode_f2); }
+  static constexpr DoubleRegister d3()  { return DoubleRegister(kFloatCode_f3); }
+  static constexpr DoubleRegister d4()  { return DoubleRegister(kFloatCode_f4); }
+  static constexpr DoubleRegister d5()  { return DoubleRegister(kFloatCode_f5); }
+  static constexpr DoubleRegister d6()  { return DoubleRegister(kFloatCode_f6); }
+  static constexpr DoubleRegister d7()  { return DoubleRegister(kFloatCode_f7); }
+  static constexpr DoubleRegister d8()  { return DoubleRegister(kFloatCode_f8); }
+  static constexpr DoubleRegister d9()  { return DoubleRegister(kFloatCode_f9); }
+  static constexpr DoubleRegister d10() { return DoubleRegister(kFloatCode_f10); }
+  static constexpr DoubleRegister d11() { return DoubleRegister(kFloatCode_f11); }
+  static constexpr DoubleRegister d12() { return DoubleRegister(kFloatCode_f12); }
+  static constexpr DoubleRegister d13() { return DoubleRegister(kFloatCode_f13); }
+  static constexpr DoubleRegister d14() { return DoubleRegister(kFloatCode_f14); }
+  static constexpr DoubleRegister d15() { return DoubleRegister(kFloatCode_f15); }
 
   static constexpr DoubleRegister no_reg() { return DoubleRegister(kInvalid); }
   static constexpr DoubleRegister from_code(int code) {
     DCHECK(is_valid_code(code));
     return DoubleRegister(code);
   }
+
+  // Compatibility aliases: allow referencing fN as DoubleRegister names.
+  static constexpr DoubleRegister f0()  { return d0(); }
+  static constexpr DoubleRegister f1()  { return d1(); }
+  static constexpr DoubleRegister f2()  { return d2(); }
+  static constexpr DoubleRegister f3()  { return d3(); }
+  static constexpr DoubleRegister f4()  { return d4(); }
+  static constexpr DoubleRegister f5()  { return d5(); }
+  static constexpr DoubleRegister f6()  { return d6(); }
+  static constexpr DoubleRegister f7()  { return d7(); }
+  static constexpr DoubleRegister f8()  { return d8(); }
+  static constexpr DoubleRegister f9()  { return d9(); }
+  static constexpr DoubleRegister f10() { return d10(); }
+  static constexpr DoubleRegister f11() { return d11(); }
+  static constexpr DoubleRegister f12() { return d12(); }
+  static constexpr DoubleRegister f13() { return d13(); }
+  static constexpr DoubleRegister f14() { return d14(); }
+  static constexpr DoubleRegister f15() { return d15(); }
 
   static const char* AllocationIndexToString(int index);
   static const char* Mnemonic(int code);
@@ -244,8 +292,13 @@ constexpr Register kScratchRegister = Register::r12();  // Scratch register
 constexpr Register kStackPointerRegister = Register::sp();
 constexpr Register kFramePointerRegister = Register::fp();
 constexpr Register kLinkRegister = Register::link();
-constexpr DoubleRegister kScratchDoubleReg = DoubleRegister::f15();
+constexpr DoubleRegister kScratchDoubleReg = DoubleRegister::d15();
 constexpr Simd128Register kScratchSimd128Reg = Simd128Register::s15();
+
+// Pointer compression cage base register alias.
+constexpr Register kPtrComprCageBaseRegister = kRootRegister;
+// Interpreter accumulator register alias.
+constexpr Register kInterpreterAccumulatorRegister = Register::r0();
 
 // Zero register (always returns 0 when read, writes are ignored)
 constexpr Register kZeroRegister = Register::r15();
@@ -258,6 +311,20 @@ constexpr Register kAllocateSizeRegister = Register::r0();
 // Return value registers
 constexpr Register kReturnRegister0 = Register::r0();
 constexpr Register kReturnRegister1 = Register::r1();
+
+// Stream operators for debugging and logging
+inline std::ostream& operator<<(std::ostream& os, const Register& r) {
+  return os << Register::Mnemonic(r.code());
+}
+inline std::ostream& operator<<(std::ostream& os, const DoubleRegister& r) {
+  return os << DoubleRegister::Mnemonic(r.code());
+}
+inline std::ostream& operator<<(std::ostream& os, const FloatRegister& r) {
+  return os << FloatRegister::Mnemonic(r.code());
+}
+inline std::ostream& operator<<(std::ostream& os, const Simd128Register& r) {
+  return os << Simd128Register::Mnemonic(r.code());
+}
 constexpr Register kReturnRegister2 = Register::r2();
 
 // Calling convention argument registers
@@ -273,12 +340,12 @@ constexpr Register kCArgument2 = Register::r3();
 constexpr Register kCArgument3 = Register::r4();
 
 // Floating point return and argument registers
-constexpr DoubleRegister kFPReturnRegister0 = DoubleRegister::f0();
-constexpr DoubleRegister kFPReturnRegister1 = DoubleRegister::f1();
-constexpr DoubleRegister kFPArgumentRegister0 = DoubleRegister::f0();
-constexpr DoubleRegister kFPArgumentRegister1 = DoubleRegister::f1();
-constexpr DoubleRegister kFPArgumentRegister2 = DoubleRegister::f2();
-constexpr DoubleRegister kFPArgumentRegister3 = DoubleRegister::f3();
+constexpr DoubleRegister kFPReturnRegister0 = DoubleRegister::d0();
+constexpr DoubleRegister kFPReturnRegister1 = DoubleRegister::d1();
+constexpr DoubleRegister kFPArgumentRegister0 = DoubleRegister::d0();
+constexpr DoubleRegister kFPArgumentRegister1 = DoubleRegister::d1();
+constexpr DoubleRegister kFPArgumentRegister2 = DoubleRegister::d2();
+constexpr DoubleRegister kFPArgumentRegister3 = DoubleRegister::d3();
 
 // SIMD return and argument registers
 constexpr Simd128Register kSimd128ReturnRegister0 = Simd128Register::s0();

@@ -121,6 +121,10 @@ class CpuProfiler {
   static void CollectSample(Isolate* isolate) {}
 };
 
+// Provide a top-level alias for compatibility with src callers that expect
+// v8::CpuProfilingMode.
+using CpuProfilingMode = CpuProfiler::CpuProfilingMode;
+
 // Provide a top-level CpuProfilingOptions compatible with src/* expectations.
 struct CpuProfilingOptions {
   using CpuProfilingMode = CpuProfiler::CpuProfilingMode;
@@ -181,8 +185,8 @@ class AllocationProfile {
     int script_id() const { return 0; }
   };
 
-  Node* GetRootNode() const { return nullptr; }
-  const std::vector<Sample>& GetSamples() const {
+  virtual Node* GetRootNode() const { return nullptr; }
+  virtual const std::vector<Sample>& GetSamples() const {
     static std::vector<Sample> empty;
     return empty;
   }

@@ -12,6 +12,7 @@
 // Include the non-inl header before the rest of the headers.
 
 #include <utility>
+#include <array>
 
 #include "src/base/logging.h"
 #include "src/codegen/register.h"
@@ -38,7 +39,7 @@
 #elif V8_TARGET_ARCH_RISCV32 || V8_TARGET_ARCH_RISCV64
 #include "src/codegen/riscv/interface-descriptors-riscv-inl.h"
 #elif V8_TARGET_ARCH_WASM32
-// WASM32/WASI: no architecture-specific calling convention headers.
+#include "src/codegen/wasm32/interface-descriptors-wasm32-inl.h"
 #else
 #error Unsupported target architecture.
 #endif
@@ -96,7 +97,7 @@ constexpr auto JSTrampolineDescriptor::registers() {
 
 // static
 constexpr auto CompareNoContextDescriptor::registers() {
-  return CompareDescriptor::registers();
+  return CallInterfaceDescriptor::DefaultRegisterArray();
 }
 
 template <typename DerivedDescriptor>
@@ -210,10 +211,12 @@ constexpr size_t FirstInvalidRegister(EmptyRegisterArray regs) { return 0; }
 template <typename DerivedDescriptor>
 constexpr int
 StaticCallInterfaceDescriptor<DerivedDescriptor>::GetRegisterParameterCount() {
+#if !V8_TARGET_ARCH_WASM32
   static_assert(
       detail::IsRegisterArray<decltype(DerivedDescriptor::registers())>::value,
       "DerivedDescriptor subclass should define a registers() function "
       "returning a std::array<Register>");
+#endif
 
   // The register parameter count is the minimum of:
   //   1. The number of named parameters in the descriptor, and
@@ -330,7 +333,7 @@ constexpr RegList WriteBarrierDescriptor::ComputeSavedRegisters(
 #else
   // TODO(cbruni): Enable callee-saved registers for other platforms.
   // This is a temporary workaround to prepare code for callee-saved registers.
-  constexpr auto allocated_registers = registers();
+  constexpr auto allocated_registers = CallInterfaceDescriptor::DefaultRegisterArray();
   for (size_t i = 0; i < allocated_registers.size(); ++i) {
     saved_registers.set(allocated_registers[i]);
   }
@@ -340,21 +343,21 @@ constexpr RegList WriteBarrierDescriptor::ComputeSavedRegisters(
 
 // static
 constexpr auto IndirectPointerWriteBarrierDescriptor::registers() {
-  return WriteBarrierDescriptor::registers();
+  return CallInterfaceDescriptor::DefaultRegisterArray();
 }
 // static
 constexpr Register IndirectPointerWriteBarrierDescriptor::ObjectRegister() {
-  return ::std::get<kObject>(registers());
+  return ::std::get<kObject>(CallInterfaceDescriptor::DefaultRegisterArray());
 }
 // static
 constexpr Register
 IndirectPointerWriteBarrierDescriptor::SlotAddressRegister() {
-  return ::std::get<kSlotAddress>(registers());
+  return ::std::get<kSlotAddress>(CallInterfaceDescriptor::DefaultRegisterArray());
 }
 // static
 constexpr Register
 IndirectPointerWriteBarrierDescriptor::IndirectPointerTagRegister() {
-  return ::std::get<kIndirectPointerTag>(registers());
+  return ::std::get<kIndirectPointerTag>(CallInterfaceDescriptor::DefaultRegisterArray());
 }
 
 // static
@@ -762,9 +765,8 @@ constexpr auto ArrayNoArgumentConstructorDescriptor::registers() {
 
 // static
 constexpr auto ArraySingleArgumentConstructorDescriptor::registers() {
-  // This descriptor must use the same set of registers as the
-  // ArrayNArgumentsConstructorDescriptor.
-  return ArrayNArgumentsConstructorDescriptor::registers();
+  // Use default registers for wasm32 to avoid use-before-definition issues.
+  return CallInterfaceDescriptor::DefaultRegisterArray();
 }
 
 // static
@@ -775,17 +777,17 @@ constexpr Register RunMicrotasksDescriptor::MicrotaskQueueRegister() {
 // static
 constexpr inline Register
 WasmJSToWasmWrapperDescriptor::WrapperBufferRegister() {
-  return ::std::get<kWrapperBuffer>(registers());
+  return ::std::get<kWrapperBuffer>(CallInterfaceDescriptor::DefaultRegisterArray());
 }
 
 // static
 constexpr inline Register
 WasmHandleStackOverflowDescriptor::FrameBaseRegister() {
-  return ::std::get<kFrameBase>(registers());
+  return ::std::get<kFrameBase>(CallInterfaceDescriptor::DefaultRegisterArray());
 }
 
 constexpr inline Register WasmHandleStackOverflowDescriptor::GapRegister() {
-  return ::std::get<kGap>(registers());
+  return ::std::get<kGap>(CallInterfaceDescriptor::DefaultRegisterArray());
 }
 
 constexpr auto WasmToJSWrapperDescriptor::registers() {

@@ -24,7 +24,17 @@
 
 #ifdef __wasi__
 #include "wasi/v8-wasi-compat.h"
-#endif
+#include "v8-forward.h"
+// Provide aliases expected by internal code paths
+namespace v8 {
+template <class T>
+using LocalBase = Local<T>;
+namespace internal {
+template <class T>
+using LocalUnchecked = ::v8::Local<T>;
+}  // namespace internal
+}  // namespace v8
+#endif  // __wasi__
 
 namespace v8 {
 // Local<T> is defined in v8-data.h for WASI builds

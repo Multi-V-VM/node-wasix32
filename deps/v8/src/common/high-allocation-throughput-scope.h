@@ -28,7 +28,7 @@ class HighAllocationThroughputScope final {
   ~HighAllocationThroughputScope() { observer_->LeaveSection(); }
 
  private:
-  HighAllocationThroughputObserver* observer_;
+  v8::Platform::HighAllocationThroughputObserver* observer_;
 };
 
 }  // namespace internal

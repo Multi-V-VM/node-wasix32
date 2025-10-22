@@ -33,21 +33,21 @@ inline constexpr Condition Negate(Condition cond) {
     case kNotEqual:
       return kEqual;
     case kLessThan:
-      return kGreaterThanEqual;
-    case kLessThanEqual:
+      return kGreaterThanOrEqual;
+    case kLessThanOrEqual:
       return kGreaterThan;
-    case kGreaterThanEqual:
+    case kGreaterThanOrEqual:
       return kLessThan;
     case kGreaterThan:
-      return kLessThanEqual;
+      return kLessThanOrEqual;
     case kUnsignedLessThan:
-      return kUnsignedGreaterThanEqual;
-    case kUnsignedLessThanEqual:
+      return kUnsignedGreaterThanOrEqual;
+    case kUnsignedLessThanOrEqual:
       return kUnsignedGreaterThan;
-    case kUnsignedGreaterThanEqual:
+    case kUnsignedGreaterThanOrEqual:
       return kUnsignedLessThan;
     case kUnsignedGreaterThan:
-      return kUnsignedLessThanEqual;
+      return kUnsignedLessThanOrEqual;
     default:
       UNREACHABLE();
   }
@@ -61,18 +61,18 @@ inline constexpr Condition Flip(Condition cond) {
       return kNotEqual;
     case kLessThan:
       return kGreaterThan;
-    case kLessThanEqual:
-      return kGreaterThanEqual;
-    case kGreaterThanEqual:
-      return kLessThanEqual;
+    case kLessThanOrEqual:
+      return kGreaterThanOrEqual;
+    case kGreaterThanOrEqual:
+      return kLessThanOrEqual;
     case kGreaterThan:
       return kLessThan;
     case kUnsignedLessThan:
       return kUnsignedGreaterThan;
-    case kUnsignedLessThanEqual:
-      return kUnsignedGreaterThanEqual;
-    case kUnsignedGreaterThanEqual:
-      return kUnsignedLessThanEqual;
+    case kUnsignedLessThanOrEqual:
+      return kUnsignedGreaterThanOrEqual;
+    case kUnsignedGreaterThanOrEqual:
+      return kUnsignedLessThanOrEqual;
     case kUnsignedGreaterThan:
       return kUnsignedLessThan;
     default:

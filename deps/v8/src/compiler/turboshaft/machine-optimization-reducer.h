@@ -554,14 +554,14 @@ class MachineOptimizationReducer : public Next {
         case WordUnaryOp::Kind::kReverseBytes:
           return __ Word64Constant(base::bits::ReverseBytes(w64_k));
         case WordUnaryOp::Kind::kCountLeadingZeros:
-          return __ Word64Constant(
-              uint64_t{base::bits::CountLeadingZeros(w64_k)});
+          return __ Word64Constant(static_cast<uint64_t>(
+              base::bits::CountLeadingZeros(w64_k)));
         case WordUnaryOp::Kind::kCountTrailingZeros:
-          return __ Word64Constant(
-              uint64_t{base::bits::CountTrailingZeros(w64_k)});
+          return __ Word64Constant(static_cast<uint64_t>(
+              base::bits::CountTrailingZeros(w64_k)));
         case WordUnaryOp::Kind::kPopCount:
-          return __ Word64Constant(
-              uint64_t{base::bits::CountPopulation(w64_k)});
+          return __ Word64Constant(static_cast<uint64_t>(
+              base::bits::CountPopulation(w64_k)));
         case WordUnaryOp::Kind::kSignExtend8:
           return __ Word64Constant(int64_t{static_cast<int8_t>(w64_k)});
         case WordUnaryOp::Kind::kSignExtend16:

@@ -76,12 +76,14 @@ RUNTIME_FUNCTION(Runtime_Call) {
   int const argc = args.length() - 2;
   DirectHandle<Object> target = args.at(0);
   DirectHandle<Object> receiver = args.at(1);
-  DirectHandle<ZoneVector<Object> arguments(isolate, argc);
+  std::vector<DirectHandle<Object>> arguments;
+  arguments.reserve(argc);
   for (int i = 0; i < argc; ++i) {
-    arguments[i] = args.at(2 + i);
+    arguments.push_back(args.at(2 + i));
   }
-  RETURN_RESULT_OR_FAILURE(isolate, Execution::Call(isolate, target, receiver,
-                                                    base::VectorOf(arguments)));
+  RETURN_RESULT_OR_FAILURE(
+      isolate, Execution::Call(isolate, target, receiver,
+                               base::VectorOf(arguments)));
 }
 
 

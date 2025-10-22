@@ -181,6 +181,8 @@ class V8_EXPORT Isolate {
     kStringLocaleCompare,
     kConsoleContext,
     kStringNormalize,
+    kDeoptimizerDisableSpeculation,
+    kExplicitResourceManagement,
     kDisplayNames,
     kDurationFormat,
     kNumberFormat,
@@ -208,6 +210,9 @@ class V8_EXPORT Isolate {
     kWebAssemblyInstantiation,
     kStringToLocaleLowerCase,
     kDecimalWithLeadingZeroInStrictMode,
+    // Features referenced by parser web-compat hack
+    kAssigmentExpressionLHSIsCallInStrict,
+    kAssigmentExpressionLHSIsCallInSloppy,
     // Reserve space for unknown future features.
     kUseCounterFeatureCount = 256
   };
@@ -243,6 +248,11 @@ class V8_EXPORT Isolate {
   void Exit() {}
   void Dispose() {}
   void SetIdle(bool idle) { /* No-op for WASI */ }
+  
+  // Exception handling stubs for WASI builds
+  bool HasPendingException() const { return pending_exception_; }
+  void ClearPendingException() { pending_exception_ = false; }
+  void ThrowError(const char* /*message*/) { pending_exception_ = true; }
   
   // Additional methods as needed
   void* GetData(uint32_t slot) { return nullptr; }
@@ -475,6 +485,7 @@ class V8_EXPORT Isolate {
   
   // Exception handling
   Local<Value> ThrowException(Local<Value> exception) {
+    pending_exception_ = true;
     return exception;
   }
   
@@ -505,6 +516,9 @@ class V8_EXPORT Isolate {
   void LowMemoryNotification() {
     // WASI stub - no-op
   }
+ 
+ private:
+  bool pending_exception_ = false;
 };
 
 // StackTracePrinter function type

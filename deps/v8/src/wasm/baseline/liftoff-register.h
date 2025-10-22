@@ -149,14 +149,9 @@ class LiftoffRegister {
       std::max(kNeedI64RegPair || kNeedS128RegPair ? kBitsPerRegPair : 0,
                kBitsPerLiftoffRegCode);
 
-#ifdef __wasi__
-  // Simplified storage_t definition for WASI to avoid template resolution issues
-  using storage_t = uint32_t;
-#else
   using storage_t = typename std::conditional<
       needed_bits <= 8, uint8_t,
       typename std::conditional<needed_bits <= 16, uint16_t, uint32_t>::type>::type;
-#endif
 
   static_assert(8 * sizeof(storage_t) >= needed_bits,
                 "chosen type is big enough");

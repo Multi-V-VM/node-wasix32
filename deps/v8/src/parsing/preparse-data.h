@@ -136,6 +136,9 @@ class V8_EXPORT_PRIVATE PreparseDataBuilder : public ZoneObject,
    public:
     ByteData()
         : byte_data_(nullptr), index_(0), free_quarters_in_last_byte_(0) {}
+    // Union below contains a non-trivial member; provide a trivial destructor
+    // to avoid the implicitly-deleted destructor and rely on Zone lifetime.
+    ~ByteData() {}
 
     void Start(std::vector<uint8_t>* buffer);
     void Finalize(Zone* zone);

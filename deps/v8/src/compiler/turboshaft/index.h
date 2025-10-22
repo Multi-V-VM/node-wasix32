@@ -24,6 +24,9 @@
 #define TURBOSHAFT_ALLOW_IMPLICIT_OPINDEX_INITIALIZATION_FOR_V 1
 
 namespace v8::internal::compiler::turboshaft {
+// Ensure the primary template is declared before explicit specializations
+template <class T>
+struct fast_hash;
 
 // Operations are stored in possibly multiple sequential storage slots.
 using OperationStorageSlot = uint64_t;

@@ -12,22 +12,7 @@
 #include "src/base/bit-field.h"
 #include "src/base/bits.h"
 
-// Add make_array to v8::base namespace
-namespace v8::base {
-
-#ifndef V8_WASI_BASE_MAKE_ARRAY_DEFINED
-#define V8_WASI_BASE_MAKE_ARRAY_DEFINED
-
-template <size_t N, typename F>
-constexpr auto make_array(F&& f) -> ::std::array<decltype(f(0)), N> {
-  return []<size_t... I>(F&& fn, ::std::index_sequence<I...>) {
-    return ::std::array<decltype(fn(0)), N>{{fn(I)...}};
-  }(::std::forward<F>(f), ::std::make_index_sequence<N>{});
-}
-
-#endif  // V8_WASI_BASE_MAKE_ARRAY_DEFINED
-
-}  // namespace v8::base
+// Avoid defining make_array here; it is provided by src/base/template-utils.h
 
 #endif  // __wasi__
 

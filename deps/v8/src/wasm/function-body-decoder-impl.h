@@ -3980,7 +3980,7 @@ class WasmFullDecoder : public WasmDecoder<ValidationTag, decoding_mode> {
 
     // Cache the branch targets during the iteration, so that we can set
     // all branch targets as reachable after the {CALL_INTERFACE} call.
-    SmallVector<bool, 32> br_targets(control_.size(), this->zone());
+    base::SmallVector<bool, 32> br_targets(control_.size(), this->zone());
     std::uninitialized_fill(br_targets.begin(), br_targets.end(), false);
 
     uint32_t arity = 0;

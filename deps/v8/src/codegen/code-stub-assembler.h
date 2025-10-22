@@ -1047,6 +1047,22 @@ class V8_EXPORT_PRIVATE CodeStubAssembler
                                          tag);
   }
 
+  // WASM32 stub implementations to satisfy calls in headers.
+  TNode<RawPtrT> LoadExternalPointerFromObject(TNode<TrustedObject> /*object*/, int /*offset*/, ExternalPointerTag /*tag*/) {
+    return UncheckedCast<RawPtrT>(IntPtrConstant(0));
+  }
+  TNode<RawPtrT> LoadExternalPointerFromObject(TNode<TrustedObject> /*object*/, TNode<IntPtrT> /*offset*/, ExternalPointerTag /*tag*/) {
+    return UncheckedCast<RawPtrT>(IntPtrConstant(0));
+  }
+  template <typename T>
+  TNode<RawPtrT> LoadExternalPointerFromObject(TNode<T> /*object*/, int /*offset*/, ExternalPointerTag /*tag*/) {
+    return UncheckedCast<RawPtrT>(IntPtrConstant(0));
+  }
+  template <typename T>
+  TNode<RawPtrT> LoadExternalPointerFromObject(TNode<T> /*object*/, TNode<IntPtrT> /*offset*/, ExternalPointerTag /*tag*/) {
+    return UncheckedCast<RawPtrT>(IntPtrConstant(0));
+  }
+
   TNode<RawPtrT> LoadFunctionTemplateInfoJsCallbackPtr(
       TNode<FunctionTemplateInfo> object) {
     return LoadExternalPointerFromObject(

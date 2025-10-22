@@ -1,7 +1,8 @@
 // Copyright 2014 the V8 project authors. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
-
+#if __wasi__
+#else
 #include <stddef.h>
 #include <stdint.h>
 
@@ -3735,7 +3736,7 @@ void InstructionSelectorT::VisitF64x2PromoteLowF32x4(OpIndex node) {
     VisitLoad(node, input, code);
     return;
   }
-#endif
+#endif // __wasi__
 
   VisitRR(this, node, code);
 }
@@ -3848,3 +3849,4 @@ InstructionSelector::AlignmentRequirements() {
 }  // namespace compiler
 }  // namespace internal
 }  // namespace v8
+#endif

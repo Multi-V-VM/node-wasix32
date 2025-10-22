@@ -111,8 +111,8 @@ constexpr Register kGpParamRegisters[] = {
 constexpr Register kGpReturnRegisters[] = {kReturnRegister0, kReturnRegister1};
 constexpr DoubleRegister kFpParamRegisters[] = {
     kFPArgumentRegister0, kFPArgumentRegister1, kFPArgumentRegister2,
-    kFPArgumentRegister3, DoubleRegister::f4(), DoubleRegister::f5(),
-    DoubleRegister::f6(), DoubleRegister::f7()};
+    kFPArgumentRegister3, DoubleRegister::d4(), DoubleRegister::d5(),
+    DoubleRegister::d6(), DoubleRegister::d7()};
 constexpr DoubleRegister kFpReturnRegisters[] = {kFPReturnRegister0,
                                                  kFPReturnRegister1};
 
@@ -288,6 +288,12 @@ class LinkageLocationAllocator {
                                      int slot_offset)
       : allocator_(LinkageAllocator(gp, fp)), slot_offset_(slot_offset) {}
 
+  constexpr LinkageLocationAllocator(const Register* gp, int gpc,
+                                     const DoubleRegister* fp, int fpc,
+                                     int slot_offset)
+      : allocator_(LinkageAllocator(gp, gpc, fp, fpc)),
+        slot_offset_(slot_offset) {}
+
   LinkageLocation Next(MachineRepresentation rep) {
     MachineType type = MachineType::TypeForRepresentation(rep);
     if (IsFloatingPoint(rep)) {
@@ -319,3 +325,9 @@ class LinkageLocationAllocator {
 }  // namespace v8
 
 #endif  // V8_WASM_WASM_LINKAGE_H_
+// Ensure wasm32 arch macro in WASI builds
+#ifdef __wasi__
+#ifndef V8_TARGET_ARCH_WASM32
+#define V8_TARGET_ARCH_WASM32 1
+#endif
+#endif

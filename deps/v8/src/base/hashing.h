@@ -311,9 +311,17 @@ struct is_hashable<T, ::std::void_t<decltype(hash_value(::std::declval<const T&>
 template <typename T>
 struct hash {
   V8_INLINE constexpr size_t operator()(const T& v) const {
-    return hash_value(v);
+    if constexpr (is_hashable<T>::value) {
+      return hash_value(v);
+    } else if constexpr (requires { ::std::hash<T>{}(v); }) {
+      return ::std::hash<T>{}(v);
+    } else {
+      return Hasher::Combine(v);
+    }
   }
 };
+
+// Note: no generic hash_value<T> fallback is defined here to avoid ADL/ODR issues.
 
 // TODO(clemensb): Depending on the types in this template the compiler might
 // pick {hash_combine(size_t, size_t)} instead. Thus remove this template and
@@ -328,6 +336,9 @@ template <typename Iterator>
 V8_INLINE size_t hash_range(Iterator first, Iterator last) {
   return Hasher{}.AddRange(first, last).hash();
 }
+
+// Note: no generic hash_value fallback is provided here to avoid ADL/ODR
+// issues. Use base::hash<T> where needed.
 
 // base::bit_equal_to is a function object class for bitwise equality
 // comparison, similar to std::equal_to, except that the comparison is performed
@@ -389,6 +400,18 @@ V8_BASE_BIT_SPECIALIZE_BIT_CAST(double, uint64_t)
 // Note: std::hash<std::pair<...>> specializations should be defined by users
 // close to use-sites to avoid ODR conflicts. V8-specific specializations
 // should live in V8 headers that own their usage (e.g., torque headers).
+#ifdef __wasi__
+// Provide a conservative fallback specialization for std::pair when building
+// against libc++ on WASI, where the standard library may not provide it.
+namespace std {
+template <class T1, class T2>
+struct hash<std::pair<T1, T2>> {
+  size_t operator()(const std::pair<T1, T2>& p) const noexcept {
+    return ::v8::base::hash_combine(p.first, p.second);
+  }
+};
+}  // namespace std
+#endif
 
 // Specialization for ZoneVector<T> commented out - ZoneVector is not available in base/
 // This should be defined in zone/zone-containers.h or a zone-specific header

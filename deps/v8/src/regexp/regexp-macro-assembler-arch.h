@@ -28,6 +28,8 @@
 #include "src/regexp/s390/regexp-macro-assembler-s390.h"
 #elif V8_TARGET_ARCH_RISCV32 || V8_TARGET_ARCH_RISCV64
 #include "src/regexp/riscv/regexp-macro-assembler-riscv.h"
+#elif V8_TARGET_ARCH_WASM32
+// No native RegExp macro assembler for WASM32. RegExp falls back to bytecode.
 #else
 #error Unsupported target architecture.
 #endif

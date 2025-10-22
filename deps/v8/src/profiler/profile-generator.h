@@ -20,6 +20,7 @@
 #include "src/execution/vm-state.h"
 #include "src/logging/code-events.h"
 #include "src/profiler/output-stream-writer.h"
+#include "src/profiler/cpu-profiler.h"
 #include "src/profiler/strings-storage.h"
 #include "src/utils/allocation.h"
 

@@ -172,6 +172,64 @@ inline uint64_t UnsignedMod64(uint64_t lhs, uint64_t rhs) {
   return lhs % rhs;
 }
 
+// ReverseBytes helpers for 32/64-bit integers.
+inline uint32_t ReverseBytes(uint32_t v) { return __builtin_bswap32(v); }
+inline uint64_t ReverseBytes(uint64_t v) { return __builtin_bswap64(v); }
+// CountLeadingSignBits: number of leading bits equal to the sign bit.
+inline int CountLeadingSignBits(int32_t v) {
+  // For non-negative, count leading zeros; for negative, count leading ones as clz(~v).
+  return v >= 0 ? CountLeadingZeros(static_cast<uint32_t>(v))
+                : CountLeadingZeros(static_cast<uint32_t>(~v));
+}
+inline int CountLeadingSignBits(int64_t v) {
+  return v >= 0 ? CountLeadingZeros(static_cast<uint64_t>(v))
+                : CountLeadingZeros(static_cast<uint64_t>(~v));
+}
+
+// Overflow detection helpers for 64-bit signed ops.
+inline bool SignedAddOverflow64(int64_t a, int64_t b, int64_t* out) {
+  return __builtin_add_overflow(a, b, out);
+}
+inline bool SignedSubOverflow64(int64_t a, int64_t b, int64_t* out) {
+  return __builtin_sub_overflow(a, b, out);
+}
+inline bool SignedMulOverflow64(int64_t a, int64_t b, int64_t* out) {
+  return __builtin_mul_overflow(a, b, out);
+}
+
+// High-part multiply helpers.
+inline int32_t SignedMulHigh32(int32_t a, int32_t b) {
+  long long p = static_cast<long long>(a) * static_cast<long long>(b);
+  return static_cast<int32_t>(p >> 32);
+}
+inline int64_t SignedMulHigh64(int64_t a, int64_t b) {
+#if defined(__SIZEOF_INT128__)
+  __int128 p = static_cast<__int128>(a) * static_cast<__int128>(b);
+  return static_cast<int64_t>(p >> 64);
+#else
+  // Fallback (approximate): not used in critical paths for WASI build.
+  return 0;
+#endif
+}
+inline uint32_t UnsignedMulHigh32(uint32_t a, uint32_t b) {
+  uint64_t p = static_cast<uint64_t>(a) * static_cast<uint64_t>(b);
+  return static_cast<uint32_t>(p >> 32);
+}
+inline uint64_t UnsignedMulHigh64(uint64_t a, uint64_t b) {
+#if defined(__SIZEOF_INT128__)
+  unsigned __int128 p = static_cast<unsigned __int128>(a) * static_cast<unsigned __int128>(b);
+  return static_cast<uint64_t>(p >> 64);
+#else
+  return 0;
+#endif
+}
+
+// Convert signed to unsigned of same width.
+template <typename T>
+constexpr typename ::std::make_unsigned<T>::type Unsigned(T v) {
+  return static_cast<typename ::std::make_unsigned<T>::type>(v);
+}
+
 template <typename T>
 constexpr int CountPopulation(T value) {
   if constexpr (sizeof(T) <= sizeof(uint32_t)) {
@@ -258,6 +316,15 @@ using ::v8::base::bits::CountPopulation;
 using ::v8::base::bits::SignedSaturatedAdd64;
 using ::v8::base::bits::SignedSaturatedSub64;
 using ::v8::base::bits::IsPowerOfTwo;
+using ::v8::base::bits::ReverseBytes;
+using ::v8::base::bits::SignedAddOverflow64;
+using ::v8::base::bits::SignedSubOverflow64;
+using ::v8::base::bits::SignedMulOverflow64;
+using ::v8::base::bits::SignedMulHigh32;
+using ::v8::base::bits::SignedMulHigh64;
+using ::v8::base::bits::UnsignedMulHigh32;
+using ::v8::base::bits::UnsignedMulHigh64;
+using ::v8::base::bits::Unsigned;
 using ::v8::base::bits::WhichPowerOfTwo;
 using ::v8::base::bits::SignedAddOverflow32;
 using ::v8::base::bits::SignedSubOverflow32;

@@ -520,9 +520,15 @@ class LabelBase {
     }
     DCHECK_LT(1, predecessor_count);
 
-    // Construct Phis.
-    return values_t{assembler.Phi(
-        base::VectorOf(::std::get<indices>(data.recorded_values)))...};
+    // Construct Phis by converting recorded V<T> values to OpIndex vector and
+    // passing the appropriate representation.
+    return values_t{([&]() {
+      auto& vec = ::std::get<indices>(data.recorded_values);
+      OpIndex* begin = reinterpret_cast<OpIndex*>(vec.data());
+      size_t len = vec.size();
+      using VType = typename std::tuple_element<indices, values_t>::type;
+      return assembler.Phi(base::VectorOf(begin, len), VType::rep);
+    }())...};
   }
 
   BlockData data_;
@@ -656,7 +662,7 @@ class LoopLabel : public LabelBase<true, Ts...> {
       DCHECK_EQ(assembler.current_block(), this->super::block());
       // Now we build a jump from this block to the loop header.
       // Remove the "bound"-flag from the beginning of the tuple.
-      auto values = base::tuple_drop<1>(bind_result);
+    auto values = base::base_tuple_drop_rt<1>(bind_result);
       assembler.Goto(loop_header_data_.block);
       // Finalize Phis in the loop header.
       FixLoopPhis(assembler, values);
@@ -1402,9 +1408,9 @@ class GenericAssemblerOpInterface {
     ControlFlowHelper_Goto(loop_header, {begin});
 
     auto bound_and_current_iterator = loop_header.BindLoop(Asm());
-    auto [bound] = base::tuple_head<1>(bound_and_current_iterator);
+    auto [bound] = base::base_tuple_head_rt<1>(bound_and_current_iterator);
     auto current_iterator = detail::unwrap_unary_tuple(
-        base::tuple_drop<1>(bound_and_current_iterator));
+        base::base_tuple_drop_rt<1>(bound_and_current_iterator));
     OptionalV<Word32> is_end = iterable.IsEnd(Asm(), current_iterator);
     if (is_end.has_value()) {
       ControlFlowHelper_GotoIf(is_end.value(), loop_exit, {});

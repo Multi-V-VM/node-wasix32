@@ -490,7 +490,7 @@ namespace {
 
 // Find the arguments of the JavaScript function invocation that called
 // into C++ code. Collect these in a newly allocated array of handles.
-DirectHandle<ZoneVector<Object> GetCallerArguments(Isolate* isolate) {
+DirectHandle<ZoneVector<Object>> GetCallerArguments(Isolate* isolate) {
   // Find frame containing arguments passed to the caller.
   JavaScriptStackFrameIterator it(isolate);
   JavaScriptFrame* frame = it.frame();
@@ -514,7 +514,7 @@ DirectHandle<ZoneVector<Object> GetCallerArguments(Isolate* isolate) {
     iter++;
     argument_count--;
 
-    DirectHandle<ZoneVector<Object> param_data(isolate, argument_count);
+    DirectHandle<ZoneVector<Object>> param_data(isolate, argument_count);
     bool should_deoptimize = false;
     for (int i = 0; i < argument_count; i++) {
       // If we materialize any object, we should deoptimize the frame because we
@@ -532,7 +532,7 @@ DirectHandle<ZoneVector<Object> GetCallerArguments(Isolate* isolate) {
     return param_data;
   } else {
     int args_count = frame->GetActualArgumentCount();
-    DirectHandle<ZoneVector<Object> param_data(isolate, args_count);
+    DirectHandle<ZoneVector<Object>> param_data(isolate, args_count);
     for (int i = 0; i < args_count; i++) {
       DirectHandle<Object> val =
           DirectHandle<Object>(frame->GetParameter(i), isolate);

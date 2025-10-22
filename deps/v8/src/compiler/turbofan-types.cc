@@ -1115,7 +1115,7 @@ void Type::PrintTo(std::ostream& os) const {
        << ")";
   } else if (this->IsRange()) {
     std::ostream::fmtflags saved_flags = os.setf(std::ios::fixed);
-    streamsize saved_precision = os.precision(0);
+    std::streamsize saved_precision = os.precision(0);
     os << "Range(" << this->AsRange()->Min() << ", " << this->AsRange()->Max()
        << ")";
     os.flags(saved_flags);

@@ -680,15 +680,15 @@ struct FloatOperationTyper {
 
     // If both sides are decently small sets, we produce the product set.
     auto combine = [](float_t a, float_t b) {
-      if V8_UNLIKELY (!std::isfinite(a) && !std::isfinite(b)) {
+      if (V8_UNLIKELY(!std::isfinite(a) && !std::isfinite(b))) {
         return nan_v<Bits>;
       }
-      if V8_UNLIKELY (IsMinusZero(b)) {
+      if (V8_UNLIKELY(IsMinusZero(b))) {
         // +-0 / -0 ==> NaN
         if (a == 0 || std::isnan(a)) return nan_v<Bits>;
         return a > 0 ? -inf : inf;
       }
-      if V8_UNLIKELY (b == 0) {
+      if (V8_UNLIKELY(b == 0)) {
         // +-0 / 0 ==> NaN
         if (a == 0 || std::isnan(a)) return nan_v<Bits>;
         return a > 0 ? inf : -inf;

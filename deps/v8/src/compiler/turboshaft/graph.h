@@ -307,6 +307,8 @@ class Block : public RandomAccessStackDominatorNode<Block> {
  public:
   enum class Kind : uint8_t { kMerge, kLoopHeader, kBranchTarget };
 
+  // Provide a default constructor needed by some ZoneVector use sites.
+  Block() : kind_(Kind::kMerge) {}
   explicit Block(Kind kind) : kind_(kind) {}
 
   bool IsLoopOrMerge() const { return IsLoop() || IsMerge(); }

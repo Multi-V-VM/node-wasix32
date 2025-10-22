@@ -84,15 +84,14 @@ const char* Simd128Register::Mnemonic(int code) {
   return Simd128RegisterNames[code];
 }
 
+
 // CPU features
 bool CpuFeatures::SupportsOptimizer() {
   // WASM32 always supports optimization
   return true;
 }
 
-bool CpuFeatures::SupportsWasmSimd128() {
-  return IsSupported(WASM32_SIMD);
-}
+bool CpuFeatures::SupportsWasmSimd128() { return true; }
 
 // Operand encoding helpers
 int ToNumber(Register reg) {
@@ -116,59 +115,57 @@ class MemOperand {
   int32_t offset_;
 };
 
-// RelocInfo functions
-void RelocInfo::apply(intptr_t delta) {
-  // WASM32 doesn't use relocation for code movement
-  UNREACHABLE();
+// RelocInfo / WritableRelocInfo functions expected by V8 core
+void WritableRelocInfo::apply(intptr_t delta) {
+  if (IsInternalReference(rmode_)) {
+    Address target = Memory<Address>(pc_);
+    jit_allocation_.WriteValue(pc_, target + delta);
+  } else if (IsInternalReferenceEncoded(rmode_)) {
+    Address target = Assembler::target_address_at(pc_, constant_pool_);
+    Assembler::set_target_address_at(pc_, constant_pool_, target + delta,
+                                     &jit_allocation_, SKIP_ICACHE_FLUSH);
+  }
+}
+
+Address RelocInfo::target_internal_reference() {
+  if (IsInternalReference(rmode_)) {
+    return Memory<Address>(pc_);
+  } else {
+    DCHECK(IsInternalReferenceEncoded(rmode_));
+    return Assembler::target_address_at(pc_, constant_pool_);
+  }
+}
+
+Address RelocInfo::target_internal_reference_address() {
+  DCHECK(IsInternalReference(rmode_) || IsInternalReferenceEncoded(rmode_));
+  return pc_;
 }
 
 Address RelocInfo::target_address() {
   DCHECK(IsCodeTargetMode(rmode_) || IsNearBuiltinEntry(rmode_));
-  return Assembler::target_address_from_return_address(pc_);
+  return Assembler::target_address_at(pc_, constant_pool_);
 }
 
-Address RelocInfo::target_address_address() {
-  DCHECK(HasTargetAddressAddress());
-  // We don't support this on WASM32
-  UNREACHABLE();
-}
+Address RelocInfo::target_address_address() { return pc_; }
 
-Address RelocInfo::constant_pool_entry_address() {
-  UNREACHABLE();
-}
+Address RelocInfo::constant_pool_entry_address() { UNREACHABLE(); }
 
-int RelocInfo::target_address_size() {
-  return kPointerSize;
-}
+int RelocInfo::target_address_size() { return kSystemPointerSize; }
 
-HeapObject RelocInfo::target_object(PtrComprCageBase cage_base) {
+Tagged<HeapObject> RelocInfo::target_object(PtrComprCageBase /*cage_base*/) {
   DCHECK(IsCodeTarget(rmode_) || IsFullEmbeddedObject(rmode_));
-  return HeapObject::cast(Object(target_address()));
+  return Cast<HeapObject>(
+      Tagged<Object>(Assembler::target_address_at(pc_, constant_pool_)));
 }
 
-Handle<HeapObject> RelocInfo::target_object_handle(Assembler* origin) {
+DirectHandle<HeapObject> RelocInfo::target_object_handle(Assembler* origin) {
   DCHECK(IsCodeTarget(rmode_) || IsFullEmbeddedObject(rmode_));
-  return origin->code_target_object_handle_at(pc_);
+  return Cast<HeapObject>(
+      origin->code_target_object_handle_at(pc_, constant_pool_));
 }
 
-void RelocInfo::set_target_object(Heap* heap, HeapObject target,
-                                  WriteBarrierMode write_barrier_mode,
-                                  ICacheFlushMode icache_flush_mode) {
-  DCHECK(IsCodeTarget(rmode_) || IsFullEmbeddedObject(rmode_));
-  Assembler::set_target_address_at(pc_, constant_pool_, target.ptr(),
-                                   icache_flush_mode);
-  // WASM32 stub: omit host write barriers.
-}
-
-Address RelocInfo::target_internal_reference() {
-  DCHECK(rmode_ == INTERNAL_REFERENCE);
-  return Memory<Address>(pc_);
-}
-
-Address RelocInfo::target_internal_reference_address() {
-  DCHECK(rmode_ == INTERNAL_REFERENCE);
-  return pc_;
-}
+// target_internal_reference and target_internal_reference_address are defined
+// above with support for both INTERNAL_REFERENCE and INTERNAL_REFERENCE_ENCODED.
 
 Builtin RelocInfo::target_builtin_at(Assembler* origin) {
   DCHECK(IsNearBuiltinEntry(rmode_));
@@ -180,22 +177,7 @@ Address RelocInfo::target_off_heap_target() {
   return Assembler::target_address_from_return_address(pc_);
 }
 
-void RelocInfo::WipeOut() {
-  DCHECK(IsFullEmbeddedObject(rmode_) || IsCodeTarget(rmode_) ||
-         IsExternalReference(rmode_) || IsInternalReference(rmode_) ||
-         IsOffHeapTarget(rmode_));
-  if (IsFullEmbeddedObject(rmode_)) {
-    Memory<Address>(pc_) = kNullAddress;
-  } else if (IsCodeTarget(rmode_) || IsOffHeapTarget(rmode_)) {
-    Assembler::set_target_address_at(pc_, constant_pool_,
-                                     kNullAddress);
-  } else if (IsExternalReference(rmode_)) {
-    Memory<Address>(pc_) = kNullAddress;
-  } else {
-    DCHECK(IsInternalReference(rmode_));
-    Memory<Address>(pc_) = kNullAddress;
-  }
-}
+// No WipeOut implementation for wasm32.
 
 // Assembler static functions
 Address Assembler::target_address_from_return_address(Address pc) {
@@ -205,10 +187,11 @@ Address Assembler::target_address_from_return_address(Address pc) {
 
 void Assembler::set_target_compressed_address_at(
     Address pc, Address constant_pool, Tagged_t target,
+    WritableJitAllocation* jit_allocation,
     ICacheFlushMode icache_flush_mode) {
   Assembler::set_target_address_at(pc, constant_pool,
                                    static_cast<Address>(target),
-                                   icache_flush_mode);
+                                   jit_allocation, icache_flush_mode);
 }
 
 Tagged_t Assembler::target_compressed_address_at(Address pc,
@@ -224,7 +207,8 @@ Handle<Object> Assembler::code_target_object_handle_at(Address pc,
 
 Handle<HeapObject> Assembler::compressed_embedded_object_handle_at(
     Address pc, Address constant_pool) {
-  return Handle<HeapObject>::cast(code_target_object_handle_at(pc, constant_pool));
+  Address address = target_address_at(pc, constant_pool);
+  return Handle<HeapObject>(reinterpret_cast<Address*>(address));
 }
 
 Address Assembler::target_address_at(Address pc, Address constant_pool) {
@@ -245,6 +229,7 @@ Address Assembler::target_address_at(Address pc, Address constant_pool) {
 
 void Assembler::set_target_address_at(Address pc, Address constant_pool,
                                      Address target,
+                                     WritableJitAllocation* /*jit_allocation*/,
                                      ICacheFlushMode icache_flush_mode) {
   int32_t offset = target - pc;
   PatchBranchOffset(reinterpret_cast<uint8_t*>(pc), offset);
@@ -252,6 +237,11 @@ void Assembler::set_target_address_at(Address pc, Address constant_pool,
   if (icache_flush_mode != SKIP_ICACHE_FLUSH) {
     FlushInstructionCache(pc, kWasm32InstrSize);
   }
+}
+
+void Assembler::set_target_address_at(Address pc, Address constant_pool,
+                                     Address target) {
+  set_target_address_at(pc, constant_pool, target, nullptr, SKIP_ICACHE_FLUSH);
 }
 
 void Assembler::deserialization_set_special_target_at(
@@ -263,7 +253,7 @@ void Assembler::deserialization_set_special_target_at(
 
 int Assembler::deserialization_special_target_size(
     Address instruction_payload) {
-  return kPointerSize;
+  return kSystemPointerSize;
 }
 
 void Assembler::deserialization_set_target_internal_reference_at(
@@ -274,6 +264,38 @@ void Assembler::deserialization_set_target_internal_reference_at(
 // CPU-specific functions
 void Assembler::FlushInstructionCache(Address start, size_t size) {
   // No instruction cache on WASM32 virtual ISA
+}
+
+// --- Minimal WASM-style helpers ---
+inline void Assembler::local_get(int index) {
+  // Encode as a push of a local index for tooling.
+  Emit(EncodeIType(kPush, 0, 0, index));
+}
+
+inline void Assembler::local_set(int index) {
+  // Encode as a pop to a local index.
+  Emit(EncodeIType(kPop, 0, 0, index));
+}
+
+inline void Assembler::i32_const(int32_t value) {
+  Emit(EncodeIType(kAddi, 0, 0, value));
+}
+
+inline void Assembler::i32_add() { Emit(EncodeRType(kAdd, 0, 0, 0)); }
+inline void Assembler::i32_sub() { Emit(EncodeRType(kSub, 0, 0, 0)); }
+inline void Assembler::i32_mul() { Emit(EncodeRType(kMul, 0, 0, 0)); }
+
+inline void Assembler::i32_eq() { Emit(EncodeRType(kCmpEq, 0, 0, 0)); }
+inline void Assembler::i32_ne() { Emit(EncodeRType(kCmpNe, 0, 0, 0)); }
+inline void Assembler::i32_lt_s() { Emit(EncodeRType(kCmpLt, 0, 0, 0)); }
+inline void Assembler::i32_gt_s() { Emit(EncodeRType(kCmpGt, 0, 0, 0)); }
+
+inline void Assembler::br_if(uint32_t depth) {
+  Emit(EncodeIType(kBranch, 0, 0, static_cast<int32_t>(depth)));
+}
+
+inline void Assembler::call(uint32_t index) {
+  Emit(EncodeIType(kCall, 0, 0, static_cast<int32_t>(index)));
 }
 
 }  // namespace internal

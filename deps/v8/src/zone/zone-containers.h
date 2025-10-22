@@ -312,18 +312,44 @@ class ZoneVector {
   T* ptr() { return data(); }
   const T* ptr() const { return data(); }
 
+  // Provide OverwriteWith to mirror base::Vector API used in V8.
+  // Copies the contents of `other` into this view. Sizes must match.
+  template <class U>
+  void OverwriteWith(ZoneVector<U> other) {
+    DCHECK_EQ(size(), other.size());
+    T* dst = data_;
+    const U* src = other.data();
+    const U* src_end = src + other.size();
+    // Use existing helper to perform optimal overwrite semantics.
+    CopyingOverwrite(dst, src, src_end);
+  }
+
+  template <class U>
+  void OverwriteWith(::v8::base::Vector<U> other) {
+    DCHECK_EQ(size(), other.size());
+    T* dst = data_;
+    const U* src = other.begin();
+    const U* src_end = other.end();
+    CopyingOverwrite(dst, src, src_end);
+  }
+
   // Cast method for type conversion (similar to v8::base::Vector::cast)
   template <typename S>
   static ZoneVector<T> cast(const ZoneVector<S>& input) {
     static_assert(std::is_trivial_v<S> && std::is_standard_layout_v<S>);
     static_assert(std::is_trivial_v<T> && std::is_standard_layout_v<T>);
-    static_assert(sizeof(S) == sizeof(T));
     ZoneVector<T> result(input.zone());
     result.resize(input.size());
     if (input.size() > 0) {
-      ::memcpy(const_cast<void*>(static_cast<const void*>(result.data())),
-               static_cast<const void*>(input.data()),
-               input.size() * sizeof(S));
+      if constexpr (sizeof(S) == sizeof(T)) {
+        ::memcpy(const_cast<void*>(static_cast<const void*>(result.data())),
+                 static_cast<const void*>(input.data()),
+                 input.size() * sizeof(S));
+      } else {
+        for (size_t i = 0; i < input.size(); ++i) {
+          result[i] = static_cast<T>(input[i]);
+        }
+      }
     }
     return result;
   }
@@ -357,6 +383,11 @@ class ZoneVector {
     DCHECK_GT(end_, data_);
     return *(end_ - 1);
   }
+  // Compatibility aliases used by some code paths.
+  T& first() { return front(); }
+  const T& first() const { return front(); }
+  T& last() { return back(); }
+  const T& last() const { return back(); }
 
   T* begin() V8_NOEXCEPT { return data_; }
   const T* begin() const V8_NOEXCEPT { return data_; }
@@ -393,6 +424,14 @@ class ZoneVector {
     return std::make_reverse_iterator(cbegin());
   }
 
+  // Truncate the vector to new_size elements.
+  void Truncate(size_t new_size) {
+    DCHECK_LE(new_size, size());
+    T* new_end = data_ + new_size;
+    for (T* p = new_end; p < end_; ++p) p->~T();
+    end_ = new_end;
+  }
+
   void push_back(const T& value) {
     EnsureOneMoreCapacity();
     emplace(end_++, value);
@@ -408,7 +447,8 @@ class ZoneVector {
   T& emplace_back(Args&&... args) {
     EnsureOneMoreCapacity();
     T* ptr = end_++;
-    new (ptr) T(std::forward<Args>(args)...);
+    ::new (const_cast<void*>(static_cast<const void*>(ptr)))
+        T(std::forward<Args>(args)...);
     return *ptr;
   }
 
@@ -667,7 +707,8 @@ class ZoneVector {
 
   template <typename... Args>
   void emplace(T* target, Args&&... args) {
-    new (target) T(std::forward<Args>(args)...);
+    ::new (const_cast<void*>(static_cast<const void*>(target)))
+        T(std::forward<Args>(args)...);
   }
 
   Zone* zone_{nullptr};
@@ -863,7 +904,7 @@ template <typename ZoneMap>
 class ZoneMapInit {
  public:
   explicit ZoneMapInit(Zone* zone) : zone_(zone) {}
-  void operator()(ZoneMap* map) const { new (map) ZoneMap(zone_); }
+  void operator()(ZoneMap* map) const { ::new (static_cast<void*>(map)) ZoneMap(zone_); }
 
  private:
   Zone* zone_;

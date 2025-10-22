@@ -155,7 +155,7 @@ enum Opcode : uint32_t {
 };
 
 // Condition codes for branches
-enum Condition : uint32_t {
+enum Condition : int {
   kEqual = 0,
   kNotEqual = 1,
   kLessThan = 2,

@@ -49,6 +49,10 @@ class Factory;
 
 namespace v8::internal::compiler::turboshaft {
 
+// Forward declare fast_hash primary template to allow explicit specializations
+template <class T>
+struct fast_hash;
+
 namespace detail {
 
 template <typename T>

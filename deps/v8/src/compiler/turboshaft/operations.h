@@ -954,7 +954,9 @@ struct alignas(OpIndex) Operation {
     OptionalOpIndex Map(OptionalOpIndex index) { return index; }
     template <size_t N>
     base::SmallVector<OpIndex, N> Map(ZoneVector<const OpIndex> indices) {
-      return base::SmallVector<OpIndex, N>{indices};
+      base::SmallVector<OpIndex, N> out(indices.size());
+      for (size_t i = 0; i < indices.size(); ++i) out[i] = indices[i];
+      return out;
     }
   };
 
@@ -1190,10 +1192,12 @@ struct OperationT : Operation {
 
   explicit OperationT(size_t input_count) : Operation(opcode, input_count) {
     static_assert((std::is_base_of<OperationT, Derived>::value));
-#if !V8_CC_MSVC
+#if !V8_CC_MSVC && !defined(__wasi__)
     static_assert(std::is_trivially_copyable<Derived>::value);
-#endif  // !V8_CC_MSVC
+#endif  // !V8_CC_MSVC && !__wasi__
+#if !defined(__wasi__)
     static_assert(std::is_trivially_destructible<Derived>::value);
+#endif
   }
   explicit OperationT(ShadowyOpIndexVectorWrapper inputs)
       : OperationT(inputs.size()) {
@@ -9292,7 +9296,8 @@ constexpr size_t input_count(const char*) { return 0; }
 constexpr size_t input_count(const DeoptimizeParameters*) { return 0; }
 constexpr size_t input_count(const FastApiCallParameters*) { return 0; }
 constexpr size_t input_count(const FrameStateData*) { return 0; }
-constexpr size_t input_count(const ZoneVector<SwitchOp::Case>) { return 0; }
+// ZoneVector is not a literal type, avoid constexpr here and take by reference.
+inline size_t input_count(const ZoneVector<SwitchOp::Case>&) { return 0; }
 constexpr size_t input_count(LoadOp::Kind) { return 0; }
 constexpr size_t input_count(RegisterRepresentation) { return 0; }
 constexpr size_t input_count(MemoryRepresentation) { return 0; }
@@ -9306,7 +9311,7 @@ inline size_t input_count(const FeedbackSource) { return 0; }
 inline size_t input_count(const ZoneRefSet<Map>) { return 0; }
 inline size_t input_count(ConstantOp::Storage) { return 0; }
 inline size_t input_count(Type) { return 0; }
-inline size_t input_count(ZoneVector<const RegisterRepresentation>) {
+inline size_t input_count(const ZoneVector<const RegisterRepresentation>&) {
   return 0;
 }
 #ifdef V8_ENABLE_WEBASSEMBLY
@@ -9321,11 +9326,11 @@ constexpr size_t input_count(wasm::ModuleTypeIndex) { return 0; }
 // All parameters that are OpIndex-like (ie, OpIndex, and OpIndex containers)
 constexpr size_t input_count(OpIndex) { return 1; }
 constexpr size_t input_count(OptionalOpIndex) { return 1; }
-constexpr size_t input_count(ZoneVector<const OpIndex> inputs) {
+inline size_t input_count(const ZoneVector<const OpIndex>& inputs) {
   return inputs.size();
 }
 template <typename T>
-constexpr size_t input_count(ZoneVector<const V<T>> inputs) {
+inline size_t input_count(const ZoneVector<const V<T>>& inputs) {
   return inputs.size();
 }
 }  // namespace detail

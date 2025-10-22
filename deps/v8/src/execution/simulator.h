@@ -33,6 +33,8 @@
 #include "src/execution/s390/simulator-s390.h"
 #elif V8_TARGET_ARCH_RISCV32 || V8_TARGET_ARCH_RISCV64
 #include "src/execution/riscv/simulator-riscv.h"
+#elif V8_TARGET_ARCH_WASM32
+#include "src/execution/wasm32/simulator-wasm32.h"
 #else
 #error Unsupported target architecture.
 #endif

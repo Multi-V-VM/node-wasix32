@@ -142,7 +142,7 @@ class ValueNumberingReducer : public Next {
     if (ShouldSkipOptimizationStep()) return result;                  \
     if constexpr (!CanBeGVNed<Name##Op>()) return result;             \
     DCHECK_EQ(next_index, result);                                    \
-    return AddOrFind<Name##Op>(result);                               \
+    return this->template AddOrFind<Name##Op>(result);                 \
   }
   TURBOSHAFT_OPERATION_LIST(EMIT_OP)
 #undef EMIT_OP

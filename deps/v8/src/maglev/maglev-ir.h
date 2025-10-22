@@ -58,6 +58,11 @@ enum Condition : int;
 
 namespace maglev {
 
+// Note: WASI-specific stubs were previously added here but caused
+// duplicate definitions and type mismatches. The Maglev node bitfield
+// machinery below (via NextBitField) works for WASI, so no overrides
+// are necessary.
+
 class BasicBlock;
 class ProcessingState;
 class MaglevAssembler;
@@ -68,6 +73,8 @@ class MaglevVregAllocationState;
 class CompactInterpreterFrameState;
 class MergePointInterpreterFrameState;
 class ExceptionHandlerInfo;
+
+// (Intentionally left blank for WASI.)
 
 // Nodes are either
 // 1. side-effecting or value-holding SSA nodes in the body of basic blocks, or
@@ -6618,8 +6625,8 @@ class CheckValue : public FixedInputNodeT<1, CheckValue> {
 
  public:
   explicit CheckValue(uint64_t bitfield, const compiler::HeapObjectRef value,
-                      DeoptimizeReason reason)
-      : Base(bitfield | ReasonField::encode(reason)), value_(value) {}
+                      DeoptimizeReason /*reason*/)
+      : Base(bitfield), value_(value) {}
 
   static constexpr OpProperties kProperties = OpProperties::EagerDeopt();
   static constexpr
@@ -6653,8 +6660,8 @@ class CheckValueEqualsInt32 : public FixedInputNodeT<1, CheckValueEqualsInt32> {
 
  public:
   explicit CheckValueEqualsInt32(uint64_t bitfield, int32_t value,
-                                 DeoptimizeReason reason)
-      : Base(bitfield | ReasonField::encode(reason)), value_(value) {}
+                                 DeoptimizeReason /*reason*/)
+      : Base(bitfield), value_(value) {}
 
   static constexpr OpProperties kProperties = OpProperties::EagerDeopt();
   static constexpr
@@ -6682,8 +6689,8 @@ class CheckFloat64SameValue : public FixedInputNodeT<1, CheckFloat64SameValue> {
 
  public:
   explicit CheckFloat64SameValue(uint64_t bitfield, Float64 value,
-                                 DeoptimizeReason reason)
-      : Base(bitfield | ReasonField::encode(reason)), value_(value) {}
+                                 DeoptimizeReason /*reason*/)
+      : Base(bitfield), value_(value) {}
 
   static constexpr OpProperties kProperties = OpProperties::EagerDeopt();
   static constexpr
@@ -6713,8 +6720,8 @@ class CheckValueEqualsString
  public:
   explicit CheckValueEqualsString(uint64_t bitfield,
                                   compiler::InternalizedStringRef value,
-                                  DeoptimizeReason reason)
-      : Base(bitfield | ReasonField::encode(reason)), value_(value) {}
+                                  DeoptimizeReason /*reason*/)
+      : Base(bitfield), value_(value) {}
 
   // Can allocate if strings are flattened for comparison.
   static constexpr OpProperties kProperties = OpProperties::CanAllocate() |
@@ -6745,8 +6752,8 @@ class CheckDynamicValue : public FixedInputNodeT<2, CheckDynamicValue> {
   using Base = FixedInputNodeT<2, CheckDynamicValue>;
 
  public:
-  explicit CheckDynamicValue(uint64_t bitfield, DeoptimizeReason reason)
-      : Base(bitfield | ReasonField::encode(reason)) {}
+  explicit CheckDynamicValue(uint64_t bitfield, DeoptimizeReason /*reason*/)
+      : Base(bitfield) {}
 
   static constexpr OpProperties kProperties = OpProperties::EagerDeopt();
   static constexpr typename Base::InputTypes kInputTypes{
@@ -7172,9 +7179,8 @@ class CheckInt32Condition : public FixedInputNodeT<2, CheckInt32Condition> {
 
  public:
   explicit CheckInt32Condition(uint64_t bitfield, AssertCondition condition,
-                               DeoptimizeReason reason)
-      : Base(bitfield | ConditionField::encode(condition) |
-             ReasonField::encode(reason)) {}
+                               DeoptimizeReason /*reason*/)
+      : Base(bitfield | ConditionField::encode(condition)) {}
 
   static constexpr OpProperties kProperties = OpProperties::EagerDeopt();
   static constexpr typename Base::InputTypes kInputTypes{
@@ -7669,8 +7675,8 @@ class PolymorphicAccessInfo {
   }
 
   size_t hash_value() const {
-    size_t hash = base::hash_value(kind_);
-    hash = base::hash_combine(hash, base::hash_value(representation_.kind()));
+    size_t hash = base::hash_combine(static_cast<size_t>(kind_));
+    hash = base::hash_combine(hash, static_cast<size_t>(representation_.kind()));
     for (auto map : maps()) {
       hash = base::hash_combine(hash, map.hash_value());
     }
@@ -7683,13 +7689,11 @@ class PolymorphicAccessInfo {
         hash = base::hash_combine(hash, constant_.hash_value());
         break;
       case kConstantDouble:
-        hash = base::hash_combine(hash, base::hash_value(constant_double_));
+        hash = base::hash_combine(hash, ::v8::base::hash<double>{}(constant_double_));
         break;
       case kDataLoad:
-        hash = base::hash_combine(
-            hash, base::hash_value(data_load_.holder_.hash_value()));
-        hash = base::hash_combine(
-            hash, base::hash_value(data_load_.field_index_.index()));
+        hash = base::hash_combine(hash, data_load_.holder_.hash_value());
+        hash = base::hash_combine(hash, static_cast<size_t>(data_load_.field_index_.index()));
         break;
     }
     return hash;
@@ -11042,7 +11046,7 @@ class Deopt : public TerminalControlNodeT<0, Deopt> {
 
  public:
   explicit Deopt(uint64_t bitfield, DeoptimizeReason reason)
-      : Base(bitfield | ReasonField::encode(reason)) {
+      : Base(bitfield) {
     DCHECK_EQ(NodeBase::opcode(), opcode_of<Deopt>);
   }
 

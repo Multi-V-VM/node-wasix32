@@ -248,6 +248,12 @@ class V8_EXPORT_PRIVATE JumpTableAssembler {
   static constexpr int kJumpTableSlotSize = 1 * kInstrSize;
   static constexpr int kFarJumpTableSlotSize = 6 * kInstrSize;
   static constexpr int kLazyCompileTableSlotSize = 3 * kInstrSize;
+#elif V8_TARGET_ARCH_WASM32
+  // Minimal values for wasm32 JIT-less builds
+  static constexpr int kJumpTableSlotSize = kWasm32InstrSize;
+  static constexpr int kJumpTableLineSize = kJumpTableSlotSize;
+  static constexpr int kFarJumpTableSlotSize = 2 * kWasm32InstrSize;
+  static constexpr int kLazyCompileTableSlotSize = 2 * kWasm32InstrSize;
 #else
 #error Unknown architecture.
 #endif

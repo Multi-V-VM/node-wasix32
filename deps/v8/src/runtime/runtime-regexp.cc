@@ -1660,7 +1660,8 @@ RUNTIME_FUNCTION(Runtime_StringReplaceNonGlobalRegExpWithFunction) {
     THROW_NEW_ERROR_RETURN_FAILURE(
         isolate, NewRangeError(MessageTemplate::kTooManyArguments));
   }
-  DirectHandle<ZoneVector<Object> arguments(isolate, argc);
+  std::vector<DirectHandle<Object>> arguments;
+  arguments.reserve(argc);
 
   int cursor = 0;
   for (int j = 0; j < m; j++) {
@@ -1668,21 +1669,21 @@ RUNTIME_FUNCTION(Runtime_StringReplaceNonGlobalRegExpWithFunction) {
     DirectHandle<String> capture =
         RegExpUtils::GenericCaptureGetter(isolate, match_indices, j, &ok);
     if (ok) {
-      arguments[cursor++] = capture;
+      arguments.push_back(capture);
     } else {
-      arguments[cursor++] = factory->undefined_value();
+      arguments.push_back(factory->undefined_value());
     }
   }
 
-  arguments[cursor++] = direct_handle(Smi::FromInt(index), isolate);
-  arguments[cursor++] = subject;
+  arguments.push_back(direct_handle(Smi::FromInt(index), isolate));
+  arguments.push_back(subject);
 
   if (has_named_captures) {
-    arguments[cursor++] = ConstructNamedCaptureGroupsObject(
-        isolate, capture_map, [&arguments](int ix) { return *arguments[ix]; });
+    arguments.push_back(ConstructNamedCaptureGroupsObject(
+        isolate, capture_map, [&arguments](int ix) { return *arguments[ix]; }));
   }
 
-  DCHECK_EQ(cursor, argc);
+  DCHECK_EQ(static_cast<uint32_t>(arguments.size()), argc);
 
   DirectHandle<Object> replacement_obj;
   ASSIGN_RETURN_FAILURE_ON_EXCEPTION(
@@ -2082,18 +2083,19 @@ RUNTIME_FUNCTION(Runtime_RegExpReplaceRT) {
             isolate, NewRangeError(MessageTemplate::kTooManyArguments));
       }
 
-      DirectHandle<ZoneVector<Object> call_args(isolate, argc);
+      std::vector<DirectHandle<Object>> call_args;
+      call_args.reserve(argc);
 
       int cursor = 0;
       for (uint32_t j = 0; j < captures.size(); j++) {
-        call_args[cursor++] = captures[j];
+        call_args.push_back(captures[j]);
       }
 
-      call_args[cursor++] = direct_handle(Smi::FromInt(position), isolate);
-      call_args[cursor++] = string;
-      if (has_named_captures) call_args[cursor++] = groups_obj;
+      call_args.push_back(direct_handle(Smi::FromInt(position), isolate));
+      call_args.push_back(string);
+      if (has_named_captures) call_args.push_back(groups_obj);
 
-      DCHECK_EQ(cursor, argc);
+      DCHECK_EQ(static_cast<uint32_t>(call_args.size()), argc);
 
       DirectHandle<Object> replacement_obj;
       ASSIGN_RETURN_FAILURE_ON_EXCEPTION(

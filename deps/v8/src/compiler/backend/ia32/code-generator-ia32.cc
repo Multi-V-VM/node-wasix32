@@ -1,7 +1,8 @@
 // Copyright 2013 the V8 project authors. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
-
+#if __wasi__
+#else
 #include "src/base/overflowing-math.h"
 #include "src/codegen/assembler-inl.h"
 #include "src/codegen/callable.h"
@@ -590,7 +591,7 @@ bool VerifyOutputOfAtomicPairInstr(IA32OperandConverter* converter,
   return (converter->TempRegister(0) == eax &&
           converter->TempRegister(1) == edx);
 }
-#endif
+#endif // __wasi__
 
 }  // namespace
 
@@ -4679,3 +4680,5 @@ void CodeGenerator::AssembleJumpTable(ZoneVector<Label*> targets) {
 }  // namespace compiler
 }  // namespace internal
 }  // namespace v8
+
+#endif  // __wasi__

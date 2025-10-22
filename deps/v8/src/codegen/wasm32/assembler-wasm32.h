@@ -19,7 +19,7 @@ namespace internal {
 class SafepointTableBuilder;
 
 // Forward declarations
-class AssemblerWasm32;
+class Assembler;
 
 // CPU features for WASM32
 enum Wasm32Feature {
@@ -30,12 +30,12 @@ enum Wasm32Feature {
   WASM32_FEATURE_COUNT = 4
 };
 
-class V8_EXPORT_PRIVATE AssemblerWasm32 : public AssemblerBase {
+class V8_EXPORT_PRIVATE Assembler : public AssemblerBase {
  public:
   // Creation, destruction
-  explicit AssemblerWasm32(const AssemblerOptions& options,
+  explicit Assembler(const AssemblerOptions& options,
                           std::unique_ptr<AssemblerBuffer> buffer = {});
-  ~AssemblerWasm32() override;
+  ~Assembler() override;
 
   // GetCode emits any pending (non-emitted) code and fills the descriptor desc.
   static constexpr int kNoHandlerTable = 0;
@@ -52,8 +52,6 @@ class V8_EXPORT_PRIVATE AssemblerWasm32 : public AssemblerBase {
   void nop();
   // WASM-level structured control stubs used by MacroAssemblerWASM32
   void br(uint32_t /*depth*/) {}
-  void br_if(uint32_t /*depth*/) {}
-  void call(uint32_t /*index*/) {}
   void wasm_return() {}
   void unreachable() {}
 
@@ -69,6 +67,23 @@ class V8_EXPORT_PRIVATE AssemblerWasm32 : public AssemblerBase {
   void Emit(uint32_t instr);
   void EmitBranch(Label* L, Condition cond, Register rs1, Register rs2);
   void EmitJump(Label* L);
+
+  // Lightweight WASM-style stack helpers expected by MacroAssembler stubs.
+  // These emit pseudo-ops to keep intent without maintaining a real value
+  // stack, sufficient for code generation pipelines that only need
+  // well-formed streams.
+  void local_get(int /*index*/);
+  void local_set(int /*index*/);
+  void i32_const(int32_t /*value*/);
+  void i32_add();
+  void i32_sub();
+  void i32_mul();
+  void i32_eq();
+  void i32_ne();
+  void i32_lt_s();
+  void i32_gt_s();
+  void br_if(uint32_t /*depth*/);
+  void call(uint32_t /*index*/);
 
   // === Architecture-specific instructions ===
   
@@ -193,6 +208,33 @@ class V8_EXPORT_PRIVATE AssemblerWasm32 : public AssemblerBase {
   // Code patching
   static void PatchBranchOffset(uint8_t* pc, int32_t offset);
 
+  // Static helpers used by RelocInfo and serializer interfaces
+  static Address target_address_from_return_address(Address pc);
+  static void set_target_compressed_address_at(Address pc, Address constant_pool,
+                                               Tagged_t target,
+                                               WritableJitAllocation* jit_allocation,
+                                               ICacheFlushMode icache_flush_mode);
+  static Tagged_t target_compressed_address_at(Address pc, Address constant_pool);
+  static Handle<Object> code_target_object_handle_at(Address pc, Address constant_pool);
+  static Handle<HeapObject> compressed_embedded_object_handle_at(Address pc,
+                                                                 Address constant_pool);
+  static Address target_address_at(Address pc, Address constant_pool);
+  static void set_target_address_at(Address pc, Address constant_pool,
+                                    Address target,
+                                    WritableJitAllocation* jit_allocation,
+                                    ICacheFlushMode icache_flush_mode);
+  static void deserialization_set_special_target_at(Address instruction_payload,
+                                                    Tagged<Code> code,
+                                                    Address target);
+  static int deserialization_special_target_size(Address instruction_payload);
+  static void deserialization_set_target_internal_reference_at(Address pc,
+                                                               Address target,
+                                                               RelocInfo::Mode mode);
+  static void FlushInstructionCache(Address start, size_t size);
+  // Three-arguments overload used in some code paths
+  static void set_target_address_at(Address pc, Address constant_pool,
+                                    Address target);
+
   // Debugging
   void RecordComment(const char* comment);
   void RecordDeoptReason(DeoptimizeReason reason, uint32_t node_id,
@@ -263,15 +305,17 @@ class V8_EXPORT_PRIVATE AssemblerWasm32 : public AssemblerBase {
 // Helper class for EnsureSpace
 class V8_EXPORT_PRIVATE EnsureSpace {
  public:
-  explicit EnsureSpace(AssemblerWasm32* assembler) : assembler_(assembler) {
+  explicit EnsureSpace(Assembler* assembler) : assembler_(assembler) {
     assembler_->CheckBufferSpace();
   }
 
  private:
-  AssemblerWasm32* const assembler_;
+  Assembler* const assembler_;
 };
 
 }  // namespace internal
 }  // namespace v8
+
+// (No additional aliasing needed; Assembler is defined above.)
 
 #endif  // V8_CODEGEN_WASM32_ASSEMBLER_WASM32_H_

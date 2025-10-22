@@ -67,7 +67,7 @@ class SnapshotByteSource final {
     }
   }
 
-#ifdef V8_COMPRESS_POINTERS
+#if V8_COMPRESS_POINTERS
   void CopySlots(Tagged_t* dest, int number_of_slots) {
     AtomicTagged_t* start = reinterpret_cast<AtomicTagged_t*>(dest);
     AtomicTagged_t* end = start + number_of_slots;

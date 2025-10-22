@@ -13,6 +13,21 @@
 
 namespace v8 {
 
+// Provide a generic native object handle type for APIs that accept embedder
+// objects.
+using NativeObject = void*;
+
+// ActivityControl interface for reporting snapshot progress.
+class ActivityControl {
+ public:
+  enum Control {
+    kAbort = 0,
+    kContinue = 1,
+  };
+  virtual ~ActivityControl() = default;
+  virtual Control ReportProgressValue(int done, int total) = 0;
+};
+
 // Forward declarations
 class HeapGraphNode;
 class HeapGraphEdge;
@@ -135,6 +150,19 @@ class HeapProfiler {
         capture_numeric_value(false),
         snapshot_mode(HeapSnapshotMode::kRegular) {}
   };
+
+  // Flags controlling sampling behavior of the sampling heap profiler.
+  enum class SamplingFlags : uint32_t {
+    kNoFlags = 0,
+    kSamplingForceGC = 1,
+  };
+
+  // Resolve object names for heap snapshot nodes.
+  class ObjectNameResolver {
+   public:
+    virtual ~ObjectNameResolver() = default;
+    virtual const char* GetName(Local<Value> value) { return nullptr; }
+  };
   
   // Callback types
   using BuildEmbedderGraphCallback = void (*)(v8::Isolate* isolate, EmbedderGraph* graph, void* data);
@@ -237,6 +265,7 @@ class HeapGraphNode {
     kSymbol = 12,
     kSimdValue = 13,
     kBigInt = 14,
+    kObjectShape = 15,
   };
   
   virtual ~HeapGraphNode() = default;

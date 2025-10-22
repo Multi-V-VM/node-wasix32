@@ -12,6 +12,8 @@
 #include <optional>
 #include <vector>
 
+#include "src/base/iterator.h"
+
 namespace v8::base {
 
 // Returns true iff the {element} is found in the {container}.
@@ -154,6 +156,7 @@ using ::v8::base::none_of;
 using ::v8::base::sort;
 using ::v8::base::count_if;
 using ::v8::base::erase_if;
+using ::v8::base::all_equal;
 // Bring iterator utilities
 using ::v8::base::DerefPtrIterator;
 }  // namespace base

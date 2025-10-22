@@ -16,6 +16,14 @@
 
 namespace v8::internal::compiler::turboshaft {
 
+// Provide a generic primary template for fast_hash to allow hashing arbitrary
+// keys in layered maps. Specific specializations (e.g., OpIndex, BlockIndex)
+// should be defined alongside their types.
+template <class T>
+struct fast_hash {
+  size_t operator()(const T& v) const { return ::v8::base::hash<T>{}(v); }
+};
+
 // LayeredHashMap is a hash map whose elements are groupped into layers, such
 // that it's efficient to remove all of the items from the last inserted layer.
 // In addition to the regular Insert/Get/Contains functions of hash maps, it
@@ -85,7 +93,7 @@ LayeredHashMap<Key, Value>::LayeredHashMap(Zone* zone,
   initial_capacity = base::bits::RoundUpToPowerOfTwo32(initial_capacity);
   mask_ = initial_capacity - 1;
   // Allocating the table_
-  table_ = zone_->NewZoneVector<Entry>(initial_capacity);
+  table_ = ZoneVector<Entry>(initial_capacity, zone_);
 }
 
 template <class Key, class Value>
@@ -141,7 +149,7 @@ template <class Key, class Value>
 void LayeredHashMap<Key, Value>::ResizeIfNeeded() {
   if (table_.size() * kNeedResizePercentage > entry_count_) return;
   CHECK_LE(table_.size(), std::numeric_limits<size_t>::max() / kGrowthFactor);
-  table_ = zone_->NewZoneVector<Entry>(table_.size() * kGrowthFactor);
+  table_ = ZoneVector<Entry>(table_.size() * kGrowthFactor, zone_);
   mask_ = table_.size() - 1;
   DCHECK_EQ(base::bits::CountPopulation(mask_),
             sizeof(mask_) * 8 - base::bits::CountLeadingZeros(mask_));

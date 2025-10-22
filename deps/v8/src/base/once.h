@@ -11,6 +11,11 @@
 #define ONCE_STATE_UNINITIALIZED 0
 #define ONCE_STATE_DONE 1
 
+// Declare a process-wide once control variable with static initialization.
+#ifndef V8_DECLARE_ONCE
+#define V8_DECLARE_ONCE(name) ::v8::Once::OnceType name = V8_ONCE_INIT
+#endif
+
 namespace v8 {
 
 // Provide v8::Once wrapper expected by headers using v8::Once::OnceType.

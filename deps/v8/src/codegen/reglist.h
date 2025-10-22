@@ -110,6 +110,7 @@ using DoubleRegList = RegListBase<DoubleRegister>;
 
 // Constants
 static constexpr RegListBase<Register> kEmptyRegList{};
+static constexpr RegListBase<DoubleRegister> kEmptyDoubleRegList{};
 
 // Note: Architecture-specific allocatable sets are defined elsewhere.
 

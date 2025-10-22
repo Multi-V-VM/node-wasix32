@@ -126,6 +126,13 @@ namespace {
 #define CALLEE_SAVE_REGISTERS s1, s2, s3, s4, s5, s6, s7, s8, s9, s10, s11
 #define CALLEE_SAVE_FP_REGISTERS \
   fs0, fs1, fs2, fs3, fs4, fs5, fs6, fs7, fs8, fs9, fs10, fs11
+#elif V8_TARGET_ARCH_WASM32
+// ===========================================================================
+// == wasm32 (WASI) ==========================================================
+// ===========================================================================
+// Minimal definitions: no callee-saved registers.
+#define CALLEE_SAVE_REGISTERS
+#define CALLEE_SAVE_FP_REGISTERS
 #else
 // ===========================================================================
 // == unknown ================================================================

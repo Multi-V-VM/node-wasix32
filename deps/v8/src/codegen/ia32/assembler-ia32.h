@@ -33,7 +33,8 @@
 // Copyright 2011 the V8 project authors. All rights reserved.
 
 // A light-weight IA32 Assembler.
-
+#if __wasi__
+#else
 #ifndef V8_CODEGEN_IA32_ASSEMBLER_IA32_H_
 #define V8_CODEGEN_IA32_ASSEMBLER_IA32_H_
 
@@ -1840,3 +1841,4 @@ class EnsureSpace {
 }  // namespace v8
 
 #endif  // V8_CODEGEN_IA32_ASSEMBLER_IA32_H_
+#endif

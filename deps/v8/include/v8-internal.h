@@ -13,6 +13,30 @@
 // Provide namespace bridges and base helpers for internal code
 #include "wasi/v8-namespace-fix.h"
 // #include "../../../../wasi-v8-minimal-missing.h" // Now included from util.h
+
+// For WASI builds, expose Internals root-index constants matching
+// the internal RootIndex enumeration to satisfy static assertions in
+// src/roots/roots.cc without hard-coding fragile integer values.
+#include "src/roots/roots.h"
+namespace v8 {
+namespace internal {
+class Internals {
+ public:
+  static constexpr int kUndefinedValueRootIndex =
+      static_cast<int>(RootIndex::kUndefinedValue);
+  static constexpr int kTheHoleValueRootIndex =
+      static_cast<int>(RootIndex::kTheHoleValue);
+  static constexpr int kNullValueRootIndex =
+      static_cast<int>(RootIndex::kNullValue);
+  static constexpr int kTrueValueRootIndex =
+      static_cast<int>(RootIndex::kTrueValue);
+  static constexpr int kFalseValueRootIndex =
+      static_cast<int>(RootIndex::kFalseValue);
+  static constexpr int kEmptyStringRootIndex =
+      static_cast<int>(RootIndex::kempty_string);
+};
+}  // namespace internal
+}  // namespace v8
 #endif
 
 // Forward declarations needed by public API headers that befriend these types

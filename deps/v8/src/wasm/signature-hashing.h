@@ -45,8 +45,10 @@ void IterateSignatureImpl(const SigType* sig, bool extra_callable_param,
                           int* total_parameter_slots,
                           int* untagged_return_slots, int* total_return_slots) {
   constexpr int kParamsSlotOffset = 0;
-  LinkageLocationAllocator params(kGpParamRegisters, kFpParamRegisters,
-                                  kParamsSlotOffset);
+  LinkageLocationAllocator params(
+      kGpParamRegisters, static_cast<int>(sizeof(kGpParamRegisters) / sizeof(kGpParamRegisters[0])),
+      kFpParamRegisters, static_cast<int>(sizeof(kFpParamRegisters) / sizeof(kFpParamRegisters[0])),
+      kParamsSlotOffset);
   // The instance object.
   locations.AddParamAt(0, params.Next(MachineRepresentation::kTaggedPointer));
   const size_t param_offset = 1;  // Actual params start here.
@@ -91,8 +93,12 @@ void IterateSignatureImpl(const SigType* sig, bool extra_callable_param,
   // that all untagged results appear first in registers and on the stack,
   // followed by tagged results. That way, we can simply check the size of
   // each section, rather than needing a bit map.
-  LinkageLocationAllocator rets(kGpReturnRegisters, kFpReturnRegisters,
-                                params_stack_height);
+  LinkageLocationAllocator rets(
+      kGpReturnRegisters,
+      static_cast<int>(sizeof(kGpReturnRegisters) / sizeof(kGpReturnRegisters[0])),
+      kFpReturnRegisters,
+      static_cast<int>(sizeof(kFpReturnRegisters) / sizeof(kFpReturnRegisters[0])),
+      params_stack_height);
 
   const size_t return_count = sig->return_count();
   bool has_tagged_result = false;

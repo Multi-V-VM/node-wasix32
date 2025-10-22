@@ -125,7 +125,16 @@ class Platform {
   virtual void CallOnWorkerThread(std::unique_ptr<Task> task) = 0;
   virtual void CallDelayedOnWorkerThread(std::unique_ptr<Task> task, double delay_in_seconds) = 0;
   virtual bool IdleTasksEnabled(Isolate* isolate) = 0;
+  // Primary time API expected by most V8 internals
   virtual double CurrentClockTimeMillis() = 0;
+  // Compatibility shims for call sites expecting "Milliseconds" spelling.
+  // Provide default implementations in terms of CurrentClockTimeMillis().
+  virtual int64_t CurrentClockTimeMilliseconds() {
+    return static_cast<int64_t>(CurrentClockTimeMillis());
+  }
+  virtual double CurrentClockTimeMillisecondsHighResolution() {
+    return CurrentClockTimeMillis();
+  }
   // Legacy static accessor used by some internal code paths.
   static double SystemClockTimeMillis();
   virtual double MonotonicallyIncreasingTime() = 0;
@@ -143,6 +152,19 @@ class Platform {
   virtual void PostTaskOnWorkerThread(TaskPriority priority, std::unique_ptr<Task> task) = 0;
   virtual TracingController* GetTracingController() = 0;
   virtual StackTracePrinter GetStackTracePrinter() = 0;
+  
+  // HighAllocationThroughputObserver shims for WASI builds.
+  class HighAllocationThroughputObserver {
+   public:
+    virtual ~HighAllocationThroughputObserver() = default;
+    virtual void EnterSection() {}
+    virtual void LeaveSection() {}
+  };
+  
+  virtual HighAllocationThroughputObserver* GetHighAllocationThroughputObserver() {
+    static HighAllocationThroughputObserver observer;
+    return &observer;
+  }
   
   // Deprecated methods with default implementations
   virtual void CallOnForegroundThread(Isolate* isolate, std::unique_ptr<Task> task) {}
