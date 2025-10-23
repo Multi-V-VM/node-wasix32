@@ -12,6 +12,7 @@
 #include <vector>
 
 #include "src/base/hashing.h"
+#include "include/v8-internal.h"
 #include "src/base/macros.h"
 #include "src/base/small-vector.h"
 #include "src/base/vector.h"
@@ -30,6 +31,19 @@ namespace v8 {
 class HandleScope;
 
 namespace internal {
+
+#ifdef __wasi__
+// Provide a minimal ValueHelper if not available from v8-internal.h
+#ifndef V8_WASI_VALUEHELPER_DEFINED
+#define V8_WASI_VALUEHELPER_DEFINED
+struct ValueHelper {
+  using InternalRepresentationType = Address;
+  static constexpr InternalRepresentationType kEmpty = 0;
+  static constexpr InternalRepresentationType kTaggedNullAddress =
+      static_cast<InternalRepresentationType>(0x1);
+};
+#endif  // V8_WASI_VALUEHELPER_DEFINED
+#endif  // __wasi__
 
 // Forward declarations.
 #ifdef V8_ENABLE_DIRECT_HANDLE

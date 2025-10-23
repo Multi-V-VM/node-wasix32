@@ -1123,6 +1123,8 @@ ExternalReference ExternalReference::invoke_accessor_getter_callback() {
 #define re_stack_check_func RegExpMacroAssemblerS390::CheckStackGuardState
 #elif V8_TARGET_ARCH_RISCV32 || V8_TARGET_ARCH_RISCV64
 #define re_stack_check_func RegExpMacroAssemblerRISCV::CheckStackGuardState
+#elif V8_TARGET_ARCH_WASM32
+#define re_stack_check_func RegExpMacroAssemblerWASM32::CheckStackGuardState
 #else
 UNREACHABLE();
 #endif

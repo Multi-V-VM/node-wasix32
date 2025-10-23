@@ -530,6 +530,7 @@ class V8_BASE_EXPORT AddressSpaceReservation {
 };
 
 // ----------------------------------------------------------------------------
+#ifndef V8_BASE_PLATFORM_THREAD_H_
 // Thread
 //
 // Thread objects are used for creating and running threads. When the start()
@@ -642,6 +643,7 @@ class V8_BASE_EXPORT Thread {
   Priority priority_;
   Semaphore* start_semaphore_;
 };
+#endif  // V8_BASE_PLATFORM_THREAD_H_
 
 // TODO(v8:10354): Make use of the stack utilities here in V8.
 class V8_BASE_EXPORT Stack {

@@ -8,8 +8,9 @@
 #include <type_traits>
 
 #include "src/base/export-template.h"
-#include "src/base/macros.h"
+// Ensure OS is visible to macros which use OS::Abort.
 #include "src/base/platform/platform.h"
+#include "src/base/macros.h"
 
 namespace v8 {
 namespace base {
@@ -59,7 +60,9 @@ class V8_EXPORT_PRIVATE ContextualVariable {
     static_assert(std::is_base_of<ContextualVariable, Derived>::value,
                   "Curiously Recurring Template Pattern");
 
+#ifndef __wasi__
     DISALLOW_NEW_AND_DELETE()
+#endif
   };
 
   static VarType& Get() {

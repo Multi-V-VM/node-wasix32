@@ -10,12 +10,93 @@
 // Ensure v8::base atomic types are available when this header is pulled in
 // from public headers before base headers.
 #include "src/base/atomicops.h"
+
+// Provide an early, minimal definition of v8::PageAllocator so nested
+// types like ::v8::PageAllocator::Permission and the alias ::v8::PagePermissions
+// are always available to any header that includes v8-internal.h before
+// v8-platform.h. The full interface (with identical API surface) may be
+// provided later by v8-platform-full.h; we guard redefinition via
+// V8_PAGE_ALLOCATOR_INTERFACE_DEFINED.
+#ifndef V8_PAGE_ALLOCATOR_INTERFACE_DEFINED
+namespace v8 {
+class PageAllocator {
+ public:
+  enum Permission {
+    kNoAccess,
+    kRead,
+    kReadWrite,
+    kReadWriteExecute,
+    kReadExecute,
+    kNoAccessWillJitLater
+  };
+  using PagePermissions = Permission;
+
+  virtual ~PageAllocator() = default;
+
+  virtual size_t AllocatePageSize() = 0;
+  virtual size_t CommitPageSize() = 0;
+  virtual void SetRandomMmapSeed(int64_t seed) = 0;
+  virtual void* GetRandomMmapAddr() = 0;
+  virtual void* AllocatePages(void* address, size_t length, size_t alignment,
+                              PagePermissions permissions) = 0;
+  virtual bool FreePages(void* address, size_t length) = 0;
+  virtual bool ReleasePages(void* address, size_t length) = 0;
+  virtual bool SetPermissions(void* address, size_t length,
+                              PagePermissions permissions) = 0;
+  virtual bool RecommitPages(void* address, size_t length,
+                             PagePermissions permissions) = 0;
+  virtual bool DecommitPages(void* address, size_t length) = 0;
+  virtual bool DiscardSystemPages(void* address, size_t size) = 0;
+  virtual bool SealPages(void* address, size_t size) = 0;
+
+  class SharedMemory {
+   public:
+    virtual ~SharedMemory() = default;
+  };
+
+  class SharedMemoryMapping {
+   public:
+    virtual ~SharedMemoryMapping() = default;
+    virtual void* GetMemory() const = 0;
+    virtual void Remap(void* new_address) = 0;
+  };
+};
+
+using PagePermissions = PageAllocator::PagePermissions;
+}  // namespace v8
+
+#define V8_PAGE_ALLOCATOR_INTERFACE_DEFINED 1
+#endif  // V8_PAGE_ALLOCATOR_INTERFACE_DEFINED
 #endif
 
 // Provide no-op inline statement macro if missing
 #ifndef V8_INLINE_STATEMENT
 #define V8_INLINE_STATEMENT
 #endif
+
+// ---------------------------------------------------------------------------
+// Fallback build configuration macros/constants used by flags/globals
+// Define safe defaults if not already provided by upstream headers.
+
+// Default stack size (in KB) used by flag-definitions.h
+#ifndef V8_DEFAULT_STACK_SIZE_KB
+#define V8_DEFAULT_STACK_SIZE_KB 960
+#endif
+
+// Feature toggles consumed by flags and various subsystems
+#ifndef V8_EXTERNAL_CODE_SPACE_BOOL
+#define V8_EXTERNAL_CODE_SPACE_BOOL false
+#endif
+#ifndef COMPRESS_POINTERS_IN_SHARED_CAGE_BOOL
+#define COMPRESS_POINTERS_IN_SHARED_CAGE_BOOL false
+#endif
+#ifndef V8_DICT_PROPERTY_CONST_TRACKING_BOOL
+#define V8_DICT_PROPERTY_CONST_TRACKING_BOOL false
+#endif
+
+// Note: Core numeric constants (kBitsPerByte, kMaxUInt8, kMaxUInt32,
+// kDoubleSize, etc.) are provided by src/common/globals.h. Do not duplicate
+// here to avoid ODR/redefinition issues.
 
 // Provide global SmiTagging template and API size fallback expected by Torque
 #ifndef kApiInt32Size

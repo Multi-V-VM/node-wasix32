@@ -1,8 +1,7 @@
 // On WASI builds, this file may be compiled even though neither IA32 nor X64
 // backends are targeted. Provide stub implementations to avoid build breaks.
 #ifdef __wasi__
-#define V8_SHARED_IA32_X64_WASI_STUBS 1
-#endif
+#else
 // Copyright 2021 the V8 project authors. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
@@ -1352,3 +1351,4 @@ void SharedMacroAssemblerBase::F64x2Qfms(XMMRegister dst, XMMRegister src1,
 }  // namespace v8
 
 #undef DCHECK_OPERAND_IS_NOT_REG
+#endif

@@ -6,6 +6,8 @@
 #define V8_BUILTINS_ACCESSORS_H_
 
 #include "include/v8-local-handle.h"
+#include "include/v8-function-callback.h"
+#include "src/handles/handles.h"
 #include "src/base/bit-field.h"
 #include "src/common/globals.h"
 #include "src/objects/property-details.h"
@@ -18,6 +20,11 @@ namespace internal {
 class AccessorInfo;
 class FieldIndex;
 class JavaScriptFrame;
+class JSObject;
+class Map;
+class Name;
+class Object;
+class String;
 
 // The list of accessor descriptors. This is a second-order macro
 // taking a macro to be applied to all accessor descriptor names.

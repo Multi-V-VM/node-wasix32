@@ -41,7 +41,7 @@ void SandboxHardwareSupport::SetDefaultPermissionsForSignalHandler() {
 
 // static
 void SandboxHardwareSupport::NotifyReadOnlyPageCreated(
-    Address addr, size_t size, PageAllocator::Permission perm) {
+    Address addr, size_t size, ::v8::PageAllocator::Permission perm) {
   if (pkey_ != base::MemoryProtectionKey::kNoMemoryProtectionKey) {
     // Reset the pkey of the read-only page to the default pkey, since some
     // SBXCHECKs will safely read read-only data from the heap.
@@ -86,7 +86,7 @@ void SandboxHardwareSupport::SetDefaultPermissionsForSignalHandler() {}
 
 // static
 void SandboxHardwareSupport::NotifyReadOnlyPageCreated(
-    Address addr, size_t size, PageAllocator::Permission perm) {}
+    Address addr, size_t size, ::v8::PageAllocator::Permission perm) {}
 
 // static
 SandboxHardwareSupport::BlockAccessScope

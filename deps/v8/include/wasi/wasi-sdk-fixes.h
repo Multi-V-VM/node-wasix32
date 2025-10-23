@@ -82,26 +82,8 @@ using ::std::min;
 }  // namespace base
 }  // namespace v8
 
-// Fix for PageAllocator::SharedMemory
-namespace v8 {
-
-class PageAllocator {
- public:
-  class SharedMemory {
-   public:
-    virtual ~SharedMemory() = default;
-    virtual void* Map(void* address, size_t length) = 0;
-    virtual void Unmap(void* address, size_t length) = 0;
-    virtual size_t GetSize() const = 0;
-  };
-
-  virtual ~PageAllocator() = default;
-  virtual std::unique_ptr<SharedMemory> AllocateSharedPages(size_t size) {
-    return nullptr;
-  }
-};
-
-}  // namespace v8
+// PageAllocator interface is defined in v8-platform-full.h; avoid providing
+// alternative declarations here to prevent ODR and type mismatches.
 
 #endif  // __wasi__
 #endif  // WASI_SDK_FIXES_H

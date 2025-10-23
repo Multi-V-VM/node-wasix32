@@ -1,8 +1,6 @@
 #ifndef V8_TASK_FULL_H_
 #define V8_TASK_FULL_H_
 
-#ifdef __wasi__
-
 #include <memory>
 #include <utility>
 
@@ -45,6 +43,4 @@ class TaskRunner {
 };
 
 }  // namespace v8
-
-#endif  // __wasi__
 #endif  // V8_TASK_FULL_H_

@@ -45,7 +45,8 @@ class V8_EXPORT_PRIVATE SandboxHardwareSupport {
   // Removes the pkey from read only pages, so that MaybeBlockAccess will still
   // allow read access.
   static void NotifyReadOnlyPageCreated(
-      Address addr, size_t size, PageAllocator::Permission current_permissions);
+      Address addr, size_t size,
+      ::v8::PageAllocator::Permission current_permissions);
 
   // This function should only be called by
   // `ThreadIsolatedAllocator::SetDefaultPermissionsForSignalHandler`.

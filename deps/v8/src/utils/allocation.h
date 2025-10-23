@@ -10,7 +10,7 @@
 
 #include <new>
 
-#include "include/v8-platform.h"
+#include "include/v8-platform-full.h"
 #include "src/base/address-region.h"
 #include "src/base/bounded-page-allocator.h"
 #include "src/base/compiler-specific.h"
@@ -21,6 +21,9 @@ namespace v8 {
 
 namespace base {
 class BoundedPageAllocator;
+// Forward declare enum classes to break include ordering cycles on WASI builds.
+enum class PageFreeingMode : int;
+enum class PageInitializationMode : int;
 }  // namespace base
 
 namespace internal {
@@ -169,12 +172,12 @@ V8_EXPORT_PRIVATE
 V8_WARN_UNUSED_RESULT void* AllocatePages(PageAllocator* page_allocator,
                                           void* address, size_t size,
                                           size_t alignment,
-                                          PageAllocator::Permission access);
+                                          ::v8::PageAllocator::Permission access);
 
 // Frees memory allocated by a call to AllocatePages. |address| and |size| must
 // be multiples of AllocatePageSize().
 V8_EXPORT_PRIVATE
-void FreePages(PageAllocator* page_allocator, void* address,
+void FreePages(::v8::PageAllocator* page_allocator, void* address,
                const size_t size);
 
 // Releases memory that is no longer needed. The range specified by |address|
@@ -182,7 +185,7 @@ void FreePages(PageAllocator* page_allocator, void* address,
 // multiples of CommitPageSize(). Memory from |new_size| to |size| is released.
 // Released memory is left in an undefined state, so it should not be accessed.
 V8_EXPORT_PRIVATE
-void ReleasePages(PageAllocator* page_allocator, void* address, size_t size,
+void ReleasePages(::v8::PageAllocator* page_allocator, void* address, size_t size,
                   size_t new_size);
 
 // Sets permissions according to |access|. |address| and |size| must be
@@ -190,11 +193,11 @@ void ReleasePages(PageAllocator* page_allocator, void* address, size_t size,
 // cause the memory contents to be lost. Returns true on success, otherwise
 // false.
 V8_EXPORT_PRIVATE
-V8_WARN_UNUSED_RESULT bool SetPermissions(PageAllocator* page_allocator,
+V8_WARN_UNUSED_RESULT bool SetPermissions(::v8::PageAllocator* page_allocator,
                                           void* address, size_t size,
-                                          PageAllocator::Permission access);
-inline bool SetPermissions(PageAllocator* page_allocator, Address address,
-                           size_t size, PageAllocator::Permission access) {
+                                          ::v8::PageAllocator::Permission access);
+inline bool SetPermissions(::v8::PageAllocator* page_allocator, Address address,
+                           size_t size, ::v8::PageAllocator::Permission access) {
   return SetPermissions(page_allocator, reinterpret_cast<void*>(address), size,
                         access);
 }
@@ -219,11 +222,12 @@ class VirtualMemory final {
   V8_EXPORT_PRIVATE VirtualMemory(
       ::v8::PageAllocator* page_allocator, size_t size, void* hint,
       size_t alignment = 1,
-      PageAllocator::Permission permissions = PageAllocator::kNoAccess);
+      ::v8::PageAllocator::Permission permissions =
+          ::v8::PageAllocator::Permission::kNoAccess);
 
   // Construct a virtual memory by assigning it some already mapped address
   // and size.
-  VirtualMemory(PageAllocator* page_allocator, Address address, size_t size)
+  VirtualMemory(::v8::PageAllocator* page_allocator, Address address, size_t size)
       : page_allocator_(page_allocator), region_(address, size) {
     DCHECK_NOT_NULL(page_allocator);
     DCHECK(IsAligned(address, page_allocator->AllocatePageSize()));
@@ -279,19 +283,19 @@ class VirtualMemory final {
   // Sets permissions according to the access argument. address and size must be
   // multiples of CommitPageSize(). Returns true on success, otherwise false.
   V8_EXPORT_PRIVATE V8_WARN_UNUSED_RESULT bool SetPermissions(
-      Address address, size_t size, PageAllocator::Permission access);
+      Address address, size_t size, ::v8::PageAllocator::Permission access);
 
   // Recommits discarded pages in the given range with given permissions.
   // Discarded pages must be recommitted with their original permissions
   // before they are used again. |address| and |size| must be multiples of
   // CommitPageSize(). Returns true on success, otherwise false.
   V8_EXPORT_PRIVATE V8_WARN_UNUSED_RESULT bool RecommitPages(
-      Address address, size_t size, PageAllocator::Permission access);
+      Address address, size_t size, ::v8::PageAllocator::Permission access);
 
   // Resizes the reservation starting at |address| to |new_size| and commits the
   // additional memory range with the |access| permissions.
   V8_EXPORT_PRIVATE V8_WARN_UNUSED_RESULT bool Resize(
-      Address address, size_t new_size, PageAllocator::Permission access);
+      Address address, size_t new_size, ::v8::PageAllocator::Permission access);
 
   // Frees memory in the given [address, address + size) range. address and size
   // should be operating system page-aligned. The next write to this
@@ -406,7 +410,7 @@ class VirtualMemoryCage {
     size_t base_alignment;
     size_t page_size;
     Address requested_start_hint;
-    PageAllocator::Permission permissions;
+    ::v8::PageAllocator::Permission permissions;
     ::v8::base::PageInitializationMode page_initialization_mode;
     ::v8::base::PageFreeingMode page_freeing_mode;
 

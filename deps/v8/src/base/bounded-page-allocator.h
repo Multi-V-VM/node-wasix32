@@ -12,6 +12,41 @@
 namespace v8 {
 namespace base {
 
+// Fallback declaration for ::v8::PageAllocator when public header
+// did not provide it yet in host tools or alternate build phases.
+#ifndef V8_PAGE_ALLOCATOR_INTERFACE_DEFINED
+namespace fallback {
+class PageAllocatorFallback {
+ public:
+  using PagePermissions = int;
+  virtual ~PageAllocatorFallback() = default;
+  virtual size_t AllocatePageSize() = 0;
+  virtual size_t CommitPageSize() = 0;
+  virtual void SetRandomMmapSeed(int64_t) = 0;
+  virtual void* GetRandomMmapAddr() = 0;
+  virtual void* AllocatePages(void* address, size_t length, size_t alignment,
+                              PagePermissions) = 0;
+  virtual bool FreePages(void* address, size_t length) = 0;
+  virtual bool ReleasePages(void* address, size_t length) = 0;
+  virtual bool SetPermissions(void* address, size_t length,
+                              PagePermissions) = 0;
+  virtual bool RecommitPages(void* address, size_t length,
+                             PagePermissions) = 0;
+  virtual bool DiscardSystemPages(void* address, size_t size) = 0;
+  virtual bool DecommitPages(void* address, size_t size) = 0;
+  virtual bool SealPages(void* address, size_t size) = 0;
+};
+}  // namespace fallback
+#endif  // V8_PAGE_ALLOCATOR_INTERFACE_DEFINED
+
+// Make PagePermissions from the v8::PageAllocator base visible unqualified
+// in this namespace for method signatures below.
+#ifdef V8_PAGE_ALLOCATOR_INTERFACE_DEFINED
+using PagePermissions = ::v8::PageAllocator::PagePermissions;
+#else
+using PagePermissions = ::v8::base::fallback::PageAllocatorFallback::PagePermissions;
+#endif
+
 // Defines the page initialization mode of a BoundedPageAllocator.
 enum class PageInitializationMode {
   // The contents of allocated pages must be zero initialized. This causes any
@@ -55,7 +90,13 @@ enum class PageFreeingMode {
 // Bounded page allocator uses other page allocator instance for doing actual
 // page allocations.
 // The implementation is thread-safe.
-class V8_BASE_EXPORT BoundedPageAllocator : public ::v8::PageAllocator {
+class V8_BASE_EXPORT BoundedPageAllocator
+#ifdef V8_PAGE_ALLOCATOR_INTERFACE_DEFINED
+    : public ::v8::PageAllocator
+#else
+    : public ::v8::base::fallback::PageAllocatorFallback
+#endif
+{
  public:
   enum class AllocationStatus {
     kSuccess,
@@ -68,7 +109,12 @@ class V8_BASE_EXPORT BoundedPageAllocator : public ::v8::PageAllocator {
 
   static const char* AllocationStatusToString(AllocationStatus);
 
-  BoundedPageAllocator(v8::PageAllocator* page_allocator, Address start,
+#ifdef V8_PAGE_ALLOCATOR_INTERFACE_DEFINED
+  BoundedPageAllocator(::v8::PageAllocator* page_allocator, Address start,
+#else
+  BoundedPageAllocator(::v8::base::fallback::PageAllocatorFallback* page_allocator,
+                       Address start,
+#endif
                        size_t size, size_t allocate_page_size,
                        PageInitializationMode page_initialization_mode,
                        PageFreeingMode page_freeing_mode);
@@ -133,7 +179,11 @@ class V8_BASE_EXPORT BoundedPageAllocator : public ::v8::PageAllocator {
   v8::base::Mutex mutex_;
   const size_t allocate_page_size_;
   const size_t commit_page_size_;
+#ifdef V8_PAGE_ALLOCATOR_INTERFACE_DEFINED
   ::v8::PageAllocator* const page_allocator_;
+#else
+  ::v8::base::fallback::PageAllocatorFallback* const page_allocator_;
+#endif
   v8::base::RegionAllocator region_allocator_;
   const PageInitializationMode page_initialization_mode_;
   const PageFreeingMode page_freeing_mode_;

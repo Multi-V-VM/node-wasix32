@@ -1,8 +1,6 @@
 #ifndef V8_V8_PLATFORM_COMPLETE_H_
 #define V8_V8_PLATFORM_COMPLETE_H_
 
-#ifdef __wasi__
-
 #include <memory>
 #include "v8-task-full.h"
 #include "v8-tracing-base.h"
@@ -36,6 +34,11 @@ class JobHandle {
   virtual void Join() = 0;
   virtual void Cancel() = 0;
   virtual bool IsActive() = 0;
+  // Additional controls used by various V8 subsystems; default no-ops.
+  virtual bool UpdatePriorityEnabled() { return false; }
+  virtual void UpdatePriority(TaskPriority) {}
+  virtual void CancelAndDetach() { Cancel(); }
+  virtual bool IsValid() { return IsActive(); }
 };
 
 // JobDelegate interface
@@ -56,6 +59,7 @@ class JobTask {
   virtual size_t GetMaxConcurrency(size_t worker_count) const = 0;
 };
 
+#ifndef V8_PAGE_ALLOCATOR_INTERFACE_DEFINED
 // PageAllocator interface
 class PageAllocator {
  public:
@@ -103,6 +107,13 @@ class PageAllocator {
     virtual void Remap(void* new_address) = 0;
   };
 };
+#endif  // V8_PAGE_ALLOCATOR_INTERFACE_DEFINED
+
+// Public PageAllocator interface is available either from this header or
+// via an early skeleton in wasi/nuclear-fix.h. Mark as defined for users.
+#ifndef V8_PAGE_ALLOCATOR_INTERFACE_DEFINED
+#define V8_PAGE_ALLOCATOR_INTERFACE_DEFINED 1
+#endif
 
 // Expose PagePermissions at v8::PagePermissions for convenience
 using PagePermissions = PageAllocator::PagePermissions;
@@ -150,8 +161,19 @@ class Platform {
     return PostJob(priority, std::move(job_task));
   }
   virtual void PostTaskOnWorkerThread(TaskPriority priority, std::unique_ptr<Task> task) = 0;
+  // Some paths post delayed worker tasks; provide a default forwarding impl.
+  virtual void PostDelayedTaskOnWorkerThread(TaskPriority priority,
+                                             std::unique_ptr<Task> task,
+                                             double delay_in_seconds) {
+    // WASI default: ignore delay and post immediately.
+    PostTaskOnWorkerThread(priority, std::move(task));
+  }
   virtual TracingController* GetTracingController() = 0;
   virtual StackTracePrinter GetStackTracePrinter() = 0;
+  // Crash reporting hook used by some error paths.
+  virtual void DumpWithoutCrashing() {}
+  // Thread isolated allocator accessor used by sandbox code paths.
+  virtual v8::ThreadIsolatedAllocator* GetThreadIsolatedAllocator() { return nullptr; }
   
   // HighAllocationThroughputObserver shims for WASI builds.
   class HighAllocationThroughputObserver {
@@ -237,5 +259,4 @@ class VirtualAddressSpace {
 
 }  // namespace v8
 
-#endif  // __wasi__
 #endif  // V8_V8_PLATFORM_COMPLETE_H_

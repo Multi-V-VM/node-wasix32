@@ -20,6 +20,7 @@
 #include "src/inspector/v8-stack-trace-impl.h"
 #include "src/inspector/value-mirror.h"
 #include "src/tracing/trace-event.h"
+#include <vector>
 
 namespace v8_inspector {
 
@@ -87,7 +88,7 @@ class V8ValueStringBuilder {
   explicit V8ValueStringBuilder(v8::Local<v8::Context> context)
       : m_arrayLimit(maxArrayItemsLimit),
         m_isolate(context->GetIsolate()),
-        m_visitedArrays(context->GetIsolate()),
+        m_visitedArrays(),
         m_tryCatch(context->GetIsolate()),
         m_context(context) {}
 
@@ -184,7 +185,7 @@ class V8ValueStringBuilder {
   uint32_t m_arrayLimit;
   v8::Isolate* m_isolate;
   String16Builder m_builder;
-  ZoneVector<v8::Array> m_visitedArrays;
+  std::vector<v8::Local<v8::Array>> m_visitedArrays;
   v8::TryCatch m_tryCatch;
   v8::Local<v8::Context> m_context;
 };
@@ -461,19 +462,19 @@ std::unique_ptr<V8ConsoleMessage> V8ConsoleMessage::createForConsoleAPI(
     message->m_message += V8ValueStringBuilder::toString(arg, v8Context);
   }
 
-  v8::Isolate::MessageErrorLevel clientLevel = v8::Isolate::kMessageInfo;
+  v8::MessageErrorLevel clientLevel = v8::kMessageInfo;
   if (type == ConsoleAPIType::kDebug || type == ConsoleAPIType::kCount ||
       type == ConsoleAPIType::kTimeEnd) {
-    clientLevel = v8::Isolate::kMessageDebug;
+    clientLevel = v8::kMessageDebug;
   } else if (type == ConsoleAPIType::kError ||
              type == ConsoleAPIType::kAssert) {
-    clientLevel = v8::Isolate::kMessageError;
+    clientLevel = v8::kMessageError;
   } else if (type == ConsoleAPIType::kWarning) {
-    clientLevel = v8::Isolate::kMessageWarning;
+    clientLevel = v8::kMessageWarning;
   } else if (type == ConsoleAPIType::kInfo) {
-    clientLevel = v8::Isolate::kMessageInfo;
+    clientLevel = v8::kMessageInfo;
   } else if (type == ConsoleAPIType::kLog) {
-    clientLevel = v8::Isolate::kMessageLog;
+    clientLevel = v8::kMessageLog;
   }
 
   if (type != ConsoleAPIType::kClear) {

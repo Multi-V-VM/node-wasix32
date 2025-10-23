@@ -9,6 +9,7 @@
 #include <memory>
 #include <optional>
 #include <set>
+#include "src/base/timezone-cache.h"  // Ensure base::TimezoneCache is declared
 #include <string>
 
 #include "src/base/timezone-cache.h"

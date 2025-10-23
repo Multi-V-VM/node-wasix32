@@ -73,24 +73,7 @@ using remove_cv_t = typename ::std::remove_cv<T>::type;
 }  // namespace base
 }  // namespace v8
 
-// Also define platform-specific types
-namespace v8 {
-
-class PageAllocator {
- public:
-  class SharedMemory {
-   public:
-    virtual ~SharedMemory() = default;
-    virtual void* Map(void* address, size_t length) = 0;
-    virtual void Unmap(void* address, size_t length) = 0;
-  };
-
-  virtual ~PageAllocator() = default;
-  virtual std::unique_ptr<SharedMemory> AllocateSharedPages(
-      size_t length, const void* hint = nullptr) = 0;
-};
-
-}  // namespace v8
+// No PageAllocator stubs here; the public interface lives in v8-platform-full.h.
 
 #endif  // __wasi__
 #endif  // WASI_TYPE_TRAITS_COMPAT_H

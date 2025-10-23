@@ -27,6 +27,7 @@
 #include "src/base/vlq.h"
 #include "src/base/vlq-base64.h"
 #include "src/base/contextual.h"
+#include "src/base/abort-mode.h"
 #include "src/base/platform/time.h"
 #include "src/base/vector.h"
 #include "src/base/hashing.h"
@@ -36,6 +37,21 @@
 #include "src/base/division-by-constant.h"
 #include "src/base/overflowing-math.h"
 #include "src/base/ieee754.h"
+#include "src/base/fpu.h"
+#include "src/base/numbers/dtoa.h"
+#include "src/base/numbers/strtod.h"
+#include "src/base/bounds.h"
+#include "src/base/numerics/safe_conversions.h"
+#include "src/base/platform/elapsed-timer.h"
+#include "src/base/platform/platform.h"
+#include "src/base/platform/mutex.h"
+#include "src/base/vector.h"
+#include "src/base/strings.h"
+#include "src/base/iterator.h"
+#include "src/base/memory.h"
+#include "src/base/utils/random-number-generator.h"
+#include "src/base/atomic-utils.h"
+#include "src/base/bit-field.h"
 
 // WASI 兼容性修复
 #ifdef __wasi__
@@ -80,123 +96,180 @@ class ConditionVariable;
 
 namespace internal {
 
-// In many src/* files, references to `v8::...` appear inside the
-// `v8::internal` namespace. Provide a namespace alias so that
-// `v8::internal::v8::...` resolves to the global `::v8::...` and
-// unqualified `v8::...` inside this namespace also resolves correctly.
-namespace v8 = ::v8;
-
-// Bridge commonly used ::v8::base symbols into v8::internal::base to satisfy
-// code referencing internal::base::...
+// Provide a minimal bridge for internal::base::BitField so code using
+// base::BitField from the internal namespace resolves to the public
+// implementation in ::v8::base.
 namespace base {
-using ::v8::base::TimeTicks;
-using ::v8::base::TimeDelta;
-using ::v8::base::SmallVector;
-// Forward alias to ::v8::base::SmallMap with matching signature.
-template <typename NormalMap, size_t kArraySize = 4,
-          typename EqualKey = typename ::v8::base::internal::select_equal_key<
-              NormalMap, ::v8::base::internal::has_key_equal<NormalMap>::value>::equal_key,
-          typename MapInit = ::v8::base::internal::SmallMapDefaultInit<NormalMap>>
-using SmallMap = ::v8::base::SmallMap<NormalMap, kArraySize, EqualKey, MapInit>;
-using ::v8::base::double_to_uint64;
-template <typename T>
-using ScopedZoneVector = ::v8::base::ScopedZoneVector<T>;
-using ::v8::base::Vector;
-using ::v8::base::VectorOf;
-using ::v8::base::make_array;
+template <class T, int shift, int size, class U = uint32_t>
+using BitField = ::v8::base::BitField<T, shift, size, U>;
+template <class T, int shift, int size>
+using BitField8 = ::v8::base::BitField8<T, shift, size>;
+template <class T, int shift, int size>
+using BitField16 = ::v8::base::BitField16<T, shift, size>;
+
+// Common base helpers used by internal code paths
+using ::v8::base::saturated_cast;
 using ::v8::base::AtomicWord;
 using ::v8::base::AsAtomicWord;
 using ::v8::base::AsAtomicPointer;
-using ::v8::base::AsAtomicPtr;
-using ::v8::base::CheckedIncrement;
-using ::v8::base::CheckedDecrement;
+using ::v8::base::ElapsedTimer;
+using ::v8::base::PrintCheckOperand;
+using ::v8::base::IsInRange;
+using ::v8::base::hash_combine;
+using ::v8::base::hash_range;
+template <typename T>
+using hash = ::v8::base::hash<T>;
+using ::v8::base::checked_cast;
+// Provide a forwarding hash_value that uses base::hash<T> by default
+template <typename T>
+inline size_t hash_value(const T& t) {
+  return ::v8::base::hash<T>{}(t);
+}
+using ::v8::base::TimeTicks;
+using ::v8::base::TimeDelta;
+using ::v8::base::TimezoneCache;
+using ::v8::base::OS;
+using ::v8::base::ConditionVariable;
+using ::v8::base::Semaphore;
+template <typename T>
+using AtomicValue = ::v8::base::AtomicValue<T>;
+using ::v8::base::RandomNumberGenerator;
+// Atomic ops
 using ::v8::base::Acquire_Load;
+using ::v8::base::Relaxed_Load;
+using ::v8::base::SeqCst_Load;
 using ::v8::base::Release_Store;
-using ::v8::base::MagicNumbersForDivision;
+using ::v8::base::Relaxed_Store;
+using ::v8::base::SeqCst_Store;
+using ::v8::base::Acquire_CompareAndSwap;
+using ::v8::base::Release_CompareAndSwap;
+using ::v8::base::AcquireRelease_CompareAndSwap;
+using ::v8::base::Relaxed_CompareAndSwap;
+using ::v8::base::SeqCst_MemoryFence;
+
+// Character and vector helpers
+using ::v8::base::uc16;
+using ::v8::base::uc32;
+using ::v8::base::StaticCharVector;
+using ::v8::base::CStrVector;
+using ::v8::base::ArrayVector;
+using ::v8::base::Reversed;
+using ::v8::base::make_iterator_range;
+template <typename It>
+using iterator_range = ::v8::base::iterator_range<It>;
+template <typename T>
+using OwnedVector = ::v8::base::OwnedVector<T>;
+using ::v8::base::OwnedCopyOf;
+template <typename T>
+using OwnedZoneVector = ::v8::base::OwnedVector<T>;
+
+// Memory helpers
+using ::v8::base::ReadUnalignedValue;
+using ::v8::base::WriteUnalignedValue;
+using ::v8::base::ReadLittleEndianValue;
+using ::v8::base::WriteLittleEndianValue;
+using ::v8::base::Memory;
+// Time helper alias
+using Time = ::v8::base::TimeConstants;
+using ::v8::base::double_to_uint64;
+using ::v8::base::uint64_to_double;
+using ::v8::base::FPU;
+using ::v8::base::SNPrintF;
+using ::v8::base::VSNPrintF;
+using ::v8::base::Relaxed_Memcpy;
+using ::v8::base::Relaxed_Memmove;
+using ::v8::base::AsAtomicPtr;
+using ::v8::base::HexValue;
+using ::v8::base::HexCharOfValue;
+using ::v8::base::VLQEncode;
+using ::v8::base::VLQDecode;
+using ::v8::base::VLQEncodeUnsigned;
+using ::v8::base::VLQDecodeUnsigned;
+using ::v8::base::DoubleToAscii;
+using ::v8::base::DtoaMode;  // enum type from dtoa.h
+using ::v8::base::DTOA_FIXED;
+using ::v8::base::DTOA_SHORTEST;
+using ::v8::base::DTOA_PRECISION;
+using ::v8::base::kBase10MaximalLength;
+using ::v8::base::Strtod;
+using ::v8::base::LockGuard;
+using ::v8::base::CallOnce;
+namespace ieee754 = ::v8::base::ieee754;
+using ::v8::base::Address;
+template <typename T>
+using AsAtomicImpl = ::v8::base::AsAtomicImpl<T>;
+using ::v8::base::AsAtomic32;
+
+// Frequently used numeric helpers/types that many internal call-sites refer to
+// via v8::internal::base::...
+using ::v8::base::Double;
+using ::v8::base::VLQBase64Decode;
+using ::v8::base::StrNCpy;
+using ::v8::base::kUC16Size;
+using ::v8::base::OneByteVector;
+
+// Division-by-constant helpers referenced from compiler reducers.
+template <class T>
+using MagicNumbersForDivision = ::v8::base::MagicNumbersForDivision<T>;
+// Bring function templates into scope (not type aliases).
 using ::v8::base::SignedDivisionByConstant;
 using ::v8::base::UnsignedDivisionByConstant;
-using ::v8::base::Divide;
-using ::v8::base::MulWithWraparound;
+
+// Overflowing-math helpers used by parser and wasm paths.
 using ::v8::base::AddWithWraparound;
 using ::v8::base::SubWithWraparound;
+using ::v8::base::MulWithWraparound;
 using ::v8::base::NegateWithWraparound;
 using ::v8::base::ShlWithWraparound;
-using ::v8::base::IsValueInRangeForNumericType;
-namespace ieee754 = ::v8::base::ieee754;
-using ::v8::base::PrintCheckOperand;
-using ::v8::base::ConditionVariable;
-using ::v8::base::HexValue;
-using ::v8::base::checked_cast;
-using ::v8::base::VLQBase64Decode;
-using ::v8::base::hash_combine;
-using ::std::all_of;
-using ::std::sort;
-using ::v8::base::OneByteVector;
-using ::v8::base::StaticOneByteVector;
-using ::v8::base::kDataMask;
-using ::v8::base::nth_type_t;
-template <typename Tuple>
-using tuple_head = ::v8::base::tuple_head<Tuple>;
-using ::v8::base::tuple_head_t;
-using ::v8::base::prepend_tuple_type;
-using ::v8::base::tuple_drop;
-using ::v8::base::zip;
-using ::v8::base::IterateWithoutLast;
-using ::v8::base::base_tuple_head_rt;
-using ::v8::base::base_tuple_drop_rt;
+using ::v8::base::Divide;
+
+// Bounds and numeric range checks
 using ::v8::base::IsInBounds;
+using ::v8::base::IsValueInRangeForNumericType;
+
+// meta helpers used across compiler headers
+template <size_t N, typename... Ts>
+using nth_type_t = ::v8::base::nth_type_t<N, Ts...>;
 template <class T>
 using ContextualClass = ::v8::base::ContextualClass<T>;
 
+// Containers and utilities
+template <typename... Args>
+using SmallMap = ::v8::base::SmallMap<Args...>;
+
+// Lazy instance
 template <typename T>
-using OwnedZoneVector = ::v8::base::OwnedVector<T>;
-using ::v8::base::VLQEncodeUnsigned;
-template<typename T, typename S = int>
+using LazyInstance = ::v8::base::LazyInstance<T>;
+
+template <typename T, typename S = int>
 using EnumSet = ::v8::base::EnumSet<T, S>;
-template<typename T> using hash = ::v8::base::hash<T>;
-using ::v8::base::hash_range;
-using ::v8::base::AbortMode;
+
 template <typename T, typename U = int, typename V = U>
 using Flags = ::v8::base::Flags<T, U, V>;
-// Concurrency/once helpers
-using ::v8::base::CallOnce;
-using OnceType = ::v8::Once::OnceType;
-// Memory helpers
-using ::v8::base::Relaxed_Memcpy;
-using ::v8::base::Free;
-using ::v8::base::AlignedFree;
-// Page allocator & modes
-using ::v8::base::BoundedPageAllocator;
-using ::v8::base::PageInitializationMode;
-using ::v8::base::PageFreeingMode;
-// Formatting, strings, helpers
-using ::v8::base::FormattedString;
-using ::v8::base::StaticCharVector;
-using ::v8::base::uint64_to_double;
-// Lazy/static wrappers
-template <typename T>
-using LeakyObject = ::v8::base::LeakyObject<T>;
 
+template <typename T, size_t N, typename Allocator = ::std::allocator<T>>
+using SmallVector = ::v8::base::SmallVector<T, N, Allocator>;
+using ::v8::base::prepend_tuple_type;
+using ::v8::base::base_tuple_head_rt;
+using ::v8::base::base_tuple_drop_rt;
+using ::v8::base::RecursiveMutexGuard;
+using ::v8::base::StaticOneByteVector;
 
+// Provide a local bit_cast in case callers look under v8::internal::base
+template <typename Dest, typename Source>
+inline constexpr Dest bit_cast(const Source& src) {
+  return ::std::bit_cast<Dest>(src);
+}
+// Bridge bits-iterator helpers into v8::internal::base::bits for call-sites
+// that look them up under the internal namespace.
 namespace bits {
-using ::v8::base::bits::RoundUpToPowerOfTwo32;
-using ::v8::base::bits::RoundUpToPowerOfTwo64;
-using ::v8::base::bits::RoundUpToPowerOfTwo;
-using ::v8::base::bits::CountTrailingZerosNonZero;
-using ::v8::base::bits::CountLeadingZeros32;
-using ::v8::base::bits::CountLeadingZeros;
-using ::v8::base::bits::CountPopulation;
-using ::v8::base::bits::SignedSaturatedAdd64;
-using ::v8::base::bits::SignedSaturatedSub64;
-using ::v8::base::bits::IsPowerOfTwo;
 using ::v8::base::bits::IterateBits;
 using ::v8::base::bits::IterateBitsBackwards;
-using ::v8::base::bits::RotateRight32;
-using ::v8::base::bits::RotateLeft32;
-using ::v8::base::bits::RotateRight64;
-using ::v8::base::bits::RotateLeft64;
-}  // namespace bits
+}
 }  // namespace base
+
+// (WASI) Avoid heavy symbol bridging here; select aliases are provided where
+// needed by individual headers to minimize include-order issues.
 
 namespace compiler {
 // Forward declare DoubleEndedSplitVector and provide an alias for
@@ -411,6 +484,13 @@ constexpr int kStackLimitSlackForDeoptimizationInBytes = 256;
 static_assert(V8_DEFAULT_STACK_SIZE_KB * KB +
                   kStackLimitSlackForDeoptimizationInBytes <=
               MB);
+
+#ifdef __wasi__
+// WASI shim: Provide an unqualified IntToSmi helper in v8::internal for
+// call sites that use IntToSmi(...) without namespace qualification.
+// On 32-bit WASI, Smis are 31-bit tagged small integers.
+inline constexpr int IntToSmi(int value) { return (value << 1) | 1; }
+#endif  // __wasi__
 
 // The V8_ENABLE_NEAR_CODE_RANGE_BOOL enables logic that tries to allocate
 // code range within a pc-relative call/jump proximity from embedded builtins.
@@ -3166,4 +3246,5 @@ namespace i = v8::internal;
 #endif  // V8_COMMON_GLOBALS_H_
 // Utility constant used in various bit-manipulation helpers.
 // Define here to ensure availability across headers on WASI builds.
-constexpr uintptr_t kUintptrAllBitsSet = ~uintptr_t{0};
+// kUintptrAllBitsSet is defined in strings/unicode-decoder.h for WASI builds.
+// Avoid duplicate definition here.

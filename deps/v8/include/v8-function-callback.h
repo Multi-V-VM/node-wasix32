@@ -12,9 +12,8 @@
 #include <cstdint>
 #include <limits>
 
-#ifndef __wasi__
 #include "v8-internal.h"      // NOLINT(build/include_directory)
-#endif
+
 #include "v8-local-handle.h"  // NOLINT(build/include_directory)
 #include "v8-primitive.h"     // NOLINT(build/include_directory)
 #include "v8-container.h"     // NOLINT(build/include_directory)
@@ -33,6 +32,39 @@ namespace internal {
 class FunctionCallbackArguments;
 class PropertyCallbackArguments;
 class Builtins;
+// Ensure template and helper forwards are visible for friend declarations
+template <typename T>
+class CustomArguments;
+void PrintFunctionCallbackInfo(void*);
+void PrintPropertyCallbackInfo(void*);
+#ifdef __wasi__
+// Fallback minimal ValueHelper in case include ordering skipped the
+// definition in v8-internal.h. Guard with the same symbol.
+#ifndef V8_WASI_VALUEHELPER_DEFINED
+#define V8_WASI_VALUEHELPER_DEFINED
+struct ValueHelper {
+  using InternalRepresentationType = Address;
+  static constexpr InternalRepresentationType kEmpty = 0;
+  static constexpr InternalRepresentationType kTaggedNullAddress =
+      static_cast<InternalRepresentationType>(0x1);
+
+  template <typename V, bool kCheck = false>
+  static ::v8::Local<V> SlotAsValue(Address* slot) {
+    return ::v8::Local<V>::FromSlot(slot);
+  }
+
+  template <typename T>
+  static Address ValueAsAddress(T* ptr) {
+    return reinterpret_cast<Address>(ptr);
+  }
+
+  template <typename T>
+  static ::v8::Local<T> ReprAsValue(InternalRepresentationType repr) {
+    return ::v8::Local<T>::FromRepr(repr);
+  }
+};
+#endif  // V8_WASI_VALUEHELPER_DEFINED
+#endif  // __wasi__
 }  // namespace internal
 
 namespace debug {
@@ -543,8 +575,7 @@ void ReturnValue<T>::Set(bool value) {
   using I = internal::Internals;
 #if V8_STATIC_ROOTS_BOOL
 #ifdef V8_ENABLE_CHECKS
-  internal::PerformCastCheck(
-      internal::ValueHelper::SlotAsValue<Value, true>(value_));
+  internal::PerformCastCheck(Local<Value>::FromSlot(value_));
 #endif  // V8_ENABLE_CHECKS
   SetInternal(value ? I::StaticReadOnlyRoot::kTrueValue
                     : I::StaticReadOnlyRoot::kFalseValue);
@@ -590,8 +621,7 @@ void ReturnValue<T>::SetNull() {
   using I = internal::Internals;
 #if V8_STATIC_ROOTS_BOOL
 #ifdef V8_ENABLE_CHECKS
-  internal::PerformCastCheck(
-      internal::ValueHelper::SlotAsValue<Value, true>(value_));
+  internal::PerformCastCheck(Local<Value>::FromSlot(value_));
 #endif  // V8_ENABLE_CHECKS
   SetInternal(I::StaticReadOnlyRoot::kNullValue);
 #else
@@ -609,8 +639,7 @@ void ReturnValue<T>::SetUndefined() {
   using I = internal::Internals;
 #if V8_STATIC_ROOTS_BOOL
 #ifdef V8_ENABLE_CHECKS
-  internal::PerformCastCheck(
-      internal::ValueHelper::SlotAsValue<Value, true>(value_));
+  internal::PerformCastCheck(Local<Value>::FromSlot(value_));
 #endif  // V8_ENABLE_CHECKS
   SetInternal(I::StaticReadOnlyRoot::kUndefinedValue);
 #else
@@ -629,8 +658,7 @@ void ReturnValue<T>::SetFalse() {
   using I = internal::Internals;
 #if V8_STATIC_ROOTS_BOOL
 #ifdef V8_ENABLE_CHECKS
-  internal::PerformCastCheck(
-      internal::ValueHelper::SlotAsValue<Value, true>(value_));
+  internal::PerformCastCheck(Local<Value>::FromSlot(value_));
 #endif  // V8_ENABLE_CHECKS
   SetInternal(I::StaticReadOnlyRoot::kFalseValue);
 #else
@@ -648,8 +676,7 @@ void ReturnValue<T>::SetEmptyString() {
   using I = internal::Internals;
 #if V8_STATIC_ROOTS_BOOL
 #ifdef V8_ENABLE_CHECKS
-  internal::PerformCastCheck(
-      internal::ValueHelper::SlotAsValue<Value, true>(value_));
+  internal::PerformCastCheck(Local<Value>::FromSlot(value_));
 #endif  // V8_ENABLE_CHECKS
   SetInternal(I::StaticReadOnlyRoot::kEmptyString);
 #else
@@ -668,8 +695,7 @@ Isolate* ReturnValue<T>::GetIsolate() const {
 
 template <typename T>
 Local<Value> ReturnValue<T>::Get() const {
-  return Local<Value>::New(GetIsolate(),
-                           internal::ValueHelper::SlotAsValue<Value>(value_));
+  return Local<Value>::New(GetIsolate(), Local<Value>::FromSlot(value_));
 }
 
 template <typename T>

@@ -9,6 +9,7 @@
 
 #include "src/base/macros.h"
 #include "src/base/platform/mutex.h"
+#include "include/v8-platform.h"
 #include "src/common/globals.h"
 #include "src/heap/base/active-system-pages.h"
 #include "src/heap/list.h"

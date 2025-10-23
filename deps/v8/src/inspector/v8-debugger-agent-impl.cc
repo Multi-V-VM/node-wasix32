@@ -751,7 +751,7 @@ Response V8DebuggerAgentImpl::setBreakpointOnFunctionCall(
     return Response::ServerError("Could not find function with given id");
   }
   v8::Local<v8::Function> function =
-//       v8::Local<v8::Function>::Cast(scope.object());
+      v8::Local<v8::Function>::Cast(scope.object());
   String16 breakpointId =
       generateBreakpointId(BreakpointType::kBreakpointAtEntry, function);
   if (m_breakpointIdToDebuggerBreakpointIds.find(breakpointId) !=

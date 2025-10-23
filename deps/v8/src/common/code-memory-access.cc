@@ -592,14 +592,15 @@ std::optional<Address> ThreadIsolation::StartOfJitAllocationAt(
 
 // static
 bool ThreadIsolation::WriteProtectMemory(
-    Address addr, size_t size, PageAllocator::Permission page_permissions) {
+    Address addr, size_t size,
+    ::v8::PageAllocator::Permission page_permissions) {
   if (!Enabled()) {
     return true;
   }
 
 #if V8_HEAP_USE_PKU_JIT_WRITE_PROTECT
   return base::MemoryProtectionKey::SetPermissionsAndKey(
-      {addr, size}, PageAllocator::Permission::kNoAccess,
+      {addr, size}, ::v8::PageAllocator::Permission::kNoAccess,
       ThreadIsolation::pkey());
 #else
   UNREACHABLE();

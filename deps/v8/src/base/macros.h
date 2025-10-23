@@ -8,6 +8,7 @@
 #include <limits>
 #include <type_traits>
 #include <cstring>
+#include <cstdlib>
 #include <cstdint>
 #include <cstddef>
 
@@ -161,11 +162,19 @@ V8_INLINE Dest bit_cast(Source const& source) {
 // Extract from 3.2.2 of C++11 spec:
 //  [...] A non-placement deallocation function for a class is
 //  odr-used by the definition of the destructor of that class, [...]
+#if defined(__wasi__)
+#define DISALLOW_NEW_AND_DELETE()                              \
+  void* operator new(size_t) { ::abort(); }                    \
+  void* operator new[](size_t) { ::abort(); }                  \
+  void operator delete(void*, size_t) { ::abort(); }           \
+  void operator delete[](void*, size_t) { ::abort(); }
+#else
 #define DISALLOW_NEW_AND_DELETE()                                \
   void* operator new(size_t) { ::v8::base::OS::Abort(); }          \
   void* operator new[](size_t) { ::v8::base::OS::Abort(); }        \
   void operator delete(void*, size_t) { ::v8::base::OS::Abort(); } \
   void operator delete[](void*, size_t) { ::v8::base::OS::Abort(); }
+#endif
 
 // Define V8_USE_ADDRESS_SANITIZER macro.
 #if defined(__has_feature)

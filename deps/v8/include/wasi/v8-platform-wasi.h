@@ -76,6 +76,8 @@ namespace internal {
 #endif
 }
 }
+// Forward-declare TaskPriority before use in interfaces below
+enum class TaskPriority;
 // Bitset compatibility for WASI
 namespace std {
   template<typename T>
@@ -136,6 +138,8 @@ class JobHandle {
 public:
   virtual ~JobHandle() = default;
   virtual void NotifyConcurrencyIncrease() {}
+  virtual bool UpdatePriorityEnabled() { return false; }
+  virtual void UpdatePriority(TaskPriority) {}
   virtual void Join() {}
   virtual void Cancel() {}
   virtual void CancelAndDetach() {}
@@ -152,7 +156,9 @@ public:
   virtual bool IdleTasksEnabled() = 0;
 };
 
-// ConvertableToTraceFormat is provided by v8-tracing-base.h in V8 builds
+// Tracing types are provided by libplatform. Pull them in to avoid redefs.
+#include "libplatform/v8-tracing-base.h"
+#include "libplatform/v8-tracing.h"
 
 // 枚举和类型定义
 enum class MessageLoopBehavior { kDoNotWait, kWaitForWork };
@@ -208,151 +214,7 @@ class unique_ptr {
 
 namespace platform {
 namespace tracing {
-
-// TraceObject 类
-class TraceObject {
- public:
-  TraceObject() = default;
-  virtual ~TraceObject() = default;
-
-  // 基础属性
-  const char* name() const { return name_; }
-  void set_name(const char* name) { name_ = name; }
-
-  uint64_t timestamp() const { return timestamp_; }
-  void set_timestamp(uint64_t ts) { timestamp_ = ts; }
-
-  char phase() const { return phase_; }
-  void set_phase(char p) { phase_ = p; }
-  
-  // Required methods for V8 compatibility
-  void Initialize(char phase, const uint8_t* category_enabled_flag, const char* name,
-                  const char* scope, uint64_t id, uint64_t bind_id, int32_t num_args,
-                  const char** arg_names, const uint8_t* arg_types,
-                  const uint64_t* arg_values, std::unique_ptr<ConvertableToTraceFormat>* arg_convertables,
-                  unsigned int flags, int64_t timestamp, int64_t cpu_timestamp) {
-    phase_ = phase;
-    name_ = name;
-    timestamp_ = timestamp;
-  }
-  
-  void UpdateDuration(int64_t now_us, int64_t cpu_now_us) {
-    // Stub implementation
-  }
-
- private:
-  const char* name_ = nullptr;
-  uint64_t timestamp_ = 0;
-  char phase_ = 'X';
-};
-
-// TraceWriter 类
-class TraceWriter {
- public:
-  virtual ~TraceWriter() = default;
-  virtual void AppendTraceEvent(TraceObject* trace_event) = 0;
-  virtual void Flush() = 0;
-};
-
-// TraceBufferChunk 类
-class TraceBufferChunk {
- public:
-  static constexpr size_t kChunkSize = 64;
-
-  explicit TraceBufferChunk(uint32_t seq) : seq_(seq) {}
-  virtual ~TraceBufferChunk() = default;
-
-  TraceObject* AddTraceEvent(uint64_t* event_index) {
-    if (next_free_ >= kChunkSize) return nullptr;
-    *event_index = next_free_;
-    return &events_[next_free_++];
-  }
-
-  TraceObject* GetEventAt(uint64_t index) {
-    return index < kChunkSize ? &events_[index] : nullptr;
-  }
-  
-  bool IsFull() const { return next_free_ >= kChunkSize; }
-  void Reset(uint32_t new_seq) { seq_ = new_seq; next_free_ = 0; }
-  uint32_t seq() const { return seq_; }
-  size_t size() const { return next_free_; }
-
- private:
-  uint32_t seq_;
-  size_t next_free_ = 0;
-  TraceObject events_[kChunkSize];
-};
-
-// TraceBuffer 基类
-class TraceBuffer {
- public:
-  virtual ~TraceBuffer() = default;
-  virtual TraceObject* AddTraceEvent(uint64_t* handle) = 0;
-  virtual TraceObject* GetEventByHandle(uint64_t handle) = 0;
-  virtual bool Flush() = 0;
-  
-  static TraceBuffer* CreateTraceBufferRingBuffer(size_t max_chunks, TraceWriter* trace_writer) {
-    return nullptr; // Stub implementation for WASI
-  }
-};
-
-// TraceConfig 类
-class TraceConfig {
- public:
-  TraceConfig() = default;
-  virtual ~TraceConfig() = default;
-
-  void AddIncludedCategory(const char* category) {
-    // WASI 简化实现
-  }
-};
-
-// TracingController 类
-class TracingController {
- public:
-  TracingController();
-  virtual ~TracingController();
-
-  void Initialize(TraceBuffer* trace_buffer);
-
-  static int64_t CurrentTimestampMicroseconds();
-  static int64_t CurrentCpuTimestampMicroseconds();
-
-  uint64_t AddTraceEvent(char phase, const uint8_t* category_group_enabled,
-                         const char* name, const char* scope, uint64_t id,
-                         uint64_t bind_id, int32_t num_args,
-                         const char** arg_names, const uint8_t* arg_types,
-                         const uint64_t* arg_values,
-                         std::unique_ptr<ConvertableToTraceFormat>* arg_convertables,
-                         unsigned int flags);
-
-  uint64_t AddTraceEventWithTimestamp(
-      char phase, const uint8_t* category_group_enabled, const char* name,
-      const char* scope, uint64_t id, uint64_t bind_id, int32_t num_args,
-      const char** arg_names, const uint8_t* arg_types,
-      const uint64_t* arg_values, std::unique_ptr<ConvertableToTraceFormat>* arg_convertables,
-      unsigned int flags, int64_t timestamp);
-
-  void UpdateTraceEventDuration(const uint8_t* category_group_enabled,
-                                const char* name, uint64_t handle);
-
-  const char* GetCategoryGroupName(const uint8_t* category_group_enabled);
-
-  void StartTracing(TraceConfig* trace_config);
-  void StopTracing();
-
-  void UpdateCategoryGroupEnabledFlag(size_t category_index);
-  void UpdateCategoryGroupEnabledFlags();
-
-  const uint8_t* GetCategoryGroupEnabled(const char* category_group);
-
- private:
-  std::unique_ptr<TraceBuffer> trace_buffer_;
-  std::unique_ptr<base::Mutex> mutex_;
-  std::unique_ptr<TraceConfig> trace_config_;
-  std::atomic<bool> recording_{false};
-};
-
+// Tracing types provided by libplatform headers; no WASI stubs here.
 }  // namespace tracing
 }  // namespace platform
 

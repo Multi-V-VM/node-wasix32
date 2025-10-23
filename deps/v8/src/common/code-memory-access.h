@@ -24,6 +24,15 @@
 #include "src/base/platform/mutex.h"
 #include "src/common/globals.h"
 
+// Provide the ThreadIsolatedAllocator interface for WASI builds to allow
+// member access in this header without incomplete-type errors.
+#ifdef __wasi__
+#include "include/v8-thread-isolated-allocator.h"
+#else
+// Forward declaration on non-WASI builds.
+namespace v8 { class ThreadIsolatedAllocator; }
+#endif
+
 namespace v8 {
 namespace internal {
 
@@ -150,7 +159,9 @@ class WritableJumpTablePair;
 class V8_EXPORT ThreadIsolation {
  public:
   static bool Enabled();
-  static void Initialize(ThreadIsolatedAllocator* allocator);
+  // Forward declare the allocator to avoid include cycles on WASI builds.
+  // The type lives in the v8 namespace.
+  static void Initialize(::v8::ThreadIsolatedAllocator* allocator);
 
   enum class JitAllocationType {
     kInstructionStream,
@@ -214,7 +225,8 @@ class V8_EXPORT ThreadIsolation {
   // Write-protect a given range of memory. Address and size need to be page
   // aligned.
   V8_NODISCARD static bool WriteProtectMemory(
-      Address addr, size_t size, PageAllocator::Permission page_permissions);
+      Address addr, size_t size,
+      ::v8::PageAllocator::Permission page_permissions);
 
   static void RegisterJitAllocationForTesting(Address obj, size_t size);
   static void UnregisterJitAllocationForTesting(Address addr, size_t size);

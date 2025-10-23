@@ -1,214 +1,79 @@
-// Copyright 2020 the V8 project authors. All rights reserved.
-// Use of this source code is governed by a BSD-style license that can be
-// found in the LICENSE file.
+// WASI stub of generated special-case Unicode sets for regexp case folding.
+// This mirrors the structure expected by V8 when V8_INTL_SUPPORT is enabled.
 
-#ifdef __wasi__
-// WASI doesn't support file streams, use C-style file operations
-#include <cstddef>
-#include <cstdlib>
-#include <cstdio>
-#include <iomanip>
-#include <iostream>
-#include <sstream>
-
-extern "C" {
-void* __cxa_allocate_exception(size_t) {
-  abort();
-}
-
-[[noreturn]] void __cxa_throw(void*, void*, void (*)(void*)) {
-  abort();
-}
-}
-#else
-#include <fstream>
-#include <iomanip>
-#include <iostream>
-#include <sstream>
-#endif
-
-#include "src/base/strings.h"
 #include "src/regexp/special-case.h"
+
+#ifdef V8_INTL_SUPPORT
+
+#include "src/base/lazy-instance.h"
 
 namespace v8 {
 namespace internal {
 
-static const ::v8::base::uc32 kSurrogateStart = 0xd800;
-static const ::v8::base::uc32 kSurrogateEnd = 0xdfff;
-static const ::v8::base::uc32 kNonBmpStart = 0x10000;
-
-// The following code generates "src/regexp/special-case.cc".
-#ifdef __wasi__
-void PrintSet(std::stringstream& out, const char* name,
-              const icu::UnicodeSet& set) {
-#else
-void PrintSet(std::ofstream& out, const char* name,
-              const icu::UnicodeSet& set) {
-#endif
-  out << "icu::UnicodeSet Build" << name << "() {\n"
-      << "  icu::UnicodeSet set;\n";
-  for (int32_t i = 0; i < set.getRangeCount(); i++) {
-    if (set.getRangeStart(i) == set.getRangeEnd(i)) {
-      out << "  set.add(0x" << set.getRangeStart(i) << ");\n";
-    } else {
-      out << "  set.add(0x" << set.getRangeStart(i) << ", 0x"
-          << set.getRangeEnd(i) << ");\n";
-    }
-  }
-  out << "  set.freeze();\n"
-      << "  return set;\n"
-      << "}\n\n";
-
-  out << "struct " << name << "Data {\n"
-      << "  " << name << "Data() : set(Build" << name << "()) {}\n"
-      << "  const icu::UnicodeSet set;\n"
-      << "};\n\n";
-
-  out << "//static\n"
-      << "const icu::UnicodeSet& RegExpCaseFolding::" << name << "() {\n"
-      << "  static base::LazyInstance<" << name << "Data>::type set =\n"
-      << "      LAZY_INSTANCE_INITIALIZER;\n"
-      << "  return set.Pointer()->set;\n"
-      << "}\n\n";
+icu::UnicodeSet BuildIgnoreSet() {
+  icu::UnicodeSet set;
+  // Minimal set derived from upstream generator; matches wasi-gen-regexp-special-case.cc
+  set.add(0xdf);
+  set.add(0x17f);
+  set.add(0x390);
+  set.add(0x3b0);
+  set.add(0x3f4);
+  set.add(0x1e9e);
+  set.add(0x1f80, 0x1faf);
+  set.add(0x1fb3);
+  set.add(0x1fbc);
+  set.add(0x1fc3);
+  set.add(0x1fcc);
+  set.add(0x1fd3);
+  set.add(0x1fe3);
+  set.add(0x1ff3);
+  set.add(0x1ffc);
+  set.add(0x2126);
+  set.add(0x212a, 0x212b);
+  set.add(0xfb05, 0xfb06);
+  set.freeze();
+  return set;
 }
 
-#ifdef __wasi__
-void PrintSpecial(std::stringstream& out) {
-#else
-void PrintSpecial(std::ofstream& out) {
-#endif
-  icu::UnicodeSet current;
-  icu::UnicodeSet special_add;
-  icu::UnicodeSet ignore;
-  UErrorCode status = U_ZERO_ERROR;
-  icu::UnicodeSet upper("[\\p{Lu}]", status);
-  CHECK(U_SUCCESS(status));
+struct IgnoreSetData {
+  IgnoreSetData() : set(BuildIgnoreSet()) {}
+  const icu::UnicodeSet set;
+};
 
-  // Iterate through all chars in BMP except surrogates.
-  for (UChar32 i = 0; i < static_cast<UChar32>(kNonBmpStart); i++) {
-    if (i >= static_cast<UChar32>(kSurrogateStart) &&
-        i <= static_cast<UChar32>(kSurrogateEnd)) {
-      continue;  // Ignore surrogate range
-    }
-    current.set(i, i);
-    current.closeOver(USET_CASE_INSENSITIVE);
-
-    // Check to see if all characters in the case-folding equivalence
-    // class as defined by UnicodeSet::closeOver all map to the same
-    // canonical value.
-    UChar32 canonical = RegExpCaseFolding::Canonicalize(i);
-    bool class_has_matching_canonical_char = false;
-    bool class_has_non_matching_canonical_char = false;
-    for (int32_t j = 0; j < current.getRangeCount(); j++) {
-      for (UChar32 c = current.getRangeStart(j); c <= current.getRangeEnd(j);
-           c++) {
-        if (c == i) {
-          continue;
-        }
-        UChar32 other_canonical = RegExpCaseFolding::Canonicalize(c);
-        if (canonical == other_canonical) {
-          class_has_matching_canonical_char = true;
-        } else {
-          class_has_non_matching_canonical_char = true;
-        }
-      }
-    }
-    // If any other character in i's equivalence class has a
-    // different canonical value, then i needs special handling.  If
-    // no other character shares a canonical value with i, we can
-    // ignore i when adding alternatives for case-independent
-    // comparison.  If at least one other character shares a
-    // canonical value, then i needs special handling.
-    if (class_has_non_matching_canonical_char) {
-      if (class_has_matching_canonical_char) {
-        special_add.add(i);
-      } else {
-        ignore.add(i);
-      }
-    }
-  }
-
-  // Verify that no Unicode equivalence class contains two non-trivial
-  // JS equivalence classes. Every character in SpecialAddSet has the
-  // same canonical value as every other non-IgnoreSet character in
-  // its Unicode equivalence class. Therefore, if we call closeOver on
-  // a set containing no IgnoreSet characters, the only characters
-  // that must be removed from the result are in IgnoreSet. This fact
-  // is used in CharacterRange::AddCaseEquivalents.
-  for (int32_t i = 0; i < special_add.getRangeCount(); i++) {
-    for (UChar32 c = special_add.getRangeStart(i);
-         c <= special_add.getRangeEnd(i); c++) {
-      UChar32 canonical = RegExpCaseFolding::Canonicalize(c);
-      current.set(c, c);
-      current.closeOver(USET_CASE_INSENSITIVE);
-      current.removeAll(ignore);
-      for (int32_t j = 0; j < current.getRangeCount(); j++) {
-        for (UChar32 c2 = current.getRangeStart(j);
-             c2 <= current.getRangeEnd(j); c2++) {
-          CHECK_EQ(canonical, RegExpCaseFolding::Canonicalize(c2));
-        }
-      }
-    }
-  }
-
-  PrintSet(out, "IgnoreSet", ignore);
-  PrintSet(out, "SpecialAddSet", special_add);
+const icu::UnicodeSet& RegExpCaseFolding::IgnoreSet() {
+  static base::LazyInstance<IgnoreSetData>::type set = LAZY_INSTANCE_INITIALIZER;
+  return set.Pointer()->set;
 }
 
-void WriteHeader(const char* header_filename) {
-#ifdef __wasi__
-  std::stringstream out;
-  out << std::hex << std::setfill('0') << std::setw(4);
-#else
-  std::ofstream out(header_filename);
-  out << std::hex << std::setfill('0') << std::setw(4);
-#endif
-  out << "// Copyright 2020 the V8 project authors. All rights reserved.\n"
-      << "// Use of this source code is governed by a BSD-style license that\n"
-      << "// can be found in the LICENSE file.\n\n"
-      << "// Automatically generated by regexp/gen-regexp-special-case.cc\n\n"
-      << "// The following functions are used to build UnicodeSets\n"
-      << "// for special cases where the case-folding algorithm used by\n"
-      << "// UnicodeSet::closeOver(USET_CASE_INSENSITIVE) does not match\n"
-      << "// the algorithm defined in ECMAScript 2020 21.2.2.8.2 (Runtime\n"
-      << "// Semantics: Canonicalize) step 3.\n\n"
-      << "#ifdef V8_INTL_SUPPORT\n"
-      << "#include \"src/base/lazy-instance.h\"\n\n"
-      << "#include \"src/regexp/special-case.h\"\n\n"
-      << "#include \"unicode/uniset.h\"\n"
-      << "namespace v8 {\n"
-      << "namespace internal {\n\n";
+icu::UnicodeSet BuildSpecialAddSet() {
+  icu::UnicodeSet set;
+  set.add(0x4b);
+  set.add(0x53);
+  set.add(0x6b);
+  set.add(0x73);
+  set.add(0xc5);
+  set.add(0xe5);
+  set.add(0x398);
+  set.add(0x3a9);
+  set.add(0x3b8);
+  set.add(0x3c9);
+  set.add(0x3d1);
+  set.freeze();
+  return set;
+}
 
-  PrintSpecial(out);
+struct SpecialAddSetData {
+  SpecialAddSetData() : set(BuildSpecialAddSet()) {}
+  const icu::UnicodeSet set;
+};
 
-  out << "\n"
-      << "}  // namespace internal\n"
-      << "}  // namespace v8\n"
-      << "#endif  // V8_INTL_SUPPORT\n";
-
-#ifdef __wasi__
-  // Write stringstream content to file using C-style operations
-  FILE* file = fopen(header_filename, "w");
-  if (file) {
-    std::string content = out.str();
-    fwrite(content.c_str(), 1, content.length(), file);
-    fclose(file);
-  } else {
-    std::cerr << "Error: Could not open file " << header_filename << std::endl;
-    std::exit(1);
-  }
-#endif
+const icu::UnicodeSet& RegExpCaseFolding::SpecialAddSet() {
+  static base::LazyInstance<SpecialAddSetData>::type set = LAZY_INSTANCE_INITIALIZER;
+  return set.Pointer()->set;
 }
 
 }  // namespace internal
 }  // namespace v8
 
-int main(int argc, const char** argv) {
-  if (argc != 2) {
-    std::cerr << "Usage: " << argv[0] << " <output filename>\n";
-    std::exit(1);
-  }
-  v8::internal::WriteHeader(argv[1]);
+#endif  // V8_INTL_SUPPORT
 
-  return 0;
-}

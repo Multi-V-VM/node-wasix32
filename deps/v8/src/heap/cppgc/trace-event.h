@@ -7,8 +7,12 @@
 
 #if !CPPGC_IS_STANDALONE
 #include "src/tracing/trace-event.h"
-// Alias tracing namespace for cppgc users to match macro expectations.
-namespace tracing = ::v8::internal::tracing;
+// Avoid colliding with existing global `namespace tracing` used by libplatform
+// and V8. For WASI builds we do not create a global alias; V8 tracing macros
+// are already qualified to ::v8::internal::tracing.
+// Do not alias a global `tracing` namespace here; V8's tracing macros are
+// wired to ::v8::internal::tracing directly, and libplatform also defines a
+// real `namespace tracing` in multiple TUs. Creating an alias would collide.
 using ConvertableToTraceFormat = v8::ConvertableToTraceFormat;
 #else
 // This is a subset of stc/tracing/trace-event.h required to support

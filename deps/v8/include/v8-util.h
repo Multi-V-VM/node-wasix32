@@ -248,9 +248,9 @@ class PersistentValueMapBase {
         : value_(other.value_) { }
 
     Local<V> NewLocal(Isolate* isolate) const {
-      return Local<V>::New(isolate,
-                           internal::ValueHelper::SlotAsValue<V>(
-                               reinterpret_cast<internal::Address*>(value_)));
+      return Local<V>::New(
+          isolate,
+          Local<V>::FromSlot(reinterpret_cast<internal::Address*>(value_)));
     }
     bool IsEmpty() const {
       return value_ == kPersistentContainerNotFound;
@@ -307,8 +307,7 @@ class PersistentValueMapBase {
   typename Traits::Impl* impl() { return &impl_; }
 
   static V* FromVal(PersistentContainerValue v) {
-    return internal::ValueHelper::SlotAsValue<V>(
-        reinterpret_cast<internal::Address*>(v));
+    return Local<V>::FromSlot(reinterpret_cast<internal::Address*>(v));
   }
 
   static PersistentContainerValue ClearAndLeak(Global<V>* persistent) {

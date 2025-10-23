@@ -3320,7 +3320,11 @@ v8_header_set("v8_flags") {
 v8_header_set("v8_internal_headers") {
   configs = [ ":internal_config" ]
 
-  public_configs = [ "src/inspector:inspector_config" ]
+  if (!is_wasi) {
+    public_configs = [ "src/inspector:inspector_config" ]
+  } else {
+    public_configs = []
+  }
 
   sources = [
     ### gcmole(all) ###
@@ -4332,6 +4336,56 @@ v8_header_set("v8_internal_headers") {
     "third_party/siphash/halfsiphash.h",
     "third_party/utf8-decoder/utf8-decoder.h",
   ]
+
+  if (is_wasi) {
+    sources -= [
+      "include/v8-inspector-protocol.h",
+      "include/v8-inspector.h",
+      # Maglev safepoint table uses backend assembler
+      "src/codegen/maglev-safepoint-table.cc",
+
+      # Compiler backend that references MacroAssembler and register classes
+      "src/compiler/backend/code-generator.cc",
+      "src/compiler/backend/instruction-selector.cc",
+      "src/compiler/backend/register-allocator.cc",
+      "src/compiler/backend/instruction.cc",
+
+      # Higher-level compiler pipeline pieces
+      "src/compiler/pipeline.cc",
+      "src/compiler/js-create-lowering.cc",
+      "src/compiler/heap-refs.cc",
+      "src/compiler-dispatcher/lazy-compile-dispatcher.cc",
+      "src/compiler-dispatcher/optimizing-compile-dispatcher.cc",
+    ]
+      # Diagnostics and logging (SNPrintF/OS strings heavy)
+      "src/diagnostics/disassembler.cc",
+      "src/diagnostics/objects-printer.cc",
+      "src/logging/log.cc",
+      "src/logging/log-file.cc",
+      "src/logging/counters.cc",
+
+      # I18N/ICU-dependent sources
+      "src/objects/intl-objects.cc",
+      "src/objects/js-break-iterator.cc",
+      "src/objects/js-date-time-format.cc",
+      "src/objects/js-display-names.cc",
+      "src/objects/js-duration-format.cc",
+      "src/objects/js-list-format.cc",
+      "src/objects/js-locale.cc",
+      "src/objects/js-number-format.cc",
+      "src/objects/js-plural-rules.cc",
+      "src/objects/js-relative-time-format.cc",
+      "src/objects/js-segment-iterator.cc",
+      "src/objects/js-segmenter.cc",
+      "src/objects/js-segments.cc",
+
+      # cppgc unified-heap JS glue that pulls in complex visitors
+      "src/heap/cppgc-js/cpp-snapshot.cc",
+      "src/heap/cppgc-js/unified-heap-marking-state.cc",
+      "src/heap/cppgc-js/unified-heap-marking-verifier.cc",
+      "src/heap/cppgc-js/unified-heap-marking-visitor.cc",
+    ]
+  }
 
   if (v8_enable_snapshot_compression) {
     sources += [ "src/snapshot/snapshot-compression.h" ]
@@ -5822,6 +5876,78 @@ v8_source_set("v8_base_without_compiler") {
     "src/zone/zone.cc",
     "third_party/siphash/halfsiphash.cc",
   ]
+
+  # Exclude subsystems not supported under WASI/wasm32
+  if (is_wasi) {
+    sources -= [
+      # Baseline (interpreter baseline JIT)
+      "src/baseline/baseline.cc",
+      "src/baseline/bytecode-offset-iterator.cc",
+      "src/baseline/baseline-batch-compiler.cc",
+      "src/baseline/baseline-compiler.cc",
+
+      # Shared ia32/x64 macro assembler helpers
+      "src/codegen/shared-ia32-x64/macro-assembler-shared-ia32-x64.cc",
+
+      # Profiler implementation files
+      "src/profiler/allocation-tracker.cc",
+      "src/profiler/cpu-profiler.cc",
+      "src/profiler/heap-profiler.cc",
+      "src/profiler/heap-snapshot-generator.cc",
+      "src/profiler/profile-generator.cc",
+      "src/profiler/profiler-listener.cc",
+      "src/profiler/profiler-stats.cc",
+      "src/profiler/sampling-heap-profiler.cc",
+      "src/profiler/strings-storage.cc",
+      "src/profiler/symbolizer.cc",
+      "src/profiler/tick-sample.cc",
+      "src/profiler/tracing-cpu-profiler.cc",
+      "src/profiler/weak-code-registry.cc",
+      # Turboshaft/Turbofan pipeline sources (disable JIT compilation pipeline)
+      "src/compiler/turboshaft/analyzer-iterator.cc",
+      "src/compiler/turboshaft/assembler.cc",
+      "src/compiler/turboshaft/block-instrumentation-phase.cc",
+      "src/compiler/turboshaft/block-instrumentation-reducer.cc",
+      "src/compiler/turboshaft/build-graph-phase.cc",
+      "src/compiler/turboshaft/code-elimination-and-simplification-phase.cc",
+      "src/compiler/turboshaft/copying-phase.cc",
+      "src/compiler/turboshaft/csa-optimize-phase.cc",
+      "src/compiler/turboshaft/debug-feature-lowering-phase.cc",
+      "src/compiler/turboshaft/decompression-optimization-phase.cc",
+      "src/compiler/turboshaft/decompression-optimization.cc",
+      "src/compiler/turboshaft/graph-builder.cc",
+      "src/compiler/turboshaft/graph-visualizer.cc",
+      "src/compiler/turboshaft/graph.cc",
+      "src/compiler/turboshaft/instruction-selection-phase.cc",
+      "src/compiler/turboshaft/late-escape-analysis-reducer.cc",
+      "src/compiler/turboshaft/late-load-elimination-reducer.cc",
+      "src/compiler/turboshaft/loop-finder.cc",
+      "src/compiler/turboshaft/loop-peeling-phase.cc",
+      "src/compiler/turboshaft/loop-unrolling-phase.cc",
+      "src/compiler/turboshaft/loop-unrolling-reducer.cc",
+      "src/compiler/turboshaft/machine-lowering-phase.cc",
+      "src/compiler/turboshaft/memory-optimization-reducer.cc",
+      "src/compiler/turboshaft/operations.cc",
+      "src/compiler/turboshaft/optimize-phase.cc",
+      "src/compiler/turboshaft/phase.cc",
+      "src/compiler/turboshaft/pipelines.cc",
+      "src/compiler/turboshaft/pretenuring-propagation-reducer.cc",
+      "src/compiler/turboshaft/representations.cc",
+      "src/compiler/turboshaft/sidetable.cc",
+      "src/compiler/turboshaft/simplify-tf-loops.cc",
+      "src/compiler/turboshaft/string-escape-analysis-reducer.cc",
+      "src/compiler/turboshaft/turbolev-graph-builder.cc",
+      "src/compiler/turboshaft/type-assertions-phase.cc",
+      "src/compiler/turboshaft/type-parser.cc",
+      "src/compiler/turboshaft/typed-optimizations-phase.cc",
+      "src/compiler/turboshaft/typer.cc",
+      "src/compiler/turboshaft/types.cc",
+      "src/compiler/turboshaft/use-map.cc",
+
+      # Maglev pipeline (headers are guarded by v8_enable_maglev false; cc here for safety)
+      # Note: Maglev .cc files are added conditionally; no .cc removal listed here.
+    ]
+  }
 
   if (v8_enable_snapshot_compression) {
     sources += [ "src/snapshot/snapshot-compression.cc" ]
@@ -8196,4 +8322,14 @@ if (current_toolchain == default_toolchain) {
            ] + build_gn_logs
 
   write_file("$root_build_dir/gn_logs.txt", _lines)
+}
+# WASI: disable subsystems not supported under wasm32
+is_wasi = (current_cpu == "wasm32")
+if (is_wasi) {
+  v8_enable_webassembly = false
+  v8_enable_turbofan = false
+  v8_enable_sparkplug = false
+  v8_enable_maglev = false
+  v8_jitless = true
+  v8_enable_i18n_support = false
 }

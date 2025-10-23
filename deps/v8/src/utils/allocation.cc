@@ -163,7 +163,7 @@ void* GetRandomMmapAddr() {
 }
 
 void* AllocatePages(v8::PageAllocator* page_allocator, void* hint, size_t size,
-                    size_t alignment, PageAllocator::Permission access) {
+                    size_t alignment, ::v8::PagePermissions access) {
   DCHECK_NOT_NULL(page_allocator);
   DCHECK(IsAligned(reinterpret_cast<Address>(hint), alignment));
   DCHECK(IsAligned(size, page_allocator->AllocatePageSize()));
@@ -197,7 +197,7 @@ void ReleasePages(v8::PageAllocator* page_allocator, void* address, size_t size,
 }
 
 bool SetPermissions(v8::PageAllocator* page_allocator, void* address,
-                    size_t size, PageAllocator::Permission access) {
+                    size_t size, ::v8::PagePermissions access) {
   DCHECK_NOT_NULL(page_allocator);
   return page_allocator->SetPermissions(address, size, access);
 }
@@ -210,7 +210,7 @@ VirtualMemory::VirtualMemory() = default;
 
 VirtualMemory::VirtualMemory(v8::PageAllocator* page_allocator, size_t size,
                              void* hint, size_t alignment,
-                             PageAllocator::Permission permissions)
+                             ::v8::PagePermissions permissions)
     : page_allocator_(page_allocator) {
   DCHECK_NOT_NULL(page_allocator);
   DCHECK(IsAligned(size, page_allocator_->CommitPageSize()));
@@ -236,7 +236,7 @@ void VirtualMemory::Reset() {
 }
 
 bool VirtualMemory::SetPermissions(Address address, size_t size,
-                                   PageAllocator::Permission access) {
+                                   ::v8::PagePermissions access) {
   CHECK(InVM(address, size));
   bool result = page_allocator_->SetPermissions(
       reinterpret_cast<void*>(address), size, access);
@@ -244,7 +244,7 @@ bool VirtualMemory::SetPermissions(Address address, size_t size,
 }
 
 bool VirtualMemory::RecommitPages(Address address, size_t size,
-                                  PageAllocator::Permission access) {
+                                  ::v8::PagePermissions access) {
   CHECK(InVM(address, size));
   bool result = page_allocator_->RecommitPages(reinterpret_cast<void*>(address),
                                                size, access);
@@ -252,7 +252,7 @@ bool VirtualMemory::RecommitPages(Address address, size_t size,
 }
 
 bool VirtualMemory::Resize(Address address, size_t new_size,
-                           PageAllocator::Permission access) {
+                           ::v8::PagePermissions access) {
   DCHECK(IsAligned(new_size, page_allocator_->CommitPageSize()));
   DCHECK_LE(region_.size(), new_size);
   if (!page_allocator_->ResizeAllocationAt(reinterpret_cast<void*>(address),

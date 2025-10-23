@@ -258,6 +258,8 @@ class V8_EXPORT Isolate {
   void* GetData(uint32_t slot) { return nullptr; }
   void SetData(uint32_t slot, void* data) {}
   Local<Context> GetCurrentContext() { return Local<Context>(); }
+  Local<Context> GetEnteredOrMicrotaskContext() { return Local<Context>(); }
+  bool InContext() const { return false; }
   
   // Execution termination methods
   bool IsExecutionTerminating() { return false; }
@@ -497,6 +499,11 @@ class V8_EXPORT Isolate {
   void DumpAndResetStats() {
     // WASI stub - no-op
   }
+
+  // Call-completed callbacks (stubs)
+  using CallCompletedCallback = void (*)(Isolate* isolate);
+  void AddCallCompletedCallback(CallCompletedCallback /*callback*/) {}
+  void RemoveCallCompletedCallback(CallCompletedCallback /*callback*/) {}
   
   // GetDataFromSnapshotOnce method
   template<typename T>

@@ -122,6 +122,13 @@ class QueryObjectPredicate {
 #define V8_HEAP_PROFILER_DEFINED
 class HeapProfiler {
  public:
+  // Resolve object names for heap snapshot nodes.
+  class ObjectNameResolver {
+   public:
+    virtual ~ObjectNameResolver() = default;
+    virtual const char* GetName(Local<Value> value) { return nullptr; }
+  };
+
   // HeapSnapshotMode enum for WASI
   enum class HeapSnapshotMode {
     kRegular = 0,
@@ -141,6 +148,9 @@ class HeapProfiler {
     ControlOption control;
     NumericsMode numerics_mode;
     bool capture_numeric_value;
+    // Additional fields referenced by inspector
+    int stack_state = 0;
+    v8::HeapProfiler::ObjectNameResolver* global_object_name_resolver = nullptr;
     HeapSnapshotMode snapshot_mode;
     
     // Constructor with default values
@@ -155,14 +165,10 @@ class HeapProfiler {
   enum class SamplingFlags : uint32_t {
     kNoFlags = 0,
     kSamplingForceGC = 1,
+    kSamplingIncludeObjectsCollectedByMinorGC = 1 << 1,
+    kSamplingIncludeObjectsCollectedByMajorGC = 1 << 2,
   };
 
-  // Resolve object names for heap snapshot nodes.
-  class ObjectNameResolver {
-   public:
-    virtual ~ObjectNameResolver() = default;
-    virtual const char* GetName(Local<Value> value) { return nullptr; }
-  };
   
   // Callback types
   using BuildEmbedderGraphCallback = void (*)(v8::Isolate* isolate, EmbedderGraph* graph, void* data);
@@ -216,6 +222,16 @@ class HeapProfiler {
   void AddBuildEmbedderGraphCallback(BuildEmbedderGraphCallback callback, void* data) {
     // WASI stub - no-op
   }
+  
+  // Find a JS object by snapshot id (stubbed)
+  Local<Value> FindObjectById(SnapshotObjectId /*id*/) { return {}; }
+
+  // Object id APIs
+  void ClearObjectIds() {}
+
+  // Sampling heap profiler controls (stubs)
+  bool StartSamplingHeapProfiler(uint64_t /*sample_interval*/, int /*stack_depth*/, SamplingFlags /*flags*/) { return true; }
+  void StopSamplingHeapProfiler() {}
   
   ~HeapProfiler() = default;
 };
@@ -284,6 +300,5 @@ class HeapGraphNode {
 // HeapSnapshot is defined above
 
 }  // namespace v8
-
 
 #endif  // V8_WASI_EMBEDDER_GRAPH_STUB_H_

@@ -16,7 +16,7 @@ void* PageAllocator::GetRandomMmapAddr() {
 }
 
 void* PageAllocator::AllocatePages(void* address, size_t size, size_t alignment,
-                                   PageAllocator::Permission access) {
+                                   ::v8::PageAllocator::Permission access) {
   return std::aligned_alloc(alignment, size);
 }
 
@@ -42,12 +42,12 @@ bool PageAllocator::ReleasePages(void* address, size_t size, size_t new_size) {
 }
 
 bool PageAllocator::SetPermissions(void* address, size_t size,
-                                   PageAllocator::Permission access) {
+                                   ::v8::PageAllocator::Permission access) {
   return true; // No-op for WASI
 }
 
 bool PageAllocator::RecommitPages(void* address, size_t size,
-                                  PageAllocator::Permission access) {
+                                  ::v8::PageAllocator::Permission access) {
   return true; // No-op for WASI
 }
 

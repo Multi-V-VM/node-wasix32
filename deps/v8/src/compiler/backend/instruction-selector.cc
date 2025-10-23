@@ -684,12 +684,12 @@ InstructionOperand OperandForDeopt(Isolate* isolate, OperandGeneratorT* g,
     const Operation& bitcast_input = g->Get(bitcast->input());
     if (const ConstantOp* cst =
             bitcast_input.TryCast<Opmask::kWord32Constant>()) {
-      if constexpr (Is64()) {
+      if constexpr (turboshaft::Is64()) {
         return g->UseImmediate64(cst->word32());
       } else {
         return g->UseImmediate(cst->word32());
       }
-    } else if (Is64() && bitcast_input.Is<Opmask::kWord64Constant>()) {
+    } else if (turboshaft::Is64() && bitcast_input.Is<Opmask::kWord64Constant>()) {
       if (rep == MachineRepresentation::kWord32) {
         return g->UseImmediate(bitcast_input.Cast<ConstantOp>().word32());
       } else {
@@ -3369,7 +3369,7 @@ void InstructionSelectorT::VisitNode(OpIndex node) {
       switch (multi(cast.from, cast.to)) {
         case multi(Rep::Tagged(), Rep::Word32()):
           MarkAsWord32(node);
-          if constexpr (Is64()) {
+          if constexpr (turboshaft::Is64()) {
             DCHECK_EQ(cast.kind, TaggedBitcastOp::Kind::kSmi);
             DCHECK(SmiValuesAre31Bits());
             return VisitBitcastSmiToWord(node);

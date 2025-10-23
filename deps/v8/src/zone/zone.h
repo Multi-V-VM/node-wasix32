@@ -166,6 +166,10 @@ class V8_EXPORT_PRIVATE Zone final {
   template <typename T>
   ZoneVector<T> AllocateZoneVector(size_t length);
 
+  // Some call-sites expect NewZoneVector; provide a simple forwarding helper.
+  template <typename T>
+  ZoneVector<T> NewZoneVector(size_t length) { return AllocateZoneVector<T>(length); }
+
   template <typename T, typename TypeTag = std::remove_const_t<T>[]>
   ::v8::base::Vector<std::remove_const_t<T>> CloneVector(::v8::base::Vector<T> v) {
     auto* new_array = AllocateArray<std::remove_const_t<T>, TypeTag>(v.size());

@@ -15,9 +15,11 @@
 
 // Disable problematic features
 // V8_ENABLE_SANDBOX is not supported on WASI - leave undefined
-#ifndef V8_ENABLE_MAGLEV
-#define V8_ENABLE_MAGLEV 0
-#endif
+// For WASI we prefer these to be undefined so that any
+// `#if V8_ENABLE_*` evaluates to 0 and `#ifdef V8_ENABLE_*` evaluates to false.
+#undef V8_ENABLE_MAGLEV
+#undef V8_ENABLE_TURBOFAN
+#undef V8_ENABLE_SPARKPLUG
 #define V8_COMPRESS_POINTERS 0
 #define V8_31BIT_SMIS_ON_64BIT_ARCH 0
 #define V8_ENABLE_POINTER_COMPRESSION 0

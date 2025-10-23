@@ -103,6 +103,10 @@ using ThreadedList = ::v8::base::ThreadedList<T, BaseClass>;
 template <typename T, int kFieldSize, int kShift, typename U>
 using BitSetComputer = ::v8::base::BitSetComputer<T, kFieldSize, kShift, U>;
 
+// 64-bit BitField alias used in some internal headers
+template <typename T, int shift, int size>
+using BitField64 = ::v8::base::BitField64<T, shift, size>;
+
 // ============================================================================
 // Vector types - Import from v8::base
 // ============================================================================

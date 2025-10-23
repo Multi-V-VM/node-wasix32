@@ -58,6 +58,7 @@ class CpuProfileNode {
   const CpuProfileNode* GetChild(int index) const { return nullptr; }
   SourceType GetSourceType() const { return kScript; }
   const LineTick* GetLineTicks() const { return nullptr; }
+  int GetHitLineCount() const { return 0; }
   const std::vector<CpuProfileDeoptInfo>& GetDeoptInfos() const {
     static std::vector<CpuProfileDeoptInfo> empty;
     return empty;
@@ -70,6 +71,7 @@ class CpuProfile {
   const CpuProfileNode* GetTopDownRoot() const { return nullptr; }
   const CpuProfileNode* GetSample(int index) const { return nullptr; }
   int GetSamplesCount() const { return 0; }
+  uint64_t GetSampleTimestamp(int /*index*/) const { return 0; }
   const char* GetTitle() const { return ""; }
   int64_t GetStartTime() const { return 0; }
   int64_t GetEndTime() const { return 0; }
@@ -118,6 +120,8 @@ class CpuProfiler {
   CpuProfile* StopProfiling(const char* title) { return nullptr; }
   void Dispose() {}
 
+  static CpuProfiler* New(Isolate* /*isolate*/) { return new CpuProfiler(); }
+
   static void CollectSample(Isolate* isolate) {}
 };
 
@@ -162,6 +166,8 @@ using CodeEventHandler = JitCodeEventHandler;  // Alias for compatibility
 // AllocationProfile forward declarations
 class AllocationProfile {
  public:
+  static constexpr int kNoLineNumberInfo = 0;
+  static constexpr int kNoColumnNumberInfo = 0;
   class Node;
   class Sample;
 

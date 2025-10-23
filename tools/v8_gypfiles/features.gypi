@@ -289,7 +289,7 @@
 
     # Enable Sparkplug
     # Sets -DV8_ENABLE_SPARKPLUG.
-    'v8_enable_sparkplug%': 1,
+    'v8_enable_sparkplug%': 0,
 
     # Whether custom embedder snapshots may extend (= allocate new objects in)
     # ReadOnlySpace.
@@ -299,7 +299,7 @@
 
     # Enable ECMAScript Internationalization API. Enabling this feature will
     # add a dependency on the ICU library.
-    'v8_enable_i18n_support%': 1,
+    'v8_enable_i18n_support%': 0,
 
     # Lite mode disables a number of performance optimizations to reduce memory
     # at the cost of performance.
@@ -308,7 +308,7 @@
 
     # Enable the Turbofan compiler.
     # Sets -dV8_ENABLE_TURBOFAN
-    'v8_enable_turbofan%': 1,
+    'v8_enable_turbofan%': 0,
 
     # Enable the Maglev compiler.
     # Sets -dV8_ENABLE_MAGLEV
@@ -326,7 +326,17 @@
     'v8_advanced_bigint_algorithms%': 1,
 
     # Enable 256-bit long vector re-vectorization pass in WASM compilation pipeline.
-    'v8_enable_wasm_simd256_revec%' : 0
+    'v8_enable_wasm_simd256_revec%' : 0,
+    
+    # WASM32-specific overrides: disable JIT compilers when cross-compiling
+    # to WASI. This avoids compiling Turbofan/Maglev/Sparkplug backends and
+    # their architecture-specific code paths which are not applicable to WASI
+    # and cause numerous compile-time errors.
+        'v8_enable_turbofan%': 0,
+        'v8_enable_maglev%': 0,
+        'v8_enable_sparkplug%': 0,
+    
+    
   },
 
   'target_defaults': {

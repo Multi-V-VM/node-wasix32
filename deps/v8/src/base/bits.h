@@ -313,6 +313,7 @@ using ::v8::base::bits::CountLeadingZeros;
 using ::v8::base::bits::CountLeadingZeros32;
 using ::v8::base::bits::CountLeadingZeros64;
 using ::v8::base::bits::CountPopulation;
+using ::v8::base::bits::CountLeadingSignBits;
 using ::v8::base::bits::SignedSaturatedAdd64;
 using ::v8::base::bits::SignedSaturatedSub64;
 using ::v8::base::bits::IsPowerOfTwo;
