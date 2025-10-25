@@ -40,11 +40,11 @@ class RuntimeCallCounter final {
 
   const char* name() const { return name_; }
   int64_t count() const { return count_; }
-  base::TimeDelta time() const {
-    return base::TimeDelta::FromMicroseconds(time_);
+  ::v8::base::TimeDelta time() const {
+    return ::v8::base::TimeDelta::FromMicroseconds(time_);
   }
   void Increment() { count_++; }
-  void Add(base::TimeDelta delta) { time_ += delta.InMicroseconds(); }
+  void Add(::v8::base::TimeDelta delta) { time_ += delta.InMicroseconds(); }
 
  private:
   friend class RuntimeCallStats;
@@ -65,7 +65,7 @@ class RuntimeCallTimer final {
   void set_parent(RuntimeCallTimer* timer) { parent_.SetValue(timer); }
   const char* name() const { return counter_->name(); }
 
-  inline bool IsStarted() const { return start_ticks_ != base::TimeTicks(); }
+  inline bool IsStarted() const { return start_ticks_ != ::v8::base::TimeTicks(); }
 
   inline void Start(RuntimeCallCounter* counter, RuntimeCallTimer* parent) {
     DCHECK(!IsStarted());
@@ -75,7 +75,7 @@ class RuntimeCallTimer final {
         v8::tracing::TracingCategoryObserver::ENABLED_BY_SAMPLING) {
       return;
     }
-    base::TimeTicks now = RuntimeCallTimer::Now();
+    ::v8::base::TimeTicks now = RuntimeCallTimer::Now();
     if (parent) parent->Pause(now);
     Resume(now);
     DCHECK(IsStarted());
@@ -85,7 +85,7 @@ class RuntimeCallTimer final {
 
   inline RuntimeCallTimer* Stop() {
     if (!IsStarted()) return parent();
-    base::TimeTicks now = RuntimeCallTimer::Now();
+    ::v8::base::TimeTicks now = RuntimeCallTimer::Now();
     Pause(now);
     counter_->Increment();
     CommitTimeToCounter();
@@ -98,32 +98,32 @@ class RuntimeCallTimer final {
   }
 
   // Make the time source configurable for testing purposes.
-  V8_EXPORT_PRIVATE static base::TimeTicks (*Now)();
+  V8_EXPORT_PRIVATE static ::v8::base::TimeTicks (*Now)();
 
   // Helper to switch over to CPU time.
-  static base::TimeTicks NowCPUTime();
+  static ::v8::base::TimeTicks NowCPUTime();
 
  private:
-  inline void Pause(base::TimeTicks now) {
+  inline void Pause(::v8::base::TimeTicks now) {
     DCHECK(IsStarted());
     elapsed_ += (now - start_ticks_);
-    start_ticks_ = base::TimeTicks();
+    start_ticks_ = ::v8::base::TimeTicks();
   }
 
-  inline void Resume(base::TimeTicks now) {
+  inline void Resume(::v8::base::TimeTicks now) {
     DCHECK(!IsStarted());
     start_ticks_ = now;
   }
 
   inline void CommitTimeToCounter() {
     counter_->Add(elapsed_);
-    elapsed_ = base::TimeDelta();
+    elapsed_ = ::v8::base::TimeDelta();
   }
 
   RuntimeCallCounter* counter_ = nullptr;
   base::AtomicValue<RuntimeCallTimer*> parent_;
-  base::TimeTicks start_ticks_;
-  base::TimeDelta elapsed_;
+  ::v8::base::TimeTicks start_ticks_;
+  ::v8::base::TimeDelta elapsed_;
 };
 
 #define FOR_EACH_GC_COUNTER(V) \
@@ -723,7 +723,7 @@ class WorkerThreadRuntimeCallStats final {
   void AddToMainTable(RuntimeCallStats* main_call_stats);
 
  private:
-  base::Mutex mutex_;
+  ::v8::base::Mutex mutex_;
   std::vector<std::unique_ptr<RuntimeCallStats>> tables_;
   std::optional<base::Thread::LocalStorageKey> tls_key_;
   // Since this is for creating worker thread runtime-call stats, record the

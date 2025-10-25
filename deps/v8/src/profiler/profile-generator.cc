@@ -575,7 +575,7 @@ CpuProfile::CpuProfile(CpuProfiler* profiler, ProfilerId id, const char* title,
     : title_(title),
       options_(std::move(options)),
       delegate_(std::move(delegate)),
-      start_time_(base::TimeTicks::Now()),
+      start_time_(::v8::base::TimeTicks::Now()),
       top_down_(profiler->isolate(), profiler->code_entries()),
       profiler_(profiler),
       streaming_next_sample_(0),
@@ -601,8 +601,8 @@ CpuProfile::CpuProfile(CpuProfiler* profiler, ProfilerId id, const char* title,
   }
 }
 
-bool CpuProfile::CheckSubsample(base::TimeDelta source_sampling_interval) {
-  DCHECK_GE(source_sampling_interval, base::TimeDelta());
+bool CpuProfile::CheckSubsample(::v8::base::TimeDelta source_sampling_interval) {
+  DCHECK_GE(source_sampling_interval, ::v8::base::TimeDelta());
 
   // If the sampling source's sampling interval is 0, record as many samples
   // are possible irrespective of the profile's sampling interval. Manually
@@ -610,17 +610,17 @@ bool CpuProfile::CheckSubsample(base::TimeDelta source_sampling_interval) {
   if (source_sampling_interval.IsZero()) return true;
 
   next_sample_delta_ -= source_sampling_interval;
-  if (next_sample_delta_ <= base::TimeDelta()) {
+  if (next_sample_delta_ <= ::v8::base::TimeDelta()) {
     next_sample_delta_ =
-        base::TimeDelta::FromMicroseconds(options_.sampling_interval_us());
+        ::v8::base::TimeDelta::FromMicroseconds(options_.sampling_interval_us());
     return true;
   }
   return false;
 }
 
-void CpuProfile::AddPath(base::TimeTicks timestamp,
+void CpuProfile::AddPath(::v8::base::TimeTicks timestamp,
                          const ProfileStackTrace& path, int src_line,
-                         bool update_stats, base::TimeDelta sampling_interval,
+                         bool update_stats, ::v8::base::TimeDelta sampling_interval,
                          StateTag state_tag,
                          EmbedderStateTag embedder_state_tag,
                          const std::optional<uint64_t> trace_id) {
@@ -732,7 +732,7 @@ void CpuProfile::StreamPendingTraceEvents() {
     // correct CLOCK_BOOTTIME time values (for instance, producing
     // CLOCK_BOOTTIME time values in the middle of the suspended period).
     value->BeginArray("timeDeltas");
-    base::TimeTicks lastTimestamp =
+    ::v8::base::TimeTicks lastTimestamp =
         streaming_next_sample_ ? samples_[streaming_next_sample_ - 1].timestamp
                                : start_time();
     for (size_t i = streaming_next_sample_; i < samples_.size(); ++i) {
@@ -759,7 +759,7 @@ void CpuProfile::StreamPendingTraceEvents() {
 }
 
 void CpuProfile::FinishProfile() {
-  end_time_ = base::TimeTicks::Now();
+  end_time_ = ::v8::base::TimeTicks::Now();
   // Stop tracking context movements after profiling stops.
   context_filter_.set_native_context_address(kNullAddress);
   StreamPendingTraceEvents();
@@ -1167,12 +1167,12 @@ int64_t GreatestCommonDivisor(int64_t a, int64_t b) {
 
 }  // namespace
 
-base::TimeDelta CpuProfilesCollection::GetCommonSamplingInterval() {
+::v8::base::TimeDelta CpuProfilesCollection::GetCommonSamplingInterval() {
   DCHECK(profiler_);
 
   int64_t base_sampling_interval_us =
       profiler_->sampling_interval().InMicroseconds();
-  if (base_sampling_interval_us == 0) return base::TimeDelta();
+  if (base_sampling_interval_us == 0) return ::v8::base::TimeDelta();
 
   int64_t interval_us = 0;
   {
@@ -1189,12 +1189,12 @@ base::TimeDelta CpuProfilesCollection::GetCommonSamplingInterval() {
       interval_us = GreatestCommonDivisor(interval_us, profile_interval_us);
     }
   }
-  return base::TimeDelta::FromMicroseconds(interval_us);
+  return ::v8::base::TimeDelta::FromMicroseconds(interval_us);
 }
 
 void CpuProfilesCollection::AddPathToCurrentProfiles(
-    base::TimeTicks timestamp, const ProfileStackTrace& path, int src_line,
-    bool update_stats, base::TimeDelta sampling_interval, StateTag state,
+    ::v8::base::TimeTicks timestamp, const ProfileStackTrace& path, int src_line,
+    bool update_stats, ::v8::base::TimeDelta sampling_interval, StateTag state,
     EmbedderStateTag embedder_state_tag, Address native_context_address,
     Address embedder_native_context_address,
     const std::optional<uint64_t> trace_id) {

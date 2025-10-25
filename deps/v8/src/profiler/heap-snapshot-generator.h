@@ -307,12 +307,12 @@ class HeapObjectsMap {
  public:
   struct TimeInterval {
     explicit TimeInterval(SnapshotObjectId id)
-        : id(id), size(0), count(0), timestamp(base::TimeTicks::Now()) {}
+        : id(id), size(0), count(0), timestamp(::v8::base::TimeTicks::Now()) {}
     SnapshotObjectId last_assigned_id() const { return id - kObjectIdStep; }
     SnapshotObjectId id;
     uint32_t size;
     uint32_t count;
-    base::TimeTicks timestamp;
+    ::v8::base::TimeTicks timestamp;
   };
   enum class MarkEntryAccessed {
     kNo,

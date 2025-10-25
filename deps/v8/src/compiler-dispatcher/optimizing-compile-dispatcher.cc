@@ -148,7 +148,7 @@ void OptimizingCompileTaskExecutor::RunCompilationJob(
   TimerEventScope<TimerEventRecompileConcurrent> timer(isolate);
 
   if (recompilation_delay_ != 0) {
-    base::OS::Sleep(base::TimeDelta::FromMilliseconds(recompilation_delay_));
+    base::OS::Sleep(::v8::base::TimeDelta::FromMilliseconds(recompilation_delay_));
   }
 
   RCS_SCOPE(&local_isolate, RuntimeCallCounterId::kOptimizeBackgroundTurbofan);

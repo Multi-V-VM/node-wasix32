@@ -57,9 +57,9 @@ class IsolateSafepoint final {
   using RunningLocalHeaps = base::SmallVector<RunningLocalHeap, 4>;
 
   class Barrier {
-    base::Mutex mutex_;
-    base::ConditionVariable cv_resume_;
-    base::ConditionVariable cv_stopped_;
+    ::v8::base::Mutex mutex_;
+    ::v8::base::ConditionVariable cv_resume_;
+    ::v8::base::ConditionVariable cv_stopped_;
     bool armed_;
 
     size_t stopped_ = 0;
@@ -120,7 +120,7 @@ class IsolateSafepoint final {
   void AddLocalHeap(LocalHeap* local_heap, Callback callback) {
     // Safepoint holds this lock in order to stop threads from starting or
     // stopping.
-    base::RecursiveMutexGuard guard(&local_heaps_mutex_);
+    ::v8::base::RecursiveMutexGuard guard(&local_heaps_mutex_);
 
     // Additional code protected from safepoint
     callback();
@@ -134,7 +134,7 @@ class IsolateSafepoint final {
 
   template <typename Callback>
   void RemoveLocalHeap(LocalHeap* local_heap, Callback callback) {
-    base::RecursiveMutexGuard guard(&local_heaps_mutex_);
+    ::v8::base::RecursiveMutexGuard guard(&local_heaps_mutex_);
 
     // Additional code protected from safepoint
     callback();
@@ -155,7 +155,7 @@ class IsolateSafepoint final {
 
   // Mutex is used both for safepointing and adding/removing threads. A
   // RecursiveMutex is needed since we need to support nested SafepointScopes.
-  base::RecursiveMutex local_heaps_mutex_;
+  ::v8::base::RecursiveMutex local_heaps_mutex_;
   LocalHeap* local_heaps_head_ = nullptr;
 
   int active_safepoint_scopes_ = 0;
@@ -216,7 +216,7 @@ class GlobalSafepoint final {
   Isolate* const shared_space_isolate_;
   // RecursiveMutex is needed since we need to support nested
   // GlobalSafepointScopes.
-  base::RecursiveMutex clients_mutex_;
+  ::v8::base::RecursiveMutex clients_mutex_;
   Isolate* clients_head_ = nullptr;
   int active_safepoint_scopes_ = 0;
 

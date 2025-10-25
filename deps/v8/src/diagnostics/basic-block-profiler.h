@@ -97,7 +97,7 @@ class BasicBlockProfiler {
 
  private:
   DataList data_list_;
-  base::Mutex data_list_mutex_;
+  ::v8::base::Mutex data_list_mutex_;
 };
 
 std::ostream& operator<<(std::ostream& os, const BasicBlockProfilerData& s);

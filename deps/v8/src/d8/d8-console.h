@@ -56,9 +56,9 @@ class D8Console : public debug::ConsoleDelegate {
   // Calling console.time() and console.timeEnd() without an explicit timer
   // name will use the 'default' timer (similar to what the browser does).
   // See https://console.spec.whatwg.org/#timer-table for the specification.
-  std::map<std::string, base::TimeTicks> timers_;
+  std::map<std::string, ::v8::base::TimeTicks> timers_;
   // Origin for the timer used by console.timeStamp() calls.
-  base::TimeTicks origin_;
+  ::v8::base::TimeTicks origin_;
   CpuProfiler* profiler_{nullptr};
   bool profiler_active_{false};
 };

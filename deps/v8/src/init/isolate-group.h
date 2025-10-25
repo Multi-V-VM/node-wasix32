@@ -86,7 +86,7 @@ class SandboxedArrayBufferAllocator {
   std::unique_ptr<::v8::base::RegionAllocator> region_alloc_;
   size_t end_of_accessible_region_ = 0;
   Sandbox* sandbox_ = nullptr;
-  base::Mutex mutex_;
+  ::v8::base::Mutex mutex_;
 };
 #endif
 
@@ -205,7 +205,7 @@ class V8_EXPORT_PRIVATE IsolateGroup final {
     shared_read_only_heap_ = heap;
   }
 
-  base::Mutex* mutex() { return &mutex_; }
+  ::v8::base::Mutex* mutex() { return &mutex_; }
 
   ReadOnlyArtifacts* read_only_artifacts() {
     return read_only_artifacts_.get();
@@ -250,7 +250,7 @@ class V8_EXPORT_PRIVATE IsolateGroup final {
   bool FindAnotherIsolateLocked(Isolate* isolate, Callback callback) {
     // Holding this mutex while invoking the callback avoids the isolate tearing
     // down in the mean time.
-    base::MutexGuard group_guard(mutex_);
+    ::v8::base::MutexGuard group_guard(mutex_);
     Isolate* target_isolate = nullptr;
     DCHECK_NOT_NULL(main_isolate_);
 
@@ -329,7 +329,7 @@ class V8_EXPORT_PRIVATE IsolateGroup final {
 
   // Mutex used to synchronize adding and removing of isolates to this group. It
   // is also used to ensure that ReadOnlyArtifacts creation is only done once.
-  base::Mutex mutex_;
+  ::v8::base::Mutex mutex_;
   std::unique_ptr<ReadOnlyArtifacts> read_only_artifacts_;
   ReadOnlyHeap* shared_read_only_heap_ = nullptr;
   Isolate* shared_space_isolate_ = nullptr;

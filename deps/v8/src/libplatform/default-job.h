@@ -85,7 +85,7 @@ class V8_PLATFORM_EXPORT DefaultJobState
   std::unique_ptr<JobTask> job_task_;
 
   // All members below are protected by |mutex_|.
-  base::Mutex mutex_;
+  ::v8::base::Mutex mutex_;
   TaskPriority priority_;
   // Number of workers running this job.
   size_t active_workers_ = 0;
@@ -96,7 +96,7 @@ class V8_PLATFORM_EXPORT DefaultJobState
   // Number of worker threads available to schedule the worker task.
   size_t num_worker_threads_;
   // Signaled when a worker returns.
-  base::ConditionVariable worker_released_condition_;
+  ::v8::base::ConditionVariable worker_released_condition_;
 
   std::atomic<uint32_t> assigned_task_ids_{0};
 };

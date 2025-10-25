@@ -91,7 +91,7 @@ class BaselineCompilerTask {
   IndirectHandle<SharedFunctionInfo> shared_function_info_;
   IndirectHandle<BytecodeArray> bytecode_;
   MaybeIndirectHandle<Code> maybe_code_;
-  base::TimeDelta time_taken_;
+  ::v8::base::TimeDelta time_taken_;
 };
 
 class BaselineBatchCompilerJob {

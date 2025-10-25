@@ -23,7 +23,7 @@ class SharedToCounterMap
                                        base::DefaultAllocationPolicy> {
  public:
   using Entry =
-      base::TemplateHashMapEntry<Tagged<SharedFunctionInfo>, uint32_t>;
+      ::v8::base::TemplateHashMapEntry<Tagged<SharedFunctionInfo>, uint32_t>;
   inline void Add(Tagged<SharedFunctionInfo> key, uint32_t count) {
     Entry* entry = LookupOrInsert(key, Hash(key), []() { return 0; });
     uint32_t old_count = entry->value;

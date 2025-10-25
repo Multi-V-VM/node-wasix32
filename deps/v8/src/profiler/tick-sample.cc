@@ -169,7 +169,7 @@ DISABLE_ASAN void TickSample::Init(Isolate* v8_isolate,
                                    RecordCEntryFrame record_c_entry_frame,
                                    bool update_stats,
                                    bool use_simulator_reg_state,
-                                   base::TimeDelta sampling_interval,
+                                   ::v8::base::TimeDelta sampling_interval,
                                    const std::optional<uint64_t> trace_id) {
   update_stats_ = update_stats;
   SampleInfo info;
@@ -212,7 +212,7 @@ DISABLE_ASAN void TickSample::Init(Isolate* v8_isolate,
   }
   sampling_interval_ = sampling_interval;
   trace_id_ = trace_id;
-  timestamp = base::TimeTicks::Now();
+  timestamp = ::v8::base::TimeTicks::Now();
 }
 
 // IMPORTANT: 'GetStackSample' is sensitive to stack overflows. For this reason

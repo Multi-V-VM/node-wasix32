@@ -186,7 +186,7 @@ class V8_EXPORT_PRIVATE ProfilerEventsProcessor : public base::Thread,
   // Add a sample into the tick sample events buffer. Used for testing.
   void AddSample(TickSample sample);
 
-  virtual void SetSamplingInterval(base::TimeDelta) {}
+  virtual void SetSamplingInterval(::v8::base::TimeDelta) {}
 
  protected:
   ProfilerEventsProcessor(Isolate* isolate, Symbolizer* symbolizer,
@@ -207,8 +207,8 @@ class V8_EXPORT_PRIVATE ProfilerEventsProcessor : public base::Thread,
   ProfilerCodeObserver* code_observer_;
   CpuProfilesCollection* profiles_;
   std::atomic_bool running_{true};
-  base::ConditionVariable running_cond_;
-  base::Mutex running_mutex_;
+  ::v8::base::ConditionVariable running_cond_;
+  ::v8::base::Mutex running_mutex_;
   LockedQueue<CodeEventsContainer> events_buffer_;
   LockedQueue<TickSampleEventRecord> ticks_from_vm_buffer_;
   std::atomic<unsigned> last_code_event_id_;
@@ -222,7 +222,7 @@ class V8_EXPORT_PRIVATE SamplingEventsProcessor
   SamplingEventsProcessor(Isolate* isolate, Symbolizer* symbolizer,
                           ProfilerCodeObserver* code_observer,
                           CpuProfilesCollection* profiles,
-                          base::TimeDelta period, bool use_precise_sampling);
+                          ::v8::base::TimeDelta period, bool use_precise_sampling);
   ~SamplingEventsProcessor() override;
 
   // SamplingCircularQueue has stricter alignment requirements than a normal new
@@ -232,7 +232,7 @@ class V8_EXPORT_PRIVATE SamplingEventsProcessor
 
   void Run() override;
 
-  void SetSamplingInterval(base::TimeDelta period) override;
+  void SetSamplingInterval(::v8::base::TimeDelta period) override;
 
   // Tick sample events are filled directly in the buffer of the circular
   // queue (because the structure is of fixed width, but usually not all
@@ -244,7 +244,7 @@ class V8_EXPORT_PRIVATE SamplingEventsProcessor
   inline void FinishTickSample();
 
   sampler::Sampler* sampler() { return sampler_.get(); }
-  base::TimeDelta period() const { return period_; }
+  ::v8::base::TimeDelta period() const { return period_; }
 
  private:
   SampleProcessingResult ProcessOneSample() override;
@@ -256,7 +256,7 @@ class V8_EXPORT_PRIVATE SamplingEventsProcessor
   SamplingCircularQueue<TickSampleEventRecord,
                         kTickSampleQueueLength> ticks_buffer_;
   std::unique_ptr<sampler::Sampler> sampler_;
-  base::TimeDelta period_;           // Samples & code events processing period.
+  ::v8::base::TimeDelta period_;           // Samples & code events processing period.
   const bool use_precise_sampling_;  // Whether or not busy-waiting is used for
                                      // low sampling intervals on Windows.
 #if V8_OS_WIN
@@ -350,8 +350,8 @@ class V8_EXPORT_PRIVATE CpuProfiler {
   using LoggingMode = v8::CpuProfilingLoggingMode;
   using StartProfilingStatus = CpuProfilingStatus;
 
-  base::TimeDelta sampling_interval() const { return base_sampling_interval_; }
-  void set_sampling_interval(base::TimeDelta value);
+  ::v8::base::TimeDelta sampling_interval() const { return base_sampling_interval_; }
+  void set_sampling_interval(::v8::base::TimeDelta value);
   void set_use_precise_sampling(bool);
   void CollectSample(const std::optional<uint64_t> trace_id = std::nullopt);
   size_t GetEstimatedMemoryUsage() const;
@@ -397,7 +397,7 @@ class V8_EXPORT_PRIVATE CpuProfiler {
   void DisableLogging();
 
   // Computes a sampling interval sufficient to accommodate attached profiles.
-  base::TimeDelta ComputeSamplingInterval();
+  ::v8::base::TimeDelta ComputeSamplingInterval();
   // Dynamically updates the sampler to use a sampling interval sufficient for
   // child profiles.
   void AdjustSamplingInterval();
@@ -408,7 +408,7 @@ class V8_EXPORT_PRIVATE CpuProfiler {
   bool use_precise_sampling_ = true;
   // Sampling interval to which per-profile sampling intervals will be clamped
   // to a multiple of, or used as the default if unspecified.
-  base::TimeDelta base_sampling_interval_;
+  ::v8::base::TimeDelta base_sampling_interval_;
 
   // Storage for CodeEntry objects allocated by the profiler. May live for
   // multiple profiling sessions, independent of heap listener state.

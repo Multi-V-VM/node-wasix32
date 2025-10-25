@@ -63,7 +63,7 @@ void TaskQueue::BlockUntilQueueEmptyForTesting() {
       ::v8::base::MutexGuard guard(&lock_);
       if (task_queue_.empty()) return;
     }
-    base::OS::Sleep(base::TimeDelta::FromMilliseconds(5));
+    base::OS::Sleep(::v8::base::TimeDelta::FromMilliseconds(5));
   }
 }
 

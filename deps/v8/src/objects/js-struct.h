@@ -109,7 +109,7 @@ class SharedStructTypeRegistry final {
   std::unique_ptr<Data> data_;
 
   // Protects all access to the registry.
-  base::Mutex data_mutex_;
+  ::v8::base::Mutex data_mutex_;
 };
 
 }  // namespace internal

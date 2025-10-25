@@ -50,8 +50,8 @@ class CollectionBarrier {
 
  private:
   Heap* heap_;
-  base::Mutex mutex_;
-  base::ConditionVariable cv_wakeup_;
+  ::v8::base::Mutex mutex_;
+  ::v8::base::ConditionVariable cv_wakeup_;
   base::ElapsedTimer timer_;
 
   // Flag that main thread checks whether a GC was requested from the background

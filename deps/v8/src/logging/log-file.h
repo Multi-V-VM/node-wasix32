@@ -110,7 +110,7 @@ class LogFile {
 
  private:
   static FILE* CreateOutputHandle(std::string file_name);
-  base::Mutex* mutex() { return &mutex_; }
+  ::v8::base::Mutex* mutex() { return &mutex_; }
 
   void WriteLogHeader();
 
@@ -126,7 +126,7 @@ class LogFile {
 
   // mutex_ is a Mutex used for enforcing exclusive
   // access to the formatting buffer and the log file or log memory buffer.
-  base::Mutex mutex_;
+  ::v8::base::Mutex mutex_;
 
   // Buffer used for formatting log messages. This is a singleton buffer and
   // mutex_ should be acquired before using it.

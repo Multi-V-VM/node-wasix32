@@ -697,7 +697,7 @@ class DeserializationQueue {
   }
 
  private:
-  mutable base::Mutex mutex_;
+  mutable ::v8::base::Mutex mutex_;
   std::queue<std::vector<DeserializationUnit>> queue_;
 };
 

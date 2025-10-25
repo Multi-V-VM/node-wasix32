@@ -211,7 +211,7 @@ void MaglevCompilationJob::RecordCompilationStats(Isolate* isolate) const {
   // Don't record samples from machines without high-resolution timers,
   // as that can cause serious reporting issues. See the thread at
   // http://g/chrome-metrics-team/NwwJEyL8odU/discussion for more details.
-  if (base::TimeTicks::IsHighResolution()) {
+  if (::v8::base::TimeTicks::IsHighResolution()) {
     Counters* const counters = isolate->counters();
     counters->maglev_optimize_prepare()->AddSample(
         static_cast<int>(time_taken_to_prepare_.InMicroseconds()));

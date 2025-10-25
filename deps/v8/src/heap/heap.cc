@@ -1652,7 +1652,7 @@ void Heap::CollectGarbage(AllocationSpace space,
             ? CommittedOldGenerationMemory()
             : 0;
 
-    tracer()->StartObservablePause(base::TimeTicks::Now());
+    tracer()->StartObservablePause(::v8::base::TimeTicks::Now());
     VMState<GC> state(isolate());
     DevToolsTraceEventScope devtools_trace_event_scope(
         this, IsYoungGenerationCollector(collector) ? "MinorGC" : "MajorGC",
@@ -1712,7 +1712,7 @@ void Heap::CollectGarbage(AllocationSpace space,
     }
 
     tracer()->StopAtomicPause();
-    tracer()->StopObservablePause(collector, base::TimeTicks::Now());
+    tracer()->StopObservablePause(collector, ::v8::base::TimeTicks::Now());
     // Young generation cycles finish atomically. It is important that
     // StopObservablePause, and StopCycle are called in this
     // order; the latter may replace the current event with that of an
@@ -1722,7 +1722,7 @@ void Heap::CollectGarbage(AllocationSpace space,
     } else {
       tracer()->StopFullCycleIfFinished();
     }
-    RecomputeLimits(collector, base::TimeTicks::Now());
+    RecomputeLimits(collector, ::v8::base::TimeTicks::Now());
   });
 
   if ((collector == GarbageCollector::MARK_COMPACTOR) &&
@@ -1797,9 +1797,9 @@ class IdleTaskOnContextDispose : public CancelableIdleTask {
 
   void RunInternal(double deadline_in_seconds) override {
     auto* heap = isolate_->heap();
-    const base::TimeDelta time_to_run = base::TimeTicks::Now() - creation_time_;
+    const ::v8::base::TimeDelta time_to_run = ::v8::base::TimeTicks::Now() - creation_time_;
     // The provided delta uses embedder timestamps.
-    const base::TimeDelta idle_time = base::TimeDelta::FromMillisecondsD(
+    const ::v8::base::TimeDelta idle_time = ::v8::base::TimeDelta::FromMillisecondsD(
         (deadline_in_seconds * 1000) - heap->MonotonicallyIncreasingTimeInMs());
     const bool time_to_run_exceeded = time_to_run > kMaxTimeToRun;
     if (V8_UNLIKELY(v8_flags.trace_context_disposal)) {
@@ -1817,16 +1817,16 @@ class IdleTaskOnContextDispose : public CancelableIdleTask {
   }
 
  private:
-  static constexpr base::TimeDelta kFrameTime =
-      base::TimeDelta::FromMillisecondsD(16);
+  static constexpr ::v8::base::TimeDelta kFrameTime =
+      ::v8::base::TimeDelta::FromMillisecondsD(16);
 
   // We limit any idle time actions here by a maximum time to run of a single
   // frame. This avoids that these tasks are executed too late and causes
   // (unpredictable) side effects with e.g. promotion of newly allocated
   // objects.
-  static constexpr base::TimeDelta kMaxTimeToRun = kFrameTime + kFrameTime;
+  static constexpr ::v8::base::TimeDelta kMaxTimeToRun = kFrameTime + kFrameTime;
 
-  void TryRunMinorGC(const base::TimeDelta idle_time) {
+  void TryRunMinorGC(const ::v8::base::TimeDelta idle_time) {
     // The following logic estimates whether a young generation GC would fit in
     // `idle_time.` We bail out for a young gen below 1MB to avoid executing GC
     // when the mutator is not actually active.
@@ -1840,8 +1840,8 @@ class IdleTaskOnContextDispose : public CancelableIdleTask {
       return;
     }
     const size_t young_gen_bytes = heap->YoungGenerationSizeOfObjects();
-    const base::TimeDelta young_gen_estimate =
-        base::TimeDelta::FromMillisecondsD(young_gen_bytes /
+    const ::v8::base::TimeDelta young_gen_estimate =
+        ::v8::base::TimeDelta::FromMillisecondsD(young_gen_bytes /
                                            *young_gen_gc_speed);
     const bool run_young_gen_gc =
         young_gen_estimate < idle_time && young_gen_bytes > kMinYounGenSize;
@@ -1861,7 +1861,7 @@ class IdleTaskOnContextDispose : public CancelableIdleTask {
   }
 
   Isolate* isolate_;
-  const base::TimeTicks creation_time_ = base::TimeTicks::Now();
+  const ::v8::base::TimeTicks creation_time_ = ::v8::base::TimeTicks::Now();
 };
 
 int Heap::NotifyContextDisposed(bool has_dependent_context) {
@@ -2213,7 +2213,7 @@ void Heap::PerformGarbageCollection(GarbageCollector collector,
     CompleteSweepingFull();
   }
 
-  const base::TimeTicks atomic_pause_start_time = base::TimeTicks::Now();
+  const ::v8::base::TimeTicks atomic_pause_start_time = ::v8::base::TimeTicks::Now();
 
   std::optional<SafepointScope> safepoint_scope;
   {
@@ -2315,7 +2315,7 @@ void Heap::PerformGarbageCollection(GarbageCollector collector,
 
   GarbageCollectionEpilogueInSafepoint(collector);
 
-  const base::TimeTicks atomic_pause_end_time = base::TimeTicks::Now();
+  const ::v8::base::TimeTicks atomic_pause_end_time = ::v8::base::TimeTicks::Now();
   tracer()->StopInSafepoint(atomic_pause_end_time);
 
   ResumeConcurrentThreadsInClients(std::move(paused_clients));
@@ -2504,7 +2504,7 @@ Heap::LimitsCompuatationResult Heap::ComputeNewAllocationLimits(Heap* heap) {
   return {new_old_generation_allocation_limit, new_global_allocation_limit};
 }
 
-void Heap::RecomputeLimits(GarbageCollector collector, base::TimeTicks time) {
+void Heap::RecomputeLimits(GarbageCollector collector, ::v8::base::TimeTicks time) {
   if (IsYoungGenerationCollector(collector) &&
       !HasLowYoungGenerationAllocationRate()) {
     return;
@@ -5863,7 +5863,7 @@ void Heap::SetUpSpaces(LinearAllocationArea& new_allocation_info,
   main_thread_local_heap()->SetUpMainThread(new_allocation_info,
                                             old_allocation_info);
 
-  base::TimeTicks startup_time = base::TimeTicks::Now();
+  ::v8::base::TimeTicks startup_time = ::v8::base::TimeTicks::Now();
 
   tracer_.reset(new GCTracer(this, startup_time));
   array_buffer_sweeper_.reset(new ArrayBufferSweeper(this));
@@ -6696,7 +6696,7 @@ Tagged<HeapObject> HeapObjectIterator::NextObject() {
   return Tagged<HeapObject>();
 }
 
-void Heap::UpdateTotalGCTime(base::TimeDelta duration) {
+void Heap::UpdateTotalGCTime(::v8::base::TimeDelta duration) {
   total_gc_time_ms_ += duration;
 }
 

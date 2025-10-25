@@ -121,7 +121,7 @@ class V8_NODISCARD SharedStringAccessGuardIfNeeded {
     return isolate;
   }
 
-  std::optional<base::MutexGuard> mutex_guard;
+  std::optional<::v8::base::MutexGuard> mutex_guard;
 };
 
 uint32_t String::length() const { return length_; }

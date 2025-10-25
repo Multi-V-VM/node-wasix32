@@ -1149,9 +1149,9 @@ wasm::WasmCompilationResult CompileWasmImportCallWrapper(
 
   TRACE_EVENT0(TRACE_DISABLED_BY_DEFAULT("v8.wasm.detailed"),
                "wasm.CompileWasmImportCallWrapper");
-  base::TimeTicks start_time;
+  ::v8::base::TimeTicks start_time;
   if (V8_UNLIKELY(v8_flags.trace_wasm_compilation_times)) {
-    start_time = base::TimeTicks::Now();
+    start_time = ::v8::base::TimeTicks::Now();
   }
 
   // Build a name in the form "wasm-to-js-<kind>-<signature>".
@@ -1169,7 +1169,7 @@ wasm::WasmCompilationResult CompileWasmImportCallWrapper(
       func_name, WasmStubAssemblerOptions(), nullptr);
 
   if (V8_UNLIKELY(v8_flags.trace_wasm_compilation_times)) {
-    base::TimeDelta time = base::TimeTicks::Now() - start_time;
+    ::v8::base::TimeDelta time = ::v8::base::TimeTicks::Now() - start_time;
     int codesize = result.code_desc.body_size();
     StdoutStream{} << "Compiled WasmToJS wrapper " << func_name << ", took "
                    << time.InMilliseconds() << " ms; codesize " << codesize

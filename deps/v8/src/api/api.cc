@@ -11507,7 +11507,7 @@ void CpuProfiler::CollectSample(Isolate* v8_isolate,
 void CpuProfiler::SetSamplingInterval(int us) {
   DCHECK_GE(us, 0);
   return reinterpret_cast<i::CpuProfiler*>(this)->set_sampling_interval(
-      base::TimeDelta::FromMicroseconds(us));
+      ::v8::base::TimeDelta::FromMicroseconds(us));
 }
 
 void CpuProfiler::SetUsePreciseSampling(bool use_precise_sampling) {

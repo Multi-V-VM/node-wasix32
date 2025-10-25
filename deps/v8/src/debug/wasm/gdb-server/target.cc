@@ -142,7 +142,7 @@ void Target::Suspend() {
   }
 
   while (status_ == Status::WaitingForSuspension) {
-    if (semaphore_.WaitFor(base::TimeDelta::FromMilliseconds(500))) {
+    if (semaphore_.WaitFor(::v8::base::TimeDelta::FromMilliseconds(500))) {
       // Here the wasm interpreter is suspended.
       return;
     }

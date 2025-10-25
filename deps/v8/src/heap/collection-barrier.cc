@@ -141,7 +141,7 @@ void CollectionBarrier::StopTimeToCollectionTimer() {
     // parks itself. Since we are in a safepoint here, the timer is always
     // initialized here already.
     CHECK(timer_.IsStarted());
-    base::TimeDelta delta = timer_.Elapsed();
+    ::v8::base::TimeDelta delta = timer_.Elapsed();
     TRACE_EVENT_INSTANT1(TRACE_DISABLED_BY_DEFAULT("v8.gc"),
                          "V8.GC.TimeToCollectionOnBackground",
                          TRACE_EVENT_SCOPE_THREAD, "duration",

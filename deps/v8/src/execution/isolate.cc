@@ -4081,7 +4081,7 @@ class TracingAccountingAllocator : public AccountingAllocator {
 
   std::atomic<size_t> nesting_depth_{0};
 
-  base::Mutex mutex_;
+  ::v8::base::Mutex mutex_;
   std::unordered_set<const Zone*> active_zones_;
 #ifdef V8_ENABLE_PRECISE_ZONE_STATS
   TypeStats type_stats_;

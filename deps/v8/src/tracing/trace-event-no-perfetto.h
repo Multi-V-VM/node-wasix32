@@ -781,7 +781,7 @@
     }                                                                      \
   } while (0)
 
-// Macro for getting the real base::TimeTicks::Now() which can be overridden in
+// Macro for getting the real ::v8::base::TimeTicks::Now() which can be overridden in
 // headless when VirtualTime is enabled.
 #define TRACE_TIME_TICKS_NOW() INTERNAL_TRACE_TIME_TICKS_NOW()
 

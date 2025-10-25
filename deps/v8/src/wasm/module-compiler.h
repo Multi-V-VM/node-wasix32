@@ -224,7 +224,7 @@ class AsyncCompileJob {
   const WasmEnabledFeatures enabled_features_;
   WasmDetectedFeatures detected_features_;
   CompileTimeImports compile_imports_;
-  base::TimeTicks start_time_;
+  ::v8::base::TimeTicks start_time_;
   // Copy of the module wire bytes, moved into the {native_module_} on its
   // creation.
   base::OwnedVector<const uint8_t> bytes_copy_;

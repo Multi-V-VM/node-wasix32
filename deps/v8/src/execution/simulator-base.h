@@ -33,11 +33,11 @@ class SimulatorBase {
   static void InitializeOncePerProcess();
   static void GlobalTearDown();
 
-  static base::Mutex* redirection_mutex() { return redirection_mutex_; }
+  static ::v8::base::Mutex* redirection_mutex() { return redirection_mutex_; }
   static Redirection* redirection() { return redirection_; }
   static void set_redirection(Redirection* r) { redirection_ = r; }
 
-  static base::Mutex* i_cache_mutex() { return i_cache_mutex_; }
+  static ::v8::base::Mutex* i_cache_mutex() { return i_cache_mutex_; }
   static base::CustomMatcherHashMap* i_cache() { return i_cache_; }
 
   // Runtime/C function call support.
@@ -140,10 +140,10 @@ class SimulatorBase {
   }
 
  private:
-  static base::Mutex* redirection_mutex_;
+  static ::v8::base::Mutex* redirection_mutex_;
   static Redirection* redirection_;
 
-  static base::Mutex* i_cache_mutex_;
+  static ::v8::base::Mutex* i_cache_mutex_;
   static base::CustomMatcherHashMap* i_cache_;
 };
 

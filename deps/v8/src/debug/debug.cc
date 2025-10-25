@@ -165,7 +165,7 @@ class Debug::TemporaryObjectsTracker : public HeapObjectAllocationTracker {
   // (exclusive) address of regions. We index by end address for faster lookup.
   // Map: end address => start address
   std::map<Address, Address> regions_;
-  base::Mutex mutex_;
+  ::v8::base::Mutex mutex_;
 };
 
 Debug::Debug(Isolate* isolate)
@@ -2975,7 +2975,7 @@ DebugScope::DebugScope(Debug* debug)
 
 void DebugScope::set_terminate_on_resume() { terminate_on_resume_ = true; }
 
-base::TimeDelta DebugScope::ElapsedTimeSinceCreation() {
+::v8::base::TimeDelta DebugScope::ElapsedTimeSinceCreation() {
   return timer_.Elapsed();
 }
 

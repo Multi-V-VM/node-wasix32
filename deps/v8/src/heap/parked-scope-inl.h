@@ -72,13 +72,13 @@ V8_INLINE void ParkingConditionVariable::ParkedWait(LocalHeap* local_heap,
 
 V8_INLINE bool ParkingConditionVariable::ParkedWaitFor(
     LocalIsolate* local_isolate, base::Mutex* mutex,
-    const base::TimeDelta& rel_time) {
+    const ::v8::base::TimeDelta& rel_time) {
   return ParkedWaitFor(local_isolate->heap(), mutex, rel_time);
 }
 
 V8_INLINE bool ParkingConditionVariable::ParkedWaitFor(
     LocalHeap* local_heap, base::Mutex* mutex,
-    const base::TimeDelta& rel_time) {
+    const ::v8::base::TimeDelta& rel_time) {
   bool result;
   local_heap->ExecuteWhileParked(
       [this, mutex, rel_time, &result](const ParkedScope& parked) {
@@ -97,12 +97,12 @@ V8_INLINE void ParkingSemaphore::ParkedWait(LocalHeap* local_heap) {
 }
 
 V8_INLINE bool ParkingSemaphore::ParkedWaitFor(
-    LocalIsolate* local_isolate, const base::TimeDelta& rel_time) {
+    LocalIsolate* local_isolate, const ::v8::base::TimeDelta& rel_time) {
   return ParkedWaitFor(local_isolate->heap(), rel_time);
 }
 
 V8_INLINE bool ParkingSemaphore::ParkedWaitFor(
-    LocalHeap* local_heap, const base::TimeDelta& rel_time) {
+    LocalHeap* local_heap, const ::v8::base::TimeDelta& rel_time) {
   bool result;
   local_heap->ExecuteWhileParked(
       [this, rel_time, &result](const ParkedScope& parked) {

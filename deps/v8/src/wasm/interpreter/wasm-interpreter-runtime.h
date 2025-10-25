@@ -301,7 +301,7 @@ class WasmInterpreterRuntime {
 
   WasmInterpreterThread* current_thread_;
 
-  base::TimeTicks fuzzer_start_time_;
+  ::v8::base::TimeTicks fuzzer_start_time_;
 
   uint8_t* memory_start_;
 

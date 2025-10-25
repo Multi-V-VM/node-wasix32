@@ -13,13 +13,13 @@ namespace v8 {
 namespace internal {
 
 // static
-base::Mutex* SimulatorBase::redirection_mutex_ = nullptr;
+::v8::base::Mutex* SimulatorBase::redirection_mutex_ = nullptr;
 
 // static
 Redirection* SimulatorBase::redirection_ = nullptr;
 
 // static
-base::Mutex* SimulatorBase::i_cache_mutex_ = nullptr;
+::v8::base::Mutex* SimulatorBase::i_cache_mutex_ = nullptr;
 
 // static
 base::CustomMatcherHashMap* SimulatorBase::i_cache_ = nullptr;

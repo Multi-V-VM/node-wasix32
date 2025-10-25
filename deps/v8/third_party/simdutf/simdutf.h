@@ -22,6 +22,7 @@ enum class error_code : int {
     INVALID_BASE64_CHARACTER = 2,
     BASE64_INPUT_REMAINDER = 3,
     BASE64_EXTRA_BITS = 4,
+    OUTPUT_BUFFER_TOO_SMALL = 5,
 };
 
 struct result {
@@ -30,7 +31,13 @@ struct result {
 };
 
 // Base64 option enums used by TypedArray builtins in newer V8 versions.
-enum class base64_options { base64_default, base64_url };
+enum class base64_options {
+  base64_default,
+  base64_url,
+  // Additional options used by newer V8 call sites
+  base64_default_no_padding,
+  base64_url_with_padding
+};
 enum class last_chunk_handling_options { loose, strict, stop_before_partial };
 // Backward-compatible constants
 constexpr base64_options base64_default = base64_options::base64_default;
@@ -63,9 +70,20 @@ inline result convert_utf8_to_latin1_with_errors(const char* input, size_t lengt
 
 // Minimal base64 API used by V8; implemented in simdutf_wasi.cpp
 size_t maximal_binary_length_from_base64(const char* input, size_t length) noexcept;
+
+// Safe base64 decode into a caller-provided buffer. Overloads accept either
+// 8-bit or 16-bit character inputs (UTF-16 with ASCII contents).
 result base64_to_binary_safe(const char* input, size_t input_length, char* output,
                              size_t output_length, base64_options alphabet,
                              last_chunk_handling_options last_chunk) noexcept;
+result base64_to_binary_safe(const char16_t* input, size_t input_length, char* output,
+                             size_t output_length, base64_options alphabet,
+                             last_chunk_handling_options last_chunk) noexcept;
+
+// Minimal base64 encode support used by TypedArray.prototype.toBase64.
+size_t base64_length_from_binary(size_t length, base64_options alphabet) noexcept;
+size_t binary_to_base64(const char* input, size_t length, char* output,
+                        base64_options alphabet) noexcept;
 
 }  // namespace simdutf
 

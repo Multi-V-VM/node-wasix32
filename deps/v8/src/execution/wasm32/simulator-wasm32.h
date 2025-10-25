@@ -1292,7 +1292,7 @@ class Simulator : public SimulatorBase {
     };
 
     // Exposed so it can be accessed by Simulator::{Read,Write}Ex*.
-    base::Mutex mutex;
+    ::v8::base::Mutex mutex;
 
     void NotifyLoadLinked_Locked(uintptr_t addr, LinkedAddress* linked_address);
     void NotifyStore_Locked(LinkedAddress* linked_address);

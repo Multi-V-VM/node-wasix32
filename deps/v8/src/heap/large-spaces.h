@@ -103,7 +103,7 @@ class V8_EXPORT_PRIVATE LargeObjectSpace : public Space {
     pending_object_.store(0, std::memory_order_release);
   }
 
-  base::Mutex* pending_allocation_mutex() { return &pending_allocation_mutex_; }
+  ::v8::base::Mutex* pending_allocation_mutex() { return &pending_allocation_mutex_; }
 
   void UpdateAccountingAfterResizingObject(size_t old_size, size_t new_size);
 
@@ -126,14 +126,14 @@ class V8_EXPORT_PRIVATE LargeObjectSpace : public Space {
   // holding this lock, then the profiler will try to iterate the call stack
   // which might end up calling CodeLargeObjectSpace::FindPage() and thus
   // trying to lock the mutex for a second time.
-  base::RecursiveMutex allocation_mutex_;
+  ::v8::base::RecursiveMutex allocation_mutex_;
 
   // Current potentially uninitialized object. Protected by
   // pending_allocation_mutex_.
   std::atomic<Address> pending_object_;
 
   // Used to protect pending_object_.
-  base::Mutex pending_allocation_mutex_;
+  ::v8::base::Mutex pending_allocation_mutex_;
 
   AllocationCounter allocation_counter_;
 

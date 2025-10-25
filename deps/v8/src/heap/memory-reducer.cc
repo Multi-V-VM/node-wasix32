@@ -43,7 +43,7 @@ void MemoryReducer::TimerTask::RunInternal() {
 
   const double time_ms = heap->MonotonicallyIncreasingTimeInMs();
   heap->allocator()->new_space_allocator()->FreeLinearAllocationArea();
-  heap->tracer()->SampleAllocation(base::TimeTicks::Now(),
+  heap->tracer()->SampleAllocation(::v8::base::TimeTicks::Now(),
                                    heap->NewSpaceAllocationCounter(),
                                    heap->OldGenerationAllocationCounter(),
                                    heap->EmbedderAllocationCounter());

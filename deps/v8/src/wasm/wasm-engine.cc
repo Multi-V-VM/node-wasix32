@@ -464,7 +464,7 @@ struct WasmEngine::CurrentGCInfo {
 
   // The start time of this GC; used for tracing and sampled via {Counters}.
   // Can be null ({TimeTicks::IsNull()}) if timer is not high resolution.
-  base::TimeTicks start_time;
+  ::v8::base::TimeTicks start_time;
 };
 
 struct WasmEngine::IsolateInfo {

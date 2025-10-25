@@ -923,7 +923,7 @@ void CppHeap::WriteBarrier(void* object) {
 
 namespace {
 
-void RecordEmbedderMarkingSpeed(GCTracer* tracer, base::TimeDelta marking_time,
+void RecordEmbedderMarkingSpeed(GCTracer* tracer, ::v8::base::TimeDelta marking_time,
                                 size_t marked_bytes) {
   tracer->RecordEmbedderMarkingSpeed(marked_bytes, marking_time);
 }

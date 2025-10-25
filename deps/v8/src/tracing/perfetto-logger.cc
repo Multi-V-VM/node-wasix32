@@ -53,7 +53,7 @@ CodeDataSource::TraceContext::TracePacketHandle NewTracePacket(
     CodeDataSource::TraceContext& context) {
   CodeDataSourceIncrementalState* inc_state = context.GetIncrementalState();
   auto packet = context.NewTracePacket();
-  packet->set_timestamp(base::TimeTicks::Now().since_origin().InNanoseconds());
+  packet->set_timestamp(::v8::base::TimeTicks::Now().since_origin().InNanoseconds());
 
   if (inc_state->is_initialized()) {
     packet->set_sequence_flags(TracePacket::SEQ_NEEDS_INCREMENTAL_STATE);
@@ -145,7 +145,7 @@ class IsolateRegistry {
     }
   }
 
-  base::Mutex mutex_;
+  ::v8::base::Mutex mutex_;
   int num_active_data_sources_ = 0;
   absl::flat_hash_map<Isolate*, std::unique_ptr<PerfettoLogger>> isolates_;
 };

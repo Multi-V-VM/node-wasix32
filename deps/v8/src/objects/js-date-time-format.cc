@@ -1777,7 +1777,7 @@ class CalendarCache {
 
  private:
   std::map<std::string, std::unique_ptr<icu::Calendar>> map_;
-  base::Mutex mutex_;
+  ::v8::base::Mutex mutex_;
 };
 
 icu::Calendar* CreateCalendar(Isolate* isolate, const icu::Locale& icu_locale,
@@ -1898,7 +1898,7 @@ class DateFormatCache {
 
  private:
   std::map<std::string, std::unique_ptr<icu::SimpleDateFormat>> map_;
-  base::Mutex mutex_;
+  ::v8::base::Mutex mutex_;
 };
 
 std::unique_ptr<icu::SimpleDateFormat> CreateICUDateFormatFromCache(
@@ -2162,7 +2162,7 @@ class DateTimePatternGeneratorCache {
 
  private:
   std::map<std::string, std::unique_ptr<icu::DateTimePatternGenerator>> map_;
-  base::Mutex mutex_;
+  ::v8::base::Mutex mutex_;
 };
 
 }  // namespace

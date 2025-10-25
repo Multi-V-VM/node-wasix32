@@ -792,7 +792,44 @@ constexpr CppHeapPointerHandle kNullCppHeapPointerHandle = 0;
 #define V8_CPPHEAP_POINTER_MARKBIT_DEFINED
 constexpr Address kCppHeapPointerMarkBit = static_cast<Address>(0);
 #endif
+// ---------------------------------------------------------------------------
+// Namespace compatibility aliases to smooth over accidental qualification
+// differences in WASI builds.
+// Many translation units refer to v8::internal::base::{...} or even to
+// v8::v8::base::EmbeddedVector by mistake. Provide lightweight aliases so we
+// don't have to touch many call sites.
+
+namespace internal {
+namespace base {
+using Mutex = ::v8::base::Mutex;
+using RecursiveMutex = ::v8::base::RecursiveMutex;
+using MutexGuard = ::v8::base::MutexGuard;
+using RecursiveMutexGuard = ::v8::base::RecursiveMutexGuard;
+using LazyMutex = ::v8::base::LazyMutex;
+using LazyRecursiveMutex = ::v8::base::LazyRecursiveMutex;
+using TimeTicks = ::v8::base::TimeTicks;
+using TimeDelta = ::v8::base::TimeDelta;
+using PageInitializationMode = ::v8::base::PageInitializationMode;
+using PageFreeingMode = ::v8::base::PageFreeingMode;
+template <typename T>
+using ScopedZoneVector = ::v8::base::ScopedZoneVector<T>;
+template <typename T>
+using Vector = ::v8::base::Vector<T>;
+}  // namespace base
 }  // namespace internal
+
+// Fix up accidental v8::v8::base qualification.
+namespace v8 {
+namespace v8 {
+namespace base {
+template <typename T, size_t kSize>
+using EmbeddedVector = ::v8::base::EmbeddedVector<T, kSize>;
+template <typename T>
+using Vector = ::v8::base::Vector<T>;
+}  // namespace base
+}  // namespace v8
+}  // namespace v8
+
 }  // namespace v8
 
 #endif  // V8_INCLUDE_WASI_NUCLEAR_FIX_H_

@@ -544,7 +544,7 @@ void TransitionsAccessor::ForEachTransitionWithKey(
       return;
     }
     case kFullTransitionArray: {
-      base::MutexGuardIf scope(isolate_->full_transition_array_access(),
+      ::v8::base::MutexGuardIf scope(isolate_->full_transition_array_access(),
                                concurrent_access_);
       Tagged<TransitionArray> transition_array = transitions();
       int num_transitions = transition_array->number_of_transitions();

@@ -49,7 +49,7 @@ class V8_PLATFORM_EXPORT DelayedTaskQueue {
   struct MaybeNextTask {
     enum { kTask, kWaitIndefinite, kWaitDelayed, kTerminated } state;
     std::unique_ptr<Task> task;
-    base::TimeDelta wait_time;
+    ::v8::base::TimeDelta wait_time;
   };
   // Returns the next task to process, or the amount of time to wait until the
   // next delayed task.  Returns nullptr if the queue is terminated. Will return

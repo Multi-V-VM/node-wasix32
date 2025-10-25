@@ -308,13 +308,13 @@ class Simulator : public SimulatorBase {
   // Read and write memory.
   template <typename T>
   inline void Read(uintptr_t address, T* value) {
-    base::MutexGuard lock_guard(&GlobalMonitor::Get()->mutex);
+    ::v8::base::MutexGuard lock_guard(&GlobalMonitor::Get()->mutex);
     memcpy(value, reinterpret_cast<const char*>(address), sizeof(T));
   }
 
   template <typename T>
   inline void ReadEx(uintptr_t address, T* value) {
-    base::MutexGuard lock_guard(&GlobalMonitor::Get()->mutex);
+    ::v8::base::MutexGuard lock_guard(&GlobalMonitor::Get()->mutex);
     GlobalMonitor::Get()->NotifyLoadExcl(
         address, static_cast<TransactionSize>(sizeof(T)),
         isolate_->thread_id());
@@ -323,7 +323,7 @@ class Simulator : public SimulatorBase {
 
   template <typename T>
   inline void Write(uintptr_t address, T value) {
-    base::MutexGuard lock_guard(&GlobalMonitor::Get()->mutex);
+    ::v8::base::MutexGuard lock_guard(&GlobalMonitor::Get()->mutex);
     GlobalMonitor::Get()->NotifyStore(address,
                                       static_cast<TransactionSize>(sizeof(T)),
                                       isolate_->thread_id());
@@ -332,7 +332,7 @@ class Simulator : public SimulatorBase {
 
   template <typename T>
   inline int32_t WriteEx(uintptr_t address, T value) {
-    base::MutexGuard lock_guard(&GlobalMonitor::Get()->mutex);
+    ::v8::base::MutexGuard lock_guard(&GlobalMonitor::Get()->mutex);
     if (GlobalMonitor::Get()->NotifyStoreExcl(
             address, static_cast<TransactionSize>(sizeof(T)),
             isolate_->thread_id())) {
@@ -546,7 +546,7 @@ class Simulator : public SimulatorBase {
   class GlobalMonitor {
    public:
     // Exposed so it can be accessed by Simulator::{Read,Write}Ex*.
-    base::Mutex mutex;
+    ::v8::base::Mutex mutex;
 
     void NotifyLoadExcl(uintptr_t addr, TransactionSize size,
                         ThreadId thread_id);

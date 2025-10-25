@@ -180,7 +180,7 @@ class SerializationDataQueue {
   void Clear();
 
  private:
-  base::Mutex mutex_;
+  ::v8::base::Mutex mutex_;
   std::vector<std::unique_ptr<SerializationData>> data_;
 };
 
@@ -280,7 +280,7 @@ class Worker : public std::enable_shared_from_this<Worker> {
 
   // Protects reading / writing task_runner_. (The TaskRunner itself doesn't
   // need locking, but accessing the Worker's data member does.)
-  base::Mutex worker_mutex_;
+  ::v8::base::Mutex worker_mutex_;
 
   // The isolate should only be accessed by the worker itself, or when holding
   // the worker_mutex_ and after checking the worker state.
@@ -793,20 +793,20 @@ class Shell : public i::AllStatic {
   static base::v8::Once::OnceType quit_once_;
   static Global<Function> stringify_function_;
 
-  static base::Mutex profiler_end_callback_lock_;
+  static ::v8::base::Mutex profiler_end_callback_lock_;
   static std::map<Isolate*, std::pair<Global<Function>, Global<Context>>>
       profiler_end_callback_;
 
   static const char* stringify_source_;
   static CounterMap* counter_map_;
-  static base::Mutex counter_mutex_;
+  static ::v8::base::Mutex counter_mutex_;
   // We statically allocate a set of local counters to be used if we
   // don't want to store the stats in a memory-mapped file
   static CounterCollection local_counters_;
   static CounterCollection* counters_;
   static base::OS::MemoryMappedFile* counters_file_;
   static base::LazyMutex context_mutex_;
-  static const base::TimeTicks kInitialTicks;
+  static const ::v8::base::TimeTicks kInitialTicks;
 
   static base::LazyMutex workers_mutex_;  // Guards the following members.
   static bool allow_new_workers_;

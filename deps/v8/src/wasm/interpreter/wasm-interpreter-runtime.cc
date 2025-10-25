@@ -318,7 +318,7 @@ WasmInterpreterRuntime::WasmInterpreterRuntime(
       trap_function_index_(-1),
       trap_pc_(0),
       current_thread_(nullptr),
-      fuzzer_start_time_(base::TimeTicks::Now()),
+      fuzzer_start_time_(::v8::base::TimeTicks::Now()),
       memory_start_(nullptr),
       instruction_table_(kInstructionTable),
       generic_wasm_to_js_interpreter_wrapper_fn_(

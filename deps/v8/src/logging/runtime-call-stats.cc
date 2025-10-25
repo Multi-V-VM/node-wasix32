@@ -15,11 +15,11 @@
 namespace v8 {
 namespace internal {
 
-base::TimeTicks (*RuntimeCallTimer::Now)() = &base::TimeTicks::Now;
+::v8::base::TimeTicks (*RuntimeCallTimer::Now)() = &::v8::base::TimeTicks::Now;
 
-base::TimeTicks RuntimeCallTimer::NowCPUTime() {
+::v8::base::TimeTicks RuntimeCallTimer::NowCPUTime() {
   base::ThreadTicks ticks = base::ThreadTicks::Now();
-  return base::TimeTicks::FromInternalValue(ticks.ToInternalValue());
+  return ::v8::base::TimeTicks::FromInternalValue(ticks.ToInternalValue());
 }
 
 class RuntimeCallStatEntries {
@@ -52,7 +52,7 @@ class RuntimeCallStatEntries {
  private:
   class Entry {
    public:
-    Entry(const char* name, base::TimeDelta time, uint64_t count)
+    Entry(const char* name, ::v8::base::TimeDelta time, uint64_t count)
         : name_(name),
           time_(time.InMicroseconds()),
           count_(count),
@@ -76,7 +76,7 @@ class RuntimeCallStatEntries {
       os << std::endl;
     }
 
-    V8_NOINLINE void SetTotal(base::TimeDelta total_time,
+    V8_NOINLINE void SetTotal(::v8::base::TimeDelta total_time,
                               uint64_t total_count) {
       if (total_time.InMicroseconds() == 0) {
         time_percent_ = 0;
@@ -95,7 +95,7 @@ class RuntimeCallStatEntries {
   };
 
   uint64_t total_call_count_ = 0;
-  base::TimeDelta total_time_;
+  ::v8::base::TimeDelta total_time_;
   std::vector<Entry> entries_;
 };
 
@@ -117,7 +117,7 @@ void RuntimeCallCounter::Add(RuntimeCallCounter* other) {
 }
 
 void RuntimeCallTimer::Snapshot() {
-  base::TimeTicks now = Now();
+  ::v8::base::TimeTicks now = Now();
   // Pause only / topmost timer in the timer stack.
   Pause(now);
   // Commit all the timer's elapsed time to the counters.

@@ -38,7 +38,7 @@ struct V8_EXPORT TickSample {
   void Init(Isolate* isolate, const v8::RegisterState& state,
             RecordCEntryFrame record_c_entry_frame, bool update_stats,
             bool use_simulator_reg_state = true,
-            base::TimeDelta sampling_interval = base::TimeDelta(),
+            ::v8::base::TimeDelta sampling_interval = ::v8::base::TimeDelta(),
             const std::optional<uint64_t> trace_id = std::nullopt);
   /**
    * Get a call stack sample from the isolate.
@@ -87,8 +87,8 @@ struct V8_EXPORT TickSample {
   void* context = nullptr;          // Address of the incumbent native context.
   void* embedder_context = nullptr;  // Address of the embedder native context.
 
-  base::TimeTicks timestamp;
-  base::TimeDelta sampling_interval_;  // Sampling interval used to capture.
+  ::v8::base::TimeTicks timestamp;
+  ::v8::base::TimeDelta sampling_interval_;  // Sampling interval used to capture.
 
   StateTag state = OTHER;  // The state of the VM.
   EmbedderStateTag embedder_state = EmbedderStateTag::EMPTY;

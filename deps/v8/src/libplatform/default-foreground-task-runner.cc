@@ -216,7 +216,7 @@ void v8::platform::DefaultForegroundTaskRunner::WaitForTaskLocked() {
     if (time_until_task > 0) {
       bool woken_up = event_loop_control_.WaitFor(
           &mutex_,
-          base::TimeDelta::FromMicroseconds(
+          ::v8::base::TimeDelta::FromMicroseconds(
               time_until_task * base::TimeConstants::kMicrosecondsPerSecond));
       USE(woken_up);
     }

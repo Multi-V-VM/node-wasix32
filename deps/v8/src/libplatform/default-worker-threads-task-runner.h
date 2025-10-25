@@ -65,7 +65,7 @@ class V8_PLATFORM_EXPORT DefaultWorkerThreadsTaskRunner
 
    private:
     DefaultWorkerThreadsTaskRunner* runner_;
-    base::ConditionVariable condition_var_;
+    ::v8::base::ConditionVariable condition_var_;
   };
 
   // Called by the WorkerThread. Gets the next take (delayed or immediate) to be
@@ -73,7 +73,7 @@ class V8_PLATFORM_EXPORT DefaultWorkerThreadsTaskRunner
   std::unique_ptr<Task> GetNext();
 
   bool terminated_ = false;
-  base::Mutex lock_;
+  ::v8::base::Mutex lock_;
   // Vector of idle threads -- these are pushed in LIFO order, so that the most
   // recently active thread is the first to be reactivated.
   std::vector<WorkerThread*> idle_threads_;

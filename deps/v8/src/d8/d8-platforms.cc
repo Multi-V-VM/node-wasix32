@@ -263,7 +263,7 @@ class DelayedTasksPlatform final : public Platform {
         : task_(std::move(task)), delay_ms_(delay_ms) {}
 
     void Run() override {
-      base::OS::Sleep(base::TimeDelta::FromMicroseconds(delay_ms_));
+      base::OS::Sleep(::v8::base::TimeDelta::FromMicroseconds(delay_ms_));
       task_->Run();
     }
 
@@ -278,7 +278,7 @@ class DelayedTasksPlatform final : public Platform {
         : task_(std::move(task)), delay_ms_(delay_ms) {}
 
     void Run(double deadline_in_seconds) override {
-      base::OS::Sleep(base::TimeDelta::FromMicroseconds(delay_ms_));
+      base::OS::Sleep(::v8::base::TimeDelta::FromMicroseconds(delay_ms_));
       task_->Run(deadline_in_seconds);
     }
 
@@ -297,7 +297,7 @@ class DelayedTasksPlatform final : public Platform {
       // {DefaultJobHandle} implementation does it), the worker task would
       // already include a delay. In order to not depend on that, we add our own
       // delay here anyway.
-      base::OS::Sleep(base::TimeDelta::FromMicroseconds(delay_ms_));
+      base::OS::Sleep(::v8::base::TimeDelta::FromMicroseconds(delay_ms_));
       job_task_->Run(delegate);
     }
 
@@ -315,7 +315,7 @@ class DelayedTasksPlatform final : public Platform {
   // The Mutex protects the RNG, which is used by foreground and background
   // threads, and the {delayed_task_runners_} map might be accessed concurrently
   // by the shared_ptr destructor.
-  base::Mutex mutex_;
+  ::v8::base::Mutex mutex_;
   base::RandomNumberGenerator rng_;
   std::unordered_map<TaskRunner*, std::weak_ptr<DelayedTaskRunner>>
       delayed_task_runners_;

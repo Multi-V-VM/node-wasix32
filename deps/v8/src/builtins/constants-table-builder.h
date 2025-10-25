@@ -57,7 +57,7 @@ class BuiltinsConstantsTableBuilder final {
 
   // Protects accesses to map_, which is concurrently accessed when generating
   // builtins off-main-thread.
-  base::Mutex mutex_;
+  ::v8::base::Mutex mutex_;
 };
 
 }  // namespace internal

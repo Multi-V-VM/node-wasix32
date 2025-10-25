@@ -92,8 +92,8 @@ class V8_PLATFORM_EXPORT DefaultForegroundTaskRunner
   std::vector<std::unique_ptr<Task>> MoveExpiredDelayedTasksLocked();
 
   bool terminated_ = false;
-  base::Mutex mutex_;
-  base::ConditionVariable event_loop_control_;
+  ::v8::base::Mutex mutex_;
+  ::v8::base::ConditionVariable event_loop_control_;
   int nesting_depth_ = 0;
 
   using TaskQueueEntry = std::pair<Nestability, std::unique_ptr<Task>>;

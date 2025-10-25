@@ -170,11 +170,11 @@ class WasmExecutionTimer {
   Histogram* slow_wasm_histogram_;
   base::ElapsedTimer window_execute_timer_;
   bool window_has_started_;
-  base::TimeTicks next_interval_time_;
-  base::TimeTicks start_interval_time_;
-  base::TimeDelta window_running_time_;
-  const base::TimeDelta sample_duration_;
-  base::TimeDelta cooldown_interval_;  // Pause between samples.
+  ::v8::base::TimeTicks next_interval_time_;
+  ::v8::base::TimeTicks start_interval_time_;
+  ::v8::base::TimeDelta window_running_time_;
+  const ::v8::base::TimeDelta sample_duration_;
+  ::v8::base::TimeDelta cooldown_interval_;  // Pause between samples.
   const int slow_threshold_;
   const size_t slow_threshold_samples_count_;
   std::vector<int> samples_;
@@ -193,7 +193,7 @@ class V8_EXPORT_PRIVATE WasmInterpreterThreadMap {
   typedef std::unordered_map<int, std::unique_ptr<WasmInterpreterThread>>
       ThreadInterpreterMap;
   ThreadInterpreterMap map_;
-  base::Mutex mutex_;
+  ::v8::base::Mutex mutex_;
 };
 
 // Representation of a thread in the interpreter.
@@ -611,7 +611,7 @@ class V8_EXPORT_PRIVATE WasmInterpreter {
     const WasmModule* module_;
     ZoneVector<InterpreterCode> interpreter_code_;
 
-    base::TimeDelta bytecode_generation_time_;
+    ::v8::base::TimeDelta bytecode_generation_time_;
     std::atomic<size_t> generated_code_size_;
   };
 

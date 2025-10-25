@@ -151,11 +151,11 @@ class V8_EXPORT_PRIVATE LazyCompileDispatcher {
 
   using SharedToJobMap = IdentityMap<Job*, FreeStoreAllocationPolicy>;
 
-  void WaitForJobIfRunningOnBackground(Job* job, const base::MutexGuard&);
+  void WaitForJobIfRunningOnBackground(Job* job, const ::v8::base::MutexGuard&);
   Job* GetJobFor(DirectHandle<SharedFunctionInfo> shared,
-                 const base::MutexGuard&) const;
+                 const ::v8::base::MutexGuard&) const;
   Job* PopSingleFinalizeJob();
-  void ScheduleIdleTaskFromAnyThread(const base::MutexGuard&);
+  void ScheduleIdleTaskFromAnyThread(const ::v8::base::MutexGuard&);
   bool FinalizeSingleJob();
   void DoBackgroundWork(JobDelegate* delegate);
   void DoIdleWork(double deadline_in_seconds);
@@ -163,21 +163,21 @@ class V8_EXPORT_PRIVATE LazyCompileDispatcher {
   // DeleteJob without the mutex held.
   void DeleteJob(Job* job);
   // DeleteJob with the mutex already held.
-  void DeleteJob(Job* job, const base::MutexGuard&);
+  void DeleteJob(Job* job, const ::v8::base::MutexGuard&);
 
-  void NotifyAddedBackgroundJob(const base::MutexGuard& lock) {
+  void NotifyAddedBackgroundJob(const ::v8::base::MutexGuard& lock) {
     ++num_jobs_for_background_;
     VerifyBackgroundTaskCount(lock);
   }
-  void NotifyRemovedBackgroundJob(const base::MutexGuard& lock) {
+  void NotifyRemovedBackgroundJob(const ::v8::base::MutexGuard& lock) {
     --num_jobs_for_background_;
     VerifyBackgroundTaskCount(lock);
   }
 
 #ifdef DEBUG
-  void VerifyBackgroundTaskCount(const base::MutexGuard&);
+  void VerifyBackgroundTaskCount(const ::v8::base::MutexGuard&);
 #else
-  void VerifyBackgroundTaskCount(const base::MutexGuard&) {}
+  void VerifyBackgroundTaskCount(const ::v8::base::MutexGuard&) {}
 #endif
 
   Isolate* isolate_;
@@ -197,7 +197,7 @@ class V8_EXPORT_PRIVATE LazyCompileDispatcher {
 
   // The following members can be accessed from any thread. Methods need to hold
   // the mutex |mutex_| while accessing them.
-  mutable base::Mutex mutex_;
+  mutable ::v8::base::Mutex mutex_;
 
   // True if an idle task is scheduled to be run.
   bool idle_task_scheduled_;
@@ -227,7 +227,7 @@ class V8_EXPORT_PRIVATE LazyCompileDispatcher {
   // If not nullptr, then the main thread waits for the task processing
   // this job, and blocks on the ConditionVariable main_thread_blocking_signal_.
   Job* main_thread_blocking_on_job_;
-  base::ConditionVariable main_thread_blocking_signal_;
+  ::v8::base::ConditionVariable main_thread_blocking_signal_;
 
   // Test support.
   base::AtomicValue<bool> block_for_testing_;

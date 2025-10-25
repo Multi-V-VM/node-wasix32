@@ -862,7 +862,7 @@ class JitLogger : public CodeEventLogger {
 #endif  // V8_ENABLE_WEBASSEMBLY
 
   JitCodeEventHandler code_event_handler_;
-  base::Mutex logger_mutex_;
+  ::v8::base::Mutex logger_mutex_;
 };
 
 JitLogger::JitLogger(Isolate* isolate, JitCodeEventHandler code_event_handler)
@@ -1041,7 +1041,7 @@ class SamplingThread : public base::Thread {
     while (sampler_->IsActive()) {
       sampler_->DoSample();
       base::OS::Sleep(
-          base::TimeDelta::FromMicroseconds(interval_microseconds_));
+          ::v8::base::TimeDelta::FromMicroseconds(interval_microseconds_));
     }
   }
 

@@ -3631,13 +3631,13 @@ void HeapSnapshotJSONSerializer::SerializeSamples() {
   const std::vector<HeapObjectsMap::TimeInterval>& samples =
       snapshot_->profiler()->heap_object_map()->samples();
   if (samples.empty()) return;
-  base::TimeTicks start_time = samples[0].timestamp;
+  ::v8::base::TimeTicks start_time = samples[0].timestamp;
   int i = 0;
   for (const HeapObjectsMap::TimeInterval& sample : samples) {
     if (i++ > 0) {
       writer_->AddCharacter(',');
     }
-    base::TimeDelta time_delta = sample.timestamp - start_time;
+    ::v8::base::TimeDelta time_delta = sample.timestamp - start_time;
     writer_->AddNumber(time_delta.InMicroseconds());
     writer_->AddCharacter(',');
     writer_->AddNumber(sample.last_assigned_id());

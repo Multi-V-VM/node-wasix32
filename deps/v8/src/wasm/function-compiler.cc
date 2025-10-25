@@ -36,7 +36,7 @@ WasmCompilationResult WasmCompilationUnit::ExecuteCompilation(
 
   std::optional<TimedHistogramScope> wasm_compile_function_time_scope;
   std::optional<TimedHistogramScope> wasm_compile_huge_function_time_scope;
-  if (counters && base::TimeTicks::IsHighResolution()) {
+  if (counters && ::v8::base::TimeTicks::IsHighResolution()) {
     if (func_body.end - func_body.start >= 100 * KB) {
       auto huge_size_histogram = SELECT_WASM_COUNTER(
           counters, env->module->origin, wasm, huge_function_size_bytes);

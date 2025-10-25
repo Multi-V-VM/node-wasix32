@@ -5,10 +5,20 @@
 #ifndef V8_HEAP_PAGE_POOL_H_
 #define V8_HEAP_PAGE_POOL_H_
 
+#ifdef __wasi__
+#include <unordered_map>
+// Provide a minimal alias so code can use absl::flat_hash_map on WASI builds.
+namespace absl {
+template <class K, class V, class Hash = std::hash<K>, class Eq = std::equal_to<K>,
+          class Alloc = std::allocator<std::pair<const K, V>>>
+using flat_hash_map = std::unordered_map<K, V, Hash, Eq, Alloc>;
+}  // namespace absl
+#else
 #if __has_include("absl/container/flat_hash_map.h")
 #include "absl/container/flat_hash_map.h"
 #else
 #include "third_party/abseil-cpp/absl/container/flat_hash_map.h"
+#endif
 #endif
 #include "src/base/platform/mutex.h"
 #include "src/utils/allocation.h"
@@ -102,7 +112,7 @@ class PagePool final {
     // Shared pages are tracked with a logical time. This allows `ReleaseUpTo()`
     // to free all those pages where enough time has passed.
     std::vector<std::pair<InternalTime, std::vector<PoolEntry>>> shared_pool_;
-    mutable base::Mutex mutex_;
+    mutable ::v8::base::Mutex mutex_;
   };
 
   PoolImpl<PageMemory> page_pool_;

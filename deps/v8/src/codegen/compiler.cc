@@ -421,8 +421,8 @@ namespace {
 void LogUnoptimizedCompilation(Isolate* isolate,
                                DirectHandle<SharedFunctionInfo> shared,
                                LogEventListener::CodeTag code_type,
-                               base::TimeDelta time_taken_to_execute,
-                               base::TimeDelta time_taken_to_finalize) {
+                               ::v8::base::TimeDelta time_taken_to_execute,
+                               ::v8::base::TimeDelta time_taken_to_finalize) {
   DirectHandle<AbstractCode> abstract_code;
   if (shared->HasBytecodeArray()) {
     abstract_code = direct_handle(
@@ -573,7 +573,7 @@ void TurbofanCompilationJob::RecordCompilationStats(ConcurrencyMode mode,
   // Don't record samples from machines without high-resolution timers,
   // as that can cause serious reporting issues. See the thread at
   // http://g/chrome-metrics-team/NwwJEyL8odU/discussion for more details.
-  if (!base::TimeTicks::IsHighResolution()) return;
+  if (!::v8::base::TimeTicks::IsHighResolution()) return;
 
   int elapsed_microseconds = static_cast<int>(ElapsedTime().InMicroseconds());
   Counters* const counters = isolate->counters();
@@ -601,8 +601,8 @@ void TurbofanCompilationJob::RecordCompilationStats(ConcurrencyMode mode,
   counters->turbofan_optimize_total_time()->AddSample(elapsed_microseconds);
 
   // Compute foreground / background time.
-  base::TimeDelta time_background;
-  base::TimeDelta time_foreground =
+  ::v8::base::TimeDelta time_background;
+  ::v8::base::TimeDelta time_foreground =
       time_taken_to_prepare_ + time_taken_to_finalize_;
   switch (mode) {
     case ConcurrencyMode::kConcurrent:
@@ -1675,8 +1675,8 @@ CompilationHandleScope::~CompilationHandleScope() {
 FinalizeUnoptimizedCompilationData::FinalizeUnoptimizedCompilationData(
     LocalIsolate* isolate, Handle<SharedFunctionInfo> function_handle,
     MaybeHandle<CoverageInfo> coverage_info,
-    base::TimeDelta time_taken_to_execute,
-    base::TimeDelta time_taken_to_finalize)
+    ::v8::base::TimeDelta time_taken_to_execute,
+    ::v8::base::TimeDelta time_taken_to_finalize)
     : time_taken_to_execute_(time_taken_to_execute),
       time_taken_to_finalize_(time_taken_to_finalize),
       function_handle_(isolate->heap()->NewPersistentHandle(function_handle)),
@@ -3113,7 +3113,7 @@ bool Compiler::CompileSharedWithBaseline(Isolate* isolate,
 
   CompilerTracer::TraceStartBaselineCompile(isolate, shared);
   DirectHandle<Code> code;
-  base::TimeDelta time_taken;
+  ::v8::base::TimeDelta time_taken;
   {
     base::ScopedTimer timer(
         v8_flags.trace_baseline || v8_flags.log_function_events ? &time_taken

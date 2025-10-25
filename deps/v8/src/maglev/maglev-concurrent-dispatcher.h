@@ -63,9 +63,9 @@ class MaglevCompilationJob final : public OptimizedCompilationJob {
 
   bool specialize_to_function_context() const;
 
-  base::TimeDelta time_taken_to_prepare() { return time_taken_to_prepare_; }
-  base::TimeDelta time_taken_to_execute() { return time_taken_to_execute_; }
-  base::TimeDelta time_taken_to_finalize() { return time_taken_to_finalize_; }
+  ::v8::base::TimeDelta time_taken_to_prepare() { return time_taken_to_prepare_; }
+  ::v8::base::TimeDelta time_taken_to_execute() { return time_taken_to_execute_; }
+  ::v8::base::TimeDelta time_taken_to_finalize() { return time_taken_to_finalize_; }
 
   void RecordCompilationStats(Isolate* isolate) const;
 

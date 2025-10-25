@@ -94,13 +94,13 @@ bool CodeRange::InitReservation(v8::PageAllocator* page_allocator,
   if (v8_flags.jitless) {
     params.permissions = PageAllocator::Permission::kNoAccess;
     params.page_initialization_mode =
-        base::PageInitializationMode::kAllocatedPagesCanBeUninitialized;
-    params.page_freeing_mode = base::PageFreeingMode::kMakeInaccessible;
+        PageInitializationMode::kAllocatedPagesCanBeUninitialized;
+    params.page_freeing_mode = PageFreeingMode::kMakeInaccessible;
   } else {
     params.permissions = PageAllocator::Permission::kNoAccessWillJitLater;
     params.page_initialization_mode =
-        base::PageInitializationMode::kRecommitOnly;
-    params.page_freeing_mode = base::PageFreeingMode::kDiscard;
+        PageInitializationMode::kRecommitOnly;
+    params.page_freeing_mode = PageFreeingMode::kDiscard;
   }
 
 #if defined(V8_TARGET_OS_IOS) || defined(V8_TARGET_OS_CHROMEOS)
@@ -238,7 +238,7 @@ bool CodeRange::InitReservation(v8::PageAllocator* page_allocator,
 // at the start.
 #if !defined(V8_OS_WIN) && !defined(V8_OS_IOS)
   if (params.page_initialization_mode ==
-      base::PageInitializationMode::kRecommitOnly) {
+      PageInitializationMode::kRecommitOnly) {
     void* base = reinterpret_cast<void*>(page_allocator_->begin() +
                                          excluded_allocatable_area_size);
     size_t size = page_allocator_->size() - excluded_allocatable_area_size;

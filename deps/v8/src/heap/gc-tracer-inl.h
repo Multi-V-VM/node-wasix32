@@ -17,7 +17,7 @@ namespace v8 {
 namespace internal {
 
 constexpr GCTracer::IncrementalInfos& GCTracer::IncrementalInfos::operator+=(
-    base::TimeDelta delta) {
+    ::v8::base::TimeDelta delta) {
   steps++;
   duration += delta;
   if (delta > longest_step) {
@@ -30,7 +30,7 @@ GCTracer::Scope::Scope(GCTracer* tracer, ScopeId scope, ThreadKind thread_kind)
     : tracer_(tracer),
       scope_(scope),
       thread_kind_(thread_kind),
-      start_time_(base::TimeTicks::Now()) {
+      start_time_(::v8::base::TimeTicks::Now()) {
   DCHECK_IMPLIES(thread_kind_ == ThreadKind::kMain,
                  tracer_->heap_->IsMainThread());
 
@@ -49,7 +49,7 @@ GCTracer::Scope::Scope(GCTracer* tracer, ScopeId scope, ThreadKind thread_kind)
 }
 
 GCTracer::Scope::~Scope() {
-  const base::TimeDelta duration = base::TimeTicks::Now() - start_time_;
+  const ::v8::base::TimeDelta duration = ::v8::base::TimeTicks::Now() - start_time_;
   tracer_->AddScopeSample(scope_, duration);
 
   if (thread_kind_ == ThreadKind::kMain) {
@@ -119,13 +119,13 @@ constexpr const GCTracer::IncrementalInfos& GCTracer::incremental_scope(
   return incremental_scopes_[Scope::IncrementalOffset(id)];
 }
 
-void GCTracer::AddScopeSample(Scope::ScopeId id, base::TimeDelta duration) {
+void GCTracer::AddScopeSample(Scope::ScopeId id, ::v8::base::TimeDelta duration) {
   if (Scope::FIRST_INCREMENTAL_SCOPE <= id &&
       id <= Scope::LAST_INCREMENTAL_SCOPE) {
     incremental_scopes_[Scope::IncrementalOffset(id)] += duration;
   } else if (Scope::FIRST_BACKGROUND_SCOPE <= id &&
              id <= Scope::LAST_BACKGROUND_SCOPE) {
-    base::MutexGuard guard(&background_scopes_mutex_);
+    ::v8::base::MutexGuard guard(&background_scopes_mutex_);
     background_scopes_[id] += duration;
   } else {
     DCHECK_GT(Scope::NUMBER_OF_SCOPES, id);

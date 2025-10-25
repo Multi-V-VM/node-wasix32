@@ -204,8 +204,8 @@ void PagePool::ReleaseOnTearDown(Isolate* isolate) {
     auto schedule_task = [this, isolate, time](Isolate* target_isolate) {
       DCHECK_NE(isolate, target_isolate);
       USE(isolate);
-      static constexpr base::TimeDelta kReleaseTaskDelayInSeconds =
-          base::TimeDelta::FromSeconds(8);
+      static constexpr ::v8::base::TimeDelta kReleaseTaskDelayInSeconds =
+          ::v8::base::TimeDelta::FromSeconds(8);
       target_isolate->task_runner()->PostDelayedTask(
           std::make_unique<ReleasePooledChunksTask>(target_isolate, this, time),
           kReleaseTaskDelayInSeconds.InSecondsF());

@@ -32,7 +32,7 @@ class OperandBase {
 class SmallUnsignedOperand : public OperandBase {
  public:
   explicit SmallUnsignedOperand(uint32_t value) : OperandBase(value) {
-    DCHECK_LE(value, base::kDataMask);
+    DCHECK_LE(value, ::v8::base::kDataMask);
   }
   void WriteVLQ(ZoneVector<uint8_t>* buffer) { buffer->push_back(value()); }
   bool IsSigned() const { return false; }
@@ -401,7 +401,7 @@ void FrameTranslationBuilder::StringConcat() {
 
 void FrameTranslationBuilder::StoreRegister(TranslationOpcode opcode,
                                             Register reg) {
-  static_assert(Register::kNumRegisters - 1 <= base::kDataMask);
+  static_assert(Register::kNumRegisters - 1 <= ::v8::base::kDataMask);
   Add(opcode, SmallUnsignedOperand(static_cast<uint8_t>(reg.code())));
 }
 
@@ -447,25 +447,25 @@ void FrameTranslationBuilder::StoreBoolRegister(Register reg) {
 }
 
 void FrameTranslationBuilder::StoreFloatRegister(FloatRegister reg) {
-  static_assert(FloatRegister::kNumRegisters - 1 <= base::kDataMask);
+  static_assert(FloatRegister::kNumRegisters - 1 <= ::v8::base::kDataMask);
   auto opcode = TranslationOpcode::FLOAT_REGISTER;
   Add(opcode, SmallUnsignedOperand(static_cast<uint8_t>(reg.code())));
 }
 
 void FrameTranslationBuilder::StoreDoubleRegister(DoubleRegister reg) {
-  static_assert(DoubleRegister::kNumRegisters - 1 <= base::kDataMask);
+  static_assert(DoubleRegister::kNumRegisters - 1 <= ::v8::base::kDataMask);
   auto opcode = TranslationOpcode::DOUBLE_REGISTER;
   Add(opcode, SmallUnsignedOperand(static_cast<uint8_t>(reg.code())));
 }
 
 void FrameTranslationBuilder::StoreHoleyDoubleRegister(DoubleRegister reg) {
-  static_assert(DoubleRegister::kNumRegisters - 1 <= base::kDataMask);
+  static_assert(DoubleRegister::kNumRegisters - 1 <= ::v8::base::kDataMask);
   auto opcode = TranslationOpcode::HOLEY_DOUBLE_REGISTER;
   Add(opcode, SmallUnsignedOperand(static_cast<uint8_t>(reg.code())));
 }
 
 void FrameTranslationBuilder::StoreSimd128Register(Simd128Register reg) {
-  static_assert(DoubleRegister::kNumRegisters - 1 <= base::kDataMask);
+  static_assert(DoubleRegister::kNumRegisters - 1 <= ::v8::base::kDataMask);
   auto opcode = TranslationOpcode::SIMD128_REGISTER;
   Add(opcode, SmallUnsignedOperand(static_cast<uint8_t>(reg.code())));
 }

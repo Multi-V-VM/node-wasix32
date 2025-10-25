@@ -2453,7 +2453,7 @@ class Simulator : public DecoderVisitor, public SimulatorBase {
       }
 
      private:
-      std::optional<base::MutexGuard> guard;
+      std::optional<::v8::base::MutexGuard> guard;
     };
 
     class Processor {
@@ -2501,7 +2501,7 @@ class Simulator : public DecoderVisitor, public SimulatorBase {
 
     Processor* head_ = nullptr;
     std::atomic<uint32_t> num_processors_ = 0;
-    base::Mutex mutex_;
+    ::v8::base::Mutex mutex_;
   };
 
   LocalMonitor local_monitor_;

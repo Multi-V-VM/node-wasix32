@@ -49,7 +49,7 @@ class GdbServerThread : public ::v8::base::Thread {
   // it returns as soon as the new thread starts, but before Run() is called).
   base::Semaphore start_semaphore_;
 
-  base::Mutex mutex_;
+  ::v8::base::Mutex mutex_;
   // Protected by {mutex_}:
   std::unique_ptr<TransportBase> transport_;
   std::unique_ptr<Target> target_;

@@ -87,7 +87,7 @@ std::optional<std::string> GetTimerLabel(
 }  // anonymous namespace
 
 D8Console::D8Console(Isolate* isolate)
-    : isolate_(isolate), origin_(base::TimeTicks::Now()) {}
+    : isolate_(isolate), origin_(::v8::base::TimeTicks::Now()) {}
 
 D8Console::~D8Console() { DCHECK_NULL(profiler_); }
 
@@ -167,7 +167,7 @@ void D8Console::Time(const debug::ConsoleCallArguments& args,
   if (i::v8_flags.correctness_fuzzer_suppressions) return;
   std::optional label = GetTimerLabel(args);
   if (!label.has_value()) return;
-  if (!timers_.try_emplace(label.value(), base::TimeTicks::Now()).second) {
+  if (!timers_.try_emplace(label.value(), ::v8::base::TimeTicks::Now()).second) {
     printf("console.time: Timer '%s' already exists\n", label.value().c_str());
   }
 }
@@ -183,7 +183,7 @@ void D8Console::TimeLog(const debug::ConsoleCallArguments& args,
            label.value().c_str());
     return;
   }
-  base::TimeDelta delta = base::TimeTicks::Now() - it->second;
+  ::v8::base::TimeDelta delta = ::v8::base::TimeTicks::Now() - it->second;
   printf("console.timeLog: %s, %f\n", label.value().c_str(),
          delta.InMillisecondsF());
 }
@@ -199,7 +199,7 @@ void D8Console::TimeEnd(const debug::ConsoleCallArguments& args,
            label.value().c_str());
     return;
   }
-  base::TimeDelta delta = base::TimeTicks::Now() - it->second;
+  ::v8::base::TimeDelta delta = ::v8::base::TimeTicks::Now() - it->second;
   printf("console.timeEnd: %s, %f\n", label.value().c_str(),
          delta.InMillisecondsF());
   timers_.erase(it);
@@ -210,7 +210,7 @@ void D8Console::TimeStamp(const debug::ConsoleCallArguments& args,
   if (i::v8_flags.correctness_fuzzer_suppressions) return;
   std::optional label = GetTimerLabel(args);
   if (!label.has_value()) return;
-  base::TimeDelta delta = base::TimeTicks::Now() - origin_;
+  ::v8::base::TimeDelta delta = ::v8::base::TimeTicks::Now() - origin_;
   printf("console.timeStamp: %s, %f\n", label.value().c_str(),
          delta.InMillisecondsF());
 }

@@ -36,7 +36,7 @@ namespace v8 {
 namespace internal {
 namespace ETWJITInterface {
 
-constexpr auto kCaptureStateTimeout = base::TimeDelta::FromSeconds(10);
+constexpr auto kCaptureStateTimeout = ::v8::base::TimeDelta::FromSeconds(10);
 
 IsolateLoadScriptData::IsolateLoadScriptData(Isolate* isolate)
     : isolate_(isolate) {}

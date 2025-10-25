@@ -2590,7 +2590,7 @@ class ParallelClearingJob final : public v8::JobTask {
 
  private:
   MarkCompactCollector* collector_;
-  mutable base::Mutex items_mutex_;
+  mutable ::v8::base::Mutex items_mutex_;
   std::vector<std::unique_ptr<ClearingItem>> items_;
 };
 

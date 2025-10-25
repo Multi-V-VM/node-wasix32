@@ -1058,7 +1058,7 @@ MaybeDirectHandle<WasmInstanceObject> InstanceBuilder::Build() {
   DisallowJavascriptExecution no_js(isolate_);
   // Start a timer for instantiation time, if we have a high resolution timer.
   base::ElapsedTimer timer;
-  if (base::TimeTicks::IsHighResolution()) {
+  if (::v8::base::TimeTicks::IsHighResolution()) {
     timer.Start();
   }
   v8::metrics::WasmModuleInstantiated wasm_module_instantiated;
@@ -1075,7 +1075,7 @@ MaybeDirectHandle<WasmInstanceObject> InstanceBuilder::Build() {
   wasm_module_instantiated.imported_function_count =
       module_->num_imported_functions;
   if (timer.IsStarted()) {
-    base::TimeDelta instantiation_time = timer.Elapsed();
+    ::v8::base::TimeDelta instantiation_time = timer.Elapsed();
     wasm_module_instantiated.wall_clock_duration_in_us =
         instantiation_time.InMicroseconds();
     SELECT_WASM_COUNTER(isolate_->counters(), module_->origin, wasm_instantiate,

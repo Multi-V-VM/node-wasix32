@@ -22,9 +22,9 @@ class BaseTimedHistogramScope {
     timer_.Start();
   }
 
-  base::TimeDelta StopInternal() {
+  ::v8::base::TimeDelta StopInternal() {
     DCHECK(histogram_->ToggleRunningState(false));
-    base::TimeDelta elapsed = timer_.Elapsed();
+    ::v8::base::TimeDelta elapsed = timer_.Elapsed();
     histogram_->AddTimedSample(elapsed);
     timer_.Stop();
     return elapsed;
@@ -38,9 +38,9 @@ class BaseTimedHistogramScope {
   // returns the elapsed time if the histogram was enabled. Otherwise, returns
   // a time of -1 microsecond. This behavior should match kTimeNotMeasured in
   // v8-script.h.
-  V8_INLINE base::TimeDelta Stop() {
+  V8_INLINE ::v8::base::TimeDelta Stop() {
     if (histogram_->Enabled()) return StopInternal();
-    return base::TimeDelta::FromMicroseconds(-1);
+    return ::v8::base::TimeDelta::FromMicroseconds(-1);
   }
 
   V8_INLINE void LogStart(Isolate* isolate) {
@@ -154,15 +154,15 @@ class V8_NODISCARD NestedTimedHistogramScope : public BaseTimedHistogramScope {
 
   void StartInteral() {
     previous_scope_ = timed_histogram()->Enter(this);
-    base::TimeTicks now = base::TimeTicks::Now();
+    ::v8::base::TimeTicks now = ::v8::base::TimeTicks::Now();
     if (previous_scope_) previous_scope_->Pause(now);
     timer_.Start(now);
   }
 
   void StopInternal() {
     timed_histogram()->Leave(previous_scope_);
-    base::TimeTicks now = base::TimeTicks::Now();
-    base::TimeDelta elapsed = timer_.Elapsed(now);
+    ::v8::base::TimeTicks now = ::v8::base::TimeTicks::Now();
+    ::v8::base::TimeDelta elapsed = timer_.Elapsed(now);
     histogram_->AddTimedSample(elapsed);
     if (isolate_) RecordLongTaskTime(elapsed);
 #ifdef DEBUG
@@ -183,17 +183,17 @@ class V8_NODISCARD NestedTimedHistogramScope : public BaseTimedHistogramScope {
     LogEnd(timed_histogram()->counters()->isolate());
   }
 
-  void Pause(base::TimeTicks now) {
+  void Pause(::v8::base::TimeTicks now) {
     DCHECK(histogram_->Enabled());
     timer_.Pause(now);
   }
 
-  void Resume(base::TimeTicks now) {
+  void Resume(::v8::base::TimeTicks now) {
     DCHECK(histogram_->Enabled());
     timer_.Resume(now);
   }
 
-  void RecordLongTaskTime(base::TimeDelta elapsed) const {
+  void RecordLongTaskTime(::v8::base::TimeDelta elapsed) const {
     if (histogram_ == isolate_->counters()->execute()) {
       isolate_->GetCurrentLongTaskStats()->v8_execute_us +=
           elapsed.InMicroseconds();
@@ -216,13 +216,13 @@ class V8_NODISCARD PauseNestedTimedHistogramScope {
       : histogram_(histogram) {
     previous_scope_ = histogram_->Enter(nullptr);
     if (isEnabled()) {
-      previous_scope_->Pause(base::TimeTicks::Now());
+      previous_scope_->Pause(::v8::base::TimeTicks::Now());
     }
   }
   ~PauseNestedTimedHistogramScope() {
     histogram_->Leave(previous_scope_);
     if (isEnabled()) {
-      previous_scope_->Resume(base::TimeTicks::Now());
+      previous_scope_->Resume(::v8::base::TimeTicks::Now());
     }
   }
 

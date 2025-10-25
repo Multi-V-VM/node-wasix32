@@ -108,7 +108,7 @@ result base64_to_binary_safe(const char* input, size_t input_length, char* outpu
 
     if (out + 3 > output_length) {
       // Would overflow output buffer.
-      return {out, error_code::BASE64_EXTRA_BITS};
+      return {out, error_code::OUTPUT_BUFFER_TOO_SMALL};
     }
 
     output[out++] = static_cast<char>((triple >> 16) & 0xFF);
@@ -140,6 +140,80 @@ result base64_to_binary_safe(const char* input, size_t input_length, char* outpu
   }
 
   return {out, error_code::SUCCESS};
+}
+
+// Overload for UTF-16 input where characters are expected to be ASCII.
+result base64_to_binary_safe(const char16_t* input, size_t input_length, char* output,
+                             size_t output_length, base64_options alphabet,
+                             last_chunk_handling_options last_chunk) noexcept {
+  // Convert to 8-bit on the fly into a scratch buffer.
+  std::string scratch;
+  scratch.resize(input_length);
+  for (size_t i = 0; i < input_length; ++i) {
+    scratch[i] = static_cast<char>(static_cast<unsigned char>(input[i] & 0xFF));
+  }
+  return base64_to_binary_safe(scratch.data(), input_length, output, output_length,
+                               alphabet, last_chunk);
+}
+
+// Compute output length for base64 encoding with or without padding.
+size_t base64_length_from_binary(size_t length, base64_options alphabet) noexcept {
+  const bool include_padding =
+      (alphabet == base64_options::base64_default ||
+       alphabet == base64_options::base64_url_with_padding);
+  size_t full = (length / 3) * 4;
+  size_t rem = length % 3;
+  if (rem == 0) return full;
+  if (include_padding) return full + 4;
+  // No padding: 1 byte -> 2 chars, 2 bytes -> 3 chars
+  return full + (rem + 1);
+}
+
+// Encode binary data to base64 using selected alphabet and padding mode.
+size_t binary_to_base64(const char* input, size_t length, char* output,
+                        base64_options alphabet) noexcept {
+  static const char kStd[] =
+      "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+  static const char kURL[] =
+      "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_";
+  const bool use_url = (alphabet == base64_options::base64_url ||
+                        alphabet == base64_options::base64_url_with_padding);
+  const bool include_padding =
+      (alphabet == base64_options::base64_default ||
+       alphabet == base64_options::base64_url_with_padding);
+  const char* table = use_url ? kURL : kStd;
+
+  size_t i = 0, out = 0;
+  while (i + 3 <= length) {
+    uint32_t v = (static_cast<unsigned char>(input[i]) << 16) |
+                 (static_cast<unsigned char>(input[i + 1]) << 8) |
+                 (static_cast<unsigned char>(input[i + 2]));
+    i += 3;
+    output[out++] = table[(v >> 18) & 0x3F];
+    output[out++] = table[(v >> 12) & 0x3F];
+    output[out++] = table[(v >> 6) & 0x3F];
+    output[out++] = table[v & 0x3F];
+  }
+  size_t rem = length - i;
+  if (rem == 1) {
+    uint32_t v = static_cast<unsigned char>(input[i]) << 16;
+    output[out++] = table[(v >> 18) & 0x3F];
+    output[out++] = table[(v >> 12) & 0x3F];
+    if (include_padding) {
+      output[out++] = '=';
+      output[out++] = '=';
+    }
+  } else if (rem == 2) {
+    uint32_t v = (static_cast<unsigned char>(input[i]) << 16) |
+                 (static_cast<unsigned char>(input[i + 1]) << 8);
+    output[out++] = table[(v >> 18) & 0x3F];
+    output[out++] = table[(v >> 12) & 0x3F];
+    output[out++] = table[(v >> 6) & 0x3F];
+    if (include_padding) {
+      output[out++] = '=';
+    }
+  }
+  return out;
 }
 
 } // namespace simdutf

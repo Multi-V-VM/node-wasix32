@@ -149,12 +149,12 @@ class NativeModuleCache {
   // and will soon be cleaned up from the cache.
   std::map<Key, std::optional<std::weak_ptr<NativeModule>>> map_;
 
-  base::Mutex mutex_;
+  ::v8::base::Mutex mutex_;
 
   // This condition variable is used to synchronize threads compiling the same
   // module. Only one thread will create the {NativeModule}. Other threads
   // will wait on this variable until the first thread wakes them up.
-  base::ConditionVariable cache_cv_;
+  ::v8::base::ConditionVariable cache_cv_;
 };
 
 // The central data structure that represents an engine instance capable of
@@ -497,7 +497,7 @@ class V8_EXPORT_PRIVATE WasmEngine {
 
   // This mutex protects all information which is mutated concurrently or
   // fields that are initialized lazily on the first access.
-  mutable base::Mutex mutex_;
+  mutable ::v8::base::Mutex mutex_;
 
   //////////////////////////////////////////////////////////////////////////////
   // Protected by {mutex_}:

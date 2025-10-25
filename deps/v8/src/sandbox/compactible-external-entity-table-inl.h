@@ -172,7 +172,7 @@ template <typename Entry, size_t size>
 void CompactibleExternalEntityTable<Entry, size>::Space::AddInvalidatedField(
     Address field_address) {
   if (IsCompacting()) {
-    base::MutexGuard guard(&invalidated_fields_mutex_);
+    ::v8::base::MutexGuard guard(&invalidated_fields_mutex_);
     invalidated_fields_.push_back(field_address);
   }
 }
@@ -182,7 +182,7 @@ void CompactibleExternalEntityTable<Entry,
                                     size>::Space::StartCompactingIfNeeded() {
   // Take the lock so that we can be sure that no other thread modifies the
   // segments set concurrently.
-  base::MutexGuard guard(&this->mutex_);
+  ::v8::base::MutexGuard guard(&this->mutex_);
 
   // This method may be executed while other threads allocate entries from the
   // freelist. In that case, this method may use incorrect data to determine if

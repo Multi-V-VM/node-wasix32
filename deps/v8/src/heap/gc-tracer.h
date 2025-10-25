@@ -602,7 +602,7 @@ class V8_EXPORT_PRIVATE GCTracer {
   ::v8::metrics::GarbageCollectionFullMainThreadBatchedIncrementalSweep
       incremental_sweep_batched_events_;
 
-  mutable base::Mutex background_scopes_mutex_;
+  mutable ::v8::base::Mutex background_scopes_mutex_;
   ::v8::base::TimeDelta background_scopes_[Scope::NUMBER_OF_SCOPES];
 
 #if defined(V8_USE_PERFETTO)

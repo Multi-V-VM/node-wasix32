@@ -47,7 +47,7 @@ inline void LockedQueue<Record>::Enqueue(Record record) {
   CHECK_NOT_NULL(n);
   n->value = std::move(record);
   {
-    base::MutexGuard guard(&tail_mutex_);
+    ::v8::base::MutexGuard guard(&tail_mutex_);
     size_++;
     tail_->next.SetValue(n);
     tail_ = n;
@@ -58,7 +58,7 @@ template <typename Record>
 inline bool LockedQueue<Record>::Dequeue(Record* record) {
   Node* old_head = nullptr;
   {
-    base::MutexGuard guard(&head_mutex_);
+    ::v8::base::MutexGuard guard(&head_mutex_);
     old_head = head_;
     Node* const next_node = head_->next.Value();
     if (next_node == nullptr) return false;
@@ -74,13 +74,13 @@ inline bool LockedQueue<Record>::Dequeue(Record* record) {
 
 template <typename Record>
 inline bool LockedQueue<Record>::IsEmpty() const {
-  base::MutexGuard guard(&head_mutex_);
+  ::v8::base::MutexGuard guard(&head_mutex_);
   return head_->next.Value() == nullptr;
 }
 
 template <typename Record>
 inline bool LockedQueue<Record>::Peek(Record* record) const {
-  base::MutexGuard guard(&head_mutex_);
+  ::v8::base::MutexGuard guard(&head_mutex_);
   Node* const next_node = head_->next.Value();
   if (next_node == nullptr) return false;
   *record = next_node->value;

@@ -74,9 +74,9 @@ class V8_NODISCARD UnparkedScopeIfOnBackground {
 class V8_NODISCARD ParkedMutexGuard {
  public:
   explicit V8_INLINE ParkedMutexGuard(LocalIsolate* local_isolate,
-                                      base::Mutex* mutex);
+                                      ::v8::base::Mutex* mutex);
   explicit V8_INLINE ParkedMutexGuard(LocalHeap* local_heap,
-                                      base::Mutex* mutex);
+                                      ::v8::base::Mutex* mutex);
 
   ParkedMutexGuard(const ParkedMutexGuard&) = delete;
   ParkedMutexGuard& operator=(const ParkedMutexGuard&) = delete;
@@ -84,7 +84,7 @@ class V8_NODISCARD ParkedMutexGuard {
   ~ParkedMutexGuard() { mutex_->Unlock(); }
 
  private:
-  base::Mutex* mutex_;
+  ::v8::base::Mutex* mutex_;
 };
 
 // Scope that automatically parks the thread while blocking on the given
@@ -107,9 +107,9 @@ class V8_NODISCARD ParkedRecursiveMutexGuard {
 
 class V8_NODISCARD ParkedMutexGuardIf final {
  public:
-  V8_INLINE ParkedMutexGuardIf(LocalIsolate* local_isolate, base::Mutex* mutex,
+  V8_INLINE ParkedMutexGuardIf(LocalIsolate* local_isolate, ::v8::base::Mutex* mutex,
                                bool enable_mutex);
-  V8_INLINE ParkedMutexGuardIf(LocalHeap* local_heap, base::Mutex* mutex,
+  V8_INLINE ParkedMutexGuardIf(LocalHeap* local_heap, ::v8::base::Mutex* mutex,
                                bool enable_mutex);
 
   ParkedMutexGuardIf(const ParkedMutexGuardIf&) = delete;
@@ -122,13 +122,13 @@ class V8_NODISCARD ParkedMutexGuardIf final {
   }
 
  private:
-  base::Mutex* mutex_ = nullptr;
+  ::v8::base::Mutex* mutex_ = nullptr;
 };
 
-// A subclass of base::ConditionVariable that automatically parks the thread
+// A subclass of ::v8::base::ConditionVariable that automatically parks the thread
 // while waiting.
 class V8_NODISCARD ParkingConditionVariable final
-    : public base::ConditionVariable {
+    : public ::v8::base::ConditionVariable {
  public:
   ParkingConditionVariable() = default;
   ParkingConditionVariable(const ParkingConditionVariable&) = delete;
@@ -143,21 +143,21 @@ class V8_NODISCARD ParkingConditionVariable final
   }
 
   V8_INLINE bool ParkedWaitFor(LocalIsolate* local_isolate, ::v8::base::Mutex* mutex,
-                               const base::TimeDelta& rel_time)
+                               const ::v8::base::TimeDelta& rel_time)
       V8_WARN_UNUSED_RESULT;
   V8_INLINE bool ParkedWaitFor(LocalHeap* local_heap, ::v8::base::Mutex* mutex,
-                               const base::TimeDelta& rel_time)
+                               const ::v8::base::TimeDelta& rel_time)
       V8_WARN_UNUSED_RESULT;
 
   bool ParkedWaitFor(const ParkedScope& scope, ::v8::base::Mutex* mutex,
-                     const base::TimeDelta& rel_time) V8_WARN_UNUSED_RESULT {
+                     const ::v8::base::TimeDelta& rel_time) V8_WARN_UNUSED_RESULT {
     USE(scope);
     return WaitFor(mutex, rel_time);
   }
 
  private:
-  using base::ConditionVariable::Wait;
-  using base::ConditionVariable::WaitFor;
+  using ::v8::base::ConditionVariable::Wait;
+  using ::v8::base::ConditionVariable::WaitFor;
 };
 
 // A subclass of base::Semaphore that automatically parks the thread while
@@ -177,14 +177,14 @@ class V8_NODISCARD ParkingSemaphore final : public base::Semaphore {
   }
 
   V8_INLINE bool ParkedWaitFor(LocalIsolate* local_isolate,
-                               const base::TimeDelta& rel_time)
+                               const ::v8::base::TimeDelta& rel_time)
       V8_WARN_UNUSED_RESULT;
   V8_INLINE bool ParkedWaitFor(LocalHeap* local_heap,
-                               const base::TimeDelta& rel_time)
+                               const ::v8::base::TimeDelta& rel_time)
       V8_WARN_UNUSED_RESULT;
 
   bool ParkedWaitFor(const ParkedScope& scope,
-                     const base::TimeDelta& rel_time) {
+                     const ::v8::base::TimeDelta& rel_time) {
     USE(scope);
     return WaitFor(rel_time);
   }

@@ -411,7 +411,7 @@ class CpuProfile {
  public:
   struct SampleInfo {
     ProfileNode* node;
-    base::TimeTicks timestamp;
+    ::v8::base::TimeTicks timestamp;
     int line;
     StateTag state_tag;
     EmbedderStateTag embedder_state_tag;
@@ -427,11 +427,11 @@ class CpuProfile {
 
   // Checks whether or not the given TickSample should be (sub)sampled, given
   // the sampling interval of the profiler that recorded it (in microseconds).
-  V8_EXPORT_PRIVATE bool CheckSubsample(base::TimeDelta sampling_interval);
+  V8_EXPORT_PRIVATE bool CheckSubsample(::v8::base::TimeDelta sampling_interval);
   // Add pc -> ... -> main() call path to the profile.
-  void AddPath(base::TimeTicks timestamp, const ProfileStackTrace& path,
+  void AddPath(::v8::base::TimeTicks timestamp, const ProfileStackTrace& path,
                int src_line, bool update_stats,
-               base::TimeDelta sampling_interval, StateTag state,
+               ::v8::base::TimeDelta sampling_interval, StateTag state,
                EmbedderStateTag embedder_state,
                const std::optional<uint64_t> trace_id = std::nullopt);
   void FinishProfile();
@@ -446,8 +446,8 @@ class CpuProfile {
     return options_.sampling_interval_us();
   }
 
-  base::TimeTicks start_time() const { return start_time_; }
-  base::TimeTicks end_time() const { return end_time_; }
+  ::v8::base::TimeTicks start_time() const { return start_time_; }
+  ::v8::base::TimeTicks end_time() const { return end_time_; }
   CpuProfiler* cpu_profiler() const { return profiler_; }
   ContextFilter& context_filter() { return context_filter_; }
   ProfilerId id() const { return id_; }
@@ -463,8 +463,8 @@ class CpuProfile {
   const v8::CpuProfilingOptions options_;
   std::unique_ptr<DiscardedSamplesDelegate> delegate_;
   ContextFilter context_filter_;
-  base::TimeTicks start_time_;
-  base::TimeTicks end_time_;
+  ::v8::base::TimeTicks start_time_;
+  ::v8::base::TimeTicks end_time_;
   std::deque<SampleInfo> samples_;
   ProfileTree top_down_;
   CpuProfiler* const profiler_;
@@ -472,7 +472,7 @@ class CpuProfile {
   const ProfilerId id_;
   // Number of microseconds worth of profiler ticks that should elapse before
   // the next sample is recorded.
-  base::TimeDelta next_sample_delta_;
+  ::v8::base::TimeDelta next_sample_delta_;
 };
 
 class CpuProfileMaxSamplesCallbackTask : public v8::Task {
@@ -570,12 +570,12 @@ class V8_EXPORT_PRIVATE CpuProfilesCollection {
   // Finds a common sampling interval dividing each CpuProfile's interval,
   // rounded up to the nearest multiple of the CpuProfiler's sampling interval.
   // Returns 0 if no profiles are attached.
-  base::TimeDelta GetCommonSamplingInterval();
+  ::v8::base::TimeDelta GetCommonSamplingInterval();
 
   // Called from profile generator thread.
   void AddPathToCurrentProfiles(
-      base::TimeTicks timestamp, const ProfileStackTrace& path, int src_line,
-      bool update_stats, base::TimeDelta sampling_interval, StateTag state,
+      ::v8::base::TimeTicks timestamp, const ProfileStackTrace& path, int src_line,
+      bool update_stats, ::v8::base::TimeDelta sampling_interval, StateTag state,
       EmbedderStateTag embedder_state_tag,
       Address native_context_address = kNullAddress,
       Address native_embedder_context_address = kNullAddress,
@@ -598,7 +598,7 @@ class V8_EXPORT_PRIVATE CpuProfilesCollection {
 
   // Accessed by VM thread and profile generator thread.
   std::vector<std::unique_ptr<CpuProfile>> current_profiles_;
-  base::RecursiveMutex current_profiles_mutex_;
+  ::v8::base::RecursiveMutex current_profiles_mutex_;
   static std::atomic<ProfilerId> last_id_;
   Isolate* isolate_;
 };

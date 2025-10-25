@@ -314,7 +314,7 @@ class CompilationUnitQueues {
 #endif
     }
 
-    mutable base::Mutex mutex;
+    mutable ::v8::base::Mutex mutex;
 
     // Can be read concurrently to check whether any elements are in the queue.
     std::atomic<bool> has_units[CompilationTier::kNumTiers];
@@ -333,7 +333,7 @@ class CompilationUnitQueues {
     // publishing arbitrarily.
     std::atomic<int> publish_limit{kMaxInt};
 
-    base::Mutex mutex;
+    ::v8::base::Mutex mutex;
 
     // All fields below are protected by {mutex}.
     std::vector<WasmCompilationUnit> units[CompilationTier::kNumTiers];
@@ -516,7 +516,7 @@ class CompilationUnitQueues {
   }
 
   // {queues_mutex_} protectes {queues_};
-  mutable base::Mutex queues_mutex_;
+  mutable ::v8::base::Mutex queues_mutex_;
   std::vector<std::unique_ptr<QueueImpl>> queues_;
 
   const int num_imported_functions_;
@@ -758,7 +758,7 @@ class CompilationStateImpl {
 
   // This mutex protects all information of this {CompilationStateImpl} which is
   // being accessed concurrently.
-  mutable base::Mutex mutex_;
+  mutable ::v8::base::Mutex mutex_;
 
   // The compile job handles, initialized right after construction of
   // {CompilationStateImpl}.
@@ -787,7 +787,7 @@ class CompilationStateImpl {
   // This mutex protects the callbacks vector, and the counters used to
   // determine which callbacks to call. The counters plus the callbacks
   // themselves need to be synchronized to ensure correct order of events.
-  mutable base::Mutex callbacks_mutex_;
+  mutable ::v8::base::Mutex callbacks_mutex_;
 
   //////////////////////////////////////////////////////////////////////////////
   // Protected by {callbacks_mutex_}:
@@ -815,14 +815,14 @@ class CompilationStateImpl {
   // This field is updated on every publishing of top-tier code, and is reset
   // once caching is triggered. Hence it also informs whether a caching task is
   // currently being scheduled (whenever this is set).
-  base::TimeTicks last_top_tier_compilation_timestamp_;
+  ::v8::base::TimeTicks last_top_tier_compilation_timestamp_;
 
   // End of fields protected by {callbacks_mutex_}.
   //////////////////////////////////////////////////////////////////////////////
 
   struct PublishState {
     // {mutex_} protects {publish_queue_} and {publisher_running_}.
-    base::Mutex mutex_;
+    ::v8::base::Mutex mutex_;
     std::vector<UnpublishedWasmCode> publish_queue_;
     bool publisher_running_ = false;
   };
@@ -1170,7 +1170,7 @@ class CompileLazyTimingScope {
   }
 
   ~CompileLazyTimingScope() {
-    base::TimeDelta elapsed = timer_.Elapsed();
+    ::v8::base::TimeDelta elapsed = timer_.Elapsed();
     native_module_->AddLazyCompilationTimeSample(elapsed.InMicroseconds());
     counters_->wasm_lazy_compile_time()->AddTimedSample(elapsed);
   }
@@ -1194,7 +1194,7 @@ bool CompileLazy(Isolate* isolate,
   // and its destruction, to measure complete overhead (apart from the runtime
   // function itself, which has constant overhead).
   std::optional<CompileLazyTimingScope> lazy_compile_time_scope;
-  if (base::TimeTicks::IsHighResolution()) {
+  if (::v8::base::TimeTicks::IsHighResolution()) {
     lazy_compile_time_scope.emplace(counters, native_module);
   }
 
@@ -2191,7 +2191,7 @@ class CompilationTimeCallback : public CompilationEventCallback {
       std::shared_ptr<metrics::Recorder> metrics_recorder,
       v8::metrics::Recorder::ContextId context_id,
       std::weak_ptr<NativeModule> native_module, CompileMode compile_mode)
-      : start_time_(base::TimeTicks::Now()),
+      : start_time_(::v8::base::TimeTicks::Now()),
         async_counters_(std::move(async_counters)),
         metrics_recorder_(std::move(metrics_recorder)),
         context_id_(context_id),
@@ -2199,10 +2199,10 @@ class CompilationTimeCallback : public CompilationEventCallback {
         compile_mode_(compile_mode) {}
 
   void call(CompilationEvent compilation_event) override {
-    DCHECK(base::TimeTicks::IsHighResolution());
+    DCHECK(::v8::base::TimeTicks::IsHighResolution());
     std::shared_ptr<NativeModule> native_module = native_module_.lock();
     if (!native_module) return;
-    auto now = base::TimeTicks::Now();
+    auto now = ::v8::base::TimeTicks::Now();
     auto duration = now - start_time_;
     if (compilation_event == CompilationEvent::kFinishedBaselineCompilation) {
       // Reset {start_time_} to measure tier-up time.
@@ -2243,7 +2243,7 @@ class CompilationTimeCallback : public CompilationEventCallback {
   }
 
  private:
-  base::TimeTicks start_time_;
+  ::v8::base::TimeTicks start_time_;
   const std::shared_ptr<Counters> async_counters_;
   std::shared_ptr<metrics::Recorder> metrics_recorder_;
   v8::metrics::Recorder::ContextId context_id_;
@@ -2304,7 +2304,7 @@ void CompileNativeModule(Isolate* isolate,
 
   // The callback captures a shared ptr to the semaphore.
   auto* compilation_state = Impl(native_module->compilation_state());
-  if (base::TimeTicks::IsHighResolution()) {
+  if (::v8::base::TimeTicks::IsHighResolution()) {
     compilation_state->AddCallback(std::make_unique<CompilationTimeCallback>(
         isolate->async_counters(), isolate->metrics_recorder(), context_id,
         native_module, CompilationTimeCallback::kSynchronous));
@@ -2390,7 +2390,7 @@ std::shared_ptr<NativeModule> GetOrCompileNewNativeModule(
 
   // Otherwise compile a new NativeModule.
   std::optional<TimedHistogramScope> wasm_compile_module_time_scope;
-  if (base::TimeTicks::IsHighResolution()) {
+  if (::v8::base::TimeTicks::IsHighResolution()) {
     wasm_compile_module_time_scope.emplace(SELECT_WASM_COUNTER(
         isolate->counters(), module->origin, wasm_compile, module_time));
   }
@@ -2454,7 +2454,7 @@ AsyncCompileJob::AsyncCompileJob(
       api_method_name_(api_method_name),
       enabled_features_(enabled_features),
       compile_imports_(std::move(compile_imports)),
-      start_time_(base::TimeTicks::Now()),
+      start_time_(::v8::base::TimeTicks::Now()),
       bytes_copy_(std::move(bytes)),
       wire_bytes_(bytes_copy_.as_vector()),
       resolver_(std::move(resolver)),
@@ -2767,8 +2767,8 @@ void AsyncCompileJob::FinishCompile(bool is_after_cache_hit) {
   }
 
   // Measure duration of baseline compilation or deserialization from cache.
-  if (base::TimeTicks::IsHighResolution()) {
-    base::TimeDelta duration = base::TimeTicks::Now() - start_time_;
+  if (::v8::base::TimeTicks::IsHighResolution()) {
+    ::v8::base::TimeDelta duration = ::v8::base::TimeTicks::Now() - start_time_;
     int duration_usecs = static_cast<int>(duration.InMicroseconds());
     isolate_->counters()->wasm_streaming_finish_wasm_module_time()->AddSample(
         duration_usecs);
@@ -3147,7 +3147,7 @@ class AsyncCompileJob::PrepareAndStartCompile : public CompileStep {
         Impl(job->native_module_->compilation_state());
     compilation_state->AddCallback(
         std::make_unique<CompilationStateCallback>(job));
-    if (base::TimeTicks::IsHighResolution()) {
+    if (::v8::base::TimeTicks::IsHighResolution()) {
       auto compile_mode = job->stream_ == nullptr
                               ? CompilationTimeCallback::kAsync
                               : CompilationTimeCallback::kStreaming;
@@ -3420,7 +3420,7 @@ void AsyncStreamingProcessor::OnFinishedStream(
   }
 
   // Record event metrics.
-  auto duration = base::TimeTicks::Now() - job_->start_time_;
+  auto duration = ::v8::base::TimeTicks::Now() - job_->start_time_;
   job_->metrics_event_.success = !after_error;
   job_->metrics_event_.streamed = true;
   job_->metrics_event_.module_size_in_bytes = job_->wire_bytes_.length();
@@ -3539,7 +3539,7 @@ bool AsyncStreamingProcessor::Deserialize(
     ZoneVector<const uint8_t> wire_bytes) {
   TRACE_EVENT0("v8.wasm", "wasm.Deserialize");
   std::optional<TimedHistogramScope> time_scope;
-  if (base::TimeTicks::IsHighResolution()) {
+  if (::v8::base::TimeTicks::IsHighResolution()) {
     time_scope.emplace(job_->isolate()->counters()->wasm_deserialization_time(),
                        job_->isolate());
   }
@@ -3875,7 +3875,7 @@ void CompilationStateImpl::InitializeCompilationProgressAfterDeserialization(
                "num_lazy_functions", lazy_functions.size(),
                "num_eager_functions", eager_functions.size());
   std::optional<TimedHistogramScope> lazy_compile_time_scope;
-  if (base::TimeTicks::IsHighResolution()) {
+  if (::v8::base::TimeTicks::IsHighResolution()) {
     lazy_compile_time_scope.emplace(
         counters()->wasm_compile_after_deserialize());
   }
@@ -4092,7 +4092,7 @@ void CompilationStateImpl::OnFinishedUnits(
   // Update the {last_top_tier_compilation_timestamp_} if it is set (i.e. a
   // delayed task has already been spawned).
   if (has_top_tier_code && !last_top_tier_compilation_timestamp_.IsNull()) {
-    last_top_tier_compilation_timestamp_ = base::TimeTicks::Now();
+    last_top_tier_compilation_timestamp_ = ::v8::base::TimeTicks::Now();
   }
 
   TriggerOutstandingCallbacks();
@@ -4150,7 +4150,7 @@ void CompilationStateImpl::TriggerOutstandingCallbacks() {
 
       // Set the timestamp (will be updated by {OnFinishedUnits} if more
       // top-tier compilation finished before the delayed task is being run).
-      last_top_tier_compilation_timestamp_ = base::TimeTicks::Now();
+      last_top_tier_compilation_timestamp_ = ::v8::base::TimeTicks::Now();
     }
   }
 
@@ -4205,13 +4205,13 @@ void CompilationStateImpl::TriggerCachingAfterTimeout() {
   if (bytes_since_last_chunk_ == 0) return;
 
   DCHECK(!last_top_tier_compilation_timestamp_.IsNull());
-  base::TimeTicks caching_time =
+  ::v8::base::TimeTicks caching_time =
       last_top_tier_compilation_timestamp_ +
-      base::TimeDelta::FromMilliseconds(v8_flags.wasm_caching_timeout_ms);
-  base::TimeDelta time_until_caching = caching_time - base::TimeTicks::Now();
+      ::v8::base::TimeDelta::FromMilliseconds(v8_flags.wasm_caching_timeout_ms);
+  ::v8::base::TimeDelta time_until_caching = caching_time - ::v8::base::TimeTicks::Now();
   // If we are still half a millisecond or more away from the timeout,
   // reschedule the task. Otherwise, call the caching callback.
-  if (time_until_caching >= base::TimeDelta::FromMicroseconds(500)) {
+  if (time_until_caching >= ::v8::base::TimeDelta::FromMicroseconds(500)) {
     int ms_remaining =
         static_cast<int>(time_until_caching.InMillisecondsRoundedUp());
     DCHECK_LE(1, ms_remaining);

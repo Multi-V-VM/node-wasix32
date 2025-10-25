@@ -792,14 +792,14 @@ class DebugInfoImpl {
 
   NativeModule* const native_module_;
 
-  mutable base::Mutex debug_side_tables_mutex_;
+  mutable ::v8::base::Mutex debug_side_tables_mutex_;
 
   // DebugSideTable per code object, lazily initialized.
   std::unordered_map<const WasmCode*, std::unique_ptr<DebugSideTable>>
       debug_side_tables_;
 
   // {mutex_} protects all fields below.
-  mutable base::Mutex mutex_;
+  mutable ::v8::base::Mutex mutex_;
 
   // Cache a fixed number of WasmCode objects that were generated for debugging.
   // This is useful especially in stepping, because stepping code is cleared on

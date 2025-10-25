@@ -118,7 +118,7 @@ void WasmInterpreter::CodeMap::Preprocess(uint32_t function_index) {
   DCHECK_EQ(code->function->imported, code->start == nullptr);
   DCHECK(!code->bytecode && code->start);
 
-  base::TimeTicks start_time = base::TimeTicks::Now();
+  ::v8::base::TimeTicks start_time = ::v8::base::TimeTicks::Now();
 
   // Compute the control targets map and the local declarations.
   BytecodeIterator it(code->start, code->end, &code->locals, zone_);
@@ -129,8 +129,8 @@ void WasmInterpreter::CodeMap::Preprocess(uint32_t function_index) {
   // Generate histogram sample to measure the time spent generating the
   // bytecode. Reuse the WasmCompileModuleMicroSeconds.wasm that is currently
   // obsolete.
-  if (base::TimeTicks::IsHighResolution()) {
-    base::TimeDelta duration = base::TimeTicks::Now() - start_time;
+  if (::v8::base::TimeTicks::IsHighResolution()) {
+    ::v8::base::TimeDelta duration = ::v8::base::TimeTicks::Now() - start_time;
     bytecode_generation_time_ += duration;
     int bytecode_generation_time_usecs =
         static_cast<int>(bytecode_generation_time_.InMicroseconds());
@@ -230,7 +230,7 @@ WasmExecutionTimer::WasmExecutionTimer(Isolate* isolate,
       next_interval_time_(),
       start_interval_time_(),
       window_running_time_(),
-      sample_duration_(base::TimeDelta::FromMilliseconds(std::max(
+      sample_duration_(::v8::base::TimeDelta::FromMilliseconds(std::max(
           0, v8_flags.wasm_exec_time_histogram_sample_duration.value()))),
       slow_threshold_(v8_flags.wasm_exec_time_histogram_slow_threshold.value()),
       slow_threshold_samples_count_(std::max(
@@ -240,13 +240,13 @@ WasmExecutionTimer::WasmExecutionTimer(Isolate* isolate,
       0, v8_flags.wasm_exec_time_histogram_sample_period.value() -
              v8_flags.wasm_exec_time_histogram_sample_duration.value());
   cooldown_interval_ =
-      base::TimeDelta::FromMilliseconds(cooldown_interval_in_msec);
+      ::v8::base::TimeDelta::FromMilliseconds(cooldown_interval_in_msec);
 }
 
 void WasmExecutionTimer::BeginInterval(bool start_timer) {
   window_has_started_ = true;
-  start_interval_time_ = base::TimeTicks::Now();
-  window_running_time_ = base::TimeDelta();
+  start_interval_time_ = ::v8::base::TimeTicks::Now();
+  window_running_time_ = ::v8::base::TimeDelta();
   if (start_timer) {
     window_execute_timer_.Start();
   }
@@ -254,7 +254,7 @@ void WasmExecutionTimer::BeginInterval(bool start_timer) {
 
 void WasmExecutionTimer::EndInterval() {
   window_has_started_ = false;
-  base::TimeTicks now = base::TimeTicks::Now();
+  ::v8::base::TimeTicks now = ::v8::base::TimeTicks::Now();
   next_interval_time_ = now + cooldown_interval_;
   int running_ratio = kMaxPercentValue *
                       window_running_time_.TimesOf(now - start_interval_time_);
@@ -301,7 +301,7 @@ void WasmExecutionTimer::StartInternal() {
   DCHECK(v8_flags.wasm_enable_exec_time_histograms && v8_flags.slow_histograms);
   DCHECK(!window_execute_timer_.IsStarted());
 
-  base::TimeTicks now = base::TimeTicks::Now();
+  ::v8::base::TimeTicks now = ::v8::base::TimeTicks::Now();
   if (window_has_started_) {
     if (now - start_interval_time_ > sample_duration_) {
       EndInterval();
@@ -320,10 +320,10 @@ void WasmExecutionTimer::StartInternal() {
 void WasmExecutionTimer::StopInternal() {
   DCHECK(v8_flags.wasm_enable_exec_time_histograms && v8_flags.slow_histograms);
 
-  base::TimeTicks now = base::TimeTicks::Now();
+  ::v8::base::TimeTicks now = ::v8::base::TimeTicks::Now();
   if (window_has_started_) {
     DCHECK(window_execute_timer_.IsStarted());
-    base::TimeDelta elapsed = window_execute_timer_.Elapsed();
+    ::v8::base::TimeDelta elapsed = window_execute_timer_.Elapsed();
     window_running_time_ += elapsed;
     window_execute_timer_.Stop();
     if (now - start_interval_time_ > sample_duration_) {

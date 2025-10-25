@@ -85,7 +85,7 @@ class FutexWaitList {
   // Returns true if |node| is on the linked list starting with |head|.
   static bool NodeIsOnList(FutexWaitListNode* node, FutexWaitListNode* head);
 
-  base::Mutex* mutex() { return &mutex_; }
+  ::v8::base::Mutex* mutex() { return &mutex_; }
 
  private:
   friend class FutexEmulation;
@@ -100,7 +100,7 @@ class FutexWaitList {
   // and `interrupted_` fields for each individual list node that is currently
   // part of the list. It must be the mutex used together with the `cond_`
   // condition variable of such nodes.
-  base::Mutex mutex_;
+  ::v8::base::Mutex mutex_;
 
   // Location inside a shared buffer -> linked list of Nodes waiting on that
   // location.
@@ -185,7 +185,7 @@ void FutexEmulation::NotifyAsyncWaiter(FutexWaitListNode* node) {
 
   // Nullify the timeout time; this distinguishes timed out waiters from
   // woken up ones.
-  node->async_state_->timeout_time = base::TimeTicks();
+  node->async_state_->timeout_time = ::v8::base::TimeTicks();
 
   wait_list->RemoveNode(node);
 
@@ -361,8 +361,8 @@ Tagged<Object> FutexEmulation::WaitSync(
     Isolate* isolate, DirectHandle<JSArrayBuffer> array_buffer, size_t addr,
     T value, bool use_timeout, int64_t rel_timeout_ns, CallType call_type) {
   VMState<ATOMICS_WAIT> state(isolate);
-  base::TimeDelta rel_timeout =
-      base::TimeDelta::FromNanoseconds(rel_timeout_ns);
+  ::v8::base::TimeDelta rel_timeout =
+      ::v8::base::TimeDelta::FromNanoseconds(rel_timeout_ns);
 
   DirectHandle<Object> result;
 
@@ -370,9 +370,9 @@ Tagged<Object> FutexEmulation::WaitSync(
   FutexWaitListNode* node = isolate->futex_wait_list_node();
   void* wait_location = FutexWaitList::ToWaitLocation(*array_buffer, addr);
 
-  base::TimeTicks timeout_time;
+  ::v8::base::TimeTicks timeout_time;
   if (use_timeout) {
-    base::TimeTicks current_time = base::TimeTicks::Now();
+    ::v8::base::TimeTicks current_time = ::v8::base::TimeTicks::Now();
     timeout_time = current_time + rel_timeout;
   }
 
@@ -448,14 +448,14 @@ Tagged<Object> FutexEmulation::WaitSync(
 
       // No interrupts, now wait.
       if (use_timeout) {
-        base::TimeTicks current_time = base::TimeTicks::Now();
+        ::v8::base::TimeTicks current_time = ::v8::base::TimeTicks::Now();
         if (current_time >= timeout_time) {
           result =
               direct_handle(Smi::FromInt(WaitReturnValue::kTimedOut), isolate);
           break;
         }
 
-        base::TimeDelta time_until_timeout = timeout_time - current_time;
+        ::v8::base::TimeDelta time_until_timeout = timeout_time - current_time;
         DCHECK_GE(time_until_timeout.InMicroseconds(), 0);
         bool wait_for_result =
             node->cond_.WaitFor(wait_list->mutex(), time_until_timeout);
@@ -503,8 +503,8 @@ template <typename T>
 Tagged<Object> FutexEmulation::WaitAsync(
     Isolate* isolate, DirectHandle<JSArrayBuffer> array_buffer, size_t addr,
     T value, bool use_timeout, int64_t rel_timeout_ns, CallType call_type) {
-  base::TimeDelta rel_timeout =
-      base::TimeDelta::FromNanoseconds(rel_timeout_ns);
+  ::v8::base::TimeDelta rel_timeout =
+      ::v8::base::TimeDelta::FromNanoseconds(rel_timeout_ns);
 
   Factory* factory = isolate->factory();
   DirectHandle<JSObject> result =
@@ -543,7 +543,7 @@ Tagged<Object> FutexEmulation::WaitAsync(
           std::move(backing_store), wait_location, promise_capability, isolate);
 
       if (use_timeout) {
-        node->async_state_->timeout_time = base::TimeTicks::Now() + rel_timeout;
+        node->async_state_->timeout_time = ::v8::base::TimeTicks::Now() + rel_timeout;
         auto task = std::make_unique<AsyncWaiterTimeoutTask>(
             node->async_state_->isolate_for_async_waiters
                 ->cancelable_task_manager(),
@@ -784,7 +784,7 @@ void FutexEmulation::ResolveAsyncWaiterPromise(FutexWaitListNode* node) {
     DirectHandle<String> result_string;
     // When waiters are notified, their timeout_time is reset. Having a
     // non-zero timeout_time here means the waiter timed out.
-    if (node->async_state_->timeout_time != base::TimeTicks()) {
+    if (node->async_state_->timeout_time != ::v8::base::TimeTicks()) {
       DCHECK(node->waiting_);
       result_string = isolate->factory()->timed_out_string();
     } else {

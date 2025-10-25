@@ -66,7 +66,7 @@ DelayedTaskQueue::MaybeNextTask DelayedTaskQueue::TryGetNext() {
       return {
           MaybeNextTask::kWaitDelayed,
           {},
-          base::TimeDelta::FromMicroseconds(
+          ::v8::base::TimeDelta::FromMicroseconds(
               base::TimeConstants::kMicrosecondsPerSecond * wait_in_seconds)};
     } else {
       return {MaybeNextTask::kWaitIndefinite, {}, {}};

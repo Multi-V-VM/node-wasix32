@@ -9616,9 +9616,9 @@ WasmCompilationResult ExecuteLiftoffCompilation(
   DCHECK(compiler_options.is_initialized());
   // Liftoff does not validate the code, so that should have run before.
   DCHECK(env->module->function_was_validated(compiler_options.func_index));
-  base::TimeTicks start_time;
+  ::v8::base::TimeTicks start_time;
   if (V8_UNLIKELY(v8_flags.trace_wasm_compilation_times)) {
-    start_time = base::TimeTicks::Now();
+    start_time = ::v8::base::TimeTicks::Now();
   }
   int func_body_size = static_cast<int>(func_body.end - func_body.start);
   TRACE_EVENT2(TRACE_DISABLED_BY_DEFAULT("v8.wasm.detailed"),
@@ -9680,7 +9680,7 @@ WasmCompilationResult ExecuteLiftoffCompilation(
   }
 
   if (V8_UNLIKELY(v8_flags.trace_wasm_compilation_times)) {
-    base::TimeDelta time = base::TimeTicks::Now() - start_time;
+    ::v8::base::TimeDelta time = ::v8::base::TimeTicks::Now() - start_time;
     int codesize = result.code_desc.body_size();
     StdoutStream{} << "Compiled function "
                    << reinterpret_cast<const void*>(env->module) << "#"

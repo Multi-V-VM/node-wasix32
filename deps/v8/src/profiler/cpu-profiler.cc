@@ -125,7 +125,7 @@ ProfilerEventsProcessor::ProfilerEventsProcessor(
 SamplingEventsProcessor::SamplingEventsProcessor(
     Isolate* isolate, Symbolizer* symbolizer,
     ProfilerCodeObserver* code_observer, CpuProfilesCollection* profiles,
-    base::TimeDelta period, bool use_precise_sampling)
+    ::v8::base::TimeDelta period, bool use_precise_sampling)
     : ProfilerEventsProcessor(isolate, symbolizer, code_observer, profiles),
       sampler_(new CpuSampler(isolate, this)),
       period_(period),
@@ -173,7 +173,7 @@ void ProfilerEventsProcessor::AddCurrentStack(
     regs.pc = reinterpret_cast<void*>(frame->pc());
   }
   record.sample.Init(isolate_, regs, TickSample::kSkipCEntryFrame, update_stats,
-                     false, base::TimeDelta(), trace_id);
+                     false, ::v8::base::TimeDelta(), trace_id);
   ticks_from_vm_buffer_.Enqueue(record);
 }
 
@@ -280,8 +280,8 @@ void SamplingEventsProcessor::Run() {
   SetCurrentIsolateScope isolate_scope(isolate_);
   ::v8::base::MutexGuard guard(&running_mutex_);
   while (running_.load(std::memory_order_relaxed)) {
-    base::TimeTicks nextSampleTime = base::TimeTicks::Now() + period_;
-    base::TimeTicks now;
+    ::v8::base::TimeTicks nextSampleTime = ::v8::base::TimeTicks::Now() + period_;
+    ::v8::base::TimeTicks now;
     SampleProcessingResult result;
     // Keep processing existing events until we need to do next sample
     // or the ticks buffer is empty.
@@ -292,19 +292,19 @@ void SamplingEventsProcessor::Run() {
         // processed, proceed to the next code event.
         ProcessCodeEvent();
       }
-      now = base::TimeTicks::Now();
+      now = ::v8::base::TimeTicks::Now();
     } while (result != NoSamplesInQueue && now < nextSampleTime);
 
     if (nextSampleTime > now) {
 #if V8_OS_WIN
       if (use_precise_sampling_ &&
-          nextSampleTime - now < base::TimeDelta::FromMilliseconds(100)) {
+          nextSampleTime - now < ::v8::base::TimeDelta::FromMilliseconds(100)) {
         if (precise_sleep_timer_.IsInitialized()) {
           precise_sleep_timer_.Sleep(nextSampleTime - now);
         } else {
           // Do not use Sleep on Windows as it is very imprecise, with up to
           // 16ms jitter, which is unacceptable for short profile intervals.
-          while (base::TimeTicks::Now() < nextSampleTime) {
+          while (::v8::base::TimeTicks::Now() < nextSampleTime) {
           }
         }
       } else  // NOLINT
@@ -322,7 +322,7 @@ void SamplingEventsProcessor::Run() {
           if (!running_.load(std::memory_order_relaxed)) {
             break;
           }
-          now = base::TimeTicks::Now();
+          now = ::v8::base::TimeTicks::Now();
         }
       }
     }
@@ -340,7 +340,7 @@ void SamplingEventsProcessor::Run() {
   } while (ProcessCodeEvent());
 }
 
-void SamplingEventsProcessor::SetSamplingInterval(base::TimeDelta period) {
+void SamplingEventsProcessor::SetSamplingInterval(::v8::base::TimeDelta period) {
   if (period_ == period) return;
   StopSynchronously();
 
@@ -502,7 +502,7 @@ class CpuProfilersManager {
 
  private:
   std::unordered_multimap<Isolate*, CpuProfiler*> profilers_;
-  base::Mutex mutex_;
+  ::v8::base::Mutex mutex_;
 };
 
 DEFINE_LAZY_LEAKY_OBJECT_GETTER(CpuProfilersManager, GetProfilersManager)
@@ -524,7 +524,7 @@ CpuProfiler::CpuProfiler(Isolate* isolate, CpuProfilingNamingMode naming_mode,
     : isolate_(isolate),
       naming_mode_(naming_mode),
       logging_mode_(logging_mode),
-      base_sampling_interval_(base::TimeDelta::FromMicroseconds(
+      base_sampling_interval_(::v8::base::TimeDelta::FromMicroseconds(
           v8_flags.cpu_profiler_sampling_interval)),
       code_observer_(test_code_observer),
       profiles_(test_profiles),
@@ -549,7 +549,7 @@ CpuProfiler::~CpuProfiler() {
   DCHECK(code_entries_.strings().empty());
 }
 
-void CpuProfiler::set_sampling_interval(base::TimeDelta value) {
+void CpuProfiler::set_sampling_interval(::v8::base::TimeDelta value) {
   DCHECK(!is_profiling_);
   base_sampling_interval_ = value;
 }
@@ -585,14 +585,14 @@ void CpuProfiler::DisableLogging() {
   code_observer_->ClearCodeMap();
 }
 
-base::TimeDelta CpuProfiler::ComputeSamplingInterval() {
+::v8::base::TimeDelta CpuProfiler::ComputeSamplingInterval() {
   return profiles_->GetCommonSamplingInterval();
 }
 
 void CpuProfiler::AdjustSamplingInterval() {
   if (!processor_) return;
 
-  base::TimeDelta base_interval = ComputeSamplingInterval();
+  ::v8::base::TimeDelta base_interval = ComputeSamplingInterval();
   processor_->SetSamplingInterval(base_interval);
 }
 
@@ -691,7 +691,7 @@ void CpuProfiler::StartProcessorIfNotStarted() {
         std::make_unique<Symbolizer>(code_observer_->instruction_stream_map());
   }
 
-  base::TimeDelta sampling_interval = ComputeSamplingInterval();
+  ::v8::base::TimeDelta sampling_interval = ComputeSamplingInterval();
   processor_.reset(new SamplingEventsProcessor(
       isolate_, symbolizer_.get(), code_observer_.get(), profiles_.get(),
       sampling_interval, use_precise_sampling_));

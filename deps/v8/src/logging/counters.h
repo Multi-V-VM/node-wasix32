@@ -198,7 +198,7 @@ class Histogram {
   // Lazily create the histogram, if it has not been created yet.
   void EnsureCreated(bool create_new = true) {
     if (create_new && histogram_.load(std::memory_order_acquire) == nullptr) {
-      base::MutexGuard Guard(&mutex_);
+      ::v8::base::MutexGuard Guard(&mutex_);
       if (histogram_.load(std::memory_order_relaxed) == nullptr)
         histogram_.store(CreateHistogram(), std::memory_order_release);
     }
@@ -217,7 +217,7 @@ class Histogram {
   int num_buckets_;
   std::atomic<void*> histogram_;
   Counters* counters_;
-  base::Mutex mutex_;
+  ::v8::base::Mutex mutex_;
 };
 
 // Dummy classes for better visiting.

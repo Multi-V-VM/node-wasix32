@@ -366,7 +366,7 @@ class SignalHandler {
       // On Aix, IBMi & zLinux SIGPROF can sometimes arrive after the
       // default signal handler is restored, resulting in intermittent test
       // failure when profiling is enabled (https://crbug.com/v8/12952)
-      base::OS::Sleep(base::TimeDelta::FromMicroseconds(10));
+      base::OS::Sleep(::v8::base::TimeDelta::FromMicroseconds(10));
 #endif
       sigaction(SIGPROF, &old_signal_handler_, nullptr);
     }

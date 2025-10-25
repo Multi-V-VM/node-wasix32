@@ -206,7 +206,7 @@ class JSAtomicsMutex
   class V8_NODISCARD LockGuard final : public LockGuardBase {
    public:
     inline LockGuard(Isolate* isolate, DirectHandle<JSAtomicsMutex> mutex,
-                     std::optional<base::TimeDelta> timeout = std::nullopt);
+                     std::optional<::v8::base::TimeDelta> timeout = std::nullopt);
   };
 
   // The mutex is attempted to be locked via `TryLock` when a `TryLockGuard`
@@ -228,7 +228,7 @@ class JSAtomicsMutex
   // Returns false if the lock times out, true otherwise.
   static inline bool Lock(
       Isolate* requester, DirectHandle<JSAtomicsMutex> mutex,
-      std::optional<base::TimeDelta> timeout = std::nullopt);
+      std::optional<::v8::base::TimeDelta> timeout = std::nullopt);
 
   V8_WARN_UNUSED_RESULT inline bool TryLock();
 
@@ -240,7 +240,7 @@ class JSAtomicsMutex
                         Handle<JSPromise> internal_locked_promise,
                         MaybeHandle<JSPromise> unlocked_promise,
                         AsyncWaiterNodeType** waiter_node,
-                        std::optional<base::TimeDelta> timeout = std::nullopt);
+                        std::optional<::v8::base::TimeDelta> timeout = std::nullopt);
 
   // A wrapper for LockAsync called when an asyncWait call returns control
   // to the lockAsync callback. It calls `LockAsync` without setting all the
@@ -253,7 +253,7 @@ class JSAtomicsMutex
   // promise is unlocked or times out.
   static MaybeDirectHandle<JSPromise> LockOrEnqueuePromise(
       Isolate* isolate, DirectHandle<JSAtomicsMutex> mutex,
-      DirectHandle<Object> callback, std::optional<base::TimeDelta> timeout);
+      DirectHandle<Object> callback, std::optional<::v8::base::TimeDelta> timeout);
 
   // Try to take the lock or requeue an existing node.
   static bool LockOrEnqueueAsyncNode(Isolate* isolate,
@@ -315,14 +315,14 @@ class JSAtomicsMutex
 
   V8_EXPORT_PRIVATE static bool LockSlowPath(
       Isolate* requester, DirectHandle<JSAtomicsMutex> mutex,
-      std::atomic<StateT>* state, std::optional<base::TimeDelta> timeout);
+      std::atomic<StateT>* state, std::optional<::v8::base::TimeDelta> timeout);
   static bool LockAsyncSlowPath(Isolate* isolate,
                                 DirectHandle<JSAtomicsMutex> mutex,
                                 std::atomic<StateT>* state,
                                 Handle<JSPromise> internal_locked_promise,
                                 MaybeHandle<JSPromise> unlocked_promise,
                                 AsyncWaiterNodeType** waiter_node,
-                                std::optional<base::TimeDelta> timeout);
+                                std::optional<::v8::base::TimeDelta> timeout);
 
   V8_EXPORT_PRIVATE void UnlockSlowPath(Isolate* requester,
                                         std::atomic<StateT>* state);
@@ -357,7 +357,7 @@ class JSAtomicsMutex
                 bool, LockSlowPathWrapper, std::atomic<StateT>*>>>
   static inline bool LockImpl(Isolate* requester,
                               DirectHandle<JSAtomicsMutex> mutex,
-                              std::optional<base::TimeDelta> timeout,
+                              std::optional<::v8::base::TimeDelta> timeout,
                               LockSlowPathWrapper slow_path_wrapper);
 
   using TorqueGeneratedJSAtomicsMutex<
@@ -413,12 +413,12 @@ class JSAtomicsCondition
   V8_EXPORT_PRIVATE static bool WaitFor(Isolate* requester,
                                         DirectHandle<JSAtomicsCondition> cv,
                                         DirectHandle<JSAtomicsMutex> mutex,
-                                        std::optional<base::TimeDelta> timeout);
+                                        std::optional<::v8::base::TimeDelta> timeout);
 
   V8_EXPORT_PRIVATE static MaybeDirectHandle<JSReceiver> WaitAsync(
       Isolate* requester, DirectHandle<JSAtomicsCondition> cv,
       DirectHandle<JSAtomicsMutex> mutex,
-      std::optional<base::TimeDelta> timeout);
+      std::optional<::v8::base::TimeDelta> timeout);
 
   static void HandleAsyncNotify(WaitAsyncWaiterQueueNode* node);
   static void HandleAsyncTimeout(WaitAsyncWaiterQueueNode* node);

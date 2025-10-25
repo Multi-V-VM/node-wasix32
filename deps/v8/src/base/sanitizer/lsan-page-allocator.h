@@ -79,7 +79,7 @@ class V8_BASE_EXPORT LsanPageAllocator : public ::v8::PageAllocator {
   const size_t allocate_page_size_;
   const size_t commit_page_size_;
 #if defined(LEAK_SANITIZER)
-  base::Mutex not_registered_regions_mutex_;
+  ::v8::base::Mutex not_registered_regions_mutex_;
   std::set<void*> not_registered_regions_;
 #endif
 };

@@ -161,7 +161,7 @@ DefaultPlatform::~DefaultPlatform() {
 namespace {
 
 double DefaultTimeFunction() {
-  return base::TimeTicks::Now().ToInternalValue() /
+  return ::v8::base::TimeTicks::Now().ToInternalValue() /
          static_cast<double>(base::Time::kMicrosecondsPerSecond);
 }
 

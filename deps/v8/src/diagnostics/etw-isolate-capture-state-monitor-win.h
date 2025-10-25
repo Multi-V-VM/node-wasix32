@@ -15,7 +15,7 @@ namespace ETWJITInterface {
 
 class V8_EXPORT_PRIVATE EtwIsolateCaptureStateMonitor {
  public:
-  EtwIsolateCaptureStateMonitor(base::Mutex* mutex,
+  EtwIsolateCaptureStateMonitor(::v8::base::Mutex* mutex,
                                 size_t pending_isolate_count);
   EtwIsolateCaptureStateMonitor(const EtwIsolateCaptureStateMonitor&) = delete;
   EtwIsolateCaptureStateMonitor& operator=(
@@ -23,7 +23,7 @@ class V8_EXPORT_PRIVATE EtwIsolateCaptureStateMonitor {
 
   // Call from ETW callback thread to wait for the specified time or until
   // Notify is called pending_isolate_count times.
-  bool WaitFor(const base::TimeDelta& delta);
+  bool WaitFor(const ::v8::base::TimeDelta& delta);
 
   // Called from isolate thread to unblock WaitFor.
   void Notify();
@@ -31,12 +31,12 @@ class V8_EXPORT_PRIVATE EtwIsolateCaptureStateMonitor {
  private:
   // Must be held prior to calling WaitFor.
   // Also used to sychronize access when reading/writing the isolate_count_.
-  base::Mutex* mutex_;
+  ::v8::base::Mutex* mutex_;
   size_t pending_isolate_count_;
-  base::ConditionVariable isolates_ready_cv_;
+  ::v8::base::ConditionVariable isolates_ready_cv_;
   // Used to track when WaitFor started and how much of the original timeout
   // remains when recovering from spurious wakeups.
-  base::TimeTicks wait_started_;
+  ::v8::base::TimeTicks wait_started_;
 };
 
 }  // namespace ETWJITInterface

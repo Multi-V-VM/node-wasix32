@@ -2820,9 +2820,9 @@ wasm::WasmCompilationResult Pipeline::GenerateWasmCode(
     wasm::WasmDetectedFeatures* detected, Counters* counters) {
   auto* wasm_engine = wasm::GetWasmEngine();
   const wasm::WasmModule* module = env->module;
-  base::TimeTicks start_time;
+  ::v8::base::TimeTicks start_time;
   if (V8_UNLIKELY(v8_flags.trace_wasm_compilation_times)) {
-    start_time = base::TimeTicks::Now();
+    start_time = ::v8::base::TimeTicks::Now();
   }
   ZoneStats zone_stats(wasm_engine->allocator());
 
@@ -3051,7 +3051,7 @@ wasm::WasmCompilationResult Pipeline::GenerateWasmCode(
   }
 
   if (V8_UNLIKELY(v8_flags.trace_wasm_compilation_times)) {
-    base::TimeDelta time = base::TimeTicks::Now() - start_time;
+    ::v8::base::TimeDelta time = ::v8::base::TimeTicks::Now() - start_time;
     int codesize = result.code_desc.body_size();
     StdoutStream{} << "Compiled function "
                    << reinterpret_cast<const void*>(module) << "#"

@@ -22,15 +22,15 @@ class Heap;
 // Calculate heap limit and update it accordingly.
 class MemoryBalancer {
  public:
-  MemoryBalancer(Heap* heap, base::TimeTicks startup_time);
+  MemoryBalancer(Heap* heap, ::v8::base::TimeTicks startup_time);
 
   void UpdateAllocationRate(size_t major_allocation_bytes,
-                            base::TimeDelta major_allocation_duration);
-  void UpdateGCSpeed(size_t major_gc_bytes, base::TimeDelta major_gc_duration);
+                            ::v8::base::TimeDelta major_allocation_duration);
+  void UpdateGCSpeed(size_t major_gc_bytes, ::v8::base::TimeDelta major_gc_duration);
 
   void HeartbeatUpdate();
 
-  void RecomputeLimits(size_t embedder_allocation_limit, base::TimeTicks time);
+  void RecomputeLimits(size_t embedder_allocation_limit, ::v8::base::TimeTicks time);
 
  private:
   class SmoothedBytesAndDuration {
@@ -80,7 +80,7 @@ class MemoryBalancer {
   // HeartbeatTask uses the diff between last observed time/memory and
   // current time/memory to calculate the allocation rate.
   size_t last_measured_memory_ = 0;
-  base::TimeTicks last_measured_at_;
+  ::v8::base::TimeTicks last_measured_at_;
   bool heartbeat_task_started_ = false;
 };
 

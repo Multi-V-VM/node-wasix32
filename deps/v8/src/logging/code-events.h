@@ -128,7 +128,7 @@ class Logger {
   Logger& operator=(const Logger&) = delete;
 
   bool AddListener(LogEventListener* listener) {
-    base::RecursiveMutexGuard guard(&mutex_);
+    ::v8::base::RecursiveMutexGuard guard(&mutex_);
     auto position = std::find(listeners_.begin(), listeners_.end(), listener);
     if (position != listeners_.end()) return false;
     // Add the listener to the end and update the element
@@ -137,7 +137,7 @@ class Logger {
   }
 
   bool RemoveListener(LogEventListener* listener) {
-    base::RecursiveMutexGuard guard(&mutex_);
+    ::v8::base::RecursiveMutexGuard guard(&mutex_);
     auto position = std::find(listeners_.begin(), listeners_.end(), listener);
     if (position == listeners_.end()) return false;
     listeners_.erase(position);
@@ -145,7 +145,7 @@ class Logger {
   }
 
   bool is_listening_to_code_events() {
-    base::RecursiveMutexGuard guard(&mutex_);
+    ::v8::base::RecursiveMutexGuard guard(&mutex_);
     for (auto listener : listeners_) {
       if (listener->is_listening_to_code_events()) return true;
     }
@@ -153,7 +153,7 @@ class Logger {
   }
 
   bool allows_code_compaction() {
-    base::RecursiveMutexGuard guard(&mutex_);
+    ::v8::base::RecursiveMutexGuard guard(&mutex_);
     for (auto listener : listeners_) {
       if (!listener->allows_code_compaction()) return false;
     }
@@ -162,7 +162,7 @@ class Logger {
 
   void CodeCreateEvent(CodeTag tag, DirectHandle<AbstractCode> code,
                        const char* comment) {
-    base::RecursiveMutexGuard guard(&mutex_);
+    ::v8::base::RecursiveMutexGuard guard(&mutex_);
     for (auto listener : listeners_) {
       listener->CodeCreateEvent(tag, code, comment);
     }
@@ -170,7 +170,7 @@ class Logger {
 
   void CodeCreateEvent(CodeTag tag, DirectHandle<AbstractCode> code,
                        DirectHandle<Name> name) {
-    base::RecursiveMutexGuard guard(&mutex_);
+    ::v8::base::RecursiveMutexGuard guard(&mutex_);
     for (auto listener : listeners_) {
       listener->CodeCreateEvent(tag, code, name);
     }
@@ -179,7 +179,7 @@ class Logger {
   void CodeCreateEvent(CodeTag tag, DirectHandle<AbstractCode> code,
                        DirectHandle<SharedFunctionInfo> shared,
                        DirectHandle<Name> name) {
-    base::RecursiveMutexGuard guard(&mutex_);
+    ::v8::base::RecursiveMutexGuard guard(&mutex_);
     for (auto listener : listeners_) {
       listener->CodeCreateEvent(tag, code, shared, name);
     }
@@ -188,7 +188,7 @@ class Logger {
   void CodeCreateEvent(CodeTag tag, DirectHandle<AbstractCode> code,
                        DirectHandle<SharedFunctionInfo> shared,
                        DirectHandle<Name> source, int line, int column) {
-    base::RecursiveMutexGuard guard(&mutex_);
+    ::v8::base::RecursiveMutexGuard guard(&mutex_);
     for (auto listener : listeners_) {
       listener->CodeCreateEvent(tag, code, shared, source, line, column);
     }
@@ -198,7 +198,7 @@ class Logger {
   void CodeCreateEvent(CodeTag tag, const wasm::WasmCode* code,
                        wasm::WasmName name, const char* source_url,
                        int code_offset, int script_id) {
-    base::RecursiveMutexGuard guard(&mutex_);
+    ::v8::base::RecursiveMutexGuard guard(&mutex_);
     for (auto listener : listeners_) {
       listener->CodeCreateEvent(tag, code, name, source_url, code_offset,
                                 script_id);
@@ -207,21 +207,21 @@ class Logger {
 #endif  // V8_ENABLE_WEBASSEMBLY
 
   void CallbackEvent(DirectHandle<Name> name, Address entry_point) {
-    base::RecursiveMutexGuard guard(&mutex_);
+    ::v8::base::RecursiveMutexGuard guard(&mutex_);
     for (auto listener : listeners_) {
       listener->CallbackEvent(name, entry_point);
     }
   }
 
   void GetterCallbackEvent(DirectHandle<Name> name, Address entry_point) {
-    base::RecursiveMutexGuard guard(&mutex_);
+    ::v8::base::RecursiveMutexGuard guard(&mutex_);
     for (auto listener : listeners_) {
       listener->GetterCallbackEvent(name, entry_point);
     }
   }
 
   void SetterCallbackEvent(DirectHandle<Name> name, Address entry_point) {
-    base::RecursiveMutexGuard guard(&mutex_);
+    ::v8::base::RecursiveMutexGuard guard(&mutex_);
     for (auto listener : listeners_) {
       listener->SetterCallbackEvent(name, entry_point);
     }
@@ -229,7 +229,7 @@ class Logger {
 
   void RegExpCodeCreateEvent(DirectHandle<AbstractCode> code,
                              DirectHandle<String> source, RegExpFlags flags) {
-    base::RecursiveMutexGuard guard(&mutex_);
+    ::v8::base::RecursiveMutexGuard guard(&mutex_);
     for (auto listener : listeners_) {
       listener->RegExpCodeCreateEvent(code, source, flags);
     }
@@ -237,35 +237,35 @@ class Logger {
 
   void CodeMoveEvent(Tagged<InstructionStream> from,
                      Tagged<InstructionStream> to) {
-    base::RecursiveMutexGuard guard(&mutex_);
+    ::v8::base::RecursiveMutexGuard guard(&mutex_);
     for (auto listener : listeners_) {
       listener->CodeMoveEvent(from, to);
     }
   }
 
   void BytecodeMoveEvent(Tagged<BytecodeArray> from, Tagged<BytecodeArray> to) {
-    base::RecursiveMutexGuard guard(&mutex_);
+    ::v8::base::RecursiveMutexGuard guard(&mutex_);
     for (auto listener : listeners_) {
       listener->BytecodeMoveEvent(from, to);
     }
   }
 
   void SharedFunctionInfoMoveEvent(Address from, Address to) {
-    base::RecursiveMutexGuard guard(&mutex_);
+    ::v8::base::RecursiveMutexGuard guard(&mutex_);
     for (auto listener : listeners_) {
       listener->SharedFunctionInfoMoveEvent(from, to);
     }
   }
 
   void NativeContextMoveEvent(Address from, Address to) {
-    base::RecursiveMutexGuard guard(&mutex_);
+    ::v8::base::RecursiveMutexGuard guard(&mutex_);
     for (auto listener : listeners_) {
       listener->NativeContextMoveEvent(from, to);
     }
   }
 
   void CodeMovingGCEvent() {
-    base::RecursiveMutexGuard guard(&mutex_);
+    ::v8::base::RecursiveMutexGuard guard(&mutex_);
     for (auto listener : listeners_) {
       listener->CodeMovingGCEvent();
     }
@@ -273,7 +273,7 @@ class Logger {
 
   void CodeDisableOptEvent(DirectHandle<AbstractCode> code,
                            DirectHandle<SharedFunctionInfo> shared) {
-    base::RecursiveMutexGuard guard(&mutex_);
+    ::v8::base::RecursiveMutexGuard guard(&mutex_);
     for (auto listener : listeners_) {
       listener->CodeDisableOptEvent(code, shared);
     }
@@ -281,7 +281,7 @@ class Logger {
 
   void CodeDeoptEvent(DirectHandle<Code> code, DeoptimizeKind kind, Address pc,
                       int fp_to_sp_delta) {
-    base::RecursiveMutexGuard guard(&mutex_);
+    ::v8::base::RecursiveMutexGuard guard(&mutex_);
     for (auto listener : listeners_) {
       listener->CodeDeoptEvent(code, kind, pc, fp_to_sp_delta);
     }
@@ -290,14 +290,14 @@ class Logger {
   void CodeDependencyChangeEvent(DirectHandle<Code> code,
                                  DirectHandle<SharedFunctionInfo> sfi,
                                  const char* reason) {
-    base::RecursiveMutexGuard guard(&mutex_);
+    ::v8::base::RecursiveMutexGuard guard(&mutex_);
     for (auto listener : listeners_) {
       listener->CodeDependencyChangeEvent(code, sfi, reason);
     }
   }
 
   void WeakCodeClearEvent() {
-    base::RecursiveMutexGuard guard(&mutex_);
+    ::v8::base::RecursiveMutexGuard guard(&mutex_);
     for (auto listener : listeners_) {
       listener->WeakCodeClearEvent();
     }
@@ -305,7 +305,7 @@ class Logger {
 
  private:
   std::vector<LogEventListener*> listeners_;
-  base::RecursiveMutex mutex_;
+  ::v8::base::RecursiveMutex mutex_;
 };
 
 }  // namespace internal

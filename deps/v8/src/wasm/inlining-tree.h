@@ -258,7 +258,7 @@ void InliningTree::FullyExpand() {
       queue;
   queue.push(this);
   int inlined_count = 0;
-  base::MutexGuard mutex_guard(&data_->module->type_feedback.mutex);
+  ::v8::base::MutexGuard mutex_guard(&data_->module->type_feedback.mutex);
   while (!queue.empty() && inlined_count < kMaxInlinedCount) {
     InliningTree* top = queue.top();
     if (v8_flags.trace_wasm_inlining) {

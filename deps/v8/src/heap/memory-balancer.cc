@@ -10,11 +10,11 @@
 namespace v8 {
 namespace internal {
 
-MemoryBalancer::MemoryBalancer(Heap* heap, base::TimeTicks startup_time)
+MemoryBalancer::MemoryBalancer(Heap* heap, ::v8::base::TimeTicks startup_time)
     : heap_(heap), last_measured_at_(startup_time) {}
 
 void MemoryBalancer::RecomputeLimits(size_t embedder_allocation_limit,
-                                     base::TimeTicks time) {
+                                     ::v8::base::TimeTicks time) {
   embedder_allocation_limit_ = embedder_allocation_limit;
   last_measured_memory_ = live_memory_after_gc_ =
       heap_->OldGenerationSizeOfObjects();
@@ -58,7 +58,7 @@ void MemoryBalancer::RefreshLimit() {
 }
 
 void MemoryBalancer::UpdateGCSpeed(size_t major_gc_bytes,
-                                   base::TimeDelta major_gc_duration) {
+                                   ::v8::base::TimeDelta major_gc_duration) {
   if (!major_gc_speed_) {
     major_gc_speed_ = SmoothedBytesAndDuration{
         major_gc_bytes, major_gc_duration.InMillisecondsF()};
@@ -69,7 +69,7 @@ void MemoryBalancer::UpdateGCSpeed(size_t major_gc_bytes,
 }
 
 void MemoryBalancer::UpdateAllocationRate(
-    size_t major_allocation_bytes, base::TimeDelta major_allocation_duration) {
+    size_t major_allocation_bytes, ::v8::base::TimeDelta major_allocation_duration) {
   if (!major_allocation_rate_) {
     major_allocation_rate_ = SmoothedBytesAndDuration{
         major_allocation_bytes, major_allocation_duration.InMillisecondsF()};
@@ -82,10 +82,10 @@ void MemoryBalancer::UpdateAllocationRate(
 
 void MemoryBalancer::HeartbeatUpdate() {
   heartbeat_task_started_ = false;
-  auto time = base::TimeTicks::Now();
+  auto time = ::v8::base::TimeTicks::Now();
   auto memory = heap_->OldGenerationSizeOfObjects();
 
-  const base::TimeDelta duration = time - last_measured_at_;
+  const ::v8::base::TimeDelta duration = time - last_measured_at_;
   const size_t allocated_bytes =
       memory > last_measured_memory_ ? memory - last_measured_memory_ : 0;
   UpdateAllocationRate(allocated_bytes, duration);

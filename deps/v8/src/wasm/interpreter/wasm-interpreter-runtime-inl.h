@@ -181,8 +181,8 @@ inline bool WasmInterpreterRuntime::WasmStackCheck(
   }
 
   if (V8_UNLIKELY(v8_flags.drumbrake_fuzzer_timeout &&
-                  base::TimeTicks::Now() - fuzzer_start_time_ >
-                      base::TimeDelta::FromMilliseconds(
+                  ::v8::base::TimeTicks::Now() - fuzzer_start_time_ >
+                      ::v8::base::TimeDelta::FromMilliseconds(
                           v8_flags.drumbrake_fuzzer_timeout_limit_ms))) {
     ClearThreadInWasmScope clear_wasm_flag(isolate_);
     SealHandleScope shs(isolate_);

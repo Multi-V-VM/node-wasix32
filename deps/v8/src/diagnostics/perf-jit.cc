@@ -220,7 +220,7 @@ PerfJitLogger::~PerfJitLogger() {
 }
 
 uint64_t PerfJitLogger::GetTimestamp() {
-  return base::TimeTicks::Now().since_origin().InNanoseconds();
+  return ::v8::base::TimeTicks::Now().since_origin().InNanoseconds();
 }
 
 void PerfJitLogger::LogRecordedBuffer(

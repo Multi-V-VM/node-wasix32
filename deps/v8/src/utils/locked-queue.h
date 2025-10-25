@@ -34,8 +34,8 @@ class LockedQueue final {
  private:
   struct Node;
 
-  mutable base::Mutex head_mutex_;
-  base::Mutex tail_mutex_;
+  mutable ::v8::base::Mutex head_mutex_;
+  ::v8::base::Mutex tail_mutex_;
   Node* head_;
   Node* tail_;
   std::atomic<size_t> size_;

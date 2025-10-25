@@ -63,9 +63,9 @@ static constexpr size_t kV8ActivationThreshold = 0;
 static constexpr size_t kEmbedderActivationThreshold = 0;
 #endif  // DEBUG
 
-base::TimeDelta GetMaxDuration(StepOrigin step_origin) {
+::v8::base::TimeDelta GetMaxDuration(StepOrigin step_origin) {
   if (v8_flags.predictable) {
-    return base::TimeDelta::Max();
+    return ::v8::base::TimeDelta::Max();
   }
   switch (step_origin) {
     case StepOrigin::kTask:

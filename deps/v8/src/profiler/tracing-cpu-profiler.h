@@ -48,7 +48,7 @@ class TracingCpuProfilerImpl final
   Isolate* isolate_;
   std::unique_ptr<CpuProfiler> profiler_;
   bool profiling_enabled_;
-  base::Mutex mutex_;
+  ::v8::base::Mutex mutex_;
 };
 
 }  // namespace internal

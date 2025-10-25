@@ -567,7 +567,7 @@ class TypeCanonicalizer {
   CanonicalTypeVector canonical_types_;
   AccountingAllocator allocator_;
   Zone zone_{&allocator_, "canonical type zone"};
-  mutable base::Mutex mutex_;
+  mutable ::v8::base::Mutex mutex_;
 };
 
 // Returns a reference to the TypeCanonicalizer shared by the entire process.

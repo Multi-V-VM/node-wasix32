@@ -380,7 +380,7 @@ class MultiMappedAllocator : public ArrayBufferAllocatorBase {
   static constexpr size_t kChunkSize = 2 * 1024 * 1024;
 
   std::unordered_map<void*, void*> regions_;
-  base::Mutex regions_mutex_;
+  ::v8::base::Mutex regions_mutex_;
 };
 
 #endif  // V8_OS_LINUX
@@ -530,14 +530,14 @@ class ExternalOwningOneByteStringResource
 
 // static variables:
 CounterMap* Shell::counter_map_;
-base::Mutex Shell::counter_mutex_;
+::v8::base::Mutex Shell::counter_mutex_;
 base::OS::MemoryMappedFile* Shell::counters_file_ = nullptr;
 CounterCollection Shell::local_counters_;
 CounterCollection* Shell::counters_ = &local_counters_;
 base::LazyMutex Shell::context_mutex_;
-const base::TimeTicks Shell::kInitialTicks = base::TimeTicks::Now();
+const ::v8::base::TimeTicks Shell::kInitialTicks = ::v8::base::TimeTicks::Now();
 Global<Function> Shell::stringify_function_;
-base::Mutex Shell::profiler_end_callback_lock_;
+::v8::base::Mutex Shell::profiler_end_callback_lock_;
 std::map<Isolate*, std::pair<Global<Function>, Global<Context>>>
     Shell::profiler_end_callback_;
 base::LazyMutex Shell::workers_mutex_;
@@ -2066,7 +2066,7 @@ double Shell::GetTimestamp() {
   if (i::v8_flags.verify_predictable) {
     return g_platform->MonotonicallyIncreasingTime();
   } else {
-    base::TimeDelta delta = base::TimeTicks::Now() - kInitialTicks;
+    ::v8::base::TimeDelta delta = ::v8::base::TimeTicks::Now() - kInitialTicks;
     return delta.InMillisecondsF();
   }
 }
@@ -2075,8 +2075,8 @@ uint64_t Shell::GetTracingTimestampFromPerformanceTimestamp(
   // Don't use this in --verify-predictable mode, predictable timestamps don't
   // work well with tracing.
   DCHECK(!i::v8_flags.verify_predictable);
-  base::TimeDelta delta =
-      base::TimeDelta::FromMillisecondsD(performance_timestamp);
+  ::v8::base::TimeDelta delta =
+      ::v8::base::TimeDelta::FromMillisecondsD(performance_timestamp);
   // See TracingController::CurrentTimestampMicroseconds().
   int64_t internal_value = (delta + kInitialTicks).ToInternalValue();
   DCHECK_GE(internal_value, 0);

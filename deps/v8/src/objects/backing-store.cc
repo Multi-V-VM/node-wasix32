@@ -753,7 +753,7 @@ namespace {
 // Implementation details of GlobalBackingStoreRegistry.
 struct GlobalBackingStoreRegistryImpl {
   GlobalBackingStoreRegistryImpl() = default;
-  base::Mutex mutex_;
+  ::v8::base::Mutex mutex_;
   std::unordered_map<const void*, std::weak_ptr<BackingStore>> map_;
 };
 

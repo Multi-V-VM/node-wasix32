@@ -299,7 +299,7 @@ class DisallowHeapAccessIf {
 // we're holding the mutex.
 class V8_NODISCARD NoGarbageCollectionMutexGuard {
  public:
-  explicit NoGarbageCollectionMutexGuard(base::Mutex* mutex)
+  explicit NoGarbageCollectionMutexGuard(::v8::base::Mutex* mutex)
       : guard_(mutex), mutex_(mutex), no_gc_(::std::in_place) {}
 
   void Unlock() {
@@ -312,8 +312,8 @@ class V8_NODISCARD NoGarbageCollectionMutexGuard {
   }
 
  private:
-  base::MutexGuard guard_;
-  base::Mutex* mutex_;
+  ::v8::base::MutexGuard guard_;
+  ::v8::base::Mutex* mutex_;
   std::optional<DisallowGarbageCollection> no_gc_;
 };
 

@@ -182,25 +182,25 @@ class V8_NODISCARD SyncWaiterQueueNode final : public WaiterQueueNode {
   }
 
   // Returns false if timed out, true otherwise.
-  bool WaitFor(const base::TimeDelta& rel_time) {
+  bool WaitFor(const ::v8::base::TimeDelta& rel_time) {
     bool result;
     AllowGarbageCollection allow_before_parking;
     requester_->main_thread_local_heap()->ExecuteWhileParked([this, rel_time,
                                                               &result]() {
       ::v8::base::MutexGuard guard(&wait_lock_);
-      base::TimeTicks current_time = base::TimeTicks::Now();
-      base::TimeTicks timeout_time = current_time + rel_time;
+      ::v8::base::TimeTicks current_time = ::v8::base::TimeTicks::Now();
+      ::v8::base::TimeTicks timeout_time = current_time + rel_time;
       for (;;) {
         if (!should_wait_) {
           result = true;
           return;
         }
-        current_time = base::TimeTicks::Now();
+        current_time = ::v8::base::TimeTicks::Now();
         if (current_time >= timeout_time) {
           result = false;
           return;
         }
-        base::TimeDelta time_until_timeout = timeout_time - current_time;
+        ::v8::base::TimeDelta time_until_timeout = timeout_time - current_time;
         bool wait_res = wait_cond_var_.WaitFor(&wait_lock_, time_until_timeout);
         USE(wait_res);
         // The wake up may have been spurious, so loop again.
@@ -230,8 +230,8 @@ class V8_NODISCARD SyncWaiterQueueNode final : public WaiterQueueNode {
  private:
   void SetReadyForAsyncCleanup() override { UNREACHABLE(); }
 
-  base::Mutex wait_lock_;
-  base::ConditionVariable wait_cond_var_;
+  ::v8::base::Mutex wait_lock_;
+  ::v8::base::ConditionVariable wait_cond_var_;
   bool should_wait_;
 };
 
@@ -736,7 +736,7 @@ bool JSAtomicsMutex::LockJSMutexOrDequeueTimedOutWaiter(
 bool JSAtomicsMutex::LockSlowPath(Isolate* requester,
                                   DirectHandle<JSAtomicsMutex> mutex,
                                   std::atomic<StateT>* state,
-                                  std::optional<base::TimeDelta> timeout) {
+                                  std::optional<::v8::base::TimeDelta> timeout) {
   for (;;) {
     // Spin for a little bit to try to acquire the lock, so as to be fast under
     // microcontention.
@@ -820,7 +820,7 @@ void JSAtomicsMutex::UnlockSlowPath(Isolate* requester,
 // static
 MaybeDirectHandle<JSPromise> JSAtomicsMutex::LockOrEnqueuePromise(
     Isolate* requester, DirectHandle<JSAtomicsMutex> mutex,
-    DirectHandle<Object> callback, std::optional<base::TimeDelta> timeout) {
+    DirectHandle<Object> callback, std::optional<::v8::base::TimeDelta> timeout) {
   Handle<JSPromise> internal_locked_promise =
       requester->factory()->NewJSPromise();
   DirectHandle<JSReceiver> waiting_for_callback_promise;
@@ -864,7 +864,7 @@ bool JSAtomicsMutex::LockAsync(Isolate* requester,
                                Handle<JSPromise> internal_locked_promise,
                                MaybeHandle<JSPromise> unlocked_promise,
                                LockAsyncWaiterQueueNode** waiter_node,
-                               std::optional<base::TimeDelta> timeout) {
+                               std::optional<::v8::base::TimeDelta> timeout) {
   bool locked =
       LockImpl(requester, mutex, timeout, [=](std::atomic<StateT>* state) {
         return LockAsyncSlowPath(requester, mutex, state,
@@ -904,7 +904,7 @@ bool JSAtomicsMutex::LockAsyncSlowPath(
     std::atomic<StateT>* state, Handle<JSPromise> internal_locked_promise,
     MaybeHandle<JSPromise> unlocked_promise,
     LockAsyncWaiterQueueNode** waiter_node,
-    std::optional<base::TimeDelta> timeout) {
+    std::optional<::v8::base::TimeDelta> timeout) {
   // Spin for a little bit to try to acquire the lock, so as to be fast under
   // microcontention.
   if (BackoffTryLock(isolate, mutex, state)) {
@@ -1177,7 +1177,7 @@ void JSAtomicsCondition::QueueWaiter(Isolate* requester,
 bool JSAtomicsCondition::WaitFor(Isolate* requester,
                                  DirectHandle<JSAtomicsCondition> cv,
                                  DirectHandle<JSAtomicsMutex> mutex,
-                                 std::optional<base::TimeDelta> timeout) {
+                                 std::optional<::v8::base::TimeDelta> timeout) {
   DisallowGarbageCollection no_gc;
 
   bool rv;
@@ -1287,7 +1287,7 @@ uint32_t JSAtomicsCondition::Notify(Isolate* requester,
 MaybeDirectHandle<JSReceiver> JSAtomicsCondition::WaitAsync(
     Isolate* requester, DirectHandle<JSAtomicsCondition> cv,
     DirectHandle<JSAtomicsMutex> mutex,
-    std::optional<base::TimeDelta> timeout) {
+    std::optional<::v8::base::TimeDelta> timeout) {
   Handle<JSPromise> internal_waiting_promise =
       requester->factory()->NewJSPromise();
   DirectHandle<Context> handler_context =

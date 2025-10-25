@@ -323,7 +323,7 @@ class V8_EXPORT ThreadIsolation {
     class JitPage* JitPage() { return jit_page_; }
 
    private:
-    base::MutexGuard page_lock_;
+    ::v8::base::MutexGuard page_lock_;
     class JitPage* jit_page_;
     // We get the address from the key of the map when we do a JitPage lookup.
     // We can save some memory by storing it as part of the reference instead.
@@ -336,7 +336,7 @@ class V8_EXPORT ThreadIsolation {
     ~JitPage();
 
    private:
-    base::Mutex mutex_;
+    ::v8::base::Mutex mutex_;
     typedef std::map<Address, JitAllocation, std::less<Address>,
                      StlAllocator<std::pair<const Address, JitAllocation>>>
         AllocationMap;

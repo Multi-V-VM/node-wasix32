@@ -73,10 +73,10 @@ class V8_EXPORT_PRIVATE LocalIsolate final : private HiddenLocalFactory {
   }
 
   StringTable* string_table() const { return isolate_->string_table(); }
-  base::Mutex* internalized_string_access() {
+  ::v8::base::Mutex* internalized_string_access() {
     return isolate_->internalized_string_access();
   }
-  base::Mutex* shared_function_info_access() {
+  ::v8::base::Mutex* shared_function_info_access() {
     return isolate_->shared_function_info_access();
   }
   const AstStringConstants* ast_string_constants() {
@@ -214,7 +214,7 @@ class V8_EXPORT_PRIVATE LocalIsolate final : private HiddenLocalFactory {
 template <>
 class V8_NODISCARD MutexGuardIfOffThread<LocalIsolate> final {
  public:
-  MutexGuardIfOffThread(base::Mutex* mutex, LocalIsolate* isolate) {
+  MutexGuardIfOffThread(::v8::base::Mutex* mutex, LocalIsolate* isolate) {
     DCHECK_NOT_NULL(mutex);
     DCHECK_NOT_NULL(isolate);
     if (!isolate->is_main_thread()) mutex_guard_.emplace(mutex);
@@ -224,7 +224,7 @@ class V8_NODISCARD MutexGuardIfOffThread<LocalIsolate> final {
   MutexGuardIfOffThread& operator=(const MutexGuardIfOffThread&) = delete;
 
  private:
-  std::optional<base::MutexGuard> mutex_guard_;
+  std::optional<::v8::base::MutexGuard> mutex_guard_;
 };
 
 }  // namespace internal

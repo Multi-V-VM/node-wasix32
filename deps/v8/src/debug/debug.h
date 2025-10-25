@@ -745,7 +745,7 @@ class V8_NODISCARD DebugScope {
 
   void set_terminate_on_resume();
 
-  base::TimeDelta ElapsedTimeSinceCreation();
+  ::v8::base::TimeDelta ElapsedTimeSinceCreation();
 
  private:
   Isolate* isolate() { return debug_->isolate_; }

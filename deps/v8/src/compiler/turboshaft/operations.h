@@ -1367,7 +1367,7 @@ class V8_EXPORT_PRIVATE SupportedOperations {
 #define DECLARE_GETTER(name, machine_name)     \
   static bool name() {                         \
     if constexpr (DEBUG_BOOL) {                \
-      base::MutexGuard lock(mutex_.Pointer()); \
+      ::v8::base::MutexGuard lock(mutex_.Pointer()); \
       DCHECK(initialized_);                    \
     }                                          \
     return instance_.name##_;                  \

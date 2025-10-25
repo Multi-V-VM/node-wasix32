@@ -192,9 +192,9 @@ class V8_EXPORT_PRIVATE WasmCodePointerTable
   std::atomic<typename Base::FreelistHead> freelist_head_ = typename Base::FreelistHead();
   // The mutex is used to avoid two threads from concurrently allocating
   // segments and using more memory than needed.
-  base::Mutex segment_allocation_mutex_;
+  ::v8::base::Mutex segment_allocation_mutex_;
 
-  base::Mutex native_function_map_mutex_;
+  ::v8::base::Mutex native_function_map_mutex_;
   std::map<Address, WasmCodePointer> native_function_map_;
 
   friend class WasmCodePointerTableTest;

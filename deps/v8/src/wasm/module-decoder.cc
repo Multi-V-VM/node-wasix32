@@ -613,7 +613,7 @@ class ValidateFunctionsTask : public JobTask {
   const std::function<bool(int)> filter_;
   std::atomic<int> next_function_;
   const int after_last_function_;
-  base::Mutex set_error_mutex_;
+  ::v8::base::Mutex set_error_mutex_;
   WasmError* const error_out_;
   std::atomic<WasmDetectedFeatures>* const detected_features_;
 };

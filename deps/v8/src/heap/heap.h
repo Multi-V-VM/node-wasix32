@@ -1264,7 +1264,7 @@ class Heap final {
   // Returns the capacity of the old generation.
   V8_EXPORT_PRIVATE size_t OldGenerationCapacity() const;
 
-  base::Mutex* heap_expansion_mutex() { return &heap_expansion_mutex_; }
+  ::v8::base::Mutex* heap_expansion_mutex() { return &heap_expansion_mutex_; }
 
   // Returns the amount of memory currently committed for the heap.
   size_t CommittedMemory();
@@ -1614,7 +1614,7 @@ class Heap final {
   // Checks whether OldGenerationCapacity() can be expanded by `size` bytes and
   // still fits into `max_old_generation_size_`.
   V8_EXPORT_PRIVATE bool IsOldGenerationExpansionAllowed(
-      size_t size, const base::MutexGuard& expansion_mutex_witness) const;
+      size_t size, const ::v8::base::MutexGuard& expansion_mutex_witness) const;
 
   bool ShouldReduceMemory() const {
     return current_gc_flags_ & GCFlag::kReduceMemoryFootprint;
@@ -1702,7 +1702,7 @@ class Heap final {
     std::vector<TaggedBase> young_strings_;
     std::vector<TaggedBase> old_strings_;
     // Used to protect access with --shared-string-table.
-    base::Mutex mutex_;
+    ::v8::base::Mutex mutex_;
   };
 
   static const int kInitialEvalCacheSize = 64;
@@ -1896,7 +1896,7 @@ class Heap final {
     return old_generation_allocation_limit() - static_cast<size_t>(bytes);
   }
 
-  void UpdateTotalGCTime(base::TimeDelta duration);
+  void UpdateTotalGCTime(::v8::base::TimeDelta duration);
 
   bool IsIneffectiveMarkCompact(size_t old_generation_size,
                                 double mutator_utilization);
@@ -1980,7 +1980,7 @@ class Heap final {
 
   size_t GlobalMemoryAvailable();
 
-  void RecomputeLimits(GarbageCollector collector, base::TimeTicks time);
+  void RecomputeLimits(GarbageCollector collector, ::v8::base::TimeTicks time);
   void RecomputeLimitsAfterLoadingIfNeeded();
   struct LimitsCompuatationResult {
     size_t old_generation_allocation_limit;
@@ -2260,7 +2260,7 @@ class Heap final {
   int nodes_promoted_ = 0;
 
   // Total time spent in GC.
-  base::TimeDelta total_gc_time_ms_;
+  ::v8::base::TimeDelta total_gc_time_ms_;
 
   // Last time a garbage collection happened.
   double last_gc_time_ = 0.0;
@@ -2314,9 +2314,9 @@ class Heap final {
   std::optional<EmbedderStackStateOrigin> embedder_stack_state_origin_;
 
   StrongRootsEntry* strong_roots_head_ = nullptr;
-  base::Mutex strong_roots_mutex_;
+  ::v8::base::Mutex strong_roots_mutex_;
 
-  base::Mutex heap_expansion_mutex_;
+  ::v8::base::Mutex heap_expansion_mutex_;
 
   bool need_to_remove_stress_concurrent_allocation_observer_ = false;
 

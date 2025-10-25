@@ -100,10 +100,10 @@ class MutablePageMetadata : public MemoryChunkMetadata {
     return Chunk()->SetYoungGenerationPageFlags(marking_mode);
   }
 
-  base::Mutex& mutex() { return mutex_; }
-  const base::Mutex& mutex() const { return mutex_; }
-  base::Mutex& object_mutex() { return object_mutex_; }
-  const base::Mutex& object_mutex() const { return object_mutex_; }
+  ::v8::base::Mutex& mutex() { return mutex_; }
+  const ::v8::base::Mutex& mutex() const { return mutex_; }
+  ::v8::base::Mutex& object_mutex() { return object_mutex_; }
+  const ::v8::base::Mutex& object_mutex() const { return object_mutex_; }
 
   void set_concurrent_sweeping_state(ConcurrentSweepingState state) {
     concurrent_sweeping_ = state;
@@ -358,8 +358,8 @@ class MutablePageMetadata : public MemoryChunkMetadata {
   // platforms. In theory, there could be a difference between Linux and Android
   // in terms of Mutex size.
 
-  base::Mutex mutex_;
-  base::Mutex object_mutex_;
+  ::v8::base::Mutex mutex_;
+  ::v8::base::Mutex object_mutex_;
 
  private:
   static constexpr intptr_t MarkingBitmapOffset() {

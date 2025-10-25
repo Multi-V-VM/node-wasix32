@@ -143,11 +143,11 @@ void IncrementalMarkingJob::Task::RunInternal() {
   }
 }
 
-std::optional<base::TimeDelta> IncrementalMarkingJob::CurrentTimeToTask()
+std::optional<::v8::base::TimeDelta> IncrementalMarkingJob::CurrentTimeToTask()
     const {
-  std::optional<base::TimeDelta> current_time_to_task;
+  std::optional<::v8::base::TimeDelta> current_time_to_task;
   if (pending_task_) {
-    const auto now = base::TimeTicks::Now();
+    const auto now = ::v8::base::TimeTicks::Now();
     DCHECK_GE(now, scheduled_time_);
     current_time_to_task.emplace(now - scheduled_time_);
   }

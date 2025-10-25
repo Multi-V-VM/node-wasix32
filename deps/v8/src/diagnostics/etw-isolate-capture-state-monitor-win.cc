@@ -14,12 +14,12 @@ namespace internal {
 namespace ETWJITInterface {
 
 EtwIsolateCaptureStateMonitor::EtwIsolateCaptureStateMonitor(
-    base::Mutex* mutex, size_t pending_isolate_count)
+    ::v8::base::Mutex* mutex, size_t pending_isolate_count)
     : mutex_(mutex), pending_isolate_count_(pending_isolate_count) {}
 
-bool EtwIsolateCaptureStateMonitor::WaitFor(const base::TimeDelta& delta) {
-  wait_started_ = base::TimeTicks::Now();
-  base::TimeDelta remaining = delta;
+bool EtwIsolateCaptureStateMonitor::WaitFor(const ::v8::base::TimeDelta& delta) {
+  wait_started_ = ::v8::base::TimeTicks::Now();
+  ::v8::base::TimeDelta remaining = delta;
 
   if (pending_isolate_count_ == 0) {
     return true;
@@ -36,7 +36,7 @@ bool EtwIsolateCaptureStateMonitor::WaitFor(const base::TimeDelta& delta) {
     }
 
     // If the timeout has expired, return false.
-    auto elapsed = base::TimeTicks::Now() - wait_started_;
+    auto elapsed = ::v8::base::TimeTicks::Now() - wait_started_;
     if (elapsed >= remaining) {
       ETWTRACEDBG << "Elapsed is " << elapsed.InMilliseconds()
                   << " greater than reminaing " << remaining.InMilliseconds()

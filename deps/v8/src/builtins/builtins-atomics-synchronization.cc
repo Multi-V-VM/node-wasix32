@@ -10,13 +10,13 @@ namespace v8 {
 namespace internal {
 namespace {
 
-std::optional<base::TimeDelta> GetTimeoutDelta(
+std::optional<::v8::base::TimeDelta> GetTimeoutDelta(
     DirectHandle<Object> timeout_obj) {
   double ms = Object::NumberValue(*timeout_obj);
   if (!std::isnan(ms)) {
     if (ms < 0) ms = 0;
     if (ms <= static_cast<double>(std::numeric_limits<int64_t>::max())) {
-      return base::TimeDelta::FromMilliseconds(static_cast<int64_t>(ms));
+      return ::v8::base::TimeDelta::FromMilliseconds(static_cast<int64_t>(ms));
     }
   }
   return std::nullopt;
@@ -150,7 +150,7 @@ BUILTIN(AtomicsMutexLockWithTimeout) {
   }
 
   DirectHandle<Object> timeout_obj = args.atOrUndefined(isolate, 3);
-  std::optional<base::TimeDelta> timeout;
+  std::optional<::v8::base::TimeDelta> timeout;
   if (!IsNumber(*timeout_obj)) {
     THROW_NEW_ERROR_RETURN_FAILURE(
         isolate, NewTypeError(MessageTemplate::kIsNotNumber, timeout_obj,
@@ -209,7 +209,7 @@ BUILTIN(AtomicsMutexLockAsync) {
   }
 
   DirectHandle<Object> timeout_obj = args.atOrUndefined(isolate, 3);
-  std::optional<base::TimeDelta> timeout = std::nullopt;
+  std::optional<::v8::base::TimeDelta> timeout = std::nullopt;
   if (!IsUndefined(*timeout_obj, isolate)) {
     if (!IsNumber(*timeout_obj)) {
       THROW_NEW_ERROR_RETURN_FAILURE(
@@ -278,7 +278,7 @@ BUILTIN(AtomicsConditionWait) {
                                   method_name)));
   }
 
-  std::optional<base::TimeDelta> timeout = std::nullopt;
+  std::optional<::v8::base::TimeDelta> timeout = std::nullopt;
   if (!IsUndefined(*timeout_obj, isolate)) {
     if (!IsNumber(*timeout_obj)) {
       THROW_NEW_ERROR_RETURN_FAILURE(
@@ -358,7 +358,7 @@ BUILTIN(AtomicsConditionWaitAsync) {
   }
 
   DirectHandle<Object> timeout_obj = args.atOrUndefined(isolate, 3);
-  std::optional<base::TimeDelta> timeout = std::nullopt;
+  std::optional<::v8::base::TimeDelta> timeout = std::nullopt;
   if (!IsUndefined(*timeout_obj, isolate)) {
     if (!IsNumber(*timeout_obj)) {
       THROW_NEW_ERROR_RETURN_FAILURE(

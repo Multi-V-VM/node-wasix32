@@ -369,10 +369,10 @@ class UnoptimizedCompilationJob : public CompilationJob {
 
   uintptr_t stack_limit() const { return stack_limit_; }
 
-  base::TimeDelta time_taken_to_execute() const {
+  ::v8::base::TimeDelta time_taken_to_execute() const {
     return time_taken_to_execute_;
   }
-  base::TimeDelta time_taken_to_finalize() const {
+  ::v8::base::TimeDelta time_taken_to_finalize() const {
     return time_taken_to_finalize_;
   }
 
@@ -390,8 +390,8 @@ class UnoptimizedCompilationJob : public CompilationJob {
   uintptr_t stack_limit_;
   ParseInfo* parse_info_;
   UnoptimizedCompilationInfo* compilation_info_;
-  base::TimeDelta time_taken_to_execute_;
-  base::TimeDelta time_taken_to_finalize_;
+  ::v8::base::TimeDelta time_taken_to_execute_;
+  ::v8::base::TimeDelta time_taken_to_finalize_;
 };
 
 // A base class for optimized compilation jobs.
@@ -432,7 +432,7 @@ class OptimizedCompilationJob : public CompilationJob {
     return time_taken_to_finalize_.InMillisecondsF();
   }
 
-  V8_WARN_UNUSED_RESULT base::TimeDelta ElapsedTime() const {
+  V8_WARN_UNUSED_RESULT ::v8::base::TimeDelta ElapsedTime() const {
     return timer_.Elapsed();
   }
 
@@ -451,9 +451,9 @@ class OptimizedCompilationJob : public CompilationJob {
                                           DirectHandle<Code> code,
                                           GlobalHandleZoneVector<Map> maps);
 
-  base::TimeDelta time_taken_to_prepare_;
-  base::TimeDelta time_taken_to_execute_;
-  base::TimeDelta time_taken_to_finalize_;
+  ::v8::base::TimeDelta time_taken_to_prepare_;
+  ::v8::base::TimeDelta time_taken_to_execute_;
+  ::v8::base::TimeDelta time_taken_to_finalize_;
 
   base::ElapsedTimer timer_;
 
@@ -506,8 +506,8 @@ class FinalizeUnoptimizedCompilationData {
   FinalizeUnoptimizedCompilationData(Isolate* isolate,
                                      Handle<SharedFunctionInfo> function_handle,
                                      MaybeHandle<CoverageInfo> coverage_info,
-                                     base::TimeDelta time_taken_to_execute,
-                                     base::TimeDelta time_taken_to_finalize)
+                                     ::v8::base::TimeDelta time_taken_to_execute,
+                                     ::v8::base::TimeDelta time_taken_to_finalize)
       : time_taken_to_execute_(time_taken_to_execute),
         time_taken_to_finalize_(time_taken_to_finalize),
         function_handle_(function_handle),
@@ -516,8 +516,8 @@ class FinalizeUnoptimizedCompilationData {
   FinalizeUnoptimizedCompilationData(LocalIsolate* isolate,
                                      Handle<SharedFunctionInfo> function_handle,
                                      MaybeHandle<CoverageInfo> coverage_info,
-                                     base::TimeDelta time_taken_to_execute,
-                                     base::TimeDelta time_taken_to_finalize);
+                                     ::v8::base::TimeDelta time_taken_to_execute,
+                                     ::v8::base::TimeDelta time_taken_to_finalize);
 
   Handle<SharedFunctionInfo> function_handle() const {
     return function_handle_;
@@ -527,16 +527,16 @@ class FinalizeUnoptimizedCompilationData {
     return coverage_info_;
   }
 
-  base::TimeDelta time_taken_to_execute() const {
+  ::v8::base::TimeDelta time_taken_to_execute() const {
     return time_taken_to_execute_;
   }
-  base::TimeDelta time_taken_to_finalize() const {
+  ::v8::base::TimeDelta time_taken_to_finalize() const {
     return time_taken_to_finalize_;
   }
 
  private:
-  base::TimeDelta time_taken_to_execute_;
-  base::TimeDelta time_taken_to_finalize_;
+  ::v8::base::TimeDelta time_taken_to_execute_;
+  ::v8::base::TimeDelta time_taken_to_finalize_;
   Handle<SharedFunctionInfo> function_handle_;
   MaybeHandle<CoverageInfo> coverage_info_;
 };

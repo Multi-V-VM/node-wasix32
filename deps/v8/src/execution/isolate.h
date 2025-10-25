@@ -751,28 +751,28 @@ class V8_EXPORT_PRIVATE Isolate final : private HiddenFactory {
   base::RecursiveMutex* break_access() { return &break_access_; }
 
   // Shared mutex for allowing thread-safe concurrent reads of FeedbackVectors.
-  base::Mutex* feedback_vector_access() { return &feedback_vector_access_; }
+  ::v8::base::Mutex* feedback_vector_access() { return &feedback_vector_access_; }
 
   // Shared mutex for allowing thread-safe concurrent reads of
   // InternalizedStrings.
-  base::Mutex* internalized_string_access() {
+  ::v8::base::Mutex* internalized_string_access() {
     return &internalized_string_access_;
   }
 
   // Shared mutex for allowing thread-safe concurrent reads of TransitionArrays
   // of kind kFullTransitionArray.
-  base::Mutex* full_transition_array_access() {
+  ::v8::base::Mutex* full_transition_array_access() {
     return &full_transition_array_access_;
   }
 
   // Shared mutex for allowing thread-safe concurrent reads of
   // SharedFunctionInfos.
-  base::Mutex* shared_function_info_access() {
+  ::v8::base::Mutex* shared_function_info_access() {
     return &shared_function_info_access_;
   }
 
   // Protects (most) map update operations, see also MapUpdater.
-  base::Mutex* map_updater_access() { return &map_updater_access_; }
+  ::v8::base::Mutex* map_updater_access() { return &map_updater_access_; }
 
   // Protects JSObject boilerplate migrations (i.e. calls to MigrateInstance on
   // boilerplate objects; elements kind transitions are *not* protected).
@@ -782,7 +782,7 @@ class V8_EXPORT_PRIVATE Isolate final : private HiddenFactory {
   // - if so, `boilerplate_migration_access` is locked before
   //   `map_updater_access`.
   // - backgrounds threads must use the same lock order to avoid deadlocks.
-  base::Mutex* boilerplate_migration_access() {
+  ::v8::base::Mutex* boilerplate_migration_access() {
     return &boilerplate_migration_access_;
   }
 
@@ -2568,13 +2568,13 @@ class V8_EXPORT_PRIVATE Isolate final : private HiddenFactory {
   TieringManager* tiering_manager_ = nullptr;
   CompilationCache* compilation_cache_ = nullptr;
   std::shared_ptr<Counters> async_counters_;
-  base::RecursiveMutex break_access_;
-  base::Mutex feedback_vector_access_;
-  base::Mutex internalized_string_access_;
-  base::Mutex full_transition_array_access_;
-  base::Mutex shared_function_info_access_;
-  base::Mutex map_updater_access_;
-  base::Mutex boilerplate_migration_access_;
+  ::v8::base::RecursiveMutex break_access_;
+  ::v8::base::Mutex feedback_vector_access_;
+  ::v8::base::Mutex internalized_string_access_;
+  ::v8::base::Mutex full_transition_array_access_;
+  ::v8::base::Mutex shared_function_info_access_;
+  ::v8::base::Mutex map_updater_access_;
+  ::v8::base::Mutex boilerplate_migration_access_;
   V8FileLogger* v8_file_logger_ = nullptr;
   StubCache* load_stub_cache_ = nullptr;
   StubCache* store_stub_cache_ = nullptr;
@@ -2844,7 +2844,7 @@ class V8_EXPORT_PRIVATE Isolate final : private HiddenFactory {
   bool allow_atomics_wait_ = true;
   bool flush_denormals_ = false;
 
-  base::Mutex managed_ptr_destructors_mutex_;
+  ::v8::base::Mutex managed_ptr_destructors_mutex_;
   ManagedPtrDestructor* managed_ptr_destructors_head_ = nullptr;
 
   size_t total_regexp_code_generated_ = 0;
@@ -2868,7 +2868,7 @@ class V8_EXPORT_PRIVATE Isolate final : private HiddenFactory {
   // TODO(kenton@cloudflare.com): This mutex can be removed if
   // thread_data_table_ is always accessed under the isolate lock. I do not
   // know if this is the case, so I'm preserving it for now.
-  base::Mutex thread_data_table_mutex_;
+  ::v8::base::Mutex thread_data_table_mutex_;
   ThreadDataTable thread_data_table_;
 
   // Stores the isolate containing the shared space.
@@ -2908,7 +2908,7 @@ class V8_EXPORT_PRIVATE Isolate final : private HiddenFactory {
   std::vector<MemoryRange> code_pages_buffer1_;
   std::vector<MemoryRange> code_pages_buffer2_;
   // The mutex only guards adding pages, the retrieval is signal safe.
-  base::Mutex code_pages_mutex_;
+  ::v8::base::Mutex code_pages_mutex_;
 
   // Stack size set with ResourceConstraints or Isolate::SetStackLimit, in
   // bytes. This is initialized with value of --stack-size.
@@ -3128,7 +3128,7 @@ class StackTraceFailureMessage {
 template <>
 class V8_NODISCARD MutexGuardIfOffThread<Isolate> final {
  public:
-  MutexGuardIfOffThread(base::Mutex* mutex, Isolate* isolate) {
+  MutexGuardIfOffThread(::v8::base::Mutex* mutex, Isolate* isolate) {
     DCHECK_NOT_NULL(mutex);
     DCHECK_NOT_NULL(isolate);
     DCHECK_EQ(ThreadId::Current(), isolate->thread_id());
