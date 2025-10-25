@@ -5,8 +5,12 @@
 #ifndef V8_BASE_DISCRIMINATED_UNION_H_
 #define V8_BASE_DISCRIMINATED_UNION_H_
 
+#ifdef __wasi__
+#include "wasi/std-preinclude.h"
+#endif
 #include <type_traits>
 #include <utility>
+#include <limits>
 
 #include "src/base/compiler-specific.h"
 #include "src/base/template-utils.h"
@@ -20,8 +24,7 @@
 #endif
 #endif
 
-namespace v8 {
-namespace base {
+namespace v8::base {
 
 // A variant-like discriminated union type, which takes a discriminating enum
 // and a set of types. The enum must have as many elements as the number of
@@ -52,7 +55,7 @@ class DiscriminatedUnion {
   // destructor. On WASI, relax this constraint as zone-backed containers are
   // reclaimed with the Zone lifetime and do not rely on destructors.
 #if !defined(V8_WASI_SKIP_DISCRIMINATED_UNION_TRIVIAL_CHECK)
-  static_assert((std::is_trivially_destructible_v<Ts> && ...));
+  static_assert((::std::is_trivially_destructible_v<Ts> && ...));
 #endif
 
   using Tag = TagEnum;
@@ -69,23 +72,23 @@ class DiscriminatedUnion {
   // Construct with known tag and type (the tag is DCHECKed).
   template <typename T>
   constexpr explicit DiscriminatedUnion(Tag tag, T&& data) V8_NOEXCEPT {
-    constexpr size_t index = index_of_type_v<std::decay_t<T>, Ts...>;
+    constexpr size_t index = index_of_type_v<::std::decay_t<T>, Ts...>;
     static_assert(index < sizeof...(Ts));
-    static_assert(index < std::numeric_limits<uint8_t>::max());
+    static_assert(index < ::std::numeric_limits<uint8_t>::max());
     // TODO(leszeks): Support unions with repeated types.
     DCHECK_EQ(tag, static_cast<Tag>(index));
     tag_ = static_cast<uint8_t>(index);
-    new (data_) T(std::forward<T>(data));
+    new (data_) T(::std::forward<T>(data));
   }
 
   // Construct with known type.
   template <typename T>
   constexpr explicit DiscriminatedUnion(T&& data) V8_NOEXCEPT {
-    constexpr size_t index = index_of_type_v<std::decay_t<T>, Ts...>;
+    constexpr size_t index = index_of_type_v<::std::decay_t<T>, Ts...>;
     static_assert(index < sizeof...(Ts));
-    static_assert(index < std::numeric_limits<uint8_t>::max());
+    static_assert(index < ::std::numeric_limits<uint8_t>::max());
     tag_ = static_cast<uint8_t>(index);
-    new (data_) T(std::forward<T>(data));
+    new (data_) T(::std::forward<T>(data));
   }
 
   constexpr Tag tag() const { return static_cast<Tag>(tag_); }
@@ -121,13 +124,12 @@ class DiscriminatedUnion {
   }
 
  private:
-  alignas(std::max({alignof(Ts)...})) char data_[std::max({sizeof(Ts)...})];
-  static_assert(sizeof...(Ts) <= std::numeric_limits<uint8_t>::max());
+  alignas(::std::max({alignof(Ts)...})) char data_[::std::max({sizeof(Ts)...})];
+  static_assert(sizeof...(Ts) <= ::std::numeric_limits<uint8_t>::max());
   uint8_t tag_;
 };
 
-}  // namespace base
-}  // namespace v8
+}  // namespace v8::base
 
 
 #endif  // V8_BASE_DISCRIMINATED_UNION_H_

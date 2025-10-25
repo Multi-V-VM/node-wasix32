@@ -13,23 +13,23 @@
 namespace v8 {
 namespace platform {
 
-std::unique_ptr<v8::Platform> NewDefaultPlatform(
+std::unique_ptr<::v8::Platform> NewDefaultPlatform(
     int thread_pool_size, IdleTaskSupport idle_task_support,
     InProcessStackDumping in_process_stack_dumping,
-    std::unique_ptr<v8::TracingController> tracing_controller,
+    std::unique_ptr<::v8::TracingController> tracing_controller,
     PriorityMode priority_mode) {
   return nullptr;
 }
 
-bool PumpMessageLoop(v8::Platform* platform, v8::Isolate* isolate,
+bool PumpMessageLoop(::v8::Platform* platform, ::v8::Isolate* isolate,
                      MessageLoopBehavior behavior) {
   return false;
 }
 
-void RunIdleTasks(v8::Platform* platform, v8::Isolate* isolate,
+void RunIdleTasks(::v8::Platform* platform, ::v8::Isolate* isolate,
                   double idle_time_in_seconds) {}
 
-void NotifyIsolateShutdown(v8::Platform* platform, v8::Isolate* isolate) {}
+void NotifyIsolateShutdown(::v8::Platform* platform, ::v8::Isolate* isolate) {}
 
 }  // namespace platform
 }  // namespace v8
@@ -57,10 +57,10 @@ namespace platform {
 namespace {
 
 void PrintStackTrace() {
-  v8::base::debug::StackTrace trace;
+  ::v8::base::debug::StackTrace trace;
   trace.Print();
   // Avoid dumping duplicate stack trace on abort signal.
-  v8::base::debug::DisableSignalStackDump();
+  ::v8::base::debug::DisableSignalStackDump();
 }
 
 constexpr int kMaxThreadPoolSize = 16;
@@ -68,20 +68,20 @@ constexpr int kMaxThreadPoolSize = 16;
 int GetActualThreadPoolSize(int thread_pool_size) {
   DCHECK_GE(thread_pool_size, 0);
   if (thread_pool_size < 1) {
-    thread_pool_size = base::SysInfo::NumberOfProcessors() - 1;
+    thread_pool_size = ::v8::base::SysInfo::NumberOfProcessors() - 1;
   }
   return std::max(std::min(thread_pool_size, kMaxThreadPoolSize), 1);
 }
 
 }  // namespace
 
-std::unique_ptr<v8::Platform> NewDefaultPlatform(
+std::unique_ptr<::v8::Platform> NewDefaultPlatform(
     int thread_pool_size, IdleTaskSupport idle_task_support,
     InProcessStackDumping in_process_stack_dumping,
-    std::unique_ptr<v8::TracingController> tracing_controller,
+    std::unique_ptr<::v8::TracingController> tracing_controller,
     PriorityMode priority_mode) {
   if (in_process_stack_dumping == InProcessStackDumping::kEnabled) {
-    v8::base::debug::EnableInProcessStackDumping();
+    ::v8::base::debug::EnableInProcessStackDumping();
   }
   thread_pool_size = GetActualThreadPoolSize(thread_pool_size);
   auto platform = std::make_unique<DefaultPlatform>(
@@ -90,12 +90,12 @@ std::unique_ptr<v8::Platform> NewDefaultPlatform(
   return platform;
 }
 
-std::unique_ptr<v8::Platform> NewSingleThreadedDefaultPlatform(
+std::unique_ptr<::v8::Platform> NewSingleThreadedDefaultPlatform(
     IdleTaskSupport idle_task_support,
     InProcessStackDumping in_process_stack_dumping,
-    std::unique_ptr<v8::TracingController> tracing_controller) {
+    std::unique_ptr<::v8::TracingController> tracing_controller) {
   if (in_process_stack_dumping == InProcessStackDumping::kEnabled) {
-    v8::base::debug::EnableInProcessStackDumping();
+    ::v8::base::debug::EnableInProcessStackDumping();
   }
   auto platform = std::make_unique<DefaultPlatform>(
       0, idle_task_support, std::move(tracing_controller));
@@ -109,30 +109,30 @@ V8_PLATFORM_EXPORT std::unique_ptr<JobHandle> NewDefaultJobHandle(
       platform, std::move(job_task), priority, num_worker_threads));
 }
 
-bool PumpMessageLoop(v8::Platform* platform, v8::Isolate* isolate,
+bool PumpMessageLoop(::v8::Platform* platform, ::v8::Isolate* isolate,
                      MessageLoopBehavior behavior) {
   return static_cast<DefaultPlatform*>(platform)->PumpMessageLoop(isolate,
                                                                   behavior);
 }
 
-void RunIdleTasks(v8::Platform* platform, v8::Isolate* isolate,
+void RunIdleTasks(::v8::Platform* platform, ::v8::Isolate* isolate,
                   double idle_time_in_seconds) {
   static_cast<DefaultPlatform*>(platform)->RunIdleTasks(isolate,
                                                         idle_time_in_seconds);
 }
 
-void NotifyIsolateShutdown(v8::Platform* platform, Isolate* isolate) {
+void NotifyIsolateShutdown(::v8::Platform* platform, ::v8::Isolate* isolate) {
   static_cast<DefaultPlatform*>(platform)->NotifyIsolateShutdown(isolate);
 }
 
 DefaultPlatform::DefaultPlatform(
     int thread_pool_size, IdleTaskSupport idle_task_support,
-    std::unique_ptr<v8::TracingController> tracing_controller,
+    std::unique_ptr<::v8::TracingController> tracing_controller,
     PriorityMode priority_mode)
     : thread_pool_size_(thread_pool_size),
       idle_task_support_(idle_task_support),
       tracing_controller_(std::move(tracing_controller)),
-      page_allocator_(std::make_unique<v8::base::PageAllocator>()),
+      page_allocator_(std::make_unique<::v8::base::PageAllocator>()),
       priority_mode_(priority_mode) {
   if (!tracing_controller_) {
     tracing::TracingController* controller = new tracing::TracingController();

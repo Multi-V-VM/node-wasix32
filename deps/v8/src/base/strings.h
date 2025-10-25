@@ -5,6 +5,9 @@
 #ifndef V8_BASE_STRINGS_H_
 #define V8_BASE_STRINGS_H_
 
+#ifdef __wasi__
+#include "wasi/std-preinclude.h"
+#endif
 #include "src/base/base-export.h"
 #include "src/base/macros.h"
 #include "src/base/vector.h"
@@ -13,8 +16,7 @@
 #include <stdarg.h>
 #include <stddef.h>
 
-namespace v8 {
-namespace base {
+namespace v8::base {
 
 // Latin1/UTF-16 constants
 // Code-point values in Unicode 4.0 are 21 bits wide.
@@ -49,7 +51,6 @@ inline char HexCharOfValue(int value) {
   return value - 10 + 'A';
 }
 
-}  // namespace base
-}  // namespace v8
+}  // namespace v8::base
 
 #endif  // V8_BASE_STRINGS_H_

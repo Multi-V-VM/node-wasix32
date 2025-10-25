@@ -29,7 +29,7 @@ class V8_EXPORT_PRIVATE NameConverter {
   virtual const char* RootRelativeName(int offset) const { UNREACHABLE(); }
 
  protected:
-  ZoneVector<char, 128> tmp_buffer_;
+  ::v8::base::EmbeddedVector<char, 128> tmp_buffer_;
 };
 
 // A generic Disassembler interface
@@ -76,16 +76,7 @@ class Disassembler {
 
 }  // namespace disasm
 
-// WASI build fix: some sources accidentally qualified EmbeddedVector as
-// v8::v8::base::EmbeddedVector. Provide a compatibility alias so those
-// occurrences compile without touching many call sites.
-namespace v8 {
-namespace v8 {
-namespace base {
-template <typename T, size_t kSize>
-using EmbeddedVector = ::v8::base::EmbeddedVector<T, kSize>;
-}  // namespace base
-}  // namespace v8
-}  // namespace v8
+// Note: avoid introducing nested v8::v8 in headers to prevent name lookup
+// issues when code refers to v8::Task etc. If needed, fix sites directly.
 
 #endif  // V8_DIAGNOSTICS_DISASM_H_

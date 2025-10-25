@@ -132,8 +132,8 @@ class V8_BASE_EXPORT Mutex final {
 //     // Do something.
 //   }
 //
-using LazyMutex = LazyStaticInstance<Mutex, ::v8::base::DefaultConstructTrait<Mutex>,
-                                     ::v8::base::ThreadSafeInitOnceTrait>::type;
+using LazyMutex = ::v8::base::LazyStaticInstance<Mutex, ::v8::base::DefaultConstructTrait<Mutex>,
+                                                ::v8::base::ThreadSafeInitOnceTrait>::type;
 #define LAZY_MUTEX_INITIALIZER LAZY_STATIC_INSTANCE_INITIALIZER
 
 // RecursiveMutex - a replacement for std::recursive_mutex
@@ -206,8 +206,8 @@ class V8_BASE_EXPORT RecursiveMutex final {
 //   }
 //
 using LazyRecursiveMutex =
-    LazyStaticInstance<RecursiveMutex, ::v8::base::DefaultConstructTrait<RecursiveMutex>,
-                       ::v8::base::ThreadSafeInitOnceTrait>::type;
+    ::v8::base::LazyStaticInstance<RecursiveMutex, ::v8::base::DefaultConstructTrait<RecursiveMutex>,
+                                   ::v8::base::ThreadSafeInitOnceTrait>::type;
 
 #define LAZY_RECURSIVE_MUTEX_INITIALIZER LAZY_STATIC_INSTANCE_INITIALIZER
 

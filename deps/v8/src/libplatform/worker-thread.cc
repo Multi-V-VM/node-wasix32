@@ -23,7 +23,7 @@ WorkerThread::~WorkerThread() {
 }
 
 void WorkerThread::Run() {
-  while (std::unique_ptr<Task> task = queue_->GetNext()) {
+  while (::std::unique_ptr<::v8::Task> task = queue_->GetNext()) {
     task->Run();
   }
 }

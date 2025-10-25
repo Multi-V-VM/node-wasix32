@@ -423,12 +423,11 @@ class EmbeddedVector : public ::v8::base::Vector<T> {
 namespace v8 {
 namespace base {
 namespace Owned {
-namespace v8 { namespace base {
+namespace v8::base {
 template <typename T>
 using Vector = ::v8::base::OwnedVector<T>;
 } }  // namespace v8::base
 }  // namespace Owned
-}  // namespace base
-}  // namespace v8
+}  // namespace v8::base
 
 #endif  // V8_BASE_VECTOR_H_

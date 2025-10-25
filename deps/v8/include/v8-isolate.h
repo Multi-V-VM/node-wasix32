@@ -2,6 +2,8 @@
 #define V8_V8_ISOLATE_H_
 
 #ifdef __wasi__
+// Ensure libc++ is instantiated in ::std before any nested namespace v8 blocks
+#include "wasi/std-preinclude.h"
 // For WASI builds, use our stub implementation
 #include "wasi/v8-isolate-wasi-stub.h"
 #else

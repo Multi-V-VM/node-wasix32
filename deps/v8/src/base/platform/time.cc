@@ -61,18 +61,18 @@ int64_t ComputeThreadTicks() {
 
   // We can add the seconds into a {int64_t} without overflow.
   CHECK_LE(thread_info_data.user_time.seconds,
-           std::numeric_limits<int64_t>::max() -
+           ::std::numeric_limits<int64_t>::max() -
                thread_info_data.system_time.seconds);
   int64_t seconds =
       thread_info_data.user_time.seconds + thread_info_data.system_time.seconds;
   // Multiplying the seconds by {kMicrosecondsPerSecond}, and adding something
   // in [0, 2 * kMicrosecondsPerSecond) must result in a valid {int64_t}.
   static constexpr int64_t kSecondsLimit =
-      (std::numeric_limits<int64_t>::max() /
-       v8::base::Time::kMicrosecondsPerSecond) -
+      (::std::numeric_limits<int64_t>::max() /
+       ::v8::base::Time::kMicrosecondsPerSecond) -
       2;
   CHECK_GT(kSecondsLimit, seconds);
-  int64_t micros = seconds * v8::base::Time::kMicrosecondsPerSecond;
+  int64_t micros = seconds * ::v8::base::Time::kMicrosecondsPerSecond;
   micros += (thread_info_data.user_time.microseconds +
              thread_info_data.system_time.microseconds);
   return micros;
@@ -84,7 +84,7 @@ V8_INLINE int64_t GetFuchsiaThreadTicks() {
                                           ZX_INFO_THREAD_STATS, &info,
                                           sizeof(info), nullptr, nullptr);
   CHECK_EQ(status, ZX_OK);
-  return info.total_runtime / v8::base::Time::kNanosecondsPerMicrosecond;
+  return info.total_runtime / ::v8::base::Time::kNanosecondsPerMicrosecond;
 }
 #elif defined(__wasi__) || V8_OS_POSIX
 // Helper function to get results from clock_gettime() and convert to a
@@ -117,12 +117,12 @@ V8_INLINE int64_t ClockNow(clockid_t clk_id) {
   // Multiplying the seconds by {kMicrosecondsPerSecond}, and adding something
   // in [0, kMicrosecondsPerSecond) must result in a valid {int64_t}.
   static constexpr int64_t kSecondsLimit =
-      (std::numeric_limits<int64_t>::max() /
-       v8::base::Time::kMicrosecondsPerSecond) -
+      (::std::numeric_limits<int64_t>::max() /
+       ::v8::base::Time::kMicrosecondsPerSecond) -
       1;
   CHECK_GT(kSecondsLimit, ts.tv_sec);
-  int64_t result = int64_t{ts.tv_sec} * v8::base::Time::kMicrosecondsPerSecond;
-  result += (ts.tv_nsec / v8::base::Time::kNanosecondsPerMicrosecond);
+  int64_t result = int64_t{ts.tv_sec} * ::v8::base::Time::kMicrosecondsPerSecond;
+  result += (ts.tv_nsec / ::v8::base::Time::kNanosecondsPerMicrosecond);
   return result;
 #else   // Monotonic clock not supported.
   return 0;
@@ -132,7 +132,7 @@ V8_INLINE int64_t ClockNow(clockid_t clk_id) {
 V8_INLINE int64_t NanosecondsNow() {
   struct timespec ts;
   clock_gettime(CLOCK_MONOTONIC, &ts);
-  return int64_t{ts.tv_sec} * v8::base::Time::kNanosecondsPerSecond +
+  return int64_t{ts.tv_sec} * ::v8::base::Time::kNanosecondsPerSecond +
          ts.tv_nsec;
 }
 
@@ -178,13 +178,12 @@ V8_INLINE uint64_t QPCNowRaw() {
 
 }  // namespace
 
-namespace v8 {
-namespace base {
+namespace v8::base {
 
 int TimeDelta::InDays() const {
   if (IsMax()) {
     // Preserve max to prevent overflow.
-    return std::numeric_limits<int>::max();
+    return ::std::numeric_limits<int>::max();
   }
   return static_cast<int>(delta_ / Time::kMicrosecondsPerDay);
 }
@@ -192,7 +191,7 @@ int TimeDelta::InDays() const {
 int TimeDelta::InHours() const {
   if (IsMax()) {
     // Preserve max to prevent overflow.
-    return std::numeric_limits<int>::max();
+    return ::std::numeric_limits<int>::max();
   }
   return static_cast<int>(delta_ / Time::kMicrosecondsPerHour);
 }
@@ -200,7 +199,7 @@ int TimeDelta::InHours() const {
 int TimeDelta::InMinutes() const {
   if (IsMax()) {
     // Preserve max to prevent overflow.
-    return std::numeric_limits<int>::max();
+    return ::std::numeric_limits<int>::max();
   }
   return static_cast<int>(delta_ / Time::kMicrosecondsPerMinute);
 }
@@ -208,7 +207,7 @@ int TimeDelta::InMinutes() const {
 double TimeDelta::InSecondsF() const {
   if (IsMax()) {
     // Preserve max to prevent overflow.
-    return std::numeric_limits<double>::infinity();
+    return ::std::numeric_limits<double>::infinity();
   }
   return static_cast<double>(delta_) / Time::kMicrosecondsPerSecond;
 }
@@ -216,7 +215,7 @@ double TimeDelta::InSecondsF() const {
 int64_t TimeDelta::InSeconds() const {
   if (IsMax()) {
     // Preserve max to prevent overflow.
-    return std::numeric_limits<int64_t>::max();
+    return ::std::numeric_limits<int64_t>::max();
   }
   return delta_ / Time::kMicrosecondsPerSecond;
 }
@@ -224,7 +223,7 @@ int64_t TimeDelta::InSeconds() const {
 double TimeDelta::InMillisecondsF() const {
   if (IsMax()) {
     // Preserve max to prevent overflow.
-    return std::numeric_limits<double>::infinity();
+    return ::std::numeric_limits<double>::infinity();
   }
   return static_cast<double>(delta_) / Time::kMicrosecondsPerMillisecond;
 }
@@ -232,7 +231,7 @@ double TimeDelta::InMillisecondsF() const {
 int64_t TimeDelta::InMilliseconds() const {
   if (IsMax()) {
     // Preserve max to prevent overflow.
-    return std::numeric_limits<int64_t>::max();
+    return ::std::numeric_limits<int64_t>::max();
   }
   return delta_ / Time::kMicrosecondsPerMillisecond;
 }
@@ -240,7 +239,7 @@ int64_t TimeDelta::InMilliseconds() const {
 int64_t TimeDelta::InMillisecondsRoundedUp() const {
   if (IsMax()) {
     // Preserve max to prevent overflow.
-    return std::numeric_limits<int64_t>::max();
+    return ::std::numeric_limits<int64_t>::max();
   }
   return (delta_ + Time::kMicrosecondsPerMillisecond - 1) /
          Time::kMicrosecondsPerMillisecond;
@@ -249,7 +248,7 @@ int64_t TimeDelta::InMillisecondsRoundedUp() const {
 int64_t TimeDelta::InMicroseconds() const {
   if (IsMax()) {
     // Preserve max to prevent overflow.
-    return std::numeric_limits<int64_t>::max();
+    return ::std::numeric_limits<int64_t>::max();
   }
   return delta_;
 }
@@ -257,7 +256,7 @@ int64_t TimeDelta::InMicroseconds() const {
 int64_t TimeDelta::InNanoseconds() const {
   if (IsMax()) {
     // Preserve max to prevent overflow.
-    return std::numeric_limits<int64_t>::max();
+    return ::std::numeric_limits<int64_t>::max();
   }
   return delta_ * Time::kNanosecondsPerMicrosecond;
 }
@@ -370,8 +369,8 @@ Time Time::FromFiletime(FILETIME ft) {
   if (ft.dwLowDateTime == 0 && ft.dwHighDateTime == 0) {
     return Time();
   }
-  if (ft.dwLowDateTime == std::numeric_limits<DWORD>::max() &&
-      ft.dwHighDateTime == std::numeric_limits<DWORD>::max()) {
+  if (ft.dwLowDateTime == ::std::numeric_limits<DWORD>::max() &&
+      ft.dwHighDateTime == ::std::numeric_limits<DWORD>::max()) {
     return Max();
   }
   int64_t us = (static_cast<uint64_t>(ft.dwLowDateTime) +
@@ -389,8 +388,8 @@ FILETIME Time::ToFiletime() const {
     return ft;
   }
   if (IsMax()) {
-    ft.dwLowDateTime = std::numeric_limits<DWORD>::max();
-    ft.dwHighDateTime = std::numeric_limits<DWORD>::max();
+    ft.dwLowDateTime = ::std::numeric_limits<DWORD>::max();
+    ft.dwHighDateTime = ::std::numeric_limits<DWORD>::max();
     return ft;
   }
   uint64_t us = static_cast<uint64_t>(us_ + kTimeToEpochInMicroseconds) * 10;
@@ -418,7 +417,7 @@ Time Time::FromTimespec(struct timespec ts) {
     return Time();
   }
   if (ts.tv_nsec == static_cast<long>(kNanosecondsPerSecond - 1) &&  // NOLINT
-      ts.tv_sec == std::numeric_limits<time_t>::max()) {
+      ts.tv_sec == ::std::numeric_limits<time_t>::max()) {
     return Max();
   }
   return Time(ts.tv_sec * kMicrosecondsPerSecond +
@@ -433,7 +432,7 @@ struct timespec Time::ToTimespec() const {
     return ts;
   }
   if (IsMax()) {
-    ts.tv_sec = std::numeric_limits<time_t>::max();
+    ts.tv_sec = ::std::numeric_limits<time_t>::max();
     ts.tv_nsec = static_cast<long>(kNanosecondsPerSecond - 1);  // NOLINT
     return ts;
   }
@@ -449,7 +448,7 @@ Time Time::FromTimeval(struct timeval tv) {
     return Time();
   }
   if (tv.tv_usec == static_cast<suseconds_t>(kMicrosecondsPerSecond - 1) &&
-      tv.tv_sec == std::numeric_limits<time_t>::max()) {
+      tv.tv_sec == ::std::numeric_limits<time_t>::max()) {
     return Max();
   }
   return Time(tv.tv_sec * kMicrosecondsPerSecond + tv.tv_usec);
@@ -463,7 +462,7 @@ struct timeval Time::ToTimeval() const {
     return tv;
   }
   if (IsMax()) {
-    tv.tv_sec = std::numeric_limits<time_t>::max();
+    tv.tv_sec = ::std::numeric_limits<time_t>::max();
     tv.tv_usec = static_cast<suseconds_t>(kMicrosecondsPerSecond - 1);
     return tv;
   }
@@ -477,7 +476,7 @@ struct timeval Time::ToTimeval() const {
 Time Time::FromJsTime(double ms_since_epoch) {
   // The epoch is a valid time, so this constructor doesn't interpret
   // 0 as the null time.
-  if (ms_since_epoch == std::numeric_limits<double>::max()) {
+  if (ms_since_epoch == ::std::numeric_limits<double>::max()) {
     return Max();
   }
   return Time(
@@ -491,12 +490,12 @@ double Time::ToJsTime() const {
   }
   if (IsMax()) {
     // Preserve max without offset to prevent overflow.
-    return std::numeric_limits<double>::max();
+    return ::std::numeric_limits<double>::max();
   }
   return static_cast<double>(us_) / kMicrosecondsPerMillisecond;
 }
 
-std::ostream& operator<<(std::ostream& os, const Time& time) {
+::std::ostream& operator<<(::std::ostream& os, const Time& time) {
   return os << time.ToJsTime();
 }
 
@@ -910,5 +909,4 @@ double ThreadTicks::TSCTicksPerSecond() {
 #endif  // !defined(V8_HOST_ARCH_ARM64)
 #endif  // V8_OS_WIN
 
-}  // namespace base
-}  // namespace v8
+}  // namespace v8::base

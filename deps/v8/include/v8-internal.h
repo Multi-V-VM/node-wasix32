@@ -2,12 +2,15 @@
 #define INCLUDE_V8_INTERNAL_H_
 
 #ifdef __wasi__
+#include "wasi/std-preinclude.h"
+#endif
+
+#ifdef __wasi__
 // Include necessary WASI fixes but avoid redefinitions
 #include "wasi/nuclear-fix.h"
 #include "wasi/v8-wasi-compat.h"
 #include "../../../wasi-v8-internals-minimal.h"
-// Include V8 base headers at global scope first to avoid namespace nesting
-#include "wasi/v8-base-includes.h"
+// Include essential base pieces after WASI fixes
 #include "src/base/hashing.h"
 #include "wasi/wasi-v8-missing-types.h"
 // Provide namespace bridges and base helpers for internal code

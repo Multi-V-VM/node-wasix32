@@ -39,8 +39,10 @@ struct is_instantiation_of<T<U>, T> : std::bool_constant<true> {};
 
 #endif  // V8_BASE_TEMPLATE_META_PROGRAMMING_COMMON_H_
 
+#ifndef __wasi__
 // Bridge base::tmp into v8::internal::base for users that refer to
 // v8::internal::base::tmp.
 namespace v8 { namespace internal { namespace base {
 namespace tmp = ::v8::base::tmp;
 } } }
+#endif

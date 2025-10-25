@@ -58,6 +58,10 @@
 #include <unordered_set>
 #include <utility>
 #include <vector>
+// Pull in filesystem early to avoid it being first included from within
+// a nested namespace (e.g. inside namespace v8), which would create v8::std
+// shadows in libc++ headers on WASI.
+#include <filesystem>
 
 #endif  // defined(__wasi__)
 

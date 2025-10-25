@@ -154,8 +154,8 @@ class StringStream final {
   bool Put(Tagged<String> str);
   bool Put(Tagged<String> str, int start, int end);
   void Add(const char* format) { Add(base::CStrVector(format)); }
-  void Add(ZoneVector<const char> format) {
-    Add(format, ZoneVector<FmtElm>());
+  void Add(::v8::base::Vector<const char> format) {
+    Add(format, ::v8::base::Vector<FmtElm>());
   }
 
   template <typename... Args>
@@ -164,9 +164,9 @@ class StringStream final {
   }
 
   template <typename... Args>
-  void Add(ZoneVector<const char> format, Args... args) {
+  void Add(::v8::base::Vector<const char> format, Args... args) {
     FmtElm elems[]{args...};
-    Add(format, base::ArrayVector(elems));
+    Add(format, ::v8::base::ArrayVector(elems));
   }
 
   // Getting the message out.
@@ -205,7 +205,7 @@ class StringStream final {
   static const int kInitialCapacity = 16;
 
  private:
-  void Add(ZoneVector<const char> format, ZoneVector<FmtElm> elms);
+  void Add(::v8::base::Vector<const char> format, ::v8::base::Vector<FmtElm> elms);
   void PrintObject(Tagged<Object> obj);
 
   StringAllocator* allocator_;

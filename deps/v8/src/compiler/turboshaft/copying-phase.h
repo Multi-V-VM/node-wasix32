@@ -12,11 +12,13 @@
 #include <utility>
 
 #include "src/base/iterator.h"
+#ifndef __wasi__
 // Bridge base utilities into internal::base for this TU
 namespace v8 { namespace internal { namespace base {
 using ::v8::base::zip;
 using ::v8::base::IterateWithoutLast;
 } } }
+#endif
 #include "src/base/logging.h"
 #include "src/base/small-vector.h"
 #include "src/base/vector.h"

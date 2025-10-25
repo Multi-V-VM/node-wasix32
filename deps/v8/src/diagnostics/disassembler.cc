@@ -300,7 +300,7 @@ static int DecodeIt(Isolate* isolate, ExternalReferenceEncoder* ref_encoder,
                     const V8NameConverter& converter, uint8_t* begin,
                     uint8_t* end, Address current_pc, size_t range_limit) {
   CHECK(!code.is_null());
-  v8::v8::base::EmbeddedVector<char, 128> decode_buffer;
+  v8::base::EmbeddedVector<char, 128> decode_buffer;
   std::ostringstream out;
   uint8_t* pc = begin;
   disasm::Disassembler d(converter,

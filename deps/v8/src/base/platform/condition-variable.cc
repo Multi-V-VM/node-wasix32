@@ -16,8 +16,7 @@
 #include <windows.h>
 #endif
 
-namespace v8 {
-namespace base {
+namespace v8::base {
 
 // WASI: Provide lightweight stub implementation using PlatformData.
 #ifdef __wasi__
@@ -76,5 +75,4 @@ bool ConditionVariable::WaitFor(Mutex* mutex, const TimeDelta& rel_time) {
 
 #endif  // __wasi__
 
-}  // namespace base
-}  // namespace v8
+}  // namespace v8::base

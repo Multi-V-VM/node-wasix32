@@ -118,7 +118,7 @@ class V8_EXPORT_PRIVATE SourcePositionTableIterator {
   // Handle-safe iterator based on an a vector located outside the garbage
   // collected heap, allows allocation during its lifetime.
   explicit SourcePositionTableIterator(
-      ZoneVector<const uint8_t> bytes,
+      ::v8::base::Vector<const uint8_t> bytes,
       IterationFilter iteration_filter = kJavaScriptOnly,
       FunctionEntryFilter function_entry_filter = kSkipFunctionEntry);
 
@@ -160,7 +160,7 @@ class V8_EXPORT_PRIVATE SourcePositionTableIterator {
 
   static const int kDone = -1;
 
-  ZoneVector<const uint8_t> raw_table_;
+  ::v8::base::Vector<const uint8_t> raw_table_;
   Handle<TrustedByteArray> table_;
   int index_ = 0;
   PositionTableEntry current_;

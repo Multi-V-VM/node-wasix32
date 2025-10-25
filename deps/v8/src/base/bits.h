@@ -285,7 +285,9 @@ constexpr int64_t SignedSaturatedSub64(int64_t a, int64_t b) {
 }
 
 // IsPowerOfTwo helper used by RNG; accept signed and cast to unsigned
-template <typename T>
+template <typename T,
+          typename ::std::enable_if<::std::is_integral<T>::value ||
+                                    ::std::is_enum<T>::value, int>::type = 0>
 constexpr bool IsPowerOfTwo(T value) {
   using U = typename ::std::make_unsigned<T>::type;
   return value > 0 && ((U(value) & (U(value) - 1)) == 0);
@@ -310,6 +312,9 @@ constexpr int BitWidth(T value) {
 }  // namespace base
 }  // namespace v8
 
+// Exporting into v8::internal::base::bits can create nested namespace issues
+// when included from within a namespace v8 block. Avoid this bridge on WASI.
+#ifndef __wasi__
 // Make selected ::v8::base::bits helpers visible under v8::internal::base::bits
 // so internal code can refer to base::bits::* without including globals.h.
 namespace v8 {

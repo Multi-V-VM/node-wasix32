@@ -188,7 +188,7 @@ void JSONTraceWriter::AppendTraceEvent(TraceObject* trace_event) {
   const char** arg_names = trace_event->arg_names();
   const uint8_t* arg_types = trace_event->arg_types();
   TraceObject::ArgValue* arg_values = trace_event->arg_values();
-  std::unique_ptr<v8::ConvertableToTraceFormat>* arg_convertables =
+  std::unique_ptr<::v8::ConvertableToTraceFormat>* arg_convertables =
       trace_event->arg_convertables();
   for (int i = 0; i < trace_event->num_args(); ++i) {
     if (i > 0) stream_ << ",";

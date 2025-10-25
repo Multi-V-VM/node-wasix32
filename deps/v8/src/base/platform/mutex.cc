@@ -6,8 +6,7 @@
 
 #include "src/base/platform/platform.h"
 
-namespace v8 {
-namespace base {
+namespace v8::base {
 
 // Define the lightweight WASI platform data type when targeting WASI.
 #ifdef __wasi__
@@ -106,5 +105,4 @@ bool Mutex::TryLock() ABSL_NO_THREAD_SAFETY_ANALYSIS {
 #endif
 }
 
-}  // namespace base
-}  // namespace v8
+}  // namespace v8::base

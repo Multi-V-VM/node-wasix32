@@ -22,6 +22,7 @@ namespace base {
 // Forward declarations.
 class ConditionVariableEvent;
 class TimeDelta;
+class Mutex;
 
 // -----------------------------------------------------------------------------
 // ConditionVariable
@@ -89,9 +90,9 @@ class V8_BASE_EXPORT ConditionVariable {
 //     my_condvar.Pointer()->Wait(&my_mutex);
 //   }
 using LazyConditionVariable =
-    LazyStaticInstance<ConditionVariable,
-                       DefaultConstructTrait<ConditionVariable>,
-                       ThreadSafeInitOnceTrait>::type;
+    ::v8::base::LazyStaticInstance<ConditionVariable,
+                                   ::v8::base::DefaultConstructTrait<ConditionVariable>,
+                                   ::v8::base::ThreadSafeInitOnceTrait>::type;
 
 #define LAZY_CONDITION_VARIABLE_INITIALIZER LAZY_STATIC_INSTANCE_INITIALIZER
 

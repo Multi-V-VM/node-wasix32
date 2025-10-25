@@ -5,14 +5,16 @@
 #ifndef V8_BASE_ITERATOR_H_
 #define V8_BASE_ITERATOR_H_
 
+#ifdef __wasi__
+#include "wasi/std-preinclude.h"
+#endif
 #include <iterator>
 #include <tuple>
 #include <utility>
 
 #include "src/base/logging.h"
 
-namespace v8 {
-namespace base {
+namespace v8::base {
 
 template <class Category, class Type, class Diff = ::std::ptrdiff_t,
           class Pointer = Type*, class Reference = Type&>
@@ -141,9 +143,9 @@ auto IterateWithoutLast(const iterator_range<T>& t) {
 // order. It performs a check whether the container is empty.
 template <typename T>
 auto IterateWithoutFirst(T& t) {
-  DCHECK_NE(std::begin(t), std::end(t));
-  auto new_begin = std::begin(t);
-  return make_iterator_range(++new_begin, std::end(t));
+  DCHECK_NE(::std::begin(t), ::std::end(t));
+  auto new_begin = ::std::begin(t);
+  return make_iterator_range(++new_begin, ::std::end(t));
 }
 
 template <typename T>
@@ -157,11 +159,11 @@ auto IterateWithoutFirst(const iterator_range<T>& t) {
 template <class... Iterators>
 class TupleIterator
     : public base::iterator<
-          std::bidirectional_iterator_tag,
-          std::tuple<typename std::iterator_traits<Iterators>::reference...>> {
+          ::std::bidirectional_iterator_tag,
+          ::std::tuple<typename ::std::iterator_traits<Iterators>::reference...>> {
  public:
   using value_type =
-      std::tuple<typename std::iterator_traits<Iterators>::reference...>;
+      ::std::tuple<typename ::std::iterator_traits<Iterators>::reference...>;
 
   explicit TupleIterator(Iterators... its) : its_(its...) {}
 
@@ -172,7 +174,7 @@ class TupleIterator
 
   template <class Other>
   bool operator!=(const Other& other) const {
-    return not_equal_impl(other, std::index_sequence_for<Iterators...>{});
+    return not_equal_impl(other, ::std::index_sequence_for<Iterators...>{});
   }
 
   value_type operator*() const {
@@ -184,11 +186,11 @@ class TupleIterator
  private:
   template <class Other, size_t... indices>
   bool not_equal_impl(const Other& other,
-                      std::index_sequence<indices...>) const {
+                      ::std::index_sequence<indices...>) const {
     return (... || (::std::get<indices>(its_) != ::std::get<indices>(other.its_)));
   }
 
-  std::tuple<Iterators...> its_;
+  ::std::tuple<Iterators...> its_;
 };
 
 // `zip` creates an iterator_range from multiple containers. It can be used to
@@ -204,13 +206,12 @@ class TupleIterator
 template <class... Containers>
 auto zip(Containers&... containers) {
   using TupleIt =
-      TupleIterator<decltype(std::declval<Containers>().begin())...>;
+      TupleIterator<decltype(::std::declval<Containers>().begin())...>;
   return base::make_iterator_range(TupleIt(containers.begin()...),
                                    TupleIt(containers.end()...));
 }
 
-}  // namespace base
-}  // namespace v8
+}  // namespace v8::base
 
 
 #endif  // V8_BASE_ITERATOR_H_

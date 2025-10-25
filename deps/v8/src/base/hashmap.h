@@ -16,22 +16,18 @@
 #include "src/base/logging.h"
 #include "src/base/platform/memory.h"
 
-#if defined(__wasi__)
-#include "include/wasi/std-namespace-fix.h"
-#endif
 
-namespace v8 {
-namespace base {
+namespace v8::base {
 
 class DefaultAllocationPolicy {
  public:
   template <typename T, typename TypeTag = T[]>
   V8_INLINE T* AllocateArray(size_t length) {
-    return static_cast<T*>(base::Malloc(length * sizeof(T)));
+    return static_cast<T*>(::v8::base::Malloc(length * sizeof(T)));
   }
   template <typename T, typename TypeTag = T[]>
   V8_INLINE void DeleteArray(T* p, size_t length) {
-    base::Free(p);
+    ::v8::base::Free(p);
   }
 };
 
@@ -575,8 +571,7 @@ class TemplateHashMap
   }
 };
 
-}  // namespace base
-}  // namespace v8
+}  // namespace v8::base
 
 
 #endif  // V8_BASE_HASHMAP_H_

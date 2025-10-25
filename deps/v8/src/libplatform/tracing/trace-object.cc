@@ -37,7 +37,7 @@ class TraceObject {
                   const char* name, const char* scope, uint64_t id,
                   uint64_t bind_id, int num_args, const char** arg_names,
                   const uint8_t* arg_types, const uint64_t* arg_values,
-                  std::unique_ptr<v8::ConvertableToTraceFormat>* arg_convertables,
+                  std::unique_ptr<::v8::ConvertableToTraceFormat>* arg_convertables,
                   unsigned int flags, int64_t timestamp, int64_t cpu_timestamp) {
     // Stub implementation - just store basic values
     phase_ = phase;
@@ -62,7 +62,7 @@ class TraceObject {
       const char* scope, uint64_t id, uint64_t bind_id, int num_args,
       const char** arg_names, const uint8_t* arg_types,
       const uint64_t* arg_values,
-      std::unique_ptr<v8::ConvertableToTraceFormat>* arg_convertables,
+      std::unique_ptr<::v8::ConvertableToTraceFormat>* arg_convertables,
       unsigned int flags, int pid, int tid, int64_t ts, int64_t tts,
       uint64_t duration, uint64_t cpu_duration) {
     pid_ = pid;
@@ -94,7 +94,7 @@ class TraceObject {
   const char** arg_names() { return arg_names_; }
   uint8_t* arg_types() { return arg_types_; }
   ArgValue* arg_values() { return arg_values_; }
-  std::unique_ptr<v8::ConvertableToTraceFormat>* arg_convertables() { 
+  std::unique_ptr<::v8::ConvertableToTraceFormat>* arg_convertables() { 
     return arg_convertables_; 
   }
   unsigned int flags() const { return flags_; }
@@ -116,7 +116,7 @@ class TraceObject {
   const char* arg_names_[kTraceMaxNumArgs];
   uint8_t arg_types_[kTraceMaxNumArgs];
   ArgValue arg_values_[kTraceMaxNumArgs];
-  std::unique_ptr<v8::ConvertableToTraceFormat> arg_convertables_[kTraceMaxNumArgs];
+  std::unique_ptr<::v8::ConvertableToTraceFormat> arg_convertables_[kTraceMaxNumArgs];
   char* parameter_copy_storage_;
   unsigned int flags_;
   int64_t ts_;
@@ -163,7 +163,7 @@ void TraceObject::Initialize(
     const char* scope, uint64_t id, uint64_t bind_id, int num_args,
     const char** arg_names, const uint8_t* arg_types,
     const uint64_t* arg_values,
-    std::unique_ptr<v8::ConvertableToTraceFormat>* arg_convertables,
+      std::unique_ptr<::v8::ConvertableToTraceFormat>* arg_convertables,
     unsigned int flags, int64_t timestamp, int64_t cpu_timestamp) {
   pid_ = base::OS::GetCurrentProcessId();
   tid_ = base::OS::GetCurrentThreadId();
@@ -240,7 +240,7 @@ void TraceObject::InitializeForTesting(
     const char* scope, uint64_t id, uint64_t bind_id, int num_args,
     const char** arg_names, const uint8_t* arg_types,
     const uint64_t* arg_values,
-    std::unique_ptr<v8::ConvertableToTraceFormat>* arg_convertables,
+    std::unique_ptr<::v8::ConvertableToTraceFormat>* arg_convertables,
     unsigned int flags, int pid, int tid, int64_t ts, int64_t tts,
     uint64_t duration, uint64_t cpu_duration) {
   pid_ = pid;

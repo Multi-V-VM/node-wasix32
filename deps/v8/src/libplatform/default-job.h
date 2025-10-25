@@ -17,9 +17,9 @@ namespace v8 {
 namespace platform {
 
 class V8_PLATFORM_EXPORT DefaultJobState
-    : public std::enable_shared_from_this<DefaultJobState> {
+    : public ::std::enable_shared_from_this<DefaultJobState> {
  public:
-  class JobDelegate : public v8::JobDelegate {
+  class JobDelegate : public ::v8::JobDelegate {
    public:
     explicit JobDelegate(DefaultJobState* outer, bool is_joining_thread = false)
         : outer_(outer), is_joining_thread_(is_joining_thread) {}
@@ -51,7 +51,7 @@ class V8_PLATFORM_EXPORT DefaultJobState
     bool was_told_to_yield_ = false;
   };
 
-  DefaultJobState(Platform* platform, std::unique_ptr<JobTask> job_task,
+  DefaultJobState(::v8::Platform* platform, ::std::unique_ptr<JobTask> job_task,
                   TaskPriority priority, size_t num_worker_threads);
   virtual ~DefaultJobState();
 
@@ -79,10 +79,10 @@ class V8_PLATFORM_EXPORT DefaultJobState
   // job.
   size_t CappedMaxConcurrency(size_t worker_count) const;
 
-  void CallOnWorkerThread(TaskPriority priority, std::unique_ptr<Task> task);
+  void CallOnWorkerThread(TaskPriority priority, ::std::unique_ptr<Task> task);
 
   Platform* const platform_;
-  std::unique_ptr<JobTask> job_task_;
+  ::std::unique_ptr<JobTask> job_task_;
 
   // All members below are protected by |mutex_|.
   ::v8::base::Mutex mutex_;
@@ -98,12 +98,12 @@ class V8_PLATFORM_EXPORT DefaultJobState
   // Signaled when a worker returns.
   ::v8::base::ConditionVariable worker_released_condition_;
 
-  std::atomic<uint32_t> assigned_task_ids_{0};
+  ::std::atomic<uint32_t> assigned_task_ids_{0};
 };
 
-class V8_PLATFORM_EXPORT DefaultJobHandle : public JobHandle {
+class V8_PLATFORM_EXPORT DefaultJobHandle : public ::v8::JobHandle {
  public:
-  explicit DefaultJobHandle(std::shared_ptr<DefaultJobState> state);
+  explicit DefaultJobHandle(::std::shared_ptr<DefaultJobState> state);
   ~DefaultJobHandle() ;
 
   DefaultJobHandle(const DefaultJobHandle&) = delete;
@@ -124,13 +124,13 @@ class V8_PLATFORM_EXPORT DefaultJobHandle : public JobHandle {
   void UpdatePriority(TaskPriority) ;
 
  private:
-  std::shared_ptr<DefaultJobState> state_;
+  ::std::shared_ptr<DefaultJobState> state_;
 };
 
 class DefaultJobWorker : public Task {
  public:
-  DefaultJobWorker(std::weak_ptr<DefaultJobState> state, JobTask* job_task)
-      : state_(std::move(state)), job_task_(job_task) {}
+  DefaultJobWorker(::std::weak_ptr<DefaultJobState> state, JobTask* job_task)
+      : state_(::std::move(state)), job_task_(job_task) {}
   ~DefaultJobWorker()  = default;
 
   DefaultJobWorker(const DefaultJobWorker&) = delete;
@@ -151,7 +151,7 @@ class DefaultJobWorker : public Task {
  private:
   friend class DefaultJob;
 
-  std::weak_ptr<DefaultJobState> state_;
+  ::std::weak_ptr<DefaultJobState> state_;
   JobTask* job_task_;
 };
 

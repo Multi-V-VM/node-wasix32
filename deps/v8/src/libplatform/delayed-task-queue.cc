@@ -63,11 +63,11 @@ DelayedTaskQueue::MaybeNextTask DelayedTaskQueue::TryGetNext() {
     if (task_queue_.empty() && !delayed_task_queue_.empty()) {
       // Wait for the next delayed task or a newly posted task.
       double wait_in_seconds = delayed_task_queue_.begin()->first - now;
-      return {
-          MaybeNextTask::kWaitDelayed,
-          {},
-          ::v8::base::TimeDelta::FromMicroseconds(
-              base::TimeConstants::kMicrosecondsPerSecond * wait_in_seconds)};
+      return {MaybeNextTask::kWaitDelayed,
+              {},
+              ::v8::base::TimeDelta::FromMicroseconds(
+                  ::v8::base::TimeConstants::kMicrosecondsPerSecond *
+                  wait_in_seconds)};
     } else {
       return {MaybeNextTask::kWaitIndefinite, {}, {}};
     }

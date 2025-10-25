@@ -1,27 +1,17 @@
 #ifndef V8_INCLUDE_WASI_STD_NAMESPACE_FIX_H_
 #define V8_INCLUDE_WASI_STD_NAMESPACE_FIX_H_
 
-// Ensure global std namespace is accessible
-namespace std {}
-
-// Include ranges compatibility layer after ensuring std exists
+// Include ranges compatibility layer
 #ifdef __wasi__
 #include "wasi/ranges-compat.h"
 #include "wasi/crdtp-namespace-fix.h"
 #endif
 
-// Forward declare v8 types to avoid namespace conflicts
-namespace v8 {
-  class Isolate;
-  template<typename T> class Local;
-  class String;
-  class Object;
-  class Array;
-  class Value;
-  class Context;
-  template<typename T> class Maybe;
-  class EmbedderGraph;
-}
+// Avoid forward-declaring V8 types here. When this header is included from
+// within a `namespace v8 {}` block (which some internal files do), local
+// forward declarations would become `v8::v8::...`, breaking qualified lookups
+// such as `v8::String`. Rely on actual V8 public headers to provide forward
+// declarations where needed.
 
 #include <locale>
 #include <iomanip>

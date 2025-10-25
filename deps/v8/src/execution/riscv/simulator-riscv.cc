@@ -1628,7 +1628,7 @@ class RiscvDebugger {
 };
 
 #define UNSUPPORTED()                                                  \
-  v8::v8::base::EmbeddedVector<char, 256> buffer;                          \
+  v8::base::EmbeddedVector<char, 256> buffer;                          \
   disasm::NameConverter converter;                                     \
   disasm::Disassembler dasm(converter);                                \
   dasm.InstructionDecode(buffer, reinterpret_cast<uint8_t*>(&instr_)); \
@@ -1792,7 +1792,7 @@ void RiscvDebugger::Debug() {
       disasm::NameConverter converter;
       disasm::Disassembler dasm(converter);
       // Use a reasonably large buffer.
-      v8::v8::base::EmbeddedVector<char, 256> buffer;
+      v8::base::EmbeddedVector<char, 256> buffer;
       const char* name = sim_->builtins_.Lookup((Address)sim_->get_pc());
       if (name != nullptr) {
         PrintF("Call builtin:  %s\n", name);
@@ -2013,7 +2013,7 @@ void RiscvDebugger::Debug() {
         disasm::NameConverter converter;
         disasm::Disassembler dasm(converter);
         // Use a reasonably large buffer.
-        v8::v8::base::EmbeddedVector<char, 256> buffer;
+        v8::base::EmbeddedVector<char, 256> buffer;
 
         uint8_t* cur = nullptr;
         uint8_t* end = nullptr;
@@ -2134,7 +2134,7 @@ void RiscvDebugger::Debug() {
         disasm::NameConverter converter;
         disasm::Disassembler dasm(converter);
         // Use a reasonably large buffer.
-        v8::v8::base::EmbeddedVector<char, 256> buffer;
+        v8::base::EmbeddedVector<char, 256> buffer;
 
         uint8_t* cur = nullptr;
         uint8_t* end = nullptr;
@@ -6921,7 +6921,7 @@ void Simulator::DecodeRvvMVV() {
         set_register(rd_reg(), index);
         rvv_trace_vd();
       } else {
-        v8::v8::base::EmbeddedVector<char, 256> buffer;
+        v8::base::EmbeddedVector<char, 256> buffer;
         disasm::NameConverter converter;
         disasm::Disassembler dasm(converter);
         dasm.InstructionDecode(buffer, reinterpret_cast<uint8_t*>(&instr_));
@@ -7017,7 +7017,7 @@ void Simulator::DecodeRvvMVV() {
       rvv_trace_vd();
     } break;
     default:
-      v8::v8::base::EmbeddedVector<char, 256> buffer;
+      v8::base::EmbeddedVector<char, 256> buffer;
       disasm::NameConverter converter;
       disasm::Disassembler dasm(converter);
       dasm.InstructionDecode(buffer, reinterpret_cast<uint8_t*>(&instr_));
@@ -7125,7 +7125,7 @@ void Simulator::DecodeRvvMVX() {
       rvv_trace_vd();
     } break;
     default:
-      v8::v8::base::EmbeddedVector<char, 256> buffer;
+      v8::base::EmbeddedVector<char, 256> buffer;
       disasm::NameConverter converter;
       disasm::Disassembler dasm(converter);
       dasm.InstructionDecode(buffer, reinterpret_cast<uint8_t*>(&instr_));
@@ -8140,7 +8140,7 @@ void Simulator::InstructionDecode(Instruction* instr) {
   }
   pc_modified_ = false;
 
-  v8::v8::base::EmbeddedVector<char, 256> buffer;
+  v8::base::EmbeddedVector<char, 256> buffer;
 
   if (v8_flags.trace_sim || v8_flags.debug_sim) {
     SNPrintF(trace_buf_, " ");

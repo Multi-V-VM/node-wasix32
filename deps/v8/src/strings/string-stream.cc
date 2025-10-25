@@ -85,8 +85,8 @@ static bool IsControlChar(char c) {
   }
 }
 
-void StringStream::Add(ZoneVector<const char> format,
-                       ZoneVector<FmtElm> elms) {
+void StringStream::Add(::v8::base::Vector<const char> format,
+                       ::v8::base::Vector<FmtElm> elms) {
   // If we already ran out of space then return immediately.
   if (full()) return;
   int offset = 0;

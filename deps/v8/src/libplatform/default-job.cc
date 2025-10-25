@@ -30,14 +30,14 @@ uint8_t DefaultJobState::JobDelegate::GetTaskId() {
   return task_id_;
 }
 
-DefaultJobState::DefaultJobState(Platform* platform,
+DefaultJobState::DefaultJobState(::v8::Platform* platform,
                                  std::unique_ptr<JobTask> job_task,
                                  TaskPriority priority,
                                  size_t num_worker_threads)
     : platform_(platform),
-      job_task_(std::move(job_task)),
+      job_task_(::std::move(job_task)),
       priority_(priority),
-      num_worker_threads_(std::min(num_worker_threads, kMaxWorkersPerJob)) {}
+      num_worker_threads_(::std::min(num_worker_threads, kMaxWorkersPerJob)) {}
 
 DefaultJobState::~DefaultJobState() { DCHECK_EQ(0U, active_workers_); }
 
@@ -58,7 +58,7 @@ void DefaultJobState::NotifyConcurrencyIncrease() {
   }
   // Post additional worker tasks to reach |max_concurrency|.
   for (size_t i = 0; i < num_tasks_to_post; ++i) {
-    CallOnWorkerThread(priority, std::make_unique<DefaultJobWorker>(
+    CallOnWorkerThread(priority, ::std::make_unique<DefaultJobWorker>(
                                      shared_from_this(), job_task_.get()));
   }
 }
@@ -68,7 +68,7 @@ uint8_t DefaultJobState::AcquireTaskId() {
                 "TaskId bitfield isn't big enough to fit kMaxWorkersPerJob.");
   uint32_t assigned_task_ids =
       assigned_task_ids_.load(std::memory_order_relaxed);
-  DCHECK_LE(v8::base::bits::CountPopulation(assigned_task_ids) + 1,
+  DCHECK_LE(::v8::base::bits::CountPopulation(assigned_task_ids) + 1,
             kMaxWorkersPerJob);
   uint32_t new_assigned_task_ids = 0;
   uint8_t task_id = 0;
@@ -133,8 +133,8 @@ void DefaultJobState::Join() {
   // Spawn more worker tasks if needed.
   for (size_t i = 0; i < num_tasks_to_post; ++i) {
     CallOnWorkerThread(TaskPriority::kUserBlocking,
-                       std::make_unique<DefaultJobWorker>(shared_from_this(),
-                                                          job_task_.get()));
+                       ::std::make_unique<DefaultJobWorker>(shared_from_this(),
+                                                           job_task_.get()));
   }
 
   DefaultJobState::JobDelegate delegate(this, true);
@@ -203,20 +203,20 @@ bool DefaultJobState::DidRunTask() {
   // users of PostJob() batch work and tend to call NotifyConcurrencyIncrease()
   // late. Posting here allows us to spawn new workers sooner.
   for (size_t i = 0; i < num_tasks_to_post; ++i) {
-    CallOnWorkerThread(priority, std::make_unique<DefaultJobWorker>(
+    CallOnWorkerThread(priority, ::std::make_unique<DefaultJobWorker>(
                                      shared_from_this(), job_task_.get()));
   }
   return true;
 }
 
 size_t DefaultJobState::CappedMaxConcurrency(size_t worker_count) const {
-  return std::min(job_task_->GetMaxConcurrency(worker_count),
-                  num_worker_threads_);
+  return ::std::min(job_task_->GetMaxConcurrency(worker_count),
+                    num_worker_threads_);
 }
 
 void DefaultJobState::CallOnWorkerThread(TaskPriority priority,
-                                         std::unique_ptr<Task> task) {
-  platform_->PostTaskOnWorkerThread(priority, std::move(task));
+                                         ::std::unique_ptr<Task> task) {
+  platform_->PostTaskOnWorkerThread(priority, ::std::move(task));
 }
 
 void DefaultJobState::UpdatePriority(TaskPriority priority) {
@@ -224,8 +224,8 @@ void DefaultJobState::UpdatePriority(TaskPriority priority) {
   priority_ = priority;
 }
 
-DefaultJobHandle::DefaultJobHandle(std::shared_ptr<DefaultJobState> state)
-    : state_(std::move(state)) {}
+DefaultJobHandle::DefaultJobHandle(::std::shared_ptr<DefaultJobState> state)
+    : state_(::std::move(state)) {}
 
 DefaultJobHandle::~DefaultJobHandle() { DCHECK_EQ(nullptr, state_); }
 

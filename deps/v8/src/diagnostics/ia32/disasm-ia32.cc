@@ -1,6 +1,6 @@
 #ifdef __wasi__
 #define V8_TARGET_ARCH_WASM32 1
-#endif
+#else
 // Copyright 2011 the V8 project authors. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
@@ -238,7 +238,7 @@ class DisassemblerIA32 {
   uint8_t vex_byte1_;
   uint8_t vex_byte2_;  // only for 3 bytes vex prefix
   InstructionTable* instruction_table_;
-  v8::v8::base::EmbeddedVector<char, 128> tmp_buffer_;
+  v8::base::EmbeddedVector<char, 128> tmp_buffer_;
   unsigned int tmp_buffer_pos_;
   Disassembler::UnimplementedOpcodeAction unimplemented_opcode_action_;
 
@@ -2914,7 +2914,7 @@ void Disassembler::Disassemble(FILE* f, uint8_t* begin, uint8_t* end,
   NameConverter converter;
   Disassembler d(converter, unimplemented_action);
   for (uint8_t* pc = begin; pc < end;) {
-    v8::v8::base::EmbeddedVector<char, 128> buffer;
+    v8::base::EmbeddedVector<char, 128> buffer;
     buffer[0] = '\0';
     uint8_t* prev_pc = pc;
     pc += d.InstructionDecode(buffer, pc);
@@ -2934,3 +2934,4 @@ void Disassembler::Disassemble(FILE* f, uint8_t* begin, uint8_t* end,
 }  // namespace disasm
 
 #endif  // V8_TARGET_ARCH_IA32
+#endif

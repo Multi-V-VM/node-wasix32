@@ -96,7 +96,7 @@ void EncodeEntry(ZoneVector<uint8_t>* bytes, const PositionTableEntry& entry) {
 }
 
 template <typename T>
-T DecodeUInt(ZoneVector<const uint8_t> bytes, int* index) {
+T DecodeUInt(::v8::base::Vector<const uint8_t> bytes, int* index) {
   uint8_t current;
   int shift = 0;
   T decoded = 0;
@@ -114,7 +114,7 @@ T DecodeUInt(ZoneVector<const uint8_t> bytes, int* index) {
 
 // Helper: Decode an integer.
 template <typename T>
-T DecodeInt(ZoneVector<const uint8_t> bytes, int* index) {
+T DecodeInt(::v8::base::Vector<const uint8_t> bytes, int* index) {
   using unsigned_type = std::make_unsigned_t<T>;
 
   unsigned_type zigzag_value = DecodeUInt<unsigned_type>(bytes, index);
@@ -122,7 +122,7 @@ T DecodeInt(ZoneVector<const uint8_t> bytes, int* index) {
   return result;
 }
 
-void DecodeEntry(ZoneVector<const uint8_t> bytes, int* index,
+void DecodeEntry(::v8::base::Vector<const uint8_t> bytes, int* index,
                  PositionTableEntry* entry) {
   // The least significant bit is used to encode is_breakable.
   // The second least significant bit is used to encode is_statement.
@@ -133,9 +133,9 @@ void DecodeEntry(ZoneVector<const uint8_t> bytes, int* index,
   entry->source_position = DecodeInt<int64_t>(bytes, index);
 }
 
-Vector<const uint8_t> VectorFromByteArray(
+::v8::base::Vector<const uint8_t> VectorFromByteArray(
     Tagged<TrustedByteArray> byte_array) {
-  return ZoneVector<const uint8_t>(byte_array->begin(), byte_array->length());
+  return ::v8::base::Vector<const uint8_t>(byte_array->begin(), byte_array->length());
 }
 
 #ifdef ENABLE_SLOW_DCHECKS
@@ -268,7 +268,7 @@ SourcePositionTableIterator::SourcePositionTableIterator(
 }
 
 SourcePositionTableIterator::SourcePositionTableIterator(
-    ZoneVector<const uint8_t> bytes, IterationFilter iteration_filter,
+    ::v8::base::Vector<const uint8_t> bytes, IterationFilter iteration_filter,
     FunctionEntryFilter function_entry_filter)
     : raw_table_(bytes),
       iteration_filter_(iteration_filter),
@@ -281,7 +281,7 @@ SourcePositionTableIterator::SourcePositionTableIterator(
 }
 
 void SourcePositionTableIterator::Advance() {
-  ZoneVector<const uint8_t> bytes =
+  ::v8::base::Vector<const uint8_t> bytes =
       table_.is_null() ? raw_table_ : VectorFromByteArray(*table_);
   DCHECK(!done());
   DCHECK(index_ >= 0 && index_ <= bytes.length());

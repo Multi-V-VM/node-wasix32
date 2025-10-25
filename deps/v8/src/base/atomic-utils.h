@@ -28,37 +28,37 @@ class AtomicValue {
       : value_(cast_helper<T>::to_storage_type(initial)) {}
 
   V8_INLINE T Value() const {
-    return cast_helper<T>::to_return_type(base::Acquire_Load(&value_));
+    return cast_helper<T>::to_return_type(::v8::base::Acquire_Load(&value_));
   }
 
   V8_INLINE void SetValue(T new_value) {
-    base::Release_Store(&value_, cast_helper<T>::to_storage_type(new_value));
+    ::v8::base::Release_Store(&value_, cast_helper<T>::to_storage_type(new_value));
   }
 
  private:
-  static_assert(sizeof(T) <= sizeof(base::AtomicWord));
+  static_assert(sizeof(T) <= sizeof(::v8::base::AtomicWord));
 
   template <typename S>
   struct cast_helper {
-    static base::AtomicWord to_storage_type(S value) {
-      return static_cast<base::AtomicWord>(value);
+    static ::v8::base::AtomicWord to_storage_type(S value) {
+      return static_cast<::v8::base::AtomicWord>(value);
     }
-    static S to_return_type(base::AtomicWord value) {
+    static S to_return_type(::v8::base::AtomicWord value) {
       return static_cast<S>(value);
     }
   };
 
   template <typename S>
   struct cast_helper<S*> {
-    static base::AtomicWord to_storage_type(S* value) {
-      return reinterpret_cast<base::AtomicWord>(value);
+    static ::v8::base::AtomicWord to_storage_type(S* value) {
+      return reinterpret_cast<::v8::base::AtomicWord>(value);
     }
-    static S* to_return_type(base::AtomicWord value) {
+    static S* to_return_type(::v8::base::AtomicWord value) {
       return reinterpret_cast<S*>(value);
     }
   };
 
-  base::AtomicWord value_;
+  ::v8::base::AtomicWord value_;
 };
 
 // Provides atomic operations for a values stored at some address.
@@ -71,28 +71,28 @@ class AsAtomicImpl {
   static T SeqCst_Load(T* addr) {
     static_assert(sizeof(T) <= sizeof(AtomicStorageType));
     return cast_helper<T>::to_return_type(
-        base::SeqCst_Load(to_storage_addr(addr)));
+        ::v8::base::SeqCst_Load(to_storage_addr(addr)));
   }
 
   template <typename T>
   static T Acquire_Load(T* addr) {
     static_assert(sizeof(T) <= sizeof(AtomicStorageType));
     return cast_helper<T>::to_return_type(
-        base::Acquire_Load(to_storage_addr(addr)));
+        ::v8::base::Acquire_Load(to_storage_addr(addr)));
   }
 
   template <typename T>
   static T Relaxed_Load(T* addr) {
     static_assert(sizeof(T) <= sizeof(AtomicStorageType));
     return cast_helper<T>::to_return_type(
-        base::Relaxed_Load(to_storage_addr(addr)));
+        ::v8::base::Relaxed_Load(to_storage_addr(addr)));
   }
 
   template <typename T>
   static void SeqCst_Store(T* addr,
                            typename ::std::remove_reference<T>::type new_value) {
     static_assert(sizeof(T) <= sizeof(AtomicStorageType));
-    base::SeqCst_Store(to_storage_addr(addr),
+    ::v8::base::SeqCst_Store(to_storage_addr(addr),
                        cast_helper<T>::to_storage_type(new_value));
   }
 
@@ -100,7 +100,7 @@ class AsAtomicImpl {
   static void Release_Store(T* addr,
                             typename ::std::remove_reference<T>::type new_value) {
     static_assert(sizeof(T) <= sizeof(AtomicStorageType));
-    base::Release_Store(to_storage_addr(addr),
+    ::v8::base::Release_Store(to_storage_addr(addr),
                         cast_helper<T>::to_storage_type(new_value));
   }
 
@@ -108,7 +108,7 @@ class AsAtomicImpl {
   static void Relaxed_Store(T* addr,
                             typename ::std::remove_reference<T>::type new_value) {
     static_assert(sizeof(T) <= sizeof(AtomicStorageType));
-    base::Relaxed_Store(to_storage_addr(addr),
+    ::v8::base::Relaxed_Store(to_storage_addr(addr),
                         cast_helper<T>::to_storage_type(new_value));
   }
 
@@ -116,7 +116,7 @@ class AsAtomicImpl {
   static T SeqCst_Swap(T* addr,
                        typename ::std::remove_reference<T>::type new_value) {
     static_assert(sizeof(T) <= sizeof(AtomicStorageType));
-    return base::SeqCst_AtomicExchange(
+    return ::v8::base::SeqCst_AtomicExchange(
         to_storage_addr(addr), cast_helper<T>::to_storage_type(new_value));
   }
 
@@ -125,7 +125,7 @@ class AsAtomicImpl {
       T* addr, typename ::std::remove_reference<T>::type old_value,
       typename ::std::remove_reference<T>::type new_value) {
     static_assert(sizeof(T) <= sizeof(AtomicStorageType));
-    return cast_helper<T>::to_return_type(base::Release_CompareAndSwap(
+    return cast_helper<T>::to_return_type(::v8::base::Release_CompareAndSwap(
         to_storage_addr(addr), cast_helper<T>::to_storage_type(old_value),
         cast_helper<T>::to_storage_type(new_value)));
   }
@@ -135,7 +135,7 @@ class AsAtomicImpl {
       T* addr, typename ::std::remove_reference<T>::type old_value,
       typename ::std::remove_reference<T>::type new_value) {
     static_assert(sizeof(T) <= sizeof(AtomicStorageType));
-    return cast_helper<T>::to_return_type(base::Relaxed_CompareAndSwap(
+    return cast_helper<T>::to_return_type(::v8::base::Relaxed_CompareAndSwap(
         to_storage_addr(addr), cast_helper<T>::to_storage_type(old_value),
         cast_helper<T>::to_storage_type(new_value)));
   }
@@ -145,7 +145,7 @@ class AsAtomicImpl {
       T* addr, typename ::std::remove_reference<T>::type old_value,
       typename ::std::remove_reference<T>::type new_value) {
     static_assert(sizeof(T) <= sizeof(AtomicStorageType));
-    return cast_helper<T>::to_return_type(base::AcquireRelease_CompareAndSwap(
+    return cast_helper<T>::to_return_type(::v8::base::AcquireRelease_CompareAndSwap(
         to_storage_addr(addr), cast_helper<T>::to_storage_type(old_value),
         cast_helper<T>::to_storage_type(new_value)));
   }
@@ -155,7 +155,7 @@ class AsAtomicImpl {
       T* addr, typename ::std::remove_reference<T>::type old_value,
       typename ::std::remove_reference<T>::type new_value) {
     static_assert(sizeof(T) <= sizeof(AtomicStorageType));
-    return cast_helper<T>::to_return_type(base::SeqCst_CompareAndSwap(
+    return cast_helper<T>::to_return_type(::v8::base::SeqCst_CompareAndSwap(
         to_storage_addr(addr), cast_helper<T>::to_storage_type(old_value),
         cast_helper<T>::to_storage_type(new_value)));
   }
@@ -234,24 +234,24 @@ class AsAtomicImpl {
   }
 };
 
-using AsAtomic8 = AsAtomicImpl<base::Atomic8>;
-using AsAtomic16 = AsAtomicImpl<base::Atomic16>;
-using AsAtomic32 = AsAtomicImpl<base::Atomic32>;
-using AsAtomicWord = AsAtomicImpl<base::AtomicWord>;
+using AsAtomic8 = AsAtomicImpl<::v8::base::Atomic8>;
+using AsAtomic16 = AsAtomicImpl<::v8::base::Atomic16>;
+using AsAtomic32 = AsAtomicImpl<::v8::base::Atomic32>;
+using AsAtomicWord = AsAtomicImpl<::v8::base::AtomicWord>;
 
 template <int Width>
 struct AtomicTypeFromByteWidth {};
 template <>
 struct AtomicTypeFromByteWidth<1> {
-  using type = base::Atomic8;
+  using type = ::v8::base::Atomic8;
 };
 template <>
 struct AtomicTypeFromByteWidth<2> {
-  using type = base::Atomic16;
+  using type = ::v8::base::Atomic16;
 };
 template <>
 struct AtomicTypeFromByteWidth<4> {
-  using type = base::Atomic32;
+  using type = ::v8::base::Atomic32;
 };
 #if V8_HOST_ARCH_64_BIT
 template <>
@@ -272,7 +272,7 @@ class AsAtomicPointerImpl : public AsAtomicImpl<TAtomicStorageType> {
 #define WASI_ATOMIC_POINTER_IMPL_DEFINED
 #endif
 
-using AsAtomicPointer = AsAtomicPointerImpl<AtomicWord>;
+using AsAtomicPointer = AsAtomicPointerImpl<::v8::base::AtomicWord>;
 
 #if defined(__wasi__)
 template <typename T>

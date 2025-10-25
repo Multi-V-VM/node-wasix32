@@ -15,6 +15,8 @@
 #include "src/base/platform/memory.h"   // v8::base::AlignedAlloc/AlignedFree
 #include "src/base/platform/platform.h" // v8::base::OS
 #include "src/base/platform/time.h"     // v8::base::TimeTicks/TimeDelta
+#include "src/base/vector.h"            // v8::base::Vector/EmbeddedVector
+#include "src/base/lazy-instance.h"     // v8::base::Lazy* traits
 
 // Provide an early, minimal definition of v8::PageAllocator so nested
 // types like ::v8::PageAllocator::Permission and the alias ::v8::PagePermissions
@@ -793,42 +795,11 @@ constexpr CppHeapPointerHandle kNullCppHeapPointerHandle = 0;
 constexpr Address kCppHeapPointerMarkBit = static_cast<Address>(0);
 #endif
 // ---------------------------------------------------------------------------
-// Namespace compatibility aliases to smooth over accidental qualification
-// differences in WASI builds.
-// Many translation units refer to v8::internal::base::{...} or even to
-// v8::v8::base::EmbeddedVector by mistake. Provide lightweight aliases so we
-// don't have to touch many call sites.
-
+// Namespace compatibility: alias v8::internal::base to ::v8::base so any
+// accidental uses of v8::internal::base resolve to the public base namespace.
 namespace internal {
-namespace base {
-using Mutex = ::v8::base::Mutex;
-using RecursiveMutex = ::v8::base::RecursiveMutex;
-using MutexGuard = ::v8::base::MutexGuard;
-using RecursiveMutexGuard = ::v8::base::RecursiveMutexGuard;
-using LazyMutex = ::v8::base::LazyMutex;
-using LazyRecursiveMutex = ::v8::base::LazyRecursiveMutex;
-using TimeTicks = ::v8::base::TimeTicks;
-using TimeDelta = ::v8::base::TimeDelta;
-using PageInitializationMode = ::v8::base::PageInitializationMode;
-using PageFreeingMode = ::v8::base::PageFreeingMode;
-template <typename T>
-using ScopedZoneVector = ::v8::base::ScopedZoneVector<T>;
-template <typename T>
-using Vector = ::v8::base::Vector<T>;
-}  // namespace base
+namespace base = ::v8::base;
 }  // namespace internal
-
-// Fix up accidental v8::v8::base qualification.
-namespace v8 {
-namespace v8 {
-namespace base {
-template <typename T, size_t kSize>
-using EmbeddedVector = ::v8::base::EmbeddedVector<T, kSize>;
-template <typename T>
-using Vector = ::v8::base::Vector<T>;
-}  // namespace base
-}  // namespace v8
-}  // namespace v8
 
 }  // namespace v8
 

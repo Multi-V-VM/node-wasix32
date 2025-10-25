@@ -38,8 +38,8 @@ namespace base {
 // ============================================================================
 
 struct DefaultAllocationPolicy {
-  static void* Allocate(size_t size) { return std::malloc(size); }
-  static void Free(void* ptr) { std::free(ptr); }
+  static void* Allocate(size_t size) { return ::malloc(size); }
+  static void Free(void* ptr) { ::free(ptr); }
 
   template <typename T, typename TypeTag = T[]>
   V8_INLINE T* AllocateArray(size_t length) {
