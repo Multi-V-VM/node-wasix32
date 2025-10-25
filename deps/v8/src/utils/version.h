@@ -8,6 +8,7 @@
 #include <cstdint>
 
 #include "src/base/hashing.h"
+#include "src/zone/zone-containers.h"
 
 namespace v8 {
 

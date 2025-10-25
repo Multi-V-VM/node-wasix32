@@ -49,13 +49,13 @@ IsolateLoadScriptData::IsolateLoadScriptData(IsolateLoadScriptData&& rhs)
 
 // static
 void IsolateLoadScriptData::AddIsolate(Isolate* isolate) {
-  base::MutexGuard guard(isolates_mutex.Pointer());
+  ::v8::base::MutexGuard guard(isolates_mutex.Pointer());
   isolate_map.Pointer()->emplace(isolate, IsolateLoadScriptData(isolate));
 }
 
 // static
 void IsolateLoadScriptData::RemoveIsolate(Isolate* isolate) {
-  base::MutexGuard guard(isolates_mutex.Pointer());
+  ::v8::base::MutexGuard guard(isolates_mutex.Pointer());
   isolate_map.Pointer()->erase(isolate);
 }
 
@@ -64,7 +64,7 @@ void IsolateLoadScriptData::UpdateAllIsolates(bool etw_enabled,
                                               uint32_t options) {
   ETWTRACEDBG << "UpdateAllIsolates with etw_enabled==" << etw_enabled
               << " and options==" << options << " acquiring mutex" << std::endl;
-  base::MutexGuard guard(isolates_mutex.Pointer());
+  ::v8::base::MutexGuard guard(isolates_mutex.Pointer());
   ETWTRACEDBG << "UpdateAllIsolates Isolate count=="
               << isolate_map.Pointer()->size() << std::endl;
   auto monitor = std::make_shared<EtwIsolateCaptureStateMonitor>(
@@ -98,7 +98,7 @@ void IsolateLoadScriptData::UpdateAllIsolates(bool etw_enabled,
 // static
 bool IsolateLoadScriptData::MaybeAddLoadedScript(Isolate* isolate,
                                                  int script_id) {
-  base::MutexGuard guard(isolates_mutex.Pointer());
+  ::v8::base::MutexGuard guard(isolates_mutex.Pointer());
   auto& data = GetData(isolate);
   if (data.IsScriptLoaded(script_id)) {
     return false;
@@ -115,7 +115,7 @@ void IsolateLoadScriptData::EnableLog(
   {
     ETWTRACEDBG << "EnableLog called with event_id==" << event_id
                 << " and options==" << options << " taking mutex" << std::endl;
-    base::MutexGuard guard(isolates_mutex.Pointer());
+    ::v8::base::MutexGuard guard(isolates_mutex.Pointer());
     auto& data = GetData(isolate);
     if (event_id > 0 && data.CurrentEventId() != event_id) {
       // This interrupt was canceled by a newer interrupt.
@@ -145,7 +145,7 @@ void IsolateLoadScriptData::EnableLog(
 // static
 void IsolateLoadScriptData::EnableLogWithFilterDataOnAllIsolates(
     const uint8_t* data, size_t size, uint32_t options) {
-  base::MutexGuard guard(isolates_mutex.Pointer());
+  ::v8::base::MutexGuard guard(isolates_mutex.Pointer());
 
   std::string etw_filter_payload;
   etw_filter_payload.assign(data, data + size);
@@ -173,7 +173,7 @@ void IsolateLoadScriptData::EnableLogWithFilterDataOnAllIsolates(
 // static
 void IsolateLoadScriptData::DisableLog(Isolate* isolate, size_t event_id) {
   {
-    base::MutexGuard guard(isolates_mutex.Pointer());
+    ::v8::base::MutexGuard guard(isolates_mutex.Pointer());
     auto& data = GetData(isolate);
     if (event_id > 0 && data.CurrentEventId() != event_id) {
       // This interrupt was canceled by a newer interrupt.
@@ -196,7 +196,7 @@ void IsolateLoadScriptData::EnableLogWithFilterData(
   {
     ETWTRACEDBG << "EnableLogWithFilterData called with event_id==" << event_id
                 << " and options==" << options << " taking mutex" << std::endl;
-    base::MutexGuard guard(isolates_mutex.Pointer());
+    ::v8::base::MutexGuard guard(isolates_mutex.Pointer());
 
     auto& data = GetData(isolate);
     if (event_id > 0 && data.CurrentEventId() != event_id) {

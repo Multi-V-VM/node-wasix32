@@ -1977,7 +1977,7 @@ SupportedOperations SupportedOperations::instance_;
 bool SupportedOperations::initialized_;
 
 void SupportedOperations::Initialize() {
-  base::MutexGuard lock(mutex_.Pointer());
+  ::v8::base::MutexGuard lock(mutex_.Pointer());
   if (initialized_) return;
   initialized_ = true;
 

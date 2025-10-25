@@ -490,7 +490,7 @@ namespace {
 
 // Find the arguments of the JavaScript function invocation that called
 // into C++ code. Collect these in a newly allocated array of handles.
-DirectHandle<ZoneVector<Object>> GetCallerArguments(Isolate* isolate) {
+ZoneVector<DirectHandle<Object>> GetCallerArguments(Isolate* isolate, Zone* zone) {
   // Find frame containing arguments passed to the caller.
   JavaScriptStackFrameIterator it(isolate);
   JavaScriptFrame* frame = it.frame();
@@ -514,7 +514,7 @@ DirectHandle<ZoneVector<Object>> GetCallerArguments(Isolate* isolate) {
     iter++;
     argument_count--;
 
-    DirectHandle<ZoneVector<Object>> param_data(isolate, argument_count);
+    ZoneVector<DirectHandle<Object>> param_data(argument_count, zone);
     bool should_deoptimize = false;
     for (int i = 0; i < argument_count; i++) {
       // If we materialize any object, we should deoptimize the frame because we
@@ -532,7 +532,7 @@ DirectHandle<ZoneVector<Object>> GetCallerArguments(Isolate* isolate) {
     return param_data;
   } else {
     int args_count = frame->GetActualArgumentCount();
-    DirectHandle<ZoneVector<Object>> param_data(isolate, args_count);
+    ZoneVector<DirectHandle<Object>> param_data(args_count, zone);
     for (int i = 0; i < args_count; i++) {
       DirectHandle<Object> val =
           DirectHandle<Object>(frame->GetParameter(i), isolate);
@@ -649,7 +649,8 @@ RUNTIME_FUNCTION(Runtime_NewSloppyArguments) {
   DirectHandle<JSFunction> callee = args.at<JSFunction>(0);
   // This generic runtime function can also be used when the caller has been
   // inlined, we use the slow but accurate {GetCallerArguments}.
-  auto arguments = GetCallerArguments(isolate);
+  Zone zone(isolate->allocator(), ZONE_NAME);
+  auto arguments = GetCallerArguments(isolate, &zone);
   HandleArguments argument_getter({arguments.data(), arguments.size()});
   return *NewSloppyArguments(isolate, callee, argument_getter,
                              static_cast<int>(arguments.size()));
@@ -661,7 +662,8 @@ RUNTIME_FUNCTION(Runtime_NewStrictArguments) {
   DirectHandle<JSFunction> callee = args.at<JSFunction>(0);
   // This generic runtime function can also be used when the caller has been
   // inlined, we use the slow but accurate {GetCallerArguments}.
-  auto arguments = GetCallerArguments(isolate);
+  Zone zone(isolate->allocator(), ZONE_NAME);
+  auto arguments = GetCallerArguments(isolate, &zone);
   int argument_count = static_cast<int>(arguments.size());
   DirectHandle<JSObject> result =
       isolate->factory()->NewArgumentsObject(callee, argument_count);
@@ -686,7 +688,8 @@ RUNTIME_FUNCTION(Runtime_NewRestParameter) {
       callee->shared()->internal_formal_parameter_count_without_receiver();
   // This generic runtime function can also be used when the caller has been
   // inlined, we use the slow but accurate {GetCallerArguments}.
-  auto arguments = GetCallerArguments(isolate);
+  Zone zone(isolate->allocator(), ZONE_NAME);
+  auto arguments = GetCallerArguments(isolate, &zone);
   int argument_count = static_cast<int>(arguments.size());
   int num_elements = std::max(0, argument_count - start_index);
   DirectHandle<JSObject> result = isolate->factory()->NewJSArray(

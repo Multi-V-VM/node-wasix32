@@ -229,14 +229,14 @@ void IsolateSafepoint::WaitUntilRunningThreadsInSafepoint(
 }
 
 void IsolateSafepoint::Barrier::Arm() {
-  base::MutexGuard guard(&mutex_);
+  ::v8::base::MutexGuard guard(&mutex_);
   DCHECK(!IsArmed());
   armed_ = true;
   stopped_ = 0;
 }
 
 void IsolateSafepoint::Barrier::Disarm() {
-  base::MutexGuard guard(&mutex_);
+  ::v8::base::MutexGuard guard(&mutex_);
   DCHECK(IsArmed());
   armed_ = false;
   stopped_ = 0;
@@ -245,7 +245,7 @@ void IsolateSafepoint::Barrier::Disarm() {
 
 void IsolateSafepoint::Barrier::WaitUntilRunningThreadsInSafepoint(
     const IsolateSafepoint::RunningLocalHeaps& running_local_heaps) {
-  base::MutexGuard guard(&mutex_);
+  ::v8::base::MutexGuard guard(&mutex_);
   DCHECK(IsArmed());
   size_t running_count = running_local_heaps.size();
   while (stopped_ < running_count) {
@@ -264,7 +264,7 @@ void IsolateSafepoint::Barrier::WaitUntilRunningThreadsInSafepoint(
 }
 
 void IsolateSafepoint::Barrier::NotifyPark() {
-  base::MutexGuard guard(&mutex_);
+  ::v8::base::MutexGuard guard(&mutex_);
   CHECK(IsArmed());
   stopped_++;
   cv_stopped_.NotifyOne();
@@ -273,7 +273,7 @@ void IsolateSafepoint::Barrier::NotifyPark() {
 void IsolateSafepoint::Barrier::WaitInSafepoint() {
   const auto scoped_blocking_call =
       V8::GetCurrentPlatform()->CreateBlockingScope(BlockingType::kWillBlock);
-  base::MutexGuard guard(&mutex_);
+  ::v8::base::MutexGuard guard(&mutex_);
   CHECK(IsArmed());
   stopped_++;
   cv_stopped_.NotifyOne();
@@ -286,7 +286,7 @@ void IsolateSafepoint::Barrier::WaitInSafepoint() {
 void IsolateSafepoint::Barrier::WaitInUnpark() {
   const auto scoped_blocking_call =
       V8::GetCurrentPlatform()->CreateBlockingScope(BlockingType::kWillBlock);
-  base::MutexGuard guard(&mutex_);
+  ::v8::base::MutexGuard guard(&mutex_);
 
   while (IsArmed()) {
     cv_resume_.Wait(&mutex_);

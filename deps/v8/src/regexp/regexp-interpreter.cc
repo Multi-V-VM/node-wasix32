@@ -255,7 +255,7 @@ void UpdateCodeAndSubjectReferences(
 
   DCHECK(subject_string->IsFlat());
   *subject_string_out = *subject_string;
-  *subject_string_vector_out = subject_string->GetCharZoneVector<Char>(no_gc);
+  *subject_string_vector_out = subject_string->GetCharVector<Char>(no_gc);
 }
 
 // Runs all pending interrupts and updates unhandlified object references if

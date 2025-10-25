@@ -587,7 +587,7 @@ bool MemoryAllocator::SetPermissionsOnExecutableMemoryChunk(VirtualMemory* vm,
 
 const MemoryChunk* MemoryAllocator::LookupChunkContainingAddress(
     Address addr) const {
-  base::MutexGuard guard(&chunks_mutex_);
+  ::v8::base::MutexGuard guard(&chunks_mutex_);
   return LookupChunkContainingAddressInSafepoint(addr);
 }
 
@@ -621,7 +621,7 @@ const MemoryChunk* MemoryAllocator::LookupChunkContainingAddressInSafepoint(
 }
 
 void MemoryAllocator::RecordMemoryChunkCreated(const MemoryChunk* chunk) {
-  base::MutexGuard guard(&chunks_mutex_);
+  ::v8::base::MutexGuard guard(&chunks_mutex_);
   if (chunk->IsLargePage()) {
     auto result = large_pages_.insert(chunk);
     USE(result);
@@ -634,7 +634,7 @@ void MemoryAllocator::RecordMemoryChunkCreated(const MemoryChunk* chunk) {
 }
 
 void MemoryAllocator::RecordMemoryChunkDestroyed(const MemoryChunk* chunk) {
-  base::MutexGuard guard(&chunks_mutex_);
+  ::v8::base::MutexGuard guard(&chunks_mutex_);
   if (chunk->IsLargePage()) {
     auto size = large_pages_.erase(chunk);
     USE(size);

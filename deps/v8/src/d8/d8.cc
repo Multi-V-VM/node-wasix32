@@ -353,7 +353,7 @@ class MultiMappedAllocator : public ArrayBufferAllocatorBase {
         FATAL("mremap failed with error %d: %s", errno, strerror(errno));
       }
     }
-    base::MutexGuard lock_guard(&regions_mutex_);
+    ::v8::base::MutexGuard lock_guard(&regions_mutex_);
     regions_[virtual_alloc] = real_alloc;
     return virtual_alloc;
   }
@@ -362,7 +362,7 @@ class MultiMappedAllocator : public ArrayBufferAllocatorBase {
     if (length < kChunkSize) {
       return ArrayBufferAllocatorBase::Free(data, length);
     }
-    base::MutexGuard lock_guard(&regions_mutex_);
+    ::v8::base::MutexGuard lock_guard(&regions_mutex_);
     void* real_alloc = regions_[data];
     munmap(real_alloc, kChunkSize);
     size_t rounded_length = RoundUp(length, kChunkSize);
@@ -2820,14 +2820,14 @@ void Shell::ProfilerSetOnProfileEndListener(
     ThrowError(isolate, "The OnProfileEnd listener has to be a function");
     return;
   }
-  base::MutexGuard lock_guard(&profiler_end_callback_lock_);
+  ::v8::base::MutexGuard lock_guard(&profiler_end_callback_lock_);
   profiler_end_callback_[isolate] =
       std::make_pair(Global<Function>(isolate, info[0].As<Function>()),
                      Global<Context>(isolate, isolate->GetCurrentContext()));
 }
 
 bool Shell::HasOnProfileEndListener(Isolate* isolate) {
-  base::MutexGuard lock_guard(&profiler_end_callback_lock_);
+  ::v8::base::MutexGuard lock_guard(&profiler_end_callback_lock_);
   return profiler_end_callback_.find(isolate) != profiler_end_callback_.end();
 }
 
@@ -2836,7 +2836,7 @@ void Shell::ResetOnProfileEndListener(Isolate* isolate) {
   // D8Console.
   if (options.enable_inspector) return;
   {
-    base::MutexGuard lock_guard(&profiler_end_callback_lock_);
+    ::v8::base::MutexGuard lock_guard(&profiler_end_callback_lock_);
     profiler_end_callback_.erase(isolate);
   }
 
@@ -2866,7 +2866,7 @@ void Shell::TriggerOnProfileEndListener(Isolate* isolate, std::string profile) {
   Local<Value> argv[1] = {
       String::NewFromUtf8(isolate, profile.c_str()).ToLocalChecked()};
   {
-    base::MutexGuard lock_guard(&profiler_end_callback_lock_);
+    ::v8::base::MutexGuard lock_guard(&profiler_end_callback_lock_);
     auto& callback_pair = profiler_end_callback_[isolate];
     callback = callback_pair.first.Get(isolate);
     context = callback_pair.second.Get(isolate);
@@ -3758,7 +3758,7 @@ void Shell::MapCounters(v8::Isolate* isolate, const char* name) {
 Counter* Shell::GetCounter(const char* name, bool is_histogram) {
   Counter* counter = nullptr;
   {
-    base::MutexGuard mutex_guard(&counter_mutex_);
+    ::v8::base::MutexGuard mutex_guard(&counter_mutex_);
     auto map_entry = counter_map_->find(name);
     if (map_entry != counter_map_->end()) {
       counter = map_entry->second;
@@ -3766,7 +3766,7 @@ Counter* Shell::GetCounter(const char* name, bool is_histogram) {
   }
 
   if (counter == nullptr) {
-    base::MutexGuard mutex_guard(&counter_mutex_);
+    ::v8::base::MutexGuard mutex_guard(&counter_mutex_);
 
     counter = (*counter_map_)[name];
 
@@ -4489,7 +4489,7 @@ void Shell::OnExit(v8::Isolate* isolate, bool dispose) {
   }
 
   if (options.dump_counters || options.dump_counters_nvp) {
-    base::MutexGuard mutex_guard(&counter_mutex_);
+    ::v8::base::MutexGuard mutex_guard(&counter_mutex_);
     std::vector<std::pair<std::string, Counter*>> counters(
         counter_map_->begin(), counter_map_->end());
     std::sort(counters.begin(), counters.end());
@@ -5157,14 +5157,14 @@ void SourceGroup::JoinThread(const i::ParkedScope& parked) {
 }
 
 void SerializationDataQueue::Enqueue(std::unique_ptr<SerializationData> data) {
-  base::MutexGuard lock_guard(&mutex_);
+  ::v8::base::MutexGuard lock_guard(&mutex_);
   data_.push_back(std::move(data));
 }
 
 bool SerializationDataQueue::Dequeue(
     std::unique_ptr<SerializationData>* out_data) {
   out_data->reset();
-  base::MutexGuard lock_guard(&mutex_);
+  ::v8::base::MutexGuard lock_guard(&mutex_);
   if (data_.empty()) return false;
   *out_data = std::move(data_[0]);
   data_.erase(data_.begin());
@@ -5172,12 +5172,12 @@ bool SerializationDataQueue::Dequeue(
 }
 
 bool SerializationDataQueue::IsEmpty() {
-  base::MutexGuard lock_guard(&mutex_);
+  ::v8::base::MutexGuard lock_guard(&mutex_);
   return data_.empty();
 }
 
 void SerializationDataQueue::Clear() {
-  base::MutexGuard lock_guard(&mutex_);
+  ::v8::base::MutexGuard lock_guard(&mutex_);
   data_.clear();
 }
 
@@ -5245,7 +5245,7 @@ class ProcessMessageTask : public i::CancelableTask {
 };
 
 void Worker::PostMessage(std::unique_ptr<SerializationData> data) {
-  base::MutexGuard lock_guard(&worker_mutex_);
+  ::v8::base::MutexGuard lock_guard(&worker_mutex_);
   if (!is_running()) return;
   std::unique_ptr<v8::Task> task(new ProcessMessageTask(
       task_manager_, shared_from_this(), std::move(data)));
@@ -5292,7 +5292,7 @@ void Worker::TerminateAndWaitForThread(const i::ParkedScope& parked) {
   USE(parked);
   Terminate();
   {
-    base::MutexGuard lock_guard(&worker_mutex_);
+    ::v8::base::MutexGuard lock_guard(&worker_mutex_);
     // Prevent double-joining.
     if (is_joined_) return;
     is_joined_ = true;
@@ -5301,7 +5301,7 @@ void Worker::TerminateAndWaitForThread(const i::ParkedScope& parked) {
 }
 
 void Worker::Terminate() {
-  base::MutexGuard lock_guard(&worker_mutex_);
+  ::v8::base::MutexGuard lock_guard(&worker_mutex_);
   auto expected = State::kRunning;
   if (!state_.compare_exchange_strong(expected, State::kTerminating)) return;
   std::unique_ptr<v8::Task> task(
@@ -5314,7 +5314,7 @@ void Worker::Terminate() {
 }
 
 void Worker::EnterTerminatedState() {
-  base::MutexGuard lock_guard(&worker_mutex_);
+  ::v8::base::MutexGuard lock_guard(&worker_mutex_);
   state_.store(State::kTerminated);
   CHECK(!is_running());
   task_runner_.reset();
@@ -6434,7 +6434,7 @@ void Shell::AddRunningWorker(std::shared_ptr<Worker> worker) {
 }
 
 void Shell::RemoveRunningWorker(const std::shared_ptr<Worker>& worker) {
-  base::MutexGuard lock_guard(workers_mutex_.Pointer());
+  ::v8::base::MutexGuard lock_guard(workers_mutex_.Pointer());
   auto it = running_workers_.find(worker);
   if (it != running_workers_.end()) running_workers_.erase(it);
 }
@@ -6445,7 +6445,7 @@ void Shell::WaitForRunningWorkers(const i::ParkedScope& parked) {
   // worker is about to create a new Worker, it would deadlock.
   std::unordered_set<std::shared_ptr<Worker>> workers_copy;
   {
-    base::MutexGuard lock_guard(workers_mutex_.Pointer());
+    ::v8::base::MutexGuard lock_guard(workers_mutex_.Pointer());
     allow_new_workers_ = false;
     workers_copy.swap(running_workers_);
   }
@@ -6455,7 +6455,7 @@ void Shell::WaitForRunningWorkers(const i::ParkedScope& parked) {
   }
 
   // Now that all workers are terminated, we can re-enable Worker creation.
-  base::MutexGuard lock_guard(workers_mutex_.Pointer());
+  ::v8::base::MutexGuard lock_guard(workers_mutex_.Pointer());
   DCHECK(running_workers_.empty());
   allow_new_workers_ = true;
 }

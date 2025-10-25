@@ -12,6 +12,24 @@ namespace v8 {
 // Forward declaration
 class Isolate;
 
+// Base class for traced references (WASI stub)
+class TracedReferenceBase {
+ public:
+  TracedReferenceBase() = default;
+  ~TracedReferenceBase() = default;
+
+  // Non-copyable
+  TracedReferenceBase(const TracedReferenceBase&) = delete;
+  TracedReferenceBase& operator=(const TracedReferenceBase&) = delete;
+
+  // Movable
+  TracedReferenceBase(TracedReferenceBase&&) = default;
+  TracedReferenceBase& operator=(TracedReferenceBase&&) = default;
+
+  bool IsEmpty() const { return true; }
+  void Reset() {}
+};
+
 // 为 WASI 提供最小的追踪句柄支持
 template <class T>
 class TracedHandle {

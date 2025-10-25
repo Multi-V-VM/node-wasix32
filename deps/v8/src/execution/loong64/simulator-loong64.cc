@@ -1726,7 +1726,7 @@ void Simulator::WriteW(int64_t addr, int32_t value, Instruction* instr) {
 
   {
     local_monitor_.NotifyStore();
-    base::MutexGuard lock_guard(&GlobalMonitor::Get()->mutex);
+    ::v8::base::MutexGuard lock_guard(&GlobalMonitor::Get()->mutex);
     GlobalMonitor::Get()->NotifyStore_Locked(&global_monitor_thread_);
     TraceMemWr(addr, value, WORD);
     int* ptr = reinterpret_cast<int*>(addr);
@@ -1746,7 +1746,7 @@ void Simulator::WriteConditionalW(int64_t addr, int32_t value,
   }
 
   if ((addr & 0x3) == 0) {
-    base::MutexGuard lock_guard(&GlobalMonitor::Get()->mutex);
+    ::v8::base::MutexGuard lock_guard(&GlobalMonitor::Get()->mutex);
     if (local_monitor_.NotifyStoreConditional(addr, TransactionSize::Word) &&
         GlobalMonitor::Get()->NotifyStoreConditional_Locked(
             addr, &global_monitor_thread_)) {
@@ -1794,7 +1794,7 @@ void Simulator::Write2W(int64_t addr, int64_t value, Instruction* instr) {
 
   {
     local_monitor_.NotifyStore();
-    base::MutexGuard lock_guard(&GlobalMonitor::Get()->mutex);
+    ::v8::base::MutexGuard lock_guard(&GlobalMonitor::Get()->mutex);
     GlobalMonitor::Get()->NotifyStore_Locked(&global_monitor_thread_);
     TraceMemWr(addr, value, DWORD);
     int64_t* ptr = reinterpret_cast<int64_t*>(addr);
@@ -1814,7 +1814,7 @@ void Simulator::WriteConditional2W(int64_t addr, int64_t value,
   }
 
   if ((addr & kPointerAlignmentMask) == 0) {
-    base::MutexGuard lock_guard(&GlobalMonitor::Get()->mutex);
+    ::v8::base::MutexGuard lock_guard(&GlobalMonitor::Get()->mutex);
     if (local_monitor_.NotifyStoreConditional(addr,
                                               TransactionSize::DoubleWord) &&
         GlobalMonitor::Get()->NotifyStoreConditional_Locked(
@@ -1843,7 +1843,7 @@ double Simulator::ReadD(int64_t addr, Instruction* instr) {
 
 void Simulator::WriteD(int64_t addr, double value, Instruction* instr) {
   local_monitor_.NotifyStore();
-  base::MutexGuard lock_guard(&GlobalMonitor::Get()->mutex);
+  ::v8::base::MutexGuard lock_guard(&GlobalMonitor::Get()->mutex);
   GlobalMonitor::Get()->NotifyStore_Locked(&global_monitor_thread_);
   double* ptr = reinterpret_cast<double*>(addr);
   *ptr = value;
@@ -1866,7 +1866,7 @@ int16_t Simulator::ReadH(int64_t addr, Instruction* instr) {
 
 void Simulator::WriteH(int64_t addr, uint16_t value, Instruction* instr) {
   local_monitor_.NotifyStore();
-  base::MutexGuard lock_guard(&GlobalMonitor::Get()->mutex);
+  ::v8::base::MutexGuard lock_guard(&GlobalMonitor::Get()->mutex);
   GlobalMonitor::Get()->NotifyStore_Locked(&global_monitor_thread_);
   TraceMemWr(addr, value, HALF);
   uint16_t* ptr = reinterpret_cast<uint16_t*>(addr);
@@ -1876,7 +1876,7 @@ void Simulator::WriteH(int64_t addr, uint16_t value, Instruction* instr) {
 
 void Simulator::WriteH(int64_t addr, int16_t value, Instruction* instr) {
   local_monitor_.NotifyStore();
-  base::MutexGuard lock_guard(&GlobalMonitor::Get()->mutex);
+  ::v8::base::MutexGuard lock_guard(&GlobalMonitor::Get()->mutex);
   GlobalMonitor::Get()->NotifyStore_Locked(&global_monitor_thread_);
   TraceMemWr(addr, value, HALF);
   int16_t* ptr = reinterpret_cast<int16_t*>(addr);
@@ -1900,7 +1900,7 @@ int32_t Simulator::ReadB(int64_t addr) {
 
 void Simulator::WriteB(int64_t addr, uint8_t value) {
   local_monitor_.NotifyStore();
-  base::MutexGuard lock_guard(&GlobalMonitor::Get()->mutex);
+  ::v8::base::MutexGuard lock_guard(&GlobalMonitor::Get()->mutex);
   GlobalMonitor::Get()->NotifyStore_Locked(&global_monitor_thread_);
   TraceMemWr(addr, value, BYTE);
   uint8_t* ptr = reinterpret_cast<uint8_t*>(addr);
@@ -1909,7 +1909,7 @@ void Simulator::WriteB(int64_t addr, uint8_t value) {
 
 void Simulator::WriteB(int64_t addr, int8_t value) {
   local_monitor_.NotifyStore();
-  base::MutexGuard lock_guard(&GlobalMonitor::Get()->mutex);
+  ::v8::base::MutexGuard lock_guard(&GlobalMonitor::Get()->mutex);
   GlobalMonitor::Get()->NotifyStore_Locked(&global_monitor_thread_);
   TraceMemWr(addr, value, BYTE);
   int8_t* ptr = reinterpret_cast<int8_t*>(addr);
@@ -1937,7 +1937,7 @@ void Simulator::WriteMem(int64_t addr, T value, Instruction* instr) {
   int alignment_mask = (1 << sizeof(T)) - 1;
   if ((addr & alignment_mask) == 0) {
     local_monitor_.NotifyStore();
-    base::MutexGuard lock_guard(&GlobalMonitor::Get()->mutex);
+    ::v8::base::MutexGuard lock_guard(&GlobalMonitor::Get()->mutex);
     GlobalMonitor::Get()->NotifyStore_Locked(&global_monitor_thread_);
     T* ptr = reinterpret_cast<T*>(addr);
     *ptr = value;
@@ -2844,7 +2844,7 @@ void Simulator::DecodeTypeOp8() {
       addr = si14_se + rj();
       if (!ProbeMemory(addr, sizeof(int32_t))) return;
       {
-        base::MutexGuard lock_guard(&GlobalMonitor::Get()->mutex);
+        ::v8::base::MutexGuard lock_guard(&GlobalMonitor::Get()->mutex);
         set_register(rd_reg(), ReadW(addr, instr_.instr()));
         local_monitor_.NotifyLoadLinked(addr, TransactionSize::Word);
         GlobalMonitor::Get()->NotifyLoadLinked_Locked(addr,
@@ -2871,7 +2871,7 @@ void Simulator::DecodeTypeOp8() {
       addr = si14_se + rj();
       if (!ProbeMemory(addr, sizeof(int64_t))) return;
       {
-        base::MutexGuard lock_guard(&GlobalMonitor::Get()->mutex);
+        ::v8::base::MutexGuard lock_guard(&GlobalMonitor::Get()->mutex);
         set_register(rd_reg(), Read2W(addr, instr_.instr()));
         local_monitor_.NotifyLoadLinked(addr, TransactionSize::DoubleWord);
         GlobalMonitor::Get()->NotifyLoadLinked_Locked(addr,
@@ -4201,7 +4201,7 @@ void Simulator::DecodeTypeOp17() {
       int32_t success = 0;
       do {
         {
-          base::MutexGuard lock_guard(&GlobalMonitor::Get()->mutex);
+          ::v8::base::MutexGuard lock_guard(&GlobalMonitor::Get()->mutex);
           set_register(rd_reg(), ReadW(rj(), instr_.instr()));
           local_monitor_.NotifyLoadLinked(rj(), TransactionSize::Word);
           GlobalMonitor::Get()->NotifyLoadLinked_Locked(
@@ -4219,7 +4219,7 @@ void Simulator::DecodeTypeOp17() {
       int32_t success = 0;
       do {
         {
-          base::MutexGuard lock_guard(&GlobalMonitor::Get()->mutex);
+          ::v8::base::MutexGuard lock_guard(&GlobalMonitor::Get()->mutex);
           set_register(rd_reg(), Read2W(rj(), instr_.instr()));
           local_monitor_.NotifyLoadLinked(rj(), TransactionSize::DoubleWord);
           GlobalMonitor::Get()->NotifyLoadLinked_Locked(
@@ -4236,7 +4236,7 @@ void Simulator::DecodeTypeOp17() {
       int32_t success = 0;
       do {
         {
-          base::MutexGuard lock_guard(&GlobalMonitor::Get()->mutex);
+          ::v8::base::MutexGuard lock_guard(&GlobalMonitor::Get()->mutex);
           set_register(rd_reg(), ReadW(rj(), instr_.instr()));
           local_monitor_.NotifyLoadLinked(rj(), TransactionSize::Word);
           GlobalMonitor::Get()->NotifyLoadLinked_Locked(
@@ -4256,7 +4256,7 @@ void Simulator::DecodeTypeOp17() {
       int32_t success = 0;
       do {
         {
-          base::MutexGuard lock_guard(&GlobalMonitor::Get()->mutex);
+          ::v8::base::MutexGuard lock_guard(&GlobalMonitor::Get()->mutex);
           set_register(rd_reg(), Read2W(rj(), instr_.instr()));
           local_monitor_.NotifyLoadLinked(rj(), TransactionSize::DoubleWord);
           GlobalMonitor::Get()->NotifyLoadLinked_Locked(
@@ -4273,7 +4273,7 @@ void Simulator::DecodeTypeOp17() {
       int32_t success = 0;
       do {
         {
-          base::MutexGuard lock_guard(&GlobalMonitor::Get()->mutex);
+          ::v8::base::MutexGuard lock_guard(&GlobalMonitor::Get()->mutex);
           set_register(rd_reg(), ReadW(rj(), instr_.instr()));
           local_monitor_.NotifyLoadLinked(rj(), TransactionSize::Word);
           GlobalMonitor::Get()->NotifyLoadLinked_Locked(
@@ -4293,7 +4293,7 @@ void Simulator::DecodeTypeOp17() {
       int32_t success = 0;
       do {
         {
-          base::MutexGuard lock_guard(&GlobalMonitor::Get()->mutex);
+          ::v8::base::MutexGuard lock_guard(&GlobalMonitor::Get()->mutex);
           set_register(rd_reg(), Read2W(rj(), instr_.instr()));
           local_monitor_.NotifyLoadLinked(rj(), TransactionSize::DoubleWord);
           GlobalMonitor::Get()->NotifyLoadLinked_Locked(
@@ -4310,7 +4310,7 @@ void Simulator::DecodeTypeOp17() {
       int32_t success = 0;
       do {
         {
-          base::MutexGuard lock_guard(&GlobalMonitor::Get()->mutex);
+          ::v8::base::MutexGuard lock_guard(&GlobalMonitor::Get()->mutex);
           set_register(rd_reg(), ReadW(rj(), instr_.instr()));
           local_monitor_.NotifyLoadLinked(rj(), TransactionSize::Word);
           GlobalMonitor::Get()->NotifyLoadLinked_Locked(
@@ -4330,7 +4330,7 @@ void Simulator::DecodeTypeOp17() {
       int32_t success = 0;
       do {
         {
-          base::MutexGuard lock_guard(&GlobalMonitor::Get()->mutex);
+          ::v8::base::MutexGuard lock_guard(&GlobalMonitor::Get()->mutex);
           set_register(rd_reg(), Read2W(rj(), instr_.instr()));
           local_monitor_.NotifyLoadLinked(rj(), TransactionSize::DoubleWord);
           GlobalMonitor::Get()->NotifyLoadLinked_Locked(
@@ -4347,7 +4347,7 @@ void Simulator::DecodeTypeOp17() {
       int32_t success = 0;
       do {
         {
-          base::MutexGuard lock_guard(&GlobalMonitor::Get()->mutex);
+          ::v8::base::MutexGuard lock_guard(&GlobalMonitor::Get()->mutex);
           set_register(rd_reg(), ReadW(rj(), instr_.instr()));
           local_monitor_.NotifyLoadLinked(rj(), TransactionSize::Word);
           GlobalMonitor::Get()->NotifyLoadLinked_Locked(
@@ -4367,7 +4367,7 @@ void Simulator::DecodeTypeOp17() {
       int32_t success = 0;
       do {
         {
-          base::MutexGuard lock_guard(&GlobalMonitor::Get()->mutex);
+          ::v8::base::MutexGuard lock_guard(&GlobalMonitor::Get()->mutex);
           set_register(rd_reg(), Read2W(rj(), instr_.instr()));
           local_monitor_.NotifyLoadLinked(rj(), TransactionSize::DoubleWord);
           GlobalMonitor::Get()->NotifyLoadLinked_Locked(
@@ -5684,7 +5684,7 @@ void Simulator::GlobalMonitor::PrependProcessor_Locked(
 
 void Simulator::GlobalMonitor::RemoveLinkedAddress(
     LinkedAddress* linked_address) {
-  base::MutexGuard lock_guard(&mutex);
+  ::v8::base::MutexGuard lock_guard(&mutex);
   if (!IsProcessorInLinkedList_Locked(linked_address)) {
     return;
   }

@@ -293,10 +293,10 @@ class TimeBase : public TimeConstants {
 
   // Return a new time modified by some delta.
   TimeClass operator+(TimeDelta delta) const {
-    return TimeClass(bits::SignedSaturatedAdd64(delta.delta_, us_));
+    return TimeClass(base::bits::SignedSaturatedAdd64(delta.delta_, us_));
   }
   TimeClass operator-(TimeDelta delta) const {
-    return TimeClass(-bits::SignedSaturatedSub64(delta.delta_, us_));
+    return TimeClass(-base::bits::SignedSaturatedSub64(delta.delta_, us_));
   }
 
   // Modify by some time delta.

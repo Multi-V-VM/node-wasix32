@@ -271,13 +271,13 @@ void IsolateGroup::SetupReadOnlyHeap(Isolate* isolate,
                                      SnapshotData* read_only_snapshot_data,
                                      bool can_rehash) {
   DCHECK_EQ(isolate->isolate_group(), this);
-  base::MutexGuard guard(&mutex_);
+  ::v8::base::MutexGuard guard(&mutex_);
   ReadOnlyHeap::SetUp(isolate, read_only_snapshot_data, can_rehash);
 }
 
 void IsolateGroup::AddIsolate(Isolate* isolate) {
   DCHECK_EQ(isolate->isolate_group(), this);
-  base::MutexGuard guard(&mutex_);
+  ::v8::base::MutexGuard guard(&mutex_);
   ++isolate_count_;
 
   const bool inserted = isolates_.insert(isolate).second;
@@ -301,7 +301,7 @@ void IsolateGroup::AddIsolate(Isolate* isolate) {
 }
 
 void IsolateGroup::RemoveIsolate(Isolate* isolate) {
-  base::MutexGuard guard(&mutex_);
+  ::v8::base::MutexGuard guard(&mutex_);
 
   if (--isolate_count_ == 0) {
     read_only_artifacts_.reset();
@@ -369,7 +369,7 @@ void IsolateGroup::ReleaseDefault() {
 
 #ifdef V8_ENABLE_SANDBOX
 void SandboxedArrayBufferAllocator::LazyInitialize(Sandbox* sandbox) {
-  base::MutexGuard guard(&mutex_);
+  ::v8::base::MutexGuard guard(&mutex_);
   if (is_initialized()) {
     return;
   }
@@ -436,7 +436,7 @@ SandboxedArrayBufferAllocator::~SandboxedArrayBufferAllocator() {
 }
 
 void* SandboxedArrayBufferAllocator::Allocate(size_t length) {
-  base::MutexGuard guard(&mutex_);
+  ::v8::base::MutexGuard guard(&mutex_);
 
   length = RoundUp(length, kAllocationGranularity);
   Address region = region_alloc_->AllocateRegion(length);
@@ -469,7 +469,7 @@ void* SandboxedArrayBufferAllocator::Allocate(size_t length) {
 }
 
 void SandboxedArrayBufferAllocator::Free(void* data) {
-  base::MutexGuard guard(&mutex_);
+  ::v8::base::MutexGuard guard(&mutex_);
   region_alloc_->FreeRegion(reinterpret_cast<Address>(data));
 }
 

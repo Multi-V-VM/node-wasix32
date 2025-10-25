@@ -6892,7 +6892,7 @@ bool Simulator::GlobalMonitor::NotifyStoreExcl_Locked(uintptr_t addr,
 }
 
 void Simulator::GlobalMonitor::PrependProcessor(Processor* processor) {
-  base::MutexGuard lock_guard(&mutex_);
+  ::v8::base::MutexGuard lock_guard(&mutex_);
   if (head_) {
     head_->prev_ = processor;
   }
@@ -6903,7 +6903,7 @@ void Simulator::GlobalMonitor::PrependProcessor(Processor* processor) {
 }
 
 void Simulator::GlobalMonitor::RemoveProcessor(Processor* processor) {
-  base::MutexGuard lock_guard(&mutex_);
+  ::v8::base::MutexGuard lock_guard(&mutex_);
   if (processor->prev_) {
     processor->prev_->next_ = processor->next_;
   } else {

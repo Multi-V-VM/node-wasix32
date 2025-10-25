@@ -9,6 +9,14 @@
 namespace v8 {
 namespace base {
 
+// Define the lightweight WASI platform data type when targeting WASI.
+#ifdef __wasi__
+class Mutex::PlatformData {
+ public:
+  PlatformData() {}
+};
+#endif
+
 RecursiveMutex::~RecursiveMutex() { DCHECK_EQ(0, level_); }
 
 void RecursiveMutex::Lock() {
@@ -53,24 +61,49 @@ Mutex::Mutex() {
 #ifdef DEBUG
   level_ = 0;
 #endif
+#ifdef __wasi__
+  // Allocate lightweight WASI platform data
+  data_ = new PlatformData();
+#endif
 }
 
-Mutex::~Mutex() { DCHECK_EQ(0, level_); }
+Mutex::~Mutex() {
+  DCHECK_EQ(0, level_);
+#ifdef __wasi__
+  delete data_;
+#endif
+}
 
 void Mutex::Lock() ABSL_NO_THREAD_SAFETY_ANALYSIS {
+#ifdef __wasi__
+  // No-op lock for WASI stub; maintain debug state semantics.
+  AssertUnheldAndMark();
+#else
   native_handle_.Lock();
   AssertUnheldAndMark();
+#endif
 }
 
 void Mutex::Unlock() ABSL_NO_THREAD_SAFETY_ANALYSIS {
+#ifdef __wasi__
+  // No-op unlock for WASI stub; maintain debug state semantics.
+  AssertHeldAndUnmark();
+#else
   AssertHeldAndUnmark();
   native_handle_.Unlock();
+#endif
 }
 
 bool Mutex::TryLock() ABSL_NO_THREAD_SAFETY_ANALYSIS {
+#ifdef __wasi__
+  // Always succeeds in WASI stub; maintain debug state semantics.
+  AssertUnheldAndMark();
+  return true;
+#else
   if (!native_handle_.TryLock()) return false;
   AssertUnheldAndMark();
   return true;
+#endif
 }
 
 }  // namespace base

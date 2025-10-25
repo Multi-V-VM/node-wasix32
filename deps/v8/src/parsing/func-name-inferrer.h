@@ -126,7 +126,7 @@ class FuncNameInferrer {
   void InferFunctionsNames();
 
   AstValueFactory* ast_value_factory_;
-  base::SmallVector<Name, 8> names_stack_;
+  ::v8::base::SmallVector<Name, 8> names_stack_;
   std::vector<FunctionLiteral*> funcs_to_infer_;
   size_t scope_depth_ = 0;
 };

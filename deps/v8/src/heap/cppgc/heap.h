@@ -28,7 +28,7 @@ class V8_EXPORT_PRIVATE Heap final : public HeapBase,
   }
 
   Heap(std::shared_ptr<cppgc::Platform> platform,
-       cppgc::Heap::HeapOptions options);
+       cppgc::HeapOptions options);
   ~Heap() final;
 
   HeapBase& AsBase() { return *this; }

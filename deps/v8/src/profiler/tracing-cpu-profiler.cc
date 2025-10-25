@@ -68,7 +68,7 @@ void TracingCpuProfilerImpl::OnStop(const perfetto::DataSourceBase::StopArgs&) {
 #else
 void TracingCpuProfilerImpl::OnTraceDisabled() {
 #endif
-  base::MutexGuard lock(&mutex_);
+  ::v8::base::MutexGuard lock(&mutex_);
   if (!profiling_enabled_) return;
   profiling_enabled_ = false;
   isolate_->RequestInterrupt(
@@ -85,7 +85,7 @@ void TracingCpuProfilerImpl::OnTraceDisabled() {
 }
 
 void TracingCpuProfilerImpl::StartProfiling() {
-  base::MutexGuard lock(&mutex_);
+  ::v8::base::MutexGuard lock(&mutex_);
   if (!profiling_enabled_ || profiler_) return;
   int sampling_interval_us = 100;
   profiler_.reset(new CpuProfiler(isolate_, kDebugNaming));
@@ -95,7 +95,7 @@ void TracingCpuProfilerImpl::StartProfiling() {
 }
 
 void TracingCpuProfilerImpl::StopProfiling() {
-  base::MutexGuard lock(&mutex_);
+  ::v8::base::MutexGuard lock(&mutex_);
   if (!profiler_) return;
   profiler_->StopProfiling("");
   profiler_.reset();

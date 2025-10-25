@@ -37,8 +37,19 @@
 #define DCHECK(condition) ((void)0)
 #endif
 
+// Provide a function-based form to avoid -Wunused-value when used as a
+// statement, while still returning the value in expression contexts.
+// Forwarding helpers to preserve value category and avoid copies.
+#include <utility>
+namespace v8 { namespace base { namespace detail {
+template <typename T>
+V8_INLINE T&& DcheckNotNull(T&& val) { return std::forward<T>(val); }
+template <typename T>
+V8_INLINE T&& CheckNotNull(T&& val) { return std::forward<T>(val); }
+}}}  // namespace v8::base::detail
+
 #ifndef DCHECK_NOT_NULL
-#define DCHECK_NOT_NULL(val) (val)
+#define DCHECK_NOT_NULL(val) (::v8::base::detail::DcheckNotNull(val))
 #endif
 
 #ifndef DCHECK_NULL
@@ -46,7 +57,7 @@
 #endif
 
 #ifndef CHECK_NOT_NULL
-#define CHECK_NOT_NULL(val) (val)
+#define CHECK_NOT_NULL(val) (::v8::base::detail::CheckNotNull(val))
 #endif
 
 #ifndef CHECK_NULL
@@ -115,6 +126,10 @@
 
 #ifndef FATAL
 #define FATAL(...) abort()
+#endif
+
+#ifndef GRACEFUL_FATAL
+#define GRACEFUL_FATAL(...) FATAL(__VA_ARGS__)
 #endif
 
 #ifndef UNIMPLEMENTED

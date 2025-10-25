@@ -846,7 +846,7 @@ void SharedFunctionInfo::InstallDebugBytecode(
 
   {
     DisallowGarbageCollection no_gc;
-    base::MutexGuard guard(isolate->shared_function_info_access());
+    ::v8::base::MutexGuard guard(isolate->shared_function_info_access());
     Tagged<DebugInfo> debug_info = shared->GetDebugInfo(isolate);
     debug_info->set_original_bytecode_array(*original_bytecode_array,
                                             kReleaseStore);
@@ -859,7 +859,7 @@ void SharedFunctionInfo::InstallDebugBytecode(
 void SharedFunctionInfo::UninstallDebugBytecode(
     Tagged<SharedFunctionInfo> shared, Isolate* isolate) {
   DisallowGarbageCollection no_gc;
-  base::MutexGuard guard(isolate->shared_function_info_access());
+  ::v8::base::MutexGuard guard(isolate->shared_function_info_access());
   Tagged<DebugInfo> debug_info = shared->GetDebugInfo(isolate);
   Tagged<BytecodeArray> original_bytecode_array =
       debug_info->OriginalBytecodeArray(isolate);

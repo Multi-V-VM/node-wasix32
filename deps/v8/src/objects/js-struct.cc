@@ -504,7 +504,7 @@ void SharedStructTypeRegistry::IterateElements(Isolate* isolate,
   //
   // TODO(v8:12547): Figure out how to do
   // isolate->global_safepoint()->AssertActive() instead.
-  base::MutexGuard data_guard(&data_mutex_);
+  ::v8::base::MutexGuard data_guard(&data_mutex_);
   data_->IterateElements(Root::kSharedStructTypeRegistry, visitor);
 }
 

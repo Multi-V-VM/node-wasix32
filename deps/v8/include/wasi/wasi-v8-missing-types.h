@@ -154,15 +154,73 @@ using AsAtomic32 = ::v8::base::AsAtomic32;
 // Atomic operations functions are available through ADL
 
 // ============================================================================
-// Mutex and locking - Import from v8::base
+// Mutex and locking - Provide minimal WASI stubs
 // ============================================================================
+// On WASI, threading may be unavailable or limited. To avoid tight coupling
+// with V8's internal mutex implementations and include-order pitfalls, define
+// lightweight stand-ins within v8::internal::base. These satisfy type and
+// API expectations for single-threaded builds.
 
-using Mutex = ::v8::base::Mutex;
-using RecursiveMutex = ::v8::base::RecursiveMutex;
-using MutexGuard = ::v8::base::MutexGuard;
-using MutexGuardIf = ::v8::base::MutexGuardIf;
-using LazyMutex = ::v8::base::LazyMutex;
+class Mutex {
+ public:
+  void Lock() {}
+  void Unlock() {}
+  bool TryLock() { return true; }
+  void AssertHeld() const {}
+};
 
+class RecursiveMutex {
+ public:
+  void Lock() {}
+  void Unlock() {}
+  bool TryLock() { return true; }
+  void AssertHeld() const {}
+};
+
+class MutexGuard {
+ public:
+  explicit MutexGuard(Mutex* m) : m_(m) { if (m_) m_->Lock(); }
+  explicit MutexGuard(Mutex& m) : m_(&m) { m_->Lock(); }
+  ~MutexGuard() { if (m_) m_->Unlock(); }
+  MutexGuard(const MutexGuard&) = delete;
+  MutexGuard& operator=(const MutexGuard&) = delete;
+ private:
+  Mutex* m_ = nullptr;
+};
+
+class RecursiveMutexGuard {
+ public:
+  explicit RecursiveMutexGuard(RecursiveMutex* m) : m_(m) { if (m_) m_->Lock(); }
+  explicit RecursiveMutexGuard(RecursiveMutex& m) : m_(&m) { m_->Lock(); }
+  ~RecursiveMutexGuard() { if (m_) m_->Unlock(); }
+  RecursiveMutexGuard(const RecursiveMutexGuard&) = delete;
+  RecursiveMutexGuard& operator=(const RecursiveMutexGuard&) = delete;
+ private:
+  RecursiveMutex* m_ = nullptr;
+};
+
+class MutexGuardIf {
+ public:
+  MutexGuardIf(Mutex* m, bool enable) {
+    if (enable && m) {
+      m->Lock();
+      m_ = m;
+    }
+  }
+  ~MutexGuardIf() { if (m_) m_->Unlock(); }
+  MutexGuardIf(const MutexGuardIf&) = delete;
+  MutexGuardIf& operator=(const MutexGuardIf&) = delete;
+ private:
+  Mutex* m_ = nullptr;
+};
+
+class LazyMutex {
+ public:
+  Mutex* Pointer() {
+    static Mutex m;
+    return &m;
+  }
+};
 // ============================================================================
 // Memory and allocation helpers
 // ============================================================================

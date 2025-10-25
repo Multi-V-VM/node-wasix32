@@ -7,6 +7,7 @@
 #include <algorithm>
 
 #include "src/base/platform/platform.h"
+#include "src/common/globals.h"
 
 namespace v8 {
 namespace internal {

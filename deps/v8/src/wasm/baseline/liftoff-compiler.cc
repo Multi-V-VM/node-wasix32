@@ -1231,7 +1231,7 @@ class LiftoffCompiler {
     if (v8_flags.wasm_inlining && !encountered_call_instructions_.empty()) {
       // Update the call targets stored in the WasmModule.
       TypeFeedbackStorage& type_feedback = env_->module->type_feedback;
-      base::MutexGuard mutex_guard(&type_feedback.mutex);
+      ::v8::base::MutexGuard mutex_guard(&type_feedback.mutex);
       FunctionTypeFeedback& function_feedback =
           type_feedback.feedback_for_function[func_index_];
       function_feedback.liftoff_frame_size = __ GetTotalFrameSize();

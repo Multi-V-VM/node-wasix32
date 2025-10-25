@@ -322,8 +322,8 @@ class Sweeper {
 
   Heap* const heap_;
   NonAtomicMarkingState* const marking_state_;
-  base::Mutex mutex_;
-  base::ConditionVariable cv_page_swept_;
+  ::v8::base::Mutex mutex_;
+  ::v8::base::ConditionVariable cv_page_swept_;
   SweptList swept_list_[kNumberOfSweepingSpaces];
   SweepingList sweeping_list_[kNumberOfSweepingSpaces];
   std::atomic<bool> has_sweeping_work_[kNumberOfSweepingSpaces]{false};
@@ -337,8 +337,8 @@ class Sweeper {
   // promoted pages and sweeping array buffer extensions.
   size_t promoted_pages_for_iteration_count_ = 0;
   std::atomic<size_t> iterated_promoted_pages_count_{0};
-  base::Mutex promoted_pages_iteration_notification_mutex_;
-  base::ConditionVariable promoted_pages_iteration_notification_variable_;
+  ::v8::base::Mutex promoted_pages_iteration_notification_mutex_;
+  ::v8::base::ConditionVariable promoted_pages_iteration_notification_variable_;
   std::atomic<bool> promoted_page_iteration_in_progress_{false};
 };
 
@@ -348,7 +348,7 @@ bool Sweeper::LocalSweeper::ContributeAndWaitForPromotedPagesIterationImpl(
   if (!sweeper_->sweeping_in_progress()) return true;
   if (!sweeper_->IsIteratingPromotedPages()) return true;
   if (!ParallelIteratePromotedPagesImpl(should_yield_callback)) return false;
-  base::MutexGuard guard(
+  ::v8::base::MutexGuard guard(
       &sweeper_->promoted_pages_iteration_notification_mutex_);
   // Check again that iteration is not yet finished.
   if (!sweeper_->IsIteratingPromotedPages()) return true;

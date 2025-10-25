@@ -4238,7 +4238,7 @@ void Simulator::DecodeRVRAType() {
       sreg_t addr = rs1();
       if (!ProbeMemory(addr, sizeof(int32_t))) return;
       {
-        base::MutexGuard lock_guard(&GlobalMonitor::Get()->mutex);
+        ::v8::base::MutexGuard lock_guard(&GlobalMonitor::Get()->mutex);
         if ((addr & 0x3) != 0) {
           DieOrDebug();
         }
@@ -4257,7 +4257,7 @@ void Simulator::DecodeRVRAType() {
       if ((addr & 0x3) != 0) {
         DieOrDebug();
       }
-      base::MutexGuard lock_guard(&GlobalMonitor::Get()->mutex);
+      ::v8::base::MutexGuard lock_guard(&GlobalMonitor::Get()->mutex);
       if (local_monitor_.NotifyStoreConditional(addr, TransactionSize::Word) &&
           GlobalMonitor::Get()->NotifyStoreConditional_Locked(
               addr, &global_monitor_thread_)) {
@@ -4356,7 +4356,7 @@ void Simulator::DecodeRVRAType() {
       int64_t addr = rs1();
       if (!ProbeMemory(addr, sizeof(int64_t))) return;
       {
-        base::MutexGuard lock_guard(&GlobalMonitor::Get()->mutex);
+        ::v8::base::MutexGuard lock_guard(&GlobalMonitor::Get()->mutex);
         auto val = ReadMem<int64_t>(addr, instr_.instr());
         set_rd(val, false);
         TraceMemRd(addr, val, get_register(rd_reg()));
@@ -4369,7 +4369,7 @@ void Simulator::DecodeRVRAType() {
     case RO_SC_D: {
       int64_t addr = rs1();
       if (!ProbeMemory(addr, sizeof(int64_t))) return;
-      base::MutexGuard lock_guard(&GlobalMonitor::Get()->mutex);
+      ::v8::base::MutexGuard lock_guard(&GlobalMonitor::Get()->mutex);
       if (local_monitor_.NotifyStoreConditional(addr,
                                                 TransactionSize::DoubleWord) &&
           (GlobalMonitor::Get()->NotifyStoreConditional_Locked(
@@ -8630,7 +8630,7 @@ void Simulator::GlobalMonitor::PrependProcessor_Locked(
 
 void Simulator::GlobalMonitor::RemoveLinkedAddress(
     LinkedAddress* linked_address) {
-  base::MutexGuard lock_guard(&mutex);
+  ::v8::base::MutexGuard lock_guard(&mutex);
   if (!IsProcessorInLinkedList_Locked(linked_address)) {
     return;
   }

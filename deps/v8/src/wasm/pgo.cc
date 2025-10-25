@@ -98,12 +98,12 @@ class ProfileGenerator {
   const WasmModule* module_;
   AccountingAllocator allocator_;
   Zone zone_{&allocator_, "wasm::ProfileGenerator"};
-  base::MutexGuard type_feedback_mutex_guard_;
+  ::v8::base::MutexGuard type_feedback_mutex_guard_;
   const std::atomic<uint32_t>* const tiering_budget_array_;
 };
 
 void DeserializeTypeFeedback(Decoder& decoder, const WasmModule* module) {
-  base::MutexGuard mutex_guard{&module->type_feedback.mutex};
+  ::v8::base::MutexGuard mutex_guard{&module->type_feedback.mutex};
   std::unordered_map<uint32_t, FunctionTypeFeedback>& feedback_for_function =
       module->type_feedback.feedback_for_function;
   uint32_t num_entries = decoder.consume_u32v("num function entries");

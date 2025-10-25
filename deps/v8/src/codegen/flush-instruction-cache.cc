@@ -19,7 +19,7 @@ void FlushInstructionCache(void* start, size_t size) {
                "start", start, "size", size);
 
 #if defined(USE_SIMULATOR)
-  base::MutexGuard lock_guard(Simulator::i_cache_mutex());
+  ::v8::base::MutexGuard lock_guard(Simulator::i_cache_mutex());
   Simulator::FlushICache(Simulator::i_cache(), start, size);
 #else
   CpuFeatures::FlushICache(start, size);

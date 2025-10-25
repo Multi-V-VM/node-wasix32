@@ -208,6 +208,25 @@ class V8_EXPORT_PRIVATE Assembler : public AssemblerBase {
   // Code patching
   static void PatchBranchOffset(uint8_t* pc, int32_t offset);
 
+  // Read/modify the uint32 constant used at pc
+  static inline uint32_t uint32_constant_at(Address pc, Address constant_pool) {
+    return base::ReadUnalignedValue<uint32_t>(pc);
+  }
+
+  static inline void set_uint32_constant_at(
+      Address pc, Address constant_pool, uint32_t new_constant,
+      WritableJitAllocation* jit_allocation = nullptr,
+      ICacheFlushMode icache_flush_mode = FLUSH_ICACHE_IF_NEEDED) {
+    if (jit_allocation) {
+      jit_allocation->WriteUnalignedValue<uint32_t>(pc, new_constant);
+    } else {
+      base::WriteUnalignedValue<uint32_t>(pc, new_constant);
+    }
+    if (icache_flush_mode != SKIP_ICACHE_FLUSH) {
+      FlushInstructionCache(pc, sizeof(uint32_t));
+    }
+  }
+
   // Static helpers used by RelocInfo and serializer interfaces
   static Address target_address_from_return_address(Address pc);
   static void set_target_compressed_address_at(Address pc, Address constant_pool,
@@ -239,10 +258,12 @@ class V8_EXPORT_PRIVATE Assembler : public AssemblerBase {
   void RecordComment(const char* comment);
   void RecordDeoptReason(DeoptimizeReason reason, uint32_t node_id,
                         SourcePosition position, int id);
+  int WriteCodeComments();
 
   // Constants for code generation
   static constexpr int kMaxDistToBranchImm = (1 << 12) - 1;  // 12-bit signed offset
   static constexpr int kMaxDistToJumpImm = (1 << 20) - 1;    // 20-bit signed offset
+  static constexpr int kGap = 32;  // Gap for buffer management
 
   // Stack pointer operations (for MacroAssembler)
   static constexpr Register kStackPointer = Register::sp();
@@ -254,6 +275,34 @@ class V8_EXPORT_PRIVATE Assembler : public AssemblerBase {
       nop();
     }
   }
+
+  // Align pc offset to a multiple of m (power of 2)
+  void Align(int m) {
+    DCHECK(m >= 2 && base::bits::IsPowerOfTwo(m));
+    while ((pc_offset() & (m - 1)) != 0) {
+      nop();
+    }
+  }
+
+  // Data emission methods for inline tables
+  void db(uint8_t data) {
+    CheckSpace(sizeof(uint8_t));
+    *pc_++ = data;
+  }
+
+  void dd(uint32_t data) {
+    CheckSpace(sizeof(uint32_t));
+    *reinterpret_cast<uint32_t*>(pc_) = data;
+    pc_ += sizeof(uint32_t);
+  }
+
+  void dq(uint64_t data) {
+    CheckSpace(sizeof(uint64_t));
+    *reinterpret_cast<uint64_t*>(pc_) = data;
+    pc_ += sizeof(uint64_t);
+  }
+
+  void dp(uintptr_t data) { dq(data); }
 
   // Required alignment for different purposes
   static constexpr int kInstrAlignment = 4;

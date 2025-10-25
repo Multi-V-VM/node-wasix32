@@ -165,7 +165,7 @@ void LazyCompileDispatcher::Enqueue(
   // Post a background worker task to perform the compilation on the worker
   // thread.
   {
-    base::MutexGuard lock(&mutex_);
+    ::v8::base::MutexGuard lock(&mutex_);
     if (trace_compiler_dispatcher_) {
       PrintF("LazyCompileDispatcher: enqueued job for ");
       ShortPrint(*shared_info);
@@ -198,7 +198,7 @@ bool LazyCompileDispatcher::IsEnqueued(
 }
 
 void LazyCompileDispatcher::WaitForJobIfRunningOnBackground(
-    Job* job, const base::MutexGuard& lock) {
+    Job* job, const ::v8::base::MutexGuard& lock) {
   TRACE_EVENT0(TRACE_DISABLED_BY_DEFAULT("v8.compile"),
                "V8.LazyCompilerDispatcherWaitForBackgroundJob");
   RCS_SCOPE(isolate_, RuntimeCallCounterId::kCompileWaitForDispatcher);
@@ -264,7 +264,7 @@ bool LazyCompileDispatcher::FinishNow(
   Job* job;
 
   {
-    base::MutexGuard lock(&mutex_);
+    ::v8::base::MutexGuard lock(&mutex_);
     job = GetJobFor(function, lock);
     WaitForJobIfRunningOnBackground(job, lock);
   }
@@ -275,7 +275,7 @@ bool LazyCompileDispatcher::FinishNow(
   }
 
   if (DEBUG_BOOL) {
-    base::MutexGuard lock(&mutex_);
+    ::v8::base::MutexGuard lock(&mutex_);
     DCHECK_EQ(::std::count(pending_background_jobs_.begin(),
                          pending_background_jobs_.end(), job),
               0);
@@ -351,7 +351,7 @@ void LazyCompileDispatcher::AbortAll() {
   job_handle_->Cancel();
 
   {
-    base::MutexGuard lock(&mutex_);
+    ::v8::base::MutexGuard lock(&mutex_);
     for (Job* job : pending_background_jobs_) {
       job->task->AbortFunction();
       job->state = Job::State::kFinalized;
@@ -378,7 +378,7 @@ void LazyCompileDispatcher::AbortAll() {
 }
 
 LazyCompileDispatcher::Job* LazyCompileDispatcher::GetJobFor(
-    DirectHandle<SharedFunctionInfo> shared, const base::MutexGuard&) const {
+    DirectHandle<SharedFunctionInfo> shared, const ::v8::base::MutexGuard&) const {
   if (!shared->HasUncompiledData()) return nullptr;
   Tagged<UncompiledData> data = shared->uncompiled_data(isolate_);
   if (IsUncompiledDataWithPreparseDataAndJob(data)) {
@@ -392,7 +392,7 @@ LazyCompileDispatcher::Job* LazyCompileDispatcher::GetJobFor(
 }
 
 void LazyCompileDispatcher::ScheduleIdleTaskFromAnyThread(
-    const base::MutexGuard&) {
+    const ::v8::base::MutexGuard&) {
   if (!taskrunner_->IdleTasksEnabled()) return;
   if (idle_task_scheduled_) return;
 
@@ -420,7 +420,7 @@ void LazyCompileDispatcher::DoBackgroundWork(JobDelegate* delegate) {
 
     Job* job = nullptr;
     {
-      base::MutexGuard lock(&mutex_);
+      ::v8::base::MutexGuard lock(&mutex_);
 
       if (pending_background_jobs_.empty()) break;
       job = pending_background_jobs_.back();
@@ -442,7 +442,7 @@ void LazyCompileDispatcher::DoBackgroundWork(JobDelegate* delegate) {
     job->task->Run(&isolate, &reusable_state);
 
     {
-      base::MutexGuard lock(&mutex_);
+      ::v8::base::MutexGuard lock(&mutex_);
       if (job->state == Job::State::kRunning) {
         job->state = Job::State::kReadyToFinalize;
         // Schedule an idle task to finalize the compilation on the main thread
@@ -466,7 +466,7 @@ void LazyCompileDispatcher::DoBackgroundWork(JobDelegate* delegate) {
   while (!delegate->ShouldYield()) {
     Job* job = nullptr;
     {
-      base::MutexGuard lock(&mutex_);
+      ::v8::base::MutexGuard lock(&mutex_);
       if (jobs_to_dispose_.empty()) break;
       job = jobs_to_dispose_.back();
       jobs_to_dispose_.pop_back();
@@ -482,7 +482,7 @@ void LazyCompileDispatcher::DoBackgroundWork(JobDelegate* delegate) {
 }
 
 LazyCompileDispatcher::Job* LazyCompileDispatcher::PopSingleFinalizeJob() {
-  base::MutexGuard lock(&mutex_);
+  ::v8::base::MutexGuard lock(&mutex_);
 
   if (finalizable_jobs_.empty()) return nullptr;
 
@@ -524,7 +524,7 @@ void LazyCompileDispatcher::DoIdleWork(double deadline_in_seconds) {
   TRACE_EVENT0(TRACE_DISABLED_BY_DEFAULT("v8.compile"),
                "V8.LazyCompilerDispatcherDoIdleWork");
   {
-    base::MutexGuard lock(&mutex_);
+    ::v8::base::MutexGuard lock(&mutex_);
     idle_task_scheduled_ = false;
   }
 
@@ -541,18 +541,18 @@ void LazyCompileDispatcher::DoIdleWork(double deadline_in_seconds) {
 
   // We didn't return above so there still might be jobs to finalize.
   {
-    base::MutexGuard lock(&mutex_);
+    ::v8::base::MutexGuard lock(&mutex_);
     ScheduleIdleTaskFromAnyThread(lock);
   }
 }
 
 void LazyCompileDispatcher::DeleteJob(Job* job) {
   DCHECK(job->state == Job::State::kFinalized);
-  base::MutexGuard lock(&mutex_);
+  ::v8::base::MutexGuard lock(&mutex_);
   DeleteJob(job, lock);
 }
 
-void LazyCompileDispatcher::DeleteJob(Job* job, const base::MutexGuard&) {
+void LazyCompileDispatcher::DeleteJob(Job* job, const ::v8::base::MutexGuard&) {
   DCHECK(job->state == Job::State::kFinalized);
 #ifdef DEBUG
   all_jobs_.erase(job);
@@ -564,7 +564,7 @@ void LazyCompileDispatcher::DeleteJob(Job* job, const base::MutexGuard&) {
 }
 
 #ifdef DEBUG
-void LazyCompileDispatcher::VerifyBackgroundTaskCount(const base::MutexGuard&) {
+void LazyCompileDispatcher::VerifyBackgroundTaskCount(const ::v8::base::MutexGuard&) {
   size_t pending_jobs = 0;
   size_t running_jobs = 0;
   size_t finalizable_jobs = 0;

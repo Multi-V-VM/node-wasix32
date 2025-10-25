@@ -375,7 +375,7 @@ bool Sweeper::LocalSweeper::ParallelSweepSpace(AllocationSpace identity,
 #if DEBUG
     } else {
       // All remaining pages are also marked with NEVER_ALLOCATE_ON_PAGE.
-      base::MutexGuard guard(&sweeper_->mutex_);
+      ::v8::base::MutexGuard guard(&sweeper_->mutex_);
       int space_index = GetSweepSpaceIndex(identity);
       Sweeper::SweepingList& sweeping_list =
           sweeper_->sweeping_list_[space_index];
@@ -399,7 +399,7 @@ void Sweeper::LocalSweeper::ParallelSweepPage(PageMetadata* page,
   DCHECK(!page->SweepingDone());
 
   {
-    base::MutexGuard guard(page->mutex());
+    ::v8::base::MutexGuard guard(page->mutex());
     DCHECK(!page->SweepingDone());
     DCHECK_EQ(PageMetadata::ConcurrentSweepingState::kPendingSweeping,
               page->concurrent_sweeping_state());
@@ -641,7 +641,7 @@ void Sweeper::LocalSweeper::ParallelIteratePromotedPage(
   DCHECK(!page->Chunk()->IsFlagSet(MemoryChunk::BLACK_ALLOCATED));
   DCHECK_NOT_NULL(page);
   {
-    base::MutexGuard guard(page->mutex());
+    ::v8::base::MutexGuard guard(page->mutex());
     DCHECK(!page->SweepingDone());
     DCHECK_EQ(PageMetadata::ConcurrentSweepingState::kPendingIteration,
               page->concurrent_sweeping_state());
@@ -801,7 +801,7 @@ void Sweeper::StartMinorSweeperTasks() {
 }
 
 PageMetadata* Sweeper::GetSweptPageSafe(PagedSpaceBase* space) {
-  base::MutexGuard guard(&mutex_);
+  ::v8::base::MutexGuard guard(&mutex_);
   SweptList& list = swept_list_[GetSweepSpaceIndex(space->identity())];
   PageMetadata* page = nullptr;
   if (!list.empty()) {
@@ -816,7 +816,7 @@ PageMetadata* Sweeper::GetSweptPageSafe(PagedSpaceBase* space) {
 }
 
 Sweeper::SweptList Sweeper::GetAllSweptPagesSafe(PagedSpaceBase* space) {
-  base::MutexGuard guard(&mutex_);
+  ::v8::base::MutexGuard guard(&mutex_);
   SweptList list;
   list.swap(swept_list_[GetSweepSpaceIndex(space->identity())]);
   has_swept_pages_[GetSweepSpaceIndex(space->identity())].store(
@@ -1234,28 +1234,28 @@ void Sweeper::NotifyPromotedPageIterationFinished(MutablePageMetadata* chunk) {
   }
   chunk->set_concurrent_sweeping_state(
       PageMetadata::ConcurrentSweepingState::kDone);
-  base::MutexGuard guard(&mutex_);
+  ::v8::base::MutexGuard guard(&mutex_);
   cv_page_swept_.NotifyAll();
 }
 
 void Sweeper::NotifyPromotedPagesIterationFinished() {
   DCHECK_EQ(iterated_promoted_pages_count_,
             promoted_pages_for_iteration_count_);
-  base::MutexGuard guard(&promoted_pages_iteration_notification_mutex_);
+  ::v8::base::MutexGuard guard(&promoted_pages_iteration_notification_mutex_);
   promoted_page_iteration_in_progress_.store(false, std::memory_order_release);
   promoted_pages_iteration_notification_variable_.NotifyAll();
 }
 
 size_t Sweeper::ConcurrentMinorSweepingPageCount() {
   DCHECK(minor_sweeping_in_progress());
-  base::MutexGuard guard(&mutex_);
+  ::v8::base::MutexGuard guard(&mutex_);
   return sweeping_list_for_promoted_page_iteration_.size() +
          sweeping_list_[GetSweepSpaceIndex(NEW_SPACE)].size();
 }
 
 size_t Sweeper::ConcurrentMajorSweepingPageCount() {
   DCHECK(major_sweeping_in_progress());
-  base::MutexGuard guard(&mutex_);
+  ::v8::base::MutexGuard guard(&mutex_);
   size_t count = 0;
   for (int i = 0; i < kNumberOfSweepingSpaces; i++) {
     if (i == GetSweepSpaceIndex(NEW_SPACE)) continue;
@@ -1318,7 +1318,7 @@ void Sweeper::WaitForPageToBeSwept(PageMetadata* page) {
   DCHECK(heap_->IsMainThread());
   DCHECK(sweeping_in_progress());
 
-  base::MutexGuard guard(&mutex_);
+  ::v8::base::MutexGuard guard(&mutex_);
   while (!page->SweepingDone()) {
     cv_page_swept_.Wait(&mutex_);
   }
@@ -1326,7 +1326,7 @@ void Sweeper::WaitForPageToBeSwept(PageMetadata* page) {
 
 bool Sweeper::TryRemoveSweepingPageSafe(AllocationSpace space,
                                         PageMetadata* page) {
-  base::MutexGuard guard(&mutex_);
+  ::v8::base::MutexGuard guard(&mutex_);
   DCHECK(IsValidSweepingSpace(space));
   int space_index = GetSweepSpaceIndex(space);
   SweepingList& sweeping_list = sweeping_list_[space_index];
@@ -1342,7 +1342,7 @@ bool Sweeper::TryRemoveSweepingPageSafe(AllocationSpace space,
 }
 
 bool Sweeper::TryRemovePromotedPageSafe(MutablePageMetadata* chunk) {
-  base::MutexGuard guard(&mutex_);
+  ::v8::base::MutexGuard guard(&mutex_);
   auto position =
       std::find(sweeping_list_for_promoted_page_iteration_.begin(),
                 sweeping_list_for_promoted_page_iteration_.end(), chunk);
@@ -1460,7 +1460,7 @@ void Sweeper::PrepareToBeIteratedPromotedPage(PageMetadata* page) {
 }
 
 PageMetadata* Sweeper::GetSweepingPageSafe(AllocationSpace space) {
-  base::MutexGuard guard(&mutex_);
+  ::v8::base::MutexGuard guard(&mutex_);
   DCHECK(IsValidSweepingSpace(space));
   int space_index = GetSweepSpaceIndex(space);
   PageMetadata* page = nullptr;
@@ -1477,7 +1477,7 @@ PageMetadata* Sweeper::GetSweepingPageSafe(AllocationSpace space) {
 }
 
 MutablePageMetadata* Sweeper::GetPromotedPageSafe() {
-  base::MutexGuard guard(&mutex_);
+  ::v8::base::MutexGuard guard(&mutex_);
   MutablePageMetadata* chunk = nullptr;
   if (!sweeping_list_for_promoted_page_iteration_.empty()) {
     chunk = sweeping_list_for_promoted_page_iteration_.back();
@@ -1502,7 +1502,7 @@ bool Sweeper::IsSweepingDoneForSpace(AllocationSpace space) const {
 }
 
 void Sweeper::AddSweptPage(PageMetadata* page, AllocationSpace identity) {
-  base::MutexGuard guard(&mutex_);
+  ::v8::base::MutexGuard guard(&mutex_);
   page->set_concurrent_sweeping_state(
       PageMetadata::ConcurrentSweepingState::kDone);
   swept_list_[GetSweepSpaceIndex(identity)].push_back(page);

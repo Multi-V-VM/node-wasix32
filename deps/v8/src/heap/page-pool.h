@@ -5,7 +5,11 @@
 #ifndef V8_HEAP_PAGE_POOL_H_
 #define V8_HEAP_PAGE_POOL_H_
 
+#if __has_include("absl/container/flat_hash_map.h")
 #include "absl/container/flat_hash_map.h"
+#else
+#include "third_party/abseil-cpp/absl/container/flat_hash_map.h"
+#endif
 #include "src/base/platform/mutex.h"
 #include "src/utils/allocation.h"
 

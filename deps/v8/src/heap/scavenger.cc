@@ -726,7 +726,7 @@ void ScavengerCollector::QuarantinedPageSweeper::JobTask::Run(
                 next_page_iterator_->second);
     } else {
       DCHECK_EQ(chunk->Metadata()->owner()->identity(), OLD_SPACE);
-      base::MutexGuard guard(page->mutex());
+      ::v8::base::MutexGuard guard(page->mutex());
       // If for some reason the page is swept twice, this DCHECK will fail.
       DCHECK_EQ(page->area_size(), page->allocated_bytes());
       size_t filler_size_on_page =
@@ -1402,7 +1402,7 @@ void Scavenger::CheckOldToNewSlotForSharedTyped(
     const uintptr_t offset = chunk->Offset(slot_address);
     DCHECK_LT(offset, static_cast<uintptr_t>(TypedSlotSet::kMaxOffset));
 
-    base::MutexGuard guard(page->mutex());
+    ::v8::base::MutexGuard guard(page->mutex());
     RememberedSet<OLD_TO_SHARED>::InsertTyped(page, slot_type,
                                               static_cast<uint32_t>(offset));
   }

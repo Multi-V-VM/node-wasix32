@@ -163,22 +163,22 @@ class JsonStringifier {
       if (String::IsOneByteRepresentationUnderneath(string)) {
         CopyChars<uint8_t, uint8_t>(
             one_byte_ptr_ + current_index_,
-            string->GetCharZoneVector<uint8_t>(no_gc).begin(), length);
+            string->GetCharVector<uint8_t>(no_gc).begin(), length);
       } else {
         ChangeEncoding();
         CopyChars<uint16_t, uint16_t>(
             two_byte_ptr_ + current_index_,
-            string->GetCharZoneVector<uint16_t>(no_gc).begin(), length);
+            string->GetCharVector<uint16_t>(no_gc).begin(), length);
       }
     } else {
       if (String::IsOneByteRepresentationUnderneath(string)) {
         CopyChars<uint8_t, uint16_t>(
             two_byte_ptr_ + current_index_,
-            string->GetCharZoneVector<uint8_t>(no_gc).begin(), length);
+            string->GetCharVector<uint8_t>(no_gc).begin(), length);
       } else {
         CopyChars<uint16_t, uint16_t>(
             two_byte_ptr_ + current_index_,
-            string->GetCharZoneVector<uint16_t>(no_gc).begin(), length);
+            string->GetCharVector<uint16_t>(no_gc).begin(), length);
       }
     }
     current_index_ += length;
@@ -557,7 +557,7 @@ bool DoNotEscape(const SrcChar* chars, size_t length,
 
 bool IsFastKey(Tagged<String> key, const DisallowGarbageCollection& no_gc) {
   return key->DispatchToSpecificType(
-      base::overloaded{[&](Tagged<SeqOneByteString> str) {
+      ::v8::base::overloaded{[&](Tagged<SeqOneByteString> str) {
                          const uint8_t* chars = str->GetChars(no_gc);
                          return DoNotEscape(chars, str->length(), no_gc);
                        },
@@ -1579,7 +1579,7 @@ bool JsonStringifier::SerializeString_(Tagged<String> string,
   if (!raw_json) Append<uint8_t, DestChar>('"');
   // We might be able to fit the whole escaped string in the current string
   // part, or we might need to allocate.
-  ZoneVector<const SrcChar> vector = string->GetCharZoneVector<SrcChar>(no_gc);
+  ZoneVector<const SrcChar> vector = string->GetCharVector<SrcChar>(no_gc);
   if V8_LIKELY (EscapedLengthIfCurrentPartFits(vector.size())) {
     NoExtendBuilder<DestChar> no_extend(
         reinterpret_cast<DestChar*>(part_ptr_) + current_index_,
@@ -2682,7 +2682,7 @@ FastJsonStringifier<Char>::SerializeJSPrimitiveWrapper(
     Tagged<String> string = Cast<String>(raw);
     while (true) {
       FastJsonStringifierResult result =
-          string->DispatchToSpecificType(base::overloaded{
+          string->DispatchToSpecificType(::v8::base::overloaded{
               [&](Tagged<SeqOneByteString> str) {
                 return SerializeString<SeqOneByteString>(str, no_gc);
               },

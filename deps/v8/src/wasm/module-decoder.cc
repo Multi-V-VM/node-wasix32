@@ -590,7 +590,7 @@ class ValidateFunctionsTask : public JobTask {
   // Set the error from the argument if it's earlier than the error we already
   // have (or if we have none yet). Thread-safe.
   void SetError(int func_index, WasmError error) {
-    base::MutexGuard mutex_guard{&set_error_mutex_};
+    ::v8::base::MutexGuard mutex_guard{&set_error_mutex_};
     if (error_out_->has_error() && error_out_->offset() <= error.offset()) {
       return;
     }

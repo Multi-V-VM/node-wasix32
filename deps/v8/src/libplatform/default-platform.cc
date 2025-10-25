@@ -147,7 +147,7 @@ DefaultPlatform::DefaultPlatform(
 }
 
 DefaultPlatform::~DefaultPlatform() {
-  base::MutexGuard guard(&lock_);
+  ::v8::base::MutexGuard guard(&lock_);
   if (worker_threads_task_runners_[0]) {
     for (int i = 0; i < num_worker_runners(); i++) {
       worker_threads_task_runners_[i]->Terminate();
@@ -182,7 +182,7 @@ void DefaultPlatform::EnsureBackgroundTaskRunnerInitialized() {
 
 void DefaultPlatform::SetTimeFunctionForTesting(
     DefaultPlatform::TimeFunction time_function) {
-  base::MutexGuard guard(&lock_);
+  ::v8::base::MutexGuard guard(&lock_);
   time_function_for_testing_ = time_function;
   // The time function has to be right after the construction of the platform.
   DCHECK(foreground_task_runner_map_.empty());
@@ -193,7 +193,7 @@ bool DefaultPlatform::PumpMessageLoop(v8::Isolate* isolate,
   bool failed_result = wait_for_work == MessageLoopBehavior::kWaitForWork;
   std::shared_ptr<DefaultForegroundTaskRunner> task_runner;
   {
-    base::MutexGuard guard(&lock_);
+    ::v8::base::MutexGuard guard(&lock_);
     auto it = foreground_task_runner_map_.find(isolate);
     if (it == foreground_task_runner_map_.end()) return failed_result;
     task_runner = it->second;
@@ -212,7 +212,7 @@ void DefaultPlatform::RunIdleTasks(v8::Isolate* isolate,
   DCHECK_EQ(IdleTaskSupport::kEnabled, idle_task_support_);
   std::shared_ptr<DefaultForegroundTaskRunner> task_runner;
   {
-    base::MutexGuard guard(&lock_);
+    ::v8::base::MutexGuard guard(&lock_);
     if (foreground_task_runner_map_.find(isolate) ==
         foreground_task_runner_map_.end()) {
       return;
@@ -232,7 +232,7 @@ void DefaultPlatform::RunIdleTasks(v8::Isolate* isolate,
 
 std::shared_ptr<TaskRunner> DefaultPlatform::GetForegroundTaskRunner(
     v8::Isolate* isolate, TaskPriority priority) {
-  base::MutexGuard guard(&lock_);
+  ::v8::base::MutexGuard guard(&lock_);
   if (foreground_task_runner_map_.find(isolate) ==
       foreground_task_runner_map_.end()) {
     foreground_task_runner_map_.insert(std::make_pair(
@@ -325,7 +325,7 @@ v8::ThreadIsolatedAllocator* DefaultPlatform::GetThreadIsolatedAllocator() {
 void DefaultPlatform::NotifyIsolateShutdown(Isolate* isolate) {
   std::shared_ptr<DefaultForegroundTaskRunner> taskrunner;
   {
-    base::MutexGuard guard(&lock_);
+    ::v8::base::MutexGuard guard(&lock_);
     auto it = foreground_task_runner_map_.find(isolate);
     if (it != foreground_task_runner_map_.end()) {
       taskrunner = it->second;

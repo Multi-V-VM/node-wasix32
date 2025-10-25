@@ -65,7 +65,7 @@ Vector<const Character> ToCharacterVector(
     Tagged<String> str, const DisallowGarbageCollection& no_gc);
 
 template <>
-Vector<const uint8_t> ToCharacterZoneVector<uint8_t>(
+Vector<const uint8_t> ToCharacterVector<uint8_t>(
     Tagged<String> str, const DisallowGarbageCollection& no_gc) {
   DCHECK(str->IsFlat());
   String::FlatContent content = str->GetFlatContent(no_gc);
@@ -74,7 +74,7 @@ Vector<const uint8_t> ToCharacterZoneVector<uint8_t>(
 }
 
 template <>
-Vector<const base::uc16> ToCharacterZoneVector<base::uc16>(
+Vector<const base::uc16> ToCharacterVector<base::uc16>(
     Tagged<String> str, const DisallowGarbageCollection& no_gc) {
   DCHECK(str->IsFlat());
   String::FlatContent content = str->GetFlatContent(no_gc);
@@ -344,7 +344,7 @@ class NfaInterpreter {
         register_count_per_match_(register_count_per_match),
         quantifier_count_(0),
         input_object_(input),
-        input_(ToCharacterZoneVector<Character>(input, no_gc_)),
+        input_(ToCharacterVector<Character>(input, no_gc_)),
         input_index_(input_index),
         clock(0),
         pc_last_input_index_(
@@ -788,7 +788,7 @@ class NfaInterpreter {
         bytecode_object_ = *bytecode_handle;
         bytecode_ = ToInstructionVector(bytecode_object_, no_gc_);
         input_object_ = *input_handle;
-        input_ = ToCharacterZoneVector<Character>(input_object_, no_gc_);
+        input_ = ToCharacterVector<Character>(input_object_, no_gc_);
       }
     }
     return RegExp::kInternalRegExpSuccess;

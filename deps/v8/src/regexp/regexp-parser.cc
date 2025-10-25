@@ -25,6 +25,8 @@
 namespace v8 {
 namespace internal {
 
+using ::v8::base::SmallVector;
+
 namespace {
 
 // Whether we're currently inside the ClassEscape production

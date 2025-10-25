@@ -1076,7 +1076,7 @@ CpuProfilingResult CpuProfilesCollection::StartProfiling(
 CpuProfilingResult CpuProfilesCollection::StartProfiling(
     ProfilerId id, const char* title, CpuProfilingOptions options,
     std::unique_ptr<DiscardedSamplesDelegate> delegate) {
-  base::RecursiveMutexGuard profiles_guard{&current_profiles_mutex_};
+  ::v8::base::RecursiveMutexGuard profiles_guard{&current_profiles_mutex_};
   if (static_cast<int>(current_profiles_.size()) >= kMaxSimultaneousProfiles) {
     return {
         0,
@@ -1108,7 +1108,7 @@ CpuProfilingResult CpuProfilesCollection::StartProfiling(
 }
 
 CpuProfile* CpuProfilesCollection::StopProfiling(ProfilerId id) {
-  base::RecursiveMutexGuard profiles_guard{&current_profiles_mutex_};
+  ::v8::base::RecursiveMutexGuard profiles_guard{&current_profiles_mutex_};
   CpuProfile* profile = nullptr;
 
   auto it = std::find_if(
@@ -1130,7 +1130,7 @@ CpuProfile* CpuProfilesCollection::Lookup(const char* title) {
   // http://crbug/51594, edge case console.profile may provide an empty title
   // and must not crash
   const bool empty_title = title[0] == '\0';
-  base::RecursiveMutexGuard profiles_guard{&current_profiles_mutex_};
+  ::v8::base::RecursiveMutexGuard profiles_guard{&current_profiles_mutex_};
   auto it = std::find_if(
       current_profiles_.rbegin(), current_profiles_.rend(),
       [&](const std::unique_ptr<CpuProfile>& p) {
@@ -1142,7 +1142,7 @@ CpuProfile* CpuProfilesCollection::Lookup(const char* title) {
 }
 
 bool CpuProfilesCollection::IsLastProfileLeft(ProfilerId id) {
-  base::RecursiveMutexGuard profiles_guard{&current_profiles_mutex_};
+  ::v8::base::RecursiveMutexGuard profiles_guard{&current_profiles_mutex_};
   if (current_profiles_.size() != 1) return false;
   return id == current_profiles_[0]->id();
 }
@@ -1176,7 +1176,7 @@ base::TimeDelta CpuProfilesCollection::GetCommonSamplingInterval() {
 
   int64_t interval_us = 0;
   {
-    base::RecursiveMutexGuard profiles_guard{&current_profiles_mutex_};
+    ::v8::base::RecursiveMutexGuard profiles_guard{&current_profiles_mutex_};
     for (const auto& profile : current_profiles_) {
       // Snap the profile's requested sampling interval to the next multiple of
       // the base sampling interval.
@@ -1202,7 +1202,7 @@ void CpuProfilesCollection::AddPathToCurrentProfiles(
   // method, we don't bother minimizing the duration of lock holding,
   // e.g. copying contents of the list to a local vector.
   const ProfileStackTrace empty_path;
-  base::RecursiveMutexGuard profiles_guard{&current_profiles_mutex_};
+  ::v8::base::RecursiveMutexGuard profiles_guard{&current_profiles_mutex_};
   for (const std::unique_ptr<CpuProfile>& profile : current_profiles_) {
     ContextFilter& context_filter = profile->context_filter();
     // If the context filter check failed, omit the contents of the stack.
@@ -1227,7 +1227,7 @@ void CpuProfilesCollection::AddPathToCurrentProfiles(
 
 void CpuProfilesCollection::UpdateNativeContextAddressForCurrentProfiles(
     Address from, Address to) {
-  base::RecursiveMutexGuard profiles_guard{&current_profiles_mutex_};
+  ::v8::base::RecursiveMutexGuard profiles_guard{&current_profiles_mutex_};
   for (const std::unique_ptr<CpuProfile>& profile : current_profiles_) {
     profile->context_filter().OnMoveEvent(from, to);
   }

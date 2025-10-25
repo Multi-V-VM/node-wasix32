@@ -1012,7 +1012,7 @@ NativeModule::NativeModule(WasmEnabledFeatures enabled_features,
   // are just constructing it), we need to hold the mutex to fulfill the
   // precondition of {WasmCodeAllocator::Init}, which calls
   // {NativeModule::AddCodeSpaceLocked}.
-  base::RecursiveMutexGuard guard{&allocation_mutex_};
+  ::v8::base::RecursiveMutexGuard guard{&allocation_mutex_};
   auto initial_region = code_space.region();
   code_allocator_.Init(std::move(code_space));
   const bool has_code_space = initial_region.size() > 0;
@@ -1077,7 +1077,7 @@ WasmCode* NativeModule::AddCodeForTesting(DirectHandle<Code> code,
   const int jump_table_info_offset =
       base_offset + code->jump_table_info_offset();
 
-  base::RecursiveMutexGuard guard{&allocation_mutex_};
+  ::v8::base::RecursiveMutexGuard guard{&allocation_mutex_};
   ZoneVector<uint8_t> dst_code_bytes =
       code_allocator_.AllocateForCode(this, instructions.size());
   {
@@ -1237,7 +1237,7 @@ std::unique_ptr<WasmCode> NativeModule::AddCode(
   ZoneVector<uint8_t> code_space;
   NativeModule::JumpTablesRef jump_table_ref;
   {
-    base::RecursiveMutexGuard guard{&allocation_mutex_};
+    ::v8::base::RecursiveMutexGuard guard{&allocation_mutex_};
     code_space = code_allocator_.AllocateForCode(this, desc.instr_size);
     jump_table_ref =
         FindJumpTablesForRegionLocked(base::AddressRegionOf(code_space));
@@ -1394,7 +1394,7 @@ std::unique_ptr<WasmCode> NativeModule::AddCodeWithCodeSpace(
 WasmCode* NativeModule::PublishCode(UnpublishedWasmCode unpublished_code) {
   TRACE_EVENT0(TRACE_DISABLED_BY_DEFAULT("v8.wasm.detailed"),
                "wasm.PublishCode");
-  base::RecursiveMutexGuard lock(&allocation_mutex_);
+  ::v8::base::RecursiveMutexGuard lock(&allocation_mutex_);
   return PublishCodeLocked(std::move(unpublished_code.code),
                            unpublished_code.assumptions.get());
 }
@@ -1405,7 +1405,7 @@ std::vector<WasmCode*> NativeModule::PublishCode(
                "wasm.PublishCode", "number", unpublished_codes.size());
   std::vector<WasmCode*> published_code;
   published_code.reserve(unpublished_codes.size());
-  base::RecursiveMutexGuard lock(&allocation_mutex_);
+  ::v8::base::RecursiveMutexGuard lock(&allocation_mutex_);
   // The published code is put into the top-most surrounding {WasmCodeRefScope}.
   for (auto& unpublished_code : unpublished_codes) {
     WasmCode* code = PublishCodeLocked(std::move(unpublished_code.code),
@@ -1425,7 +1425,7 @@ void NativeModule::UpdateWellKnownImports(
   // The {~WasmCodeRefScope} destructor must run after releasing the {lock},
   // to avoid lock order inversion.
   WasmCodeRefScope ref_scope;
-  base::RecursiveMutexGuard lock(&allocation_mutex_);
+  ::v8::base::RecursiveMutexGuard lock(&allocation_mutex_);
   WellKnownImportsList::UpdateResult result =
       module_->type_feedback.well_known_imports.Update(entries);
   if (result == WellKnownImportsList::UpdateResult::kFoundIncompatibility) {
@@ -1553,7 +1553,7 @@ bool NativeModule::should_update_code_table(WasmCode* new_code,
 }
 
 void NativeModule::ReinstallDebugCode(WasmCode* code) {
-  base::RecursiveMutexGuard lock(&allocation_mutex_);
+  ::v8::base::RecursiveMutexGuard lock(&allocation_mutex_);
 
   DCHECK_EQ(this, code->native_module());
   DCHECK_EQ(kWithBreakpoints, code->for_debugging());
@@ -1580,7 +1580,7 @@ void NativeModule::ReinstallDebugCode(WasmCode* code) {
 
 std::pair<ZoneVector<uint8_t>, NativeModule::JumpTablesRef>
 NativeModule::AllocateForDeserializedCode(size_t total_code_size) {
-  base::RecursiveMutexGuard guard{&allocation_mutex_};
+  ::v8::base::RecursiveMutexGuard guard{&allocation_mutex_};
   ZoneVector<uint8_t> code_space =
       code_allocator_.AllocateForCode(this, total_code_size);
   auto jump_tables =
@@ -1630,7 +1630,7 @@ std::unique_ptr<WasmCode> NativeModule::AddDeserializedCode(
 
 std::pair<std::vector<WasmCode*>, std::vector<WellKnownImport>>
 NativeModule::SnapshotCodeTable() const {
-  base::RecursiveMutexGuard lock(&allocation_mutex_);
+  ::v8::base::RecursiveMutexGuard lock(&allocation_mutex_);
   WasmCode** start = code_table_.get();
   WasmCode** end = start + module_->num_declared_functions;
   for (WasmCode* code : base::VectorOf(start, end - start)) {
@@ -1644,7 +1644,7 @@ NativeModule::SnapshotCodeTable() const {
 }
 
 std::vector<WasmCode*> NativeModule::SnapshotAllOwnedCode() const {
-  base::RecursiveMutexGuard lock(&allocation_mutex_);
+  ::v8::base::RecursiveMutexGuard lock(&allocation_mutex_);
   if (!new_owned_code_.empty()) TransferNewOwnedCodeLocked();
 
   std::vector<WasmCode*> all_code(owned_code_.size());
@@ -1655,19 +1655,19 @@ std::vector<WasmCode*> NativeModule::SnapshotAllOwnedCode() const {
 }
 
 WasmCode* NativeModule::GetCode(uint32_t index) const {
-  base::RecursiveMutexGuard guard(&allocation_mutex_);
+  ::v8::base::RecursiveMutexGuard guard(&allocation_mutex_);
   WasmCode* code = code_table_[declared_function_index(module(), index)];
   if (code) WasmCodeRefScope::AddRef(code);
   return code;
 }
 
 bool NativeModule::HasCode(uint32_t index) const {
-  base::RecursiveMutexGuard guard(&allocation_mutex_);
+  ::v8::base::RecursiveMutexGuard guard(&allocation_mutex_);
   return code_table_[declared_function_index(module(), index)] != nullptr;
 }
 
 bool NativeModule::HasCodeWithTier(uint32_t index, ExecutionTier tier) const {
-  base::RecursiveMutexGuard guard(&allocation_mutex_);
+  ::v8::base::RecursiveMutexGuard guard(&allocation_mutex_);
   return code_table_[declared_function_index(module(), index)] != nullptr &&
          code_table_[declared_function_index(module(), index)]->tier() == tier;
 }
@@ -1990,7 +1990,7 @@ void NativeModule::TransferNewOwnedCodeLocked() const {
 }
 
 WasmCode* NativeModule::Lookup(Address pc) const {
-  base::RecursiveMutexGuard lock(&allocation_mutex_);
+  ::v8::base::RecursiveMutexGuard lock(&allocation_mutex_);
   if (!new_owned_code_.empty()) TransferNewOwnedCodeLocked();
   auto iter = owned_code_.upper_bound(pc);
   if (iter == owned_code_.begin()) return nullptr;
@@ -2087,7 +2087,7 @@ NativeModule::CreateIndirectCallTargetToFunctionIndexMap() const {
 }
 
 Builtin NativeModule::GetBuiltinInJumptableSlot(Address target) const {
-  base::RecursiveMutexGuard guard(&allocation_mutex_);
+  ::v8::base::RecursiveMutexGuard guard(&allocation_mutex_);
 
   for (auto& code_space_data : code_space_data_) {
     if (code_space_data.far_jump_table != nullptr &&
@@ -2225,7 +2225,7 @@ void WasmCodeManager::Decommit(base::AddressRegion region) {
 
 void WasmCodeManager::AssignRange(base::AddressRegion region,
                                   NativeModule* native_module) {
-  base::MutexGuard lock(&native_modules_mutex_);
+  ::v8::base::MutexGuard lock(&native_modules_mutex_);
   lookup_map_.insert(std::make_pair(
       region.begin(), std::make_pair(region.end(), native_module)));
 }
@@ -2547,7 +2547,7 @@ std::shared_ptr<NativeModule> WasmCodeManager::NewNativeModule(
   TRACE_HEAP("New NativeModule %p: Mem: 0x%" PRIxPTR ",+%zu\n", ret.get(),
              code_space_region.begin(), code_space_region.size());
 
-  base::MutexGuard lock(&native_modules_mutex_);
+  ::v8::base::MutexGuard lock(&native_modules_mutex_);
   lookup_map_.insert(
       std::make_pair(code_space_region.begin(),
                      std::make_pair(code_space_region.end(), ret.get())));
@@ -2559,7 +2559,7 @@ void NativeModule::SampleCodeSize(Counters* counters) const {
   int code_size_mb = static_cast<int>(code_size / MB);
 #if V8_ENABLE_DRUMBRAKE
   if (v8_flags.wasm_jitless) {
-    base::MutexGuard lock(&module_->interpreter_mutex_);
+    ::v8::base::MutexGuard lock(&module_->interpreter_mutex_);
     if (auto interpreter = module_->interpreter_.lock()) {
       code_size_mb = static_cast<int>(interpreter->TotalBytecodeSize() / MB);
     }
@@ -2667,7 +2667,7 @@ std::vector<UnpublishedWasmCode> NativeModule::AddCompiledCode(
   ZoneVector<uint8_t> code_space;
   NativeModule::JumpTablesRef jump_tables;
   {
-    base::RecursiveMutexGuard guard{&allocation_mutex_};
+    ::v8::base::RecursiveMutexGuard guard{&allocation_mutex_};
     code_space = code_allocator_.AllocateForCode(this, total_code_space);
     // Lookup the jump tables to use once, then use for all code objects.
     jump_tables =
@@ -2718,7 +2718,7 @@ void NativeModule::SetDebugState(DebugState new_debug_state) {
   // Do not tier down asm.js (just never change the tiering state).
   if (module()->origin != kWasmOrigin) return;
 
-  base::RecursiveMutexGuard lock(&allocation_mutex_);
+  ::v8::base::RecursiveMutexGuard lock(&allocation_mutex_);
   debug_state_ = new_debug_state;
 }
 
@@ -2751,7 +2751,7 @@ std::pair<size_t, size_t> NativeModule::RemoveCompiledCode(
   size_t removed_codesize = 0;
   size_t removed_metadatasize = 0;
   {
-    base::RecursiveMutexGuard guard(&allocation_mutex_);
+    ::v8::base::RecursiveMutexGuard guard(&allocation_mutex_);
     for (uint32_t i = 0; i < num_functions; i++) {
       WasmCode* code = code_table_[i];
       if (code && ShouldRemoveCode(code, filter)) {
@@ -2780,7 +2780,7 @@ std::pair<size_t, size_t> NativeModule::RemoveCompiledCode(
 }
 
 size_t NativeModule::SumLiftoffCodeSizeForTesting() const {
-  base::RecursiveMutexGuard guard(&allocation_mutex_);
+  ::v8::base::RecursiveMutexGuard guard(&allocation_mutex_);
   const uint32_t num_functions = module_->num_declared_functions;
   size_t codesize_liftoff = 0;
   for (uint32_t i = 0; i < num_functions; i++) {
@@ -2793,7 +2793,7 @@ size_t NativeModule::SumLiftoffCodeSizeForTesting() const {
 }
 
 void NativeModule::FreeCode(ZoneVector<WasmCode* const> codes) {
-  base::RecursiveMutexGuard guard(&allocation_mutex_);
+  ::v8::base::RecursiveMutexGuard guard(&allocation_mutex_);
   // Free the code space.
   code_allocator_.FreeCode(codes);
 
@@ -2814,24 +2814,24 @@ void NativeModule::FreeCode(ZoneVector<WasmCode* const> codes) {
 }
 
 size_t NativeModule::GetNumberOfCodeSpacesForTesting() const {
-  base::RecursiveMutexGuard guard{&allocation_mutex_};
+  ::v8::base::RecursiveMutexGuard guard{&allocation_mutex_};
   return code_allocator_.GetNumCodeSpaces();
 }
 
 bool NativeModule::HasDebugInfo() const {
-  base::RecursiveMutexGuard guard(&allocation_mutex_);
+  ::v8::base::RecursiveMutexGuard guard(&allocation_mutex_);
   return debug_info_ != nullptr;
 }
 
 DebugInfo* NativeModule::GetDebugInfo() {
-  base::RecursiveMutexGuard guard(&allocation_mutex_);
+  ::v8::base::RecursiveMutexGuard guard(&allocation_mutex_);
   if (!debug_info_) debug_info_ = std::make_unique<DebugInfo>(this);
   return debug_info_.get();
 }
 
 NamesProvider* NativeModule::GetNamesProvider() {
   DCHECK(HasWireBytes());
-  base::RecursiveMutexGuard guard(&allocation_mutex_);
+  ::v8::base::RecursiveMutexGuard guard(&allocation_mutex_);
   if (!names_provider_) {
     names_provider_ =
         std::make_unique<NamesProvider>(module_.get(), wire_bytes());
@@ -2872,7 +2872,7 @@ size_t NativeModule::EstimateCurrentMemoryConsumption() const {
   // when calling `WasmScript::SetBreakPointForFunction`.
   DebugInfo* debug_info;
   {
-    base::RecursiveMutexGuard lock(&allocation_mutex_);
+    ::v8::base::RecursiveMutexGuard lock(&allocation_mutex_);
     result += ContentSize(owned_code_);
     for (auto& [address, unique_code_ptr] : owned_code_) {
       result += unique_code_ptr->EstimateCurrentMemoryConsumption();
@@ -2908,7 +2908,7 @@ void NativeModule::PrintCurrentMemoryConsumptionEstimate() const {
 
 void WasmCodeManager::FreeNativeModule(
     ZoneVector<VirtualMemory> owned_code_space, size_t committed_size) {
-  base::MutexGuard lock(&native_modules_mutex_);
+  ::v8::base::MutexGuard lock(&native_modules_mutex_);
   for (auto& code_space : owned_code_space) {
     DCHECK(code_space.IsReserved());
     TRACE_HEAP("VMem Release: 0x%" PRIxPTR ":0x%" PRIxPTR " (%zu)\n",
@@ -2934,7 +2934,7 @@ void WasmCodeManager::FreeNativeModule(
 }
 
 NativeModule* WasmCodeManager::LookupNativeModule(Address pc) const {
-  base::MutexGuard lock(&native_modules_mutex_);
+  ::v8::base::MutexGuard lock(&native_modules_mutex_);
   if (lookup_map_.empty()) return nullptr;
 
   auto iter = lookup_map_.upper_bound(pc);

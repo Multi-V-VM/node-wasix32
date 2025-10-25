@@ -272,7 +272,7 @@ DirectHandle<Map> MapUpdater::UpdateMapNoLock(Isolate* isolate,
 }
 
 Handle<Map> MapUpdater::Update() {
-  base::MutexGuard mutex_guard(isolate_->map_updater_access());
+  ::v8::base::MutexGuard mutex_guard(isolate_->map_updater_access());
   return UpdateImpl();
 }
 
@@ -491,7 +491,7 @@ void MapUpdater::CompleteInobjectSlackTracking(Isolate* isolate,
     // Note: Avoid locking the full_transition_array_access lock inside this
     // call to TraverseTransitionTree to prevent dependencies between the two
     // locks.
-    base::MutexGuard guard(isolate->map_updater_access());
+    ::v8::base::MutexGuard guard(isolate->map_updater_access());
     transitions.TraverseTransitionTree(callback);
   }
 }

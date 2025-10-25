@@ -252,6 +252,7 @@ void Assembler::RecordDeoptReason(DeoptimizeReason reason, uint32_t node_id,
 #endif  // DEBUG
 }
 
+#ifndef V8_TARGET_ARCH_WASM32
 void Assembler::DataAlign(int m) {
   DCHECK(m >= 2 && base::bits::IsPowerOfTwo(m));
   while ((pc_offset() & (m - 1)) != 0) {
@@ -261,6 +262,7 @@ void Assembler::DataAlign(int m) {
     db(0xcc);
   }
 }
+#endif
 
 void AssemblerBase::RequestHeapNumber(HeapNumberRequest request) {
   request.set_offset(pc_offset());

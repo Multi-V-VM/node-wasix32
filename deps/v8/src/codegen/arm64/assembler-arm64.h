@@ -10,7 +10,11 @@
 #include <memory>
 #include <optional>
 
+#if __has_include("absl/container/flat_hash_map.h")
 #include "absl/container/flat_hash_map.h"
+#else
+#include "third_party/abseil-cpp/absl/container/flat_hash_map.h"
+#endif
 #include "src/codegen/arm64/constants-arm64.h"
 #include "src/codegen/arm64/instructions-arm64.h"
 #include "src/codegen/arm64/register-arm64.h"

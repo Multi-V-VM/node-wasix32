@@ -16,7 +16,11 @@
 #include <utility>
 #include <vector>
 
+#if __has_include("absl/container/flat_hash_map.h")
 #include "absl/container/flat_hash_map.h"
+#else
+#include "third_party/abseil-cpp/absl/container/flat_hash_map.h"
+#endif
 #include "src/base/address-region.h"
 #include "src/base/bit-field.h"
 #include "src/base/macros.h"

@@ -196,7 +196,7 @@ int CountAdditionalEscapeChars(DirectHandle<String> source,
   int escapes = 0;
   bool needs_escapes = false;
   bool in_character_class = false;
-  ZoneVector<const Char> src = source->GetCharZoneVector<Char>(no_gc);
+  ZoneVector<const Char> src = source->GetCharVector<Char>(no_gc);
   for (int i = 0; i < src.length(); i++) {
     const Char c = src[i];
     if (c == '\\') {
@@ -248,7 +248,7 @@ template <typename Char, typename StringType>
 DirectHandle<StringType> WriteEscapedRegExpSource(
     DirectHandle<String> source, DirectHandle<StringType> result) {
   DisallowGarbageCollection no_gc;
-  ZoneVector<const Char> src = source->GetCharZoneVector<Char>(no_gc);
+  ZoneVector<const Char> src = source->GetCharVector<Char>(no_gc);
   ZoneVector<Char> dst(result->GetChars(no_gc), result->length());
   int s = 0;
   int d = 0;

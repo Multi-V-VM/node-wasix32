@@ -8,13 +8,23 @@
 #include <optional>
 #include <mutex>
 
+#ifndef __wasi__
 #include "absl/synchronization/mutex.h"
+#endif
 #include "include/v8config.h"
-#include "../../include/wasi/nuclear-fix.h"
+// Use stable include path via -I<deps/v8> and -I<deps/v8/include>
+#include "wasi/nuclear-fix.h"
 
 #include "src/base/base-export.h"
 #include "src/base/lazy-instance.h"
 #include "src/base/logging.h"
+
+// Provide absl annotation no-ops for WASI builds.
+#ifdef __wasi__
+#ifndef ABSL_NO_THREAD_SAFETY_ANALYSIS
+#define ABSL_NO_THREAD_SAFETY_ANALYSIS
+#endif
+#endif
 
 // Define DISALLOW_COPY_AND_ASSIGN if not already defined
 #ifndef DISALLOW_COPY_AND_ASSIGN
@@ -104,8 +114,13 @@ class V8_BASE_EXPORT Mutex final {
   }
 
   friend class ConditionVariable;
-
+#ifdef __wasi__
+  // Lightweight WASI representation; see platform-wasi-complete.cc
+  class PlatformData;
+  PlatformData* data_;
+#else
   absl::Mutex native_handle_;
+#endif
 };
 
 // POD Mutex initialized lazily (i.e. the first time Pointer() is called).
@@ -254,4 +269,3 @@ class V8_NODISCARD MutexGuardIf final {
 }  // namespace v8
 
 #endif  // V8_BASE_PLATFORM_MUTEX_H_
-

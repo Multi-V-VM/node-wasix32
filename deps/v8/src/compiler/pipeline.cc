@@ -3080,7 +3080,7 @@ wasm::WasmCompilationResult Pipeline::GenerateWasmCode(
     bool is_first_tierup = false;
     {
       const wasm::TypeFeedbackStorage& feedback = module->type_feedback;
-      base::MutexGuard mutex_guard(&feedback.mutex);
+      ::v8::base::MutexGuard mutex_guard(&feedback.mutex);
       is_first_tierup = !feedback.deopt_count_for_function.contains(
           compilation_data.func_index);
     }

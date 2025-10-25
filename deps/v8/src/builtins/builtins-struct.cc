@@ -57,7 +57,7 @@ namespace {
 Maybe<bool> CollectFieldsAndElements(Isolate* isolate,
                                      DirectHandle<JSReceiver> property_names,
                                      int num_properties,
-                                     DirectHandle<ZoneVector<Name>& field_names,
+                                     ZoneVector<DirectHandle<Name>>& field_names,
                                      std::set<uint32_t>& element_names) {
   Handle<Object> raw_property_name;
   Handle<Name> property_name;
@@ -85,7 +85,7 @@ Maybe<bool> CollectFieldsAndElements(Isolate* isolate,
 
       is_duplicate = !field_names_set.insert(property_name).second;
       // Keep the field names in the original order.
-      if (!is_duplicate) field_names.push_back(property_name);
+      if (!is_duplicate) field_names.push_back(direct_handle(property_name, isolate));
     } else {
       is_duplicate = !element_names.insert(static_cast<uint32_t>(index)).second;
     }
@@ -136,7 +136,8 @@ BUILTIN(SharedStructTypeConstructor) {
     }
     int num_properties = static_cast<int>(num_properties_double);
 
-    DirectHandle<ZoneVector<Name> field_names(isolate);
+    Zone zone(isolate->allocator(), ZONE_NAME);
+    ZoneVector<DirectHandle<Name>> field_names(&zone);
     std::set<uint32_t> element_names;
     if (num_properties != 0) {
       MAYBE_RETURN(
@@ -148,7 +149,7 @@ BUILTIN(SharedStructTypeConstructor) {
     if (IsUndefined(*args.atOrUndefined(isolate, 2), isolate)) {
       // Create a new instance map if this type isn't registered.
       instance_map = JSSharedStruct::CreateInstanceMap(
-          isolate, base::VectorOf(field_names), element_names, {});
+          isolate, field_names, element_names, {});
     } else {
       // Otherwise, get the canonical map.
       if (!IsString(*args.atOrUndefined(isolate, 2))) {
@@ -160,7 +161,7 @@ BUILTIN(SharedStructTypeConstructor) {
       ASSIGN_RETURN_FAILURE_ON_EXCEPTION(
           isolate, instance_map,
           isolate->shared_struct_type_registry()->Register(
-              isolate, args.at<String>(2), base::VectorOf(field_names),
+              isolate, args.at<String>(2), field_names,
               element_names));
     }
   }

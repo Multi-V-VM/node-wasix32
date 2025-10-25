@@ -189,7 +189,7 @@ void ProfilerEventsProcessor::StopSynchronously() {
                                         std::memory_order_relaxed))
     return;
   {
-    base::MutexGuard guard(&running_mutex_);
+    ::v8::base::MutexGuard guard(&running_mutex_);
     running_cond_.NotifyOne();
   }
   Join();
@@ -278,7 +278,7 @@ SamplingEventsProcessor::ProcessOneSample() {
 void SamplingEventsProcessor::Run() {
   // Set the current isolate such that trusted pointer tables etc are available.
   SetCurrentIsolateScope isolate_scope(isolate_);
-  base::MutexGuard guard(&running_mutex_);
+  ::v8::base::MutexGuard guard(&running_mutex_);
   while (running_.load(std::memory_order_relaxed)) {
     base::TimeTicks nextSampleTime = base::TimeTicks::Now() + period_;
     base::TimeTicks now;
@@ -466,12 +466,12 @@ namespace {
 class CpuProfilersManager {
  public:
   void AddProfiler(Isolate* isolate, CpuProfiler* profiler) {
-    base::MutexGuard lock(&mutex_);
+    ::v8::base::MutexGuard lock(&mutex_);
     profilers_.emplace(isolate, profiler);
   }
 
   void RemoveProfiler(Isolate* isolate, CpuProfiler* profiler) {
-    base::MutexGuard lock(&mutex_);
+    ::v8::base::MutexGuard lock(&mutex_);
     auto range = profilers_.equal_range(isolate);
     for (auto it = range.first; it != range.second; ++it) {
       if (it->second != profiler) continue;
@@ -483,7 +483,7 @@ class CpuProfilersManager {
 
   void CallCollectSample(Isolate* isolate,
                          const std::optional<uint64_t> trace_id) {
-    base::MutexGuard lock(&mutex_);
+    ::v8::base::MutexGuard lock(&mutex_);
     auto range = profilers_.equal_range(isolate);
     for (auto it = range.first; it != range.second; ++it) {
       it->second->CollectSample(trace_id);
@@ -491,7 +491,7 @@ class CpuProfilersManager {
   }
 
   size_t GetAllProfilersMemorySize(Isolate* isolate) {
-    base::MutexGuard lock(&mutex_);
+    ::v8::base::MutexGuard lock(&mutex_);
     size_t estimated_memory = 0;
     auto range = profilers_.equal_range(isolate);
     for (auto it = range.first; it != range.second; ++it) {

@@ -101,8 +101,13 @@ class JSSynchronizationPrimitive
   using DequeueMatcher = std::function<bool(WaiterQueueNode*)>;
 
   static constexpr StateT kEmptyState = 0;
+#ifdef __wasi__
+  // WASI: Manually compute the mask for BitFieldUnion compatibility
+  static constexpr StateT kWaiterQueueMask = 0b11; // Bits 0 and 1
+#else
   static constexpr StateT kWaiterQueueMask =
       base::BitFieldUnion<HasWaitersField, IsWaiterQueueLockedField>::kMask;
+#endif
 
  private:
   friend class WaiterQueueLockGuard;

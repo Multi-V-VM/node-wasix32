@@ -179,14 +179,14 @@ bool OptimizingCompileTaskExecutor::IsTaskRunningForIsolate(Isolate* isolate) {
 
 bool OptimizingCompileTaskExecutor::HasCompilationJobsForIsolate(
     Isolate* isolate) {
-  base::MutexGuard guard(input_queue_.mutex_);
+  ::v8::base::MutexGuard guard(input_queue_.mutex_);
   return input_queue_.HasJobForIsolate(isolate) ||
          IsTaskRunningForIsolate(isolate);
 }
 
 void OptimizingCompileTaskExecutor::ClearTaskState(
     OptimizingCompileTaskState& task_state) {
-  base::MutexGuard guard(input_queue_.mutex_);
+  ::v8::base::MutexGuard guard(input_queue_.mutex_);
   DCHECK_NOT_NULL(task_state.isolate);
   task_state.isolate = nullptr;
   DCHECK_NULL(task_state.job);
@@ -195,7 +195,7 @@ void OptimizingCompileTaskExecutor::ClearTaskState(
 
 void OptimizingCompileTaskExecutor::ResetJob(
     OptimizingCompileTaskState& task_state) {
-  base::MutexGuard guard(input_queue_.mutex_);
+  ::v8::base::MutexGuard guard(input_queue_.mutex_);
   DCHECK_NOT_NULL(task_state.isolate);
   DCHECK_NOT_NULL(task_state.job);
   task_state.job = nullptr;
@@ -225,7 +225,7 @@ void OptimizingCompileTaskExecutor::WaitUntilCompilationJobsDoneForIsolate(
   // know that there are no more LocalHeaps for this isolate from CompileTask.
   // This is because CompileTask::Run() only updates the isolate once the
   // LocalIsolate/LocalHeap for it was destroyed.
-  base::MutexGuard guard(&input_queue_.mutex_);
+  ::v8::base::MutexGuard guard(&input_queue_.mutex_);
 
   while (input_queue_.HasJobForIsolate(isolate) ||
          IsTaskRunningForIsolate(isolate)) {
@@ -235,7 +235,7 @@ void OptimizingCompileTaskExecutor::WaitUntilCompilationJobsDoneForIsolate(
 
 void OptimizingCompileTaskExecutor::CancelCompilationJobsForIsolate(
     Isolate* isolate) {
-  base::MutexGuard guard(&input_queue_.mutex_);
+  ::v8::base::MutexGuard guard(&input_queue_.mutex_);
   DCHECK(!input_queue_.HasJobForIsolate(isolate));
 
   for (auto& task_state : task_states_) {
@@ -374,7 +374,7 @@ void OptimizingCompileInputQueue::Prioritize(
   // Ensure that we only run this method on the main thread. This makes sure
   // that we never dereference handles during a safepoint.
   DCHECK_EQ(isolate->thread_id(), ThreadId::Current());
-  base::MutexGuard access(&mutex_);
+  ::v8::base::MutexGuard access(&mutex_);
   auto it =
       std::find_if(queue_.begin(), queue_.end(),
                    [isolate, function](TurbofanCompilationJob* job) {
@@ -396,7 +396,7 @@ void OptimizingCompileInputQueue::Prioritize(
 }
 
 void OptimizingCompileInputQueue::FlushJobsForIsolate(Isolate* isolate) {
-  base::MutexGuard access(&mutex_);
+  ::v8::base::MutexGuard access(&mutex_);
   std::erase_if(queue_, [isolate](TurbofanCompilationJob* job) {
     if (job->isolate() != isolate) return false;
     Compiler::DisposeTurbofanCompilationJob(isolate, job);
@@ -415,7 +415,7 @@ bool OptimizingCompileInputQueue::HasJobForIsolate(Isolate* isolate) {
 
 TurbofanCompilationJob* OptimizingCompileInputQueue::Dequeue(
     OptimizingCompileTaskState& task_state) {
-  base::MutexGuard access(&mutex_);
+  ::v8::base::MutexGuard access(&mutex_);
   DCHECK_NULL(task_state.isolate);
   if (queue_.empty()) return nullptr;
   TurbofanCompilationJob* job = queue_.front();
@@ -428,7 +428,7 @@ TurbofanCompilationJob* OptimizingCompileInputQueue::Dequeue(
 
 TurbofanCompilationJob* OptimizingCompileInputQueue::DequeueIfIsolateMatches(
     OptimizingCompileTaskState& task_state) {
-  base::MutexGuard access(&mutex_);
+  ::v8::base::MutexGuard access(&mutex_);
   if (queue_.empty()) return nullptr;
   TurbofanCompilationJob* job = queue_.front();
   DCHECK_NOT_NULL(job);
@@ -441,7 +441,7 @@ TurbofanCompilationJob* OptimizingCompileInputQueue::DequeueIfIsolateMatches(
 
 bool OptimizingCompileInputQueue::Enqueue(
     std::unique_ptr<TurbofanCompilationJob>& job) {
-  base::MutexGuard access(&mutex_);
+  ::v8::base::MutexGuard access(&mutex_);
   if (queue_.size() < capacity_) {
     queue_.push_back(job.release());
     return true;
@@ -451,13 +451,13 @@ bool OptimizingCompileInputQueue::Enqueue(
 }
 
 void OptimizingCompileOutputQueue::Enqueue(TurbofanCompilationJob* job) {
-  base::MutexGuard guard(&mutex_);
+  ::v8::base::MutexGuard guard(&mutex_);
   queue_.push_back(job);
 }
 
 std::unique_ptr<TurbofanCompilationJob>
 OptimizingCompileOutputQueue::Dequeue() {
-  base::MutexGuard guard(&mutex_);
+  ::v8::base::MutexGuard guard(&mutex_);
   if (queue_.empty()) return {};
   std::unique_ptr<TurbofanCompilationJob> job(queue_.front());
   queue_.pop_front();
@@ -477,7 +477,7 @@ int OptimizingCompileOutputQueue::InstallGeneratedBuiltins(
 
   CHECK(isolate->IsGeneratingEmbeddedBuiltins());
 
-  base::MutexGuard guard(&mutex_);
+  ::v8::base::MutexGuard guard(&mutex_);
 
   std::sort(queue_.begin(), queue_.end(),
             [](const TurbofanCompilationJob* job1,

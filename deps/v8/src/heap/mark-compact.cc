@@ -2568,7 +2568,7 @@ class ParallelClearingJob final : public v8::JobTask {
   void Run(JobDelegate* delegate) override {
     std::unique_ptr<ClearingItem> item;
     {
-      base::MutexGuard guard(&items_mutex_);
+      ::v8::base::MutexGuard guard(&items_mutex_);
       item = std::move(items_.back());
       items_.pop_back();
     }
@@ -2576,7 +2576,7 @@ class ParallelClearingJob final : public v8::JobTask {
   }
 
   size_t GetMaxConcurrency(size_t worker_count) const override {
-    base::MutexGuard guard(&items_mutex_);
+    ::v8::base::MutexGuard guard(&items_mutex_);
     if (!v8_flags.parallel_weak_ref_clearing ||
         !collector_->UseBackgroundThreadsInCycle()) {
       return std::min<size_t>(items_.size(), 1);
@@ -3730,7 +3730,7 @@ void MarkCompactCollector::RightTrimDescriptorArray(
 void MarkCompactCollector::RecordStrongDescriptorArraysForWeakening(
     GlobalHandleZoneVector<DescriptorArray> strong_descriptor_arrays) {
   DCHECK(heap_->incremental_marking()->IsMajorMarking());
-  base::MutexGuard guard(&strong_descriptor_arrays_mutex_);
+  ::v8::base::MutexGuard guard(&strong_descriptor_arrays_mutex_);
   strong_descriptor_arrays_.push_back(std::move(strong_descriptor_arrays));
 }
 
@@ -4053,7 +4053,7 @@ void MarkCompactCollector::RecordRelocSlot(Tagged<InstructionStream> host,
 
   // Access to TypeSlots need to be protected, since LocalHeaps might
   // publish code in the background thread.
-  std::optional<base::MutexGuard> opt_guard;
+  std::optional<::v8::base::MutexGuard> opt_guard;
   if (v8_flags.concurrent_sparkplug) {
     opt_guard.emplace(info.page_metadata->mutex());
   }
@@ -5853,7 +5853,7 @@ void MarkCompactCollector::UpdatePointersInPointerTables() {
 
 void MarkCompactCollector::ReportAbortedEvacuationCandidateDueToOOM(
     Address failed_start, PageMetadata* page) {
-  base::MutexGuard guard(&mutex_);
+  ::v8::base::MutexGuard guard(&mutex_);
   aborted_evacuation_candidates_due_to_oom_.push_back(
       std::make_pair(failed_start, page));
 }

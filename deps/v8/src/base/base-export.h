@@ -9,7 +9,8 @@
 
 // Include WASI fixes first to prevent macro redefinition
 #ifdef __wasi__
-#include "../../include/wasi/macro-fixes.h"
+// Resolve via -I deps/v8/include
+#include "wasi/macro-fixes.h"
 #endif
 
 #ifndef V8_BASE_EXPORT

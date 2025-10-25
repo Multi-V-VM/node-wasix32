@@ -60,7 +60,7 @@ void SimulatorBase::GlobalTearDown() {
 // static
 Address SimulatorBase::RedirectExternalReference(Address external_function,
                                                  ExternalReference::Type type) {
-  base::MutexGuard lock_guard(Simulator::redirection_mutex());
+  ::v8::base::MutexGuard lock_guard(Simulator::redirection_mutex());
   Redirection* redirection = Redirection::Get(external_function, type);
   return redirection->address_of_instruction();
 }
@@ -75,7 +75,7 @@ Redirection::Redirection(Address external_function,
                          ExternalReference::Type type)
     : external_function_(external_function), type_(type), next_(nullptr) {
   next_ = Simulator::redirection();
-  base::MutexGuard lock_guard(Simulator::i_cache_mutex());
+  ::v8::base::MutexGuard lock_guard(Simulator::i_cache_mutex());
   Simulator::SetRedirectInstruction(
       reinterpret_cast<Instruction*>(address_of_instruction()));
   Simulator::FlushICache(Simulator::i_cache(),
@@ -105,7 +105,7 @@ Redirection* Redirection::Get(Address external_function,
 void SimulatorData::RegisterFunctionsAndSignatures(
     Address* c_functions, const CFunctionInfo* const* c_signatures,
     unsigned num_functions) {
-  base::MutexGuard guard(&signature_map_mutex_);
+  ::v8::base::MutexGuard guard(&signature_map_mutex_);
   for (unsigned i = 0; i < num_functions; ++i) {
     EncodedCSignature sig(c_signatures[i]);
     AddSignatureForTarget(c_functions[i], sig);
@@ -113,7 +113,7 @@ void SimulatorData::RegisterFunctionsAndSignatures(
 }
 
 const EncodedCSignature& SimulatorData::GetSignatureForTarget(Address target) {
-  base::MutexGuard guard(&signature_map_mutex_);
+  ::v8::base::MutexGuard guard(&signature_map_mutex_);
   auto entry = target_to_signature_table_.find(target);
   if (entry != target_to_signature_table_.end()) {
     const EncodedCSignature& sig = entry->second;

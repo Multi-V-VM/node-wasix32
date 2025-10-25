@@ -8,6 +8,14 @@
 #include "src/common/globals.h"
 #include "src/runtime/runtime.h"
 
+// Helper macro to optionally include external references depending on
+// target architecture. Must be defined before EXTERNAL_REFERENCE_LIST uses it.
+#if defined(V8_TARGET_ARCH_WASM32) || defined(__wasi__)
+#define IF_NOT_WASM32(V, Name, String)
+#else
+#define IF_NOT_WASM32(V, Name, String) V(Name, String)
+#endif
+
 namespace v8 {
 
 class ApiFunction;
@@ -461,8 +469,9 @@ enum class IsolateFieldId : uint8_t;
     "RegExpMacroAssembler::CaseInsensitiveCompareNonUnicode()")                \
   V(re_is_character_in_range_array,                                            \
     "RegExpMacroAssembler::IsCharacterInRangeArray()")                         \
-  V(re_check_stack_guard_state,                                                \
-    "RegExpMacroAssembler*::CheckStackGuardState()")                           \
+  /* No native RegExp CheckStackGuardState for WASM32 */                      \
+  IF_NOT_WASM32(V, re_check_stack_guard_state,                                \
+    "RegExpMacroAssembler*::CheckStackGuardState()")                         \
   V(re_grow_stack, "NativeRegExpMacroAssembler::GrowStack()")                  \
   V(re_word_character_map, "NativeRegExpMacroAssembler::word_character_map")   \
   V(re_match_for_call_from_js, "IrregexpInterpreter::MatchForCallFromJs")      \
@@ -697,3 +706,4 @@ void abort_with_reason(int reason);
 }  // namespace v8
 
 #endif  // V8_CODEGEN_EXTERNAL_REFERENCE_H_
+// (moved to top) IF_NOT_WASM32 macro defined earlier

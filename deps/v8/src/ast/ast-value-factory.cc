@@ -333,11 +333,13 @@ const AstRawString* AstValueFactory::GetOneByteStringInternal(
 }
 
 const AstRawString* AstValueFactory::GetTwoByteStringInternal(
-    ZoneVector<const uint16_t> literal) {
+    Vector<const uint16_t> literal) {
   uint32_t raw_hash_field = StringHasher::HashSequentialString<uint16_t>(
       literal.begin(), literal.length(), hash_seed_);
-  return GetString(raw_hash_field, false,
-                   ZoneVector<const uint8_t>::cast(literal));
+  // Convert to a byte view for storage; ZoneVector has a constructor from
+  // base::Vector and will act as a non-owning view here.
+  auto bytes = ::v8::base::Vector<const uint8_t>::cast(literal);
+  return GetString(raw_hash_field, false, ZoneVector<const uint8_t>(bytes));
 }
 
 const AstRawString* AstValueFactory::GetString(

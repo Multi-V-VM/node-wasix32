@@ -20,14 +20,14 @@ void PagePool::PoolImpl<PoolEntry>::TearDown() {
 template <typename PoolEntry>
 void PagePool::PoolImpl<PoolEntry>::PutLocal(Isolate* isolate,
                                              PoolEntry entry) {
-  base::MutexGuard guard(&mutex_);
+  ::v8::base::MutexGuard guard(&mutex_);
   local_pools_[isolate].emplace_back(std::move(entry));
 }
 
 template <typename PoolEntry>
 std::optional<PoolEntry> PagePool::PoolImpl<PoolEntry>::Get(Isolate* isolate) {
   DCHECK_NOT_NULL(isolate);
-  base::MutexGuard guard(&mutex_);
+  ::v8::base::MutexGuard guard(&mutex_);
 
   // Try to get a page from the page pool for the given isolate first.
   auto it = local_pools_.find(isolate);
@@ -69,7 +69,7 @@ std::optional<PoolEntry> PagePool::PoolImpl<PoolEntry>::Get(Isolate* isolate) {
 template <typename PoolEntry>
 bool PagePool::PoolImpl<PoolEntry>::MoveLocalToShared(
     Isolate* isolate, InternalTime release_time) {
-  base::MutexGuard guard(&mutex_);
+  ::v8::base::MutexGuard guard(&mutex_);
   auto it = local_pools_.find(isolate);
   if (it != local_pools_.end()) {
     DCHECK(!it->second.empty());
@@ -83,7 +83,7 @@ template <typename PoolEntry>
 void PagePool::PoolImpl<PoolEntry>::ClearShared() {
   std::vector<std::pair<InternalTime, std::vector<PoolEntry>>> entries_to_free;
   {
-    base::MutexGuard guard(&mutex_);
+    ::v8::base::MutexGuard guard(&mutex_);
     entries_to_free = std::move(shared_pool_);
     shared_pool_.clear();
   }
@@ -94,7 +94,7 @@ template <typename PoolEntry>
 void PagePool::PoolImpl<PoolEntry>::ClearLocal() {
   std::vector<std::vector<PoolEntry>> entries_to_free;
   {
-    base::MutexGuard page_guard(&mutex_);
+    ::v8::base::MutexGuard page_guard(&mutex_);
     for (auto& entry : local_pools_) {
       entries_to_free.push_back(std::move(entry.second));
     }
@@ -107,7 +107,7 @@ template <typename PoolEntry>
 void PagePool::PoolImpl<PoolEntry>::ClearLocal(Isolate* isolate) {
   std::vector<PoolEntry> entries_to_free;
   {
-    base::MutexGuard page_guard(&mutex_);
+    ::v8::base::MutexGuard page_guard(&mutex_);
     const auto it = local_pools_.find(isolate);
     if (it != local_pools_.end()) {
       DCHECK(!it->second.empty());
@@ -120,7 +120,7 @@ void PagePool::PoolImpl<PoolEntry>::ClearLocal(Isolate* isolate) {
 
 template <typename PoolEntry>
 size_t PagePool::PoolImpl<PoolEntry>::Size() const {
-  base::MutexGuard guard(&mutex_);
+  ::v8::base::MutexGuard guard(&mutex_);
   size_t count = 0;
   for (const auto& entry : local_pools_) {
     count += entry.second.size();
@@ -133,14 +133,14 @@ size_t PagePool::PoolImpl<PoolEntry>::Size() const {
 
 template <typename PoolEntry>
 size_t PagePool::PoolImpl<PoolEntry>::LocalSize(Isolate* isolate) const {
-  base::MutexGuard guard(&mutex_);
+  ::v8::base::MutexGuard guard(&mutex_);
   const auto it = local_pools_.find(isolate);
   return (it != local_pools_.end()) ? it->second.size() : 0;
 }
 
 template <typename PoolEntry>
 size_t PagePool::PoolImpl<PoolEntry>::SharedSize() const {
-  base::MutexGuard guard(&mutex_);
+  ::v8::base::MutexGuard guard(&mutex_);
   size_t count = 0;
   for (const auto& entry : shared_pool_) {
     count += entry.second.size();
@@ -153,7 +153,7 @@ size_t PagePool::PoolImpl<PoolEntry>::ReleaseUpTo(InternalTime release_time) {
   std::vector<std::vector<PoolEntry>> entries_to_free;
   size_t freed = 0;
   {
-    base::MutexGuard guard(&mutex_);
+    ::v8::base::MutexGuard guard(&mutex_);
     std::erase_if(shared_pool_,
                   [&entries_to_free, &freed, release_time](auto& entry) {
                     if (entry.first <= release_time) {

@@ -21,9 +21,9 @@ uint32_t CppHeapPointerTable::SweepAndCompact(Space* space,
   // Lock the space. Technically this is not necessary since no other thread can
   // allocate entries at this point, but some of the methods we call on the
   // space assert that the lock is held.
-  base::MutexGuard guard(&space->mutex_);
+  ::v8::base::MutexGuard guard(&space->mutex_);
   // Same for the invalidated fields mutex.
-  base::MutexGuard invalidated_fields_guard(&space->invalidated_fields_mutex_);
+  ::v8::base::MutexGuard invalidated_fields_guard(&space->invalidated_fields_mutex_);
 
   // There must not be any entry allocations while the table is being swept as
   // that would not be safe. Set the freelist to this special marker value to

@@ -5,11 +5,16 @@
 #include <cstddef>
 #include <limits>
 #include <type_traits>
+#include <cstring>
 
 #ifdef __wasi__
 // Ensure v8::base atomic types are available when this header is pulled in
 // from public headers before base headers.
 #include "src/base/atomicops.h"
+// Ensure base facilities are visible when public headers include this early
+#include "src/base/platform/memory.h"   // v8::base::AlignedAlloc/AlignedFree
+#include "src/base/platform/platform.h" // v8::base::OS
+#include "src/base/platform/time.h"     // v8::base::TimeTicks/TimeDelta
 
 // Provide an early, minimal definition of v8::PageAllocator so nested
 // types like ::v8::PageAllocator::Permission and the alias ::v8::PagePermissions
@@ -226,6 +231,15 @@ enum ExternalPointerTag : uint64_t {
 };
 
 #endif // V8_EXTERNAL_POINTER_TAGS_DEFINED
+
+// Provide aliases for renamed tags used in newer V8 code paths.
+#ifndef V8_WASI_EXTERNAL_POINTER_TAG_ALIASES
+#define V8_WASI_EXTERNAL_POINTER_TAG_ALIASES 1
+// Some sources refer to kMicrotaskCallbackDataTag.
+static constexpr uint64_t kMicrotaskCallbackDataTag = kMicrotaskCallbackTag;
+// Some sources refer to waiter queue "foreign" tag; alias to node tag.
+static constexpr uint64_t kWaiterQueueForeignTag = kWaiterQueueNodeTag;
+#endif
 
 // Trusted pointer tags
 #ifndef V8_TRUSTED_POINTER_TAGS_DEFINED
@@ -590,6 +604,7 @@ class BackingStoreBase {
 }  // namespace internal
 }  // namespace v8
 
+#if !defined(V8_BITS_CTZ_NZ_DEFINED)
 #ifndef V8_BASE_BITS_WASI_HELPERS_DEFINED
 #define V8_BASE_BITS_WASI_HELPERS_DEFINED
 // Provide minimal implementations expected by src/base/bits.h when building
@@ -598,19 +613,19 @@ namespace v8 {
 namespace base {
 namespace bits {
 
-inline int CountTrailingZerosNonZero(uint32_t value) {
+inline constexpr int CountTrailingZerosNonZero(uint32_t value) {
   // Caller guarantees value != 0
   return __builtin_ctz(value);
 }
 
-inline int CountTrailingZerosNonZero(uint64_t value) {
+inline constexpr int CountTrailingZerosNonZero(uint64_t value) {
   // Caller guarantees value != 0
   return __builtin_ctzll(value);
 }
 
 #if __SIZEOF_SIZE_T__ != __SIZEOF_LONG_LONG__
 // Provide a size_t overload only when it is not the same type as uint64_t.
-inline int CountTrailingZerosNonZero(size_t value) {
+inline constexpr int CountTrailingZerosNonZero(size_t value) {
   // Caller guarantees value != 0
   if constexpr (sizeof(size_t) == sizeof(uint32_t)) {
     return __builtin_ctz(static_cast<uint32_t>(value));
@@ -626,6 +641,9 @@ inline int CountTrailingZerosNonZero(size_t value) {
 }  // namespace base
 }  // namespace v8
 #endif  // V8_BASE_BITS_WASI_HELPERS_DEFINED
+#define V8_BITS_CTZ_NZ_DEFINED 1
+#endif
+
 
 #ifndef V8_WASI_BIT_CAST_DEFINED
 #define V8_WASI_BIT_CAST_DEFINED

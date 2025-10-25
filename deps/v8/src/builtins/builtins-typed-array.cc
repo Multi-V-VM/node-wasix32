@@ -13,6 +13,9 @@
 #include "src/objects/objects-inl.h"
 #include "src/objects/simd.h"
 #include "third_party/simdutf/simdutf.h"
+#ifdef __wasi__
+#include "wasi/wasi-simdutf-compat.h"
+#endif
 
 namespace v8 {
 namespace internal {

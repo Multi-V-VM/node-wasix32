@@ -55,7 +55,7 @@ WritableJitAllocation::WritableJitAllocation(
       // before we lookup the Jit page, since the latter will take a mutex in
       // protected memory.
       write_scope_("WritableJitAllocation"),
-      page_ref_(ThreadIsolation::LookupJitPage(addr, size)),
+      page_ref_(std::make_optional(ThreadIsolation::LookupJitPage(addr, size))),
       allocation_(source == JitAllocationSource::kRegister
                       ? page_ref_->RegisterAllocation(addr, size, type)
                       : page_ref_->LookupAllocation(addr, size, type)),
@@ -108,11 +108,10 @@ WritableJumpTablePair::WritableJumpTablePair(Address jump_table_address,
           far_jump_table_address, far_jump_table_size,
           ThreadIsolation::JitAllocationType::kWasmFarJumpTable, true),
       write_scope_("WritableJumpTablePair"),
-      // Always split the pages since we are not guaranteed that the jump table
-      // and far jump table are on the same JitPage.
-      jump_table_pages_(ThreadIsolation::SplitJitPages(
+      jump_table_pages_(std::make_optional(ThreadIsolation::SplitJitPages(
           far_jump_table_address, far_jump_table_size, jump_table_address,
-          jump_table_size)) {
+          jump_table_size)))
+  {
   CHECK(jump_table_pages_.value().second.Contains(
       jump_table_address, jump_table_size,
       ThreadIsolation::JitAllocationType::kWasmJumpTable));

@@ -1,13 +1,15 @@
 #ifndef V8_SRC_BASE_BITS_H_
 #define V8_SRC_BASE_BITS_H_
 
-#ifdef __wasi__
+#if 1  // WASI and generic implementations
 #include <cstdint>
 #include <type_traits>
 #include <climits>
+#include <limits>
 
-#ifdef __wasi__
-#include "../../include/wasi/nuclear-fix.h"
+#if 0
+// Avoid including large WASI shims here to prevent circular includes.
+// #include "wasi/nuclear-fix.h"
 #endif
 #include "src/base/bits-namespace-fix.h"
 
@@ -88,6 +90,21 @@ constexpr int CountTrailingZeros(uint64_t value) { return __builtin_ctzll(value)
 constexpr int CountTrailingZeros(uint8_t value) {
   return __builtin_ctz(static_cast<uint32_t>(value));
 }
+// Variants that require value != 0. Callers ensure non-zero.
+#ifndef V8_BITS_CTZ_NZ_DEFINED
+constexpr int CountTrailingZerosNonZero(uint32_t value) { return __builtin_ctz(value); }
+constexpr int CountTrailingZerosNonZero(uint64_t value) { return __builtin_ctzll(value); }
+template <typename T>
+constexpr int CountTrailingZerosNonZero(T value) {
+  if constexpr (sizeof(T) <= sizeof(uint32_t)) {
+    return CountTrailingZerosNonZero(static_cast<uint32_t>(value));
+  } else {
+    return CountTrailingZerosNonZero(static_cast<uint64_t>(value));
+  }
+}
+#define V8_BITS_CTZ_NZ_DEFINED 1
+#endif
+
 constexpr int CountPopulation(uint32_t value) { return __builtin_popcount(value); }
 constexpr int CountPopulation(uint64_t value) { return __builtin_popcountll(value); }
 
@@ -287,9 +304,6 @@ constexpr int BitWidth(T value) {
   }
 }
 
-#else
-// Original bits.h content would go here for non-WASI builds
-// Non-WASI implementations would be here
 #endif
 
 }  // namespace bits

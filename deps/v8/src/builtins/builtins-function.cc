@@ -199,11 +199,12 @@ Tagged<Object> DoFunctionBind(Isolate* isolate, BuiltinArguments args,
   // Allocate the bound function with the given {this_arg} and {args}.
   DirectHandle<JSReceiver> target = args.at<JSReceiver>(0);
   DirectHandle<JSAny> this_arg = isolate->factory()->undefined_value();
-  DirectHandle<ZoneVector<Object> argv(isolate, std::max(0, args.length() - 2));
+  Zone zone(isolate->allocator(), ZONE_NAME);
+  ZoneVector<DirectHandle<Object>> argv(std::max(0, args.length() - 2), &zone);
   if (args.length() > 1) {
     this_arg = args.at<JSAny>(1);
     for (int i = 2; i < args.length(); ++i) {
-      argv[i - 2] = args.at(i);
+      argv[i - 2] = direct_handle(args.at(i), isolate);
     }
   }
 
@@ -225,7 +226,7 @@ Tagged<Object> DoFunctionBind(Isolate* isolate, BuiltinArguments args,
   ASSIGN_RETURN_FAILURE_ON_EXCEPTION(
       isolate, function,
       isolate->factory()->NewJSBoundFunction(
-          target, this_arg, {argv.data(), argv.size()}, proto));
+          target, this_arg, argv, proto));
   Maybe<bool> result =
       JSFunctionOrBoundFunctionOrWrappedFunction::CopyNameAndLength(
           isolate, function, target, isolate->factory()->bound__string(),

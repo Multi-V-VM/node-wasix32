@@ -418,7 +418,7 @@ bool Heap::CanExpandOldGeneration(size_t size) const {
 }
 
 bool Heap::IsOldGenerationExpansionAllowed(
-    size_t size, const base::MutexGuard& expansion_mutex_witness) const {
+    size_t size, const ::v8::base::MutexGuard& expansion_mutex_witness) const {
   return OldGenerationCapacity() + size <= max_old_generation_size();
 }
 
@@ -940,11 +940,13 @@ void Heap::RemoveHeapObjectAllocationTracker(
   }
 }
 
+#ifndef __wasi__
 void Heap::IncrementDeferredCounts(
     ZoneVector<const v8::Isolate::UseCounterFeature> features) {
   deferred_counters_.insert(deferred_counters_.end(), features.begin(),
                             features.end());
 }
+#endif
 
 void Heap::GarbageCollectionPrologue(
     GarbageCollectionReason gc_reason,
@@ -3114,7 +3116,7 @@ void* Heap::AllocateExternalBackingStore(
 void Heap::ShrinkOldGenerationAllocationLimitIfNotConfigured() {
   if (using_initial_limit() && !initial_size_overwritten_ &&
       tracer()->SurvivalEventsRecorded()) {
-    base::MutexGuard guard(old_space()->mutex());
+    ::v8::base::MutexGuard guard(old_space()->mutex());
     const size_t minimum_growing_step =
         MemoryController<V8HeapTrait>::MinimumAllocationLimitGrowingStep(
             CurrentHeapGrowingMode());
@@ -6794,7 +6796,7 @@ StrongRootsEntry* Heap::RegisterStrongRoots(const char* label,
   // local heap.
   DCHECK(isolate()->CurrentLocalHeap()->IsRunning());
 
-  base::MutexGuard guard(&strong_roots_mutex_);
+  ::v8::base::MutexGuard guard(&strong_roots_mutex_);
 
   StrongRootsEntry* entry = new StrongRootsEntry(label);
   entry->start = start;
@@ -6822,7 +6824,7 @@ void Heap::UnregisterStrongRoots(StrongRootsEntry* entry) {
   // local heap.
   DCHECK(isolate()->CurrentLocalHeap()->IsRunning());
 
-  base::MutexGuard guard(&strong_roots_mutex_);
+  ::v8::base::MutexGuard guard(&strong_roots_mutex_);
 
   StrongRootsEntry* prev = entry->prev;
   StrongRootsEntry* next = entry->next;

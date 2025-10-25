@@ -2041,7 +2041,7 @@ void EventHandler(const v8::JitCodeEvent* event) {
       (event->code_type != v8::JitCodeEvent::WASM_CODE)) {
     return;
   }
-  base::MutexGuard lock_guard(mutex.Pointer());
+  ::v8::base::MutexGuard lock_guard(mutex.Pointer());
   switch (event->type) {
     case v8::JitCodeEvent::CODE_ADDED: {
       Address addr = reinterpret_cast<Address>(event->code_start);

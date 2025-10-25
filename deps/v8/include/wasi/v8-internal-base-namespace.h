@@ -6,6 +6,9 @@
 // This header provides namespace aliases to map v8::base functions
 // into v8::internal::base where the compiler code expects them.
 
+// Ensure bits helpers are visible before aliasing
+#include "src/base/bits.h"
+
 namespace v8 {
 namespace internal {
 namespace base {
@@ -14,40 +17,9 @@ namespace base {
 using ::v8::base::hash_combine;
 using ::v8::base::Hasher;
 
-// Bring bits namespace functions from v8::base::bits
-namespace bits {
-  using ::v8::base::bits::SignedAddOverflow32;
-  using ::v8::base::bits::SignedSubOverflow32;
-  using ::v8::base::bits::SignedMulOverflow32;
-  using ::v8::base::bits::SignedDiv32;
-  using ::v8::base::bits::SignedDiv64;
-  using ::v8::base::bits::SignedMod32;
-  using ::v8::base::bits::SignedMod64;
-  using ::v8::base::bits::UnsignedDiv32;
-  using ::v8::base::bits::UnsignedDiv64;
-  using ::v8::base::bits::UnsignedMod32;
-  using ::v8::base::bits::UnsignedMod64;
-  using ::v8::base::bits::RotateRight32;
-  using ::v8::base::bits::RotateRight64;
-  using ::v8::base::bits::RotateLeft32;
-  using ::v8::base::bits::RotateLeft64;
-  using ::v8::base::bits::CountPopulation;
-  using ::v8::base::bits::CountLeadingZeros;
-  using ::v8::base::bits::CountLeadingZeros32;
-  using ::v8::base::bits::CountLeadingZeros64;
-  using ::v8::base::bits::CountTrailingZeros;
-  using ::v8::base::bits::CountTrailingZeros32;
-  using ::v8::base::bits::CountTrailingZeros64;
-  using ::v8::base::bits::IsPowerOfTwo;
-  using ::v8::base::bits::RoundUpToPowerOfTwo32;
-  using ::v8::base::bits::RoundUpToPowerOfTwo64;
-  using ::v8::base::bits::RoundDownToPowerOfTwo32;
-  using ::v8::base::bits::SignedSaturatedAdd64;
-  using ::v8::base::bits::SignedSaturatedSub64;
-}  // namespace bits
-
+// Note: bits namespace functions are already aliased in src/base/bits.h
 // Note: all_of, any_of, sort are aliased in container-utils.h, not here
-// This file only handles hash_combine and bits namespace functions
+// This file only handles hash_combine and Hasher
 
 }  // namespace base
 }  // namespace internal

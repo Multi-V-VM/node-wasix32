@@ -7,7 +7,11 @@
 
 #include <unordered_map>
 
+#if __has_include("absl/container/flat_hash_map.h")
 #include "absl/container/flat_hash_map.h"
+#else
+#include "third_party/abseil-cpp/absl/container/flat_hash_map.h"
+#endif
 #include "src/base/hashing.h"
 
 namespace heap::base {

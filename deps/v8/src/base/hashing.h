@@ -394,7 +394,8 @@ V8_BASE_BIT_SPECIALIZE_BIT_CAST(double, uint64_t)
 
 #ifdef __wasi__
 // Include namespace aliases AFTER v8::base is defined
-#include "../../include/wasi/v8-internal-base-namespace.h"
+// Use include search path for V8's WASI headers
+#include "wasi/v8-internal-base-namespace.h"
 #endif
 
 // Note: std::hash<std::pair<...>> specializations should be defined by users

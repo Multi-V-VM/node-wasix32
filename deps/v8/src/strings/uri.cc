@@ -357,7 +357,7 @@ MaybeHandle<String> UnescapeSlow(Isolate* isolate, DirectHandle<String> string,
   int unescaped_length = 0;
   {
     DisallowGarbageCollection no_gc;
-    ZoneVector<const Char> vector = string->GetCharZoneVector<Char>(no_gc);
+    ZoneVector<const Char> vector = string->GetCharVector<Char>(no_gc);
     for (uint32_t i = start_index; i < length; unescaped_length++) {
       int step;
       if (UnescapeChar(vector, i, length, &step) >
@@ -380,7 +380,7 @@ MaybeHandle<String> UnescapeSlow(Isolate* isolate, DirectHandle<String> string,
                                         ->NewRawOneByteString(unescaped_length)
                                         .ToHandleChecked();
     DisallowGarbageCollection no_gc;
-    ZoneVector<const Char> vector = string->GetCharZoneVector<Char>(no_gc);
+    ZoneVector<const Char> vector = string->GetCharVector<Char>(no_gc);
     for (uint32_t i = start_index; i < length; dest_position++) {
       int step;
       dest->SeqOneByteStringSet(dest_position,
@@ -393,7 +393,7 @@ MaybeHandle<String> UnescapeSlow(Isolate* isolate, DirectHandle<String> string,
                                         ->NewRawTwoByteString(unescaped_length)
                                         .ToHandleChecked();
     DisallowGarbageCollection no_gc;
-    ZoneVector<const Char> vector = string->GetCharZoneVector<Char>(no_gc);
+    ZoneVector<const Char> vector = string->GetCharVector<Char>(no_gc);
     for (uint32_t i = start_index; i < length; dest_position++) {
       int step;
       dest->SeqTwoByteStringSet(dest_position,
@@ -431,7 +431,7 @@ static MaybeHandle<String> UnescapePrivate(Isolate* isolate,
   {
     DisallowGarbageCollection no_gc;
     StringSearch<uint8_t, Char> search(isolate, base::StaticOneByteVector("%"));
-    index = search.Search(source->GetCharZoneVector<Char>(no_gc), 0);
+    index = search.Search(source->GetCharVector<Char>(no_gc), 0);
     if (index < 0) return source;
   }
   return UnescapeSlow<Char>(isolate, source, index);
@@ -446,7 +446,7 @@ static MaybeHandle<String> EscapePrivate(Isolate* isolate,
 
   {
     DisallowGarbageCollection no_gc;
-    ZoneVector<const Char> vector = string->GetCharZoneVector<Char>(no_gc);
+    ZoneVector<const Char> vector = string->GetCharVector<Char>(no_gc);
     for (uint32_t i = 0; i < length; i++) {
       uint16_t c = vector[i];
       if (c >= 256) {
@@ -473,7 +473,7 @@ static MaybeHandle<String> EscapePrivate(Isolate* isolate,
 
   {
     DisallowGarbageCollection no_gc;
-    ZoneVector<const Char> vector = string->GetCharZoneVector<Char>(no_gc);
+    ZoneVector<const Char> vector = string->GetCharVector<Char>(no_gc);
     for (uint32_t i = 0; i < length; i++) {
       uint16_t c = vector[i];
       if (c >= 256) {

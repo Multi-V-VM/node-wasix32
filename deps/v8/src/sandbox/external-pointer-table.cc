@@ -94,9 +94,9 @@ uint32_t ExternalPointerTable::EvacuateAndSweepAndCompact(Space* space,
   // Lock the space. Technically this is not necessary since no other thread can
   // allocate entries at this point, but some of the methods we call on the
   // space assert that the lock is held.
-  base::MutexGuard guard(&space->mutex_);
+  ::v8::base::MutexGuard guard(&space->mutex_);
   // Same for the invalidated fields mutex.
-  base::MutexGuard invalidated_fields_guard(&space->invalidated_fields_mutex_);
+  ::v8::base::MutexGuard invalidated_fields_guard(&space->invalidated_fields_mutex_);
 
   // There must not be any entry allocations while the table is being swept as
   // that would not be safe. Set the freelist to this special marker value to
@@ -114,8 +114,8 @@ uint32_t ExternalPointerTable::EvacuateAndSweepAndCompact(Space* space,
   // segments to the other space, to avoid invalidating the iterator.
   std::set<Segment> from_space_segments;
   if (from_space) {
-    base::MutexGuard from_space_guard(&from_space->mutex_);
-    base::MutexGuard from_space_invalidated_fields_guard(
+    ::v8::base::MutexGuard from_space_guard(&from_space->mutex_);
+    ::v8::base::MutexGuard from_space_invalidated_fields_guard(
         &from_space->invalidated_fields_mutex_);
 
     std::swap(from_space->segments_, from_space_segments);

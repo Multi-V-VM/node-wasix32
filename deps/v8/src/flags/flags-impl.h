@@ -11,6 +11,7 @@
 #include "src/base/macros.h"
 #include "src/base/vector.h"
 #include "src/flags/flags.h"
+#include "src/zone/zone-containers.h"
 
 namespace v8::internal {
 

@@ -7,7 +7,9 @@
 #include <errno.h>
 #include <time.h>
 
+#ifndef __wasi__
 #include "absl/time/time.h"
+#endif
 #include "src/base/platform/time.h"
 
 #if V8_OS_WIN
@@ -16,6 +18,35 @@
 
 namespace v8 {
 namespace base {
+
+// WASI: Provide lightweight stub implementation using PlatformData.
+#ifdef __wasi__
+class ConditionVariable::PlatformData {
+ public:
+  PlatformData() {}
+};
+
+ConditionVariable::ConditionVariable() : data_(new PlatformData()) {}
+ConditionVariable::~ConditionVariable() { delete data_; }
+
+void ConditionVariable::NotifyOne() {}
+
+void ConditionVariable::NotifyAll() {}
+
+void ConditionVariable::Wait(Mutex* mutex) {
+  // Maintain debug assertions around the wait.
+  mutex->AssertHeldAndUnmark();
+  // No actual waiting in WASI stub.
+  mutex->AssertUnheldAndMark();
+}
+
+bool ConditionVariable::WaitFor(Mutex* mutex, const TimeDelta&) {
+  // Maintain debug assertions; pretend we were notified.
+  mutex->AssertHeldAndUnmark();
+  mutex->AssertUnheldAndMark();
+  return true;
+}
+#else  // !__wasi__
 
 ConditionVariable::ConditionVariable() = default;
 ConditionVariable::~ConditionVariable() = default;
@@ -42,6 +73,8 @@ bool ConditionVariable::WaitFor(Mutex* mutex, const TimeDelta& rel_time) {
 
   return !timed_out;
 }
+
+#endif  // __wasi__
 
 }  // namespace base
 }  // namespace v8

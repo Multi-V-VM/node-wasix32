@@ -7,7 +7,11 @@
 
 #include <memory>
 
+#if __has_include("absl/container/flat_hash_set.h")
 #include "absl/container/flat_hash_set.h"
+#else
+#include "third_party/abseil-cpp/absl/container/flat_hash_set.h"
+#endif
 #include "include/v8-memory-span.h"
 #include "src/base/logging.h"
 #include "src/base/once.h"

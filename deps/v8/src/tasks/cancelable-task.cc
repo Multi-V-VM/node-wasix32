@@ -31,7 +31,7 @@ CancelableTaskManager::~CancelableTaskManager() {
 }
 
 CancelableTaskManager::Id CancelableTaskManager::Register(Cancelable* task) {
-  base::MutexGuard guard(&mutex_);
+  ::v8::base::MutexGuard guard(&mutex_);
   if (canceled_) {
     // The CancelableTaskManager has already been canceled. Therefore we mark
     // the new task immediately as canceled so that it does not get executed.
@@ -48,7 +48,7 @@ CancelableTaskManager::Id CancelableTaskManager::Register(Cancelable* task) {
 
 void CancelableTaskManager::RemoveFinishedTask(CancelableTaskManager::Id id) {
   CHECK_NE(kInvalidTaskId, id);
-  base::MutexGuard guard(&mutex_);
+  ::v8::base::MutexGuard guard(&mutex_);
   size_t removed = cancelable_tasks_.erase(id);
   USE(removed);
   DCHECK_NE(0u, removed);
@@ -57,7 +57,7 @@ void CancelableTaskManager::RemoveFinishedTask(CancelableTaskManager::Id id) {
 
 TryAbortResult CancelableTaskManager::TryAbort(CancelableTaskManager::Id id) {
   CHECK_NE(kInvalidTaskId, id);
-  base::MutexGuard guard(&mutex_);
+  ::v8::base::MutexGuard guard(&mutex_);
   auto entry = cancelable_tasks_.find(id);
   if (entry != cancelable_tasks_.end()) {
     Cancelable* value = entry->second;
@@ -78,7 +78,7 @@ void CancelableTaskManager::CancelAndWait() {
   // the way if possible, i.e., if they have not started yet.  After each round
   // of canceling we wait for the background tasks that have already been
   // started.
-  base::MutexGuard guard(&mutex_);
+  ::v8::base::MutexGuard guard(&mutex_);
   canceled_ = true;
 
   // Cancelable tasks could be running or could potentially register new
@@ -102,7 +102,7 @@ void CancelableTaskManager::CancelAndWait() {
 TryAbortResult CancelableTaskManager::TryAbortAll() {
   // Clean up all cancelable fore- and background tasks. Tasks are canceled on
   // the way if possible, i.e., if they have not started yet.
-  base::MutexGuard guard(&mutex_);
+  ::v8::base::MutexGuard guard(&mutex_);
 
   if (cancelable_tasks_.empty()) return TryAbortResult::kTaskRemoved;
 

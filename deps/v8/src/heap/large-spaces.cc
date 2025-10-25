@@ -149,7 +149,7 @@ AllocationResult OldLargeObjectSpace::AllocateRaw(LocalHeap* local_heap,
 
 LargePageMetadata* LargeObjectSpace::AllocateLargePage(
     int object_size, Executability executable) {
-  base::MutexGuard expansion_guard(heap_->heap_expansion_mutex());
+  ::v8::base::MutexGuard expansion_guard(heap_->heap_expansion_mutex());
 
   if (identity() != NEW_LO_SPACE &&
       !heap()->IsOldGenerationExpansionAllowed(object_size, expansion_guard)) {
@@ -162,7 +162,7 @@ LargePageMetadata* LargeObjectSpace::AllocateLargePage(
   DCHECK_GE(page->area_size(), static_cast<size_t>(object_size));
 
   {
-    base::RecursiveMutexGuard guard(&allocation_mutex_);
+    ::v8::base::RecursiveMutexGuard guard(&allocation_mutex_);
     AddPage(page, object_size);
   }
 
@@ -355,7 +355,7 @@ void LargeObjectSpace::Print() {
 #endif  // DEBUG
 
 void LargeObjectSpace::UpdatePendingObject(Tagged<HeapObject> object) {
-  base::MutexGuard guard(&pending_allocation_mutex_);
+  ::v8::base::MutexGuard guard(&pending_allocation_mutex_);
   pending_object_.store(object.address(), std::memory_order_release);
 }
 

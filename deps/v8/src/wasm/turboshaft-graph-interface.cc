@@ -6,7 +6,11 @@
 
 #include <optional>
 
+#if __has_include("absl/container/btree_map.h")
 #include "absl/container/btree_map.h"
+#else
+#include "third_party/abseil-cpp/absl/container/btree_map.h"
+#endif
 #include "include/v8-fast-api-calls.h"
 #include "src/base/logging.h"
 #include "src/builtins/builtins.h"
@@ -594,7 +598,7 @@ class TurboshaftGraphBuildingInterface : public WasmGraphBuilderBase {
           // DCHECK that `inlining_decisions_` is consistent.
           DCHECK(inlining_decisions_->is_inlined());
           DCHECK_EQ(inlining_decisions_->function_index(), func_index_);
-          base::MutexGuard mutex_guard(&decoder->module_->type_feedback.mutex);
+          ::v8::base::MutexGuard mutex_guard(&decoder->module_->type_feedback.mutex);
           if (inlining_decisions_->feedback_found()) {
             DCHECK_NE(
                 decoder->module_->type_feedback.feedback_for_function.find(
@@ -6180,7 +6184,7 @@ class TurboshaftGraphBuildingInterface : public WasmGraphBuilderBase {
       return liftoff_frame_size_;
     }
     const TypeFeedbackStorage& feedback = decoder->module_->type_feedback;
-    base::MutexGuard mutex_guard(&feedback.mutex);
+    ::v8::base::MutexGuard mutex_guard(&feedback.mutex);
     auto function_feedback = feedback.feedback_for_function.find(func_index_);
     CHECK_NE(function_feedback, feedback.feedback_for_function.end());
     liftoff_frame_size_ = function_feedback->second.liftoff_frame_size;
@@ -8679,7 +8683,7 @@ class TurboshaftGraphBuildingInterface : public WasmGraphBuilderBase {
       deopts_enabled_ = v8_flags.wasm_deopt;
       if (v8_flags.wasm_deopt) {
         const wasm::TypeFeedbackStorage& feedback = env_->module->type_feedback;
-        base::MutexGuard mutex_guard(&feedback.mutex);
+        ::v8::base::MutexGuard mutex_guard(&feedback.mutex);
         auto iter = feedback.deopt_count_for_function.find(func_index_);
         if (iter != feedback.deopt_count_for_function.end() &&
             iter->second >= v8_flags.wasm_deopts_per_function_limit) {

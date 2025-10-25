@@ -11,14 +11,7 @@
 #include <cstdint>
 #include <cstring>
 
-namespace v8 {
-
-class ConvertableToTraceFormat {
- public:
-  virtual ~ConvertableToTraceFormat() = default;
-};
-
-namespace platform {
+namespace v8 { namespace platform {
 namespace tracing {
 
 constexpr int kTraceMaxNumArgs = 2;

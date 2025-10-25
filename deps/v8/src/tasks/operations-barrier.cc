@@ -8,14 +8,14 @@ namespace v8 {
 namespace internal {
 
 OperationsBarrier::Token OperationsBarrier::TryLock() {
-  base::MutexGuard guard(&mutex_);
+  ::v8::base::MutexGuard guard(&mutex_);
   if (cancelled_) return {};
   ++operations_count_;
   return Token(this);
 }
 
 void OperationsBarrier::CancelAndWait() {
-  base::MutexGuard guard(&mutex_);
+  ::v8::base::MutexGuard guard(&mutex_);
   DCHECK(!cancelled_);
   cancelled_ = true;
   while (operations_count_ > 0) {
@@ -24,7 +24,7 @@ void OperationsBarrier::CancelAndWait() {
 }
 
 void OperationsBarrier::Release() {
-  base::MutexGuard guard(&mutex_);
+  ::v8::base::MutexGuard guard(&mutex_);
   if (--operations_count_ == 0 && cancelled_) {
     release_condition_.NotifyOne();
   }

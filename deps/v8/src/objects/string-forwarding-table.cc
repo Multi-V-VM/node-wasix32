@@ -182,7 +182,7 @@ StringForwardingTable::BlockVector* StringForwardingTable::EnsureCapacity(
     uint32_t block_index) {
   BlockVector* blocks = blocks_.load(std::memory_order_acquire);
   if (V8_UNLIKELY(block_index >= blocks->size())) {
-    base::MutexGuard table_grow_guard(&grow_mutex_);
+    ::v8::base::MutexGuard table_grow_guard(&grow_mutex_);
     // Reload the vector, as another thread could have grown it.
     blocks = blocks_.load(std::memory_order_relaxed);
     // Check again if we need to grow under lock.

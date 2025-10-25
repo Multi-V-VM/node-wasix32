@@ -9,7 +9,8 @@
 
 // Include WASI fixes first to ensure proper macro definitions
 #ifdef __wasi__
-#include "../../include/wasi/wasm32-arch-fix.h"
+// Resolve via V8 WASI include search path
+#include "wasi/wasm32-arch-fix.h"
 #endif
 
 #if defined(__ARM_ARCH_7A__) || defined(__ARM_ARCH_7R__) || \

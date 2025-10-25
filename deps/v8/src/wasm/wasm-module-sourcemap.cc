@@ -12,6 +12,7 @@
 #include "include/v8-object.h"
 #include "include/v8-primitive.h"
 #include "src/base/vlq-base64.h"
+#include "src/common/globals.h"
 #include "src/wasm/std-object-sizes.h"
 
 namespace v8 {

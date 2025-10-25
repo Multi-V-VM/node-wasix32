@@ -32,6 +32,9 @@ using cppgc::WeakCallback;
 using cppgc::internal::HeapBase;
 using cppgc::internal::MutatorMarkingState;
 
+// JSVisitor is an alias for cppgc::Visitor
+using JSVisitor = cppgc::Visitor;
+
 class UnifiedHeapMarker;
 
 class V8_EXPORT_PRIVATE UnifiedHeapMarkingVisitorBase : public JSVisitor {

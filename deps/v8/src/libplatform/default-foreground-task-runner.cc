@@ -47,7 +47,7 @@ void v8::platform::DefaultForegroundTaskRunner::Terminate() {
       obsolete_delayed_tasks;
   std::queue<std::unique_ptr<IdleTask>> obsolete_idle_tasks;
   {
-    base::MutexGuard guard(&mutex_);
+    ::v8::base::MutexGuard guard(&mutex_);
     terminated_ = true;
     task_queue_.swap(obsolete_tasks);
     delayed_task_queue_.swap(obsolete_delayed_tasks);
@@ -69,7 +69,7 @@ std::unique_ptr<Task> v8::platform::DefaultForegroundTaskRunner::PostTaskLocked(
 
 void v8::platform::DefaultForegroundTaskRunner::PostTaskImpl(std::unique_ptr<Task> task,
                                                const SourceLocation& location) {
-  base::MutexGuard guard(&mutex_);
+  ::v8::base::MutexGuard guard(&mutex_);
   task = PostTaskLocked(std::move(task), kNestable);
 }
 
@@ -91,21 +91,21 @@ void v8::platform::DefaultForegroundTaskRunner::PostDelayedTaskLocked(
 void v8::platform::DefaultForegroundTaskRunner::PostDelayedTaskImpl(
     std::unique_ptr<Task> task, double delay_in_seconds,
     const SourceLocation& location) {
-  base::MutexGuard guard(&mutex_);
+  ::v8::base::MutexGuard guard(&mutex_);
   PostDelayedTaskLocked(std::move(task), delay_in_seconds, kNestable);
 }
 
 void v8::platform::DefaultForegroundTaskRunner::PostNonNestableDelayedTaskImpl(
     std::unique_ptr<Task> task, double delay_in_seconds,
     const SourceLocation& location) {
-  base::MutexGuard guard(&mutex_);
+  ::v8::base::MutexGuard guard(&mutex_);
   PostDelayedTaskLocked(std::move(task), delay_in_seconds, kNonNestable);
 }
 
 void v8::platform::DefaultForegroundTaskRunner::PostIdleTaskImpl(
     std::unique_ptr<IdleTask> task, const SourceLocation& location) {
   CHECK_EQ(IdleTaskSupport::kEnabled, idle_task_support_);
-  base::MutexGuard guard(&mutex_);
+  ::v8::base::MutexGuard guard(&mutex_);
   if (terminated_) return;
   idle_task_queue_.push(std::move(task));
 }
@@ -116,7 +116,7 @@ bool v8::platform::DefaultForegroundTaskRunner::IdleTasksEnabled() {
 
 void v8::platform::DefaultForegroundTaskRunner::PostNonNestableTaskImpl(
     std::unique_ptr<Task> task, const SourceLocation& location) {
-  base::MutexGuard guard(&mutex_);
+  ::v8::base::MutexGuard guard(&mutex_);
   task = PostTaskLocked(std::move(task), kNonNestable);
 }
 
@@ -151,7 +151,7 @@ v8::platform::DefaultForegroundTaskRunner::MoveExpiredDelayedTasksLocked() {
 std::unique_ptr<Task> v8::platform::DefaultForegroundTaskRunner::PopTaskFromQueue(
     MessageLoopBehavior wait_for_work) {
   std::vector<std::unique_ptr<Task>> tasks_to_delete;
-  base::MutexGuard guard(&mutex_);
+  ::v8::base::MutexGuard guard(&mutex_);
   tasks_to_delete = MoveExpiredDelayedTasksLocked();
 
   while (!HasPoppableTaskInQueue()) {
@@ -198,7 +198,7 @@ v8::platform::DefaultForegroundTaskRunner::PopTaskFromDelayedQueueLocked(
 }
 
 std::unique_ptr<IdleTask> DefaultForegroundTaskRunner::PopTaskFromIdleQueue() {
-  base::MutexGuard guard(&mutex_);
+  ::v8::base::MutexGuard guard(&mutex_);
   if (idle_task_queue_.empty()) return {};
 
   std::unique_ptr<IdleTask> task = std::move(idle_task_queue_.front());

@@ -47,6 +47,7 @@
 #include "src/base/platform/mutex.h"
 #include "src/base/vector.h"
 #include "src/base/strings.h"
+#include "src/base/string-format.h"
 #include "src/base/iterator.h"
 #include "src/base/memory.h"
 #include "src/base/utils/random-number-generator.h"
@@ -89,10 +90,12 @@ class ArrayBuffer;
 class BackingStore;
 // Defer metrics usage to v8/include headers that define it.
 
+#ifndef __wasi__
 namespace base {
 class Mutex;
 class ConditionVariable;
 }
+#endif
 
 namespace internal {
 
@@ -113,6 +116,7 @@ using ::v8::base::AtomicWord;
 using ::v8::base::AsAtomicWord;
 using ::v8::base::AsAtomicPointer;
 using ::v8::base::ElapsedTimer;
+using ::v8::base::ScopedTimer;
 using ::v8::base::PrintCheckOperand;
 using ::v8::base::IsInRange;
 using ::v8::base::hash_combine;
@@ -155,6 +159,7 @@ using ::v8::base::CStrVector;
 using ::v8::base::ArrayVector;
 using ::v8::base::Reversed;
 using ::v8::base::make_iterator_range;
+using ::v8::base::IterateWithoutFirst;
 template <typename It>
 using iterator_range = ::v8::base::iterator_range<It>;
 template <typename T>
@@ -176,6 +181,8 @@ using ::v8::base::uint64_to_double;
 using ::v8::base::FPU;
 using ::v8::base::SNPrintF;
 using ::v8::base::VSNPrintF;
+// WASI: bridge string formatter into internal::base for unqualified use
+using ::v8::base::FormattedString;
 using ::v8::base::Relaxed_Memcpy;
 using ::v8::base::Relaxed_Memmove;
 using ::v8::base::AsAtomicPtr;
@@ -192,10 +199,13 @@ using ::v8::base::DTOA_SHORTEST;
 using ::v8::base::DTOA_PRECISION;
 using ::v8::base::kBase10MaximalLength;
 using ::v8::base::Strtod;
+#ifndef __wasi__
 using ::v8::base::LockGuard;
+#endif
 using ::v8::base::CallOnce;
 namespace ieee754 = ::v8::base::ieee754;
 using ::v8::base::Address;
+using ::v8::base::NoHashMapValue;
 template <typename T>
 using AsAtomicImpl = ::v8::base::AsAtomicImpl<T>;
 using ::v8::base::AsAtomic32;
@@ -252,7 +262,9 @@ using SmallVector = ::v8::base::SmallVector<T, N, Allocator>;
 using ::v8::base::prepend_tuple_type;
 using ::v8::base::base_tuple_head_rt;
 using ::v8::base::base_tuple_drop_rt;
+#ifndef __wasi__
 using ::v8::base::RecursiveMutexGuard;
+#endif
 using ::v8::base::StaticOneByteVector;
 
 // Provide a local bit_cast in case callers look under v8::internal::base
@@ -270,6 +282,11 @@ using ::v8::base::bits::IterateBitsBackwards;
 
 // (WASI) Avoid heavy symbol bridging here; select aliases are provided where
 // needed by individual headers to minimize include-order issues.
+
+// Bring frequently-used base helpers into v8::internal for unqualified calls
+// in V8 sources that expect these symbols.
+using ::v8::base::SNPrintF;
+using ::v8::base::Strtod;
 
 namespace compiler {
 // Forward declare DoubleEndedSplitVector and provide an alias for

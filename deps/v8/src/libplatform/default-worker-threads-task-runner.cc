@@ -30,7 +30,7 @@ double DefaultWorkerThreadsTaskRunner::MonotonicallyIncreasingTime() {
 
 void DefaultWorkerThreadsTaskRunner::Terminate() {
   {
-    base::MutexGuard guard(&lock_);
+    ::v8::base::MutexGuard guard(&lock_);
     terminated_ = true;
     queue_.Terminate();
     idle_threads_.clear();
@@ -41,7 +41,7 @@ void DefaultWorkerThreadsTaskRunner::Terminate() {
 
 void DefaultWorkerThreadsTaskRunner::PostTaskImpl(
     std::unique_ptr<Task> task, const SourceLocation& location) {
-  base::MutexGuard guard(&lock_);
+  ::v8::base::MutexGuard guard(&lock_);
   if (terminated_) return;
   queue_.Append(std::move(task));
 
@@ -54,7 +54,7 @@ void DefaultWorkerThreadsTaskRunner::PostTaskImpl(
 void DefaultWorkerThreadsTaskRunner::PostDelayedTaskImpl(
     std::unique_ptr<Task> task, double delay_in_seconds,
     const SourceLocation& location) {
-  base::MutexGuard guard(&lock_);
+  ::v8::base::MutexGuard guard(&lock_);
   if (terminated_) return;
   queue_.AppendDelayed(std::move(task), delay_in_seconds);
 
@@ -89,7 +89,7 @@ DefaultWorkerThreadsTaskRunner::WorkerThread::~WorkerThread() {
 }
 
 void DefaultWorkerThreadsTaskRunner::WorkerThread::Run() {
-  base::MutexGuard guard(&runner_->lock_);
+  ::v8::base::MutexGuard guard(&runner_->lock_);
   while (true) {
     DelayedTaskQueue::MaybeNextTask next_task = runner_->queue_.TryGetNext();
     switch (next_task.state) {

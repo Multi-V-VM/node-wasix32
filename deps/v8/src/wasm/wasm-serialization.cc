@@ -666,12 +666,12 @@ class DeserializationQueue {
  public:
   void Add(std::vector<DeserializationUnit> batch) {
     DCHECK(!batch.empty());
-    base::MutexGuard guard(&mutex_);
+    ::v8::base::MutexGuard guard(&mutex_);
     queue_.emplace(std::move(batch));
   }
 
   std::vector<DeserializationUnit> Pop() {
-    base::MutexGuard guard(&mutex_);
+    ::v8::base::MutexGuard guard(&mutex_);
     if (queue_.empty()) return {};
     auto batch = std::move(queue_.front());
     queue_.pop();
@@ -679,7 +679,7 @@ class DeserializationQueue {
   }
 
   std::vector<DeserializationUnit> PopAll() {
-    base::MutexGuard guard(&mutex_);
+    ::v8::base::MutexGuard guard(&mutex_);
     if (queue_.empty()) return {};
     auto units = std::move(queue_.front());
     queue_.pop();
@@ -692,7 +692,7 @@ class DeserializationQueue {
   }
 
   size_t NumBatches() const {
-    base::MutexGuard guard(&mutex_);
+    ::v8::base::MutexGuard guard(&mutex_);
     return queue_.size();
   }
 
@@ -887,14 +887,14 @@ void NativeModuleDeserializer::ReadHeader(Reader* reader) {
       reader->Read<CompileTimeImportFlags::StorageType>();
   uint32_t constants_module_size = reader->Read<uint32_t>();
   ZoneVector<const char> constants_module_data =
-      reader->ReadZoneVector<char>(constants_module_size);
+      reader->ReadVector<char>(constants_module_size);
   compile_imports_ = CompileTimeImports::FromSerialized(compile_imports_flags,
                                                         constants_module_data);
 
   uint32_t imported = native_module_->module()->num_imported_functions;
   if (imported > 0) {
     ZoneVector<const WellKnownImport> well_known_imports =
-        reader->ReadZoneVector<WellKnownImport>(imported);
+        reader->ReadVector<WellKnownImport>(imported);
     native_module_->module()->type_feedback.well_known_imports.Initialize(
         well_known_imports);
   }
@@ -947,13 +947,13 @@ DeserializationUnit NativeModuleDeserializer::ReadCode(int fn_index,
   }
 
   DeserializationUnit unit;
-  unit.src_code_buffer = reader->ReadZoneVector<uint8_t>(code_size);
-  auto reloc_info = reader->ReadZoneVector<uint8_t>(reloc_size);
-  auto source_pos = reader->ReadZoneVector<uint8_t>(source_position_size);
-  auto inlining_pos = reader->ReadZoneVector<uint8_t>(inlining_position_size);
-  auto deopt_data = reader->ReadZoneVector<uint8_t>(deopt_data_size);
+  unit.src_code_buffer = reader->ReadVector<uint8_t>(code_size);
+  auto reloc_info = reader->ReadVector<uint8_t>(reloc_size);
+  auto source_pos = reader->ReadVector<uint8_t>(source_position_size);
+  auto inlining_pos = reader->ReadVector<uint8_t>(inlining_position_size);
+  auto deopt_data = reader->ReadVector<uint8_t>(deopt_data_size);
   auto protected_instructions =
-      reader->ReadZoneVector<uint8_t>(protected_instructions_size);
+      reader->ReadVector<uint8_t>(protected_instructions_size);
 
   ZoneVector<uint8_t> instructions =
       current_code_space_.SubVector(0, code_size);
@@ -1059,7 +1059,7 @@ void NativeModuleDeserializer::ReadTieringBudget(Reader* reader) {
     return;
   }
   ZoneVector<const uint8_t> serialized_budget =
-      reader->ReadZoneVector<const uint8_t>(size_of_tiering_budget);
+      reader->ReadVector<const uint8_t>(size_of_tiering_budget);
 
   memcpy(native_module_->tiering_budget_array(), serialized_budget.begin(),
          size_of_tiering_budget);

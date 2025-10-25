@@ -28,7 +28,7 @@ bool CollectionBarrier::WasGCRequested() {
 }
 
 bool CollectionBarrier::TryRequestGC() {
-  base::MutexGuard guard(&mutex_);
+  ::v8::base::MutexGuard guard(&mutex_);
   if (shutdown_requested_) return false;
   bool was_already_requested = collection_requested_.exchange(true);
 
@@ -64,14 +64,14 @@ class BackgroundCollectionInterruptTask : public CancelableTask {
 };
 
 void CollectionBarrier::NotifyShutdownRequested() {
-  base::MutexGuard guard(&mutex_);
+  ::v8::base::MutexGuard guard(&mutex_);
   if (timer_.IsStarted()) timer_.Stop();
   shutdown_requested_ = true;
   cv_wakeup_.NotifyAll();
 }
 
 void CollectionBarrier::ResumeThreadsAwaitingCollection() {
-  base::MutexGuard guard(&mutex_);
+  ::v8::base::MutexGuard guard(&mutex_);
   DCHECK(!timer_.IsStarted());
   collection_requested_.store(false);
   block_for_collection_ = false;
@@ -80,7 +80,7 @@ void CollectionBarrier::ResumeThreadsAwaitingCollection() {
 }
 
 void CollectionBarrier::CancelCollectionAndResumeThreads() {
-  base::MutexGuard guard(&mutex_);
+  ::v8::base::MutexGuard guard(&mutex_);
   if (timer_.IsStarted()) timer_.Stop();
   collection_requested_.store(false);
   block_for_collection_ = false;
@@ -94,7 +94,7 @@ bool CollectionBarrier::AwaitCollectionBackground(LocalHeap* local_heap) {
   {
     // Update flag before parking this thread, this guarantees that the flag is
     // set before the next GC.
-    base::MutexGuard guard(&mutex_);
+    ::v8::base::MutexGuard guard(&mutex_);
     if (shutdown_requested_) return false;
 
     // Collection was cancelled by the main thread.
@@ -117,7 +117,7 @@ bool CollectionBarrier::AwaitCollectionBackground(LocalHeap* local_heap) {
 
   bool collection_performed = false;
   local_heap->ExecuteWhileParked([this, &collection_performed]() {
-    base::MutexGuard guard(&mutex_);
+    ::v8::base::MutexGuard guard(&mutex_);
 
     while (block_for_collection_) {
       if (shutdown_requested_) {
@@ -136,7 +136,7 @@ bool CollectionBarrier::AwaitCollectionBackground(LocalHeap* local_heap) {
 
 void CollectionBarrier::StopTimeToCollectionTimer() {
   if (collection_requested_.load()) {
-    base::MutexGuard guard(&mutex_);
+    ::v8::base::MutexGuard guard(&mutex_);
     // The first thread that requests the GC, starts the timer first and *then*
     // parks itself. Since we are in a safepoint here, the timer is always
     // initialized here already.

@@ -20,9 +20,24 @@
 #include <unordered_map>
 #include <unordered_set>
 
-#include "absl/container/btree_map.h"
-#include "absl/container/flat_hash_map.h"
-#include "absl/container/flat_hash_set.h"
+// Abseil includes: prefer system path, fall back to V8's third_party layout.
+#ifndef __wasi__
+#if __has_include("absl/container/btree_map.h")
+# include "absl/container/btree_map.h"
+#else
+# include "../../third_party/abseil-cpp/absl/container/btree_map.h"
+#endif
+#if __has_include("absl/container/flat_hash_map.h")
+# include "absl/container/flat_hash_map.h"
+#else
+# include "../../third_party/abseil-cpp/absl/container/flat_hash_map.h"
+#endif
+#if __has_include("absl/container/flat_hash_set.h")
+# include "absl/container/flat_hash_set.h"
+#else
+# include "../../third_party/abseil-cpp/absl/container/flat_hash_set.h"
+#endif
+#endif  // __wasi__
 #include "src/base/hashing.h"
 #include "src/base/intrusive-set.h"
 #include "src/base/small-map.h"
@@ -30,6 +45,10 @@
 #include "src/zone/zone-allocator.h"
 #include "src/utils/allocation.h"
 #include "src/base/vector.h"
+
+// WASI: Don't try to provide abseil fallbacks, as abseil headers
+// may still be included from other files. The abseil-based wrapper
+// classes will be disabled below.
 
 namespace v8 {
 
@@ -311,6 +330,25 @@ class ZoneVector {
   size_t length() const { return size(); }
   T* ptr() { return data(); }
   const T* ptr() const { return data(); }
+
+  // Implicit conversion to v8::base::Vector<const U> for trivially-copyable,
+  // layout-compatible element types. This enables seamless interop with APIs
+  // that expect base::Vector views.
+  template <typename U,
+            typename = std::enable_if_t<std::is_trivially_copyable_v<T> &&
+                                        std::is_trivially_copyable_v<U> &&
+                                        (sizeof(U) == sizeof(T))>>
+  operator ::v8::base::Vector<const U>() const {
+    return {reinterpret_cast<const U*>(data_), size()};
+  }
+
+  template <typename U,
+            typename = std::enable_if_t<std::is_trivially_copyable_v<T> &&
+                                        std::is_trivially_copyable_v<U> &&
+                                        (sizeof(U) == sizeof(T))>>
+  operator ::v8::base::Vector<U>() {
+    return {reinterpret_cast<U*>(data_), size()};
+  }
 
   // Provide OverwriteWith to mirror base::Vector API used in V8.
   // Copies the contents of `other` into this view. Sizes must match.
@@ -925,6 +963,7 @@ class SmallZoneMap
             ZoneMapInit<ZoneMap<K, V, Compare>>(zone)) {}
 };
 
+#ifndef __wasi__
 // A wrapper subclass for absl::flat_hash_map to make it easy to construct one
 // that uses a zone allocator. If you want to use a user-defined type as key
 // (K), you'll need to define a AbslHashValue function for it (see
@@ -974,6 +1013,19 @@ class ZoneAbslBTreeMap
       : absl::btree_map<K, V, Compare, ZoneAllocator<std::pair<const K, V>>>(
             ZoneAllocator<std::pair<const K, V>>(zone)) {}
 };
+#else  // __wasi__
+// WASI: Provide STL-based alternatives to abseil wrappers
+template <typename K, typename V, typename Hash = ::v8::base::hash<K>,
+          typename KeyEqual = std::equal_to<K>>
+using ZoneAbslFlatHashMap = ZoneUnorderedMap<K, V, Hash, KeyEqual>;
+
+template <typename K, typename Hash = ::v8::base::hash<K>,
+          typename KeyEqual = std::equal_to<K>>
+using ZoneAbslFlatHashSet = ZoneUnorderedSet<K, Hash, KeyEqual>;
+
+template <typename K, typename V, typename Compare = std::less<K>>
+using ZoneAbslBTreeMap = ZoneMap<K, V, Compare>;
+#endif  // __wasi__
 
 // Typedefs to shorten commonly used vectors.
 using IntVector = ZoneVector<int>;

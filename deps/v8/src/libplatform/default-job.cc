@@ -47,7 +47,7 @@ void DefaultJobState::NotifyConcurrencyIncrease() {
   size_t num_tasks_to_post = 0;
   TaskPriority priority;
   {
-    base::MutexGuard guard(&mutex_);
+    ::v8::base::MutexGuard guard(&mutex_);
     const size_t max_concurrency = CappedMaxConcurrency(active_workers_);
     // Consider |pending_tasks_| to avoid posting too many tasks.
     if (max_concurrency > active_workers_ + pending_tasks_) {
@@ -115,7 +115,7 @@ void DefaultJobState::Join() {
 
   size_t num_tasks_to_post = 0;
   {
-    base::MutexGuard guard(&mutex_);
+    ::v8::base::MutexGuard guard(&mutex_);
     priority_ = TaskPriority::kUserBlocking;
     // Reserve a worker for the joining (current) thread.
     // GetMaxConcurrency() is ignored here, but if necessary we wait below
@@ -142,14 +142,14 @@ void DefaultJobState::Join() {
     // Participate in job execution, as one active worker.
     job_task_->Run(&delegate);
 
-    base::MutexGuard guard(&mutex_);
+    ::v8::base::MutexGuard guard(&mutex_);
     if (WaitForParticipationOpportunity() == 0) return;
   }
 }
 
 void DefaultJobState::CancelAndWait() {
   {
-    base::MutexGuard guard(&mutex_);
+    ::v8::base::MutexGuard guard(&mutex_);
     is_canceled_.store(true, std::memory_order_relaxed);
     while (active_workers_ > 0) {
       worker_released_condition_.Wait(&mutex_);
@@ -162,13 +162,13 @@ void DefaultJobState::CancelAndDetach() {
 }
 
 bool DefaultJobState::IsActive() {
-  base::MutexGuard guard(&mutex_);
+  ::v8::base::MutexGuard guard(&mutex_);
   return job_task_->GetMaxConcurrency(active_workers_) != 0 ||
          active_workers_ != 0;
 }
 
 bool DefaultJobState::CanRunFirstTask() {
-  base::MutexGuard guard(&mutex_);
+  ::v8::base::MutexGuard guard(&mutex_);
   --pending_tasks_;
   if (is_canceled_.load(std::memory_order_relaxed)) return false;
   if (active_workers_ >= CappedMaxConcurrency(active_workers_)) return false;
@@ -181,7 +181,7 @@ bool DefaultJobState::DidRunTask() {
   size_t num_tasks_to_post = 0;
   TaskPriority priority;
   {
-    base::MutexGuard guard(&mutex_);
+    ::v8::base::MutexGuard guard(&mutex_);
     const size_t max_concurrency = CappedMaxConcurrency(active_workers_ - 1);
     if (is_canceled_.load(std::memory_order_relaxed) ||
         active_workers_ > max_concurrency) {
@@ -220,7 +220,7 @@ void DefaultJobState::CallOnWorkerThread(TaskPriority priority,
 }
 
 void DefaultJobState::UpdatePriority(TaskPriority priority) {
-  base::MutexGuard guard(&mutex_);
+  ::v8::base::MutexGuard guard(&mutex_);
   priority_ = priority;
 }
 

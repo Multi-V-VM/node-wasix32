@@ -34,7 +34,7 @@ void FunctionInStaticBinaryForAddressHint() {}
 
 Address CodeRangeAddressHint::GetAddressHint(size_t code_range_size,
                                              size_t allocate_page_size) {
-  base::MutexGuard guard(&mutex_);
+  ::v8::base::MutexGuard guard(&mutex_);
 
   Address result = 0;
   auto it = recently_freed_.find(code_range_size);
@@ -53,7 +53,7 @@ Address CodeRangeAddressHint::GetAddressHint(size_t code_range_size,
 
 void CodeRangeAddressHint::NotifyFreedCodeRange(Address code_range_start,
                                                 size_t code_range_size) {
-  base::MutexGuard guard(&mutex_);
+  ::v8::base::MutexGuard guard(&mutex_);
   recently_freed_[code_range_size].push_back(code_range_start);
 }
 
@@ -348,7 +348,7 @@ void CodeRange::Free() {
 uint8_t* CodeRange::RemapEmbeddedBuiltins(Isolate* isolate,
                                           const uint8_t* embedded_blob_code,
                                           size_t embedded_blob_code_size) {
-  base::MutexGuard guard(&remap_embedded_builtins_mutex_);
+  ::v8::base::MutexGuard guard(&remap_embedded_builtins_mutex_);
 
   // Remap embedded builtins into the end of the address range controlled by
   // the BoundedPageAllocator.

@@ -6,7 +6,11 @@
 
 #include <memory>
 
+#if __has_include("absl/container/flat_hash_map.h")
 #include "absl/container/flat_hash_map.h"
+#else
+#include "third_party/abseil-cpp/absl/container/flat_hash_map.h"
+#endif
 #include "protos/perfetto/common/builtin_clock.pbzero.h"
 #include "protos/perfetto/trace/chrome/v8.pbzero.h"
 #include "protos/perfetto/trace/trace_packet.pbzero.h"
@@ -82,7 +86,7 @@ class IsolateRegistry {
 
   void Register(Isolate* isolate) {
     auto logger = std::make_unique<PerfettoLogger>(isolate);
-    base::MutexGuard lock(&mutex_);
+    ::v8::base::MutexGuard lock(&mutex_);
     if (num_active_data_sources_ != 0) {
       isolate->logger()->AddListener(logger.get());
     }
@@ -90,7 +94,7 @@ class IsolateRegistry {
   }
 
   void Unregister(Isolate* isolate) {
-    base::MutexGuard lock(&mutex_);
+    ::v8::base::MutexGuard lock(&mutex_);
     auto it = isolates_.find(isolate);
     CHECK(it != isolates_.end());
     if (num_active_data_sources_ != 0) {
@@ -100,7 +104,7 @@ class IsolateRegistry {
   }
 
   void OnCodeDataSourceStart() {
-    base::MutexGuard lock(&mutex_);
+    ::v8::base::MutexGuard lock(&mutex_);
     ++num_active_data_sources_;
     if (num_active_data_sources_ == 1) {
       StartLogging(lock);
@@ -109,7 +113,7 @@ class IsolateRegistry {
   }
 
   void OnCodeDataSourceStop() {
-    base::MutexGuard lock(&mutex_);
+    ::v8::base::MutexGuard lock(&mutex_);
     DCHECK_LT(0, num_active_data_sources_);
     --num_active_data_sources_;
     if (num_active_data_sources_ == 0) {
@@ -118,19 +122,19 @@ class IsolateRegistry {
   }
 
  private:
-  void StartLogging(const base::MutexGuard&) {
+  void StartLogging(const ::v8::base::MutexGuard&) {
     for (const auto& [isolate, logger] : isolates_) {
       isolate->logger()->AddListener(logger.get());
     }
   }
 
-  void StopLogging(const base::MutexGuard&) {
+  void StopLogging(const ::v8::base::MutexGuard&) {
     for (const auto& [isolate, logger] : isolates_) {
       isolate->logger()->RemoveListener(logger.get());
     }
   }
 
-  void LogExistingCodeForAllIsolates(const base::MutexGuard&) {
+  void LogExistingCodeForAllIsolates(const ::v8::base::MutexGuard&) {
     for (const auto& [isolate, listener] : isolates_) {
       isolate->RequestInterrupt(
           [](v8::Isolate*, void* data) {

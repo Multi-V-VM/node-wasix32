@@ -951,7 +951,7 @@ void JitLogger::LogRecordedBuffer(const wasm::WasmCode* code, const char* name,
 
 void JitLogger::CodeMoveEvent(Tagged<InstructionStream> from,
                               Tagged<InstructionStream> to) {
-  base::MutexGuard guard(&logger_mutex_);
+  ::v8::base::MutexGuard guard(&logger_mutex_);
 
   Tagged<Code> code;
   if (!from->TryGetCodeUnchecked(&code, kAcquireLoad)) {
@@ -972,7 +972,7 @@ void JitLogger::CodeMoveEvent(Tagged<InstructionStream> from,
 
 void JitLogger::BytecodeMoveEvent(Tagged<BytecodeArray> from,
                                   Tagged<BytecodeArray> to) {
-  base::MutexGuard guard(&logger_mutex_);
+  ::v8::base::MutexGuard guard(&logger_mutex_);
 
   JitCodeEvent event;
   event.type = JitCodeEvent::CODE_MOVED;
@@ -2492,7 +2492,7 @@ void V8FileLogger::UpdateIsLogging(bool value) {
     isolate_->CollectSourcePositionsForAllBytecodeArrays();
   }
   {
-    base::MutexGuard guard(log_file_->mutex());
+    ::v8::base::MutexGuard guard(log_file_->mutex());
     // Relaxed atomic to avoid locking the mutex for the most common case: when
     // logging is disabled.
     is_logging_.store(value, std::memory_order_relaxed);

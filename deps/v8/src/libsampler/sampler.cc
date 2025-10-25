@@ -328,18 +328,18 @@ class Sampler::PlatformData {
 class SignalHandler {
  public:
   static void IncreaseSamplerCount() {
-    base::RecursiveMutexGuard lock_guard(mutex_.Pointer());
+    ::v8::base::RecursiveMutexGuard lock_guard(mutex_.Pointer());
     if (++client_count_ == 1) Install();
   }
 
   static void DecreaseSamplerCount() {
-    base::RecursiveMutexGuard lock_guard(mutex_.Pointer());
+    ::v8::base::RecursiveMutexGuard lock_guard(mutex_.Pointer());
     if (--client_count_ == 0) Restore();
   }
 
   static bool Installed() {
     // mutex_ will also be used in Sampler::DoSample to guard the state below.
-    base::RecursiveMutexGuard lock_guard(mutex_.Pointer());
+    ::v8::base::RecursiveMutexGuard lock_guard(mutex_.Pointer());
     return signal_handler_installed_;
   }
 
@@ -598,7 +598,7 @@ void Sampler::Stop() {
 #if defined(USE_SIGNALS)
 
 void Sampler::DoSample() {
-  base::RecursiveMutexGuard lock_guard(SignalHandler::mutex());
+  ::v8::base::RecursiveMutexGuard lock_guard(SignalHandler::mutex());
   if (!SignalHandler::Installed()) return;
   SetShouldRecordSample();
   pthread_kill(platform_data()->vm_tself(), SIGPROF);

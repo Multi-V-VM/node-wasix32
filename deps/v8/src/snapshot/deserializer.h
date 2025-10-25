@@ -275,18 +275,18 @@ class Deserializer : public SerializerDeserializer {
   IsolateT* isolate_;
 
   // Objects from the attached object descriptions in the serialized user code.
-  DirectHandle<ZoneVector<HeapObject> attached_objects_;
+  DirectHandle<ZoneVector<HeapObject>> attached_objects_;
 
   SnapshotByteSource source_;
   uint32_t magic_number_;
 
   HotObjectsList hot_objects_;
-  DirectHandle<ZoneVector<Map> new_maps_;
-  DirectHandle<ZoneVector<AllocationSite> new_allocation_sites_;
-  DirectHandle<ZoneVector<InstructionStream> new_code_objects_;
-  DirectHandle<ZoneVector<AccessorInfo> accessor_infos_;
-  DirectHandle<ZoneVector<FunctionTemplateInfo> function_template_infos_;
-  DirectHandle<ZoneVector<Script> new_scripts_;
+  DirectHandle<ZoneVector<Map>> new_maps_;
+  DirectHandle<ZoneVector<AllocationSite>> new_allocation_sites_;
+  DirectHandle<ZoneVector<InstructionStream>> new_code_objects_;
+  DirectHandle<ZoneVector<AccessorInfo>> accessor_infos_;
+  DirectHandle<ZoneVector<FunctionTemplateInfo>> function_template_infos_;
+  DirectHandle<ZoneVector<Script>> new_scripts_;
   std::vector<std::shared_ptr<BackingStore>> backing_stores_;
 
   // Roots vector as those arrays are passed to Heap, see
@@ -325,7 +325,7 @@ class Deserializer : public SerializerDeserializer {
 
   // TODO(6593): generalize rehashing, and remove this flag.
   const bool should_rehash_;
-  DirectHandle<ZoneVector<HeapObject> to_rehash_;
+  DirectHandle<ZoneVector<HeapObject>> to_rehash_;
 
   // Do not collect any gc stats during deserialization since objects might
   // be in an invalid state

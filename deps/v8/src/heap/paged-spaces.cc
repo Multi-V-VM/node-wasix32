@@ -110,7 +110,7 @@ void PagedSpaceBase::TearDown() {
 }
 
 void PagedSpaceBase::MergeCompactionSpace(CompactionSpace* other) {
-  base::MutexGuard guard(mutex());
+  ::v8::base::MutexGuard guard(mutex());
 
   DCHECK_NE(NEW_SPACE, identity());
   DCHECK_NE(NEW_SPACE, other->identity());
@@ -220,7 +220,7 @@ void PagedSpaceBase::RefineAllocatedBytesAfterSweeping(PageMetadata* page) {
 }
 
 PageMetadata* PagedSpaceBase::RemovePageSafe(int size_in_bytes) {
-  base::MutexGuard guard(mutex());
+  ::v8::base::MutexGuard guard(mutex());
   PageMetadata* page = free_list()->GetPageForSize(size_in_bytes);
   if (!page) return nullptr;
   RemovePage(page);
@@ -292,7 +292,7 @@ bool PagedSpaceBase::TryExpand(LocalHeap* local_heap, AllocationOrigin origin) {
   const size_t accounted_size =
       MemoryChunkLayout::AllocatableMemoryInMemoryChunk(identity());
   if (origin != AllocationOrigin::kGC && identity() != NEW_SPACE) {
-    base::MutexGuard expansion_guard(heap_->heap_expansion_mutex());
+    ::v8::base::MutexGuard expansion_guard(heap_->heap_expansion_mutex());
     if (!heap()->IsOldGenerationExpansionAllowed(accounted_size,
                                                  expansion_guard)) {
       return false;
@@ -600,7 +600,7 @@ void CompactionSpace::RefillFreeList() {
     // during compaction.
     DCHECK_NE(this, p->owner());
     PagedSpace* owner = static_cast<PagedSpace*>(p->owner());
-    base::MutexGuard guard(owner->mutex());
+    ::v8::base::MutexGuard guard(owner->mutex());
     owner->RefineAllocatedBytesAfterSweeping(p);
     owner->RemovePage(p);
     added += AddPage(p);
@@ -652,7 +652,7 @@ void OldSpace::ReleasePage(PageMetadata* page) {
 
 void OldSpace::RelinkQuarantinedPageFreeList(PageMetadata* page,
                                              size_t filler_size_on_page) {
-  base::MutexGuard guard(mutex());
+  ::v8::base::MutexGuard guard(mutex());
   DCHECK_EQ(this, page->owner());
   DCHECK(page->SweepingDone());
   DCHECK_EQ(page->live_bytes(), 0);

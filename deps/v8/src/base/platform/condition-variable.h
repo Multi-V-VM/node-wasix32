@@ -5,7 +5,9 @@
 #ifndef V8_BASE_PLATFORM_CONDITION_VARIABLE_H_
 #define V8_BASE_PLATFORM_CONDITION_VARIABLE_H_
 
+#ifndef __wasi__
 #include "absl/synchronization/mutex.h"
+#endif
 #include "src/base/base-export.h"
 #include "src/base/lazy-instance.h"
 #include "src/base/platform/mutex.h"
@@ -64,10 +66,16 @@ class V8_BASE_EXPORT ConditionVariable {
   // spuriously. When unblocked, regardless of the reason, the lock on the mutex
   // is reacquired and |WaitFor()| exits. Returns true if the condition variable
   // was notified prior to the timeout.
-  bool WaitFor(Mutex* mutex, const TimeDelta& rel_time) V8_WARN_UNUSED_RESULT;
+ bool WaitFor(Mutex* mutex, const TimeDelta& rel_time) V8_WARN_UNUSED_RESULT;
 
  private:
+#ifdef __wasi__
+  // Lightweight WASI representation; see platform-wasi-complete.cc
+  class PlatformData;
+  PlatformData* data_;
+#else
   absl::CondVar native_handle_;
+#endif
 };
 
 // POD ConditionVariable initialized lazily (i.e. the first time Pointer() is

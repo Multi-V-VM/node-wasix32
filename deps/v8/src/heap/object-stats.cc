@@ -336,7 +336,7 @@ void ObjectStats::Dump(std::stringstream& stream) {
 }
 
 void ObjectStats::CheckpointObjectStats() {
-  base::MutexGuard lock_guard(object_stats_mutex.Pointer());
+  ::v8::base::MutexGuard lock_guard(object_stats_mutex.Pointer());
   MemCopy(object_counts_last_time_, object_counts_, sizeof(object_counts_));
   MemCopy(object_sizes_last_time_, object_sizes_, sizeof(object_sizes_));
   ClearObjectStats();

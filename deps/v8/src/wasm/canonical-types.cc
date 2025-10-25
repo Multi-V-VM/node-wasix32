@@ -40,7 +40,7 @@ void TypeCanonicalizer::AddRecursiveGroup(WasmModule* module, uint32_t size) {
 
   // Multiple threads could try to register recursive groups concurrently.
   // TODO(manoskouk): Investigate if we can fine-grain the synchronization.
-  base::MutexGuard mutex_guard(&mutex_);
+  ::v8::base::MutexGuard mutex_guard(&mutex_);
   // Compute the first canonical index in the recgroup in the case that it does
   // not already exist.
   CanonicalTypeIndex first_new_canonical_index{
@@ -97,7 +97,7 @@ void TypeCanonicalizer::AddRecursiveGroup(WasmModule* module, uint32_t size) {
 void TypeCanonicalizer::AddRecursiveSingletonGroup(WasmModule* module) {
   DCHECK(!module->types.empty());
   uint32_t type_index = static_cast<uint32_t>(module->types.size() - 1);
-  base::MutexGuard guard(&mutex_);
+  ::v8::base::MutexGuard guard(&mutex_);
   CanonicalTypeIndex new_canonical_index{
       static_cast<uint32_t>(canonical_supertypes_.size())};
   // Snapshot the zone before allocating the new type; the zone will be reset if
@@ -146,7 +146,7 @@ CanonicalTypeIndex TypeCanonicalizer::AddRecursiveGroup(
       ValueType::Primitive(kI32).raw_bit_field());
   CanonicalType canonical{reinterpret_cast<const CanonicalSig*>(sig),
                           CanonicalTypeIndex{kNoSuperType}, kFinal, kNotShared};
-  base::MutexGuard guard(&mutex_);
+  ::v8::base::MutexGuard guard(&mutex_);
   // Fast path lookup before canonicalizing (== copying into the
   // TypeCanonicalizer's zone) the function signature.
   CanonicalTypeIndex new_canonical_index{
@@ -241,7 +241,7 @@ bool TypeCanonicalizer::IsCanonicalSubtype(CanonicalTypeIndex sub_index,
   // Multiple threads could try to register and access recursive groups
   // concurrently.
   // TODO(manoskouk): Investigate if we can improve this synchronization.
-  base::MutexGuard mutex_guard(&mutex_);
+  ::v8::base::MutexGuard mutex_guard(&mutex_);
   return IsCanonicalSubtype_Locked(sub_index, super_index);
 }
 bool TypeCanonicalizer::IsCanonicalSubtype_Locked(
@@ -270,7 +270,7 @@ bool TypeCanonicalizer::IsCanonicalSubtype(ModuleTypeIndex sub_index,
 bool TypeCanonicalizer::IsHeapSubtype(CanonicalTypeIndex sub,
                                       CanonicalTypeIndex super) const {
   DCHECK_NE(sub, super);
-  base::MutexGuard mutex_guard(&mutex_);
+  ::v8::base::MutexGuard mutex_guard(&mutex_);
   return IsCanonicalSubtype_Locked(sub, super);
 }
 
@@ -279,7 +279,7 @@ void TypeCanonicalizer::EmptyStorageForTesting() {
   // clear.
   CHECK_EQ(GetWasmEngine()->NativeModuleCount(), 0);
 
-  base::MutexGuard mutex_guard(&mutex_);
+  ::v8::base::MutexGuard mutex_guard(&mutex_);
   canonical_types_.ClearForTesting();
   canonical_supertypes_.clear();
   canonical_groups_.clear();
@@ -395,7 +395,7 @@ size_t TypeCanonicalizer::EstimateCurrentMemoryConsumption() const {
   UPDATE_WHEN_CLASS_CHANGES(TypeCanonicalizer, 8048);
   // The storage of the canonical group's types is accounted for via the
   // allocator below (which tracks the zone memory).
-  base::MutexGuard mutex_guard(&mutex_);
+  ::v8::base::MutexGuard mutex_guard(&mutex_);
   size_t result = ContentSize(canonical_supertypes_);
   result += ContentSize(canonical_groups_);
   result += ContentSize(canonical_singleton_groups_);
@@ -408,7 +408,7 @@ size_t TypeCanonicalizer::EstimateCurrentMemoryConsumption() const {
 }
 
 size_t TypeCanonicalizer::GetCurrentNumberOfTypes() const {
-  base::MutexGuard mutex_guard(&mutex_);
+  ::v8::base::MutexGuard mutex_guard(&mutex_);
   return canonical_supertypes_.size();
 }
 
@@ -490,7 +490,7 @@ CanonicalTypeIndex TypeCanonicalizer::FindIndex_Slow(
 
 #ifdef DEBUG
 bool TypeCanonicalizer::Contains(const CanonicalSig* sig) const {
-  base::MutexGuard mutex_guard(&mutex_);
+  ::v8::base::MutexGuard mutex_guard(&mutex_);
   return zone_.Contains(sig);
 }
 #endif

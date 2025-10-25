@@ -381,7 +381,7 @@ bool String::MakeExternal(Isolate* isolate,
   bool is_internalized = IsInternalizedString(this);
   bool has_pointers = StringShape(this).IsIndirect();
 
-  base::MutexGuardIf mutex_guard(isolate->internalized_string_access(),
+  ::v8::base::MutexGuardIf mutex_guard(isolate->internalized_string_access(),
                                  is_internalized);
   // Morph the string to an external string by replacing the map and
   // reinitializing the fields.  This won't work if the space the existing
@@ -475,7 +475,7 @@ bool String::MakeExternal(Isolate* isolate,
   bool is_internalized = IsInternalizedString(this);
   bool has_pointers = StringShape(this).IsIndirect();
 
-  base::MutexGuardIf mutex_guard(isolate->internalized_string_access(),
+  ::v8::base::MutexGuardIf mutex_guard(isolate->internalized_string_access(),
                                  is_internalized);
   // Morph the string to an external string by replacing the map and
   // reinitializing the fields.  This won't work if the space the existing
@@ -788,7 +788,7 @@ void String::WriteToFlat(Tagged<String> source, SinkCharT* sink, uint32_t start,
     DCHECK_LT(start, source->length());
     DCHECK_LE(start + length, source->length());
 
-    if (source->DispatchToSpecificType(base::overloaded{
+    if (source->DispatchToSpecificType(::v8::base::overloaded{
             [&](Tagged<SeqOneByteString> str) {
               CopyChars(sink, str->GetChars(no_gc, access_guard) + start,
                         length);

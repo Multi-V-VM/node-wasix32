@@ -25,7 +25,7 @@ static bool external_startup_checksum_verified = false;
 #endif
 
 void SetSnapshotFromFile(StartupData* snapshot_blob) {
-  base::MutexGuard lock_guard(external_startup_data_mutex.Pointer());
+  ::v8::base::MutexGuard lock_guard(external_startup_data_mutex.Pointer());
   DCHECK(snapshot_blob);
   DCHECK(snapshot_blob->data);
   DCHECK_GT(snapshot_blob->raw_size, 0);
@@ -39,7 +39,7 @@ void SetSnapshotFromFile(StartupData* snapshot_blob) {
 
 bool Snapshot::ShouldVerifyChecksum(const v8::StartupData* data) {
 #ifdef V8_TARGET_OS_ANDROID
-  base::MutexGuard lock_guard(external_startup_data_mutex.Pointer());
+  ::v8::base::MutexGuard lock_guard(external_startup_data_mutex.Pointer());
   if (data != &external_startup_blob) {
     return v8_flags.verify_snapshot_checksum;
   }
@@ -54,7 +54,7 @@ bool Snapshot::ShouldVerifyChecksum(const v8::StartupData* data) {
 }
 
 const v8::StartupData* Snapshot::DefaultSnapshotBlob() {
-  base::MutexGuard lock_guard(external_startup_data_mutex.Pointer());
+  ::v8::base::MutexGuard lock_guard(external_startup_data_mutex.Pointer());
   return &external_startup_blob;
 }
 }  // namespace internal

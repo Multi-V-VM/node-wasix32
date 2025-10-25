@@ -1129,8 +1129,10 @@ ExternalReference ExternalReference::invoke_accessor_getter_callback() {
 UNREACHABLE();
 #endif
 
+#if !V8_TARGET_ARCH_WASM32
 FUNCTION_REFERENCE(re_check_stack_guard_state, re_stack_check_func)
 #undef re_stack_check_func
+#endif
 
 FUNCTION_REFERENCE(re_grow_stack, NativeRegExpMacroAssembler::GrowStack)
 

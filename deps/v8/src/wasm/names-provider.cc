@@ -23,7 +23,7 @@ NamesProvider::NamesProvider(const WasmModule* module,
 NamesProvider::~NamesProvider() = default;
 
 void NamesProvider::DecodeNamesIfNotYetDone() {
-  base::MutexGuard lock(&mutex_);
+  ::v8::base::MutexGuard lock(&mutex_);
   if (has_decoded_) return;
   has_decoded_ = true;
   name_section_names_.reset(
@@ -203,7 +203,7 @@ void NamesProvider::PrintFunctionName(StringBuilder& out,
 
   if (behavior == kWasmInternal) return;
   {
-    base::MutexGuard lock(&mutex_);
+    ::v8::base::MutexGuard lock(&mutex_);
     if (!has_computed_function_import_names_) {
       ComputeFunctionNamesFromImportsExports();
     }
@@ -435,7 +435,7 @@ size_t NamesProvider::EstimateCurrentMemoryConsumption() const {
     result += names->tag_names_.EstimateCurrentMemoryConsumption();
   }
   {
-    base::MutexGuard lock(&mutex_);
+    ::v8::base::MutexGuard lock(&mutex_);
     result += StringMapSize(import_export_function_names_);
     result += StringMapSize(import_export_table_names_);
     result += StringMapSize(import_export_memory_names_);
@@ -464,7 +464,7 @@ size_t CanonicalTypeNamesProvider::EstimateCurrentMemoryConsumption() const {
 
 void CanonicalTypeNamesProvider::DecodeNameSections() {
   // TODO(jkummerow): We'll probably need to lock read accesses too.
-  base::MutexGuard lock(&mutex_);
+  ::v8::base::MutexGuard lock(&mutex_);
   type_names_.resize(GetTypeCanonicalizer()->GetCurrentNumberOfTypes());
   GetWasmEngine()->DecodeAllNameSections(this);
 }

@@ -1743,7 +1743,7 @@ class CalendarCache {
     key += ":";
     key += locale.getName();
 
-    base::MutexGuard guard(&mutex_);
+    ::v8::base::MutexGuard guard(&mutex_);
     auto it = map_.find(key);
     if (it != map_.end()) {
       delete tz;
@@ -1880,7 +1880,7 @@ class DateFormatCache {
     key += ":";
     key += icu_locale.getName();
 
-    base::MutexGuard guard(&mutex_);
+    ::v8::base::MutexGuard guard(&mutex_);
     auto it = map_.find(key);
     if (it != map_.end()) {
       return static_cast<icu::SimpleDateFormat*>(it->second->clone());
@@ -2129,7 +2129,7 @@ class DateTimePatternGeneratorCache {
   icu::DateTimePatternGenerator* CreateGenerator(Isolate* isolate,
                                                  const icu::Locale& locale) {
     std::string key(locale.getName());
-    base::MutexGuard guard(&mutex_);
+    ::v8::base::MutexGuard guard(&mutex_);
     auto it = map_.find(key);
     icu::DateTimePatternGenerator* orig;
     if (it != map_.end()) {

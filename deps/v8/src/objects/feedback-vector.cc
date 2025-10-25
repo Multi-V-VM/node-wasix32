@@ -567,7 +567,7 @@ void NexusConfig::SetFeedbackPair(Tagged<FeedbackVector> vector,
                                   WriteBarrierMode mode_extra) const {
   CHECK(can_write());
   CHECK_GT(vector->length(), start_slot.WithOffset(1).ToInt());
-  base::MutexGuard mutex_guard(isolate()->feedback_vector_access());
+  ::v8::base::MutexGuard mutex_guard(isolate()->feedback_vector_access());
   vector->Set(start_slot, feedback, mode);
   vector->Set(start_slot.WithOffset(1), feedback_extra, mode_extra);
 }
@@ -575,7 +575,7 @@ void NexusConfig::SetFeedbackPair(Tagged<FeedbackVector> vector,
 std::pair<Tagged<MaybeObject>, Tagged<MaybeObject>>
 NexusConfig::GetFeedbackPair(Tagged<FeedbackVector> vector,
                              FeedbackSlot slot) const {
-  base::MutexGuardIf guard(isolate()->feedback_vector_access(),
+  ::v8::base::MutexGuardIf guard(isolate()->feedback_vector_access(),
                            mode() == BackgroundThread);
   Tagged<MaybeObject> feedback = vector->Get(slot);
   Tagged<MaybeObject> feedback_extra = vector->Get(slot.WithOffset(1));

@@ -53,7 +53,7 @@ base::LazyMutex g_PerIsolateWasmControlsMutex = LAZY_MUTEX_INITIALIZER;
 
 bool IsWasmCompileAllowed(v8::Isolate* isolate, v8::Local<v8::Value> value,
                           bool is_async) {
-  base::MutexGuard guard(g_PerIsolateWasmControlsMutex.Pointer());
+  ::v8::base::MutexGuard guard(g_PerIsolateWasmControlsMutex.Pointer());
   DCHECK_GT(GetPerIsolateWasmControls()->count(isolate), 0);
   const WasmCompileControls& ctrls = GetPerIsolateWasmControls()->at(isolate);
   return (is_async && ctrls.AllowAnySizeForAsync) ||
@@ -68,7 +68,7 @@ bool IsWasmCompileAllowed(v8::Isolate* isolate, v8::Local<v8::Value> value,
 bool IsWasmInstantiateAllowed(v8::Isolate* isolate,
                               v8::Local<v8::Value> module_or_bytes,
                               bool is_async) {
-  base::MutexGuard guard(g_PerIsolateWasmControlsMutex.Pointer());
+  ::v8::base::MutexGuard guard(g_PerIsolateWasmControlsMutex.Pointer());
   DCHECK_GT(GetPerIsolateWasmControls()->count(isolate), 0);
   const WasmCompileControls& ctrls = GetPerIsolateWasmControls()->at(isolate);
   if (is_async && ctrls.AllowAnySizeForAsync) return true;
@@ -120,7 +120,7 @@ RUNTIME_FUNCTION(Runtime_SetWasmCompileControls) {
   v8::Isolate* v8_isolate = reinterpret_cast<v8::Isolate*>(isolate);
   int block_size = args.smi_value_at(0);
   bool allow_async = Cast<Boolean>(args[1])->ToBool(isolate);
-  base::MutexGuard guard(g_PerIsolateWasmControlsMutex.Pointer());
+  ::v8::base::MutexGuard guard(g_PerIsolateWasmControlsMutex.Pointer());
   WasmCompileControls& ctrl = (*GetPerIsolateWasmControls())[v8_isolate];
   ctrl.AllowAnySizeForAsync = allow_async;
   ctrl.MaxWasmBufferSize = static_cast<uint32_t>(block_size);
@@ -1027,7 +1027,7 @@ RUNTIME_FUNCTION(Runtime_WasmDeoptsExecutedForFunction) {
     return CrashUnlessFuzzing(isolate);
   }
   const wasm::TypeFeedbackStorage& feedback = module->type_feedback;
-  base::MutexGuard mutex_guard(&feedback.mutex);
+  ::v8::base::MutexGuard mutex_guard(&feedback.mutex);
   auto entry = feedback.deopt_count_for_function.find(func_index);
   if (entry == feedback.deopt_count_for_function.end()) {
     return Smi::FromInt(0);

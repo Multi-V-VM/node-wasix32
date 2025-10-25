@@ -58,7 +58,7 @@ bool EtwIsolateCaptureStateMonitor::WaitFor(const base::TimeDelta& delta) {
 void EtwIsolateCaptureStateMonitor::Notify() {
   {
     ETWTRACEDBG << "Notify taking mutex" << std::endl;
-    base::MutexGuard lock(mutex_);
+    ::v8::base::MutexGuard lock(mutex_);
     pending_isolate_count_--;
     ETWTRACEDBG << "Got mutex and isolate count reduced to "
                 << pending_isolate_count_ << std::endl;

@@ -289,8 +289,14 @@ class V8_EXPORT ThreadIsolation {
    public:
     JitPageReference(class JitPage* page, Address address);
     JitPageReference(JitPageReference&&) V8_NOEXCEPT = default;
+#ifdef __wasi__
+    // WASI: std::optional may not properly support move-only types
+    JitPageReference(const JitPageReference&) = default;
+    JitPageReference& operator=(const JitPageReference&) = default;
+#else
     JitPageReference(const JitPageReference&) = delete;
     JitPageReference& operator=(const JitPageReference&) = delete;
+#endif
 
     ::Address Address() const { return address_; }
     size_t Size() const;
@@ -362,7 +368,7 @@ class V8_EXPORT ThreadIsolation {
     int pkey = -1;
 #endif
 
-    base::Mutex* jit_pages_mutex_;
+    ::v8::base::Mutex* jit_pages_mutex_;
     JitPageMap* jit_pages_;
 
 #if DEBUG

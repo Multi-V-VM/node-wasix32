@@ -58,7 +58,7 @@ template void IndirectNameMap::FinishInitialization();
 
 WireBytesRef LazilyGeneratedNames::LookupFunctionName(
     ModuleWireBytes wire_bytes, uint32_t function_index) {
-  base::MutexGuard lock(&mutex_);
+  ::v8::base::MutexGuard lock(&mutex_);
   if (!has_functions_) {
     has_functions_ = true;
     DecodeFunctionNames(wire_bytes.module_bytes(), function_names_);
@@ -70,7 +70,7 @@ WireBytesRef LazilyGeneratedNames::LookupFunctionName(
 
 bool LazilyGeneratedNames::Has(uint32_t function_index) {
   DCHECK(has_functions_);
-  base::MutexGuard lock(&mutex_);
+  ::v8::base::MutexGuard lock(&mutex_);
   return function_names_.Get(function_index) != nullptr;
 }
 
@@ -126,7 +126,7 @@ int GetSubtypingDepth(const WasmModule* module, ModuleTypeIndex type_index) {
 
 void LazilyGeneratedNames::AddForTesting(int function_index,
                                          WireBytesRef name) {
-  base::MutexGuard lock(&mutex_);
+  ::v8::base::MutexGuard lock(&mutex_);
   function_names_.Put(function_index, name);
 }
 
@@ -177,7 +177,7 @@ std::pair<int, int> AsmJsOffsetInformation::GetFunctionOffsets(
 }
 
 void AsmJsOffsetInformation::EnsureDecodedOffsets() {
-  base::MutexGuard mutex_guard(&mutex_);
+  ::v8::base::MutexGuard mutex_guard(&mutex_);
   DCHECK_EQ(encoded_offsets_ == nullptr, decoded_offsets_ != nullptr);
 
   if (decoded_offsets_) return;
@@ -734,7 +734,7 @@ size_t NameMap::EstimateCurrentMemoryConsumption() const {
 }
 
 size_t LazilyGeneratedNames::EstimateCurrentMemoryConsumption() const {
-  base::MutexGuard lock(&mutex_);
+  ::v8::base::MutexGuard lock(&mutex_);
   return function_names_.EstimateCurrentMemoryConsumption();
 }
 
@@ -757,7 +757,7 @@ size_t TypeFeedbackStorage::EstimateCurrentMemoryConsumption() const {
   UPDATE_WHEN_CLASS_CHANGES(TypeFeedbackStorage, 112);
   UPDATE_WHEN_CLASS_CHANGES(FunctionTypeFeedback, 40);
   // Not including sizeof(TFS) because that's contained in sizeof(WasmModule).
-  base::MutexGuard guard(&mutex);
+  ::v8::base::MutexGuard guard(&mutex);
   size_t result = ContentSize(feedback_for_function);
   for (const auto& [func_idx, feedback] : feedback_for_function) {
     result += ContentSize(feedback.feedback_vector);
@@ -826,7 +826,7 @@ size_t GetWireBytesHash(ZoneVector<const uint8_t> wire_bytes) {
 }
 
 int NumFeedbackSlots(const WasmModule* module, int func_index) {
-  base::MutexGuard mutex_guard{&module->type_feedback.mutex};
+  ::v8::base::MutexGuard mutex_guard{&module->type_feedback.mutex};
   auto it = module->type_feedback.feedback_for_function.find(func_index);
   if (it == module->type_feedback.feedback_for_function.end()) return 0;
   // The number of call instructions is capped by max function size.

@@ -134,22 +134,22 @@ class V8_NODISCARD ParkingConditionVariable final
   ParkingConditionVariable(const ParkingConditionVariable&) = delete;
   ParkingConditionVariable& operator=(const ParkingConditionVariable&) = delete;
 
-  V8_INLINE void ParkedWait(LocalIsolate* local_isolate, base::Mutex* mutex);
-  V8_INLINE void ParkedWait(LocalHeap* local_heap, base::Mutex* mutex);
+  V8_INLINE void ParkedWait(LocalIsolate* local_isolate, ::v8::base::Mutex* mutex);
+  V8_INLINE void ParkedWait(LocalHeap* local_heap, ::v8::base::Mutex* mutex);
 
-  void ParkedWait(const ParkedScope& scope, base::Mutex* mutex) {
+  void ParkedWait(const ParkedScope& scope, ::v8::base::Mutex* mutex) {
     USE(scope);
     Wait(mutex);
   }
 
-  V8_INLINE bool ParkedWaitFor(LocalIsolate* local_isolate, base::Mutex* mutex,
+  V8_INLINE bool ParkedWaitFor(LocalIsolate* local_isolate, ::v8::base::Mutex* mutex,
                                const base::TimeDelta& rel_time)
       V8_WARN_UNUSED_RESULT;
-  V8_INLINE bool ParkedWaitFor(LocalHeap* local_heap, base::Mutex* mutex,
+  V8_INLINE bool ParkedWaitFor(LocalHeap* local_heap, ::v8::base::Mutex* mutex,
                                const base::TimeDelta& rel_time)
       V8_WARN_UNUSED_RESULT;
 
-  bool ParkedWaitFor(const ParkedScope& scope, base::Mutex* mutex,
+  bool ParkedWaitFor(const ParkedScope& scope, ::v8::base::Mutex* mutex,
                      const base::TimeDelta& rel_time) V8_WARN_UNUSED_RESULT {
     USE(scope);
     return WaitFor(mutex, rel_time);

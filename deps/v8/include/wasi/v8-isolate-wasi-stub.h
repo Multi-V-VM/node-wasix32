@@ -8,7 +8,21 @@
 #include "../v8-local-handle.h"
 #include "../v8-maybe-local.h"
 #include "../v8-callbacks.h"  // Ensure canonical callback/GC typedefs and forward decls
+#include <cstddef>   // size_t
 #include <cstring>  // for memset
+
+// Undefine any WASI compatibility macros that would hijack method names
+// when this header provides the class member declarations.
+#ifdef AddNearHeapLimitCallback
+#undef AddNearHeapLimitCallback
+#endif
+#ifdef RemoveNearHeapLimitCallback
+#undef RemoveNearHeapLimitCallback
+#endif
+#ifdef SetCaptureStackTraceForUncaughtExceptions
+#undef SetCaptureStackTraceForUncaughtExceptions
+#endif
+
 #include <memory>
 #include <string>
 
@@ -53,6 +67,8 @@ class Data;
 class Object;
 class Array;
 
+
+
 // Promise reject types - use unique guard to prevent double definition
 // This guard prevents redefinition when v8-promise.h is later included
 #ifndef V8_WASI_PROMISE_TYPES_DEFINED
@@ -91,9 +107,10 @@ using PromiseRejectCallback = void (*)(PromiseRejectMessage message);
 // GC types needed by Isolate class - define in v8 namespace
 // Only define if v8-callbacks.h hasn't already provided them
 #ifndef INCLUDE_V8_ISOLATE_CALLBACKS_H_
+// We are already inside namespace v8 at this point in the header.
 enum GCType { kGCTypeAll = 0 };
 enum GCCallbackFlags { kNoGCCallbackFlags = 0 };
-#endif
+#endif  // INCLUDE_V8_ISOLATE_CALLBACKS_H_
 
 #ifndef V8_WASI_CALLBACK_TYPES_DEFINED
 #define V8_WASI_CALLBACK_TYPES_DEFINED
@@ -210,9 +227,25 @@ class V8_EXPORT Isolate {
     kWebAssemblyInstantiation,
     kStringToLocaleLowerCase,
     kDecimalWithLeadingZeroInStrictMode,
+    // Additional features referenced by Node/V8 sources
+    kFunctionPrototypeArguments,
+    kFunctionPrototypeCaller,
+    kArrayBufferTransfer,
+    kCallSiteAPIGetThisSloppyCall,
+    kCallSiteAPIGetFunctionSloppyCall,
+    kErrorCaptureStackTrace,
+    kErrorIsError,
+    kFunctionConstructorReturnedUndefined,
+    kDefineGetterOrSetterWouldThrow,
+    kRegExpPrototypeToString,
+    kRegExpEscape,
+    kAtomicsWaitAsync,
+    kLegacyDateParser,
     // Features referenced by parser web-compat hack
     kAssigmentExpressionLHSIsCallInStrict,
     kAssigmentExpressionLHSIsCallInSloppy,
+    // TurboFan OSR compilation tracking
+    kTurboFanOsrCompileStarted,
     // Reserve space for unknown future features.
     kUseCounterFeatureCount = 256
   };
@@ -248,6 +281,9 @@ class V8_EXPORT Isolate {
   void Exit() {}
   void Dispose() {}
   void SetIdle(bool idle) { /* No-op for WASI */ }
+
+  // Usage counting (no-op on WASI)
+  void CountUsage(UseCounterFeature) {}
   
   // Exception handling stubs for WASI builds
   bool HasPendingException() const { return pending_exception_; }
@@ -285,23 +321,27 @@ class V8_EXPORT Isolate {
   
   // Heap profiler
   HeapProfiler* GetHeapProfiler() { return nullptr; }
+
+  // Near-heap-limit callbacks
+  using NearHeapLimitCallback = size_t (*)(void* data, size_t current_limit,
+                                          size_t initial_limit);
+  void AddNearHeapLimitCallback(NearHeapLimitCallback, void*, size_t initial_limit = 0) {}
+  void RemoveNearHeapLimitCallback(NearHeapLimitCallback, void*) {}
+
+  // Stack trace capture configuration
+  void SetCaptureStackTraceForUncaughtExceptions(bool, int = 0) {}
   
-  // Additional methods for Node.js worker support
-  void AddNearHeapLimitCallback_WASI(size_t (*callback)(void* data, size_t current_heap_limit, size_t initial_heap_limit), void* data) {
-    // WASI stub - no-op
-  }
-  // Provide the original name via inline wrapper to avoid macro conflicts
-  inline void AddNearHeapLimitCallback(size_t (*callback)(void* data, size_t current_heap_limit, size_t initial_heap_limit), void* data) {
-    AddNearHeapLimitCallback_WASI(callback, data);
-  }
+  // Additional methods for Node.js worker support (no-op)
+  // The 3-arg AddNearHeapLimitCallback above, with a default third parameter,
+  // already covers calls that pass 2 arguments.
   
   void SetStackLimit(uintptr_t stack_limit) {
     // WASI stub - no-op
   }
   
   // Use the v8::MeasureMemoryDelegate from v8-statistics.h
-  void MeasureMemory(std::unique_ptr<MeasureMemoryDelegate> delegate,
-                     MeasureMemoryExecution execution = MeasureMemoryExecution::kDefault) {
+  void MeasureMemory(std::unique_ptr<v8::MeasureMemoryDelegate> delegate,
+                     v8::MeasureMemoryExecution execution = v8::MeasureMemoryExecution::kDefault) {
     // WASI stub - no-op
     // Can't call delegate methods without proper implementation
   }
@@ -312,10 +352,8 @@ class V8_EXPORT Isolate {
   // GC callbacks - updated to match V8 API signature
   // Note: The standard V8 signature uses GCType and GCCallbackFlags enums.
   // These are defined in v8-callbacks.h (included at the top of this file)
-  using GCCallbackWithData = void (*)(Isolate* isolate, ::v8::GCType,
-                                      ::v8::GCCallbackFlags, void* data);
-  using GCCallback = void (*)(Isolate* isolate, ::v8::GCType,
-                              ::v8::GCCallbackFlags);
+  using GCCallbackWithData = void (*)(Isolate* isolate, int /*GCType*/, int /*GCCallbackFlags*/, void* data);
+  using GCCallback = void (*)(Isolate* isolate, int /*GCType*/, int /*GCCallbackFlags*/);
   using GetExternallyAllocatedMemoryInBytesCallback = size_t (*)();
 
   template <typename... Args>
@@ -333,9 +371,19 @@ class V8_EXPORT Isolate {
     explicit Scope(Isolate* isolate) {}
     ~Scope() {}
   };
+
+  // Message error levels nested in Isolate for call sites like
+  // v8::Isolate::kMessageError
+  enum MessageErrorLevel {
+    kMessageLog,
+    kMessageDebug,
+    kMessageInfo,
+    kMessageError,
+    kMessageWarning
+  };
+
   
   // MessageErrorLevel - use the one from v8:: namespace
-  using MessageErrorLevel = ::v8::MessageErrorLevel;
   
   // DisallowJavascriptExecutionScope for WASI
   class DisallowJavascriptExecutionScope {
@@ -354,8 +402,7 @@ class V8_EXPORT Isolate {
     }
   };
 
-  // Minimal usage counter support (implemented above in class definitions)
-  void CountUsage(UseCounterFeature) {}
+  // Minimal usage counter support (already defined above)
   
   // AllowJavascriptExecutionScope for WASI
   class AllowJavascriptExecutionScope {
@@ -477,6 +524,12 @@ class V8_EXPORT Isolate {
   void SetContinuationPreservedEmbedderData(Local<Value> data) {
     // WASI stub - no-op
   }
+
+  // Microtasks suppression scope used by MicrotaskQueue; no-op RAII on WASI
+  class SuppressMicrotaskExecutionScope {
+   public:
+    explicit SuppressMicrotaskExecutionScope(Isolate*) {}
+  };
   
   // Priority enum
   enum class Priority {
@@ -526,6 +579,8 @@ class V8_EXPORT Isolate {
  
  private:
   bool pending_exception_ = false;
+
+  // MessageErrorLevel type is provided via alias above (no redefinition)
 };
 
 // StackTracePrinter function type
