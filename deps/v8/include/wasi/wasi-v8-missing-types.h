@@ -19,15 +19,20 @@
 #include "src/base/pointer-with-payload.h"
 #include "src/base/threaded-list.h"
 #include "src/base/bit-field.h"
+#include "src/base/bits.h"
 #include "src/base/atomicops.h"
 #include "src/base/atomic-utils.h"
 #include "src/base/platform/mutex.h"
 #include "src/base/vector.h"
 #include "src/base/address-region.h"
+#include "src/base/virtual-address-space.h"
 #include "src/base/discriminated-union.h"
 #include "src/base/strings.h"
 #include "src/base/hashing.h"
 #include "src/base/container-utils.h"
+#include "src/base/template-utils.h"
+#include "src/base/platform/memory.h"
+#include "src/base/platform/wrappers.h"
 
 // On some include paths these headers may be parsed while already inside a
 // `namespace v8 {}` block. In that case, qualified declarations inside the
@@ -122,16 +127,10 @@ using BitField64 = V8_BASE_NS::BitField64<T, shift, size>;
 // Vector types - Import from the canonical ::v8::base
 // ============================================================================
 // Note: Vector is imported by globals.h; only add OwnedVector here
-
+using ::v8::base::VectorOf;
 template <typename T>
 using OwnedVector = ::v8::base::OwnedVector<T>;
-
-// Owned smart pointer with explicit template instantiation
-template <typename T>
-class Owned : public ::v8::base::OwnedVector<T> {
- public:
-  using ::v8::base::OwnedVector<T>::OwnedVector;
-};
+using ::v8::base::make_array;
 
 // ============================================================================
 // Additional utility types
@@ -147,6 +146,23 @@ using DiscriminatedUnion = V8_BASE_NS::DiscriminatedUnion<TagEnum, Ts...>;
 
 // Atomic operations can be referenced directly via ::v8::base::* where needed
 
+// Expose common hashing helpers and types used via v8::internal::base
+using ::v8::base::hash;
+using ::v8::base::hash_combine;
+using ::v8::base::Hasher;
+
+// bits::* helpers bridged into v8::internal::base::bits
+namespace bits {
+using ::v8::base::bits::CountTrailingZeros;
+using ::v8::base::bits::CountTrailingZerosNonZero;
+using ::v8::base::bits::CountLeadingZeros;
+using ::v8::base::bits::CountLeadingZeros32;
+using ::v8::base::bits::CountPopulation;
+using ::v8::base::bits::IsPowerOfTwo;
+using ::v8::base::bits::ReverseBytes;
+using ::v8::base::bits::RoundUpToPowerOfTwo;
+}  // namespace bits
+
 // ============================================================================
 // Mutex and locking - Provide minimal WASI stubs
 // ============================================================================
@@ -155,80 +171,36 @@ using DiscriminatedUnion = V8_BASE_NS::DiscriminatedUnion<TagEnum, Ts...>;
 // lightweight stand-ins within v8::internal::base. These satisfy type and
 // API expectations for single-threaded builds.
 
-class Mutex {
- public:
-  void Lock() {}
-  void Unlock() {}
-  bool TryLock() { return true; }
-  void AssertHeld() const {}
-};
-
-class RecursiveMutex {
- public:
-  void Lock() {}
-  void Unlock() {}
-  bool TryLock() { return true; }
-  void AssertHeld() const {}
-};
-
-class MutexGuard {
- public:
-  explicit MutexGuard(Mutex* m) : m_(m) { if (m_) m_->Lock(); }
-  explicit MutexGuard(Mutex& m) : m_(&m) { m_->Lock(); }
-  ~MutexGuard() { if (m_) m_->Unlock(); }
-  MutexGuard(const MutexGuard&) = delete;
-  MutexGuard& operator=(const MutexGuard&) = delete;
- private:
-  Mutex* m_ = nullptr;
-};
-
-class RecursiveMutexGuard {
- public:
-  explicit RecursiveMutexGuard(RecursiveMutex* m) : m_(m) { if (m_) m_->Lock(); }
-  explicit RecursiveMutexGuard(RecursiveMutex& m) : m_(&m) { m_->Lock(); }
-  ~RecursiveMutexGuard() { if (m_) m_->Unlock(); }
-  RecursiveMutexGuard(const RecursiveMutexGuard&) = delete;
-  RecursiveMutexGuard& operator=(const RecursiveMutexGuard&) = delete;
- private:
-  RecursiveMutex* m_ = nullptr;
-};
-
-class MutexGuardIf {
- public:
-  MutexGuardIf(Mutex* m, bool enable) {
-    if (enable && m) {
-      m->Lock();
-      m_ = m;
-    }
-  }
-  ~MutexGuardIf() { if (m_) m_->Unlock(); }
-  MutexGuardIf(const MutexGuardIf&) = delete;
-  MutexGuardIf& operator=(const MutexGuardIf&) = delete;
- private:
-  Mutex* m_ = nullptr;
-};
-
-class LazyMutex {
- public:
-  Mutex* Pointer() {
-    static Mutex m;
-    return &m;
-  }
-};
+using ::v8::base::Mutex;
+using ::v8::base::RecursiveMutex;
+using ::v8::base::MutexGuard;
+using ::v8::base::RecursiveMutexGuard;
 // ============================================================================
 // Memory and allocation helpers
 // ============================================================================
 
-// AddressRegion can be referenced as ::v8::base::AddressRegion by users
+// AddressRegion aliases (commonly referenced under v8::internal::base)
+using ::v8::base::AddressRegion;
+using ::v8::base::AddressRegionOf;
+// Address space and allocator wrappers in base namespace
+using ::v8::base::PageAllocator;
+using ::v8::base::VirtualAddressSpace;
+using ::v8::base::VirtualAddressSubspace;
 
 // ============================================================================
 // Utility functions - Import from v8::base
 // ============================================================================
 
-// Vector helpers can be referenced as ::v8::base::{VectorOf,SNPrintF,VSNPrintF,vector_append}
+// Vector and string helpers commonly referenced from internal::base
+using ::v8::base::SNPrintF;
+using ::v8::base::VSNPrintF;
+using ::v8::base::vector_append;
 
-  // Note: avoid defining custom hashing helpers here; rely on ::v8::base::hash
-  // and base::Hasher from src/base/hashing.h to prevent conflicts.
+// Aligned/memory helpers and file wrappers
+using ::v8::base::AlignedAlloc;
+using ::v8::base::AlignedFree;
+using ::v8::base::Fopen;
+using ::v8::base::Fclose;
 
 // LeakyObject for objects that are never freed
 template <typename T>
@@ -277,10 +249,7 @@ struct iterator {
   using reference = Reference;
 };
 
-// File operations wrapper
-inline int Fclose(FILE* file) {
-  return file ? fclose(file) : 0;
-}
+// File operations wrapper is provided by ::v8::base::Fclose in wrappers.h
 
 // Atomic type selector template
 template <int ByteWidth>
@@ -306,6 +275,14 @@ template <>
 struct AtomicTypeFromByteWidth<8> {
   using type = ::v8::base::Atomic64;
 };
+#endif
+
+// Direct aliases for atomic types referenced by name
+using ::v8::base::Atomic8;
+using ::v8::base::Atomic16;
+using ::v8::base::Atomic32;
+#if defined(V8_HOST_ARCH_64_BIT)
+using ::v8::base::Atomic64;
 #endif
 
 }  // namespace base

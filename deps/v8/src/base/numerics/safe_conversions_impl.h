@@ -652,6 +652,8 @@ constexpr Dst CommonMaxOrMin(bool is_min) {
   return is_min ? kCommonMin<Dst, Src> : kCommonMax<Dst, Src>;
 }
 
-}  // namespace internal }  // namespace base }  // namespace v8
+}  // namespace internal
+}  // namespace base
+}  // namespace v8
 
 #endif  // V8_BASE_NUMERICS_SAFE_CONVERSIONS_IMPL_H_

@@ -95,12 +95,13 @@ Thread::~Thread() {
   delete data_;
 }
 
-void Thread::Start() {
+bool Thread::Start() {
   // WASI doesn't support threads, run synchronously
   if (start_semaphore_) {
     start_semaphore_->Signal();
   }
   Run();
+  return true;
 }
 
 void Thread::Join() {
@@ -123,6 +124,18 @@ void* Thread::GetThreadLocal(LocalStorageKey key) {
 
 void Thread::SetThreadLocal(LocalStorageKey key, void* value) {
   // No-op for WASI
+}
+
+void Thread::set_name(const char* name) {
+  if (!name) {
+    name_[0] = '\0';
+    return;
+  }
+  size_t i = 0;
+  for (; i < static_cast<size_t>(kMaxThreadNameLength - 1) && name[i]; ++i) {
+    name_[i] = name[i];
+  }
+  name_[i] = '\0';
 }
 
 // Stack trace implementation (not available in WASI)

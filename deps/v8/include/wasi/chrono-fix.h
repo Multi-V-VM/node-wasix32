@@ -6,7 +6,7 @@
 #define WASI_CHRONO_FIX_H_
 
 // Define missing chrono types for WASI only when enabled at TU global scope
-#ifdef V8_WASI_STD_POLYFILLS_ENABLED
+#ifdef V8_WASI_STD_POLYFILLS_GLOBAL_SCOPE
 namespace std {
 namespace chrono {
 
@@ -19,7 +19,7 @@ struct __is_time_point<time_point<Clock, Duration>> : true_type {};
 
 }  // namespace chrono
 }  // namespace std
-#endif  // V8_WASI_STD_POLYFILLS_ENABLED
+#endif  // V8_WASI_STD_POLYFILLS_GLOBAL_SCOPE
 
 #endif  // WASI_CHRONO_FIX_H_
 #endif  // __wasi__

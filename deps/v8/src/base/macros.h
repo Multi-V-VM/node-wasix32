@@ -127,7 +127,8 @@ V8_INLINE Dest bit_cast(Source const& source) {
 #endif
 }
 
-}  // namespace base }  // namespace v8
+}  // namespace base
+}  // namespace v8
 
 // Explicitly declare the assignment operator as deleted.
 // Note: This macro is deprecated and will be removed soon. Please explicitly

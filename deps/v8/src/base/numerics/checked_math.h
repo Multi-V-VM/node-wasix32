@@ -370,6 +370,7 @@ using internal::MakeCheckedNum;
 using internal::ValueOrDefaultForType;
 using internal::ValueOrDieForType;
 
-}  // namespace base }  // namespace v8
+}  // namespace base
+}  // namespace v8
 
 #endif  // V8_BASE_NUMERICS_CHECKED_MATH_H_

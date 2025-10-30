@@ -24,6 +24,7 @@ class V8_BASE_EXPORT FlushDenormalsScope final {
  private:
   bool old_flush_state_;
 };
-}  // namespace base }  // namespace v8
+}  // namespace base
+}  // namespace v8
 
 #endif  // V8_BASE_FPU_H_

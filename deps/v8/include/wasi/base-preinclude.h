@@ -11,9 +11,11 @@
 #include <cstdint>
 #include <cstddef>
 
-// Enable safe installation of std:: polyfills in WASI at TU global scope.
-#ifndef V8_WASI_STD_POLYFILLS_ENABLED
-#define V8_WASI_STD_POLYFILLS_ENABLED 1
+// Enable safe installation of std:: polyfills in WASI only at TU global scope.
+// Use a distinct macro to avoid accidental injection when these headers are
+// included from nested namespace contexts later on.
+#ifndef V8_WASI_STD_POLYFILLS_GLOBAL_SCOPE
+#define V8_WASI_STD_POLYFILLS_GLOBAL_SCOPE 1
 #endif
 // Install a minimal set of C++20 polyfills where the SDK may be lacking.
 #include "wasi/concepts-fix.h"

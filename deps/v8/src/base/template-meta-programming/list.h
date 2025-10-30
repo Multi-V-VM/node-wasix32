@@ -238,7 +238,9 @@ struct fold_right1 : public detail::fold_right1_impl<F, T, List1> {};
 template <template <TYPENAME1, typename> typename F, typename List1, typename T>
 using fold_right1_t = fold_right1<F, List1, T>::type;
 
-}  // namespace tmp }  // namespace base }  // namespace v8
+}  // namespace tmp
+}  // namespace base
+}  // namespace v8
 
 #undef TYPENAME1
 

@@ -57,7 +57,8 @@ class RingBuffer final {
   bool is_full_ = false;
 };
 
-}  // namespace base }  // namespace v8
+}  // namespace base
+}  // namespace v8
 
 
 #endif  // V8_BASE_RING_BUFFER_H_

@@ -212,7 +212,8 @@ auto zip(Containers&... containers) {
                                    TupleIt(containers.end()...));
 }
 
-}  // namespace base }  // namespace v8
+}  // namespace base
+}  // namespace v8
 
 
 #endif  // V8_BASE_ITERATOR_H_

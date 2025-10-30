@@ -46,7 +46,9 @@ template <typename T>
 V8_INLINE T&& DcheckNotNull(T&& val) { return std::forward<T>(val); }
 template <typename T>
 V8_INLINE T&& CheckNotNull(T&& val) { return std::forward<T>(val); }
-}  // namespace detail }  // namespace base }  // namespace v8
+}  // namespace detail
+}  // namespace base
+}  // namespace v8
 
 #ifndef DCHECK_NOT_NULL
 #define DCHECK_NOT_NULL(val) (::v8::base::detail::DcheckNotNull(val))
@@ -171,7 +173,8 @@ enum class OOMType {
   abort();
 }
 
-}  // namespace base }  // namespace v8
+}  // namespace base
+}  // namespace v8
 
 #endif  // __wasi__
 #endif  // V8_SRC_BASE_LOGGING_H_

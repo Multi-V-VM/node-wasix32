@@ -59,6 +59,8 @@ StringLiteral(const char (&)[N]) -> StringLiteral<N>;
 
 #endif
 
-}  // namespace tmp }  // namespace base }  // namespace v8
+}  // namespace tmp
+}  // namespace base
+}  // namespace v8
 
 #endif  // V8_BASE_TEMPLATE_META_PROGRAMMING_STRING_LITERAL_H_

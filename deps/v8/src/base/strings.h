@@ -49,6 +49,7 @@ inline char HexCharOfValue(int value) {
   return value - 10 + 'A';
 }
 
-}  // namespace base }  // namespace v8
+}  // namespace base
+}  // namespace v8
 
 #endif  // V8_BASE_STRINGS_H_

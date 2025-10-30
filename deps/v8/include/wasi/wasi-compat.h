@@ -10,7 +10,7 @@
 #ifndef _LIBCPP_VERSION
 // Only define if we're not using libc++
 
-#ifdef V8_WASI_STD_POLYFILLS_ENABLED
+#ifdef V8_WASI_STD_POLYFILLS_GLOBAL_SCOPE
 namespace std {
 // Only provide missing C++20 features
 template <typename T>
@@ -82,7 +82,7 @@ struct span {
 // Byte type for simdutf compatibility
 enum class byte : unsigned char {};
 }  // namespace std
-#endif  // V8_WASI_STD_POLYFILLS_ENABLED
+#endif  // V8_WASI_STD_POLYFILLS_GLOBAL_SCOPE
 
 #endif  // _LIBCPP_VERSION
 

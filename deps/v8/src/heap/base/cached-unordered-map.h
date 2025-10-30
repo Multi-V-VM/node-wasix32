@@ -8,13 +8,18 @@
 #include <unordered_map>
 
 #ifdef __wasi__
-// On WASI builds, fall back to std::unordered_map to avoid third_party include path
-// issues while keeping API expectations intact.
+#if __has_include("absl/container/flat_hash_map.h")
+#include "absl/container/flat_hash_map.h"
+#elif __has_include("third_party/abseil-cpp/absl/container/flat_hash_map.h")
+#include "third_party/abseil-cpp/absl/container/flat_hash_map.h"
+#else
+// Fallback to std::unordered_map if Abseil is unavailable.
 namespace absl {
 template <class K, class V, class Hash = std::hash<K>, class Eq = std::equal_to<K>,
           class Alloc = std::allocator<std::pair<const K, V>>>
 using flat_hash_map = std::unordered_map<K, V, Hash, Eq, Alloc>;
 }  // namespace absl
+#endif
 #else
 #if __has_include("absl/container/flat_hash_map.h")
 #include "absl/container/flat_hash_map.h"

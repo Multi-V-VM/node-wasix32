@@ -616,6 +616,7 @@ class SmallMap {
   }
 };
 
-}  // namespace base }  // namespace v8
+}  // namespace base
+}  // namespace v8
 
 #endif  // V8_BASE_SMALL_MAP_H_

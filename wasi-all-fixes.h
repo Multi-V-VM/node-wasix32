@@ -66,6 +66,9 @@ template <typename Dst, typename Src>
 inline constexpr bool kIsMaxInRangeForNumericType =
     internal::kIsMaxInRangeForNumericType<Dst, Src>;
 
+// Ensure std namespace always refers to ::std even when inside v8 namespace
+namespace std = ::std;
+
 }  // namespace base
 }  // namespace v8
 
@@ -296,5 +299,19 @@ public:
 
 // streamsize for ostream fixes
 using std::streamsize;
+
+// ============================================================================
+// CRITICAL: Close any accidentally open namespaces from included headers
+// ============================================================================
+// The included fix headers may have left namespaces open. Close them all here.
+// We need to close potentially 7 levels of nesting based on our earlier analysis.
+
+}  // Close namespace level 1
+}  // Close namespace level 2
+}  // Close namespace level 3
+}  // Close namespace level 4
+}  // Close namespace level 5
+}  // Close namespace level 6
+}  // Close namespace level 7
 
 #endif  // WASI_ALL_FIXES_H_

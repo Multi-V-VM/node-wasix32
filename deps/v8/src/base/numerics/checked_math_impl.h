@@ -569,6 +569,7 @@ class CheckedNumericState<T, NUMERIC_FLOATING> {
 };
 
 }  // namespace internal
-}  // namespace base }  // namespace v8
+}  // namespace base
+}  // namespace v8
 
 #endif  // V8_BASE_NUMERICS_CHECKED_MATH_IMPL_H_

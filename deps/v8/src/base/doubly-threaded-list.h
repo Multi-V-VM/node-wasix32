@@ -147,6 +147,7 @@ class DoublyThreadedList {
   T head_{};
 };
 
-}  // namespace base }  // namespace v8
+}  // namespace base
+}  // namespace v8
 
 #endif  // V8_BASE_DOUBLY_THREADED_LIST_H_

@@ -382,6 +382,7 @@ ClampRound(Src value) {
   return saturated_cast<Dst>(rounded);
 }
 
-}  // namespace base }  // namespace v8
+}  // namespace base
+}  // namespace v8
 
 #endif  // V8_BASE_NUMERICS_SAFE_CONVERSIONS_H_

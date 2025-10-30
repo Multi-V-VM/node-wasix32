@@ -1,8 +1,9 @@
-#ifdef __wasi__
-// Avoid including std-preinclude here; include any needed standard headers
-// at TU global scope instead to prevent v8::std pollution.
-#include "wasi/cpp20-compat.h"
-#endif
+// Note: Do not include WASI C++20 polyfills here. This header is sometimes
+// included from within namespace v8 (or v8::base) scopes, and including
+// a header that opens `namespace std { ... }` in such a context would create
+// nested namespaces like v8::base::std, breaking standard library lookups.
+// If polyfills are needed, they must be installed at translation unit global
+// scope (see deps/v8/include/wasi/base-preinclude.h).
 
 // Copyright 2017 the V8 project authors. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be

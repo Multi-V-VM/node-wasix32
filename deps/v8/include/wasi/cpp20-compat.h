@@ -11,32 +11,14 @@
 #include <functional>
 #include <bit>
 
-// IMPORTANT: This header should be included before any V8 namespace is opened.
-// Only install std:: polyfills at translation unit global scope.
-
-// Only install std:: variable template shims when explicitly enabled at
-// translation unit global scope via V8_WASI_STD_POLYFILLS_ENABLED.
-#ifdef V8_WASI_STD_POLYFILLS_ENABLED
-namespace std {
-#ifndef __cpp_lib_type_trait_variable_templates
-template <typename T>
-constexpr bool is_unsigned_v = std::is_unsigned<T>::value;
-template <typename T>
-constexpr bool is_integral_v = std::is_integral<T>::value;
-template <typename T>
-constexpr bool is_scalar_v = std::is_scalar<T>::value;
-template <typename... Args>
-constexpr bool conjunction_v = std::conjunction<Args...>::value;
-#endif
-
-// Ensure other commonly used templates are available
-#ifndef __cpp_lib_trivially_copyable
-template <typename T>
-using is_trivially_copyable = std::is_trivially_copy_constructible<T>;
-#endif
-
-}  // namespace std
-#endif  // V8_WASI_STD_POLYFILLS_ENABLED
+// IMPORTANT:
+// This header is included very early and sometimes from within other
+// namespaces in various translation units. To avoid accidentally creating
+// nested namespaces like v8::base::std, do not open `namespace std` here.
+// The WASI toolchain used by this project targets C++20; the standard library
+// provides the necessary facilities (type traits, variable templates, etc.).
+// If a specific translation unit truly lacks a feature, provide a narrowly
+// scoped shim in that TU instead of injecting global polyfills.
 
 #endif  // __wasi__
 

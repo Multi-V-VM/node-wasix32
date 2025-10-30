@@ -10,7 +10,7 @@
 #ifdef __wasi__
 // Only include heavy base/standard headers when enabled at TU global scope by
 // the WASI prelude to avoid pulling standard headers inside a nested v8:: scope.
-#ifdef V8_WASI_STD_POLYFILLS_ENABLED
+#ifdef V8_WASI_STD_POLYFILLS_GLOBAL_SCOPE
 // Ensure v8::base atomic types are available when this header is pulled in
 // from public headers before base headers.
 #include "src/base/atomicops.h"
@@ -20,7 +20,7 @@
 #include "src/base/platform/time.h"     // v8::base::TimeTicks/TimeDelta
 #include "src/base/vector.h"            // v8::base::Vector/EmbeddedVector
 #include "src/base/lazy-instance.h"     // v8::base::Lazy* traits
-#endif  // V8_WASI_STD_POLYFILLS_ENABLED
+#endif  // V8_WASI_STD_POLYFILLS_GLOBAL_SCOPE
 
 // Provide an early, minimal definition of v8::PageAllocator so nested
 // types like ::v8::PageAllocator::Permission and the alias ::v8::PagePermissions
@@ -581,8 +581,8 @@ constexpr int kTaggedSizeLog2 = 2;
 
 // Storage types for tagged values
 using Tagged_t = uintptr_t;
-// Use V8 base atomic word type to match atomicops overloads
-using AtomicTagged_t = ::v8::base::AtomicWord;
+// Use uintptr_t as the atomic-sized tagged storage on WASI
+using AtomicTagged_t = uintptr_t;
 
 // External pointer storage types on the heap
 using ExternalPointer_t = uint32_t;

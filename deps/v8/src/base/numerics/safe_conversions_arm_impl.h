@@ -51,6 +51,7 @@ struct SaturateFastAsmOp {
 };
 
 }  // namespace internal
-}  // namespace base }  // namespace v8
+}  // namespace base
+}  // namespace v8
 
 #endif  // V8_BASE_NUMERICS_SAFE_CONVERSIONS_ARM_IMPL_H_

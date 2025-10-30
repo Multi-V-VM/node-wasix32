@@ -39,6 +39,7 @@ inline void CallOnce(OnceType* once, Function function) {
   }
 }
 
-}  // namespace base }  // namespace v8
+}  // namespace base
+}  // namespace v8
 
 #endif  // V8_BASE_ONCE_H_

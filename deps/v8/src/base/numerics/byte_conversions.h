@@ -711,6 +711,7 @@ inline constexpr std::array<uint8_t, 8u> DoubleToBigEndian(double val) {
   return internal::ToLittleEndian(ByteSwap(std::bit_cast<uint64_t>(val)));
 }
 
-}  // namespace base }  // namespace v8
+}  // namespace base
+}  // namespace v8
 
 #endif  // V8_BASE_NUMERICS_BYTE_CONVERSIONS_H_

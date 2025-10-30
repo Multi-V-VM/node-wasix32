@@ -38,6 +38,7 @@
 #include "src/base/compiler-specific.h"
 #include "src/base/macros.h"
 #include "src/base/platform/semaphore.h"
+#include "src/base/platform/platform-thread.h"
 #include "testing/gtest/include/gtest/gtest_prod.h"  // nogncheck
 
 #if V8_OS_QNX
@@ -141,19 +142,12 @@ class TimeDelta;
 class Semaphore;
 class TimezoneCache;
 
-#ifdef __wasi__
-// Under WASI, the canonical PageAllocator and address space types live in the
-// public ::v8 namespace. Provide aliases within v8::base so existing code that
-// refers to v8::base::PageAllocator (etc.) continues to compile.
-using PageAllocator = ::v8::PageAllocator;
-using VirtualAddressSpace = ::v8::VirtualAddressSpace;
-using VirtualAddressSubspace = ::v8::VirtualAddressSubspace;
-#else
-// Legacy forward declarations within v8::base for non-WASI builds.
+// Forward declarations within v8::base. On WASI, these are implemented as
+// wrappers around the public ::v8 interfaces; on other platforms they are
+// defined directly in the base library.
 class PageAllocator;
 class VirtualAddressSpace;
 class VirtualAddressSubspace;
-#endif
 
 // ----------------------------------------------------------------------------
 // OS
@@ -384,17 +378,10 @@ class V8_BASE_EXPORT OS {
   friend class AddressSpaceReservation;
   friend class MemoryMappedFile;
   friend class PosixMemoryMappedFile;
-#ifdef __wasi__
-  // On WASI, the public v8::PageAllocator (and VirtualAddressSpace types)
-  // live in namespace v8.
-  friend class ::v8::PageAllocator;
-  friend class ::v8::VirtualAddressSpace;
-  friend class ::v8::VirtualAddressSubspace;
-#else
+  // Allow base internals to access private OS memory APIs.
   friend class ::v8::base::PageAllocator;
   friend class ::v8::base::VirtualAddressSpace;
   friend class ::v8::base::VirtualAddressSubspace;
-#endif
   FRIEND_TEST(OS, RemapPages);
 
   static size_t AllocatePageSize();
@@ -553,121 +540,7 @@ class V8_BASE_EXPORT AddressSpaceReservation {
 #endif  // V8_OS_FUCHSIA
 };
 
-// ----------------------------------------------------------------------------
-#ifndef V8_BASE_PLATFORM_THREAD_H_
-// Thread
-//
-// Thread objects are used for creating and running threads. When the start()
-// method is called the new thread starts running the run() method in the new
-// thread. The Thread object should not be deallocated before the thread has
-// terminated.
-
-class V8_BASE_EXPORT Thread {
- public:
-  // Opaque data type for thread-local storage keys.
-#if V8_OS_STARBOARD
-  using LocalStorageKey = SbThreadLocalKey;
-#elif V8_OS_ZOS
-  using LocalStorageKey = pthread_key_t;
-#else
-  using LocalStorageKey = int32_t;
-#endif
-
-  // Priority class for the thread. Use kDefault to keep the priority
-  // unchanged.
-  enum class Priority { kBestEffort, kUserVisible, kUserBlocking, kDefault };
-
-  class Options {
-   public:
-    Options() : Options("v8:<unknown>") {}
-    explicit Options(const char* name, int stack_size = 0)
-        : Options(name, Priority::kDefault, stack_size) {}
-    Options(const char* name, Priority priority, int stack_size = 0)
-        : name_(name), priority_(priority), stack_size_(stack_size) {}
-
-    const char* name() const { return name_; }
-    int stack_size() const { return stack_size_; }
-    Priority priority() const { return priority_; }
-
-   private:
-    const char* name_;
-    const Priority priority_;
-    const int stack_size_;
-  };
-
-  // Create new thread.
-  explicit Thread(const Options& options);
-  Thread(const Thread&) = delete;
-  Thread& operator=(const Thread&) = delete;
-  virtual ~Thread();
-
-  // Start new thread by calling the Run() method on the new thread.
-  V8_WARN_UNUSED_RESULT bool Start();
-
-  // Start new thread and wait until Run() method is called on the new thread.
-  bool StartSynchronously() {
-    start_semaphore_ = new Semaphore(0);
-    if (!Start()) return false;
-    start_semaphore_->Wait();
-    delete start_semaphore_;
-    start_semaphore_ = nullptr;
-    return true;
-  }
-
-  // Wait until thread terminates.
-  void Join();
-
-  inline const char* name() const { return name_; }
-
-  // Abstract method for run handler.
-  virtual void Run() = 0;
-
-  // Thread-local storage.
-  static LocalStorageKey CreateThreadLocalKey();
-  static void DeleteThreadLocalKey(LocalStorageKey key);
-  static void* GetThreadLocal(LocalStorageKey key);
-  static void SetThreadLocal(LocalStorageKey key, void* value);
-  static bool HasThreadLocal(LocalStorageKey key) {
-    return GetThreadLocal(key) != nullptr;
-  }
-
-#ifdef V8_FAST_TLS_SUPPORTED
-  static inline void* GetExistingThreadLocal(LocalStorageKey key) {
-    void* result = reinterpret_cast<void*>(
-        InternalGetExistingThreadLocal(static_cast<intptr_t>(key)));
-    DCHECK(result == GetThreadLocal(key));
-    return result;
-  }
-#else
-  static inline void* GetExistingThreadLocal(LocalStorageKey key) {
-    return GetThreadLocal(key);
-  }
-#endif
-
-  // The thread name length is limited to 16 based on Linux's implementation of
-  // prctl().
-  static const int kMaxThreadNameLength = 16;
-
-  class PlatformData;
-  PlatformData* data() { return data_; }
-  Priority priority() const { return priority_; }
-
-  void NotifyStartedAndRun() {
-    if (start_semaphore_) start_semaphore_->Signal();
-    Run();
-  }
-
- private:
-  void set_name(const char* name);
-
-  PlatformData* data_;
-
-  char name_[kMaxThreadNameLength];
-  int stack_size_;
-  Priority priority_;
-  Semaphore* start_semaphore_;
-};
-#endif  // V8_BASE_PLATFORM_THREAD_H_
+// Thread is declared in platform-thread.h, included above.
 
 // TODO(v8:10354): Make use of the stack utilities here in V8.
 class V8_BASE_EXPORT Stack {
@@ -736,7 +609,8 @@ class V8_BASE_EXPORT Stack {
 V8_BASE_EXPORT void SetJitWriteProtected(int enable);
 #endif
 
-}  // namespace base }  // namespace v8
+}  // namespace base
+}  // namespace v8
 
 #endif  // V8_BASE_PLATFORM_PLATFORM_H_
 

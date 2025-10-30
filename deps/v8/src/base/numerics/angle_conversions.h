@@ -25,6 +25,7 @@ constexpr T RadToDeg(T rad) {
   return rad * 180 / std::numbers::pi_v<T>;
 }
 
-}  // namespace base }  // namespace v8
+}  // namespace base
+}  // namespace v8
 
 #endif  // V8_BASE_NUMERICS_ANGLE_CONVERSIONS_H_

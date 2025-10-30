@@ -33,7 +33,9 @@ struct is_instantiation_of : std::bool_constant<false> {};
 template <typename U, TYPENAME1 T>
 struct is_instantiation_of<T<U>, T> : std::bool_constant<true> {};
 
-}  // namespace tmp }  // namespace base }  // namespace v8
+}  // namespace tmp
+}  // namespace base
+}  // namespace v8
 
 #undef TYPENAME1
 

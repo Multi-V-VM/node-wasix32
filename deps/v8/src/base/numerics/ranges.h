@@ -19,6 +19,7 @@ constexpr bool IsApproximatelyEqual(T lhs, T rhs, T tolerance) {
   return std::abs(rhs - lhs) <= tolerance;
 }
 
-}  // namespace base }  // namespace v8
+}  // namespace base
+}  // namespace v8
 
 #endif  // V8_BASE_NUMERICS_RANGES_H_

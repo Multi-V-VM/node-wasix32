@@ -5,20 +5,20 @@
 #ifndef V8_HEAP_PAGE_POOL_H_
 #define V8_HEAP_PAGE_POOL_H_
 
-#ifdef __wasi__
+#if __has_include("absl/container/flat_hash_map.h")
+#include "absl/container/flat_hash_map.h"
+#elif __has_include("third_party/abseil-cpp/absl/container/flat_hash_map.h")
+#include "third_party/abseil-cpp/absl/container/flat_hash_map.h"
+#else
 #include <unordered_map>
-// Provide a minimal alias so code can use absl::flat_hash_map on WASI builds.
+// Provide a minimal alias so code can use absl::flat_hash_map when Abseil is
+// unavailable (e.g., on WASI builds). Only define the alias if Abseil headers
+// are not present to avoid redefinition conflicts.
 namespace absl {
 template <class K, class V, class Hash = std::hash<K>, class Eq = std::equal_to<K>,
           class Alloc = std::allocator<std::pair<const K, V>>>
 using flat_hash_map = std::unordered_map<K, V, Hash, Eq, Alloc>;
 }  // namespace absl
-#else
-#if __has_include("absl/container/flat_hash_map.h")
-#include "absl/container/flat_hash_map.h"
-#else
-#include "third_party/abseil-cpp/absl/container/flat_hash_map.h"
-#endif
 #endif
 #include "src/base/platform/mutex.h"
 #include "src/utils/allocation.h"

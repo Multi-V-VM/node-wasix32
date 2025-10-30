@@ -13,6 +13,7 @@
 #include "src/base/platform/time.h"
 #include "src/base/platform/platform.h"
 #include "src/base/atomicops.h"
+#include "src/base/lazy-instance.h"
 #include "src/base/memory.h"
 #include "src/base/vlq-base64.h"
 

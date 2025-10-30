@@ -550,4 +550,6 @@ TEST(NumericsTest, ToBigEndian) {
   }
 }
 
-}  // namespace numerics }  // namespace base }  // namespace v8
+}  // namespace numerics
+}  // namespace base
+}  // namespace v8

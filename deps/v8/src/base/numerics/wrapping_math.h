@@ -40,6 +40,7 @@ inline constexpr T WrappingSub(T a, T b) {
   return static_cast<T>(static_cast<Unsigned>(a) - static_cast<Unsigned>(b));
 }
 
-}  // namespace base }  // namespace v8
+}  // namespace base
+}  // namespace v8
 
 #endif  // V8_BASE_NUMERICS_WRAPPING_MATH_H_

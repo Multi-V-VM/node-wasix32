@@ -136,7 +136,8 @@ template <typename TagType, typename UnderlyingType>
   return stream << alias.value();
 }
 
-}  // namespace base }  // namespace v8
+}  // namespace base
+}  // namespace v8
 
 // 为 WASI 环境添加条件编译保护
 #ifndef __wasi__

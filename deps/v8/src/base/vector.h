@@ -416,7 +416,8 @@ class EmbeddedVector : public ::v8::base::Vector<T> {
   T buffer_[kSize];
 };
 
-}  // namespace base }  // namespace v8
+}  // namespace base
+}  // namespace v8
 
 // Provide compatibility alias used in newer V8 sources: base::Owned::Vector<T>
 // resolves to OwnedVector<T>.

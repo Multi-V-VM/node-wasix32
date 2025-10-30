@@ -299,6 +299,7 @@ BASE_FLOAT_ARITHMETIC_OPS(Div, /)
 #undef BASE_FLOAT_ARITHMETIC_OPS
 
 }  // namespace internal
-}  // namespace base }  // namespace v8
+}  // namespace base
+}  // namespace v8
 
 #endif  // V8_BASE_NUMERICS_CLAMPED_MATH_IMPL_H_

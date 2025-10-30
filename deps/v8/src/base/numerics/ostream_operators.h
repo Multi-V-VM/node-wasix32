@@ -36,6 +36,7 @@ std::ostream& operator<<(std::ostream& os, const ClampedNumeric<T>& value) {
 }
 
 }  // namespace internal
-}  // namespace base }  // namespace v8
+}  // namespace base
+}  // namespace v8
 
 #endif  // V8_BASE_NUMERICS_OSTREAM_OPERATORS_H_

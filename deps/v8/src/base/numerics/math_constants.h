@@ -13,6 +13,7 @@ namespace v8 { namespace base {
 constexpr double kMeanGravityDouble = 9.80665;
 constexpr float kMeanGravityFloat = 9.80665f;
 
-}  // namespace base }  // namespace v8
+}  // namespace base
+}  // namespace v8
 
 #endif  // V8_BASE_NUMERICS_MATH_CONSTANTS_H_

@@ -145,6 +145,7 @@ inline void vector_append(V& v, const C& container) {
   v.insert(::std::end(v), ::std::begin(container), ::std::end(container));
 }
 
-}  // namespace base }  // namespace v8
+}  // namespace base
+}  // namespace v8
 
 #endif  // V8_BASE_CONTAINER_UTILS_H_

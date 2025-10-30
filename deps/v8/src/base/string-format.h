@@ -185,7 +185,8 @@ class FormattedString {
 // explicitly declare template parameters anyway.
 FormattedString()->FormattedString<>;
 
-}  // namespace base }  // namespace v8
+}  // namespace base
+}  // namespace v8
 
 
 #endif  // V8_BASE_STRING_FORMAT_H_

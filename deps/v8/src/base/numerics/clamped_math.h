@@ -242,6 +242,7 @@ using internal::ClampSub;
 using internal::ClampXor;
 using internal::MakeClampedNum;
 
-}  // namespace base }  // namespace v8
+}  // namespace base
+}  // namespace v8
 
 #endif  // V8_BASE_NUMERICS_CLAMPED_MATH_H_

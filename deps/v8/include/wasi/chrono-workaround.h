@@ -14,7 +14,7 @@
 #include <cstdint>
 #include <ratio>
 
-#ifdef V8_WASI_STD_POLYFILLS_ENABLED
+#ifdef V8_WASI_STD_POLYFILLS_GLOBAL_SCOPE
 namespace std {
 namespace chrono {
 
@@ -59,7 +59,7 @@ struct _FilesystemClock {
 }  // namespace filesystem
 
 }  // namespace std
-#endif  // V8_WASI_STD_POLYFILLS_ENABLED
+#endif  // V8_WASI_STD_POLYFILLS_GLOBAL_SCOPE
 
 // Now it's safe to include chrono
 #include <chrono>

@@ -36,7 +36,7 @@
   template <typename T, typename U> concept name = false
 #endif
 
-#if !defined(V8_WASI_HAS_NATIVE_RANGES) && defined(V8_WASI_STD_POLYFILLS_ENABLED)
+#if !defined(V8_WASI_HAS_NATIVE_RANGES) && defined(V8_WASI_STD_POLYFILLS_GLOBAL_SCOPE)
 // Disable actual ranges functionality for WASI builds
 #define RANGES_DISABLED_FOR_WASI 1
 
@@ -238,6 +238,6 @@ using __v8_wasi_polyfill::ranges::elements_view;
 #undef V8_WASI_DECLARE_CONCEPT_1
 #undef V8_WASI_DECLARE_CONCEPT_2
 #undef V8_WASI_HAS_CONCEPTS
-#endif // !V8_WASI_HAS_NATIVE_RANGES && V8_WASI_STD_POLYFILLS_ENABLED
+#endif // !V8_WASI_HAS_NATIVE_RANGES && V8_WASI_STD_POLYFILLS_GLOBAL_SCOPE
 
 #endif // WASI_RANGES_COMPAT_H_

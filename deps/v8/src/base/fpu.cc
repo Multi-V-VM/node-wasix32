@@ -98,4 +98,5 @@ void FPU::SetFlushDenormals(bool value) {}
 
 #endif
 
-}  // namespace base }  // namespace v8
+}  // namespace base
+}  // namespace v8

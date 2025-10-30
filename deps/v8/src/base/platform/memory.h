@@ -163,7 +163,8 @@ V8_NODISCARD AllocationResult<T*> AllocateAtLeast(size_t n) {
 #endif  // V8_HAS_MALLOC_USABLE_SIZE
 }
 
-}  // namespace base }  // namespace v8
+}  // namespace base
+}  // namespace v8
 
 #undef V8_HAS_MALLOC_USABLE_SIZE
 

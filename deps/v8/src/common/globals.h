@@ -40,16 +40,21 @@
 #include "src/base/fpu.h"
 #include "src/base/numbers/dtoa.h"
 #include "src/base/numbers/strtod.h"
+#include "src/base/numbers/double.h"
+#include "src/base/hashmap-entry.h"
+#include "src/base/hashmap.h"
 #include "src/base/bounds.h"
 #include "src/base/numerics/safe_conversions.h"
 #include "src/base/platform/elapsed-timer.h"
 #include "src/base/platform/platform.h"
+#include "src/base/platform/wrappers.h"
 #include "src/base/platform/mutex.h"
 #include "src/base/vector.h"
 #include "src/base/strings.h"
 #include "src/base/string-format.h"
 #include "src/base/iterator.h"
 #include "src/base/memory.h"
+#include "src/base/platform/memory.h"
 #include "src/base/utils/random-number-generator.h"
 #include "src/base/atomic-utils.h"
 #include "src/base/bit-field.h"
@@ -209,6 +214,59 @@ using ::v8::base::NoHashMapValue;
 template <typename T>
 using AsAtomicImpl = ::v8::base::AsAtomicImpl<T>;
 using ::v8::base::AsAtomic32;
+
+// Bits helpers (bridge into internal::base::bits namespace)
+namespace bits {
+using ::v8::base::bits::CountTrailingZeros;
+using ::v8::base::bits::CountTrailingZerosNonZero;
+using ::v8::base::bits::CountLeadingZeros;
+using ::v8::base::bits::CountLeadingZeros32;
+using ::v8::base::bits::CountPopulation;
+using ::v8::base::bits::IsPowerOfTwo;
+using ::v8::base::bits::ReverseBytes;
+using ::v8::base::bits::RoundUpToPowerOfTwo;
+}  // namespace bits
+
+// Frequently used base utilities and typedefs
+using ::v8::base::AddressRegion;
+using ::v8::base::AddressRegionOf;
+template <typename T, int shift, int size>
+using BitField64 = ::v8::base::BitField64<T, shift, size>;
+using ::v8::base::VectorOf;
+using ::v8::base::make_array;
+template <typename Ptr>
+using AllocationResult = ::v8::base::AllocationResult<Ptr>;
+using ::v8::base::AllocateAtLeast;
+template <typename T>
+using LeakyObject = ::v8::base::LeakyObject<T>;
+using ::v8::base::AlignedAlloc;
+using ::v8::base::AlignedFree;
+using ::v8::base::Fopen;
+using ::v8::base::Fclose;
+using ::v8::base::Atomic32;
+#if defined(V8_HOST_ARCH_64_BIT)
+using ::v8::base::Atomic64;
+#endif
+using ::v8::base::Mutex;
+using ::v8::base::RecursiveMutex;
+using ::v8::base::Hasher;
+using ::v8::base::PageAllocator;
+using ::v8::base::VirtualAddressSpace;
+using ::v8::base::VirtualAddressSubspace;
+
+// Hash map related aliases
+template <typename Key, typename Value, class MatchFun, class AllocationPolicy>
+using TemplateHashMapImpl = ::v8::base::TemplateHashMapImpl<Key, Value, MatchFun, AllocationPolicy>;
+template <typename Key>
+using KeyEqualityMatcher = ::v8::base::KeyEqualityMatcher<Key>;
+using CustomMatcherHashMap = ::v8::base::CustomMatcherHashMap;
+
+// Provide iterator alias template expected by some internal code
+#ifndef __wasi__
+template <typename Category, typename T, typename Distance = std::ptrdiff_t,
+          typename Pointer = T*, typename Reference = T&>
+using iterator = ::v8::base::iterator<Category, T, Distance, Pointer, Reference>;
+#endif
 
 // Frequently used numeric helpers/types that many internal call-sites refer to
 // via v8::internal::base::...

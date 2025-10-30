@@ -28,6 +28,9 @@ template <typename T>
 using enable_if_integral_constant_like = 
     typename std::enable_if<is_integral_constant_like<T>::value>::type;
 
-}  // namespace numerics }  // namespace internal }  // namespace base }  // namespace v8
+}  // namespace numerics
+}  // namespace internal
+}  // namespace base
+}  // namespace v8
 
 #endif  // V8_BASE_NUMERICS_INTEGRAL_CONSTANT_LIKE_H_

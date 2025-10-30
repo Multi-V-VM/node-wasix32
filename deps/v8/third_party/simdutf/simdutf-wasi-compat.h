@@ -23,7 +23,7 @@
 #endif
 
 // Minimal std additions for simdutf
-#ifdef V8_WASI_STD_POLYFILLS_ENABLED
+#ifdef V8_WASI_STD_POLYFILLS_GLOBAL_SCOPE
 namespace std {
 // Only add things that are missing and needed by simdutf
 #ifndef _LIBCPP_HAS_NO_CONCEPTS
@@ -46,7 +46,7 @@ struct span {
 };
 #endif
 }  // namespace std
-#endif  // V8_WASI_STD_POLYFILLS_ENABLED
+#endif  // V8_WASI_STD_POLYFILLS_GLOBAL_SCOPE
 
 // Disable problematic simdutf features for WASI
 #define SIMDUTF_IMPLEMENTATION_HASWELL 0

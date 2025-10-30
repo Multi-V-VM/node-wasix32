@@ -181,7 +181,7 @@ V8_INLINE uint64_t QPCNowRaw() {
 namespace v8 {
 namespace base {
 
-int ::v8::base::TimeDelta::InDays() const {
+int v8::base::TimeDelta::InDays() const {
   if (IsMax()) {
     // Preserve max to prevent overflow.
     return ::std::numeric_limits<int>::max();
@@ -189,7 +189,7 @@ int ::v8::base::TimeDelta::InDays() const {
   return static_cast<int>(delta_ / Time::kMicrosecondsPerDay);
 }
 
-int ::v8::base::TimeDelta::InHours() const {
+int v8::base::TimeDelta::InHours() const {
   if (IsMax()) {
     // Preserve max to prevent overflow.
     return ::std::numeric_limits<int>::max();
@@ -197,7 +197,7 @@ int ::v8::base::TimeDelta::InHours() const {
   return static_cast<int>(delta_ / Time::kMicrosecondsPerHour);
 }
 
-int ::v8::base::TimeDelta::InMinutes() const {
+int v8::base::TimeDelta::InMinutes() const {
   if (IsMax()) {
     // Preserve max to prevent overflow.
     return ::std::numeric_limits<int>::max();
@@ -205,7 +205,7 @@ int ::v8::base::TimeDelta::InMinutes() const {
   return static_cast<int>(delta_ / Time::kMicrosecondsPerMinute);
 }
 
-double ::v8::base::TimeDelta::InSecondsF() const {
+double v8::base::TimeDelta::InSecondsF() const {
   if (IsMax()) {
     // Preserve max to prevent overflow.
     return ::std::numeric_limits<double>::infinity();
@@ -213,7 +213,7 @@ double ::v8::base::TimeDelta::InSecondsF() const {
   return static_cast<double>(delta_) / Time::kMicrosecondsPerSecond;
 }
 
-int64_t ::v8::base::TimeDelta::InSeconds() const {
+int64_t v8::base::TimeDelta::InSeconds() const {
   if (IsMax()) {
     // Preserve max to prevent overflow.
     return ::std::numeric_limits<int64_t>::max();
@@ -221,7 +221,7 @@ int64_t ::v8::base::TimeDelta::InSeconds() const {
   return delta_ / Time::kMicrosecondsPerSecond;
 }
 
-double ::v8::base::TimeDelta::InMillisecondsF() const {
+double v8::base::TimeDelta::InMillisecondsF() const {
   if (IsMax()) {
     // Preserve max to prevent overflow.
     return ::std::numeric_limits<double>::infinity();
@@ -229,7 +229,7 @@ double ::v8::base::TimeDelta::InMillisecondsF() const {
   return static_cast<double>(delta_) / Time::kMicrosecondsPerMillisecond;
 }
 
-int64_t ::v8::base::TimeDelta::InMilliseconds() const {
+int64_t v8::base::TimeDelta::InMilliseconds() const {
   if (IsMax()) {
     // Preserve max to prevent overflow.
     return ::std::numeric_limits<int64_t>::max();
@@ -237,7 +237,7 @@ int64_t ::v8::base::TimeDelta::InMilliseconds() const {
   return delta_ / Time::kMicrosecondsPerMillisecond;
 }
 
-int64_t ::v8::base::TimeDelta::InMillisecondsRoundedUp() const {
+int64_t v8::base::TimeDelta::InMillisecondsRoundedUp() const {
   if (IsMax()) {
     // Preserve max to prevent overflow.
     return ::std::numeric_limits<int64_t>::max();
@@ -246,7 +246,7 @@ int64_t ::v8::base::TimeDelta::InMillisecondsRoundedUp() const {
          Time::kMicrosecondsPerMillisecond;
 }
 
-int64_t ::v8::base::TimeDelta::InMicroseconds() const {
+int64_t v8::base::TimeDelta::InMicroseconds() const {
   if (IsMax()) {
     // Preserve max to prevent overflow.
     return ::std::numeric_limits<int64_t>::max();
@@ -254,7 +254,7 @@ int64_t ::v8::base::TimeDelta::InMicroseconds() const {
   return delta_;
 }
 
-int64_t ::v8::base::TimeDelta::InNanoseconds() const {
+int64_t v8::base::TimeDelta::InNanoseconds() const {
   if (IsMax()) {
     // Preserve max to prevent overflow.
     return ::std::numeric_limits<int64_t>::max();
@@ -474,7 +474,7 @@ struct timeval ::v8::base::Time::ToTimeval() const {
 
 #endif  // V8_OS_POSIX || V8_OS_STARBOARD
 
-::v8::base::Time ::v8::base::Time::FromJsTime(double ms_since_epoch) {
+v8::base::Time v8::base::Time::FromJsTime(double ms_since_epoch) {
   // The epoch is a valid time, so this constructor doesn't interpret
   // 0 as the null time.
   if (ms_since_epoch == ::std::numeric_limits<double>::max()) {
@@ -484,7 +484,7 @@ struct timeval ::v8::base::Time::ToTimeval() const {
       static_cast<int64_t>(ms_since_epoch * kMicrosecondsPerMillisecond));
 }
 
-double ::v8::base::Time::ToJsTime() const {
+double v8::base::Time::ToJsTime() const {
   if (IsNull()) {
     // Preserve 0 so the invalid result doesn't depend on the platform.
     return 0;
@@ -496,7 +496,7 @@ double ::v8::base::Time::ToJsTime() const {
   return static_cast<double>(us_) / kMicrosecondsPerMillisecond;
 }
 
-::std::ostream& operator<<(::std::ostream& os, const ::v8::base::Time& time) {
+::std::ostream& operator<<(::std::ostream& os, const v8::base::Time& time) {
   return os << time.ToJsTime();
 }
 
@@ -838,20 +838,20 @@ ThreadTicks ThreadTicks::GetForThread(const HANDLE& thread_handle) {
 }
 
 // static
-bool ::v8::base::ThreadTicks::IsSupportedWin() {
+bool v8::base::ThreadTicks::IsSupportedWin() {
   static bool is_supported = base::CPU().has_non_stop_time_stamp_counter();
   return is_supported;
 }
 
 // static
-void ::v8::base::ThreadTicks::WaitUntilInitializedWin() {
+void v8::base::ThreadTicks::WaitUntilInitializedWin() {
 #ifndef V8_HOST_ARCH_ARM64
   while (TSCTicksPerSecond() == 0) ::Sleep(10);
 #endif
 }
 
 #ifndef V8_HOST_ARCH_ARM64
-double ::v8::base::ThreadTicks::TSCTicksPerSecond() {
+double v8::base::ThreadTicks::TSCTicksPerSecond() {
   DCHECK(IsSupported());
 
   // The value returned by QueryPerformanceFrequency() cannot be used as the TSC

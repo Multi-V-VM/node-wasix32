@@ -27,6 +27,7 @@ inline int Fclose(FILE* stream) {
 #endif
 }
 
-}  // namespace base }  // namespace v8
+}  // namespace base
+}  // namespace v8
 
 #endif  // V8_BASE_PLATFORM_WRAPPERS_H_

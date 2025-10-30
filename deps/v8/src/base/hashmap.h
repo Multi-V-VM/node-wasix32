@@ -571,7 +571,8 @@ class TemplateHashMap
   }
 };
 
-}  // namespace base }  // namespace v8
+}  // namespace base
+}  // namespace v8
 
 
 #endif  // V8_BASE_HASHMAP_H_

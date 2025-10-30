@@ -131,7 +131,8 @@ class DiscriminatedUnion {
   uint8_t tag_;
 };
 
-}  // namespace base }  // namespace v8
+}  // namespace base
+}  // namespace v8
 
 
 #endif  // V8_BASE_DISCRIMINATED_UNION_H_
