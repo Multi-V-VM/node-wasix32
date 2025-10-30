@@ -14,7 +14,7 @@
 #include "src/base/logging.h"
 #include "src/base/platform/platform.h"
 
-namespace v8::base {
+namespace v8 { namespace base {
 
 // Implementation detail, do not use outside this header. The public interface
 // is below.
@@ -185,7 +185,7 @@ class FormattedString {
 // explicitly declare template parameters anyway.
 FormattedString()->FormattedString<>;
 
-}  // namespace v8::base
+}  // namespace base }  // namespace v8
 
 
 #endif  // V8_BASE_STRING_FORMAT_H_

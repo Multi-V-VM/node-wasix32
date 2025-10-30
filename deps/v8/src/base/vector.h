@@ -16,7 +16,7 @@
 #include "src/base/logging.h"
 #include "src/base/macros.h"
 
-namespace v8::base {
+namespace v8 { namespace base {
 
 template <typename T>
 class Vector {
@@ -31,23 +31,23 @@ class Vector {
     DCHECK(length == 0 || data != nullptr);
   }
 
-  static ::v8::base::Vector<T> New(size_t length) {
-    return ::v8::base::Vector<T>(new T[length], length);
+  static Vector<T> New(size_t length) {
+    return Vector<T>(new T[length], length);
   }
 
   // Returns a vector using the same backing storage as this one,
   // spanning from and including 'from', to but not including 'to'.
-  ::v8::base::Vector<T> SubVector(size_t from, size_t to) const {
+  Vector<T> SubVector(size_t from, size_t to) const {
     DCHECK_LE(from, to);
     DCHECK_LE(to, length_);
-    return ::v8::base::Vector<T>(begin() + from, to - from);
+    return Vector<T>(begin() + from, to - from);
   }
-  ::v8::base::Vector<T> SubVectorFrom(size_t from) const {
+  Vector<T> SubVectorFrom(size_t from) const {
     return SubVector(from, length_);
   }
 
   template <class U>
-  void OverwriteWith(::v8::base::Vector<U> other) {
+  void OverwriteWith(Vector<U> other) {
     DCHECK_EQ(size(), other.size());
     std::copy(other.begin(), other.end(), begin());
   }
@@ -110,10 +110,10 @@ class Vector {
   }
 
   // Returns a clone of this vector with a new backing store.
-  ::v8::base::Vector<T> Clone() const {
+  Vector<T> Clone() const {
     T* result = new T[length_];
     for (size_t i = 0; i < length_; i++) result[i] = start_[i];
-    return ::v8::base::Vector<T>(result, length_);
+    return Vector<T>(result, length_);
   }
 
   void Truncate(size_t length) {
@@ -129,12 +129,12 @@ class Vector {
     length_ = 0;
   }
 
-  const ::v8::base::Vector<T> operator+(size_t offset) const {
+  const Vector<T> operator+(size_t offset) const {
     DCHECK_LE(offset, length_);
-    return ::v8::base::Vector<T>(start_ + offset, length_ - offset);
+    return Vector<T>(start_ + offset, length_ - offset);
   }
 
-  ::v8::base::Vector<T> operator+=(size_t offset) {
+  Vector<T> operator+=(size_t offset) {
     DCHECK_LE(offset, length_);
     start_ += offset;
     length_ -= offset;
@@ -150,37 +150,37 @@ class Vector {
             typename = typename std::enable_if<
                 std::is_convertible<T*, const U*>::value && 
                 (sizeof(U) == sizeof(T))>::type>
-  operator ::v8::base::Vector<const U>() const {
+  operator Vector<const U>() const {
     return {start_, length_};
   }
 
   template <typename S>
-  static ::v8::base::Vector<T> cast(::v8::base::Vector<S> input) {
+  static Vector<T> cast(Vector<S> input) {
     // Casting is potentially dangerous, so be really restrictive here. This
     // might be lifted once we have use cases for that.
     static_assert(std::is_trivial_v<S> && std::is_standard_layout_v<S>);
     static_assert(std::is_trivial_v<T> && std::is_standard_layout_v<T>);
     DCHECK_EQ(0, (input.size() * sizeof(S)) % sizeof(T));
     DCHECK_EQ(0, reinterpret_cast<uintptr_t>(input.begin()) % alignof(T));
-    return ::v8::base::Vector<T>(reinterpret_cast<T*>(input.begin()),
+    return Vector<T>(reinterpret_cast<T*>(input.begin()),
                      input.size() * sizeof(S) / sizeof(T));
   }
 
   // Equality comparison
-  bool operator==(const ::v8::base::Vector<T>& other) const {
+  bool operator==(const Vector<T>& other) const {
     if (length_ != other.length_) return false;
     if (start_ == other.start_) return true;
     if (start_ == nullptr || other.start_ == nullptr) return false;
     return std::equal(start_, start_ + length_, other.start_);
   }
 
-  bool operator!=(const ::v8::base::Vector<T>& other) const {
+  bool operator!=(const Vector<T>& other) const {
     return !(*this == other);
   }
 
   template <typename TT = T,
             typename = typename std::enable_if<!std::is_const<TT>::value>::type>
-  bool operator==(const ::v8::base::Vector<const T>& other) const {
+  bool operator==(const Vector<const T>& other) const {
     return std::equal(begin(), end(), other.begin(), other.end());
   }
 
@@ -416,18 +416,17 @@ class EmbeddedVector : public ::v8::base::Vector<T> {
   T buffer_[kSize];
 };
 
-}  // namespace v8::base
+}  // namespace base }  // namespace v8
 
-// Provide compatibility alias used in newer V8 sources: base::Owned::v8::base::Vector<T>
+// Provide compatibility alias used in newer V8 sources: base::Owned::Vector<T>
 // resolves to OwnedVector<T>.
 namespace v8 {
 namespace base {
 namespace Owned {
-namespace v8::base {
 template <typename T>
 using Vector = ::v8::base::OwnedVector<T>;
-} }  // namespace v8::base
 }  // namespace Owned
-}  // namespace v8::base
+}  // namespace base
+}  // namespace v8
 
 #endif  // V8_BASE_VECTOR_H_

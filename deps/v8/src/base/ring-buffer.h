@@ -7,7 +7,7 @@
 
 #include <cstdint>
 
-namespace v8::base {
+namespace v8 { namespace base {
 
 template <typename T, uint8_t _SIZE = 10>
 class RingBuffer final {
@@ -57,7 +57,7 @@ class RingBuffer final {
   bool is_full_ = false;
 };
 
-}  // namespace v8::base
+}  // namespace base }  // namespace v8
 
 
 #endif  // V8_BASE_RING_BUFFER_H_

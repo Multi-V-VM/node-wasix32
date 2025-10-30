@@ -2,10 +2,9 @@
 #define V8_WASI_NAMESPACE_FIX_H_
 
 #ifdef __wasi__
-// Intentionally empty: avoid creating nested namespace aliases like v8::v8 or
-// v8::std which break qualified lookups within V8 public headers.
-// If specific bridges are required, implement them locally in translation
-// units to prevent global side effects during header inclusion.
+// Intentionally kept minimal. Avoid adding namespace aliases that can conflict
+// with real declarations (e.g., defining v8::v8). This header mainly exists as
+// a hook to include from sites that require an early, no-op bridge.
 #endif  // __wasi__
 
 #endif  // V8_WASI_NAMESPACE_FIX_H_

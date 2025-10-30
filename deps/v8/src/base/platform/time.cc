@@ -178,9 +178,10 @@ V8_INLINE uint64_t QPCNowRaw() {
 
 }  // namespace
 
-namespace v8::base {
+namespace v8 {
+namespace base {
 
-int TimeDelta::InDays() const {
+int ::v8::base::TimeDelta::InDays() const {
   if (IsMax()) {
     // Preserve max to prevent overflow.
     return ::std::numeric_limits<int>::max();
@@ -188,7 +189,7 @@ int TimeDelta::InDays() const {
   return static_cast<int>(delta_ / Time::kMicrosecondsPerDay);
 }
 
-int TimeDelta::InHours() const {
+int ::v8::base::TimeDelta::InHours() const {
   if (IsMax()) {
     // Preserve max to prevent overflow.
     return ::std::numeric_limits<int>::max();
@@ -196,7 +197,7 @@ int TimeDelta::InHours() const {
   return static_cast<int>(delta_ / Time::kMicrosecondsPerHour);
 }
 
-int TimeDelta::InMinutes() const {
+int ::v8::base::TimeDelta::InMinutes() const {
   if (IsMax()) {
     // Preserve max to prevent overflow.
     return ::std::numeric_limits<int>::max();
@@ -204,7 +205,7 @@ int TimeDelta::InMinutes() const {
   return static_cast<int>(delta_ / Time::kMicrosecondsPerMinute);
 }
 
-double TimeDelta::InSecondsF() const {
+double ::v8::base::TimeDelta::InSecondsF() const {
   if (IsMax()) {
     // Preserve max to prevent overflow.
     return ::std::numeric_limits<double>::infinity();
@@ -212,7 +213,7 @@ double TimeDelta::InSecondsF() const {
   return static_cast<double>(delta_) / Time::kMicrosecondsPerSecond;
 }
 
-int64_t TimeDelta::InSeconds() const {
+int64_t ::v8::base::TimeDelta::InSeconds() const {
   if (IsMax()) {
     // Preserve max to prevent overflow.
     return ::std::numeric_limits<int64_t>::max();
@@ -220,7 +221,7 @@ int64_t TimeDelta::InSeconds() const {
   return delta_ / Time::kMicrosecondsPerSecond;
 }
 
-double TimeDelta::InMillisecondsF() const {
+double ::v8::base::TimeDelta::InMillisecondsF() const {
   if (IsMax()) {
     // Preserve max to prevent overflow.
     return ::std::numeric_limits<double>::infinity();
@@ -228,7 +229,7 @@ double TimeDelta::InMillisecondsF() const {
   return static_cast<double>(delta_) / Time::kMicrosecondsPerMillisecond;
 }
 
-int64_t TimeDelta::InMilliseconds() const {
+int64_t ::v8::base::TimeDelta::InMilliseconds() const {
   if (IsMax()) {
     // Preserve max to prevent overflow.
     return ::std::numeric_limits<int64_t>::max();
@@ -236,7 +237,7 @@ int64_t TimeDelta::InMilliseconds() const {
   return delta_ / Time::kMicrosecondsPerMillisecond;
 }
 
-int64_t TimeDelta::InMillisecondsRoundedUp() const {
+int64_t ::v8::base::TimeDelta::InMillisecondsRoundedUp() const {
   if (IsMax()) {
     // Preserve max to prevent overflow.
     return ::std::numeric_limits<int64_t>::max();
@@ -245,7 +246,7 @@ int64_t TimeDelta::InMillisecondsRoundedUp() const {
          Time::kMicrosecondsPerMillisecond;
 }
 
-int64_t TimeDelta::InMicroseconds() const {
+int64_t ::v8::base::TimeDelta::InMicroseconds() const {
   if (IsMax()) {
     // Preserve max to prevent overflow.
     return ::std::numeric_limits<int64_t>::max();
@@ -253,7 +254,7 @@ int64_t TimeDelta::InMicroseconds() const {
   return delta_;
 }
 
-int64_t TimeDelta::InNanoseconds() const {
+int64_t ::v8::base::TimeDelta::InNanoseconds() const {
   if (IsMax()) {
     // Preserve max to prevent overflow.
     return ::std::numeric_limits<int64_t>::max();
@@ -263,7 +264,7 @@ int64_t TimeDelta::InNanoseconds() const {
 
 #if V8_OS_DARWIN
 
-TimeDelta TimeDelta::FromMachTimespec(struct mach_timespec ts) {
+::v8::base::TimeDelta ::v8::base::TimeDelta::FromMachTimespec(struct mach_timespec ts) {
   DCHECK_GE(ts.tv_nsec, 0);
   DCHECK_LT(ts.tv_nsec,
             static_cast<long>(Time::kNanosecondsPerSecond));  // NOLINT
@@ -271,7 +272,7 @@ TimeDelta TimeDelta::FromMachTimespec(struct mach_timespec ts) {
                    ts.tv_nsec / Time::kNanosecondsPerMicrosecond);
 }
 
-struct mach_timespec TimeDelta::ToMachTimespec() const {
+struct mach_timespec ::v8::base::TimeDelta::ToMachTimespec() const {
   struct mach_timespec ts;
   DCHECK_GE(delta_, 0);
   ts.tv_sec = static_cast<unsigned>(delta_ / Time::kMicrosecondsPerSecond);
@@ -284,7 +285,7 @@ struct mach_timespec TimeDelta::ToMachTimespec() const {
 
 #if V8_OS_POSIX
 
-TimeDelta TimeDelta::FromTimespec(struct timespec ts) {
+::v8::base::TimeDelta ::v8::base::TimeDelta::FromTimespec(struct timespec ts) {
   DCHECK_GE(ts.tv_nsec, 0);
   DCHECK_LT(ts.tv_nsec,
             static_cast<long>(Time::kNanosecondsPerSecond));  // NOLINT
@@ -292,7 +293,7 @@ TimeDelta TimeDelta::FromTimespec(struct timespec ts) {
                    ts.tv_nsec / Time::kNanosecondsPerMicrosecond);
 }
 
-struct timespec TimeDelta::ToTimespec() const {
+struct timespec ::v8::base::TimeDelta::ToTimespec() const {
   struct timespec ts;
   ts.tv_sec = static_cast<time_t>(delta_ / Time::kMicrosecondsPerSecond);
   ts.tv_nsec = (delta_ % Time::kMicrosecondsPerSecond) *
@@ -400,7 +401,7 @@ FILETIME Time::ToFiletime() const {
 
 #elif V8_OS_POSIX || V8_OS_STARBOARD
 
-Time Time::Now() {
+::v8::base::Time ::v8::base::Time::Now() {
   struct timeval tv;
   int result = gettimeofday(&tv, nullptr);
   DCHECK_EQ(0, result);
@@ -408,9 +409,9 @@ Time Time::Now() {
   return FromTimeval(tv);
 }
 
-Time Time::NowFromSystemTime() { return Now(); }
+::v8::base::Time ::v8::base::Time::NowFromSystemTime() { return Now(); }
 
-Time Time::FromTimespec(struct timespec ts) {
+::v8::base::Time ::v8::base::Time::FromTimespec(struct timespec ts) {
   DCHECK_GE(ts.tv_nsec, 0);
   DCHECK_LT(ts.tv_nsec, kNanosecondsPerSecond);
   if (ts.tv_nsec == 0 && ts.tv_sec == 0) {
@@ -424,7 +425,7 @@ Time Time::FromTimespec(struct timespec ts) {
               ts.tv_nsec / kNanosecondsPerMicrosecond);
 }
 
-struct timespec Time::ToTimespec() const {
+struct timespec ::v8::base::Time::ToTimespec() const {
   struct timespec ts;
   if (IsNull()) {
     ts.tv_sec = 0;
@@ -441,7 +442,7 @@ struct timespec Time::ToTimespec() const {
   return ts;
 }
 
-Time Time::FromTimeval(struct timeval tv) {
+::v8::base::Time ::v8::base::Time::FromTimeval(struct timeval tv) {
   DCHECK_GE(tv.tv_usec, 0);
   DCHECK(tv.tv_usec < static_cast<suseconds_t>(kMicrosecondsPerSecond));
   if (tv.tv_usec == 0 && tv.tv_sec == 0) {
@@ -454,7 +455,7 @@ Time Time::FromTimeval(struct timeval tv) {
   return Time(tv.tv_sec * kMicrosecondsPerSecond + tv.tv_usec);
 }
 
-struct timeval Time::ToTimeval() const {
+struct timeval ::v8::base::Time::ToTimeval() const {
   struct timeval tv;
   if (IsNull()) {
     tv.tv_sec = 0;
@@ -473,7 +474,7 @@ struct timeval Time::ToTimeval() const {
 
 #endif  // V8_OS_POSIX || V8_OS_STARBOARD
 
-Time Time::FromJsTime(double ms_since_epoch) {
+::v8::base::Time ::v8::base::Time::FromJsTime(double ms_since_epoch) {
   // The epoch is a valid time, so this constructor doesn't interpret
   // 0 as the null time.
   if (ms_since_epoch == ::std::numeric_limits<double>::max()) {
@@ -483,7 +484,7 @@ Time Time::FromJsTime(double ms_since_epoch) {
       static_cast<int64_t>(ms_since_epoch * kMicrosecondsPerMillisecond));
 }
 
-double Time::ToJsTime() const {
+double ::v8::base::Time::ToJsTime() const {
   if (IsNull()) {
     // Preserve 0 so the invalid result doesn't depend on the platform.
     return 0;
@@ -495,7 +496,7 @@ double Time::ToJsTime() const {
   return static_cast<double>(us_) / kMicrosecondsPerMillisecond;
 }
 
-::std::ostream& operator<<(::std::ostream& os, const Time& time) {
+::std::ostream& operator<<(::std::ostream& os, const ::v8::base::Time& time) {
   return os << time.ToJsTime();
 }
 
@@ -540,7 +541,7 @@ static_assert(sizeof(LastTimeAndRolloversState) <=
 // which will roll over the 32-bit value every ~49 days.  We try to track
 // rollover ourselves, which works if TimeTicks::Now() is called at least every
 // 48.8 days (not 49 days because only changes in the top 8 bits get noticed).
-TimeTicks RolloverProtectedNow() {
+::v8::base::TimeTicks RolloverProtectedNow() {
   LastTimeAndRolloversState state;
   DWORD now;  // DWORD is always unsigned 32 bits.
 
@@ -570,8 +571,8 @@ TimeTicks RolloverProtectedNow() {
     // {original} has been updated by the {compare_exchange_weak}.
   }
 
-  return TimeTicks() +
-         TimeDelta::FromMilliseconds(
+  return ::v8::base::TimeTicks() +
+         ::v8::base::TimeDelta::FromMilliseconds(
              now + (static_cast<uint64_t>(state.as_values.rollovers) << 32));
 }
 
@@ -618,7 +619,7 @@ using TimeTicksNowFunction = decltype(&TimeTicks::Now);
 TimeTicksNowFunction g_time_ticks_now_function = &InitialTimeTicksNowFunction;
 int64_t g_qpc_ticks_per_second = 0;
 
-TimeDelta QPCValueToTimeDelta(LONGLONG qpc_value) {
+::v8::base::TimeDelta QPCValueToTimeDelta(LONGLONG qpc_value) {
   // Ensure that the assignment to |g_qpc_ticks_per_second|, made in
   // InitializeNowFunctionPointer(), has happened by this point.
   std::atomic_thread_fence(std::memory_order_acquire);
@@ -837,20 +838,20 @@ ThreadTicks ThreadTicks::GetForThread(const HANDLE& thread_handle) {
 }
 
 // static
-bool ThreadTicks::IsSupportedWin() {
+bool ::v8::base::ThreadTicks::IsSupportedWin() {
   static bool is_supported = base::CPU().has_non_stop_time_stamp_counter();
   return is_supported;
 }
 
 // static
-void ThreadTicks::WaitUntilInitializedWin() {
+void ::v8::base::ThreadTicks::WaitUntilInitializedWin() {
 #ifndef V8_HOST_ARCH_ARM64
   while (TSCTicksPerSecond() == 0) ::Sleep(10);
 #endif
 }
 
 #ifndef V8_HOST_ARCH_ARM64
-double ThreadTicks::TSCTicksPerSecond() {
+double ::v8::base::ThreadTicks::TSCTicksPerSecond() {
   DCHECK(IsSupported());
 
   // The value returned by QueryPerformanceFrequency() cannot be used as the TSC
@@ -909,4 +910,5 @@ double ThreadTicks::TSCTicksPerSecond() {
 #endif  // !defined(V8_HOST_ARCH_ARM64)
 #endif  // V8_OS_WIN
 
-}  // namespace v8::base
+}  // namespace base
+}  // namespace v8

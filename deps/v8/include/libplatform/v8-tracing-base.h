@@ -29,7 +29,7 @@ class TraceObject {
       const char* scope, uint64_t id, uint64_t bind_id, int num_args,
       const char** arg_names, const uint8_t* arg_types,
       const uint64_t* arg_values,
-      std::unique_ptr<v8::ConvertableToTraceFormat>* arg_convertables,
+      std::unique_ptr<::v8::ConvertableToTraceFormat>* arg_convertables,
       unsigned int flags, int64_t timestamp, int64_t cpu_timestamp);
   void UpdateDuration(int64_t timestamp, int64_t cpu_timestamp);
   
@@ -47,7 +47,7 @@ class TraceObject {
   const char** arg_names() { return arg_names_; }
   uint8_t* arg_types() { return arg_types_; }
   ArgValue* arg_values() { return arg_values_; }
-  std::unique_ptr<v8::ConvertableToTraceFormat>* arg_convertables() {
+  std::unique_ptr<::v8::ConvertableToTraceFormat>* arg_convertables() {
     return arg_convertables_;
   }
   unsigned int flags() const { return flags_; }

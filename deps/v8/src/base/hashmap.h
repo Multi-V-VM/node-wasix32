@@ -17,7 +17,7 @@
 #include "src/base/platform/memory.h"
 
 
-namespace v8::base {
+namespace v8 { namespace base {
 
 class DefaultAllocationPolicy {
  public:
@@ -571,7 +571,7 @@ class TemplateHashMap
   }
 };
 
-}  // namespace v8::base
+}  // namespace base }  // namespace v8
 
 
 #endif  // V8_BASE_HASHMAP_H_

@@ -15,6 +15,7 @@
 #ifdef __has_include
 #if __has_include(<__chrono/file_clock.h>)
 #define _LIBCPP_CHRONO_FILE_CLOCK_H
+#ifdef V8_WASI_STD_POLYFILLS_ENABLED
 namespace std {
 namespace chrono {
 struct file_clock {
@@ -29,6 +30,7 @@ struct file_clock {
 };
 }  // namespace chrono
 }  // namespace std
+#endif  // V8_WASI_STD_POLYFILLS_ENABLED
 #endif
 #endif
 

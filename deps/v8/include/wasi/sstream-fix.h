@@ -9,6 +9,7 @@
 // Force explicit instantiation of string stream classes for WASI
 // This resolves template instantiation errors
 
+#ifdef V8_WASI_STD_POLYFILLS_ENABLED
 namespace std {
 // Explicit template instantiations
 extern template class basic_stringbuf<char, char_traits<char>, allocator<char>>;
@@ -19,6 +20,7 @@ extern template class basic_ostringstream<char, char_traits<char>,
 extern template class basic_stringstream<char, char_traits<char>,
                                          allocator<char>>;
 }  // namespace std
+#endif  // V8_WASI_STD_POLYFILLS_ENABLED
 
 #endif  // __wasi__
 #endif  // WASI_SSTREAM_FIX_H

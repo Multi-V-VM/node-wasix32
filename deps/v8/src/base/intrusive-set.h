@@ -11,7 +11,7 @@
 
 #include "src/base/logging.h"
 
-namespace v8::base {
+namespace v8 { namespace base {
 
 class IntrusiveSetIndex {
  private:
@@ -121,7 +121,7 @@ class IntrusiveSet {
   size_t& Index(T x) const { return index_functor_(x).value; }
 };
 
-}  // namespace v8::base
+}  // namespace base }  // namespace v8
 
 
 #endif  // V8_BASE_INTRUSIVE_SET_H_

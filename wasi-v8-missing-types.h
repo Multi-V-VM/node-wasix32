@@ -1,36 +1,16 @@
+// This legacy shim is superseded by deps/v8/include/wasi/wasi-v8-missing-types.h.
+// Keep it as a thin forwarding header to avoid duplicate definitions and
+// accidental nested namespace v8 blocks when included from within namespace v8.
 #ifndef WASI_V8_MISSING_TYPES_H_
 #define WASI_V8_MISSING_TYPES_H_
 
 #ifdef __wasi__
 
-// This header imports types from v8::base into v8::internal::base namespace
-// for WASI builds where they are otherwise missing
+#include "deps/v8/include/wasi/wasi-v8-missing-types.h"
 
-#include <cstdint>
-#include <functional>
-#include <iterator>
-#include <utility>
-#include <memory>
-#include <cstdlib>
+#endif  // __wasi__
 
-// Include the actual V8 base headers
-#include "src/base/hashmap.h"
-#include "src/base/pointer-with-payload.h"
-#include "src/base/threaded-list.h"
-#include "src/base/bit-field.h"
-#include "src/base/atomicops.h"
-#include "src/base/atomic-utils.h"
-#include "src/base/platform/mutex.h"
-#include "src/base/vector.h"
-#include "src/base/address-region.h"
-#include "src/base/discriminated-union.h"
-#include "src/base/strings.h"
-#include "src/base/hashing.h"
-#include "src/base/container-utils.h"
-
-namespace v8 {
-namespace internal {
-namespace base {
+#endif  // WASI_V8_MISSING_TYPES_H_
 
 // ============================================================================
 // DefaultAllocationPolicy - Simple allocator policy using malloc/free

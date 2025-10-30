@@ -790,7 +790,7 @@ class Shell : public i::AllStatic {
   }
 
   static Global<Context> evaluation_context_;
-  static base::v8::Once::OnceType quit_once_;
+  static ::v8::base::OnceType quit_once_;
   static Global<Function> stringify_function_;
 
   static ::v8::base::Mutex profiler_end_callback_lock_;

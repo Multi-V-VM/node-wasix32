@@ -19,7 +19,7 @@
 
 #include "src/base/numerics/integral_constant_like.h"
 
-namespace v8::base::internal {
+namespace v8 { namespace base { namespace internal {
 
 // The std library doesn't provide a binary max_exponent for integers, however
 // we can compute an analog using std::numeric_limits<>::digits.
@@ -652,6 +652,6 @@ constexpr Dst CommonMaxOrMin(bool is_min) {
   return is_min ? kCommonMin<Dst, Src> : kCommonMax<Dst, Src>;
 }
 
-}  // namespace v8::base::internal
+}  // namespace internal }  // namespace base }  // namespace v8
 
 #endif  // V8_BASE_NUMERICS_SAFE_CONVERSIONS_IMPL_H_

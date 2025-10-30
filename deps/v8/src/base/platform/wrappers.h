@@ -9,7 +9,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-namespace v8::base {
+namespace v8 { namespace base {
 
 inline FILE* Fopen(const char* filename, const char* mode) {
 #if V8_OS_STARBOARD
@@ -27,6 +27,6 @@ inline int Fclose(FILE* stream) {
 #endif
 }
 
-}  // namespace v8::base
+}  // namespace base }  // namespace v8
 
 #endif  // V8_BASE_PLATFORM_WRAPPERS_H_

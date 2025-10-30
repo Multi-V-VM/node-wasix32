@@ -1,6 +1,5 @@
-#ifdef __wasi__
-#include "wasi/concepts-fix.h"
-#endif
+// Avoid pulling WASI std concept polyfills into this header to prevent
+// accidental namespace std leakage when included under namespace scopes.
 // WASI-specific platform definitions for V8
 #ifndef V8_INCLUDE_WASI_V8_PLATFORM_WASI_H_
 #define V8_INCLUDE_WASI_V8_PLATFORM_WASI_H_
@@ -55,9 +54,6 @@ namespace base {
   
   // Atomic types for WASI
   using Atomic32 = int32_t;
-  
-  
-  
 }
 
 // V8 internal namespace constants for WASI
@@ -87,76 +83,17 @@ namespace v8 { enum class TaskPriority; }
 // ensure std namespace resolution works properly in WASI
 //   // Commented out to avoid conflicts
 #endif
-namespace v8 {
+// Avoid redefining v8 task types here; use those from v8-task-full.h
 
-class Isolate;
-
-// Task classes for V8
-class Task {
- public:
-  virtual ~Task() = default;
-  virtual void Run() = 0;
-};
-
-class IdleTask {
- public:
-  virtual ~IdleTask() = default;
-  virtual void Run(double deadline_in_seconds) = 0;
-};
-
-// Forward declaration
-class JobDelegate;
-
-class JobTask {
- public:
-  virtual ~JobTask() = default;
-  virtual void Run(JobDelegate* delegate) = 0;
-  virtual size_t GetMaxConcurrency(size_t worker_count) const = 0;
-};
-
-class JobDelegate {
- public:
-  virtual ~JobDelegate() = default;
-  virtual void NotifyConcurrencyIncrease() = 0;
-  virtual bool ShouldYield() = 0;
-  virtual uint8_t GetTaskId() = 0;
-  virtual bool IsJoiningThread() const = 0;
-};
-
-class JobHandle {
- public:
-  virtual ~JobHandle() = default;
-  virtual void NotifyConcurrencyIncrease() {}
-  virtual bool UpdatePriorityEnabled() { return false; }
-  virtual void UpdatePriority(TaskPriority) {}
-  virtual void Join() {}
-  virtual void Cancel() {}
-  virtual void CancelAndDetach() {}
-  virtual bool IsActive() { return false; }
-  virtual bool IsValid() { return false; }
-};
-
-class TaskRunner {
- public:
-  virtual ~TaskRunner() = default;
-  virtual void PostTask(std::unique_ptr<Task> task) = 0;
-  virtual void PostDelayedTask(std::unique_ptr<Task> task, double delay_in_seconds) = 0;
-  virtual void PostIdleTask(std::unique_ptr<IdleTask> task) = 0;
-  virtual bool IdleTasksEnabled() = 0;
-};
-
-}  // namespace v8
-
-// Tracing types are provided by libplatform. Pull them in to avoid redefs.
-#include "libplatform/v8-tracing-base.h"
-#include "libplatform/v8-tracing.h"
+// Avoid including libplatform tracing headers here. Including standard library
+// headers from within this header can accidentally occur while a parent file
+// has an open `namespace v8 {}` block, which would nest `namespace std` under
+// `v8::std` and break libc++ lookups. Downstream users that need tracing should
+// include `v8-platform-full.h` or libplatform headers at TU global scope.
 
 // 枚举和类型定义
-namespace v8 {
-enum class MessageLoopBehavior { kDoNotWait, kWaitForWork };
-enum class TaskPriority { kBestEffort, kUserVisible, kUserBlocking };
-class SourceLocation;
-}  // namespace v8
+// MessageLoopBehavior, TaskPriority, and other platform types are provided
+// by v8-platform-full.h; do not redeclare here.
 
 namespace v8 {
 

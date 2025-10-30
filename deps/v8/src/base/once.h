@@ -13,23 +13,17 @@
 
 // Declare a process-wide once control variable with static initialization.
 #ifndef V8_DECLARE_ONCE
-#define V8_DECLARE_ONCE(name) ::v8::Once::OnceType name = V8_ONCE_INIT
+#define V8_DECLARE_ONCE(name) ::v8::base::OnceType name = V8_ONCE_INIT
 #endif
 
-namespace v8 {
+namespace v8 { namespace base {
 
-// Provide v8::Once wrapper expected by headers using v8::Once::OnceType.
-struct Once {
-  using OnceType = int;
-};
-
-namespace base {
-
+// A simple integer-based once control variable type.
 using OnceType = int;
 
 // Simple CallOnce implementation used by LazyInstance on WASI and generic builds.
 template <typename Function, typename Storage>
-inline void CallOnce(Once::OnceType* once, Function function, Storage storage) {
+inline void CallOnce(OnceType* once, Function function, Storage storage) {
   if (*once == ONCE_STATE_UNINITIALIZED) {
     function(storage);
     *once = ONCE_STATE_DONE;
@@ -38,14 +32,13 @@ inline void CallOnce(Once::OnceType* once, Function function, Storage storage) {
 
 // Backwards-compatible overload taking only a function with no storage param.
 template <typename Function>
-inline void CallOnce(Once::OnceType* once, Function function) {
+inline void CallOnce(OnceType* once, Function function) {
   if (*once == ONCE_STATE_UNINITIALIZED) {
     function();
     *once = ONCE_STATE_DONE;
   }
 }
 
-}  // namespace base
-}  // namespace v8
+}  // namespace base }  // namespace v8
 
 #endif  // V8_BASE_ONCE_H_

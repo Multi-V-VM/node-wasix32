@@ -23,7 +23,7 @@
 #define BASE_HAS_OPTIMIZED_SAFE_CONVERSIONS (0)
 #endif
 
-namespace v8::base {
+namespace v8 { namespace base {
 namespace internal {
 
 #if !BASE_HAS_OPTIMIZED_SAFE_CONVERSIONS
@@ -382,6 +382,6 @@ ClampRound(Src value) {
   return saturated_cast<Dst>(rounded);
 }
 
-}  // namespace v8::base
+}  // namespace base }  // namespace v8
 
 #endif  // V8_BASE_NUMERICS_SAFE_CONVERSIONS_H_

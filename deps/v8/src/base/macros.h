@@ -114,7 +114,7 @@ char (&ArraySizeHelper(const T (&array)[N]))[N];
 // reinterpret_cast<>(), or static_cast<>() when casting between void* and other
 // pointers, and then look at https://eel.is/c++draft/basic.lval#11 as that's
 // probably UB also.
-namespace v8::base {
+namespace v8 { namespace base {
 
 template <class Dest, class Source>
 V8_INLINE Dest bit_cast(Source const& source) {
@@ -127,7 +127,7 @@ V8_INLINE Dest bit_cast(Source const& source) {
 #endif
 }
 
-}  // namespace v8::base
+}  // namespace base }  // namespace v8
 
 // Explicitly declare the assignment operator as deleted.
 // Note: This macro is deprecated and will be removed soon. Please explicitly

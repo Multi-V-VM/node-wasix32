@@ -14,7 +14,7 @@
 
 #include "testing/gtest/include/gtest/gtest.h"
 
-namespace v8::base::numerics {
+namespace v8 { namespace base { namespace numerics {
 
 TEST(NumericsTest, FromNativeEndian) {
   // The implementation of FromNativeEndian and FromLittleEndian assumes the
@@ -550,4 +550,4 @@ TEST(NumericsTest, ToBigEndian) {
   }
 }
 
-}  // namespace v8::base::numerics
+}  // namespace numerics }  // namespace base }  // namespace v8

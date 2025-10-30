@@ -1,8 +1,6 @@
 #ifdef __wasi__
-// Force standard library headers to be instantiated at global scope before any
-// V8 headers might include them from within namespace v8 blocks. This prevents
-// accidental creation of nested v8::std or v8::v8::std symbols.
-#include "wasi/std-preinclude.h"
+// Avoid pulling standard headers from within namespace contexts; let each TU
+// include what it needs at global scope.
 #include "wasi/concepts-fix.h"
 #endif
 #ifndef V8_CONFIG_H_

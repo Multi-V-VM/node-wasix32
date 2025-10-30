@@ -71,15 +71,12 @@ constexpr int CountLeadingZeros32(uint32_t value) { return __builtin_clz(value);
 constexpr int CountLeadingZeros64(uint64_t value) { return __builtin_clzll(value); }
 constexpr int CountLeadingZeros(uint32_t value) { return __builtin_clz(value); }
 constexpr int CountLeadingZeros(uint64_t value) { return __builtin_clzll(value); }
-// Provide a size_t overload to avoid ambiguous calls where sizeof(size_t)
-// differs from builtin overloads.
+#if SIZE_MAX != UINT64_MAX
+// Only provide size_t overload when it's not identical to uint64_t.
 constexpr int CountLeadingZeros(size_t value) {
-  if constexpr (sizeof(size_t) == 8) {
-    return __builtin_clzll(static_cast<uint64_t>(value));
-  } else {
-    return __builtin_clz(static_cast<uint32_t>(value));
-  }
+  return __builtin_clz(static_cast<uint32_t>(value));
 }
+#endif
 constexpr int CountLeadingZeros(uint8_t value) {
   return __builtin_clz(static_cast<uint32_t>(value)) - (32 - 8);
 }
@@ -284,6 +281,9 @@ constexpr int64_t SignedSaturatedSub64(int64_t a, int64_t b) {
   return a - b;
 }
 
+// Close WASI-specific section
+#endif  // __wasi__
+
 // IsPowerOfTwo helper used by RNG; accept signed and cast to unsigned
 template <typename T,
           typename ::std::enable_if<::std::is_integral<T>::value ||
@@ -306,11 +306,14 @@ constexpr int BitWidth(T value) {
   }
 }
 
-#endif
+
 
 }  // namespace bits
 }  // namespace base
 }  // namespace v8
+
+// Close the generic implementations block (#if 1)
+#endif
 
 // Exporting into v8::internal::base::bits can create nested namespace issues
 // when included from within a namespace v8 block. Avoid this bridge on WASI.

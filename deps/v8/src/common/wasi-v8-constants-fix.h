@@ -14,7 +14,7 @@
 
 // Execution policies for parallel algorithms (C++17) - provide minimal stubs
 // when the libc++ headers bundled with the WASI SDK do not expose them yet.
-#if !defined(__cpp_lib_execution)
+#if !defined(__cpp_lib_execution) && defined(V8_WASI_STD_POLYFILLS_ENABLED)
 namespace std {
 namespace execution {
 struct sequenced_policy {};

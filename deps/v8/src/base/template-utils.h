@@ -1,5 +1,6 @@
 #ifdef __wasi__
-#include "wasi/std-preinclude.h"
+// Avoid including std-preinclude here; include any needed standard headers
+// at TU global scope instead to prevent v8::std pollution.
 #include "wasi/cpp20-compat.h"
 #endif
 

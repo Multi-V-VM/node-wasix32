@@ -1,6 +1,3 @@
-#ifdef __wasi__
-#include "wasi/concepts-fix.h"
-#endif
 #ifndef INCLUDE_V8_HANDLE_BASE_H_
 #define INCLUDE_V8_HANDLE_BASE_H_
 

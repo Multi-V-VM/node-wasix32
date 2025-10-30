@@ -1,6 +1,6 @@
-#ifdef __wasi__
-#include "wasi/concepts-fix.h"
-#endif
+// Avoid pulling any std polyfills here; this header is widely included from
+// within namespace v8/internal contexts. Including shims that open
+// `namespace std` here would create `v8::std` and break libc++ lookups.
 // Copyright 2021 the V8 project authors. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
@@ -14,6 +14,7 @@
 #include <cstddef>
 #include <iterator>
 #include <type_traits>
+#include <utility>
 
 #include "v8config.h"  // NOLINT(build/include_directory)
 
@@ -29,50 +30,12 @@
 #define V8_HAVE_SPACESHIP_OPERATOR 0
 #endif
 
-#ifdef __wasi__
-// WASI compatibility - provide missing types and disable ranges
-// Don't redefine ranges if they already exist (C++20 ranges available)
-#if !defined(__cpp_lib_ranges)
-namespace std {
-namespace ranges {
-template <typename T>
-inline constexpr bool enable_view = false;
-template <typename T>
-inline constexpr bool enable_borrowed_range = false;
-}  // namespace ranges
-}  // namespace std
-#endif
-
 namespace v8 {
 
 template <typename T>
 class V8_EXPORT MemorySpan;
 
 }  // namespace v8
-
-#else
-// TODO(pkasting): Make this block unconditional after dropping support for old
-// libstdc++ versions.
-#if __has_include(<ranges>)
-#include <ranges>
-
-namespace v8 {
-
-template <typename T>
-class V8_EXPORT MemorySpan;
-
-}  // namespace v8
-
-// Mark `MemorySpan` as satisfying the `view` and `borrowed_range` concepts.
-// This should be done before the definition of `MemorySpan`, so that any
-// inlined calls to range functionality use the correct specializations.
-template <typename T>
-inline constexpr bool std::ranges::enable_view<v8::MemorySpan<T>> = true;
-template <typename T>
-inline constexpr bool std::ranges::enable_borrowed_range<v8::MemorySpan<T>> =
-    true;
-#endif
-#endif  // __wasi__
 
 namespace v8 {
 
@@ -87,44 +50,50 @@ namespace v8 {
  * implemented by std::span.
  */
 template <typename T>
-class V8_EXPORT MemorySpan {
- private:
+    class V8_EXPORT MemorySpan {
+     private:
   /** Some C++ machinery, brought from the future. */
   template <typename From, typename To>
-  using is_array_convertible = std::is_convertible<From (*)[], To (*)[]>;
+  using is_array_convertible = ::std::is_convertible<From (*)[], To (*)[]>;
   template <typename From, typename To>
   static constexpr bool is_array_convertible_v =
       is_array_convertible<From, To>::value;
 
   template <typename It>
-  using iter_reference_t = decltype(*std::declval<It&>());
+  using iter_reference_t = decltype(*::std::declval<It&>());
 
   template <typename It, typename = void>
-  struct is_compatible_iterator : std::false_type {};
+  struct is_compatible_iterator : ::std::false_type {};
   template <typename It>
   struct is_compatible_iterator<
       It,
-      std::void_t<
-          std::is_base_of<std::random_access_iterator_tag,
-                          typename std::iterator_traits<It>::iterator_category>,
-          is_array_convertible<std::remove_reference_t<iter_reference_t<It>>,
-                               T>>> : std::true_type {};
+      ::std::void_t<
+          ::std::is_base_of<::std::random_access_iterator_tag,
+                          typename ::std::iterator_traits<It>::iterator_category>,
+          is_array_convertible<::std::remove_reference_t<iter_reference_t<It>>,
+                               T>>> : ::std::true_type {};
   template <typename It>
   static constexpr bool is_compatible_iterator_v =
       is_compatible_iterator<It>::value;
 
-  template <typename U>
-  [[nodiscard]] static constexpr U* to_address(U* p) noexcept {
-    return p;
-  }
+      template <typename U>
+      [[nodiscard]] static constexpr U* to_address(U* p) noexcept {
+        return p;
+      }
 
-  template <typename It,
-            typename = std::void_t<decltype(std::declval<It&>().operator->())>>
-  [[nodiscard]] static constexpr auto to_address(It it) noexcept {
-    return it.operator->();
-  }
+      template <typename It,
+                typename = std::void_t<decltype(std::declval<It&>().operator->())>>
+      [[nodiscard]] static constexpr auto to_address(It it) noexcept {
+        return it.operator->();
+      }
 
- public:
+     public:
+      // Iterator typedefs for C++17 compatibility.
+#if defined(__cpp_lib_concepts) && __cpp_lib_concepts >= 201907L
+      using iterator_concept = std::contiguous_iterator_tag;
+#else
+      using iterator_category = std::random_access_iterator_tag;
+#endif
   /** The default constructor creates an empty span. */
   constexpr MemorySpan() = default;
 
@@ -185,16 +154,11 @@ class V8_EXPORT MemorySpan {
     using pointer = value_type*;
     using reference = value_type&;
     using iterator_category = std::random_access_iterator_tag;
-    // There seems to be no feature-test macro covering this, so use the
-    // presence of `<ranges>` as a crude proxy, since it was added to the
-    // standard as part of the Ranges papers.
-    // TODO(pkasting): Add this unconditionally after dropping support for old
-    // libstdc++ versions.
-#if __has_include(<ranges>)
+    // Use contiguous_iterator_tag only when C++20 concepts are available.
+#if defined(__cpp_lib_concepts) || (__cplusplus >= 202002L)
     using iterator_concept = std::contiguous_iterator_tag;
-#elif defined(__wasi__)
-    // For WASI, just use random_access_iterator_tag
-    using iterator_concept = std::random_access_iterator_tag;
+#else
+    using iterator_category = std::random_access_iterator_tag;
 #endif
 
     // Required to satisfy `std::semiregular<>`.
@@ -349,6 +313,5 @@ template <class T, std::size_t N>
 }
 
 }  // namespace v8
-
 
 #endif  // INCLUDE_V8_MEMORY_SPAN_H_

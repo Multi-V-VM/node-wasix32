@@ -1,13 +1,9 @@
 #ifdef __wasi__
 #include "wasi/v8-wasi-compat.h"
-#include "wasi/concepts-fix.h"
 #include <cstring>
 #include <type_traits>
 #endif
 
-#ifdef __wasi__
-#include "wasi/concepts-fix.h"
-#endif
 // Copyright 2021 the V8 project authors. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
@@ -27,6 +23,11 @@
 #include "v8-primitive.h"          // NOLINT(build/include_directory)
 #include "v8-sandbox.h"            // NOLINT(build/include_directory)
 #include "v8-traced-handle.h"      // NOLINT(build/include_directory)
+// Pull in std::vector before any namespace v8 blocks to avoid creating v8::std
+#ifndef V8_HAVE_LOCALVECTOR
+#include <vector>
+#endif
+
 #include "v8config.h"              // NOLINT(build/include_directory)
 
 #ifdef __wasi__
@@ -39,7 +40,6 @@
 namespace v8 {
 
 #ifndef V8_HAVE_LOCALVECTOR
-#include <vector>
 template <typename T> class Local;
 template <typename T> using LocalVector = ::std::vector<Local<T>>;
 #endif

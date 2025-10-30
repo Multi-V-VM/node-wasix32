@@ -1,15 +1,15 @@
 #ifndef V8_V8_PLATFORM_COMPLETE_H_
 #define V8_V8_PLATFORM_COMPLETE_H_
 
-#ifdef __wasi__
-#include "wasi/std-preinclude.h"
-#endif
 
 #include <memory>
 #include "v8-task-full.h"
 #include "v8-tracing-base.h"
 #include "v8-isolate.h"
 #include "v8-thread-isolated-allocator.h"
+#ifdef __wasi__
+#include "wasi/base-preinclude.h"
+#endif
 #include "wasi/nuclear-fix.h"
 
 namespace v8 {

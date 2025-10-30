@@ -6,7 +6,8 @@
 #define V8_BASE_ITERATOR_H_
 
 #ifdef __wasi__
-#include "wasi/std-preinclude.h"
+// Do not include std-preinclude here; this header may be parsed under
+// `namespace v8` in some translation units. Rely on TU-level includes instead.
 #endif
 #include <iterator>
 #include <tuple>
@@ -14,7 +15,7 @@
 
 #include "src/base/logging.h"
 
-namespace v8::base {
+namespace v8 { namespace base {
 
 template <class Category, class Type, class Diff = ::std::ptrdiff_t,
           class Pointer = Type*, class Reference = Type&>
@@ -211,7 +212,7 @@ auto zip(Containers&... containers) {
                                    TupleIt(containers.end()...));
 }
 
-}  // namespace v8::base
+}  // namespace base }  // namespace v8
 
 
 #endif  // V8_BASE_ITERATOR_H_

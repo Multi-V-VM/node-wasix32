@@ -29,7 +29,7 @@ std::unique_ptr<Platform> NewDefaultPlatform(
     int thread_pool_size = 0,
     IdleTaskSupport idle_task_support = IdleTaskSupport::kDisabled,
     InProcessStackDumping in_process_stack_dumping = InProcessStackDumping::kDisabled,
-    std::unique_ptr<v8::TracingController> tracing_controller = {});
+    std::unique_ptr<::v8::TracingController> tracing_controller = {});
 
 }  // namespace platform
 }  // namespace v8

@@ -1,13 +1,12 @@
-#ifdef __wasi__
-#include "wasi/concepts-fix.h"
-#endif
 // Copyright 2021 the V8 project authors. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
 #ifndef INCLUDE_V8_VALUE_H_
 #define INCLUDE_V8_VALUE_H_
+// MaybeLocal and Maybe are required by the inline WASI stubs below
 #include "v8-maybe-local.h"
+#include "v8-maybe.h"
 // v8-maybe.h already included via v8-maybe-local.h
 
 #include "v8-data.h"          // NOLINT(build/include_directory)

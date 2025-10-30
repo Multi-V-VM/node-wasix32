@@ -15,7 +15,7 @@
   template <typename> \
   typename
 
-namespace v8::base::tmp {
+namespace v8 { namespace base { namespace tmp {
 
 // list is a classical type list.
 template <typename...>
@@ -238,7 +238,7 @@ struct fold_right1 : public detail::fold_right1_impl<F, T, List1> {};
 template <template <TYPENAME1, typename> typename F, typename List1, typename T>
 using fold_right1_t = fold_right1<F, List1, T>::type;
 
-}  // namespace v8::base::tmp
+}  // namespace tmp }  // namespace base }  // namespace v8
 
 #undef TYPENAME1
 

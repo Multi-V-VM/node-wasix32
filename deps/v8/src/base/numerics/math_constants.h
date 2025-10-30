@@ -8,11 +8,11 @@
 #ifndef V8_BASE_NUMERICS_MATH_CONSTANTS_H_
 #define V8_BASE_NUMERICS_MATH_CONSTANTS_H_
 
-namespace v8::base {
+namespace v8 { namespace base {
 // The mean acceleration due to gravity on Earth in m/s^2.
 constexpr double kMeanGravityDouble = 9.80665;
 constexpr float kMeanGravityFloat = 9.80665f;
 
-}  // namespace v8::base
+}  // namespace base }  // namespace v8
 
 #endif  // V8_BASE_NUMERICS_MATH_CONSTANTS_H_

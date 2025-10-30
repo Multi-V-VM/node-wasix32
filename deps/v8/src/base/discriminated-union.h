@@ -6,7 +6,9 @@
 #define V8_BASE_DISCRIMINATED_UNION_H_
 
 #ifdef __wasi__
-#include "wasi/std-preinclude.h"
+// Do not include std-preinclude here; this header may be parsed from within
+// a `namespace v8 {}` context via other includes. Ensure standard headers are
+// included at TU global scope instead.
 #endif
 #include <type_traits>
 #include <utility>
@@ -24,7 +26,7 @@
 #endif
 #endif
 
-namespace v8::base {
+namespace v8 { namespace base {
 
 // A variant-like discriminated union type, which takes a discriminating enum
 // and a set of types. The enum must have as many elements as the number of
@@ -129,7 +131,7 @@ class DiscriminatedUnion {
   uint8_t tag_;
 };
 
-}  // namespace v8::base
+}  // namespace base }  // namespace v8
 
 
 #endif  // V8_BASE_DISCRIMINATED_UNION_H_

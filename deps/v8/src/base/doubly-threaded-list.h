@@ -9,7 +9,7 @@
 #include "src/base/iterator.h"
 #include "src/base/logging.h"
 
-namespace v8::base {
+namespace v8 { namespace base {
 
 template <typename T>
 struct DoublyThreadedListTraits {
@@ -147,6 +147,6 @@ class DoublyThreadedList {
   T head_{};
 };
 
-}  // namespace v8::base
+}  // namespace base }  // namespace v8
 
 #endif  // V8_BASE_DOUBLY_THREADED_LIST_H_

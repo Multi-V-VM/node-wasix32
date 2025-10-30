@@ -3,7 +3,8 @@
 
 // Always include the lightweight Local<T> implementation to avoid
 // dependency cycles and to provide a usable Local in host builds too.
-#include "wasi/std-namespace-fix.h"
+// Avoid including std-namespace-fix from here to prevent accidental std
+// polyfills being processed inside a namespace v8 block in some TUs.
 // Note: Do NOT include wasi-v8-missing-types.h here - it creates circular dependencies
 // through src/base/hashing.h -> v8-internal.h -> platform.h chain
 // Local<> for WASI is already defined in v8-data.h
@@ -24,6 +25,7 @@
 
 #ifdef __wasi__
 #include "wasi/v8-wasi-compat.h"
+#include "v8-data.h"  // Ensure Local<T> is defined for WASI stubs
 #include "v8-forward.h"
 // Provide aliases expected by internal code paths
 namespace v8 {

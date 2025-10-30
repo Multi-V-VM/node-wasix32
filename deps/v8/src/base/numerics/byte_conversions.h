@@ -21,7 +21,7 @@
 // Chromium only builds and runs on Little Endian machines.
 static_assert(ARCH_CPU_LITTLE_ENDIAN);
 
-namespace v8::base {
+namespace v8 { namespace base {
 
 // Returns a value with all bytes in |x| swapped, i.e. reverses the endianness.
 // TODO(pkasting): Once C++23 is available, replace with std::byteswap.
@@ -711,6 +711,6 @@ inline constexpr std::array<uint8_t, 8u> DoubleToBigEndian(double val) {
   return internal::ToLittleEndian(ByteSwap(std::bit_cast<uint64_t>(val)));
 }
 
-}  // namespace v8::base
+}  // namespace base }  // namespace v8
 
 #endif  // V8_BASE_NUMERICS_BYTE_CONVERSIONS_H_

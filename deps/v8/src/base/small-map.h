@@ -11,7 +11,7 @@
 
 #include "src/base/macros.h"
 
-namespace v8::base {
+namespace v8 { namespace base {
 
 // SmallMap is a container with a std::map-like interface. It starts out backed
 // by an unsorted array but switches to some other container type if it grows
@@ -616,6 +616,6 @@ class SmallMap {
   }
 };
 
-}  // namespace v8::base
+}  // namespace base }  // namespace v8
 
 #endif  // V8_BASE_SMALL_MAP_H_

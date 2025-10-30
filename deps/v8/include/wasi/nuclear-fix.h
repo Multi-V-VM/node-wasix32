@@ -8,6 +8,9 @@
 #include <cstring>
 
 #ifdef __wasi__
+// Only include heavy base/standard headers when enabled at TU global scope by
+// the WASI prelude to avoid pulling standard headers inside a nested v8:: scope.
+#ifdef V8_WASI_STD_POLYFILLS_ENABLED
 // Ensure v8::base atomic types are available when this header is pulled in
 // from public headers before base headers.
 #include "src/base/atomicops.h"
@@ -17,6 +20,7 @@
 #include "src/base/platform/time.h"     // v8::base::TimeTicks/TimeDelta
 #include "src/base/vector.h"            // v8::base::Vector/EmbeddedVector
 #include "src/base/lazy-instance.h"     // v8::base::Lazy* traits
+#endif  // V8_WASI_STD_POLYFILLS_ENABLED
 
 // Provide an early, minimal definition of v8::PageAllocator so nested
 // types like ::v8::PageAllocator::Permission and the alias ::v8::PagePermissions
@@ -26,6 +30,8 @@
 // V8_PAGE_ALLOCATOR_INTERFACE_DEFINED.
 #ifndef V8_PAGE_ALLOCATOR_INTERFACE_DEFINED
 namespace v8 {
+class VirtualAddressSpace;  // Forward declare to satisfy friend decls
+class VirtualAddressSubspace;  // Forward declare to satisfy friend decls
 class PageAllocator {
  public:
   enum Permission {
@@ -79,6 +85,12 @@ using PagePermissions = PageAllocator::PagePermissions;
 // Provide no-op inline statement macro if missing
 #ifndef V8_INLINE_STATEMENT
 #define V8_INLINE_STATEMENT
+#endif
+
+// Ensure absl thread-safety annotation macro is harmless if absl is not
+// available in WASI builds.
+#ifndef ABSL_NO_THREAD_SAFETY_ANALYSIS
+#define ABSL_NO_THREAD_SAFETY_ANALYSIS
 #endif
 
 // ---------------------------------------------------------------------------
@@ -795,12 +807,9 @@ constexpr CppHeapPointerHandle kNullCppHeapPointerHandle = 0;
 constexpr Address kCppHeapPointerMarkBit = static_cast<Address>(0);
 #endif
 // ---------------------------------------------------------------------------
-// Namespace compatibility: alias v8::internal::base to ::v8::base so any
-// accidental uses of v8::internal::base resolve to the public base namespace.
-namespace internal {
-namespace base = ::v8::base;
-}  // namespace internal
+// Avoid namespace aliasing that can clash with real namespace declarations.
 
+}  // namespace internal
 }  // namespace v8
 
 #endif  // V8_INCLUDE_WASI_NUCLEAR_FIX_H_

@@ -41,12 +41,12 @@
 // statement, while still returning the value in expression contexts.
 // Forwarding helpers to preserve value category and avoid copies.
 #include <utility>
-namespace v8::base::detail {
+namespace v8 { namespace base { namespace detail {
 template <typename T>
 V8_INLINE T&& DcheckNotNull(T&& val) { return std::forward<T>(val); }
 template <typename T>
 V8_INLINE T&& CheckNotNull(T&& val) { return std::forward<T>(val); }
-}  // namespace v8::base::detail
+}  // namespace detail }  // namespace base }  // namespace v8
 
 #ifndef DCHECK_NOT_NULL
 #define DCHECK_NOT_NULL(val) (::v8::base::detail::DcheckNotNull(val))
@@ -153,7 +153,7 @@ V8_INLINE T&& CheckNotNull(T&& val) { return std::forward<T>(val); }
 #define V8_GLIBC_PREREQ(maj, min) 0
 #endif
 
-namespace v8::base {
+namespace v8 { namespace base {
 
 template <typename T>
 inline const T& PrintCheckOperand(const T& value) { return value; }
@@ -171,7 +171,7 @@ enum class OOMType {
   abort();
 }
 
-}  // namespace v8::base
+}  // namespace base }  // namespace v8
 
 #endif  // __wasi__
 #endif  // V8_SRC_BASE_LOGGING_H_

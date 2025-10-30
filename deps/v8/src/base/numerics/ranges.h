@@ -11,7 +11,7 @@
 #include <cmath>
 #include <type_traits>
 
-namespace v8::base {
+namespace v8 { namespace base {
 
 template <typename T>
 constexpr bool IsApproximatelyEqual(T lhs, T rhs, T tolerance) {
@@ -19,6 +19,6 @@ constexpr bool IsApproximatelyEqual(T lhs, T rhs, T tolerance) {
   return std::abs(rhs - lhs) <= tolerance;
 }
 
-}  // namespace v8::base
+}  // namespace base }  // namespace v8
 
 #endif  // V8_BASE_NUMERICS_RANGES_H_

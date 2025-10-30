@@ -8,7 +8,7 @@
 
 #include "include/v8config.h"
 
-namespace v8::base {
+namespace v8 { namespace base {
 
 #if defined(V8_HOST_ARCH_X64) || defined(V8_HOST_ARCH_IA32)
 #if defined(V8_CC_GNU)
@@ -98,4 +98,4 @@ void FPU::SetFlushDenormals(bool value) {}
 
 #endif
 
-}  // namespace v8::base
+}  // namespace base }  // namespace v8

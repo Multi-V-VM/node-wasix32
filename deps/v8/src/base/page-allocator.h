@@ -73,4 +73,3 @@ class V8_BASE_EXPORT PageAllocator
 
 #endif  // __wasi__
 #endif  // V8_BASE_PAGE_ALLOCATOR_H_
-

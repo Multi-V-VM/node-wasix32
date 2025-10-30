@@ -6,6 +6,27 @@
 // This file includes all fix headers in the correct order
 // ============================================================================
 
+// CRITICAL: Include ALL standard library headers at global scope FIRST
+// This prevents namespace pollution when they're included later from within
+// namespace v8 {} blocks
+#include <algorithm>
+#include <functional>
+#include <utility>
+#include <type_traits>
+#include <bit>
+#include <iterator>
+#include <memory>
+#include <cstdlib>
+#include <cstring>
+#include <cstddef>
+#include <cstdint>
+
+// CRITICAL: Include critical V8 base headers at global scope next
+// This ensures symbols are defined in the correct namespace before any nesting occurs
+#include "deps/v8/src/base/macros.h"
+#include "deps/v8/src/base/numerics/safe_conversions_impl.h"
+#include "deps/v8/src/base/hashmap-entry.h"
+
 // 1. First include comprehensive namespace and API fixes
 #include "wasi-comprehensive-fixes.h"
 
@@ -17,6 +38,36 @@
 
 // 4. Finally include additional fixes for remaining errors
 #include "wasi-additional-fixes.h"
+
+// ============================================================================
+// V8 Internal Symbols Export to Base Namespace
+// ============================================================================
+
+// The following symbols from v8::base::internal need to be available at
+// v8::base level to prevent lookup failures when headers are included
+// from within namespace v8 {} blocks
+
+namespace v8 {
+namespace base {
+
+// Re-export CheckOnFailure from internal namespace
+using internal::CheckOnFailure;
+
+// Re-export internal numeric type range constants
+template <typename Dst, typename Src>
+inline constexpr bool kIsTypeInRangeForNumericType =
+    internal::kIsTypeInRangeForNumericType<Dst, Src>;
+
+template <typename Dst, typename Src>
+inline constexpr bool kIsMinInRangeForNumericType =
+    internal::kIsMinInRangeForNumericType<Dst, Src>;
+
+template <typename Dst, typename Src>
+inline constexpr bool kIsMaxInRangeForNumericType =
+    internal::kIsMaxInRangeForNumericType<Dst, Src>;
+
+}  // namespace base
+}  // namespace v8
 
 // ============================================================================
 // Additional Global Fixes

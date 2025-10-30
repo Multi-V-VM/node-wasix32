@@ -18,7 +18,7 @@
 
 #include "src/base/numerics/safe_conversions_impl.h"
 
-namespace v8::base {
+namespace v8 { namespace base {
 namespace internal {
 
 // Fast saturation to a destination type.
@@ -51,6 +51,6 @@ struct SaturateFastAsmOp {
 };
 
 }  // namespace internal
-}  // namespace v8::base
+}  // namespace base }  // namespace v8
 
 #endif  // V8_BASE_NUMERICS_SAFE_CONVERSIONS_ARM_IMPL_H_

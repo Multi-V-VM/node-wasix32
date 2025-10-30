@@ -4,6 +4,8 @@
 #ifdef __wasi__
 #include "v8-local-handle.h"
 #include "wasi/concepts-fix.h"
+// Provide Maybe<> definition early for headers that depend on it
+#include "v8-maybe.h"
 
 namespace v8 {
 

@@ -20,7 +20,7 @@
 #include <span>
 #include <type_traits>
 
-namespace v8::base::internal {
+namespace v8 { namespace base { namespace internal {
 
 // The correct type to perform math operations on given values of type `T`. This
 // may be a larger type than `T` to avoid promotion to `int` which involves sign
@@ -157,6 +157,6 @@ template <class T>
 inline constexpr std::array<uint8_t, sizeof(T)> ToLittleEndian(T val) {
   return ToLittleEndian(static_cast<std::make_unsigned_t<T>>(val));
 }
-}  // namespace v8::base::internal
+}  // namespace internal }  // namespace base }  // namespace v8
 
 #endif  // V8_BASE_NUMERICS_BASIC_OPS_IMPL_H_

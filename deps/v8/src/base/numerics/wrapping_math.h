@@ -10,7 +10,7 @@
 
 #include <type_traits>
 
-namespace v8::base {
+namespace v8 { namespace base {
 
 // Returns `a + b` with overflow defined to wrap around, i.e. modulo 2^N where N
 // is the bit width of `T`.
@@ -40,6 +40,6 @@ inline constexpr T WrappingSub(T a, T b) {
   return static_cast<T>(static_cast<Unsigned>(a) - static_cast<Unsigned>(b));
 }
 
-}  // namespace v8::base
+}  // namespace base }  // namespace v8
 
 #endif  // V8_BASE_NUMERICS_WRAPPING_MATH_H_

@@ -29,6 +29,17 @@
 #include "src/base/hashing.h"
 #include "src/base/container-utils.h"
 
+// On some include paths these headers may be parsed while already inside a
+// `namespace v8 {}` block. In that case, qualified declarations inside the
+// base headers end up under `::v8::v8::base::...`. Use a helper macro to refer
+// to the effective base namespace consistently.
+#ifndef V8_BASE_NS
+// Always reference the canonical base namespace explicitly to avoid
+// accidental nesting into `v8::v8::base` when this header is included
+// from within a `namespace v8 {}` block.
+#define V8_BASE_NS ::v8::base
+#endif
+
 namespace v8 {
 namespace internal {
 namespace base {
@@ -58,59 +69,59 @@ struct DefaultAllocationPolicy {
 
 // TemplateHashMapImpl takes 4 params: Key, Value, MatchFun, AllocationPolicy
 template <typename Key, typename Value, typename MatchFun, typename AllocationPolicy>
-using TemplateHashMapImpl = ::v8::base::TemplateHashMapImpl<Key, Value, MatchFun, AllocationPolicy>;
+using TemplateHashMapImpl = V8_BASE_NS::TemplateHashMapImpl<Key, Value, MatchFun, AllocationPolicy>;
 
 // TemplateHashMap also takes 4 params
 template <typename Key, typename Value, typename MatchFun, typename AllocationPolicy>
-using TemplateHashMap = ::v8::base::TemplateHashMap<Key, Value, MatchFun, AllocationPolicy>;
+using TemplateHashMap = V8_BASE_NS::TemplateHashMap<Key, Value, MatchFun, AllocationPolicy>;
 
 // These template classes only take AllocationPolicy as template parameter
 template <typename AllocationPolicy>
-using PointerTemplateHashMapImpl = ::v8::base::PointerTemplateHashMapImpl<AllocationPolicy>;
+using PointerTemplateHashMapImpl = V8_BASE_NS::PointerTemplateHashMapImpl<AllocationPolicy>;
 
 template <typename AllocationPolicy>
-using CustomMatcherTemplateHashMapImpl = ::v8::base::CustomMatcherTemplateHashMapImpl<AllocationPolicy>;
+using CustomMatcherTemplateHashMapImpl = V8_BASE_NS::CustomMatcherTemplateHashMapImpl<AllocationPolicy>;
 
 // HashMap and CustomMatcherHashMap are shortcuts with DefaultAllocationPolicy
-using HashMap = ::v8::base::HashMap;
-using CustomMatcherHashMap = ::v8::base::CustomMatcherHashMap;
+using HashMap = V8_BASE_NS::HashMap;
+using CustomMatcherHashMap = V8_BASE_NS::CustomMatcherHashMap;
 
 // KeyEqualityMatcher for HashMap
 template <typename Key>
-using KeyEqualityMatcher = ::v8::base::KeyEqualityMatcher<Key>;
+using KeyEqualityMatcher = V8_BASE_NS::KeyEqualityMatcher<Key>;
 
 // ============================================================================
 // PointerWithPayload - Import from v8::base
 // ============================================================================
 
 template <typename PointerType, typename PayloadType, int NumPayloadBits>
-using PointerWithPayload = ::v8::base::PointerWithPayload<PointerType, PayloadType, NumPayloadBits>;
+using PointerWithPayload = V8_BASE_NS::PointerWithPayload<PointerType, PayloadType, NumPayloadBits>;
 
 // ============================================================================
 // ThreadedList and ThreadedListTraits - Import from v8::base
 // ============================================================================
 
 template <typename T>
-using ThreadedListTraits = ::v8::base::ThreadedListTraits<T>;
+using ThreadedListTraits = V8_BASE_NS::ThreadedListTraits<T>;
 
 template <typename T, typename BaseClass = ThreadedListTraits<T>>
-using ThreadedList = ::v8::base::ThreadedList<T, BaseClass>;
+using ThreadedList = V8_BASE_NS::ThreadedList<T, BaseClass>;
 
 // ============================================================================
 // BitSetComputer - Import from v8::base
 // ============================================================================
 
 template <typename T, int kFieldSize, int kShift, typename U>
-using BitSetComputer = ::v8::base::BitSetComputer<T, kFieldSize, kShift, U>;
+using BitSetComputer = V8_BASE_NS::BitSetComputer<T, kFieldSize, kShift, U>;
 
 // 64-bit BitField alias used in some internal headers
 template <typename T, int shift, int size>
-using BitField64 = ::v8::base::BitField64<T, shift, size>;
+using BitField64 = V8_BASE_NS::BitField64<T, shift, size>;
 
 // ============================================================================
-// Vector types - Import from v8::base
+// Vector types - Import from the canonical ::v8::base
 // ============================================================================
-// Note: Vector is imported by globals.h, so we only add OwnedVector here
+// Note: Vector is imported by globals.h; only add OwnedVector here
 
 template <typename T>
 using OwnedVector = ::v8::base::OwnedVector<T>;
@@ -128,30 +139,13 @@ class Owned : public ::v8::base::OwnedVector<T> {
 
 // BitFieldUnion for bit manipulation
 template <typename T, int shift, int size>
-using BitFieldUnion = ::v8::base::BitField<T, shift, size>;
+using BitFieldUnion = V8_BASE_NS::BitField<T, shift, size>;
 
 // DiscriminatedUnion - Import from v8::base
 template <typename TagEnum, typename... Ts>
-using DiscriminatedUnion = ::v8::base::DiscriminatedUnion<TagEnum, Ts...>;
+using DiscriminatedUnion = V8_BASE_NS::DiscriminatedUnion<TagEnum, Ts...>;
 
-// ============================================================================
-// Atomic operations - Import from v8::base
-// ============================================================================
-// Note: AtomicWord, AsAtomicWord, AsAtomicPointer are imported by globals.h
-
-using Atomic8 = ::v8::base::Atomic8;
-using Atomic16 = ::v8::base::Atomic16;
-using Atomic32 = ::v8::base::Atomic32;
-
-#if defined(V8_HOST_ARCH_64_BIT)
-using Atomic64 = ::v8::base::Atomic64;
-#endif
-
-using AsAtomic8 = ::v8::base::AsAtomic8;
-using AsAtomic16 = ::v8::base::AsAtomic16;
-using AsAtomic32 = ::v8::base::AsAtomic32;
-
-// Atomic operations functions are available through ADL
+// Atomic operations can be referenced directly via ::v8::base::* where needed
 
 // ============================================================================
 // Mutex and locking - Provide minimal WASI stubs
@@ -225,16 +219,13 @@ class LazyMutex {
 // Memory and allocation helpers
 // ============================================================================
 
-using AddressRegion = ::v8::base::AddressRegion;
+// AddressRegion can be referenced as ::v8::base::AddressRegion by users
 
 // ============================================================================
 // Utility functions - Import from v8::base
 // ============================================================================
 
-using ::v8::base::VectorOf;
-using ::v8::base::SNPrintF;
-using ::v8::base::VSNPrintF;
-using ::v8::base::vector_append;
+// Vector helpers can be referenced as ::v8::base::{VectorOf,SNPrintF,VSNPrintF,vector_append}
 
   // Note: avoid defining custom hashing helpers here; rely on ::v8::base::hash
   // and base::Hasher from src/base/hashing.h to prevent conflicts.
@@ -245,7 +236,7 @@ class LeakyObject {
  public:
   template <typename... Args>
   static T* Get(Args&&... args) {
-    static T* instance = new T(std::forward<Args>(args)...);
+    static T* instance = new T(::std::forward<Args>(args)...);
     return instance;
   }
 };
@@ -274,7 +265,9 @@ struct AllocateAtLeast {
 // ============================================================================
 
 // Provide iterator base for backward compatibility (std::iterator is deprecated in C++17, removed in C++20)
-template <typename Category, typename T, typename Distance = std::ptrdiff_t,
+// Use fully-qualified ::std to avoid accidental v8::std shadowing when this
+// header is included from within a `namespace v8 {}` block.
+template <typename Category, typename T, typename Distance = ::std::ptrdiff_t,
           typename Pointer = T*, typename Reference = T&>
 struct iterator {
   using iterator_category = Category;
@@ -295,23 +288,23 @@ struct AtomicTypeFromByteWidth;
 
 template <>
 struct AtomicTypeFromByteWidth<1> {
-  using type = Atomic8;
+  using type = ::v8::base::Atomic8;
 };
 
 template <>
 struct AtomicTypeFromByteWidth<2> {
-  using type = Atomic16;
+  using type = ::v8::base::Atomic16;
 };
 
 template <>
 struct AtomicTypeFromByteWidth<4> {
-  using type = Atomic32;
+  using type = ::v8::base::Atomic32;
 };
 
 #if defined(V8_HOST_ARCH_64_BIT)
 template <>
 struct AtomicTypeFromByteWidth<8> {
-  using type = Atomic64;
+  using type = ::v8::base::Atomic64;
 };
 #endif
 

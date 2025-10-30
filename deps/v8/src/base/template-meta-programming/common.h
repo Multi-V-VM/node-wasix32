@@ -11,7 +11,7 @@
   template <typename> \
   typename
 
-namespace v8::base::tmp {
+namespace v8 { namespace base { namespace tmp {
 
 template <typename T, typename U>
 struct equals : std::bool_constant<false> {};
@@ -33,7 +33,7 @@ struct is_instantiation_of : std::bool_constant<false> {};
 template <typename U, TYPENAME1 T>
 struct is_instantiation_of<T<U>, T> : std::bool_constant<true> {};
 
-}  // namespace v8::base::tmp
+}  // namespace tmp }  // namespace base }  // namespace v8
 
 #undef TYPENAME1
 

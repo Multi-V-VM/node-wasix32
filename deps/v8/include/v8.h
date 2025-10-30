@@ -16,9 +16,15 @@
 #define INCLUDE_V8_H_
 
 #ifdef __wasi__
-// Prepare std first, then bridge V8 namespace nestings.
+// Force standard library and core V8 base headers at global scope first.
+#include "wasi/std-preinclude.h"
+// Pull in core base headers at global scope to avoid nested v8::v8::base
+#include "wasi/base-preinclude.h"
+// Prepare std fixes and then bridge V8 namespace nestings.
 #include "wasi/std-namespace-fix.h"
 #include "wasi/v8-namespace-fix.h"
+// Provide any missing base aliases/types expected by public headers
+#include "wasi/wasi-v8-missing-types.h"
 // Note: Removed v8-internal.h include to prevent circular dependencies
 // Individual headers now handle their own v8-internal.h needs with #ifndef __wasi__ guards
 // Finally, apply HandleScope/EscapableHandleScope fixes

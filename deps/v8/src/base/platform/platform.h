@@ -77,7 +77,10 @@ namespace heap::base {
 class Stack;
 }
 
-namespace v8::base {
+namespace v8 { namespace base {
+
+// Bridge the handle type defined in the public v8:: namespace.
+using PlatformSharedMemoryHandle = ::v8::PlatformSharedMemoryHandle;
 
 // ----------------------------------------------------------------------------
 // Fast TLS support
@@ -134,10 +137,23 @@ V8_INLINE intptr_t InternalGetExistingThreadLocal(intptr_t index) {
 #endif  // V8_NO_FAST_TLS
 
 class AddressSpaceReservation;
-class PageAllocator;
+class TimeDelta;
+class Semaphore;
 class TimezoneCache;
+
+#ifdef __wasi__
+// Under WASI, the canonical PageAllocator and address space types live in the
+// public ::v8 namespace. Provide aliases within v8::base so existing code that
+// refers to v8::base::PageAllocator (etc.) continues to compile.
+using PageAllocator = ::v8::PageAllocator;
+using VirtualAddressSpace = ::v8::VirtualAddressSpace;
+using VirtualAddressSubspace = ::v8::VirtualAddressSubspace;
+#else
+// Legacy forward declarations within v8::base for non-WASI builds.
+class PageAllocator;
 class VirtualAddressSpace;
 class VirtualAddressSubspace;
+#endif
 
 // ----------------------------------------------------------------------------
 // OS
@@ -368,9 +384,17 @@ class V8_BASE_EXPORT OS {
   friend class AddressSpaceReservation;
   friend class MemoryMappedFile;
   friend class PosixMemoryMappedFile;
+#ifdef __wasi__
+  // On WASI, the public v8::PageAllocator (and VirtualAddressSpace types)
+  // live in namespace v8.
+  friend class ::v8::PageAllocator;
+  friend class ::v8::VirtualAddressSpace;
+  friend class ::v8::VirtualAddressSubspace;
+#else
   friend class ::v8::base::PageAllocator;
   friend class ::v8::base::VirtualAddressSpace;
   friend class ::v8::base::VirtualAddressSubspace;
+#endif
   FRIEND_TEST(OS, RemapPages);
 
   static size_t AllocatePageSize();
@@ -712,7 +736,7 @@ class V8_BASE_EXPORT Stack {
 V8_BASE_EXPORT void SetJitWriteProtected(int enable);
 #endif
 
-}  // namespace v8::base
+}  // namespace base }  // namespace v8
 
 #endif  // V8_BASE_PLATFORM_PLATFORM_H_
 

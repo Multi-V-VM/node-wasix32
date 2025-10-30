@@ -11,7 +11,7 @@
 #include <concepts>
 #include <numbers>
 
-namespace v8::base {
+namespace v8 { namespace base {
 
 template <typename T>
   requires std::floating_point<T>
@@ -25,6 +25,6 @@ constexpr T RadToDeg(T rad) {
   return rad * 180 / std::numbers::pi_v<T>;
 }
 
-}  // namespace v8::base
+}  // namespace base }  // namespace v8
 
 #endif  // V8_BASE_NUMERICS_ANGLE_CONVERSIONS_H_

@@ -320,7 +320,7 @@ class V8_EXPORT_PRIVATE IsolateGroup final {
 
   std::unique_ptr<PagePool> page_pool_;
 
-  ::v8::Once::OnceType init_code_range_ = V8_ONCE_INIT;
+  ::v8::base::OnceType init_code_range_ = V8_ONCE_INIT;
   std::unique_ptr<CodeRange> code_range_;
   Address external_ref_table_[ExternalReferenceTable::kSizeIsolateIndependent] =
       {0};

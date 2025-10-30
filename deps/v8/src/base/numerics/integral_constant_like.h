@@ -7,7 +7,7 @@
 
 #include <type_traits>
 
-namespace v8::base::internal::numerics {
+namespace v8 { namespace base { namespace internal { namespace numerics {
 
 // Replace C++20 concept with C++14 compatible trait
 template <typename T, typename = void>
@@ -28,6 +28,6 @@ template <typename T>
 using enable_if_integral_constant_like = 
     typename std::enable_if<is_integral_constant_like<T>::value>::type;
 
-}  // namespace v8::base::internal::numerics
+}  // namespace numerics }  // namespace internal }  // namespace base }  // namespace v8
 
 #endif  // V8_BASE_NUMERICS_INTEGRAL_CONSTANT_LIKE_H_

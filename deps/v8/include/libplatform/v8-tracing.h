@@ -14,6 +14,10 @@
 #include "libplatform/libplatform-export.h"
 #include "v8-platform.h"  // NOLINT(build/include_directory)
 #include "v8-tracing-base.h"  // NOLINT(build/include_directory)
+#ifdef __wasi__
+// Ensure v8::TracingController is fully defined so that overrides are valid
+#include "v8-tracing.h"  // NOLINT(build/include_directory)
+#endif
 
 namespace perfetto {
 namespace trace_processor {
@@ -60,7 +64,7 @@ class V8_PLATFORM_EXPORT TraceObject {
       const char* scope, uint64_t id, uint64_t bind_id, int num_args,
       const char** arg_names, const uint8_t* arg_types,
       const uint64_t* arg_values,
-      std::unique_ptr<v8::ConvertableToTraceFormat>* arg_convertables,
+  std::unique_ptr<::v8::ConvertableToTraceFormat>* arg_convertables,
       unsigned int flags, int64_t timestamp, int64_t cpu_timestamp);
   void UpdateDuration(int64_t timestamp, int64_t cpu_timestamp);
   void InitializeForTesting(
@@ -68,7 +72,7 @@ class V8_PLATFORM_EXPORT TraceObject {
       const char* scope, uint64_t id, uint64_t bind_id, int num_args,
       const char** arg_names, const uint8_t* arg_types,
       const uint64_t* arg_values,
-      std::unique_ptr<v8::ConvertableToTraceFormat>* arg_convertables,
+  std::unique_ptr<::v8::ConvertableToTraceFormat>* arg_convertables,
       unsigned int flags, int pid, int tid, int64_t ts, int64_t tts,
       uint64_t duration, uint64_t cpu_duration);
 
@@ -86,7 +90,7 @@ class V8_PLATFORM_EXPORT TraceObject {
   const char** arg_names() { return arg_names_; }
   uint8_t* arg_types() { return arg_types_; }
   ArgValue* arg_values() { return arg_values_; }
-  std::unique_ptr<v8::ConvertableToTraceFormat>* arg_convertables() {
+  std::unique_ptr<::v8::ConvertableToTraceFormat>* arg_convertables() {
     return arg_convertables_;
   }
   unsigned int flags() const { return flags_; }
@@ -108,7 +112,7 @@ class V8_PLATFORM_EXPORT TraceObject {
   const char* arg_names_[kTraceMaxNumArgs];
   uint8_t arg_types_[kTraceMaxNumArgs];
   ArgValue arg_values_[kTraceMaxNumArgs];
-  std::unique_ptr<v8::ConvertableToTraceFormat>
+  std::unique_ptr<::v8::ConvertableToTraceFormat>
       arg_convertables_[kTraceMaxNumArgs];
   char* parameter_copy_storage_ = nullptr;
   unsigned int flags_;
@@ -267,22 +271,22 @@ class V8_PLATFORM_EXPORT TracingController : public V8TracingController {
       const char* scope, uint64_t id, uint64_t bind_id, int32_t num_args,
       const char** arg_names, const uint8_t* arg_types,
       const uint64_t* arg_values,
-      std::unique_ptr<v8::ConvertableToTraceFormat>* arg_convertables,
+      std::unique_ptr<::v8::ConvertableToTraceFormat>* arg_convertables,
       unsigned int flags) override;
   uint64_t AddTraceEventWithTimestamp(
       char phase, const uint8_t* category_enabled_flag, const char* name,
       const char* scope, uint64_t id, uint64_t bind_id, int32_t num_args,
       const char** arg_names, const uint8_t* arg_types,
       const uint64_t* arg_values,
-      std::unique_ptr<v8::ConvertableToTraceFormat>* arg_convertables,
+      std::unique_ptr<::v8::ConvertableToTraceFormat>* arg_convertables,
       unsigned int flags, int64_t timestamp) override;
   void UpdateTraceEventDuration(const uint8_t* category_enabled_flag,
                                 const char* name, uint64_t handle) override;
 
   void AddTraceStateObserver(
-      v8::TracingController::TraceStateObserver* observer) override;
+      ::v8::TracingController::TraceStateObserver* observer) override;
   void RemoveTraceStateObserver(
-      v8::TracingController::TraceStateObserver* observer) override;
+      ::v8::TracingController::TraceStateObserver* observer) override;
 
   void StartTracing(TraceConfig* trace_config);
   void StopTracing();
@@ -299,7 +303,7 @@ class V8_PLATFORM_EXPORT TracingController : public V8TracingController {
   std::unique_ptr<TraceBuffer> trace_buffer_;
   std::unique_ptr<TraceConfig> trace_config_;
   std::unique_ptr<base::Mutex> mutex_;
-  std::unordered_set<v8::TracingController::TraceStateObserver*> observers_;
+  std::unordered_set<::v8::TracingController::TraceStateObserver*> observers_;
   std::atomic_bool recording_{false};
 #if defined(V8_USE_PERFETTO)
   std::atomic_bool perfetto_recording_{false};

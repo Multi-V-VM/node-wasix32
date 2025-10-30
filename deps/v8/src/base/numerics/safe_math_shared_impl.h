@@ -31,7 +31,7 @@
 #define BASE_HAS_OPTIMIZED_SAFE_MATH (0)
 #endif
 
-namespace v8::base {
+namespace v8 { namespace base {
 namespace internal {
 
 // These are the non-functioning boilerplate implementations of the optimized
@@ -203,6 +203,6 @@ struct MathWrapper {
   BASE_NUMERIC_ARITHMETIC_VARIADIC(CLASS, CL_ABBR, OP_NAME)
 
 }  // namespace internal
-}  // namespace v8::base
+}  // namespace base }  // namespace v8
 
 #endif  // V8_BASE_NUMERICS_SAFE_MATH_SHARED_IMPL_H_

@@ -11,7 +11,7 @@
 #include <ostream>
 #include <type_traits>
 
-namespace v8::base {
+namespace v8 { namespace base {
 namespace internal {
 
 template <typename T>
@@ -36,6 +36,6 @@ std::ostream& operator<<(std::ostream& os, const ClampedNumeric<T>& value) {
 }
 
 }  // namespace internal
-}  // namespace v8::base
+}  // namespace base }  // namespace v8
 
 #endif  // V8_BASE_NUMERICS_OSTREAM_OPERATORS_H_

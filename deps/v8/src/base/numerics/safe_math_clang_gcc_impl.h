@@ -24,7 +24,7 @@
 #define BASE_HAS_ASSEMBLER_SAFE_MATH (0)
 #endif
 
-namespace v8::base {
+namespace v8 { namespace base {
 namespace internal {
 
 // These are the non-functioning boilerplate implementations of the optimized
@@ -158,6 +158,6 @@ struct ClampedNegFastOp {
 };
 
 }  // namespace internal
-}  // namespace v8::base
+}  // namespace base }  // namespace v8
 
 #endif  // V8_BASE_NUMERICS_SAFE_MATH_CLANG_GCC_IMPL_H_

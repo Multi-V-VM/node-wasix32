@@ -13,7 +13,7 @@
 #include <type_traits>
 #include <utility>
 
-namespace v8::base {
+namespace v8 { namespace base {
 
 // A type-safe alternative for a typedef or a 'using' directive.
 //
@@ -136,7 +136,7 @@ template <typename TagType, typename UnderlyingType>
   return stream << alias.value();
 }
 
-}  // namespace v8::base
+}  // namespace base }  // namespace v8
 
 // 为 WASI 环境添加条件编译保护
 #ifndef __wasi__

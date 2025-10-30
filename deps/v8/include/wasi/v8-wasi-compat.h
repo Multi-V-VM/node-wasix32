@@ -1,7 +1,11 @@
 #ifndef V8_INCLUDE_WASI_V8_WASI_COMPAT_H_
 #define V8_INCLUDE_WASI_V8_WASI_COMPAT_H_
 
-// Include standard namespace fixes first
+// Do not include base-preinclude from widely included public headers; it pulls
+// in standard library headers and base headers which may be parsed from within
+// namespace v8 in some translation units. Instead, include base-preinclude at
+// true TU global scope from v8.h or platform entry points.
+// Include standard namespace fixes next
 #include "wasi/std-namespace-fix.h"
 
 // Then include other wasi compatibility headers (except embedder-graph-stub.h)

@@ -14,7 +14,7 @@
 #include "src/base/numerics/safe_conversions.h"
 #include "src/base/numerics/safe_math_shared_impl.h"  // IWYU pragma: export
 
-namespace v8::base {
+namespace v8 { namespace base {
 namespace internal {
 
 template <typename T>
@@ -242,6 +242,6 @@ using internal::ClampSub;
 using internal::ClampXor;
 using internal::MakeClampedNum;
 
-}  // namespace v8::base
+}  // namespace base }  // namespace v8
 
 #endif  // V8_BASE_NUMERICS_CLAMPED_MATH_H_

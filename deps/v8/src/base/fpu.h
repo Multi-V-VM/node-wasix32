@@ -7,7 +7,7 @@
 
 #include "src/base/base-export.h"
 
-namespace v8::base {
+namespace v8 { namespace base {
 class FPU final {
  public:
   V8_BASE_EXPORT static bool GetFlushDenormals();
@@ -24,6 +24,6 @@ class V8_BASE_EXPORT FlushDenormalsScope final {
  private:
   bool old_flush_state_;
 };
-}  // namespace v8::base
+}  // namespace base }  // namespace v8
 
 #endif  // V8_BASE_FPU_H_

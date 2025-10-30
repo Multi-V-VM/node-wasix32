@@ -31,7 +31,7 @@
 #define V8_HAS_MALLOC_USABLE_SIZE 1
 #endif
 
-namespace v8::base {
+namespace v8 { namespace base {
 
 inline void* Malloc(size_t size) {
 #if V8_OS_STARBOARD
@@ -163,7 +163,7 @@ V8_NODISCARD AllocationResult<T*> AllocateAtLeast(size_t n) {
 #endif  // V8_HAS_MALLOC_USABLE_SIZE
 }
 
-}  // namespace v8::base
+}  // namespace base }  // namespace v8
 
 #undef V8_HAS_MALLOC_USABLE_SIZE
 

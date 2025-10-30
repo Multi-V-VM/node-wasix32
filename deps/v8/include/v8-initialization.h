@@ -26,7 +26,8 @@ namespace v8 {
 class StartupData;
 // Forward declaration
 class SharedMemoryStatistics;
-}
+
+}  // namespace v8
 #endif
 
 // We reserve the V8_* prefix for macros defined in V8 public API and

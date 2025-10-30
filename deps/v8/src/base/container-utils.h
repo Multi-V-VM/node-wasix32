@@ -8,7 +8,7 @@
 #include <stddef.h>
 
 #ifdef __wasi__
-#include "wasi/std-preinclude.h"
+// Avoid std-preinclude here; ensure standard headers are included at TU scope.
 #endif
 #include <algorithm>
 #include <iterator>
@@ -17,7 +17,7 @@
 
 #include "src/base/iterator.h"
 
-namespace v8::base {
+namespace v8 { namespace base {
 
 // Returns true iff the {element} is found in the {container}.
 template <typename C, typename T>
@@ -145,6 +145,6 @@ inline void vector_append(V& v, const C& container) {
   v.insert(::std::end(v), ::std::begin(container), ::std::end(container));
 }
 
-}  // namespace v8::base
+}  // namespace base }  // namespace v8
 
 #endif  // V8_BASE_CONTAINER_UTILS_H_

@@ -7,7 +7,7 @@
 
 #include "src/base/template-meta-programming/list.h"
 
-namespace v8::base::tmp {
+namespace v8 { namespace base { namespace tmp {
 
 template <typename T>
 struct lazy_false : std::false_type {};
@@ -29,6 +29,6 @@ struct call_parameters<R (O::*)(Args...)> {
 template <typename T>
 using call_parameters_t = typename call_parameters<T>::type;
 
-}  // namespace v8::base::tmp
+}  // namespace tmp }  // namespace base }  // namespace v8
 
 #endif  // V8_BASE_TEMPLATE_META_PROGRAMMING_FUNCTIONAL_H_

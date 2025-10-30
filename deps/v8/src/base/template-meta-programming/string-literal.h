@@ -10,7 +10,7 @@
 #include "src/base/compiler-specific.h"
 #include "src/base/logging.h"
 
-namespace v8::base::tmp {
+namespace v8 { namespace base { namespace tmp {
 
 #ifdef HAS_CPP_CLASS_TYPES_AS_TEMPLATE_ARGS
 
@@ -59,6 +59,6 @@ StringLiteral(const char (&)[N]) -> StringLiteral<N>;
 
 #endif
 
-}  // namespace v8::base::tmp
+}  // namespace tmp }  // namespace base }  // namespace v8
 
 #endif  // V8_BASE_TEMPLATE_META_PROGRAMMING_STRING_LITERAL_H_

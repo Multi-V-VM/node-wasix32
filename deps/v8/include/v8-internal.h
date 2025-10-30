@@ -1,27 +1,27 @@
 #ifndef INCLUDE_V8_INTERNAL_H_
 #define INCLUDE_V8_INTERNAL_H_
 
-#ifdef __wasi__
-#include "wasi/std-preinclude.h"
-#endif
+// Do not include std-preinclude here; this header may be parsed from within
+// a `namespace v8 {}` context, and any standard headers pulled in here would
+// end up defining symbols under a nested v8::std. Ensure TUs include standard
+// headers at global scope instead.
 
 #ifdef __wasi__
-// Include necessary WASI fixes but avoid redefinitions
+// Include necessary WASI fixes but avoid redefinitions, and avoid pulling in
+// any heavy base headers that include the C++ standard library from here.
+// This header is sometimes included while inside `namespace v8 {}` blocks.
+// Keep these WASI shims minimal.
+#include "v8-data.h"              // Ensure Local<T> is defined in WASI builds
+#include "v8-forward.h"           // Ensure template Local<T> is declared
 #include "wasi/nuclear-fix.h"
 #include "wasi/v8-wasi-compat.h"
 #include "../../../wasi-v8-internals-minimal.h"
-// Include essential base pieces after WASI fixes
-#include "src/base/hashing.h"
-#include "wasi/wasi-v8-missing-types.h"
-// Provide namespace bridges and base helpers for internal code
+// Avoid including src/base/* headers here; include them at TU global scope.
+// Provide namespace bridge helpers without touching std::
 #include "wasi/v8-namespace-fix.h"
-// #include "../../../../wasi-v8-minimal-missing.h" // Now included from util.h
 
-#if 0
 // Avoid including heavy roots headers here in WASI builds; Internals is
 // provided by wasi/nuclear-fix.h guarded by V8_INTERNALS_CLASS_DEFINED.
-#include "src/roots/roots.h"
-#endif
 #endif
 
 // Forward declarations needed by public API headers that befriend these types
