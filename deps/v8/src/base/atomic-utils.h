@@ -61,6 +61,10 @@ class AtomicValue {
   ::v8::base::AtomicWord value_;
 };
 
+// Forward declaration for width-to-atomic-type mapping used below.
+template <int Width>
+struct AtomicTypeFromByteWidth;
+
 // Provides atomic operations for a values stored at some address.
 template <typename TAtomicStorageType>
 class AsAtomicImpl {
@@ -69,95 +73,106 @@ class AsAtomicImpl {
 
   template <typename T>
   static T SeqCst_Load(T* addr) {
-    static_assert(sizeof(T) <= sizeof(AtomicStorageType));
-    return cast_helper<T>::to_return_type(
-        ::v8::base::SeqCst_Load(to_storage_addr(addr)));
+    using P = typename ::v8::base::AtomicTypeFromByteWidth<sizeof(T)>::type;
+    static_assert(sizeof(T) <= sizeof(P));
+    const volatile P* p = storage_ptr(addr);
+    return from_atomic<T>(::v8::base::SeqCst_Load(p));
   }
 
   template <typename T>
   static T Acquire_Load(T* addr) {
-    static_assert(sizeof(T) <= sizeof(AtomicStorageType));
-    return cast_helper<T>::to_return_type(
-        ::v8::base::Acquire_Load(to_storage_addr(addr)));
+    using P = typename ::v8::base::AtomicTypeFromByteWidth<sizeof(T)>::type;
+    static_assert(sizeof(T) <= sizeof(P));
+    const volatile P* p = storage_ptr(addr);
+    return from_atomic<T>(::v8::base::Acquire_Load(p));
   }
 
   template <typename T>
   static T Relaxed_Load(T* addr) {
-    static_assert(sizeof(T) <= sizeof(AtomicStorageType));
-    return cast_helper<T>::to_return_type(
-        ::v8::base::Relaxed_Load(to_storage_addr(addr)));
+    using P = typename ::v8::base::AtomicTypeFromByteWidth<sizeof(T)>::type;
+    static_assert(sizeof(T) <= sizeof(P));
+    const volatile P* p = storage_ptr(addr);
+    return from_atomic<T>(::v8::base::Relaxed_Load(p));
   }
 
   template <typename T>
   static void SeqCst_Store(T* addr,
                            typename ::std::remove_reference<T>::type new_value) {
-    static_assert(sizeof(T) <= sizeof(AtomicStorageType));
-    ::v8::base::SeqCst_Store(to_storage_addr(addr),
-                       cast_helper<T>::to_storage_type(new_value));
+    using P = typename ::v8::base::AtomicTypeFromByteWidth<sizeof(T)>::type;
+    static_assert(sizeof(T) <= sizeof(P));
+    volatile P* p = storage_ptr(addr);
+    ::v8::base::SeqCst_Store(p, to_atomic<T, P>(new_value));
   }
 
   template <typename T>
   static void Release_Store(T* addr,
                             typename ::std::remove_reference<T>::type new_value) {
-    static_assert(sizeof(T) <= sizeof(AtomicStorageType));
-    ::v8::base::Release_Store(to_storage_addr(addr),
-                        cast_helper<T>::to_storage_type(new_value));
+    using P = typename ::v8::base::AtomicTypeFromByteWidth<sizeof(T)>::type;
+    static_assert(sizeof(T) <= sizeof(P));
+    volatile P* p = storage_ptr(addr);
+    ::v8::base::Release_Store(p, to_atomic<T, P>(new_value));
   }
 
   template <typename T>
   static void Relaxed_Store(T* addr,
                             typename ::std::remove_reference<T>::type new_value) {
-    static_assert(sizeof(T) <= sizeof(AtomicStorageType));
-    ::v8::base::Relaxed_Store(to_storage_addr(addr),
-                        cast_helper<T>::to_storage_type(new_value));
+    using P = typename ::v8::base::AtomicTypeFromByteWidth<sizeof(T)>::type;
+    static_assert(sizeof(T) <= sizeof(P));
+    volatile P* p = storage_ptr(addr);
+    ::v8::base::Relaxed_Store(p, to_atomic<T, P>(new_value));
   }
 
   template <typename T>
   static T SeqCst_Swap(T* addr,
                        typename ::std::remove_reference<T>::type new_value) {
-    static_assert(sizeof(T) <= sizeof(AtomicStorageType));
-    return ::v8::base::SeqCst_AtomicExchange(
-        to_storage_addr(addr), cast_helper<T>::to_storage_type(new_value));
+    using P = typename ::v8::base::AtomicTypeFromByteWidth<sizeof(T)>::type;
+    static_assert(sizeof(T) <= sizeof(P));
+    volatile P* p = storage_ptr(addr);
+    return from_atomic<T>(::v8::base::SeqCst_AtomicExchange(p, to_atomic<T, P>(new_value)));
   }
 
   template <typename T>
   static T Release_CompareAndSwap(
       T* addr, typename ::std::remove_reference<T>::type old_value,
       typename ::std::remove_reference<T>::type new_value) {
-    static_assert(sizeof(T) <= sizeof(AtomicStorageType));
-    return cast_helper<T>::to_return_type(::v8::base::Release_CompareAndSwap(
-        to_storage_addr(addr), cast_helper<T>::to_storage_type(old_value),
-        cast_helper<T>::to_storage_type(new_value)));
+    using P = typename ::v8::base::AtomicTypeFromByteWidth<sizeof(T)>::type;
+    static_assert(sizeof(T) <= sizeof(P));
+    volatile P* p = storage_ptr(addr);
+    return from_atomic<T>(::v8::base::Release_CompareAndSwap(
+        p, to_atomic<T, P>(old_value), to_atomic<T, P>(new_value)));
   }
 
   template <typename T>
   static T Relaxed_CompareAndSwap(
       T* addr, typename ::std::remove_reference<T>::type old_value,
       typename ::std::remove_reference<T>::type new_value) {
-    static_assert(sizeof(T) <= sizeof(AtomicStorageType));
-    return cast_helper<T>::to_return_type(::v8::base::Relaxed_CompareAndSwap(
-        to_storage_addr(addr), cast_helper<T>::to_storage_type(old_value),
-        cast_helper<T>::to_storage_type(new_value)));
+    using P = typename ::v8::base::AtomicTypeFromByteWidth<sizeof(T)>::type;
+    static_assert(sizeof(T) <= sizeof(P));
+    volatile P* p = storage_ptr(addr);
+    return from_atomic<T>(::v8::base::Relaxed_CompareAndSwap(
+        p, to_atomic<T, P>(old_value), to_atomic<T, P>(new_value)));
   }
 
   template <typename T>
   static T AcquireRelease_CompareAndSwap(
       T* addr, typename ::std::remove_reference<T>::type old_value,
       typename ::std::remove_reference<T>::type new_value) {
-    static_assert(sizeof(T) <= sizeof(AtomicStorageType));
-    return cast_helper<T>::to_return_type(::v8::base::AcquireRelease_CompareAndSwap(
-        to_storage_addr(addr), cast_helper<T>::to_storage_type(old_value),
-        cast_helper<T>::to_storage_type(new_value)));
+    using P = typename ::v8::base::AtomicTypeFromByteWidth<sizeof(T)>::type;
+    static_assert(sizeof(T) <= sizeof(P));
+    volatile P* p = storage_ptr(addr);
+    return from_atomic<T>(::v8::base::AcquireRelease_CompareAndSwap(
+        p, to_atomic<T, P>(old_value), to_atomic<T, P>(new_value)));
   }
 
   template <typename T>
   static T SeqCst_CompareAndSwap(
       T* addr, typename ::std::remove_reference<T>::type old_value,
       typename ::std::remove_reference<T>::type new_value) {
-    static_assert(sizeof(T) <= sizeof(AtomicStorageType));
-    return cast_helper<T>::to_return_type(::v8::base::SeqCst_CompareAndSwap(
-        to_storage_addr(addr), cast_helper<T>::to_storage_type(old_value),
-        cast_helper<T>::to_storage_type(new_value)));
+    using P = typename ::v8::base::AtomicTypeFromByteWidth<sizeof(T)>::type;
+    static_assert(sizeof(T) <= sizeof(P));
+    volatile P* p = storage_ptr(addr);
+    return from_atomic<T>(::v8::base::SeqCst_CompareAndSwap(
+        p, to_atomic<T, P>(old_value), to_atomic<T, P>(new_value)));
   }
 
   // Atomically sets bits selected by the mask to the given value.
@@ -195,42 +210,45 @@ class AsAtomicImpl {
   }
 
  private:
-  template <typename U>
-  struct cast_helper {
-    static AtomicStorageType to_storage_type(U value) {
-      return static_cast<AtomicStorageType>(value);
-    }
-    static U to_return_type(AtomicStorageType value) {
-      return static_cast<U>(value);
-    }
-  };
+  // Convert between user type T and atomic parameter type P.
+  template <typename X>
+  struct is_strong_alias : ::std::false_type {};
+  template <typename Tag, typename U>
+  struct is_strong_alias<base::StrongAlias<Tag, U>> : ::std::true_type {};
 
-  template <typename U>
-  struct cast_helper<U*> {
-    static AtomicStorageType to_storage_type(U* value) {
-      return reinterpret_cast<AtomicStorageType>(value);
+  template <typename T, typename P>
+  static P to_atomic(typename ::std::remove_reference<T>::type value) {
+    if constexpr (is_strong_alias<T>::value) {
+      return static_cast<P>(value.value());
+    } else if constexpr (::std::is_pointer_v<T>) {
+      return static_cast<P>(reinterpret_cast<uintptr_t>(value));
+    } else {
+      return static_cast<P>(value);
     }
-    static U* to_return_type(AtomicStorageType value) {
-      return reinterpret_cast<U*>(value);
+  }
+  template <typename T, typename P>
+  static T from_atomic(P value) {
+    if constexpr (is_strong_alias<T>::value) {
+      using Underlying = typename T::underlying_type;
+      return T(static_cast<Underlying>(value));
+    } else if constexpr (::std::is_pointer_v<T>) {
+      return reinterpret_cast<T>(static_cast<uintptr_t>(value));
+    } else {
+      return static_cast<T>(value);
     }
-  };
-  template <typename T, typename U>
-  struct cast_helper<base::StrongAlias<T, U>> {
-    static AtomicStorageType to_storage_type(base::StrongAlias<T, U> value) {
-      return static_cast<AtomicStorageType>(value.value());
-    }
-    static base::StrongAlias<T, U> to_return_type(AtomicStorageType value) {
-      return base::StrongAlias<T, U>(static_cast<U>(value));
-    }
-  };
+  }
 
   template <typename T>
-  static volatile AtomicStorageType* to_storage_addr(T* value) {
-    return reinterpret_cast<volatile AtomicStorageType*>(value);
+  static volatile typename ::v8::base::AtomicTypeFromByteWidth<sizeof(T)>::type*
+  storage_ptr(T* value) {
+    using P = typename ::v8::base::AtomicTypeFromByteWidth<sizeof(T)>::type;
+    return reinterpret_cast<volatile P*>(value);
   }
   template <typename T>
-  static const volatile AtomicStorageType* to_storage_addr(const T* value) {
-    return reinterpret_cast<const volatile AtomicStorageType*>(value);
+  static const volatile typename ::v8::base::AtomicTypeFromByteWidth<sizeof(T)>::type*
+  storage_ptr(const T* value) {
+    using P = typename ::v8::base::AtomicTypeFromByteWidth<sizeof(T)>::type;
+    return reinterpret_cast<const volatile P*>(value);
   }
 };
 

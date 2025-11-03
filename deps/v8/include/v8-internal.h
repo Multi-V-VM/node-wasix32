@@ -6,6 +6,9 @@
 // end up defining symbols under a nested v8::std. Ensure TUs include standard
 // headers at global scope instead.
 
+// Forward declare v8::Isolate and template Local<T> for pointer signatures
+namespace v8 { class Isolate; template <typename T> class Local; }
+
 #ifdef __wasi__
 // Include necessary WASI fixes but avoid redefinitions, and avoid pulling in
 // any heavy base headers that include the C++ standard library from here.
@@ -28,6 +31,9 @@
 // before the actual definitions are visible in src/ headers.
 namespace v8 {
 namespace internal {
+// Forward declare internal Isolate for friend declarations in headers.
+class Isolate;
+class Isolate;
 template <typename T>
 class CustomArguments;
 void PrintFunctionCallbackInfo(void*);
@@ -40,6 +46,7 @@ void PrintPropertyCallbackInfo(void*);
 // Non-WASI content would go here
 #include <cstdint>
 #include <cstddef>
+#include <optional>
 
 namespace v8 {
 namespace internal {
@@ -51,7 +58,63 @@ class Internals {
  public:
   static constexpr int kApiTaggedSize = sizeof(void*);
   static constexpr int kNumIsolateDataSlots = 4;
-  // Add other minimal definitions as needed
+  // Minimal placeholders used by public headers
+  static constexpr uint8_t kNodeStateIsWeakValue = 1;
+  static constexpr Address kNullAddress = 0;
+  static constexpr int kNodeClassIdOffset = 0;
+  static constexpr int kNativeContextEmbedderDataOffset = 0;
+  static constexpr int kEmbedderDataArrayHeaderSize = 0;
+  static constexpr int kEmbedderDataSlotSize = 0;
+  static constexpr int kEmbedderDataSlotExternalPointerOffset = 0;
+  // String layout related constants (host stub values)
+  static constexpr int kStringResourceOffset = 0;
+  static constexpr int kExternalStringResourceTag = 0;
+  static constexpr int kStringRepresentationAndEncodingMask = 0;
+  static constexpr int kStringEncodingMask = 0;
+  static constexpr int kExternalOneByteRepresentationTag = 0;
+  static constexpr int kExternalTwoByteRepresentationTag = 0;
+  // CppHeap pointer tagging shift used by sandbox helpers
+  static constexpr int kCppHeapPointerTagShift = 1;
+  // Root indices (host stub values)
+  static constexpr int kEmptyStringRootIndex = 0;
+  static constexpr int kUndefinedValueRootIndex = 0;
+  static constexpr int kNullValueRootIndex = 0;
+  static constexpr int kTrueValueRootIndex = 0;
+  static constexpr int kFalseValueRootIndex = 0;
+  template <int kTag>
+  static uintptr_t ReadExternalPointerField(::v8::Isolate*, Address, int) {
+    return 0;
+  }
+  static Address ReadTaggedPointerField(Address, int) { return 0; }
+  static Address ReadRawField(Address a, int) { return a; }
+  template <typename T>
+  static T ReadRawField(Address a, int) { return static_cast<T>(a); }
+  static Address DecompressTaggedField(Address a, uint32_t) { return a; }
+  static uint8_t GetNodeState(Address*) { return 0; }
+  static int GetInstanceType(Address) { return 0; }
+  static ::v8::Isolate* GetIsolateForSandbox(Address) { return nullptr; }
+  static bool IsExternalTwoByteString(int) { return false; }
+  template <typename T>
+  static constexpr bool IsValidSmi(T) { return true; }
+  template <typename T>
+  static Address IntegralToSmi(T v) { return static_cast<Address>(v); }
+  template <typename T>
+  static ::std::optional<Address> TryIntegralToSmi(T) { return ::std::nullopt; }
+  static bool CanHaveInternalField(int) { return false; }
+  static void CheckInitialized(::v8::Isolate*) {}
+  static Address* GetRootSlot(::v8::Isolate*, int) { return nullptr; }
+  static Address GetRoot(::v8::Isolate*, int) { return 0; }
+  // Overload with explicit tag parameter
+  static uintptr_t ReadExternalPointerField(::v8::Isolate*, Address, int, int) {
+    return 0;
+  }
+  static constexpr int kJSAPIObjectWithEmbedderSlotsHeaderSize = 0;
+  static constexpr int kJSObjectHeaderSize = 0;
+  static constexpr int kEmbedderDataSlotPayloadTag = 0;
+  static constexpr int kInferShouldThrowMode = 0;
+  static constexpr int kDontThrow = 0;
+  static constexpr int kThrowOnError = 1;
+  static bool HasHeapObjectTag(Address) { return false; }
 };
 
 }  // namespace internal
@@ -76,7 +139,23 @@ inline constexpr int kInt64Size = static_cast<int>(sizeof(int64_t));
 #define V8_INTERNAL_KSYSTEMPOINTERSIZE_DEFINED
 inline constexpr int kSystemPointerSize = static_cast<int>(sizeof(void*));
 #endif
+#ifndef V8_INTERNAL_KTAGGEDSIZE_DEFINED
+#define V8_INTERNAL_KTAGGEDSIZE_DEFINED
+inline constexpr int kTaggedSize = static_cast<int>(sizeof(void*));
+inline constexpr int kTaggedSizeLog2 = (sizeof(void*) == 8 ? 3 : 2);
+inline constexpr int kApiTaggedSize = static_cast<int>(sizeof(void*));
+#endif
 #endif  // !defined(__wasi__)
+
+// Expose sandbox-related constants for API headers that look for them
+// directly under v8::internal rather than via Internals. Avoid defining on
+// WASI builds, where the WASI prelude provides its own definitions.
+#if !defined(__wasi__)
+#ifndef V8_INTERNAL_KCPPHEAP_TAG_SHIFT_DEFINED
+#define V8_INTERNAL_KCPPHEAP_TAG_SHIFT_DEFINED
+inline constexpr int kCppHeapPointerTagShift = 1;
+#endif
+#endif
 
 // In our WASI configuration there is no Trusted Space for code objects. Make
 // this constant available to silence static_assert checks in various files.
@@ -84,6 +163,22 @@ inline constexpr int kSystemPointerSize = static_cast<int>(sizeof(void*));
 #define V8_INTERNAL_KALLCODEOBJECTSLIVEINTRUSTEDSPACE_DEFINED
 inline constexpr bool kAllCodeObjectsLiveInTrustedSpace = false;
 #endif
+
+// Some API headers look up this helper under v8::internal.
+#if !defined(__wasi__)
+inline ::v8::Isolate* IsolateFromNeverReadOnlySpaceObject(Address) {
+  return nullptr;
+}
+
+// Property callback helper used by v8-function-callback.h slow paths.
+inline bool ShouldThrowOnError(class Isolate*) { return false; }
+
+// Provide minimal host stub for ArrayBuffer BackingStore base type.
+struct BackingStoreBase {};
+#endif
+
+// Debug helper used by v8-function-callback.h when V8_ENABLE_CHECKS.
+inline void VerifyHandleIsNonEmpty(bool) {}
 
 }  // namespace internal
 }  // namespace v8
@@ -109,6 +204,7 @@ struct ValueHelper {
   template <typename T>
   static bool IsEmpty(T* that) { return that == nullptr; }
 
+#ifdef __wasi__
   template <typename V, bool kCheck = false>
   static ::v8::Local<V> SlotAsValue(Address* slot) {
     return ::v8::Local<V>::FromSlot(slot);
@@ -123,9 +219,30 @@ struct ValueHelper {
   static ::v8::Local<T> ReprAsValue(InternalRepresentationType repr) {
     return ::v8::Local<T>::FromRepr(repr);
   }
+#else
+  // Non-WASI: avoid referencing ::v8::Local here; callers in public API
+  // should include <v8.h> which defines Local and friends.
+  template <typename T>
+  static Address ValueAsAddress(T* ptr) {
+    return reinterpret_cast<Address>(ptr);
+  }
+#endif
+  template <typename T>
+  static void PerformCastCheck(T) {}
+  template <typename A, typename B>
+  static bool EqualHandles(const A&, const B&) { return false; }
 };
 }  // namespace internal
 }  // namespace v8
 #endif  // V8_WASI_VALUEHELPER_DEFINED
+
+#ifndef __wasi__
+// Provide a free function in v8::internal to match headers expecting
+// internal::PerformCastCheck(...) symbols on host builds.
+namespace v8 { namespace internal {
+template <typename T>
+inline void PerformCastCheck(T t) { ValueHelper::PerformCastCheck(t); }
+} }
+#endif
 
 #endif // INCLUDE_V8_INTERNAL_H_

@@ -53,15 +53,9 @@ struct NIsNotGreaterThanTupleSize
 } // namespace detail
 
 // Make tuple access WASI-compatible
-template <::std::size_t N, typename Tuple>
-#ifdef __wasi__
-typename ::std::enable_if_t<detail::NIsNotGreaterThanTupleSize<N, Tuple>::value,
-                            ::std::tuple_element_t<N, Tuple>&>
-#else
-  requires(detail::NIsNotGreaterThanTupleSize<N, Tuple>)
-::std::tuple_element_t<N, Tuple>&
-#endif
-get(Tuple& tuple) {
+template <::std::size_t N, typename Tuple,
+          typename = ::std::enable_if_t<detail::NIsNotGreaterThanTupleSize<N, Tuple>::value>>
+::std::tuple_element_t<N, Tuple>& get(Tuple& tuple) {
   return ::std::get<N>(tuple);
 }
 
@@ -212,6 +206,14 @@ template <class Acc, class Tuple, class F>
 auto tuple_fold(Acc acc, Tuple& t, F&& f) {
   return detail::tuple_fold_impl(::std::move(acc), t, ::std::forward<F>(f), ::std::make_index_sequence<::std::tuple_size_v<::std::remove_reference_t<Tuple>>>{});
 }
+
+// ---------------------------------------------------------------------------
+// Utility: base::overloaded
+// Visitor helper for std::visit-style overload sets.
+template <class... Ts>
+struct overloaded : Ts... { using Ts::operator()...; };
+template <class... Ts>
+overloaded(Ts...) -> overloaded<Ts...>;
 
 }  // namespace base
 }  // namespace v8

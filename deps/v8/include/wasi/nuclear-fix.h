@@ -1,6 +1,8 @@
 #ifndef V8_INCLUDE_WASI_NUCLEAR_FIX_H_
 #define V8_INCLUDE_WASI_NUCLEAR_FIX_H_
 
+#if defined(__wasi__)
+
 #include <cstdint>
 #include <cstddef>
 #include <limits>
@@ -334,9 +336,13 @@ inline constexpr uint32_t kCodePointerHandleMarker = 0;
 inline constexpr uint32_t kMaxTrustedPointers = 65536;
 
 // Should throw on error function - now with proper forward declaration
-inline bool ShouldThrowOnError(::v8::internal::Isolate* isolate) {
+// Guard to avoid duplicate definitions across host/WASI mixes
+#ifndef V8_INTERNAL_SHOULD_THROW_ON_ERROR_DEFINED
+#define V8_INTERNAL_SHOULD_THROW_ON_ERROR_DEFINED 1
+inline bool ShouldThrowOnError(::v8::internal::Isolate* /*isolate*/) {
   return false;  // WASI stub - never throw
 }
+#endif
 
 // WASI-specific smi operations
 constexpr int kSmiTagSize = 1;
@@ -570,19 +576,38 @@ class Internals {
 #ifndef V8_WASI_CORE_SIZES_DEFINED
 #define V8_WASI_CORE_SIZES_DEFINED
 // Fundamental size constants
+#ifndef kSystemPointerSize
 constexpr int kSystemPointerSize = sizeof(void*);
+#endif
 #ifndef V8_INTERNAL_KSYSTEMPOINTERSIZE_DEFINED
 #define V8_INTERNAL_KSYSTEMPOINTERSIZE_DEFINED 1
 #endif
+#ifndef kSystemPointerSizeLog2
 constexpr int kSystemPointerSizeLog2 = (sizeof(void*) == 4 ? 2 : 3);
+#endif
+#ifndef kTaggedSize
 constexpr int kTaggedSize = 4;  // 32-bit tagged pointers on WASI builds
+#endif
+#ifndef kTaggedSizeLog2
 constexpr int kTaggedSizeLog2 = 2;
+#endif
 // Integer sizes are defined in src/common/globals.h; don't redefine here.
 
 // Storage types for tagged values
+#ifndef V8_WASI_TAGGED_TYPES_DEFINED
+#define V8_WASI_TAGGED_TYPES_DEFINED 1
 using Tagged_t = uintptr_t;
 // Use uintptr_t as the atomic-sized tagged storage on WASI
 using AtomicTagged_t = uintptr_t;
+#endif
+
+// Slot sizes used by static assertions in globals.h
+#ifndef kExternalPointerSlotSize
+constexpr int kExternalPointerSlotSize = kSystemPointerSize;
+#endif
+#ifndef kCppHeapPointerSlotSize
+constexpr int kCppHeapPointerSlotSize = kSystemPointerSize;
+#endif
 
 // External pointer storage types on the heap
 using ExternalPointer_t = uint32_t;
@@ -610,10 +635,13 @@ constexpr int kJSDispatchHandleShift = 0;
 #endif
 
 // BackingStore base stub used by v8-array-buffer.h
+#ifndef V8_WASI_BACKINGSTORE_BASE_DEFINED
+#define V8_WASI_BACKINGSTORE_BASE_DEFINED 1
 class BackingStoreBase {
  public:
   virtual ~BackingStoreBase() = default;
 };
+#endif
 
 }  // namespace internal
 }  // namespace v8
@@ -678,7 +706,8 @@ inline To bit_cast(const From& from) {
 // Add selected internal free-function stubs referenced by public headers
 namespace v8 {
 namespace internal {
-inline void* IsolateFromNeverReadOnlySpaceObject(Address /*obj*/) { return nullptr; }
+// Match the signature used by internal API to avoid overload conflicts.
+inline Isolate* IsolateFromNeverReadOnlySpaceObject(Address /*obj*/) { return nullptr; }
 
 template <typename T>
 inline T* ReadCppHeapPointerField(void* /*isolate*/, Address obj, int offset,
@@ -774,9 +803,12 @@ constexpr int kExternalPointerTagShift = 48;
 inline constexpr int kExternalPointerIndexShift = 0;
 #endif
 
-// PerformCastCheck stub
+// PerformCastCheck stub (guarded to avoid duplication)
+#ifndef V8_INTERNAL_PERFORMCASTCHECK_DEFINED
+#define V8_INTERNAL_PERFORMCASTCHECK_DEFINED 1
 template <typename T>
 inline void PerformCastCheck(T) {}
+#endif
 
 // CppHeap pointer table constants and helpers for WASI
 #ifndef V8_CPPHEAP_POINTER_TABLE_SIZE
@@ -789,13 +821,14 @@ constexpr size_t kCppHeapPointerTableReservationSize = 1024 * 1024;  // 1MB
 constexpr size_t kMaxCppHeapPointers = 65536;
 #endif
 
-#ifndef V8_CPPHEAP_POINTER_SHIFTS_DEFINED
+#if !defined(V8_CPPHEAP_POINTER_SHIFTS_DEFINED) && \
+    !defined(V8_INTERNAL_KCPPHEAP_TAG_SHIFT_DEFINED)
 #define V8_CPPHEAP_POINTER_SHIFTS_DEFINED
 // Keep shifts small to avoid 32-bit overflow/UB
 constexpr int kCppHeapPointerIndexShift = 0;
 constexpr int kCppHeapPointerPayloadShift = 1;
 constexpr int kCppHeapPointerTagShift = 1;
-#endif
+#endif  // V8_CPPHEAP_POINTER_SHIFTS_DEFINED
 
 #ifndef V8_NULL_CPPHEAP_POINTER_HANDLE_DEFINED
 #define V8_NULL_CPPHEAP_POINTER_HANDLE_DEFINED
@@ -812,4 +845,5 @@ constexpr Address kCppHeapPointerMarkBit = static_cast<Address>(0);
 }  // namespace internal
 }  // namespace v8
 
+#endif  // __wasi__
 #endif  // V8_INCLUDE_WASI_NUCLEAR_FIX_H_

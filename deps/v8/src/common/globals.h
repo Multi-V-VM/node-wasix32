@@ -47,6 +47,7 @@
 #include "src/base/numerics/safe_conversions.h"
 #include "src/base/platform/elapsed-timer.h"
 #include "src/base/platform/platform.h"
+#include "src/base/address-region.h"
 #include "src/base/platform/wrappers.h"
 #include "src/base/platform/mutex.h"
 #include "src/base/vector.h"
@@ -172,6 +173,9 @@ using OwnedVector = ::v8::base::OwnedVector<T>;
 using ::v8::base::OwnedCopyOf;
 template <typename T>
 using OwnedZoneVector = ::v8::base::OwnedVector<T>;
+// Common containers/utilities are provided via WASI shims in
+// deps/v8/include/wasi/wasi-v8-missing-types.h. Avoid redeclaring here to
+// prevent default argument redefinition conflicts.
 
 // Memory helpers
 using ::v8::base::ReadUnalignedValue;
@@ -214,6 +218,8 @@ using ::v8::base::NoHashMapValue;
 template <typename T>
 using AsAtomicImpl = ::v8::base::AsAtomicImpl<T>;
 using ::v8::base::AsAtomic32;
+using ::v8::base::AsAtomic16;
+using ::v8::base::AsAtomic8;
 
 // Bits helpers (bridge into internal::base::bits namespace)
 namespace bits {
@@ -225,6 +231,10 @@ using ::v8::base::bits::CountPopulation;
 using ::v8::base::bits::IsPowerOfTwo;
 using ::v8::base::bits::ReverseBytes;
 using ::v8::base::bits::RoundUpToPowerOfTwo;
+using ::v8::base::bits::WhichPowerOfTwo;
+using ::v8::base::bits::RotateLeft32;
+using ::v8::base::bits::RotateLeft64;
+using ::v8::base::bits::SignedMulHigh64;
 }  // namespace bits
 
 // Frequently used base utilities and typedefs
@@ -243,6 +253,8 @@ using ::v8::base::AlignedAlloc;
 using ::v8::base::AlignedFree;
 using ::v8::base::Fopen;
 using ::v8::base::Fclose;
+using ::v8::base::Atomic8;
+using ::v8::base::Atomic16;
 using ::v8::base::Atomic32;
 #if defined(V8_HOST_ARCH_64_BIT)
 using ::v8::base::Atomic64;
@@ -250,9 +262,14 @@ using ::v8::base::Atomic64;
 using ::v8::base::Mutex;
 using ::v8::base::RecursiveMutex;
 using ::v8::base::Hasher;
-using ::v8::base::PageAllocator;
+using ::v8::PageAllocator;
+#if defined(__wasi__)
+using ::v8::internal::VirtualAddressSpace;
+using ::v8::internal::VirtualAddressSubspace;
+#else
 using ::v8::base::VirtualAddressSpace;
 using ::v8::base::VirtualAddressSubspace;
+#endif
 
 // Hash map related aliases
 template <typename Key, typename Value, class MatchFun, class AllocationPolicy>
@@ -261,12 +278,7 @@ template <typename Key>
 using KeyEqualityMatcher = ::v8::base::KeyEqualityMatcher<Key>;
 using CustomMatcherHashMap = ::v8::base::CustomMatcherHashMap;
 
-// Provide iterator alias template expected by some internal code
-#ifndef __wasi__
-template <typename Category, typename T, typename Distance = std::ptrdiff_t,
-          typename Pointer = T*, typename Reference = T&>
-using iterator = ::v8::base::iterator<Category, T, Distance, Pointer, Reference>;
-#endif
+// Iterator alias is provided by WASI shims; no redefinition here.
 
 // Frequently used numeric helpers/types that many internal call-sites refer to
 // via v8::internal::base::...
@@ -345,6 +357,8 @@ using ::v8::base::bits::IterateBitsBackwards;
 // in V8 sources that expect these symbols.
 using ::v8::base::SNPrintF;
 using ::v8::base::Strtod;
+// Expose v8::Platform::BlockingType for unqualified use in sources
+using BlockingType = ::v8::Platform::BlockingType;
 
 namespace compiler {
 // Forward declare DoubleEndedSplitVector and provide an alias for
@@ -510,6 +524,7 @@ static_assert(V8_ENABLE_LEAPTIERING_BOOL);
 #define ENABLE_CONTROL_FLOW_INTEGRITY_BOOL false
 #endif
 
+#ifndef V8_DEFAULT_STACK_SIZE_KB
 #if V8_TARGET_ARCH_ARM
 // Set stack limit lower for ARM than for other architectures because stack
 // allocating MacroAssembler takes 120K bytes.  See issue crbug.com/405338
@@ -533,6 +548,7 @@ static_assert(V8_ENABLE_LEAPTIERING_BOOL);
 // the main execution thread is 1MB.
 #define V8_DEFAULT_STACK_SIZE_KB 984
 #endif
+#endif  // V8_DEFAULT_STACK_SIZE_KB
 
 // Helper macros to enable handling of direct C calls in the simulator.
 #if defined(USE_SIMULATOR) &&                                           \
@@ -551,6 +567,13 @@ constexpr int kStackSpaceRequiredForCompilation = 40;
 
 // In order to emit more efficient stack checks in optimized code,
 // deoptimization may implicitly exceed the V8 stack limit by this many bytes.
+// Size constants used throughout V8
+#ifndef KB
+constexpr size_t KB = 1024;
+constexpr size_t MB = 1024 * KB;
+constexpr size_t GB = 1024 * MB;
+#endif
+
 // Stack checks in functions with `difference between optimized and unoptimized
 // stack frame sizes <= slack` can simply emit the simple stack check.
 constexpr int kStackLimitSlackForDeoptimizationInBytes = 256;
@@ -807,7 +830,10 @@ constexpr uint32_t kDefaultMaxWasmCodeSpaceSizeMb = 1024;
 constexpr size_t kIsolateDataAlignment = 64;
 
 #if V8_HOST_ARCH_64_BIT
+// Define kSystemPointerSizeLog2 for 64-bit builds if not already defined
+#ifndef kSystemPointerSizeLog2
 constexpr int kSystemPointerSizeLog2 = 3;
+#endif
 constexpr intptr_t kIntptrSignBit =
     static_cast<intptr_t>(uintptr_t{0x8000000000000000});
 constexpr bool kPlatformRequiresCodeRange = true;
@@ -855,7 +881,10 @@ constexpr size_t kPtrComprCageReservationSize = static_cast<size_t>(4ULL * GB);
 
 #else  // V8_HOST_ARCH_64_BIT
 
-// kSystemPointerSizeLog2 already defined in v8-internal.h
+// Define kSystemPointerSizeLog2 for 32-bit builds
+#ifndef kSystemPointerSizeLog2
+constexpr int kSystemPointerSizeLog2 = 2;  // 32-bit = 4 bytes = 2^2
+#endif
 constexpr intptr_t kIntptrSignBit = 0x80000000;
 #if V8_HOST_ARCH_PPC64 && V8_TARGET_ARCH_PPC64 && V8_OS_LINUX
 constexpr bool kPlatformRequiresCodeRange = false;
@@ -948,6 +977,45 @@ static_assert((1 << (32 - kJSDispatchHandleShift)) == kMaxJSDispatchEntries,
 constexpr uint32_t kJSDispatchHandleShift = 0;
 
 #endif
+
+// Missing pointer type definitions for sandbox/pointer compression
+// These are needed for WASI and other builds
+#ifndef EXTERNAL_POINTER_T_DEFINED
+#define EXTERNAL_POINTER_T_DEFINED
+using ExternalPointer_t = uintptr_t;
+using CppHeapPointer_t = uintptr_t;
+using IndirectPointerHandle = uint32_t;
+#endif
+
+// Missing Smi-related constants
+// Smi (Small Integer) tagging scheme constants
+#ifndef kSmiValueSize
+#if V8_TARGET_ARCH_64_BIT
+// On 64-bit systems with 8-byte tagged values
+constexpr int kSmiValueSize = 31;  // 31-bit values for proper Smi tagging
+constexpr int kSmiShiftSize = 32;  // Shift to upper 32 bits
+constexpr int kSmiTagSize = 1;     // 1 bit for tag
+#else
+// On 32-bit systems with 4-byte tagged values (including WASM32)
+constexpr int kSmiValueSize = 31;  // 31-bit values on 32-bit (1 bit for tag)
+constexpr int kSmiShiftSize = 0;   // No shift
+constexpr int kSmiTagSize = 1;     // 1 bit for tag
+#endif
+#endif
+
+// Missing JS dispatch handle constants (if not already defined)
+#ifndef kJSDispatchHandleShift
+constexpr int kJSDispatchHandleShift = 0;
+#endif
+
+// Smi value check functions
+#ifndef SMI_VALUES_ARE_DEFINED
+#define SMI_VALUES_ARE_DEFINED
+inline constexpr bool SmiValuesAre31Bits() { return kSmiValueSize == 31; }
+inline constexpr bool SmiValuesAre32Bits() { return kSmiValueSize == 32; }
+#endif
+
+// Note: kIsSmiValueInUpper32Bits is defined later in the file
 
 static_assert(kTaggedSize == (1 << kTaggedSizeLog2));
 static_assert((kTaggedSize == 8) == TAGGED_SIZE_8_BYTES);

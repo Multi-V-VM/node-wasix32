@@ -5,8 +5,6 @@
 #ifndef V8_BASE_DIVISION_BY_CONSTANT_H_
 #define V8_BASE_DIVISION_BY_CONSTANT_H_
 
-#ifdef __wasi__
-
 #include <stdint.h>
 
 #include <tuple>
@@ -71,6 +69,4 @@ extern template EXPORT_TEMPLATE_DECLARE(V8_BASE_EXPORT)
 
 }  // namespace base
 }  // namespace v8
-
-#endif  // __wasi__
 #endif  // V8_BASE_DIVISION_BY_CONSTANT_H_

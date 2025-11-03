@@ -10,7 +10,9 @@
 #ifdef __wasi__
 #include "wasi/base-preinclude.h"
 #endif
+#ifdef __wasi__
 #include "wasi/nuclear-fix.h"
+#endif
 
 namespace v8 {
 

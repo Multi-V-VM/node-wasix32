@@ -54,9 +54,17 @@ namespace cppgc {
 template <typename T>
 constexpr bool IsStackAllocatedType = false;
 #else
+// On non-WASI builds, avoid using C++20 concepts in headers that may be
+// compiled with older language standards. Provide a detection idiom fallback.
+template <typename, typename = void>
+struct __cppgc_has_stack_alloc_marker : ::std::false_type {};
 template <typename T>
-bool IsStackAllocatedType =
-    requires { typename T::IsStackAllocatedTypeMarker; };
+struct __cppgc_has_stack_alloc_marker<
+    T, ::std::void_t<typename T::IsStackAllocatedTypeMarker>>
+    : ::std::true_type {};
+
+template <typename T>
+bool IsStackAllocatedType = __cppgc_has_stack_alloc_marker<T>::value;
 #endif
 
 }  // namespace cppgc

@@ -175,3 +175,8 @@
 #endif
 
 #endif // V8_CONFIG_H_
+#ifndef __wasi__
+#ifndef kApiSystemPointerSize
+#define kApiSystemPointerSize sizeof(void*)
+#endif
+#endif

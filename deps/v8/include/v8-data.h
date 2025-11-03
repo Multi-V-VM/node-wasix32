@@ -14,16 +14,18 @@ template <typename T> class Local;
 #ifdef __wasi__
 // Forward declare Isolate and internal::Address for Local<> implementation
 class Isolate;
-namespace internal {
-  using Address = unsigned long;
-}
+namespace internal { using Address = unsigned long; }
+#else
+class Isolate;
+namespace internal { using Address = uintptr_t; }
+#endif
 
 // ===========================================================================
-// Minimal Local<T> stub implementation for WASI
+// Minimal Local<T> stub implementation used by both WASI and host tool builds
 // ===========================================================================
-// Full implementation must be here in v8-data.h since many headers include
-// v8-data.h and immediately try to use Local<> before wasi-v8-missing-types.h
-// is included.
+// Full implementation must be available here since many headers include
+// v8-data.h and immediately try to use Local<> before the heavy headers are
+// included.
 
 template <typename T>
 class Local {
@@ -113,7 +115,7 @@ class Local {
  private:
   T* val_;
 };
-#endif  // __wasi__
+// end Local<T>
 
 /**
  * The superclass of objects that can be embedded in JavaScript values

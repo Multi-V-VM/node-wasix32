@@ -38,33 +38,10 @@ class ConditionalStackAllocatedBase {
 #include "cppgc/macros.h"       // NOLINT(build/include_directory)
 #include "cppgc/type-traits.h"  // NOLINT(build/include_directory)
 
-namespace cppgc {
-namespace internal {
-
-// Base class that is marked as stack allocated if T is either marked as stack
-// allocated or a traceable type.
+namespace cppgc { namespace internal {
 template <typename T>
-class ConditionalStackAllocatedBase;
-
-template <typename T>
-bool RequiresStackAllocated =
-    !std::is_void_v<T> &&
-    (cppgc::IsStackAllocatedType<T> || cppgc::internal::IsTraceableV<T> ||
-     cppgc::IsGarbageCollectedOrMixinTypeV<T>);
-
-template <typename T>
-  requires true || (RequiresStackAllocated<T>)
-class ConditionalStackAllocatedBase<T> {
- public:
-  CPPGC_STACK_ALLOCATED();
-};
-
-template <typename T>
-  requires true || (!RequiresStackAllocated<T>)
-class ConditionalStackAllocatedBase<T> {};
-
-}  // namespace internal
-}  // namespace cppgc
+class ConditionalStackAllocatedBase { };
+} }
 
 #endif  // __wasi__
 

@@ -139,8 +139,6 @@ template <typename TagType, typename UnderlyingType>
 }  // namespace base
 }  // namespace v8
 
-// 为 WASI 环境添加条件编译保护
-#ifndef __wasi__
 template <typename TagType, typename UnderlyingType>
 struct std::hash<v8::base::StrongAlias<TagType, UnderlyingType>> {
   size_t operator()(
@@ -148,7 +146,6 @@ struct std::hash<v8::base::StrongAlias<TagType, UnderlyingType>> {
     return std::hash<UnderlyingType>()(id.value());
   }
 };
-#endif
 
 
 #endif  // V8_BASE_STRONG_ALIAS_H_

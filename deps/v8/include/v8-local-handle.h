@@ -16,16 +16,11 @@
 #include <type_traits>
 #include <utility>
 
-#ifndef __wasi__
-// For non-WASI builds, include v8-internal.h for the real Local<> implementation
-#include "v8-internal.h"
-#endif
-
+#include "v8-data.h"  // Provides the lightweight Local<T> for both host and WASI
 #include "v8config.h"
 
 #ifdef __wasi__
 #include "wasi/v8-wasi-compat.h"
-#include "v8-data.h"  // Ensure Local<T> is defined for WASI stubs
 #include "v8-forward.h"
 // Provide aliases expected by internal code paths
 namespace v8 {

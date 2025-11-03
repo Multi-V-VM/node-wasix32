@@ -1,34 +1,33 @@
 #ifndef V8_SRC_BASE_LOGGING_H_
 #define V8_SRC_BASE_LOGGING_H_
 
-#ifdef __wasi__
-#include <cstdlib>  // for abort()
-#include <cstdio>   // for fprintf
+#include <cstdlib>
+#include <cstdio>
 
 // V8_INLINE macro
 #ifndef V8_INLINE
 #define V8_INLINE inline
 #endif
 
-// V8_Fatal and V8_Dcheck macros for WASI
+// Minimal logging stubs for both WASI and non-WASI builds if not provided
 #ifndef V8_Fatal
 #define V8_Fatal(...) do { \
-  fprintf(stderr, "V8 Fatal: "); \
-  fprintf(stderr, __VA_ARGS__); \
-  fprintf(stderr, "\n"); \
-  abort(); \
+  std::fprintf(stderr, "V8 Fatal: "); \
+  std::fprintf(stderr, __VA_ARGS__); \
+  std::fprintf(stderr, "\n"); \
+  std::abort(); \
 } while (0)
 #endif
 
 #ifndef V8_Dcheck
 #define V8_Dcheck(...) do { \
-  fprintf(stderr, "V8 Dcheck: "); \
-  fprintf(stderr, __VA_ARGS__); \
-  fprintf(stderr, "\n"); \
+  std::fprintf(stderr, "V8 Dcheck: "); \
+  std::fprintf(stderr, __VA_ARGS__); \
+  std::fprintf(stderr, "\n"); \
 } while (0)
 #endif
 
-// Minimal logging stubs for WASI
+// Minimal logging stubs
 #ifndef CHECK
 #define CHECK(condition) ((void)0)
 #endif
@@ -151,10 +150,6 @@ V8_INLINE T&& CheckNotNull(T&& val) { return std::forward<T>(val); }
 #define DCHECK_WITH_MSG_AND_LOC(condition, message, loc) DCHECK(condition)
 #endif
 
-#ifndef V8_GLIBC_PREREQ
-#define V8_GLIBC_PREREQ(maj, min) 0
-#endif
-
 namespace v8 { namespace base {
 
 template <typename T>
@@ -175,6 +170,4 @@ enum class OOMType {
 
 }  // namespace base
 }  // namespace v8
-
-#endif  // __wasi__
 #endif  // V8_SRC_BASE_LOGGING_H_

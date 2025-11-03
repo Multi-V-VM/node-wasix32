@@ -150,8 +150,9 @@ using ::v8::base::VLQBase64Decode;
 using ::v8::base::Memory;
 using ::v8::base::FatalOOM;
 using ::v8::base::Stack;
-using ::v8::base::VirtualAddressSpace;
-using ::v8::base::PageAllocator;
+// In modern V8, these types are exposed in the public ::v8 namespace
+using ::v8::VirtualAddressSpace;
+using ::v8::PageAllocator;
 using ::v8::base::Address;
 
 // Platform utilities

@@ -6,6 +6,51 @@
 // This file includes all fix headers in the correct order
 // ============================================================================
 
+// ============================================================================
+// CRITICAL: Define size constants BEFORE any V8 headers
+// ============================================================================
+// These constants are used throughout V8 but not always defined properly
+// Define them at global scope to ensure they're available everywhere
+constexpr size_t KB = 1024;
+constexpr size_t MB = 1024 * KB;
+constexpr size_t GB = 1024 * MB;
+
+// Define kSystemPointerSizeLog2 for 32-bit builds (WASI is 32-bit)
+// This is expected to be in v8-internal.h but isn't defined there
+#ifndef kSystemPointerSizeLog2
+constexpr int kSystemPointerSize = sizeof(void*);
+constexpr int kSystemPointerSizeLog2 = (kSystemPointerSize == 4 ? 2 : 3);
+#endif
+
+// CRITICAL: Forward declare and define necessary V8 types for WASI builds
+// v8-snapshot.h needs Isolate::CreateParams but doesn't get the full definition
+#ifdef __wasi__
+
+// Forward declare what's needed
+namespace v8 {
+class Isolate;
+
+// Define CreateParams inline if not already defined
+#ifndef V8_ISOLATE_CREATEPARAMS_DEFINED
+#define V8_ISOLATE_CREATEPARAMS_DEFINED
+namespace internal {
+class Isolate;
+}  // namespace internal
+#endif  // V8_ISOLATE_CREATEPARAMS_DEFINED
+
+}  // namespace v8
+
+// Include v8-internal.h for basic definitions
+#ifndef INCLUDE_V8_INTERNAL_H_
+#include "deps/v8/include/v8-internal.h"
+#endif
+
+// Pre-include v8-isolate.h to ensure Isolate is fully defined
+// before any other header tries to use Isolate::CreateParams
+#include "deps/v8/include/v8-isolate.h"
+
+#endif  // __wasi__
+
 // CRITICAL: Include ALL standard library headers at global scope FIRST
 // This prevents namespace pollution when they're included later from within
 // namespace v8 {} blocks

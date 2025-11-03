@@ -8,9 +8,7 @@
 #ifndef INCLUDE_V8_SNAPSHOT_H_
 #define INCLUDE_V8_SNAPSHOT_H_
 
-#ifndef __wasi__
 #include "v8-internal.h"      // NOLINT(build/include_directory)
-#endif
 #include "v8-isolate.h"       // NOLINT(build/include_directory)
 #include "v8-local-handle.h"  // NOLINT(build/include_directory)
 #include "v8config.h"         // NOLINT(build/include_directory)
@@ -18,6 +16,11 @@
 namespace v8 {
 
 class Object;
+// Forward declare Isolate if not already defined
+#ifndef V8_ISOLATE_FORWARD_DECLARED
+#define V8_ISOLATE_FORWARD_DECLARED
+class Isolate;
+#endif
 
 namespace internal {
 class SnapshotCreatorImpl;
@@ -177,7 +180,7 @@ class V8_EXPORT SnapshotCreator {
    *               - `params.existing_blob` is an optional snapshot blob from
    *                 which can be used to initialize the new blob.
    */
-  #if !defined(__wasi__)
+  #if !defined(__wasi__) && defined(V8_ISOLATE_FULLY_DEFINED)
   explicit SnapshotCreator(const Isolate::CreateParams& params);
   #endif
 
@@ -192,7 +195,7 @@ class V8_EXPORT SnapshotCreator {
    *               - `params.existing_blob` is an optional snapshot blob from
    *                 which can be used to initialize the new blob.
    */
-  #if !defined(__wasi__)
+  #if !defined(__wasi__) && defined(V8_ISOLATE_FULLY_DEFINED)
   SnapshotCreator(v8::Isolate* isolate,
                   const v8::Isolate::CreateParams& params);
   #endif

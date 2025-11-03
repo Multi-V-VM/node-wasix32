@@ -153,7 +153,6 @@ template <typename T>
     using value_type = T;
     using pointer = value_type*;
     using reference = value_type&;
-    using iterator_category = std::random_access_iterator_tag;
     // Use contiguous_iterator_tag only when C++20 concepts are available.
 #if defined(__cpp_lib_concepts) || (__cplusplus >= 202002L)
     using iterator_concept = std::contiguous_iterator_tag;

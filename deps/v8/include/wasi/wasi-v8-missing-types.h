@@ -146,10 +146,7 @@ using DiscriminatedUnion = V8_BASE_NS::DiscriminatedUnion<TagEnum, Ts...>;
 
 // Atomic operations can be referenced directly via ::v8::base::* where needed
 
-// Expose common hashing helpers and types used via v8::internal::base
-using ::v8::base::hash;
-using ::v8::base::hash_combine;
-using ::v8::base::Hasher;
+// Hashing helpers are bridged by src/common/globals.h for WASI builds.
 
 // bits::* helpers bridged into v8::internal::base::bits
 namespace bits {
@@ -161,6 +158,9 @@ using ::v8::base::bits::CountPopulation;
 using ::v8::base::bits::IsPowerOfTwo;
 using ::v8::base::bits::ReverseBytes;
 using ::v8::base::bits::RoundUpToPowerOfTwo;
+// Some internal callers reference the explicit 32/64-bit variants.
+using ::v8::base::bits::RoundUpToPowerOfTwo32;
+using ::v8::base::bits::RoundUpToPowerOfTwo64;
 }  // namespace bits
 
 // ============================================================================
@@ -182,100 +182,43 @@ using ::v8::base::RecursiveMutexGuard;
 // AddressRegion aliases (commonly referenced under v8::internal::base)
 using ::v8::base::AddressRegion;
 using ::v8::base::AddressRegionOf;
-// Address space and allocator wrappers in base namespace
-using ::v8::base::PageAllocator;
-using ::v8::base::VirtualAddressSpace;
-using ::v8::base::VirtualAddressSubspace;
+// Address space allocator/virtual address space types are provided by
+// platform headers and/or src/common/globals.h for WASI builds. Avoid
+// introducing aliases here to prevent conflicts.
 
 // ============================================================================
 // Utility functions - Import from v8::base
 // ============================================================================
 
 // Vector and string helpers commonly referenced from internal::base
+// (Most of these are also bridged by src/common/globals.h; keep the set
+// here minimal to avoid duplicate using-declarations.)
 using ::v8::base::SNPrintF;
 using ::v8::base::VSNPrintF;
-using ::v8::base::vector_append;
 
 // Aligned/memory helpers and file wrappers
 using ::v8::base::AlignedAlloc;
 using ::v8::base::AlignedFree;
-using ::v8::base::Fopen;
-using ::v8::base::Fclose;
 
-// LeakyObject for objects that are never freed
-template <typename T>
-class LeakyObject {
- public:
-  template <typename... Args>
-  static T* Get(Args&&... args) {
-    static T* instance = new T(::std::forward<Args>(args)...);
-    return instance;
-  }
-};
-
-// AllocationResult for allocation APIs
-struct AllocationResult {
-  void* ptr;
-  size_t size;
-
-  bool IsSuccess() const { return ptr != nullptr; }
-  void* ToAddress() const { return ptr; }
-  operator bool() const { return IsSuccess(); }
-};
-
-// AllocateAtLeast for allocation with size feedback
-template <typename Allocator>
-struct AllocateAtLeast {
-  static AllocationResult Allocate(size_t n) {
-    void* ptr = Allocator::Allocate(n);
-    return AllocationResult{ptr, n};
-  }
-};
+// Avoid defining LeakyObject, AllocationResult, or AllocateAtLeast here to
+// prevent ODR/alias conflicts with upstream base implementations. These are
+// available under ::v8::base and imported by src/common/globals.h.
 
 // ============================================================================
 // Iterator type aliases for template compatibility
 // ============================================================================
 
-// Provide iterator base for backward compatibility (std::iterator is deprecated in C++17, removed in C++20)
-// Use fully-qualified ::std to avoid accidental v8::std shadowing when this
-// header is included from within a `namespace v8 {}` block.
+// Provide iterator alias that forwards to ::v8::base::iterator so
+// internal code using v8::internal::base::iterator resolves correctly.
 template <typename Category, typename T, typename Distance = ::std::ptrdiff_t,
           typename Pointer = T*, typename Reference = T&>
-struct iterator {
-  using iterator_category = Category;
-  using value_type = T;
-  using difference_type = Distance;
-  using pointer = Pointer;
-  using reference = Reference;
-};
+using iterator = ::v8::base::iterator<Category, T, Distance, Pointer, Reference>;
 
 // File operations wrapper is provided by ::v8::base::Fclose in wrappers.h
 
-// Atomic type selector template
+// Atomic type selector template - forward alias to base implementation
 template <int ByteWidth>
-struct AtomicTypeFromByteWidth;
-
-template <>
-struct AtomicTypeFromByteWidth<1> {
-  using type = ::v8::base::Atomic8;
-};
-
-template <>
-struct AtomicTypeFromByteWidth<2> {
-  using type = ::v8::base::Atomic16;
-};
-
-template <>
-struct AtomicTypeFromByteWidth<4> {
-  using type = ::v8::base::Atomic32;
-};
-
-#if defined(V8_HOST_ARCH_64_BIT)
-template <>
-struct AtomicTypeFromByteWidth<8> {
-  using type = ::v8::base::Atomic64;
-};
-#endif
+using AtomicTypeFromByteWidth = ::v8::base::AtomicTypeFromByteWidth<ByteWidth>;
 
 // Direct aliases for atomic types referenced by name
 using ::v8::base::Atomic8;

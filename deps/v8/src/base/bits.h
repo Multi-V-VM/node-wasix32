@@ -17,8 +17,7 @@ namespace v8 {
 namespace base {
 namespace bits {
 
-#ifdef __wasi__
-// WASI implementations
+// Generic implementations available in both WASI and non-WASI builds.
 inline uint32_t RoundUpToPowerOfTwo32(uint32_t value) {
   if (value <= 1) return 1;
   value--;
@@ -282,7 +281,7 @@ constexpr int64_t SignedSaturatedSub64(int64_t a, int64_t b) {
 }
 
 // Close WASI-specific section
-#endif  // __wasi__
+#endif  // end generic implementations
 
 // IsPowerOfTwo helper used by RNG; accept signed and cast to unsigned
 template <typename T,
@@ -370,5 +369,4 @@ using ::v8::base::bits::RoundDownToPowerOfTwo32;
 }  // namespace internal
 }  // namespace v8
 
-#endif  // __wasi__
 #endif  // V8_SRC_BASE_BITS_H_

@@ -21,6 +21,7 @@
 namespace v8 {
 
 class SharedArrayBuffer;
+class PageAllocator;  // Forward declaration to satisfy Allocator signature
 
 #if defined(V8_COMPRESS_POINTERS) && \
     !defined(V8_COMPRESS_POINTERS_IN_SHARED_CAGE)

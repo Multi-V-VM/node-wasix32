@@ -65,7 +65,9 @@ class Eternal : public api_internal::IndirectHandleBase {
 #ifdef __wasi__
   V8_INLINE Eternal(Isolate* isolate, Local<S> handle) {
 #else
+#if defined(__cpp_concepts) || defined(__cpp_lib_concepts)
     requires(std::is_base_of_v<T, S>)
+#endif
   V8_INLINE Eternal(Isolate* isolate, Local<S> handle) {
 #endif
     Set(isolate, handle);
@@ -82,7 +84,9 @@ class Eternal : public api_internal::IndirectHandleBase {
 #ifdef __wasi__
   void Set(Isolate* isolate, Local<S> handle){
 #else
+#if defined(__cpp_concepts) || defined(__cpp_lib_concepts)
     requires(std::is_base_of_v<T, S>)
+#endif
   void Set(Isolate* isolate, Local<S> handle) {
 #endif
       slot() = api_internal::Eternalize(isolate,
@@ -271,13 +275,11 @@ class PersistentBase : public api_internal::IndirectHandleBase {
 
   V8_INLINE static internal::Address* New(Isolate* isolate, T* that);
   
-#ifdef __wasi__
-  // WASI compatibility - provide value() method
+  // Provide value() method for both host and WASI tool builds
   template<typename U>
   U* value() const {
     return reinterpret_cast<U*>(*slot());
   }
-#endif
 };
 
 /**
@@ -328,7 +330,9 @@ class Persistent : public PersistentBase<T> {
       : PersistentBase<T>(PersistentBase<T>::New(isolate, nullptr)) {
   }
 #else
+#if defined(__cpp_concepts) || defined(__cpp_lib_concepts)
     requires(std::is_base_of_v<T, S>)
+#endif
   V8_INLINE Persistent(Isolate* isolate, Local<S> that)
       : PersistentBase<T>(
             PersistentBase<T>::New(isolate, that.template value<S>())) {
@@ -346,7 +350,9 @@ class Persistent : public PersistentBase<T> {
       : PersistentBase<T>(PersistentBase<T>::New(isolate, nullptr)) {
   }
 #else
+#if defined(__cpp_concepts) || defined(__cpp_lib_concepts)
     requires(std::is_base_of_v<T, S>)
+#endif
   V8_INLINE Persistent(Isolate* isolate, const Persistent<S, M2>& that)
       : PersistentBase<T>(
             PersistentBase<T>::New(isolate, that.template value<S>())) {
@@ -451,7 +457,9 @@ class Global : public PersistentBase<T> {
       : PersistentBase<T>(PersistentBase<T>::New(isolate, nullptr)) {
   }
 #else
+#if defined(__cpp_concepts) || defined(__cpp_lib_concepts)
     requires(std::is_base_of_v<T, S>)
+#endif
   V8_INLINE Global(Isolate* isolate, const PersistentBase<S>& that)
       : PersistentBase<T>(
             PersistentBase<T>::New(isolate, that.template value<S>())) {

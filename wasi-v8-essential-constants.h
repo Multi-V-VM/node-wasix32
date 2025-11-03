@@ -40,6 +40,13 @@ inline constexpr int kWeakHeapObjectTag = 3;
 }  // namespace internal
 }  // namespace v8
 
+// Bridge a few v8::base::bits helpers into v8::internal::base::bits for WASI
+// so unqualified internal uses compile.
+namespace v8 { namespace internal { namespace base { namespace bits {
+using ::v8::base::bits::RoundUpToPowerOfTwo32;
+using ::v8::base::bits::RoundUpToPowerOfTwo64;
+} } } }
+
 // WASI compatibility header: keep minimal constants only.
 
 #endif  // __wasi__

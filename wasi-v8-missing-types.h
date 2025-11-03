@@ -1,8 +1,8 @@
-// This legacy shim is superseded by deps/v8/include/wasi/wasi-v8-missing-types.h.
-// Keep it as a thin forwarding header to avoid duplicate definitions and
-// accidental nested namespace v8 blocks when included from within namespace v8.
-#ifndef WASI_V8_MISSING_TYPES_H_
-#define WASI_V8_MISSING_TYPES_H_
+// Thin forwarding shim to the canonical WASI missing-types definitions under
+// deps/v8/. Use a distinct include guard so we don't block inclusion of the
+// actual header which uses a different guard name.
+#ifndef WASI_V8_MISSING_TYPES_SHIM_H_
+#define WASI_V8_MISSING_TYPES_SHIM_H_
 
 #ifdef __wasi__
 
@@ -10,4 +10,4 @@
 
 #endif  // __wasi__
 
-#endif  // WASI_V8_MISSING_TYPES_H_
+#endif  // WASI_V8_MISSING_TYPES_SHIM_H_

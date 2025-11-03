@@ -13,22 +13,10 @@
 #include <string>
 #include <utility>
 
-#include "v8-array-buffer.h"       // NOLINT(build/include_directory)
+// Forward declare Isolate; full definition with nested CreateParams follows.
+namespace v8 { class Isolate; }
+
 #include "v8-callbacks.h"          // NOLINT(build/include_directory)
-#include "v8-data.h"               // NOLINT(build/include_directory)
-#include "v8-debug.h"              // NOLINT(build/include_directory)
-#include "v8-embedder-heap.h"      // NOLINT(build/include_directory)
-#include "v8-exception.h"          // NOLINT(build/include_directory)
-#include "v8-function-callback.h"  // NOLINT(build/include_directory)
-#ifndef __wasi__
-#include "v8-internal.h"           // NOLINT(build/include_directory)
-#endif
-#include "v8-local-handle.h"       // NOLINT(build/include_directory)
-#include "v8-microtask.h"          // NOLINT(build/include_directory)
-#include "v8-persistent-handle.h"  // NOLINT(build/include_directory)
-#include "v8-primitive.h"          // NOLINT(build/include_directory)
-#include "v8-statistics.h"         // NOLINT(build/include_directory)
-#include "v8-unwinder.h"           // NOLINT(build/include_directory)
 #include "v8config.h"              // NOLINT(build/include_directory)
 
 namespace v8 {
@@ -39,6 +27,7 @@ class MicrotaskQueue;
 class StartupData;
 class ScriptOrModule;
 class SharedArrayBuffer;
+enum class MicrotasksPolicy;
 
 namespace internal {
 class MicrotaskQueue;
@@ -159,6 +148,22 @@ using AbortOnUncaughtExceptionCallback = bool (*)(Isolate*);
 using StackTracePrinter = void (*)();
 
 }  // namespace v8
+
+#include "v8-array-buffer.h"       // NOLINT(build/include_directory)
+#include "v8-data.h"               // NOLINT(build/include_directory)
+#include "v8-debug.h"              // NOLINT(build/include_directory)
+#include "v8-embedder-heap.h"      // NOLINT(build/include_directory)
+#include "v8-exception.h"          // NOLINT(build/include_directory)
+#include "v8-function-callback.h"  // NOLINT(build/include_directory)
+#ifndef __wasi__
+#include "v8-internal.h"           // NOLINT(build/include_directory)
+#endif
+#include "v8-local-handle.h"       // NOLINT(build/include_directory)
+#include "v8-microtask.h"          // NOLINT(build/include_directory)
+#include "v8-persistent-handle.h"  // NOLINT(build/include_directory)
+#include "v8-primitive.h"          // NOLINT(build/include_directory)
+#include "v8-statistics.h"         // NOLINT(build/include_directory)
+#include "v8-unwinder.h"           // NOLINT(build/include_directory)
 
 #endif // __wasi__
 

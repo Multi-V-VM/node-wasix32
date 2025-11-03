@@ -177,6 +177,9 @@ class SandboxHardwareSupport {
 };
 
 namespace internal {
+// Bridge the public CppHeapPointerTagRange into the internal namespace for
+// headers that expect it under v8::internal.
+using CppHeapPointerTagRange = ::v8::CppHeapPointerTagRange;
 
 #ifdef V8_COMPRESS_POINTERS
 V8_INLINE static Address* GetCppHeapPointerTableBase(v8::Isolate* isolate) {
