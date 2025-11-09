@@ -16,6 +16,7 @@ enum class CollectionType;
 enum class StackState;
 struct HeapStatistics;
 class HeapHandle;
+class AllocationHandle;
 }
 
 namespace v8 { class Platform; }
@@ -40,6 +41,11 @@ class V8_EXPORT CppHeap {
                                 ::cppgc::StackState stack_state);
 
   void EnableDetachedGarbageCollectionsForTesting();
+
+#ifdef __wasi__
+  // WASI-specific: Provide access to allocation handle for cppgc allocations
+  virtual ::cppgc::AllocationHandle& GetAllocationHandle() = 0;
+#endif
 
  protected:
   CppHeap() = default;

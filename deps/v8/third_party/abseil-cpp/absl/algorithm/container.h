@@ -138,6 +138,16 @@ auto c_minmax_element(C& c) { return std::minmax_element(std::begin(c), std::end
 template <class C, class Compare>
 auto c_minmax_element(C& c, Compare comp) { return std::minmax_element(std::begin(c), std::end(c), comp); }
 
+// container_algorithm_internal namespace for container traits
+namespace container_algorithm_internal {
+
+// Base template for IsUnorderedContainer trait
+// This is specialized by unordered containers (flat_hash_map, flat_hash_set, etc.)
+template <typename>
+struct IsUnorderedContainer : std::false_type {};
+
+}  // namespace container_algorithm_internal
+
 }  // namespace absl
 
 #endif  // ABSL_ALGORITHM_CONTAINER_H_

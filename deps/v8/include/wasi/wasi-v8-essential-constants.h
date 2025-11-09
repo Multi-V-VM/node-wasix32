@@ -19,6 +19,9 @@
 
 // Include missing types implementation
 #include "wasi-v8-missing-types.h"
+#include "v8-profiler-wasi-stubs.h"
+#include "v8-api-constants-wasi.h"
+#include "cppgc-wasi-compat.h"
 
 namespace v8 {
 namespace internal {
