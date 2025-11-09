@@ -1,7 +1,7 @@
 #ifndef V8_INCLUDE_WASI_NUCLEAR_FIX_H_
 #define V8_INCLUDE_WASI_NUCLEAR_FIX_H_
 
-#if defined(__wasi__)
+#if defined(__wasi__) || defined(V8_USING_WASI_SHIMS)
 
 #include <cstdint>
 #include <cstddef>
@@ -845,5 +845,5 @@ constexpr Address kCppHeapPointerMarkBit = static_cast<Address>(0);
 }  // namespace internal
 }  // namespace v8
 
-#endif  // __wasi__
+#endif  // defined(__wasi__) || defined(V8_USING_WASI_SHIMS)
 #endif  // V8_INCLUDE_WASI_NUCLEAR_FIX_H_

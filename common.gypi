@@ -4,9 +4,9 @@
     'asan%': 0,
     'ubsan%': 0,
     'visibility%': 'hidden',          # V8's visibility setting
-    'target_arch%': 'ia32',           # set v8's target architecture
-    'host_arch%': 'ia32',             # set v8's host architecture
-    'want_separate_host_toolset%': 0, # V8 should not build target and host
+    'target_arch%': 'wasm32',         # set v8's target architecture for WASI
+    'host_arch%': 'x64',              # build host tools for x64
+    'want_separate_host_toolset%': 1, # use separate host toolset when cross-compiling
     'library%': 'static_library',     # allow override to 'shared_library' for DLL/.so builds
     'component%': 'static_library',   # NB. these names match with what V8 expects
     'msvs_multi_core_compile': '0',   # we do enable multicore compiles, but not using the V8 way
@@ -285,6 +285,15 @@
     # simply not feasible to squelch all warnings, never mind that the
     # libraries in deps/ are not under our control.
     'conditions': [
+      ['target_arch=="wasm32"', {
+        'cflags': [
+          '-include', '<(DEPTH)/wasi-all-fixes.h',
+        ],
+        'cflags_cc': [
+          '-include', '<(DEPTH)/wasi-all-fixes.h',
+        ],
+        'defines': ['V8_USING_WASI_SHIMS=1'],
+      }],
       [ 'error_on_warn=="false"', {
         'cflags!': ['-Werror'],
       }, '(_target_name!="<(node_lib_target_name)" or '

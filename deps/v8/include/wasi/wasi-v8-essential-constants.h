@@ -1,7 +1,7 @@
 #ifndef WASI_V8_ESSENTIAL_CONSTANTS_H_
 #define WASI_V8_ESSENTIAL_CONSTANTS_H_
 
-#ifdef __wasi__
+#if defined(__wasi__) || defined(V8_USING_WASI_SHIMS)
 
 #include <cstdint>
 #include <limits>
@@ -150,10 +150,18 @@ using ::v8::base::VLQBase64Decode;
 using ::v8::base::Memory;
 using ::v8::base::FatalOOM;
 using ::v8::base::Stack;
+using ::v8::base::AbortMode;
+using ::v8::base::LazyMutex;
+using ::v8::base::LockGuard;
+using ::v8::base::ScopedZoneVector;
+using ::v8::base::DerefPtrIterator;
 // In modern V8, these types are exposed in the public ::v8 namespace
 using ::v8::VirtualAddressSpace;
 using ::v8::PageAllocator;
 using ::v8::base::Address;
+
+// Debug/logging utilities
+using ::v8::base::CheckMessageStream;
 
 // Platform utilities
 using ::v8::base::TimezoneCache;
@@ -229,6 +237,6 @@ namespace tmp = ::v8::base::tmp;
 }  // namespace internal
 }  // namespace v8
 
-#endif  // __wasi__
+#endif  // defined(__wasi__) || defined(V8_USING_WASI_SHIMS)
 
 #endif  // WASI_V8_ESSENTIAL_CONSTANTS_H_

@@ -139,6 +139,7 @@ std::unique_ptr<protocol::Network::Request> createRequestFromObject(
       .setUrl(url)
       .setMethod(method)
       .setHeaders(std::move(headers))
+      .setHasPostData(false)  // Required field for Request builder
       .build();
 }
 
@@ -247,6 +248,30 @@ protocol::DispatchResponse NetworkAgent::streamResourceContent(
   }
 
   return protocol::DispatchResponse::Success();
+}
+
+protocol::DispatchResponse NetworkAgent::getRequestPostData(
+    const protocol::String& in_requestId, protocol::String* out_postData) {
+  // Not implemented for Node.js - this would require capturing POST data
+  // during request interception which is not currently supported
+  return protocol::DispatchResponse::ServerError("Not implemented");
+}
+
+protocol::DispatchResponse NetworkAgent::getResponseBody(
+    const protocol::String& in_requestId,
+    protocol::String* out_body,
+    bool* out_base64Encoded) {
+  // Not implemented for Node.js - response bodies are streamed via
+  // streamResourceContent instead
+  return protocol::DispatchResponse::ServerError("Not implemented");
+}
+
+protocol::DispatchResponse NetworkAgent::loadNetworkResource(
+    const protocol::String& in_url,
+    std::unique_ptr<protocol::Network::LoadNetworkResourcePageResult>* out_resource) {
+  // Not implemented for Node.js - this Chrome DevTools Protocol method
+  // is primarily for browser contexts
+  return protocol::DispatchResponse::ServerError("Not implemented");
 }
 
 void NetworkAgent::requestWillBeSent(v8::Local<v8::Context> context,

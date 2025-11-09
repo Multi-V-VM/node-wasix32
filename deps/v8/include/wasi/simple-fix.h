@@ -1,7 +1,7 @@
 #ifndef WASI_SIMPLE_FIX_H
 #define WASI_SIMPLE_FIX_H
 
-#ifdef __wasi__
+#if defined(__wasi__) || defined(V8_USING_WASI_SHIMS)
 
 // Only include what we absolutely need
 #include <cstddef>
@@ -68,5 +68,5 @@ constexpr int kTaggedSize = sizeof(void*);
 #define CHECK(condition) ((void)0)
 #endif
 
-#endif // __wasi__
+#endif  // defined(__wasi__) || defined(V8_USING_WASI_SHIMS)
 #endif // WASI_SIMPLE_FIX_H

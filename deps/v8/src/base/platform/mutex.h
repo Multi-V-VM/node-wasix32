@@ -5,6 +5,7 @@
 #ifndef V8_BASE_PLATFORM_MUTEX_H_
 #define V8_BASE_PLATFORM_MUTEX_H_
 
+#include <atomic>
 #include <optional>
 #include <mutex>
 

@@ -72,7 +72,7 @@ class ZoneAllocationPolicy;
 
 // Tag type for constructors that skip checks
 // Note: This is also defined in v8-handle-base.h for WASI builds
-#ifndef __wasi__
+#if !defined(__wasi__) && !defined(V8_USING_WASI_SHIMS)
 struct no_checking_tag {};
 #endif
 
@@ -665,6 +665,9 @@ class DirectHandle : public DirectHandleBase {
 
   using MaybeType = MaybeDirectHandle<T>;
 
+  // Static tag for constructors that skip checking
+  static constexpr no_checking_tag do_not_check{};
+
  private:
   // DirectHandles of different classes are allowed to access each other's
   // obj_.
@@ -797,6 +800,9 @@ class V8_TRIVIAL_ABI DirectHandle :
   }
 
   using MaybeType = MaybeDirectHandle<T>;
+
+  // Static tag for constructors that skip checking
+  static constexpr no_checking_tag do_not_check{};
 
  private:
   // Handles of various different classes are allowed to access handle_.

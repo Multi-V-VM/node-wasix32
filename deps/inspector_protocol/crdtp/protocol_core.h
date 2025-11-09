@@ -8,6 +8,7 @@
 #include <sys/types.h>
 
 #include <memory>
+#include <optional>
 #include <string>
 #include <tuple>
 #include <vector>
@@ -93,6 +94,15 @@ class CRDTP_EXPORT ContainerSerializer {
 
   template <typename T>
   void AddField(span<char> field_name, const detail::PtrMaybe<T>& value) {
+    if (!value.has_value()) {
+      return;
+    }
+    AddField(field_name, value.value());
+  }
+
+  // Support for std::optional (used in generated Node.js inspector code)
+  template <typename T>
+  void AddField(span<char> field_name, const std::optional<T>& value) {
     if (!value.has_value()) {
       return;
     }
@@ -242,6 +252,24 @@ struct ProtocolTypeTraits<detail::PtrMaybe<T>> {
   }
 
   static void Serialize(const detail::PtrMaybe<T>& value,
+                        std::vector<uint8_t>* bytes) {
+    ProtocolTypeTraits<T>::Serialize(value.value(), bytes);
+  }
+};
+
+// Support for std::optional (used in generated Node.js inspector code)
+template <typename T>
+struct ProtocolTypeTraits<std::optional<T>> {
+  static bool Deserialize(DeserializerState* state,
+                          std::optional<T>* value) {
+    T res;
+    if (!ProtocolTypeTraits<T>::Deserialize(state, &res))
+      return false;
+    *value = std::move(res);
+    return true;
+  }
+
+  static void Serialize(const std::optional<T>& value,
                         std::vector<uint8_t>* bytes) {
     ProtocolTypeTraits<T>::Serialize(value.value(), bytes);
   }

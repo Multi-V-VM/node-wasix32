@@ -60,15 +60,15 @@
 #include "src/base/atomic-utils.h"
 #include "src/base/bit-field.h"
 
-// WASI 兼容性修复
-#ifdef __wasi__
+// WASI compatibility shims (also enabled for WASM32 builds lacking __wasi__)
+#if defined(__wasi__) || defined(V8_USING_WASI_SHIMS)
 #ifdef V8_TARGET_ARCH_IA32
 #undef V8_TARGET_ARCH_IA32
 #endif
 #ifndef V8_TARGET_ARCH_WASM32
 #define V8_TARGET_ARCH_WASM32 1
 #endif
-#include "../../../../wasi-v8-essential-constants.h"
+#include "include/wasi/wasi-v8-essential-constants.h"
 #include "wasi/concepts-fix.h"
 #ifndef V8_INTERNAL_IS64_DEFINED
 #define V8_INTERNAL_IS64_DEFINED
@@ -76,16 +76,16 @@ namespace v8 { namespace internal {
 constexpr bool Is64() { return false; }
 } }
 #endif
-#endif
+#endif  // defined(__wasi__) || defined(V8_USING_WASI_SHIMS)
 
-#ifdef __wasi__
+#if defined(__wasi__) || defined(V8_USING_WASI_SHIMS)
 // Some freestanding libc++/WASI configurations require an explicit declaration
 // of placement new/delete to satisfy uses in headers compiled across TUs.
 void* operator new(std::size_t, void*) noexcept;
 void* operator new[](std::size_t, void*) noexcept;
 void operator delete(void*, void*) noexcept;
 void operator delete[](void*, void*) noexcept;
-#endif
+#endif  // defined(__wasi__) || defined(V8_USING_WASI_SHIMS)
 
 namespace v8 {
 
@@ -96,12 +96,12 @@ class ArrayBuffer;
 class BackingStore;
 // Defer metrics usage to v8/include headers that define it.
 
-#ifndef __wasi__
+#if !defined(__wasi__) && !defined(V8_USING_WASI_SHIMS)
 namespace base {
 class Mutex;
 class ConditionVariable;
 }
-#endif
+#endif  // !defined(__wasi__) && !defined(V8_USING_WASI_SHIMS)
 
 namespace internal {
 
@@ -144,6 +144,7 @@ using ::v8::base::Semaphore;
 template <typename T>
 using AtomicValue = ::v8::base::AtomicValue<T>;
 using ::v8::base::RandomNumberGenerator;
+using ::v8::base::AbortMode;
 // Atomic ops
 using ::v8::base::Acquire_Load;
 using ::v8::base::Relaxed_Load;
@@ -208,7 +209,7 @@ using ::v8::base::DTOA_SHORTEST;
 using ::v8::base::DTOA_PRECISION;
 using ::v8::base::kBase10MaximalLength;
 using ::v8::base::Strtod;
-#ifndef __wasi__
+#if !defined(__wasi__) && !defined(V8_USING_WASI_SHIMS)
 using ::v8::base::LockGuard;
 #endif
 using ::v8::base::CallOnce;
@@ -263,7 +264,7 @@ using ::v8::base::Mutex;
 using ::v8::base::RecursiveMutex;
 using ::v8::base::Hasher;
 using ::v8::PageAllocator;
-#if defined(__wasi__)
+#if defined(__wasi__) || defined(V8_USING_WASI_SHIMS)
 using ::v8::internal::VirtualAddressSpace;
 using ::v8::internal::VirtualAddressSubspace;
 #else
@@ -332,7 +333,7 @@ using SmallVector = ::v8::base::SmallVector<T, N, Allocator>;
 using ::v8::base::prepend_tuple_type;
 using ::v8::base::base_tuple_head_rt;
 using ::v8::base::base_tuple_drop_rt;
-#ifndef __wasi__
+#if !defined(__wasi__) && !defined(V8_USING_WASI_SHIMS)
 using ::v8::base::RecursiveMutexGuard;
 #endif
 using ::v8::base::StaticOneByteVector;
@@ -567,8 +568,8 @@ constexpr int kStackSpaceRequiredForCompilation = 40;
 
 // In order to emit more efficient stack checks in optimized code,
 // deoptimization may implicitly exceed the V8 stack limit by this many bytes.
+#if !(defined(__wasi__) || defined(V8_USING_WASI_SHIMS))
 // Size constants used throughout V8
-#ifndef KB
 constexpr size_t KB = 1024;
 constexpr size_t MB = 1024 * KB;
 constexpr size_t GB = 1024 * MB;
@@ -583,12 +584,12 @@ static_assert(V8_DEFAULT_STACK_SIZE_KB * KB +
                   kStackLimitSlackForDeoptimizationInBytes <=
               MB);
 
-#ifdef __wasi__
+#if defined(__wasi__) || defined(V8_USING_WASI_SHIMS)
 // WASI shim: Provide an unqualified IntToSmi helper in v8::internal for
 // call sites that use IntToSmi(...) without namespace qualification.
 // On 32-bit WASI, Smis are 31-bit tagged small integers.
 inline constexpr int IntToSmi(int value) { return (value << 1) | 1; }
-#endif  // __wasi__
+#endif  // defined(__wasi__) || defined(V8_USING_WASI_SHIMS)
 
 // The V8_ENABLE_NEAR_CODE_RANGE_BOOL enables logic that tries to allocate
 // code range within a pc-relative call/jump proximity from embedded builtins.
@@ -699,8 +700,11 @@ const size_t kShortBuiltinCallsOldSpaceSizeThreshold = size_t{2} * GB;
 
 // Determine whether tagged pointers are 8 bytes (used in Torque layouts for
 // choosing where to insert padding).
-#if V8_TARGET_ARCH_64_BIT && !defined(V8_COMPRESS_POINTERS)
+#if defined(V8_TARGET_ARCH_64_BIT) && !defined(V8_COMPRESS_POINTERS)
 #define TAGGED_SIZE_8_BYTES true
+#elif defined(V8_TARGET_ARCH_WASM32)
+// WASM32 has 4-byte pointers, so tagged size is not 8 bytes
+#define TAGGED_SIZE_8_BYTES false
 #else
 #define TAGGED_SIZE_8_BYTES false
 #endif
@@ -881,8 +885,8 @@ constexpr size_t kPtrComprCageReservationSize = static_cast<size_t>(4ULL * GB);
 
 #else  // V8_HOST_ARCH_64_BIT
 
+#if !(defined(__wasi__) || defined(V8_USING_WASI_SHIMS))
 // Define kSystemPointerSizeLog2 for 32-bit builds
-#ifndef kSystemPointerSizeLog2
 constexpr int kSystemPointerSizeLog2 = 2;  // 32-bit = 4 bytes = 2^2
 #endif
 constexpr intptr_t kIntptrSignBit = 0x80000000;
@@ -928,12 +932,10 @@ static constexpr bool kCompressGraphZone = COMPRESS_ZONES_BOOL;
 
 // kTaggedSize and kTaggedSizeLog2 already defined in v8-internal.h
 
+#if !(defined(__wasi__) || defined(V8_USING_WASI_SHIMS))
 // These types define raw and atomic storage types for tagged values stored
 // on V8 heap.
 using Tagged_t = Address;
-#ifdef __wasi__
-// AtomicTagged_t is already defined in nuclear-fix.h for WASI
-#else
 using AtomicTagged_t = ::v8::base::AtomicWord;
 #endif
 
@@ -974,14 +976,14 @@ static_assert((1 << (32 - kJSDispatchHandleShift)) == kMaxJSDispatchEntries,
 
 // Since the table is not contiguous on 32 bit platforms the indices can become
 // arbitrarily large and we need the full 32 bit range to hold them.
+#if !(defined(__wasi__) || defined(V8_USING_WASI_SHIMS))
 constexpr uint32_t kJSDispatchHandleShift = 0;
+#endif
 
 #endif
 
-// Missing pointer type definitions for sandbox/pointer compression
-// These are needed for WASI and other builds
-#ifndef EXTERNAL_POINTER_T_DEFINED
-#define EXTERNAL_POINTER_T_DEFINED
+#if !(defined(__wasi__) || defined(V8_USING_WASI_SHIMS))
+// Pointer type definitions for sandbox/pointer compression
 using ExternalPointer_t = uintptr_t;
 using CppHeapPointer_t = uintptr_t;
 using IndirectPointerHandle = uint32_t;
@@ -989,7 +991,7 @@ using IndirectPointerHandle = uint32_t;
 
 // Missing Smi-related constants
 // Smi (Small Integer) tagging scheme constants
-#ifndef kSmiValueSize
+#if !(defined(__wasi__) || defined(V8_USING_WASI_SHIMS))
 #if V8_TARGET_ARCH_64_BIT
 // On 64-bit systems with 8-byte tagged values
 constexpr int kSmiValueSize = 31;  // 31-bit values for proper Smi tagging
@@ -1004,13 +1006,13 @@ constexpr int kSmiTagSize = 1;     // 1 bit for tag
 #endif
 
 // Missing JS dispatch handle constants (if not already defined)
-#ifndef kJSDispatchHandleShift
+#if !(defined(__wasi__) || defined(V8_USING_WASI_SHIMS))
 constexpr int kJSDispatchHandleShift = 0;
 #endif
 
 // Smi value check functions
-#ifndef SMI_VALUES_ARE_DEFINED
-#define SMI_VALUES_ARE_DEFINED
+// Note: For WASI builds, these are defined in wasi/nuclear-fix.h
+#if !defined(__wasi__) && !defined(V8_USING_WASI_SHIMS)
 inline constexpr bool SmiValuesAre31Bits() { return kSmiValueSize == 31; }
 inline constexpr bool SmiValuesAre32Bits() { return kSmiValueSize == 32; }
 #endif
@@ -1018,7 +1020,9 @@ inline constexpr bool SmiValuesAre32Bits() { return kSmiValueSize == 32; }
 // Note: kIsSmiValueInUpper32Bits is defined later in the file
 
 static_assert(kTaggedSize == (1 << kTaggedSizeLog2));
+#if !(defined(__wasi__) || defined(V8_USING_WASI_SHIMS))
 static_assert((kTaggedSize == 8) == TAGGED_SIZE_8_BYTES);
+#endif
 
 using AsAtomicTagged = ::v8::base::AsAtomicPointerImpl<AtomicTagged_t>;
 static_assert(sizeof(Tagged_t) == kTaggedSize);
@@ -1042,20 +1046,24 @@ static_assert(kPointerSize == (1 << kPointerSizeLog2));
 
 // This type defines the raw storage type for external (or off-V8 heap) pointers
 // stored on V8 heap.
+#if !(defined(__wasi__) || defined(V8_USING_WASI_SHIMS))
 constexpr int kExternalPointerSlotSize = sizeof(ExternalPointer_t);
 #ifdef V8_ENABLE_SANDBOX
 static_assert(kExternalPointerSlotSize == kTaggedSize);
 #else
 static_assert(kExternalPointerSlotSize == kSystemPointerSize);
 #endif
+#endif
 
 // The storage type for pointers referring to CppHeap objects stored on the V8
 // heap.
+#if !(defined(__wasi__) || defined(V8_USING_WASI_SHIMS))
 constexpr int kCppHeapPointerSlotSize = sizeof(CppHeapPointer_t);
 #ifdef V8_COMPRESS_POINTERS
 static_assert(kCppHeapPointerSlotSize == sizeof(uint32_t));
 #else
 static_assert(kCppHeapPointerSlotSize == kSystemPointerSize);
+#endif
 #endif
 
 constexpr int kIndirectPointerSize = sizeof(IndirectPointerHandle);
@@ -1342,23 +1350,35 @@ inline std::ostream& operator<<(std::ostream& os,
 static_assert(kSmiValueSize <= 32, "Unsupported Smi tagging scheme");
 // Smi sign bit position must be 32-bit aligned so we can use sign extension
 // instructions on 64-bit architectures without additional shifts.
+#if !(defined(__wasi__) || defined(V8_USING_WASI_SHIMS))
 static_assert((kSmiValueSize + kSmiShiftSize + kSmiTagSize) % 32 == 0,
               "Unsupported Smi tagging scheme");
+#endif
 
 #ifndef kIsSmiValueInUpper32Bits
+#if defined(__wasi__) || defined(V8_USING_WASI_SHIMS)
+constexpr bool kIsSmiValueInUpper32Bits = false;
+#else
 constexpr bool kIsSmiValueInUpper32Bits =
     (kSmiValueSize + kSmiShiftSize + kSmiTagSize) == 64;
 #endif
+#endif
 #ifndef kIsSmiValueInLower32Bits
+#if defined(__wasi__) || defined(V8_USING_WASI_SHIMS)
+constexpr bool kIsSmiValueInLower32Bits = true;
+#else
 constexpr bool kIsSmiValueInLower32Bits =
     (kSmiValueSize + kSmiShiftSize + kSmiTagSize) == 32;
 #endif
+#endif
+#if !(defined(__wasi__) || defined(V8_USING_WASI_SHIMS))
 static_assert(!SmiValuesAre32Bits() == SmiValuesAre31Bits(),
               "Unsupported Smi tagging scheme");
 static_assert(SmiValuesAre32Bits() == kIsSmiValueInUpper32Bits,
               "Unsupported Smi tagging scheme");
 static_assert(SmiValuesAre31Bits() == kIsSmiValueInLower32Bits,
               "Unsupported Smi tagging scheme");
+#endif
 
 // Mask for the sign bit in a smi.
 constexpr intptr_t kSmiSignMask = static_cast<intptr_t>(
@@ -2127,7 +2147,7 @@ enum class InlineCacheState {
   GENERIC,
 };
 
-#ifdef __wasi__
+#if defined(__wasi__) || defined(V8_USING_WASI_SHIMS)
 inline size_t hash_value(InlineCacheState mode) {
   return static_cast<size_t>(mode);
 }
@@ -2164,7 +2184,7 @@ enum WhereToStart { kStartAtReceiver, kStartAtPrototype };
 
 enum ResultSentinel { kNotFound = -1, kUnsupported = -2 };
 
-#ifdef __wasi__
+#if defined(__wasi__) || defined(V8_USING_WASI_SHIMS)
 // Mirror the non-WASI enum so unqualified kThrowOnError/kDontThrow resolve.
 enum ShouldThrow {
   kDontThrow = Internals::kDontThrow,
@@ -2296,7 +2316,7 @@ enum class ConvertReceiverMode : unsigned {
   kLast = kAny
 };
 
-#ifdef __wasi__
+#if defined(__wasi__) || defined(V8_USING_WASI_SHIMS)
 inline size_t hash_value(ConvertReceiverMode mode) {
 #else
 inline size_t hash_value(ConvertReceiverMode mode) {

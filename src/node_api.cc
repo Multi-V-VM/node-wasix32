@@ -19,6 +19,7 @@
 #include <atomic>
 #include <cstring>
 #include <memory>
+#include <queue>
 
 namespace v8impl {
 static void ThrowNodeApiVersionError(node::Environment* node_env,
@@ -407,7 +408,7 @@ class ThreadSafeFunction : public node::AsyncResource {
 
     if (popped_value) {
       v8::HandleScope scope(env->isolate);
-      CallbackScope cb_scope(this);
+      node::AsyncResource::CallbackScope cb_scope(static_cast<node::AsyncResource*>(this));
       napi_value js_callback = nullptr;
       if (!ref.IsEmpty()) {
         v8::Local<v8::Function> js_cb =
@@ -424,7 +425,7 @@ class ThreadSafeFunction : public node::AsyncResource {
   void Finalize() {
     v8::HandleScope scope(env->isolate);
     if (finalize_cb) {
-      CallbackScope cb_scope(this);
+      node::AsyncResource::CallbackScope cb_scope(static_cast<node::AsyncResource*>(this));
       env->CallFinalizer<false>(finalize_cb, finalize_data, context);
     }
     EmptyQueueAndDelete();

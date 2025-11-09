@@ -9,7 +9,7 @@
 // Forward declare v8::Isolate and template Local<T> for pointer signatures
 namespace v8 { class Isolate; template <typename T> class Local; }
 
-#ifdef __wasi__
+#if defined(__wasi__) || defined(V8_USING_WASI_SHIMS)
 // Include necessary WASI fixes but avoid redefinitions, and avoid pulling in
 // any heavy base headers that include the C++ standard library from here.
 // This header is sometimes included while inside `namespace v8 {}` blocks.
@@ -25,7 +25,7 @@ namespace v8 { class Isolate; template <typename T> class Local; }
 
 // Avoid including heavy roots headers here in WASI builds; Internals is
 // provided by wasi/nuclear-fix.h guarded by V8_INTERNALS_CLASS_DEFINED.
-#endif
+#endif  // defined(__wasi__) || defined(V8_USING_WASI_SHIMS)
 
 // Forward declarations needed by public API headers that befriend these types
 // before the actual definitions are visible in src/ headers.
@@ -41,7 +41,7 @@ void PrintPropertyCallbackInfo(void*);
 }  // namespace internal
 }  // namespace v8
 
-#ifdef __wasi__
+#if defined(__wasi__) || defined(V8_USING_WASI_SHIMS)
 #else
 // Non-WASI content would go here
 #include <cstdint>
@@ -119,7 +119,7 @@ class Internals {
 
 }  // namespace internal
 }  // namespace v8
-#endif
+#endif  // defined(__wasi__) || defined(V8_USING_WASI_SHIMS)
 
 // Provide core size and feature constants expected by src/common/globals.h
 // These must be in the v8::internal namespace and available for both WASI and
@@ -134,18 +134,24 @@ inline constexpr int kInt64Size = static_cast<int>(sizeof(int64_t));
 
 // kSystemPointerSize is provided by WASI stubs; define a fallback for
 // non-WASI builds to ensure availability before including globals.
-#if !defined(__wasi__)
+#if !defined(__wasi__) && !defined(V8_USING_WASI_SHIMS)
 #ifndef V8_INTERNAL_KSYSTEMPOINTERSIZE_DEFINED
 #define V8_INTERNAL_KSYSTEMPOINTERSIZE_DEFINED
 inline constexpr int kSystemPointerSize = static_cast<int>(sizeof(void*));
 #endif
 #ifndef V8_INTERNAL_KTAGGEDSIZE_DEFINED
 #define V8_INTERNAL_KTAGGEDSIZE_DEFINED
+#if defined(V8_TARGET_ARCH_WASM32)
+inline constexpr int kTaggedSize = 4;
+inline constexpr int kTaggedSizeLog2 = 2;
+inline constexpr int kApiTaggedSize = 4;
+#else
 inline constexpr int kTaggedSize = static_cast<int>(sizeof(void*));
 inline constexpr int kTaggedSizeLog2 = (sizeof(void*) == 8 ? 3 : 2);
 inline constexpr int kApiTaggedSize = static_cast<int>(sizeof(void*));
 #endif
-#endif  // !defined(__wasi__)
+#endif
+#endif  // !defined(__wasi__) && !defined(V8_USING_WASI_SHIMS)
 
 // Expose sandbox-related constants for API headers that look for them
 // directly under v8::internal rather than via Internals. Avoid defining on
@@ -165,7 +171,7 @@ inline constexpr bool kAllCodeObjectsLiveInTrustedSpace = false;
 #endif
 
 // Some API headers look up this helper under v8::internal.
-#if !defined(__wasi__)
+#if !defined(__wasi__) && !defined(V8_USING_WASI_SHIMS)
 inline ::v8::Isolate* IsolateFromNeverReadOnlySpaceObject(Address) {
   return nullptr;
 }
@@ -175,7 +181,7 @@ inline bool ShouldThrowOnError(class Isolate*) { return false; }
 
 // Provide minimal host stub for ArrayBuffer BackingStore base type.
 struct BackingStoreBase {};
-#endif
+#endif  // !defined(__wasi__) && !defined(V8_USING_WASI_SHIMS)
 
 // Debug helper used by v8-function-callback.h when V8_ENABLE_CHECKS.
 inline void VerifyHandleIsNonEmpty(bool) {}

@@ -33,6 +33,19 @@ class NetworkAgent : public protocol::Network::Backend {
       const protocol::String& in_requestId,
       protocol::Binary* out_bufferedData) override;
 
+  protocol::DispatchResponse getRequestPostData(
+      const protocol::String& in_requestId,
+      protocol::String* out_postData) override;
+
+  protocol::DispatchResponse getResponseBody(
+      const protocol::String& in_requestId,
+      protocol::String* out_body,
+      bool* out_base64Encoded) override;
+
+  protocol::DispatchResponse loadNetworkResource(
+      const protocol::String& in_url,
+      std::unique_ptr<protocol::Network::LoadNetworkResourcePageResult>* out_resource) override;
+
   void emitNotification(v8::Local<v8::Context> context,
                         const protocol::String& event,
                         v8::Local<v8::Object> params);

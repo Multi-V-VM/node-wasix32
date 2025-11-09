@@ -1,4 +1,4 @@
-#ifdef __wasi__
+#if defined(__wasi__) || defined(V8_USING_WASI_SHIMS)
 // WASI-specific logging implementation
 #include <iostream>
 #include <sstream>
@@ -60,4 +60,4 @@ class CheckMessageStream {
 #endif
 
 
-#endif  // __wasi__
+#endif  // defined(__wasi__) || defined(V8_USING_WASI_SHIMS)

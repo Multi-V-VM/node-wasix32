@@ -77,3 +77,15 @@ const icu::UnicodeSet& RegExpCaseFolding::SpecialAddSet() {
 
 #endif  // V8_INTL_SUPPORT
 
+// Stub main() for WASI builds where this is compiled as an executable
+// In normal V8 builds, this would be a code generator tool that outputs
+// the IgnoreSet and SpecialAddSet data. For WASI, we've hardcoded the data above.
+#ifdef __wasi__
+int main(int argc, char** argv) {
+  // This stub exists only to satisfy the linker when building gen-regexp-special-case
+  // as an executable for WASI. The actual special-case data is hardcoded above.
+  // If run, just exit successfully without generating any output.
+  return 0;
+}
+#endif
+
