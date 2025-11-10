@@ -5,6 +5,8 @@
 #ifndef V8_OBJECTS_WAITER_QUEUE_NODE_H_
 #define V8_OBJECTS_WAITER_QUEUE_NODE_H_
 
+#include <functional>
+
 #include "src/base/platform/condition-variable.h"
 
 namespace v8 {

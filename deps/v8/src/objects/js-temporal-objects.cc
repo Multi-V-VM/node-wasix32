@@ -11096,7 +11096,7 @@ MaybeDirectHandle<JSArray> GetIANATimeZoneEpochValueAsArrayOfInstant(
   DirectHandle<BigInt> nanoseconds_in_local_time =
       GetEpochFromISOParts(isolate, date_time);
 
-  DirectHandle<ZoneVector<BigInt> possible_offset =
+  DirectHandle<ZoneVector<BigInt>> possible_offset =
       Intl::GetTimeZonePossibleOffsetNanoseconds(isolate, time_zone_index,
                                                  nanoseconds_in_local_time);
 

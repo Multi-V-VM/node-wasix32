@@ -2549,7 +2549,7 @@ Maybe<uint32_t> ValueDeserializer::ReadJSObjectProperties(
     DirectHandle<Map> map(object->map(), isolate_);
     DCHECK(!map->is_dictionary_map());
     DCHECK_EQ(0, map->instance_descriptors(isolate_)->number_of_descriptors());
-    DirectHandle<ZoneVector<Object> properties(isolate_);
+    DirectHandle<ZoneVector<Object>> properties(isolate_);
     properties.reserve(8);
 
     while (transitioning) {
@@ -2765,7 +2765,7 @@ MaybeDirectHandle<Object>
 ValueDeserializer::ReadObjectUsingEntireBufferForLegacyFormat() {
   DCHECK_EQ(version_, 0u);
   HandleScope scope(isolate_);
-  DirectHandle<ZoneVector<Object> stack(isolate_);
+  DirectHandle<ZoneVector<Object>> stack(isolate_);
   while (position_ < end_) {
     SerializationTag tag;
     if (!PeekTag().To(&tag)) break;

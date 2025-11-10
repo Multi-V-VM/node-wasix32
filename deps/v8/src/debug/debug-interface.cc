@@ -462,7 +462,7 @@ MaybeLocal<String> ScriptSource::JavaScriptCode() const {
 Maybe<MemorySpan<const uint8_t>> ScriptSource::WasmBytecode() const {
   auto source = Utils::OpenDirectHandle(this);
   if (!IsForeign(*source)) return Nothing<MemorySpan<const uint8_t>>();
-  ZoneVector<const uint8_t> wire_bytes =
+  i::ZoneVector<const uint8_t> wire_bytes =
       i::Cast<i::Managed<i::wasm::NativeModule>>(*source)->raw()->wire_bytes();
   return Just(MemorySpan<const uint8_t>{wire_bytes.begin(), wire_bytes.size()});
 }
@@ -903,7 +903,7 @@ void WasmScript::Disassemble(DisassemblyCollector* collector,
                        collector, function_body_offsets);
 }
 
-void Disassemble(ZoneVector<const uint8_t> wire_bytes,
+void Disassemble(i::ZoneVector<const uint8_t> wire_bytes,
                  DisassemblyCollector* collector,
                  std::vector<int>* function_body_offsets) {
   i::wasm::Disassemble(wire_bytes, collector, function_body_offsets);
@@ -919,7 +919,7 @@ uint32_t WasmScript::GetFunctionHash(int function_index) {
   DCHECK_GT(module->functions.size(), function_index);
   const i::wasm::WasmFunction& func = module->functions[function_index];
   i::wasm::ModuleWireBytes wire_bytes(native_module->wire_bytes());
-  ZoneVector<const uint8_t> function_bytes =
+  i::ZoneVector<const uint8_t> function_bytes =
       wire_bytes.GetFunctionBytes(&func);
   // TODO(herhut): Maybe also take module, name and signature into account.
   return i::StringHasher::HashSequentialString(function_bytes.begin(),
@@ -1191,7 +1191,7 @@ v8::Local<GeneratorObject> GeneratorObject::Cast(v8::Local<v8::Value> value) {
 
 MaybeLocal<Value> CallFunctionOn(Local<Context> context,
                                  Local<Function> function, Local<Value> recv,
-                                 ZoneVector<Local<Value>> args,
+                                 i::ZoneVector<Local<Value>> args,
                                  bool throw_on_side_effect) {
   auto isolate = reinterpret_cast<i::Isolate*>(context->GetIsolate());
   PREPARE_FOR_DEBUG_INTERFACE_EXECUTION_WITH_ISOLATE(isolate, context, Value);

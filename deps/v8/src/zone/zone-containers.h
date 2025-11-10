@@ -800,6 +800,27 @@ bool operator<(const ZoneVector<T>& lhs, const ZoneVector<T>& rhs) {
                                       rhs.end());
 }
 
+// Comparison operators between ZoneVector and Vector
+template <class T>
+bool operator==(const ZoneVector<T>& lhs, const base::Vector<T>& rhs) {
+  return std::equal(lhs.begin(), lhs.end(), rhs.begin(), rhs.end());
+}
+
+template <class T>
+bool operator==(const base::Vector<T>& lhs, const ZoneVector<T>& rhs) {
+  return rhs == lhs;
+}
+
+template <class T>
+bool operator!=(const ZoneVector<T>& lhs, const base::Vector<T>& rhs) {
+  return !(lhs == rhs);
+}
+
+template <class T>
+bool operator!=(const base::Vector<T>& lhs, const ZoneVector<T>& rhs) {
+  return !(lhs == rhs);
+}
+
 template <class T, class GetIntrusiveSetIndex>
 class ZoneIntrusiveSet
     : public ::v8::base::IntrusiveSet<T, GetIntrusiveSetIndex, ZoneVector<T>> {

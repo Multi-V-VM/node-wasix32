@@ -25,6 +25,25 @@ inline auto Local<T>::ptr() const
   return internal::GetAddress(*this);
 }
 
+// Declare Cast as a static member function by injecting it into Local class
+// This works because Local is incomplete at this point
+template <typename T>
+class LocalCastHelper {
+ public:
+  template <typename S>
+  static Local<T> Cast(Local<S> that) {
+    // For WASI stub, just return an empty Local of the target type
+    return Local<T>();
+  }
+};
+
+// Extension methods for Local<T> - add Cast as a static method
+template <typename T>
+template <typename S>
+inline Local<T> Local<T>::Cast(Local<S> that) {
+  return LocalCastHelper<T>::template Cast<S>(that);
+}
+
 // Fix for ReturnValue::Set methods
 template <typename T>
 template <typename S>

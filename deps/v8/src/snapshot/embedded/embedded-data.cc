@@ -9,6 +9,7 @@
 
 #include "src/codegen/assembler-inl.h"
 #include "src/codegen/callable.h"
+#include "src/codegen/flush-instruction-cache.h"
 #include "src/snapshot/embedded/embedded-data-inl.h"
 #include "src/snapshot/snapshot-utils.h"
 #include "src/snapshot/sort-builtins.h"

@@ -9,8 +9,10 @@
 
 namespace v8 {
 
-// Forward declaration
+// Forward declarations
 class Isolate;
+class Data;
+template <class T> class Local;
 
 // Base class for traced references (WASI stub)
 class TracedReferenceBase {
@@ -33,6 +35,11 @@ class TracedReferenceBase {
   const internal::Address* GetSlotThreadSafe() const {
     static internal::Address dummy_slot = 0;
     return &dummy_slot;
+  }
+
+  // Get method returning Local<Data>
+  Local<Data> Get(Isolate* isolate) const {
+    return Local<Data>();
   }
 };
 

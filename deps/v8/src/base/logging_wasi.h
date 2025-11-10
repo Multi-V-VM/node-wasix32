@@ -26,6 +26,14 @@ class CheckMessageStream {
 // Simple template for operator<< support
 // Removed to avoid ambiguity - use the member function instead
 
+// WASI stub for stack trace printing
+using StackTracePrinter = void (*)(void);
+
+inline void SetPrintStackTrace(StackTracePrinter printer) {
+  // WASI stub - no-op
+  (void)printer;
+}
+
 }  // namespace base
 }  // namespace v8
 

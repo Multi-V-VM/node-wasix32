@@ -121,6 +121,10 @@ V8_INLINE T&& CheckNotNull(T&& val) { return std::forward<T>(val); }
 #define DCHECK_IMPLIES(a, b) ((void)0)
 #endif
 
+#ifndef DCHECK_BOUNDS
+#define DCHECK_BOUNDS(index, limit) DCHECK((index) < (limit))
+#endif
+
 #ifndef CHECK_IMPLIES
 #define CHECK_IMPLIES(a, b) CHECK(!(a) || (b))
 #endif

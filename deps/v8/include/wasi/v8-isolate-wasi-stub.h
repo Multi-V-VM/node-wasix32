@@ -246,13 +246,94 @@ class V8_EXPORT Isolate {
     kAssigmentExpressionLHSIsCallInSloppy,
     // TurboFan OSR compilation tracking
     kTurboFanOsrCompileStarted,
+    // Parser/language feature tracking
+    kSloppyModeBlockScopedFunctionRedefinition,
+    kForInInitializer,
+    kHtmlComment,
+    kHtmlCommentInExternalScript,
+    kCompileHintsMagicAll,
+    kSourceMappingUrlMagicCommentAtSign,
+    kSloppyMode,
+    kStrictMode,
+    kUseAsm,
+    kAsyncStackTaggingCreateTaskCall,
+    kErrorPrepareStackTrace,
+    // WASM feature tracking
+    kWasmRefTypes,
+    kWasmGC,
+    kWasmSimdOpcodes,
+    kWasmThreadOpcodes,
+    kWasmExceptionHandling,
+    kWasmMemory64,
+    kWasmMultiMemory,
+    kWasmImportedStrings,
+    kWasmImportedStringsUtf8,
+    kWasmReturnCall,
+    kWasmExtendedConst,
+    kWasmRelaxedSimd,
+    kWasmTypeReflection,
+    kWasmExnRef,
+    kWasmTypedFuncRef,
+    kWasmRefTag,
+    kWasmI8,
+    kWasmImportDataTag,
+    // Additional features
+    kTemporalObject,
+    kIndexAccessor,
     // Reserve space for unknown future features.
     kUseCounterFeatureCount = 256
+  };
+
+  // Invalidated protector enumeration
+  enum InvalidatedProtector {
+    kInvalidatedArrayBufferDetachingProtector = 0,
+    kInvalidatedArrayConstructorProtector = 1,
+    kInvalidatedArrayIteratorLookupChainProtector = 2,
+    kInvalidatedArraySpeciesLookupChainProtector = 3,
+    kInvalidatedIsConcatSpreadableLookupChainProtector = 4,
+    kInvalidatedMapIteratorLookupChainProtector = 5,
+    kInvalidatedMegaDOMProtector = 6,
+    kInvalidatedNoElementsProtector = 7,
+    kInvalidatedNoProfilingProtector = 8,
+    kInvalidatedNoUndetectableObjectsProtector = 9,
+    kInvalidatedNumberStringNotRegexpLikeProtector = 10,
+    kInvalidatedPromiseHookProtector = 11,
+    kInvalidatedPromiseResolveLookupChainProtector = 12,
+    kInvalidatedPromiseSpeciesLookupChainProtector = 13,
+    kInvalidatedPromiseThenLookupChainProtector = 14,
+    kInvalidatedRegExpSpeciesLookupChainProtector = 15,
+    kInvalidatedSetIteratorLookupChainProtector = 16,
+    kInvalidatedStringIteratorLookupChainProtector = 17,
+    kInvalidatedStringLengthOverflowLookupChainProtector = 18
+  };
+
+  // GC type enumeration
+  enum GCType {
+    kScavengeGC = 1 << 0,
+    kMinorMarkSweepGC = 1 << 1,
+    kMarkSweepCompactGC = 1 << 2,
+    kIncrementalMarkingGC = 1 << 3,
+    kProcessWeakCallbacksGC = 1 << 4,
+    kForcedGC = 1 << 5,
+    kFullGarbageCollection = kMarkSweepCompactGC | kIncrementalMarkingGC
+  };
+
+  // GC callback flags
+  enum GCCallbackFlags {
+    kNoGCCallbackFlags = 0,
+    kGCCallbackFlagConstructRetainedObjectInfos = 1 << 1,
+    kGCCallbackFlagForced = 1 << 2,
+    kGCCallbackFlagSynchronousPhantomCallbackProcessing = 1 << 3,
+    kGCCallbackFlagCollectAllAvailableGarbage = 1 << 4,
+    kGCCallbackFlagCollectAllExternalMemory = 1 << 5,
+    kGCCallbackScheduleIdleGarbageCollection = 1 << 6
   };
 
   // Callback types
   using UseCounterCallback = void (*)(Isolate*, UseCounterFeature);
   using ReleaseCppHeapCallback = void (*)(Isolate*);
+  using GCCallback = void (*)(Isolate*, GCType, GCCallbackFlags);
+  using GCCallbackWithData = void (*)(Isolate*, GCType, GCCallbackFlags, void*);
 
   // CreateParams stub with Node.js required fields
   struct CreateParams {
@@ -348,12 +429,8 @@ class V8_EXPORT Isolate {
 
   // Restore original heap limit (used by inspector for OOM breakpoints)
   void RestoreOriginalHeapLimit() {}
-  
-  // GC callbacks - updated to match V8 API signature
-  // Note: The standard V8 signature uses GCType and GCCallbackFlags enums.
-  // These are defined in v8-callbacks.h (included at the top of this file)
-  using GCCallbackWithData = void (*)(Isolate* isolate, int /*GCType*/, int /*GCCallbackFlags*/, void* data);
-  using GCCallback = void (*)(Isolate* isolate, int /*GCType*/, int /*GCCallbackFlags*/);
+
+  // GetExternallyAllocatedMemoryInBytesCallback
   using GetExternallyAllocatedMemoryInBytesCallback = size_t (*)();
 
   template <typename... Args>

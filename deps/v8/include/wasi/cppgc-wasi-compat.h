@@ -93,7 +93,7 @@ struct SweepingConfig {
   FreeMemoryHandling free_memory_handling;
 };
 
-// GC Configuration - matches V8's actual structure with nested configs
+// GC Configuration - flat structure matching V8's usage patterns
 struct GCConfig {
   using MarkingType = MarkingConfig::MarkingType;
   using SweepingType = SweepingConfig::SweepingType;
@@ -102,41 +102,46 @@ struct GCConfig {
   using FreeMemoryHandling = SweepingConfig::FreeMemoryHandling;
 
   static constexpr GCConfig Default() {
-    return {StackState::kMayContainHeapPointers, MarkingConfig::Default(),
-            SweepingConfig{}};
+    return GCConfig();
   }
 
   // Constructor for flat initialization pattern used in V8 code
   // {CollectionType, StackState, MarkingType, SweepingType, FreeMemoryHandling, IsForcedGC}
-  constexpr GCConfig(CollectionType collection_type, StackState stack_state,
-                     MarkingType marking_type, SweepingType sweeping_type,
-                     FreeMemoryHandling free_memory_handling = FreeMemoryHandling::kDoNotDiscard,
-                     IsForcedGC is_forced_gc = IsForcedGC::kNotForced)
-      : stack_state(stack_state),
-        marking_config{collection_type, stack_state, marking_type, is_forced_gc},
-        sweeping_config{sweeping_type, SweepingConfig::CompactableSpaceHandling::kSweep, free_memory_handling} {}
-
-  // Default constructor - explicitly defined to prevent aggregate initialization
-  constexpr GCConfig()
-      : stack_state(StackState::kMayContainHeapPointers),
-        marking_config(),
-        sweeping_config() {}
+  constexpr GCConfig(CollectionType ct = CollectionType::kMajor,
+                     StackState ss = StackState::kMayContainHeapPointers,
+                     MarkingType mt = MarkingType::kIncrementalAndConcurrent,
+                     SweepingType st = SweepingType::kIncrementalAndConcurrent,
+                     FreeMemoryHandling fmh = FreeMemoryHandling::kDoNotDiscard,
+                     IsForcedGC fg = IsForcedGC::kNotForced)
+      : collection_type(ct),
+        stack_state(ss),
+        marking_type(mt),
+        sweeping_type(st),
+        free_memory_handling(fmh),
+        is_forced_gc(fg),
+        marking_config{ct, ss, mt, fg},
+        sweeping_config{st, SweepingConfig::CompactableSpaceHandling::kSweep, fmh} {}
 
   // Constructor with nested configs
-  constexpr GCConfig(StackState stack_state, MarkingConfig marking_config,
-                     SweepingConfig sweeping_config)
-      : stack_state(stack_state),
-        marking_config(marking_config),
-        sweeping_config(sweeping_config) {}
+  constexpr GCConfig(StackState ss, MarkingConfig mc, SweepingConfig sc)
+      : collection_type(mc.collection_type),
+        stack_state(ss),
+        marking_type(mc.marking_type),
+        sweeping_type(sc.sweeping_type),
+        free_memory_handling(sc.free_memory_handling),
+        is_forced_gc(mc.is_forced_gc),
+        marking_config(mc),
+        sweeping_config(sc) {}
 
-  // Accessor methods for compatibility with code that expects flat structure
-  CollectionType collection_type() const { return marking_config.collection_type; }
-  MarkingType marking_type() const { return marking_config.marking_type; }
-  SweepingType sweeping_type() const { return sweeping_config.sweeping_type; }
-  IsForcedGC is_forced_gc() const { return marking_config.is_forced_gc; }
-  FreeMemoryHandling free_memory_handling() const { return sweeping_config.free_memory_handling; }
+  // Public fields for direct access (matching V8's usage)
+  CollectionType collection_type = CollectionType::kMajor;
+  StackState stack_state = StackState::kMayContainHeapPointers;
+  MarkingType marking_type = MarkingType::kIncrementalAndConcurrent;
+  SweepingType sweeping_type = SweepingType::kIncrementalAndConcurrent;
+  FreeMemoryHandling free_memory_handling = FreeMemoryHandling::kDoNotDiscard;
+  IsForcedGC is_forced_gc = IsForcedGC::kNotForced;
 
-  StackState stack_state;
+  // Nested configs for APIs that expect them
   MarkingConfig marking_config;
   SweepingConfig sweeping_config;
 };
@@ -230,6 +235,10 @@ struct TraceDescriptor {
 
 using TraceDescriptorCallback = void (*)(const void*, TraceDescriptor);
 using WeakCallback = void (*)(const void*);
+using TraceConservativelyCallback = void (*)(Visitor*, const void*);
+
+// Forward declarations for heap types
+class HeapObjectHeader;
 
 // Visitor for tracing heap objects
 class Visitor {
@@ -254,6 +263,9 @@ class Visitor {
                                   WeakCallback, const void*) {}
   virtual void RegisterWeakCallback(WeakCallback, const void*) {}
   virtual void HandleMovableReference(const void**) {}
+  virtual void VisitInConstructionConservatively(HeapObjectHeader&,
+                                                  TraceConservativelyCallback) {}
+  virtual void VisitPointer(const void*) {}
 
  protected:
   virtual void TraceImpl(const void* object) = 0;

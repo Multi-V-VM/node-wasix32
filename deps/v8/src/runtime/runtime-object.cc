@@ -1188,7 +1188,7 @@ RUNTIME_FUNCTION(Runtime_CopyDataPropertiesWithExcludedPropertiesOnStack) {
         isolate, source, MaybeDirectHandle<Object>());
   }
 
-  DirectHandle<ZoneVector<Object> excluded_properties(isolate,
+  DirectHandle<ZoneVector<Object>> excluded_properties(isolate,
                                                  excluded_property_count);
   for (int i = 0; i < excluded_property_count; i++) {
     // Because the excluded properties on stack is from high address

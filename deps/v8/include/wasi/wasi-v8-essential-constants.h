@@ -155,10 +155,13 @@ using ::v8::base::VLQBase64Decode;
 // Memory utilities
 using ::v8::base::Memory;
 using ::v8::base::FatalOOM;
-using ::v8::base::Stack;
 using ::v8::base::AbortMode;
 using ::v8::base::LazyMutex;
+using ::v8::base::Stack;
 using ::v8::base::LockGuard;
+using ::v8::base::PageInitializationMode;
+using ::v8::base::PageFreeingMode;
+using ::v8::base::Realloc;
 using ::v8::base::ScopedZoneVector;
 using ::v8::base::DerefPtrIterator;
 // In modern V8, these types are exposed in the public ::v8 namespace
