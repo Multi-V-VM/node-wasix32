@@ -400,7 +400,7 @@ class ZoneVector {
 
   // Overload for casting from base::Vector to ZoneVector (without zone)
   template <typename S>
-  static ZoneVector<T> cast(const base::Vector<S>& input) {
+  static ZoneVector<T> cast(const ::v8::base::Vector<S>& input) {
     static_assert(std::is_trivial_v<S> && std::is_standard_layout_v<S>);
     static_assert(std::is_trivial_v<T> && std::is_standard_layout_v<T>);
     // Note: This creates a ZoneVector with nullptr zone - caller must handle
@@ -802,22 +802,22 @@ bool operator<(const ZoneVector<T>& lhs, const ZoneVector<T>& rhs) {
 
 // Comparison operators between ZoneVector and Vector
 template <class T>
-bool operator==(const ZoneVector<T>& lhs, const base::Vector<T>& rhs) {
+bool operator==(const ZoneVector<T>& lhs, const ::v8::base::Vector<T>& rhs) {
   return std::equal(lhs.begin(), lhs.end(), rhs.begin(), rhs.end());
 }
 
 template <class T>
-bool operator==(const base::Vector<T>& lhs, const ZoneVector<T>& rhs) {
+bool operator==(const ::v8::base::Vector<T>& lhs, const ZoneVector<T>& rhs) {
   return rhs == lhs;
 }
 
 template <class T>
-bool operator!=(const ZoneVector<T>& lhs, const base::Vector<T>& rhs) {
+bool operator!=(const ZoneVector<T>& lhs, const ::v8::base::Vector<T>& rhs) {
   return !(lhs == rhs);
 }
 
 template <class T>
-bool operator!=(const base::Vector<T>& lhs, const ZoneVector<T>& rhs) {
+bool operator!=(const ::v8::base::Vector<T>& lhs, const ZoneVector<T>& rhs) {
   return !(lhs == rhs);
 }
 
@@ -1222,6 +1222,10 @@ class ZoneVector<const T> {
   // Constructor from pointer and size (with explicit cast from non-const)
   ZoneVector(T* data, size_t size) : data_(data), size_(size) {}
 
+  // Constructor from base::Vector for implicit conversion
+  ZoneVector(const ::v8::base::Vector<const T>& vec)
+      : data_(vec.begin()), size_(vec.size()) {}
+
   // Copy from non-const ZoneVector
   ZoneVector(const ZoneVector<T>& other)
       : data_(other.data()), size_(other.size()) {}
@@ -1245,12 +1249,26 @@ class ZoneVector<const T> {
   bool empty() const { return size_ == 0; }
   size_t size() const { return size_; }
 
+  // Compatibility methods for v8::base::Vector-like interface
+  size_t length() const { return size_; }
+
+  // SubVector support
+  ZoneVector<const T> SubVector(size_t from, size_t to) const {
+    DCHECK_LE(from, to);
+    DCHECK_LE(to, size_);
+    return ZoneVector<const T>(data_ + from, to - from);
+  }
+
+  ZoneVector<const T> SubVectorFrom(size_t from) const {
+    return SubVector(from, size_);
+  }
+
   // Data access
   const T* data() const { return data_; }
 
   // Cast from base::Vector to ZoneVector<const T>
   template <typename S>
-  static ZoneVector<const T> cast(const base::Vector<S>& input) {
+  static ZoneVector<const T> cast(const ::v8::base::Vector<S>& input) {
     static_assert(std::is_trivial_v<S> && std::is_standard_layout_v<S>);
     static_assert(std::is_trivial_v<T> && std::is_standard_layout_v<T>);
     if constexpr (sizeof(S) == sizeof(T)) {

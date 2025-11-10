@@ -16,7 +16,7 @@ struct Dummy;
 
 MarkingVisitorBase::MarkingVisitorBase(HeapBase& heap,
                                        BasicMarkingState& marking_state)
-    : marking_state_(marking_state) {}
+    : cppgc::Visitor(heap), marking_state_(marking_state) {}
 
 void MarkingVisitorBase::Visit(const void* object, TraceDescriptor desc) {
   marking_state_.MarkAndPush(object, desc);
@@ -122,7 +122,7 @@ MutatorMarkingVisitor::MutatorMarkingVisitor(HeapBase& heap,
     : MarkingVisitorBase(heap, marking_state) {}
 
 RootMarkingVisitor::RootMarkingVisitor(MutatorMarkingState& marking_state)
-    : mutator_marking_state_(marking_state) {}
+    : RootVisitorBase(marking_state.heap_), mutator_marking_state_(marking_state) {}
 
 void RootMarkingVisitor::VisitRoot(const void* object, TraceDescriptor desc,
                                    const SourceLocation&) {
