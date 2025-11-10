@@ -20,6 +20,11 @@
 #include "src/utils/ostreams.h"
 
 namespace v8 {
+namespace internal {
+// Forward declaration
+template <typename T>
+class ZoneVector;
+}  // namespace internal
 
 namespace base {
 template <typename T>

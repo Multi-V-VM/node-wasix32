@@ -54,6 +54,12 @@ namespace v8 {
 
 namespace internal {
 
+// Forward declarations for DirectHandle types
+template <typename T>
+class DirectHandle;
+template <typename T>
+class DirectHandleUnchecked;
+
 // Ensure C library memory functions are visible in this namespace
 using ::memcpy;
 using ::memmove;
@@ -387,6 +393,29 @@ class ZoneVector {
         for (size_t i = 0; i < input.size(); ++i) {
           result[i] = static_cast<T>(input[i]);
         }
+      }
+    }
+    return result;
+  }
+
+  // Overload for casting from base::Vector to ZoneVector (without zone)
+  template <typename S>
+  static ZoneVector<T> cast(const base::Vector<S>& input) {
+    static_assert(std::is_trivial_v<S> && std::is_standard_layout_v<S>);
+    static_assert(std::is_trivial_v<T> && std::is_standard_layout_v<T>);
+    // Note: This creates a ZoneVector with nullptr zone - caller must handle
+    ZoneVector<T> result;
+    result.reserve(input.size());
+    if constexpr (sizeof(S) == sizeof(T)) {
+      result.resize(input.size());
+      if (input.size() > 0) {
+        ::memcpy(const_cast<void*>(static_cast<const void*>(result.data())),
+                 static_cast<const void*>(input.data()),
+                 input.size() * sizeof(S));
+      }
+    } else {
+      for (size_t i = 0; i < input.size(); ++i) {
+        result.push_back(static_cast<T>(input[i]));
       }
     }
     return result;
@@ -1035,6 +1064,184 @@ template <typename T>
 inline ZoneVector<T> Zone::AllocateZoneVector(size_t length) {
   return ZoneVector<T>(length, this);
 }
+
+// CachedZoneVector is a ZoneVector that can be reused from a cache
+// to avoid repeated allocations. The cache is external and passed by pointer.
+template <typename T>
+class CachedZoneVector : public ZoneVector<T> {
+ public:
+  // Constructor that takes a cache (stack of unused vectors)
+  explicit CachedZoneVector(std::vector<ZoneVector<T>*>* cache)
+      : ZoneVector<T>(cache->empty() ? nullptr : cache->back()->zone()),
+        cache_(cache) {
+    if (!cache->empty()) {
+      // Reuse vector from cache
+      ZoneVector<T>* reused = cache->back();
+      cache->pop_back();
+      this->swap(*reused);
+      delete reused;
+    }
+  }
+
+  ~CachedZoneVector() {
+    // Return to cache if available
+    if (cache_ && this->zone()) {
+      ZoneVector<T>* to_cache = new ZoneVector<T>(this->zone());
+      to_cache->swap(*this);
+      cache_->push_back(to_cache);
+    }
+  }
+
+  // Delete copy constructor and assignment
+  CachedZoneVector(const CachedZoneVector&) = delete;
+  CachedZoneVector& operator=(const CachedZoneVector&) = delete;
+
+ private:
+  std::vector<ZoneVector<T>*>* cache_;
+};
+
+// Specialization of ZoneVector for DirectHandle<T> to use DirectHandleUnchecked
+// internally, since DirectHandle is stack-allocated only and cannot be used
+// in heap/zone-allocated containers directly.
+template <typename T>
+class ZoneVector<DirectHandle<T>> {
+ private:
+  using InternalType = DirectHandleUnchecked<T>;
+  ZoneVector<InternalType> storage_;
+
+ public:
+  using value_type = DirectHandle<T>;
+  using reference = DirectHandle<T>&;
+  using const_reference = const DirectHandle<T>&;
+  using iterator = typename ZoneVector<InternalType>::iterator;
+  using const_iterator = typename ZoneVector<InternalType>::const_iterator;
+  using size_type = size_t;
+
+  ZoneVector() : storage_() {}
+  explicit ZoneVector(Zone* zone) : storage_(zone) {}
+  ZoneVector(size_t size, Zone* zone) : storage_(size, zone) {}
+  ZoneVector(std::initializer_list<value_type> init, Zone* zone) : storage_(zone) {
+    storage_.reserve(init.size());
+    for (const auto& item : init) {
+      storage_.push_back(InternalType(item));
+    }
+  }
+
+  // Element access - reinterpret_cast is safe because DirectHandle and
+  // DirectHandleUnchecked have the same layout
+  reference operator[](size_t pos) {
+    return reinterpret_cast<reference>(storage_[pos]);
+  }
+  const_reference operator[](size_t pos) const {
+    return reinterpret_cast<const_reference>(storage_[pos]);
+  }
+
+  reference at(size_t pos) {
+    return reinterpret_cast<reference>(storage_.at(pos));
+  }
+  const_reference at(size_t pos) const {
+    return reinterpret_cast<const_reference>(storage_.at(pos));
+  }
+
+  // Iterators - use storage iterators which can be cast
+  iterator begin() { return storage_.begin(); }
+  const_iterator begin() const { return storage_.begin(); }
+  iterator end() { return storage_.end(); }
+  const_iterator end() const { return storage_.end(); }
+
+  // Capacity
+  bool empty() const { return storage_.empty(); }
+  size_t size() const { return storage_.size(); }
+  size_t capacity() const { return storage_.capacity(); }
+  void reserve(size_t n) { storage_.reserve(n); }
+  void resize(size_t n) { storage_.resize(n); }
+
+  // Modifiers
+  void push_back(const value_type& value) {
+    storage_.push_back(InternalType(value));
+  }
+  void push_back(value_type&& value) {
+    storage_.push_back(InternalType(std::move(value)));
+  }
+
+  template <typename... Args>
+  void emplace_back(Args&&... args) {
+    storage_.emplace_back(std::forward<Args>(args)...);
+  }
+
+  void pop_back() { storage_.pop_back(); }
+  void clear() { storage_.clear(); }
+
+  // Other members
+  void swap(ZoneVector& other) { storage_.swap(other.storage_); }
+  Zone* zone() const { return storage_.zone(); }
+};
+
+// Specialization of ZoneVector for const T - provides a read-only view
+template <typename T>
+class ZoneVector<const T> {
+ private:
+  const T* data_;
+  size_t size_;
+
+ public:
+  using value_type = const T;
+  using reference = const T&;
+  using const_reference = const T&;
+  using iterator = const T*;
+  using const_iterator = const T*;
+  using size_type = size_t;
+
+  // Default constructor
+  ZoneVector() : data_(nullptr), size_(0) {}
+
+  // Constructor from pointer and size (non-owning view)
+  ZoneVector(const T* data, size_t size) : data_(data), size_(size) {}
+
+  // Constructor from pointer and size (with explicit cast from non-const)
+  ZoneVector(T* data, size_t size) : data_(data), size_(size) {}
+
+  // Copy from non-const ZoneVector
+  ZoneVector(const ZoneVector<T>& other)
+      : data_(other.data()), size_(other.size()) {}
+
+  // Element access
+  const_reference operator[](size_t pos) const {
+    DCHECK_LT(pos, size_);
+    return data_[pos];
+  }
+
+  const_reference at(size_t pos) const {
+    DCHECK_LT(pos, size_);
+    return data_[pos];
+  }
+
+  // Iterators
+  const_iterator begin() const { return data_; }
+  const_iterator end() const { return data_ + size_; }
+
+  // Capacity
+  bool empty() const { return size_ == 0; }
+  size_t size() const { return size_; }
+
+  // Data access
+  const T* data() const { return data_; }
+
+  // Cast from base::Vector to ZoneVector<const T>
+  template <typename S>
+  static ZoneVector<const T> cast(const base::Vector<S>& input) {
+    static_assert(std::is_trivial_v<S> && std::is_standard_layout_v<S>);
+    static_assert(std::is_trivial_v<T> && std::is_standard_layout_v<T>);
+    if constexpr (sizeof(S) == sizeof(T)) {
+      return ZoneVector<const T>(reinterpret_cast<const T*>(input.data()),
+                                  input.size());
+    } else {
+      // For different sizes, we'd need to allocate, but this is a const view
+      // so we can't. This case should not occur in practice for const views.
+      UNREACHABLE();
+    }
+  }
+};
 
 }  // namespace internal
 }  // namespace v8

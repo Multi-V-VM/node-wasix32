@@ -59,7 +59,7 @@ class StringSearch : private StringSearchBase {
   StringSearch(Isolate* isolate, ZoneVector<const PatternChar> pattern)
       : isolate_(isolate),
         pattern_(pattern),
-        start_(std::max(0, pattern.length() - kBMMaxShift)) {
+        start_(std::max(size_t{0}, pattern.length() - kBMMaxShift)) {
     if (sizeof(PatternChar) > sizeof(SubjectChar)) {
       if (!IsOneByteString(pattern_)) {
         strategy_ = &FailSearch;

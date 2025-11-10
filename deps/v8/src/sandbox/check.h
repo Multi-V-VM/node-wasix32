@@ -5,6 +5,7 @@
 #ifndef V8_SANDBOX_CHECK_H_
 #define V8_SANDBOX_CHECK_H_
 
+#include "src/base/logging.h"
 #include "src/sandbox/hardware-support.h"
 
 // When the sandbox is enabled, a SBXCHECK behaves exactly like a CHECK, but

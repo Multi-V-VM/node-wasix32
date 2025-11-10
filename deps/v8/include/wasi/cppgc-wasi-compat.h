@@ -13,47 +13,132 @@ namespace cppgc {
 class Platform;
 class Heap;
 
-namespace internal {
-
-// GC collection type
+// GC collection type (in main cppgc namespace)
 enum class CollectionType {
   kMinor,
   kMajor
 };
 
-// Stack state for GC
+// Stack state for GC (in main cppgc namespace)
 enum class StackState {
   kMayContainHeapPointers,
   kNoHeapPointers
 };
 
-// Marking type
+// Marking type (in main cppgc namespace)
 enum class MarkingType {
   kIncremental,
   kIncrementalAndConcurrent,
   kAtomic
 };
 
-// Sweeping type
+// Sweeping type (in main cppgc namespace)
 enum class SweepingType {
   kIncremental,
   kIncrementalAndConcurrent,
   kAtomic
 };
 
-// GC Configuration
-struct GCConfig {
-  enum class FreeMemoryHandling {
-    kDoNotDiscard,
-    kDiscardWherePossible
+namespace internal {
+
+// Also expose types in internal namespace for compatibility
+using CollectionType = cppgc::CollectionType;
+using StackState = cppgc::StackState;
+using MarkingType = cppgc::MarkingType;
+using SweepingType = cppgc::SweepingType;
+
+// MarkingConfig for internal use
+struct MarkingConfig {
+  using MarkingType = cppgc::MarkingType;
+  using StackState = cppgc::StackState;
+
+  enum class IsForcedGC : uint8_t {
+    kNotForced,
+    kForced,
   };
 
-  CollectionType collection_type = CollectionType::kMajor;
-  StackState stack_state = StackState::kMayContainHeapPointers;
-  MarkingType marking_type = MarkingType::kAtomic;
-  SweepingType sweeping_type = SweepingType::kAtomic;
-  FreeMemoryHandling free_memory_handling = FreeMemoryHandling::kDoNotDiscard;
-  bool is_forced_gc = false;
+  static constexpr MarkingConfig Default() {
+    return MarkingConfig(CollectionType::kMajor, StackState::kMayContainHeapPointers,
+                        MarkingType::kIncrementalAndConcurrent, IsForcedGC::kNotForced);
+  }
+
+  // Explicit constructor to prevent aggregate initialization
+  constexpr MarkingConfig(CollectionType ct = CollectionType::kMajor,
+                          StackState ss = StackState::kMayContainHeapPointers,
+                          MarkingType mt = MarkingType::kIncrementalAndConcurrent,
+                          IsForcedGC fg = IsForcedGC::kNotForced)
+      : collection_type(ct), stack_state(ss), marking_type(mt), is_forced_gc(fg) {}
+
+  CollectionType collection_type;
+  StackState stack_state;
+  MarkingType marking_type;
+  IsForcedGC is_forced_gc;
+};
+
+// SweepingConfig for internal use
+struct SweepingConfig {
+  using SweepingType = cppgc::SweepingType;
+
+  enum class CompactableSpaceHandling { kSweep, kIgnore };
+  enum class FreeMemoryHandling { kDoNotDiscard, kDiscardWherePossible };
+
+  // Explicit constructor to prevent aggregate initialization
+  constexpr SweepingConfig(SweepingType st = SweepingType::kIncrementalAndConcurrent,
+                           CompactableSpaceHandling csh = CompactableSpaceHandling::kSweep,
+                           FreeMemoryHandling fmh = FreeMemoryHandling::kDoNotDiscard)
+      : sweeping_type(st), compactable_space_handling(csh), free_memory_handling(fmh) {}
+
+  SweepingType sweeping_type;
+  CompactableSpaceHandling compactable_space_handling;
+  FreeMemoryHandling free_memory_handling;
+};
+
+// GC Configuration - matches V8's actual structure with nested configs
+struct GCConfig {
+  using MarkingType = MarkingConfig::MarkingType;
+  using SweepingType = SweepingConfig::SweepingType;
+  using StackState = MarkingConfig::StackState;
+  using IsForcedGC = MarkingConfig::IsForcedGC;
+  using FreeMemoryHandling = SweepingConfig::FreeMemoryHandling;
+
+  static constexpr GCConfig Default() {
+    return {StackState::kMayContainHeapPointers, MarkingConfig::Default(),
+            SweepingConfig{}};
+  }
+
+  // Constructor for flat initialization pattern used in V8 code
+  // {CollectionType, StackState, MarkingType, SweepingType, FreeMemoryHandling, IsForcedGC}
+  constexpr GCConfig(CollectionType collection_type, StackState stack_state,
+                     MarkingType marking_type, SweepingType sweeping_type,
+                     FreeMemoryHandling free_memory_handling = FreeMemoryHandling::kDoNotDiscard,
+                     IsForcedGC is_forced_gc = IsForcedGC::kNotForced)
+      : stack_state(stack_state),
+        marking_config{collection_type, stack_state, marking_type, is_forced_gc},
+        sweeping_config{sweeping_type, SweepingConfig::CompactableSpaceHandling::kSweep, free_memory_handling} {}
+
+  // Default constructor - explicitly defined to prevent aggregate initialization
+  constexpr GCConfig()
+      : stack_state(StackState::kMayContainHeapPointers),
+        marking_config(),
+        sweeping_config() {}
+
+  // Constructor with nested configs
+  constexpr GCConfig(StackState stack_state, MarkingConfig marking_config,
+                     SweepingConfig sweeping_config)
+      : stack_state(stack_state),
+        marking_config(marking_config),
+        sweeping_config(sweeping_config) {}
+
+  // Accessor methods for compatibility with code that expects flat structure
+  CollectionType collection_type() const { return marking_config.collection_type; }
+  MarkingType marking_type() const { return marking_config.marking_type; }
+  SweepingType sweeping_type() const { return sweeping_config.sweeping_type; }
+  IsForcedGC is_forced_gc() const { return marking_config.is_forced_gc; }
+  FreeMemoryHandling free_memory_handling() const { return sweeping_config.free_memory_handling; }
+
+  StackState stack_state;
+  MarkingConfig marking_config;
+  SweepingConfig sweeping_config;
 };
 
 // Embedder stack state
@@ -75,11 +160,32 @@ struct WriteBarrierParams {
 
 // Heap statistics
 struct HeapStatistics {
+  enum class DetailLevel {
+    kBrief,
+    kDetailed,
+    kDiagnostic
+  };
+
   size_t used_size_bytes = 0;
   size_t allocated_size_bytes = 0;
   size_t pooled_memory_size_bytes = 0;
   size_t resident_size_bytes = 0;
+  DetailLevel detail_level = DetailLevel::kBrief;
+
+  // Free list statistics (for detailed level)
+  struct FreeListStatistics {
+    size_t bucket_size = 0;
+    size_t free_count = 0;
+    size_t free_size = 0;
+  };
+
+  // Make detail_level and pooled_memory_size_bytes accessible
+  void set_detail_level(DetailLevel level) { detail_level = level; }
+  DetailLevel get_detail_level() const { return detail_level; }
 };
+
+// Forward declaration for custom spaces
+class CustomSpaceBase;
 
 // Heap options
 struct HeapOptions {
@@ -96,6 +202,7 @@ struct HeapOptions {
   };
 
   std::shared_ptr<Platform> platform;
+  std::vector<std::unique_ptr<CustomSpaceBase>> custom_spaces;
   size_t custom_spaces_count = 0;
   MarkingSupport marking_support = MarkingSupport::kEnabled;
   SweepingSupport sweeping_support = SweepingSupport::kEnabled;
@@ -112,6 +219,18 @@ class AllocationHandle {
   AllocationHandle& operator=(const AllocationHandle&) = delete;
 };
 
+// Forward declarations for visitor types
+class Visitor;
+
+// TraceDescriptor for visitor pattern
+struct TraceDescriptor {
+  const void* base_object_payload = nullptr;
+  void (*trace_callback)(Visitor*, const void*) = nullptr;
+};
+
+using TraceDescriptorCallback = void (*)(const void*, TraceDescriptor);
+using WeakCallback = void (*)(const void*);
+
 // Visitor for tracing heap objects
 class Visitor {
  public:
@@ -122,6 +241,19 @@ class Visitor {
   void Trace(const T& member) {
     // Minimal stub - actual implementation would dispatch to TraceImpl
   }
+
+  // Virtual methods that can be overridden
+  virtual void Visit(const void*, TraceDescriptor) {}
+  virtual void VisitMultipleUncompressedMember(const void*, size_t,
+                                                TraceDescriptorCallback) {}
+  virtual void VisitMultipleCompressedMember(const void*, size_t,
+                                              TraceDescriptorCallback) {}
+  virtual void VisitWeak(const void*, TraceDescriptor, WeakCallback, const void*) {}
+  virtual void VisitEphemeron(const void*, const void*, TraceDescriptor) {}
+  virtual void VisitWeakContainer(const void*, TraceDescriptor, TraceDescriptor,
+                                  WeakCallback, const void*) {}
+  virtual void RegisterWeakCallback(WeakCallback, const void*) {}
+  virtual void HandleMovableReference(const void**) {}
 
  protected:
   virtual void TraceImpl(const void* object) = 0;
@@ -170,6 +302,19 @@ class GarbageCollected {
 
  protected:
   GarbageCollected() = default;
+};
+
+// Custom space base class for custom allocation spaces
+class CustomSpaceBase {
+ public:
+  virtual ~CustomSpaceBase() = default;
+
+  // Custom space configuration
+  virtual size_t GetCustomSpaceIndex() const = 0;
+  virtual bool IsCompactable() const { return false; }
+
+ protected:
+  CustomSpaceBase() = default;
 };
 
 // Heap API

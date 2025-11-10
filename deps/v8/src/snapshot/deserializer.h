@@ -73,7 +73,7 @@ class Deserializer : public SerializerDeserializer {
   // Add an object to back an attached reference. The order to add objects must
   // mirror the order they are added in the serializer.
   void AddAttachedObject(DirectHandle<HeapObject> attached_object) {
-    attached_objects_.push_back(attached_object);
+    attached_objects_->push_back(attached_object);
   }
 
   IsolateT* isolate() const { return isolate_; }
@@ -84,23 +84,23 @@ class Deserializer : public SerializerDeserializer {
 
   ZoneVector<const DirectHandle<AllocationSite>> new_allocation_sites()
       const {
-    return {new_allocation_sites_.data(), new_allocation_sites_.size()};
+    return {new_allocation_sites_->data(), new_allocation_sites_->size()};
   }
   ZoneVector<const DirectHandle<InstructionStream>> new_code_objects() const {
-    return {new_code_objects_.data(), new_code_objects_.size()};
+    return {new_code_objects_->data(), new_code_objects_->size()};
   }
   ZoneVector<const DirectHandle<Map>> new_maps() const {
-    return {new_maps_.data(), new_maps_.size()};
+    return {new_maps_->data(), new_maps_->size()};
   }
   ZoneVector<const DirectHandle<AccessorInfo>> accessor_infos() const {
-    return {accessor_infos_.data(), accessor_infos_.size()};
+    return {accessor_infos_->data(), accessor_infos_->size()};
   }
   ZoneVector<const DirectHandle<FunctionTemplateInfo>>
   function_template_infos() const {
-    return {function_template_infos_.data(), function_template_infos_.size()};
+    return {function_template_infos_->data(), function_template_infos_->size()};
   }
   ZoneVector<const DirectHandle<Script>> new_scripts() const {
-    return {new_scripts_.data(), new_scripts_.size()};
+    return {new_scripts_->data(), new_scripts_->size()};
   }
 
   std::shared_ptr<BackingStore> backing_store(size_t i) {

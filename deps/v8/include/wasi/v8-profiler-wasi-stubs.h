@@ -18,7 +18,23 @@ class Isolate;
 class CpuProfiler;
 class HeapProfiler;
 
+// CPU Profiler naming modes (in v8 namespace for public API)
+enum class CpuProfilingNamingMode {
+  kStandardNaming,
+  kDebugNaming
+};
+
+// CPU Profiler logging modes (in v8 namespace for public API)
+enum class CpuProfilingLoggingMode {
+  kLazyLogging,
+  kEagerLogging
+};
+
 namespace internal {
+
+// Forward declarations
+class CodeEventObserver;
+class LogEventListener;
 
 // ProfilerId - Unique identifier for profilers
 using ProfilerId = int;
@@ -37,6 +53,16 @@ enum class CpuProfilingResult {
   kErrorTooManySamples
 };
 
+// Code entry - represents a single code entry in the profiler
+class CodeEntry {
+ public:
+  CodeEntry() = default;
+  virtual ~CodeEntry() = default;
+
+  CodeEntry(const CodeEntry&) = delete;
+  CodeEntry& operator=(const CodeEntry&) = delete;
+};
+
 // Code entry storage - manages lifetime of profiler code entries
 class CodeEntryStorage {
  public:
@@ -50,6 +76,11 @@ class CodeEntryStorage {
 // Weak code registry - tracks code objects for profiling
 class WeakCodeRegistry {
  public:
+  class Listener {
+   public:
+    virtual ~Listener() = default;
+  };
+
   WeakCodeRegistry() = default;
   ~WeakCodeRegistry() = default;
 
@@ -57,19 +88,28 @@ class WeakCodeRegistry {
   WeakCodeRegistry& operator=(const WeakCodeRegistry&) = delete;
 };
 
+// ProfilerListener - listens to code events for profiling
+class ProfilerListener {
+ public:
+  ProfilerListener(Isolate*, CodeEventObserver*,
+                   CodeEntryStorage& code_entry_storage,
+                   WeakCodeRegistry& weak_code_registry,
+                   CpuProfilingNamingMode mode = CpuProfilingNamingMode::kDebugNaming) {}
+  virtual ~ProfilerListener() = default;
+
+  ProfilerListener(const ProfilerListener&) = delete;
+  ProfilerListener& operator=(const ProfilerListener&) = delete;
+};
+
+// Also expose naming modes in internal namespace for internal code
+using CpuProfilingNamingMode = v8::CpuProfilingNamingMode;
+using CpuProfilingLoggingMode = v8::CpuProfilingLoggingMode;
+
+// Use kDebugNaming constant
+constexpr CpuProfilingNamingMode kDebugNaming = CpuProfilingNamingMode::kDebugNaming;
+constexpr CpuProfilingNamingMode kStandardNaming = CpuProfilingNamingMode::kStandardNaming;
+
 }  // namespace internal
-
-// CPU Profiler naming modes
-enum class CpuProfilingNamingMode {
-  kStandardNaming,
-  kDebugNaming
-};
-
-// CPU Profiler logging modes
-enum class CpuProfilingLoggingMode {
-  kLazyLogging,
-  kEagerLogging
-};
 
 }  // namespace v8
 

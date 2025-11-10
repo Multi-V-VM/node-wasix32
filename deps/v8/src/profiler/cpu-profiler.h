@@ -20,6 +20,10 @@
 #include "src/base/platform/platform-win32.h"
 #endif
 
+#ifdef __wasi__
+#include "include/wasi/v8-profiler-wasi-stubs.h"
+#endif
+
 namespace v8 {
 namespace sampler {
 class Sampler;

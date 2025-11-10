@@ -12,6 +12,10 @@
 #include "src/profiler/profile-generator.h"
 #include "src/profiler/weak-code-registry.h"
 
+#ifdef __wasi__
+#include "include/wasi/v8-profiler-wasi-stubs.h"
+#endif
+
 namespace v8 {
 namespace internal {
 

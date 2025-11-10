@@ -26,6 +26,7 @@ enum class UseCounterFeature {
   kWasmExtendedConst,
   kWasmGCExternRefStrings,
   kWasmImportedStrings,
+  kWasmImportedStringsUtf8,
   kWasmJSPI,
   kWasmTypeReflection,
   kWasmModuleCompilation,
@@ -35,6 +36,7 @@ enum class UseCounterFeature {
   kWasmSignExtension,
   kWasmReferenceTypes,
   kWasmTailCall,
+  kWasmReturnCall,
   kWasmMemory32,
   kWasmCustomSections,
   kWasmNameSection,
@@ -61,6 +63,9 @@ enum class UseCounterFeature {
   kWasmLiftoff,
   kWasmTurbofan,
   kWasmTurboshaft,
+  kWasmExnRef,
+  kWasmTypedFuncRef,
+  kWasmJavaScriptPromiseIntegration,
   kMaxValue  // Must be last
 };
 
@@ -344,6 +349,72 @@ struct WasmFeatures {
   bool has_exnref = false;
 };
 
+// Condition codes for comparisons (unified cross-platform)
+enum Condition : int {
+  overflow = 0,
+  no_overflow = 1,
+  below = 2,
+  above_equal = 3,
+  equal = 4,
+  not_equal = 5,
+  below_equal = 6,
+  above = 7,
+  negative = 8,
+  positive = 9,
+  parity_even = 10,
+  parity_odd = 11,
+  less = 12,
+  greater_equal = 13,
+  less_equal = 14,
+  greater = 15,
+
+  // aliases
+  carry = below,
+  not_carry = above_equal,
+  zero = equal,
+  not_zero = not_equal,
+  sign = negative,
+  not_sign = positive,
+
+  // Unified cross-platform condition names/aliases
+  kEqual = equal,
+  kNotEqual = not_equal,
+  kLessThan = less,
+  kGreaterThan = greater,
+  kLessThanEqual = less_equal,
+  kGreaterThanEqual = greater_equal,
+  kUnsignedLessThan = below,
+  kUnsignedGreaterThan = above,
+  kUnsignedLessThanEqual = below_equal,
+  kUnsignedGreaterThanEqual = above_equal,
+  kOverflow = overflow,
+  kNoOverflow = no_overflow,
+  kZero = equal,
+  kNotZero = not_equal
+};
+
+// Returns the equivalent of !cc
+inline Condition NegateCondition(Condition cc) {
+  return static_cast<Condition>(cc ^ 1);
+}
+
+// Foreign object tags for type identification
+constexpr Address kSyntheticModuleTag = 0x1;
+constexpr Address kCFunctionTag = 0x2;
+constexpr Address kCFunctionInfoTag = 0x3;
+constexpr Address kWasmNativeModuleTag = 0x4;
+constexpr Address kWasmFuncDataTag = 0x5;
+constexpr Address kWasmManagedDataTag = 0x6;
+constexpr Address kGenericManagedTag = 0x7;
+constexpr Address kWasmImportDataTag = 0x8;
+constexpr Address kMessageListenerTag = 0x9;
+constexpr Address kDisplayNamesInternalTag = 0xA;
+
+// Cpp heap pointer constants
+constexpr uint32_t kAnyCppHeapPointer = 0;
+constexpr uint32_t kNullCppHeapPointer = 1;
+constexpr uint32_t kMaxCppHeapPointers = 0xFFFFFF;
+
 }  // namespace internal
 
 // Public Isolate constants
@@ -366,7 +437,49 @@ class Isolate {
   // Use counter features for tracking API/feature usage
   enum UseCounterFeatureEnum {
     kVarRedeclaredCatchBinding = 0,
+    kSloppyModeBlockScopedFunctionRedefinition = 1,
+    kForInInitializer = 2,
+    kHtmlComment = 3,
+    kHtmlCommentInExternalScript = 4,
+    kSourceMappingUrlMagicCommentAtSign = 5,
+    kCompileHintsMagicAll = 6,
+    kSloppyMode = 7,
+    kStrictMode = 8,
+    kUseAsm = 9,
+    kIndexAccessor = 10,
+    kErrorPrepareStackTrace = 11,
+    kErrorCaptureStackTrace = 12,
+    kTemporalObject = 13,
+    kAsyncStackTaggingCreateTaskCall = 14,
     kUseCounterFeatureCount  // Must be last
+  };
+
+  // Invalidated protector values
+  enum InvalidatedProtector {
+    kInvalidatedArrayBufferDetachingProtector = 0,
+    kInvalidatedArrayConstructorProtector = 1,
+    kInvalidatedArrayIteratorLookupChainProtector = 2,
+    kInvalidatedArraySpeciesLookupChainProtector = 3,
+    kInvalidatedIsConcatSpreadableLookupChainProtector = 4,
+    kInvalidatedMapIteratorLookupChainProtector = 5,
+    kInvalidatedMegaDOMProtector = 6,
+    kInvalidatedNoElementsProtector = 7,
+    kInvalidatedNoProfilingProtector = 8,
+    kInvalidatedNoUndetectableObjectsProtector = 9,
+    kInvalidatedNumberStringNotRegexpLikeProtector = 10,
+    kInvalidatedPromiseHookProtector = 11,
+    kInvalidatedPromiseResolveLookupChainProtector = 12,
+    kInvalidatedPromiseSpeciesLookupChainProtector = 13,
+    kInvalidatedPromiseThenLookupChainProtector = 14,
+    kInvalidatedRegExpSpeciesLookupChainProtector = 15,
+    kInvalidatedSetIteratorLookupChainProtector = 16,
+    kInvalidatedStringIteratorLookupChainProtector = 17,
+    kInvalidatedStringLengthOverflowLookupChainProtector = 18
+  };
+
+  // GC-related enums
+  enum GCFlags {
+    kForcedGC = 1 << 0
   };
 };
 

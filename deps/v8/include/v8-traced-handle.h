@@ -28,6 +28,12 @@ class TracedReferenceBase {
 
   bool IsEmpty() const { return true; }
   void Reset() {}
+
+  // WASI stub: Return a dummy slot pointer for thread-safe access
+  const internal::Address* GetSlotThreadSafe() const {
+    static internal::Address dummy_slot = 0;
+    return &dummy_slot;
+  }
 };
 
 // 为 WASI 提供最小的追踪句柄支持

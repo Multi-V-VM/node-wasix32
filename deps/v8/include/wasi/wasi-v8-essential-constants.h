@@ -42,6 +42,9 @@ inline constexpr intptr_t kHeapObjectTagMask = 3;
 inline constexpr int kWeakHeapObjectTag = 3;
 #endif
 
+// CppHeap pointer tag for embedder objects
+inline constexpr int kAnyCppHeapPointer = 0;
+
 }  // namespace internal
 }  // namespace v8
 
@@ -237,6 +240,32 @@ using ::v8::base::ieee754::tanh;
 namespace tmp = ::v8::base::tmp;
 
 }  // namespace base
+
+// Condition enum for WASI (platform-independent comparison conditions)
+enum Condition : int {
+  kNoCondition = -1,
+
+  // Basic conditions
+  kEqual = 0,
+  kNotEqual = 1,
+  kLessThan = 2,
+  kLessThanOrEqual = 3,
+  kGreaterThan = 4,
+  kGreaterThanOrEqual = 5,
+
+  // Unsigned conditions
+  kUnsignedLessThan = 6,
+  kUnsignedLessThanOrEqual = 7,
+  kUnsignedGreaterThan = 8,
+  kUnsignedGreaterThanOrEqual = 9,
+
+  // Additional conditions
+  kOverflow = 10,
+  kNoOverflow = 11,
+  kZero = kEqual,
+  kNotZero = kNotEqual,
+};
+
 }  // namespace internal
 }  // namespace v8
 

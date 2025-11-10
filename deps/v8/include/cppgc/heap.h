@@ -87,6 +87,8 @@ struct HeapStatistics {
   size_t physical_size_bytes = 0;
   size_t committed_size_bytes = 0;
   size_t resident_size_bytes = 0;
+  size_t pooled_memory_size_bytes = 0;
+  DetailLevel detail_level = DetailLevel::kBrief;
   std::vector<SpaceStatistics> space_stats;
   std::vector<std::string> type_names;
 };
@@ -128,6 +130,14 @@ class V8_EXPORT Heap {
   Heap(const Heap&) = delete;
   Heap& operator=(const Heap&) = delete;
 };
+
+// Internal namespace for V8 internal code that references cppgc::internal types
+namespace internal {
+  using CollectionType = cppgc::CollectionType;
+  using StackState = cppgc::StackState;
+  using MarkingType = cppgc::MarkingType;
+  using SweepingType = cppgc::SweepingType;
+}  // namespace internal
 
 }  // namespace cppgc
 

@@ -492,10 +492,10 @@ Maybe<simdutf::result> ArrayBufferFromBase64(
   const char method_name[] = "Uint8Array.fromBase64";
 
   output_length = simdutf::maximal_binary_length_from_base64(
-      reinterpret_cast<const T>(input_vector), input_length);
+      reinterpret_cast<const char*>(input_vector), input_length);
   std::unique_ptr<char[]> output = std::make_unique<char[]>(output_length);
   simdutf::result simd_result = simdutf::base64_to_binary_safe(
-      reinterpret_cast<const T>(input_vector), input_length, output.get(),
+      reinterpret_cast<const char*>(input_vector), input_length, output.get(),
       output_length, alphabet, last_chunk_handling);
 
   {

@@ -174,6 +174,22 @@ V8_INLINE DirectHandle<T> direct_handle(T object, LocalHeap* local_heap) {
   return direct_handle(Tagged<T>(object), local_heap);
 }
 
+// Overloads for converting Handle<T> to DirectHandle<T>
+template <typename T>
+V8_INLINE DirectHandle<T> direct_handle(Handle<T> handle, Isolate* isolate) {
+  return DirectHandle<T>(handle);
+}
+
+template <typename T>
+V8_INLINE DirectHandle<T> direct_handle(Handle<T> handle, LocalIsolate* isolate) {
+  return DirectHandle<T>(handle);
+}
+
+template <typename T>
+V8_INLINE DirectHandle<T> direct_handle(Handle<T> handle, LocalHeap* local_heap) {
+  return DirectHandle<T>(handle);
+}
+
 HandleScope::HandleScope(Isolate* isolate) {
   HandleScopeData* data = isolate->handle_scope_data();
   isolate_ = isolate;
