@@ -69,8 +69,13 @@ if [ -f "./configure" ]; then
   #  --prefix              : where 'make install' will place files
   #
   # Note: Upstream Node's configure may not support wasm32; many ports require a custom configure wrapper.
-  ./configure \
+  export CXXFLAGS="${CXXFLAGS:-} -isystem ${WASIX_SYSROOT}/include/c++/v1"
+export CPPFLAGS="${CPPFLAGS:-} -isystem ${WASIX_SYSROOT}/include/c++/v1"
+export CFLAGS="${CFLAGS:-} -isystem ${WASIX_SYSROOT}/include"
+
+./configure \
     --prefix="$OUT_DIR/install" \
+    --dest-cpu=wasm32 \
     --without-inspector \
     --without-intl \
     --without-ssl || {
@@ -79,8 +84,8 @@ if [ -f "./configure" ]; then
     }
 
   echo "Starting make build (this may take a long time)"
-  # Use the number of available processors
-  MAKEFLAGS="-j$(nproc)" make ${MAKEFLAGS:-} || {
+  # Force make to use our cross-compiler by overriding config.gypi
+  env CC="$CC" CXX="$CXX" CXXFLAGS="$CXXFLAGS" CPPFLAGS="$CPPFLAGS" CFLAGS="$CFLAGS" AR="$AR" RANLIB="$RANLIB" MAKEFLAGS="-j$(nproc)" make ${MAKEFLAGS:-} || {
     echo "make failed — building Node for wasm usually needs patches; check logs for compiler errors."
     # continue so we can collect logs/artifacts for debugging
   }
