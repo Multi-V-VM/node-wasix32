@@ -17,7 +17,7 @@ jobs:
 
     env:
       # Set the wasi-sdk version to use. Adjust as needed.
-      WASI_SDK_VERSION: "28"
+      WASI_SDK_VERSION: "28.0"
       # Where artifacts will be collected.
       ARTIFACT_DIR: out
 
@@ -53,9 +53,9 @@ jobs:
       - name: Install WASI SDK for compiler toolchain
         run: |
           set -euxo pipefail
-          ver="28.0"
+          ver="28"
           tarball="wasi-sdk-${ver}.0-x86_64-linux.tar.gz"
-          url="https://github.com/WebAssembly/wasi-sdk/releases/download/wasi-sdk-${ver}.0/${tarball}"
+          url="https://github.com/WebAssembly/wasi-sdk/releases/download/wasi-sdk-${ver}/${tarball}"
           wget -q "$url"
           tar xzf "$tarball"
           sdk_dir_name=$(find . -maxdepth 1 -type d -name "wasi-sdk*" | sed 's|./||')
