@@ -17,7 +17,7 @@ shopt -s globstar nullglob
 
 ROOT="$(pwd)"
 OUT_DIR="${OUT_DIR:-${ROOT}/out}"
-WASI_SDK_PATH="${WASI_SDK_PATH:-${ROOT}/wasi-sdk-${WASI_SDK_VERSION:-24.0}}"
+WASI_SDK_PATH="${WASI_SDK_PATH:-${ROOT}/wasi-sdk-${WASI_SDK_VERSION:-25.0}}"
 
 mkdir -p "$OUT_DIR"
 echo "Build root: $ROOT"

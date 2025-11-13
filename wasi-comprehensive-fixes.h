@@ -1,6 +1,11 @@
 #ifndef WASI_COMPREHENSIVE_FIXES_H_
 #define WASI_COMPREHENSIVE_FIXES_H_
 
+#ifdef __wasi__
+
+// Include termios stub for WASI compatibility
+#include "wasi-termios-stubs.h"
+
 // ============================================================================
 // Namespace Alias Fixes - v8::internal::base -> ::v8::base
 // ============================================================================
@@ -473,4 +478,5 @@ inline VirtualAddressSpace* GetVirtualAddressSpaceForProcess() {
 
 } // namespace v8
 
+#endif  // __wasi__
 #endif  // WASI_COMPREHENSIVE_FIXES_H_
