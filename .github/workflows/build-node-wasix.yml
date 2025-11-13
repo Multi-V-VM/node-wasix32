@@ -83,7 +83,7 @@ jobs:
         env:
           # Expose compilers that point to the wasi toolchain with wasix sysroot.
           CC: "${{ env.WASI_SDK_PATH }}/bin/clang --target=wasm32-wasi --sysroot=${{ env.WASIX_SYSROOT }}"
-          CXX: "${{ env.WASI_SDK_PATH }}/bin/clang++ --target=wasm32-wasi --sysroot=${{ env.WASIX_SYSROOT }}"
+          CXX: "${{ env.WASI_SDK_PATH }}/bin/clang++ --target=wasm32-wasi --sysroot=${{ env.WASIX_SYSROOT }} -isystem ${{ env.WASIX_SYSROOT }}/include/c++/v1"
           AR: "${{ env.WASI_SDK_PATH }}/bin/llvm-ar"
           RANLIB: "${{ env.WASI_SDK_PATH }}/bin/llvm-ranlib"
           WASI_SDK_PATH: ${{ env.WASI_SDK_PATH }}

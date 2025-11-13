@@ -42,7 +42,7 @@ fi
 
 # Recommended compiler wrappers (using WASI SDK with Wasix sysroot)
 export CC="${WASI_SDK_PATH}/bin/clang --target=wasm32-wasi --sysroot=${WASIX_SYSROOT}"
-export CXX="${WASI_SDK_PATH}/bin/clang++ --target=wasm32-wasi --sysroot=${WASIX_SYSROOT}"
+export CXX="${WASI_SDK_PATH}/bin/clang++ --target=wasm32-wasi --sysroot=${WASIX_SYSROOT} -isystem ${WASIX_SYSROOT}/include/c++/v1"
 export AR="${WASI_SDK_PATH}/bin/llvm-ar"
 export RANLIB="${WASI_SDK_PATH}/bin/llvm-ranlib"
 
@@ -102,6 +102,18 @@ fi
 
 # Link the final executable
 echo "Linking final node.wasm executable..."
+
+# Debug: Check if the binary exists
+echo "Checking: $CXX"
+if [ ! -x "${WASI_SDK_PATH}/bin/clang++" ]; then
+  echo "ERROR: clang++ not found at ${WASI_SDK_PATH}/bin/clang++"
+  echo "Contents of $WASI_SDK_PATH/bin:"
+  ls -la "${WASI_SDK_PATH}/bin/" || echo "Directory not found"
+  echo "SDK directory structure:"
+  ls -la "${WASI_SDK_PATH}" || echo "SDK path not found"
+  exit 1
+fi
+
 "$CXX" -o "$OUT_DIR/node.wasm" "out/Release/obj.target/node/src/node_main.o" "out/Release/libnode.a" -Wl,--start-group -Wl,--whole-archive "out/Release/libnode.a" -Wl,--no-whole-archive -Wl,--end-group -lwasi-emulated-getcwd -lwasi-emulated-mman -lwasi-emulated-process-clocks
 
 # Collect likely wasm artifacts (wildcard search) into out/
