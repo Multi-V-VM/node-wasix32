@@ -91,6 +91,10 @@ fi
 #   ninja -C out/wasm || true
 # fi
 
+# Link the final executable
+echo "Linking final node.wasm executable..."
+"$CXX" -o "$OUT_DIR/node.wasm" "out/Release/obj.target/node/src/node_main.o" "out/Release/libnode.a" -Wl,--start-group -Wl,--whole-archive "out/Release/libnode.a" -Wl,--no-whole-archive -Wl,--end-group -ldl -lrt -lm -lpthread
+
 # Collect likely wasm artifacts (wildcard search) into out/
 echo "Collecting wasm artifacts and build logs..."
 for f in **/*.wasm; do
