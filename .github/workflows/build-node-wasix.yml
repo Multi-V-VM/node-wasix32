@@ -46,10 +46,10 @@ jobs:
           url="https://github.com/WebAssembly/wasi-sdk/releases/download/wasi-sdk-25/${tarball}"
           wget -q "$url"
           tar xzf "$tarball"
-          sdk_dir=$(tar -tf "$tarball" | head -1 | cut -f1 -d"/")
-          echo "$sdk_dir/bin" >> $GITHUB_PATH
-          echo "WASI_SDK_PATH=$PWD/$sdk_dir" >> $GITHUB_ENV
-          ls -la $sdk_dir
+          sdk_dir_name=$(find . -maxdepth 1 -type d -name "wasi-sdk*" | sed 's|./||')
+          echo "$sdk_dir_name/bin" >> $GITHUB_PATH
+          echo "WASI_SDK_PATH=$PWD/$sdk_dir_name" >> $GITHUB_ENV
+          ls -la "$sdk_dir_name"
 
       - name: Show environment and toolchain versions
         run: |
