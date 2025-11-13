@@ -18,11 +18,13 @@ shopt -s globstar nullglob
 ROOT="$(pwd)"
 OUT_DIR="${OUT_DIR:-${ROOT}/out}"
 WASI_SDK_PATH="${WASI_SDK_PATH:-${ROOT}/wasi-sdk-${WASI_SDK_VERSION:-25.0}}"
+WASIX_SYSROOT="${WASIX_SYSROOT:-${ROOT}/wasix-sysroot}"
 
 mkdir -p "$OUT_DIR"
 echo "Build root: $ROOT"
 echo "Out dir: $OUT_DIR"
 echo "WASI_SDK_PATH: $WASI_SDK_PATH"
+echo "WASIX_SYSROOT: $WASIX_SYSROOT"
 
 # Validate expected tools
 if [ ! -x "${WASI_SDK_PATH}/bin/clang" ]; then
@@ -31,20 +33,27 @@ if [ ! -x "${WASI_SDK_PATH}/bin/clang" ]; then
   exit 1
 fi
 
-# Recommended compiler wrappers (you may prefer to set CC/CXX exactly in Actions step)
-export CC="${WASI_SDK_PATH}/bin/clang --target=wasm32-wasi --sysroot=${WASI_SDK_PATH}/share/wasi-sysroot"
-export CXX="${WASI_SDK_PATH}/bin/clang++ --target=wasm32-wasi --sysroot=${WASI_SDK_PATH}/share/wasi-sysroot"
+# Validate Wasix sysroot
+if [ ! -d "${WASIX_SYSROOT}" ]; then
+  echo "ERROR: Wasix sysroot not found at ${WASIX_SYSROOT}"
+  echo "Set WASIX_SYSROOT to the wasix-libc sysroot directory."
+  exit 1
+fi
+
+# Recommended compiler wrappers (using WASI SDK with Wasix sysroot)
+export CC="${WASI_SDK_PATH}/bin/clang --target=wasm32-wasi --sysroot=${WASIX_SYSROOT}"
+export CXX="${WASI_SDK_PATH}/bin/clang++ --target=wasm32-wasi --sysroot=${WASIX_SYSROOT}"
 export AR="${WASI_SDK_PATH}/bin/llvm-ar"
 export RANLIB="${WASI_SDK_PATH}/bin/llvm-ranlib"
 
 echo "Using CC: $CC"
 echo "Using CXX: $CXX"
 echo "Using AR: $AR"
+echo "Using Wasix sysroot: $WASIX_SYSROOT"
 
-# Optional: tweak LDFLAGS to produce a standalone wasm module.
-# Many builds require -Wl,--no-entry and to export specific symbols used by your embedder.
-# Adjust these flags to match your port's requirements.
-export LDFLAGS="${LDFLAGS:-'-Wl,--no-entry -Wl,--export-all -Wl,--allow-undefined'}"
+# Optional: tweak LDFLAGS to produce a standalone wasm module with Wasix.
+# Wasix provides more POSIX functionality than standard WASI
+export LDFLAGS="${LDFLAGS:-'-Wl,--no-entry -Wl,--export-all -Wl,--allow-undefined -lwasi-emulated-getcwd -lwasi-emulated-mman -lwasi-emulated-process-clocks'}"
 
 # If your repo contains a separate build/ directory or a patched Node source tree, point to it.
 # This script assumes Node's top-level configure exists. If your port uses GN/Ninja for V8, you may need
@@ -93,7 +102,7 @@ fi
 
 # Link the final executable
 echo "Linking final node.wasm executable..."
-"$CXX" -o "$OUT_DIR/node.wasm" "out/Release/obj.target/node/src/node_main.o" "out/Release/libnode.a" -Wl,--start-group -Wl,--whole-archive "out/Release/libnode.a" -Wl,--no-whole-archive -Wl,--end-group -ldl -lrt -lm -lpthread
+"$CXX" -o "$OUT_DIR/node.wasm" "out/Release/obj.target/node/src/node_main.o" "out/Release/libnode.a" -Wl,--start-group -Wl,--whole-archive "out/Release/libnode.a" -Wl,--no-whole-archive -Wl,--end-group -lwasi-emulated-getcwd -lwasi-emulated-mman -lwasi-emulated-process-clocks
 
 # Collect likely wasm artifacts (wildcard search) into out/
 echo "Collecting wasm artifacts and build logs..."

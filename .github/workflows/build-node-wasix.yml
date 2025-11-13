@@ -38,7 +38,19 @@ jobs:
         with:
           node-version: "22"
 
-      - name: Download and install WASI SDK
+      - name: Download and install Wasix sysroot
+        run: |
+          set -euxo pipefail
+          version="v2025-11-06.1"
+          tarball="sysroot-eh.tar.gz"
+          url="https://github.com/wasix-org/wasix-libc/releases/download/${version}/${tarball}"
+          wget -q "$url"
+          mkdir -p wasix-sysroot
+          tar xzf "$tarball" -C wasix-sysroot
+          echo "WASIX_SYSROOT=$PWD/wasix-sysroot" >> $GITHUB_ENV
+          ls -la wasix-sysroot
+
+      - name: Install WASI SDK for compiler toolchain
         run: |
           set -euxo pipefail
           ver="25.0"
@@ -55,6 +67,7 @@ jobs:
         run: |
           set -euxo pipefail
           echo "WASI_SDK_PATH=${WASI_SDK_PATH:-<not-set>}"
+          echo "WASIX_SYSROOT=${WASIX_SYSROOT:-<not-set>}"
           wasm32-wasi-clang --version || clang --version || true
           wasm32-wasi-clang++ --version || clang++ --version || true
           cmake --version
@@ -68,12 +81,13 @@ jobs:
 
       - name: Run wasm build script
         env:
-          # Expose compilers that point to the wasi toolchain.
-          CC: "${{ env.WASI_SDK_PATH }}/bin/clang --target=wasm32-wasi --sysroot=${{ env.WASI_SDK_PATH }}/share/wasi-sysroot"
-          CXX: "${{ env.WASI_SDK_PATH }}/bin/clang++ --target=wasm32-wasi --sysroot=${{ env.WASI_SDK_PATH }}/share/wasi-sysroot"
+          # Expose compilers that point to the wasi toolchain with wasix sysroot.
+          CC: "${{ env.WASI_SDK_PATH }}/bin/clang --target=wasm32-wasi --sysroot=${{ env.WASIX_SYSROOT }}"
+          CXX: "${{ env.WASI_SDK_PATH }}/bin/clang++ --target=wasm32-wasi --sysroot=${{ env.WASIX_SYSROOT }}"
           AR: "${{ env.WASI_SDK_PATH }}/bin/llvm-ar"
           RANLIB: "${{ env.WASI_SDK_PATH }}/bin/llvm-ranlib"
           WASI_SDK_PATH: ${{ env.WASI_SDK_PATH }}
+          WASIX_SYSROOT: ${{ env.WASIX_SYSROOT }}
         run: |
           set -euxo pipefail
           ./.github/scripts/build-node-wasix.sh
