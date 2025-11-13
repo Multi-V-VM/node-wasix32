@@ -4,9 +4,9 @@ name: Build Node.js (wasm32-wasi / wasix)
 
 on:
   push:
-    branches: [ main, master ]
+    branches: [ main, master, build ]
   pull_request:
-    branches: [ main, master ]
+    branches: [ main, master, build ]
   workflow_dispatch:
 
 jobs:
