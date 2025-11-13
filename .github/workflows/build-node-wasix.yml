@@ -4,9 +4,9 @@ name: Build Node.js (wasm32-wasi / wasix)
 
 on:
   push:
-    branches: [ main, master, build ]
+    branches: [main, master, build]
   pull_request:
-    branches: [ main, master, build ]
+    branches: [main, master, build]
   workflow_dispatch:
 
 jobs:
@@ -17,7 +17,7 @@ jobs:
 
     env:
       # Set the wasi-sdk version to use. Adjust as needed.
-      WASI_SDK_VERSION: "24.0"
+      WASI_SDK_VERSION: "25"
       # Where artifacts will be collected.
       ARTIFACT_DIR: out
 
@@ -36,19 +36,20 @@ jobs:
       - name: Install Node.js for build tooling (optional)
         uses: actions/setup-node@v4
         with:
-          node-version: "18"
+          node-version: "22"
 
       - name: Download and install WASI SDK
         run: |
           set -euxo pipefail
-          ver="${{ env.WASI_SDK_VERSION }}"
-          tarball="wasi-sdk-${ver}-linux.tar.gz"
-          url="https://github.com/WebAssembly/wasi-sdk/releases/download/wasi-sdk-${ver}/${tarball}"
+          ver="25.0"
+          tarball="wasi-sdk-${ver}-x86_64-linux.tar.gz"
+          url="https://github.com/WebAssembly/wasi-sdk/releases/download/wasi-sdk-25/${tarball}"
           wget -q "$url"
           tar xzf "$tarball"
-          echo "wasi-sdk-${ver}/bin" >> $GITHUB_PATH
-          echo "WASI_SDK_PATH=$PWD/wasi-sdk-${ver}" >> $GITHUB_ENV
-          ls -la wasi-sdk-${ver}
+          sdk_dir="wasi-sdk-${ver}"
+          echo "$sdk_dir/bin" >> $GITHUB_PATH
+          echo "WASI_SDK_PATH=$PWD/$sdk_dir" >> $GITHUB_ENV
+          ls -la $sdk_dir
 
       - name: Show environment and toolchain versions
         run: |
