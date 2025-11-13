@@ -178,3 +178,5 @@ tmp*
 test*
 qemu*
 *.md
+
+wasix-sysroot/

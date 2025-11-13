@@ -11,7 +11,7 @@ jobs:
     timeout-minutes: 120
 
     env:
-      WASI_SDK_VERSION: "25"
+      WASI_SDK_VERSION: "28"
       ARTIFACT_DIR: out
       DOCKER_IMAGE_NAME: node-wasix-build
 
@@ -32,7 +32,7 @@ jobs:
             $DOCKER_IMAGE_NAME \\
             /bin/bash -c "
               set -euxo pipefail
-              
+
               # Download and install WASI SDK
               ver=\\"25.0\\"
               tarball=\\"wasi-sdk-${ver}-x86_64-linux.tar.gz\\"
@@ -40,11 +40,11 @@ jobs:
               wget -q \\"$url\\"
               tar xzf \\"$tarball\\"
               sdk_dir=\\"wasi-sdk-${ver}\\"
-              
+
               # Set up environment
               export WASI_SDK_PATH=\\"$PWD/$sdk_dir\\"
               export PATH=\\"$WASI_SDK_PATH/bin:\\$PATH\\"
-              
+
               # Set up compilers
               export CC=\\"clang --target=wasm32-wasi --sysroot=$WASI_SDK_PATH/share/wasi-sysroot\\"
               export CXX=\\"clang++ --target=wasm32-wasi --sysroot=$WASI_SDK_PATH/share/wasi-sysroot\\"
@@ -53,7 +53,7 @@ jobs:
 
               # Make scripts executable
               chmod +x ./.github/scripts/build-node-wasix.sh || true
-              
+
               # Run build script
               ./.github/scripts/build-node-wasix.sh
             "
