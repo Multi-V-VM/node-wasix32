@@ -8,6 +8,7 @@
 #include "wasi-v8-extensions.h"
 #include "wasi-v8-api-fixes.h"
 #include "wasi-comprehensive-fixes.h"
+#include "wasi-C++20-fixes.h"
 
 // Additional fixes for common issues
 
