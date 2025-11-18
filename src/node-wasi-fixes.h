@@ -9,6 +9,7 @@
 #include "wasi-v8-api-fixes.h"
 #include "wasi-comprehensive-fixes.h"
 #include "wasi-C++20-fixes.h"
+#include "../wasi-stdlib-compat.h"
 
 // Additional fixes for common issues
 

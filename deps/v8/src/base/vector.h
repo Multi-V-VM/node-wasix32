@@ -303,7 +303,8 @@ class OwnedVector {
   // Elements in the new vector are default-initialized.
   static OwnedVector<T> NewForOverwrite(size_t size) {
     if (size == 0) return {};
-    return OwnedVector<T>(std::make_unique_for_overwrite<T[]>(size), size);
+    // Use make_unique instead of make_unique_for_overwrite for WASI compatibility
+    return OwnedVector<T>(std::make_unique<T[]>(size), size);
   }
 
   // Allocates a new vector containing the specified collection of values.

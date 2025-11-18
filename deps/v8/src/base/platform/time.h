@@ -58,7 +58,8 @@ class TimeConstants {
       kNanosecondsPerMicrosecond * kMicrosecondsPerSecond;
 
   // Support defaulted comparison of subclasses.
-  constexpr auto operator<=>(const TimeConstants&) const = default;
+  // Disabled for WASI compatibility (requires C++20 and constexpr operator overloading)
+  // constexpr auto operator<=>(const TimeConstants&) const = default;
 };
 
 // -----------------------------------------------------------------------------
@@ -192,7 +193,28 @@ class V8_BASE_EXPORT TimeDelta final {
     return delta_ / other.delta_;
   }
 
-  constexpr auto operator<=>(const TimeDelta&) const = default;
+  // Disabled for WASI compatibility (requires C++20 and constexpr operator overloading)
+  // constexpr auto operator<=>(const TimeDelta&) const = default;
+  
+  // Comparison operators for WASI compatibility
+  constexpr bool operator==(const TimeDelta& other) const {
+    return delta_ == other.delta_;
+  }
+  constexpr bool operator!=(const TimeDelta& other) const {
+    return delta_ != other.delta_;
+  }
+  constexpr bool operator<(const TimeDelta& other) const {
+    return delta_ < other.delta_;
+  }
+  constexpr bool operator<=(const TimeDelta& other) const {
+    return delta_ <= other.delta_;
+  }
+  constexpr bool operator>(const TimeDelta& other) const {
+    return delta_ > other.delta_;
+  }
+  constexpr bool operator>=(const TimeDelta& other) const {
+    return delta_ >= other.delta_;
+  }
 
   friend void swap(TimeDelta a, TimeDelta b) { std::swap(a.delta_, b.delta_); }
 
@@ -307,7 +329,8 @@ class TimeBase : public TimeConstants {
     return static_cast<TimeClass&>(*this = (*this - delta));
   }
 
-  constexpr auto operator<=>(const TimeBase&) const = default;
+  // Disabled for WASI compatibility (requires C++20 and constexpr operator overloading)
+  // constexpr auto operator<=>(const TimeBase&) const = default;
 
   // Converts an integer value representing TimeClass to a class. This is used
   // when deserializing a |TimeClass| structure, using a value known to be

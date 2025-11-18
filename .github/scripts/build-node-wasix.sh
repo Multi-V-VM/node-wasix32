@@ -1,142 +1,100 @@
-#!/usr/bin/env bash
-# Helper script run by the workflow to configure and build Node.js for wasm32-wasi / wasix.
-# IMPORTANT:
-# - This script is intentionally generic: compiling Node.js into a single usable wasm binary
-#   typically requires repository-specific patches (V8 build changes, disabling JIT, snapshotting,
-#   changes to the Node build system, and sometimes a custom embedder).
-# - Adjust configure/build steps below to match your repository's build system and any patches.
+#!/bin/bash
+
+# Node.js WebAssembly (WASI/Wasix) Cross-Compilation Build Script
+# 
+# This script properly configures the environment and builds Node.js as WebAssembly for WASI/Wasix
+# Cross-compilation from host platform to wasm32 architecture
 #
-# This script:
-# - ensures an output folder
-# - sets up a sane environment for a wasi-sdk-based cross-compile
-# - runs configure + build commands used by Node's upstream build when possible
-# - collects artifacts into out/
+# Usage: ./build-node-wasix.sh
+# Output: WebAssembly binary at out/Release/node
 
-set -euo pipefail
-shopt -s globstar nullglob
+set -e
 
-ROOT="$(pwd)"
-OUT_DIR="${OUT_DIR:-${ROOT}/out}"
-WASI_SDK_PATH="${WASI_SDK_PATH:-${ROOT}/wasi-sdk-${WASI_SDK_VERSION:-25.0}}"
-WASIX_SYSROOT="${WASIX_SYSROOT:-${ROOT}/wasix-sysroot}"
+echo "🚀 Building Node.js for WebAssembly (WASI/Wasix) - Cross-compilation" 
 
-mkdir -p "$OUT_DIR"
-echo "Build root: $ROOT"
-echo "Out dir: $OUT_DIR"
-echo "WASI_SDK_PATH: $WASI_SDK_PATH"
-echo "WASIX_SYSROOT: $WASIX_SYSROOT"
-
-# Validate expected tools
-if [ ! -x "${WASI_SDK_PATH}/bin/clang" ]; then
-  echo "ERROR: wasi-sdk clang not found at ${WASI_SDK_PATH}/bin/clang"
-  echo "Set WASI_SDK_PATH or include wasi-sdk in your PATH."
-  exit 1
+# Check if we're in the right directory
+if [ ! -f "configure.py" ]; then
+    echo "❌ Error: Must run this from the Node.js source directory"
+    exit 1
 fi
 
-# Validate Wasix sysroot
-if [ ! -d "${WASIX_SYSROOT}" ]; then
-  echo "ERROR: Wasix sysroot not found at ${WASIX_SYSROOT}"
-  echo "Set WASIX_SYSROOT to the wasix-libc sysroot directory."
-  exit 1
+# Check for required tools
+echo "🔧 Checking prerequisites..."
+if ! command -v /Users/toni/.local/share/mise/installs/wasi-sdk/28/wasi-sdk/bin/wasm32-wasi-clang" 2>/dev/null; then
+    echo "❌ WASI SDK clang not found. Please install it:"
+    echo "   brew install mise && mise install wasm-sdk"
+    echo "   export PATH=\"/Users/toni/.local/share/mise/installs/wasi-sdk/28/wasi-sdk/bin:$PATH\""
+    exit 1
 fi
 
-# Recommended compiler wrappers (using WASI SDK with Wasix sysroot)
-export CC="${WASI_SDK_PATH}/bin/clang --target=wasm32-wasi --sysroot=${WASIX_SYSROOT}"
-export CXX="${WASI_SDK_PATH}/bin/clang++ --target=wasm32-wasi --sysroot=${WASIX_SYSROOT} -isystem ${WASIX_SYSROOT}/include/c++/v1"
-export AR="${WASI_SDK_PATH}/bin/llvm-ar"
-export RANLIB="${WASI_SDK_PATH}/bin/llvm-ranlib"
+if ! command -v /Users/toni/.local/share/mise/installs/wasi-sdk/28/wasi-sdk/bin/wasm32-wasi-clang++" 2>/dev/null; then
+    echo "❌ WASI SDK clang++ not found. Please install it:"
+    echo "   brew install mise && mise install wasm-sdk"
+    echo "   export PATH=\"/Users/toni/.local/share/mise/installs/wasi-sdk/28/wasi-sdk/bin:$PATH\""
+    exit 1
+fi
 
-echo "Using CC: $CC"
-echo "Using CXX: $CXX"
-echo "Using AR: $AR"
-echo "Using Wasix sysroot: $WASIX_SYSROOT"
+if ! command -v /Users/toni/.local/share/mise/installs/wasi-sdk/28/wasi-sdk/bin/llvm-ar" 2>/dev/null; then
+    echo "❌ llvm-ar not found. Please install it:"
+    echo "   brew install mise && mise install wasm-sdk" 
+    echo "   export AR=\"/Users/toni/.local/share/mise/installs/wasi-sdk/28/wasi-sdk/bin/llvm-ar:$PATH\""
+    exit 1
+fi
 
-# Optional: tweak LDFLAGS to produce a standalone wasm module with Wasix.
-# Wasix provides more POSIX functionality than standard WASI
-export LDFLAGS="${LDFLAGS:-'-Wl,--no-entry -Wl,--export-all -Wl,--allow-undefined -lwasi-emulated-getcwd -lwasi-emulated-mman -lwasi-emulated-process-clocks'}"
+echo "✅ All required tools found!"
 
-# If your repo contains a separate build/ directory or a patched Node source tree, point to it.
-# This script assumes Node's top-level configure exists. If your port uses GN/Ninja for V8, you may need
-# to invoke those steps directly.
-if [ -f "./configure" ]; then
-  echo "Found configure script; attempting to run configure for a wasm build (may require patches)."
-  # Example configure flags - adjust or remove as needed.
-  # Common useful flags for experimental wasm builds:
-  #  --without-inspector  : remove inspector support
-  #  --without-intl       : skip ICU to simplify build
-  #  --without-ssl        : skip openssl if not needed (note: many Node APIs depend on TLS)
-  #  --dest-cpu=wasm32    : if supported by the configure script
-  #  --prefix              : where 'make install' will place files
-  #
-  # Note: Upstream Node's configure may not support wasm32; many ports require a custom configure wrapper.
-  export CXXFLAGS="${CXXFLAGS:-} -isystem ${WASIX_SYSROOT}/include/c++/v1"
-export CPPFLAGS="${CPPFLAGS:-} -isystem ${WASIX_SYSROOT}/include/c++/v1"
-export CFLAGS="${CFLAGS:-} -isystem ${WASIX_SYSROOT}/include"
+# Export LLVM version environment variables  
+export LLVM_AR="/Users/toni/.local/share/mise/installs/wasi-sdk/28/wasi-sdk/bin/llvm-ar"
+export LLVM_NM="/Users/toni/.local/share/mise/installs/wasi-sdk/28/wasi-sdk/bin/llvm-nm"  
+export LLVM_RANLIB="/Users/toni/.local/share/mise/installs/wasi-sdk/28/wasi-sdk/bin/llvm-ranlib"
 
+# Set up the WASI cross-compilation environment with proper sysroot ordering
+# wasix-sysroot first for header priority and WASI SDK sysroot second
+export CC="/Users/toni/.local/share/mise/installs/wasi-sdk/28/wasi-sdk/bin/wasm32-wasi-clang --sysroot=./wasix-sysroot --sysroot=/Users/toni/.local/share/mise/installs/wasi-sdk/28/wasi-sdk/share/wasi-sysroot/ -D_WASI_EMULATED_SIGNAL -DCPPFLAGS='-I./wasix-sysroot/include -I/Users/toni/Labs/wasi-labs/node-wasix32' -Wl,--allow-undefined"
+
+export CXX="/Users/toni/.local/share/mise/installs/wasi-sdk/28/wasi-sdk/bin/wasm32-wasi-clang++ --sysroot=./wasix-sysroot --sysroot=/Users/toni/.local/share/mise/installs/wasi-sdk/28/wasi-sdk/share/wasi-sysroot/ -D_WASI_EMULATED_SIGNAL -DCPPFLAGS='-I./wasix-sysroot/include -I/Users/toni/Labs/wasi-labs/node-wasix32' -nostdinc++ -isystem /Users/toni/.local/share/mise/installs/wasi-sdk/28/wasi-sdk/share/wasi-sysroot/include' -DCPPFLAGS='-I/Users/toni/Labs/wasi-labs/node-wasix32'"
+
+# Include paths - wasix-sysroot first for proper C/C++ header resolution
+export CFLAGS="-I./wasix-sysroot/include -I../ -I../src"
+export CXXFLAGS="-I./wasix-sysroot/include -nostdinc++ -isystem /Users/toni/.local/share/mise/installs/wasi-sdk/28/wasi-sdk/share/wasi-sysroot/include -I./wasix-sysroot/include -DCPPFLAGS='-I/Users/toni/Labs/wasi-labs/node-wasix32'"
+
+# Linker configuration for WebAssembly
+export LDFLAGS="-L/Users/toni/.local/share/mise/installs/wasi-sdk/28/wasi-sdk/share/wasi-sysroot/lib -lwasi-emulated-signal -Wl,--allow-undefined"
+
+# Signal emulation flags to be added to CFLAGS and LDFLAGS  
+export CPPFLAGS="-I./wasix-sysroot/include -I../src -D_WASI_EMULATED_SIGNAL"
+
+# Architecture configuration - WASI cross-compilation requires wasm32 to be supported
+export DEST_CPU="wasm32"  
+export HOST_ARCH="wasm32"
+
+# Disable components not supporting WebAssembly yet
+export WITHOUT_INSPECTOR=1
+export WITHOUT_INTL=1
+export WITHOUT_SSL=1
+
+echo "⚙️  Configuring Node.js for wasm32 cross-compilation..."
 ./configure \
-    --prefix="$OUT_DIR/install" \
-    --dest-cpu=wasm32 \
-    --without-inspector \
-    --without-intl \
-    --without-ssl || {
-      echo "Configure failed — configure may not support wasm32 target without port-specific changes."
-      echo "If configure fails, edit this script to call your port's configure/build steps (GN/Ninja for V8, etc.)."
-    }
+    --dest-cpu=$DEST_CPU \
+    --dest-host=$HOST_ARCH \
+    --cross-compiling \
+    $WITHOUT_INSPECTOR \
+    $WITHOUT_INTL \
+    $WITHOUT_SSL
 
-  echo "Starting make build (this may take a long time)"
-  # Force make to use our cross-compiler by overriding config.gypi
-  env CC="$CC" CXX="$CXX" CXXFLAGS="$CXXFLAGS" CPPFLAGS="$CPPFLAGS" CFLAGS="$CFLAGS" AR="$AR" RANLIB="$RANLIB" MAKEFLAGS="-j$(nproc)" make ${MAKEFLAGS:-} || {
-    echo "make failed — building Node for wasm usually needs patches; check logs for compiler errors."
-    # continue so we can collect logs/artifacts for debugging
-  }
+echo "🔨 Building Node.js as WebAssembly with $(nproc) cores..."
+make -j$(nproc)
 
-  echo "Attempting 'make install' into $OUT_DIR/install (may not produce wasm binary directly)"
-  make install || true
+# Check if build succeeded
+if [ -f "out/Release/node" ]; then
+    echo "🎉 Build successful!"
+    echo "📦 WebAssembly binary created: out/Release/node"
+    echo "🔍 Test with: file out/Release/node"
+    file out/Release/node"
+    echo "⚡ Run with: wasmeruntime out/Release/node"
 else
-  echo "No top-level configure found. Your port may use a different build pipeline (GN/Ninja, custom scripts)."
-  echo "Look for README or build instructions in your repo and adapt this script to call them."
+    echo "❌ Build failed!"
+    cd out && ls -la out/Release/
 fi
 
-# If GN/Ninja is used for V8 or a custom build, here is an example of building with ninja:
-# (uncomment and adapt if your port has a out/wasm/ directory with build.ninja)
-#
-# if [ -d "out/wasm" ]; then
-#   echo "Found out/wasm — building with ninja"
-#   ninja -C out/wasm || true
-# fi
-
-# Link the final executable
-echo "Linking final node.wasm executable..."
-
-# Debug: Check if the binary exists
-echo "Checking: $CXX"
-if [ ! -x "${WASI_SDK_PATH}/bin/clang++" ]; then
-  echo "ERROR: clang++ not found at ${WASI_SDK_PATH}/bin/clang++"
-  echo "Contents of $WASI_SDK_PATH/bin:"
-  ls -la "${WASI_SDK_PATH}/bin/" || echo "Directory not found"
-  echo "SDK directory structure:"
-  ls -la "${WASI_SDK_PATH}" || echo "SDK path not found"
-  exit 1
-fi
-
-"$CXX" -o "$OUT_DIR/node.wasm" "out/Release/obj.target/node/src/node_main.o" "out/Release/libnode.a" -Wl,--start-group -Wl,--whole-archive "out/Release/libnode.a" -Wl,--no-whole-archive -Wl,--end-group -lwasi-emulated-getcwd -lwasi-emulated-mman -lwasi-emulated-process-clocks
-
-# Collect likely wasm artifacts (wildcard search) into out/
-echo "Collecting wasm artifacts and build logs..."
-for f in **/*.wasm; do
-  mkdir -p "$OUT_DIR/wasm"
-  cp "$f" "$OUT_DIR/wasm/" || true
-done
-
-# Also copy build directories (useful for debugging)
-if [ -d "build" ]; then
-  rsync -a build/ "$OUT_DIR/build/" || true
-fi
-if [ -d "out" ]; then
-  rsync -a out/ "$OUT_DIR/build-out/" || true
-fi
-
-echo "Build script finished. Inspect $OUT_DIR for artifacts. If build failed, examine the build logs above."
-echo "Notes / next steps:"
-echo " - Most Node->WASM ports require V8 changes (disable JIT or use an interpreter build), snapshotting, and a custom embedder."
-echo " - If you have patch files or a README describing custom build steps, incorporate those into this script or call them from the workflow."
+echo "🚨 Done!"

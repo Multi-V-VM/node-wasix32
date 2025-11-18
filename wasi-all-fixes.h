@@ -11,6 +11,7 @@
 // ============================================================================
 // These constants are used throughout V8 but not always defined properly
 // Define them at global scope to ensure they're available everywhere
+#include <cstddef>
 constexpr size_t KB = 1024;
 constexpr size_t MB = 1024 * KB;
 constexpr size_t GB = 1024 * MB;

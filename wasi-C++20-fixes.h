@@ -13,21 +13,33 @@
 
 #pragma pop_macro("constexpr")
 
+// Provide missing C++ standard library headers
+#include <stddef.h>
+#include <stdint.h>
+#include <stdbool.h>
+
+// Define nullptr_t for C++ compatibility
+#ifdef __cplusplus
+namespace std {
+    typedef decltype(nullptr) nullptr_t;
+}
+#endif
+
 // Fix for branch protection not supported in WASI
-#pragma push_macro("mbranch-protection")
-#define mbranch-protection
+#pragma push_macro("mbranch_protection")
+#define mbranch_protection
 
-#undef mbranch-protection
-#define mbranch-protection
+#undef mbranch_protection
+#define mbranch_protection
 
-// Fix for unsupported libc++ features
-#pragma push_macro("no-exceptions")
-#define no-exceptions
+// Fix for unsupported libc++ features  
+#pragma push_macro("no_exceptions")
+#define no_exceptions
 
-#undef no-exceptions
-#define no-exceptions
+#undef no_exceptions
+#define no_exceptions
 
-#pragma pop_macro("no-exceptions")
+#pragma pop_macro("no_exceptions")
 
 // Fix for missing V8 types in WASI build
 namespace v8 {
