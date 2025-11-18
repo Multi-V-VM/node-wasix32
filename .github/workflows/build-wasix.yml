@@ -34,6 +34,7 @@ jobs:
           wasixcc --install-executables /usr/local/bin
           echo "PATH=/usr/local/bin:$HOME/.cargo/bin:$PATH" >> $GITHUB_ENV
       - name: Download and install Wasix sysroot
+        shell: bash
         run: |
           set -euxo pipefail
           version="v2025-11-06.1"
@@ -45,6 +46,7 @@ jobs:
           echo "WASIX_SYSROOT_PATH=$PWD/wasix-sysroot" >> $GITHUB_ENV
           ls -la wasix-sysroot
       - name: Download and install LLVM
+        shell: bash
         run: |
           set -euxo pipefail
           latest_release=$(curl -s https://api.github.com/repos/wasix-org/llvm-project/releases/latest | jq -r .tag_name)
