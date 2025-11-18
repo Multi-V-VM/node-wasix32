@@ -1,0 +1,42 @@
+diff --git a/src/compiler.rs b/src/compiler.rs
+index 4e66c6d..f6988ea 100644
+--- a/src/compiler.rs
++++ b/src/compiler.rs
+@@ -148,7 +148,18 @@ pub(crate) fn run(args: Vec<String>, mut user_settings: UserSettings, run_cxx: b
+         } else {
+             "clang"
+         }));
+-        command.args(original_args);
++        let mut modified_args = original_args.clone();
++        // For preprocessor invocations, add required macro definitions
++        if original_args.iter().any(|arg| arg == "-E" || arg == "-dM") {
++            modified_args.push("-D__clang__=1".to_string());
++            modified_args.push("-D__GNUC__=4".to_string());
++            modified_args.push("-D__GNUC_MINOR__=2".to_string());
++            modified_args.push("-D__GNUC_PATCHLEVEL__=1".to_string());
++            modified_args.push("-D__clang_major__=15".to_string());
++            modified_args.push("-D__clang_minor__=0".to_string());
++            modified_args.push("-D__clang_patchlevel__=0".to_string());
++        }
++        command.args(modified_args);
+         command.args([OsStr::new("--target=wasm32-wasi")]);
+         return run_command(command);
+     }
+@@ -300,6 +311,17 @@ fn compile_inputs(state: &mut State) -> Result<()> {
+         DebugLevel::G3 => command_args.push(OsStr::new("-g3")),
+     }
+ 
++    // For preprocessor invocations, add required macro definitions
++    if state.args.compiler_args.iter().any(|arg| arg == "-E" || arg == "-dM") {
++        command_args.push(OsStr::new("-D__clang__=1"));
++        command_args.push(OsStr::new("-D__GNUC__=4"));
++        command_args.push(OsStr::new("-D__GNUC_MINOR__=2"));
++        command_args.push(OsStr::new("-D__GNUC_PATCHLEVEL__=1"));
++        command_args.push(OsStr::new("-D__clang_major__=15"));
++        command_args.push(OsStr::new("-D__clang_minor__=0"));
++        command_args.push(OsStr::new("-D__clang_patchlevel__=0"));
++    }
++
+     for arg in &state.args.compiler_args {
+         command_args.push(OsStr::new(arg.as_str()));
+     }

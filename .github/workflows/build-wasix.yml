@@ -30,8 +30,11 @@ jobs:
       - name: Install wasixcc
         run: |
           . $HOME/.cargo/env
-          cargo install wasixcc -F bin
-          wasixcc --install-executables /usr/local/bin
+          git clone https://github.com/wasix-org/wasixcc.git
+          cd wasixcc
+          git apply ../wasixcc.patch
+          cargo build --release
+          cp target/release/wasixcc /usr/local/bin/
           echo "PATH=/usr/local/bin:$HOME/.cargo/bin:$PATH" >> $GITHUB_ENV
       - name: Download and install Wasix sysroot
         shell: bash
