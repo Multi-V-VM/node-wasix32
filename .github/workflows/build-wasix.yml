@@ -8,21 +8,26 @@ jobs:
   build-wasix:
     runs-on: ubuntu-latest
     container:
-      image: ubuntu:22.04
+      image: ubuntu:24.04
     steps:
       - uses: actions/checkout@v4
       - name: Install dependencies
         run: |
           apt-get update
           apt-get install -y --no-install-recommends build-essential cmake ninja-build python3 python3-pip git wget ca-certificates jq curl clang lld llvm pkg-config binaryen file libssl-dev
+      - name: Configure OpenSSL env
+        run: |
+          ARCH=$(dpkg-architecture -qDEB_HOST_MULTIARCH)
+          echo "PKG_CONFIG_PATH=/usr/lib/${ARCH}/pkgconfig:/usr/lib/pkgconfig" >> $GITHUB_ENV
+          echo "OPENSSL_DIR=/usr" >> $GITHUB_ENV
+          echo "OPENSSL_LIB_DIR=/usr/lib/${ARCH}" >> $GITHUB_ENV
+          echo "OPENSSL_INCLUDE_DIR=/usr/include" >> $GITHUB_ENV
       - name: Install Rust toolchain
         run: |
           curl https://sh.rustup.rs -sSf | sh -s -- -y
           . $HOME/.cargo/env
           rustup toolchain install stable
       - name: Install wasixcc
-        env:
-          PKG_CONFIG_PATH: /usr/lib/x86_64-linux-gnu/pkgconfig:/usr/lib/pkgconfig
         run: |
           . $HOME/.cargo/env
           cargo install wasixcc -F bin
