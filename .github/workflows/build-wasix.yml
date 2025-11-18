@@ -14,7 +14,7 @@ jobs:
       - name: Install dependencies
         run: |
           apt-get update
-          apt-get install -y --no-install-recommends build-essential python3 wget ca-certificates jq curl pkg-config binaryen file libssl-dev
+          apt-get install -y --no-install-recommends build-essential python3 wget ca-certificates jq curl git pkg-config binaryen file libssl-dev
       - name: Configure OpenSSL env
         run: |
           ARCH=$(dpkg-architecture -qDEB_HOST_MULTIARCH)
