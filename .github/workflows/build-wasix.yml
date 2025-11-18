@@ -50,7 +50,7 @@ jobs:
         run: |
           set -euxo pipefail
           latest_release=$(curl -s https://api.github.com/repos/wasix-org/llvm-project/releases/latest | jq -r .tag_name)
-          tarball="llvm-${latest_release}-x86_64-linux-gnu.tar.gz"
+          tarball="LLVM-Linux-x86_64.tar.gz"
           url="https://github.com/wasix-org/llvm-project/releases/download/${latest_release}/${tarball}"
           wget -q "$url"
           mkdir -p llvm
