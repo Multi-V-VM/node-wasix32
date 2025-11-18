@@ -14,7 +14,7 @@ jobs:
       - name: Install dependencies
         run: |
           apt-get update
-          apt-get install -y --no-install-recommends build-essential cmake ninja-build python3 python3-pip git wget ca-certificates jq curl clang lld llvm pkg-config binaryen file libssl-dev
+          apt-get install -y --no-install-recommends build-essential python3 wget ca-certificates jq curl pkg-config binaryen file libssl-dev
       - name: Configure OpenSSL env
         run: |
           ARCH=$(dpkg-architecture -qDEB_HOST_MULTIARCH)
@@ -33,12 +33,27 @@ jobs:
           cargo install wasixcc -F bin
           wasixcc --install-executables /usr/local/bin
           echo "PATH=/usr/local/bin:$HOME/.cargo/bin:$PATH" >> $GITHUB_ENV
-      - name: Prepare WASIX toolchain
+      - name: Download and install Wasix sysroot
         run: |
-          . $HOME/.cargo/env
-          wasixcc --download-all
-          SYSROOT=$(wasixcc --print-sysroot)
-          echo "WASIX_SYSROOT_PATH=$SYSROOT" >> $GITHUB_ENV
+          set -euxo pipefail
+          version="v2025-11-06.1"
+          tarball="sysroot-eh.tar.gz"
+          url="https://github.com/wasix-org/wasix-libc/releases/download/${version}/${tarball}"
+          wget -q "$url"
+          mkdir -p wasix-sysroot
+          tar xzf "$tarball" -C wasix-sysroot
+          echo "WASIX_SYSROOT_PATH=$PWD/wasix-sysroot" >> $GITHUB_ENV
+          ls -la wasix-sysroot
+      - name: Download and install LLVM
+        run: |
+          set -euxo pipefail
+          latest_release=$(curl -s https://api.github.com/repos/wasix-org/llvm-project/releases/latest | jq -r .tag_name)
+          tarball="llvm-${latest_release}-x86_64-linux-gnu.tar.gz"
+          url="https://github.com/wasix-org/llvm-project/releases/download/${latest_release}/${tarball}"
+          wget -q "$url"
+          mkdir -p llvm
+          tar xzf "$tarball" -C llvm --strip-components=1
+          echo "PATH=$PWD/llvm/bin:$PATH" >> $GITHUB_ENV
       - name: Build node.wasm
         run: |
           . $HOME/.cargo/env
