@@ -14,13 +14,15 @@ jobs:
       - name: Install dependencies
         run: |
           apt-get update
-          apt-get install -y --no-install-recommends build-essential cmake ninja-build python3 python3-pip git wget ca-certificates jq curl clang lld llvm pkg-config binaryen file
+          apt-get install -y --no-install-recommends build-essential cmake ninja-build python3 python3-pip git wget ca-certificates jq curl clang lld llvm pkg-config binaryen file libssl-dev
       - name: Install Rust toolchain
         run: |
           curl https://sh.rustup.rs -sSf | sh -s -- -y
           . $HOME/.cargo/env
           rustup toolchain install stable
       - name: Install wasixcc
+        env:
+          PKG_CONFIG_PATH: /usr/lib/x86_64-linux-gnu/pkgconfig:/usr/lib/pkgconfig
         run: |
           . $HOME/.cargo/env
           cargo install wasixcc -F bin
