@@ -1,0 +1,42 @@
+name: Build Node WASIX
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+jobs:
+  build-wasix:
+    runs-on: ubuntu-latest
+    container:
+      image: ubuntu:22.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install dependencies
+        run: |
+          apt-get update
+          apt-get install -y --no-install-recommends build-essential cmake ninja-build python3 python3-pip git wget ca-certificates jq curl clang lld llvm pkg-config binaryen file
+      - name: Install Rust toolchain
+        run: |
+          curl https://sh.rustup.rs -sSf | sh -s -- -y
+          . $HOME/.cargo/env
+          rustup toolchain install stable
+      - name: Install wasixcc
+        run: |
+          . $HOME/.cargo/env
+          cargo install wasixcc -F bin
+          sudo $(which wasixcc) --install-executables /usr/local/bin
+      - name: Prepare WASIX toolchain
+        run: |
+          . $HOME/.cargo/env
+          wasixcc --download-all
+          SYSROOT=$(wasixcc --print-sysroot)
+          echo "WASIX_SYSROOT_PATH=$SYSROOT" >> $GITHUB_ENV
+      - name: Build node.wasm
+        run: |
+          . $HOME/.cargo/env
+          make node.wasm WASIX_SYSROOT_PATH="$WASIX_SYSROOT_PATH" JOBS=$(nproc)
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: node-wasix
+          path: node.wasm

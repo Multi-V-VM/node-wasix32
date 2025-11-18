@@ -180,3 +180,4 @@ qemu*
 *.md
 
 wasix-sysroot/
+!.github/workflows/build-wasix.yml
