@@ -10,7 +10,7 @@ jobs:
     container:
       image: ubuntu:24.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: Install dependencies
         run: |
           apt-get update
@@ -31,7 +31,8 @@ jobs:
         run: |
           . $HOME/.cargo/env
           cargo install wasixcc -F bin
-          sudo $(which wasixcc) --install-executables /usr/local/bin
+          wasixcc --install-executables /usr/local/bin
+          echo "PATH=/usr/local/bin:$HOME/.cargo/bin:$PATH" >> $GITHUB_ENV
       - name: Prepare WASIX toolchain
         run: |
           . $HOME/.cargo/env
