@@ -55,7 +55,7 @@ jobs:
           set -euxo pipefail
           version="v2025-11-06.1"
           tarball="sysroot-eh.tar.gz"
-          expected_sha256=$(curl -s https://api.github.com/repos/wasix-org/wasix-libc/releases/tags/${version} | jq -r '.assets[] | select(.name == "sysroot-eh.tar.gz") | .digest')
+          expected_sha256=$(curl -s https://api.github.com/repos/wasix-org/wasix-libc/releases/tags/${version} | jq -r '.assets[] | select(.name == "sysroot-eh.tar.gz") | .digest' | sed 's/^sha256://')
           url="https://github.com/wasix-org/wasix-libc/releases/download/${version}/${tarball}"
           wget --tries=3 -q "$url"
           sha256sum --check <<<"${expected_sha256} $tarball"
