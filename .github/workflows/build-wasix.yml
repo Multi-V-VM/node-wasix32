@@ -14,7 +14,7 @@ jobs:
       image: ubuntu:24.04
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
-      - uses: actions/setup-rust@84c1ce52083e6b9b3c1e6fb4a5c8d9748b2b1e3c
+      - uses: actions-rust-lang/setup-rust-toolchain@v1
         with:
           toolchain: stable
       - uses: actions/cache@88522ab9f39a2ea568f7027eddc7bcdc5bd57537
