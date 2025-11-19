@@ -13,11 +13,11 @@ jobs:
     container:
       image: ubuntu:24.04
     steps:
-      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      - uses: actions/checkout@v4
       - uses: actions-rust-lang/setup-rust-toolchain@v1
         with:
           toolchain: stable
-      - uses: actions/cache@88522ab9f39a2ea568f7027eddc7bcdc5bd57537
+      - uses: actions/cache@v4
         with:
           path: |
             ~/.cargo/registry
@@ -46,7 +46,7 @@ jobs:
         run: |
           set -euxo pipefail
           git clone https://github.com/wasix-org/wasixcc.git
-      - uses: actions/cache@88522ab9f39a2ea568f7027eddc7bcdc5bd57537
+      - uses: actions/cache@v4
         with:
           path: wasixcc/target
           key: wasixcc-${{ runner.os }}-${{ hashFiles('wasixcc/Cargo.lock') }}
@@ -59,7 +59,7 @@ jobs:
           cargo build --release --features tracing-subscriber
           cp target/release/wasixcc /usr/local/bin/
           echo "PATH=/usr/local/bin:$PATH" >> $GITHUB_ENV
-      - uses: actions/cache@88522ab9f39a2ea568f7027eddc7bcdc5bd57537
+      - uses: actions/cache@v4
         with:
           path: wasix-sysroot
           key: sysroot-${{ runner.os }}-v2025-11-06.1
@@ -86,7 +86,7 @@ jobs:
           expected_sha256=$(curl -s "$sha256_url")
           echo "LATEST_LLVM_RELEASE=$latest_release" >> $GITHUB_ENV
           echo "EXPECTED_SHA256_LLVM=$expected_sha256" >> $GITHUB_ENV
-      - uses: actions/cache@88522ab9f39a2ea568f7027eddc7bcdc5bd57537
+      - uses: actions/cache@v4
         with:
           path: llvm
           key: llvm-${{ runner.os }}-${{ env.LATEST_LLVM_RELEASE }}
@@ -109,7 +109,7 @@ jobs:
           set -euxo pipefail
           make node.wasm WASIX_SYSROOT_PATH="$WASIX_SYSROOT_PATH" JOBS=$(nproc)
       - name: Upload artifact
-        uses: actions/upload-artifact@4cec3d8aa04e39d1a68397de0c4cd6fb9dce8ec1
+        uses: actions/upload-artifact@v4
         with:
           name: node-wasix
           path: node.wasm
