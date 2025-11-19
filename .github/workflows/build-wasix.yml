@@ -33,7 +33,7 @@ jobs:
           git clone https://github.com/wasix-org/wasixcc.git
           cd wasixcc
           git apply ../wasixcc.patch
-          cargo build --release
+          cargo build --release --features tracing-subscriber
           cp target/release/wasixcc /usr/local/bin/
           echo "PATH=/usr/local/bin:$HOME/.cargo/bin:$PATH" >> $GITHUB_ENV
       - name: Download and install Wasix sysroot
