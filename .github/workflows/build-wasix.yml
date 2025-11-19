@@ -8,7 +8,19 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 jobs:
+  install-dependencies:
+    runs-on: ubuntu-latest
+    container:
+      image: ubuntu:24.04
+    steps:
+      - name: Install dependencies
+        shell: bash
+        run: |
+          set -euxo pipefail
+          apt-get update
+          apt-get install -y --no-install-recommends build-essential python3 wget ca-certificates jq curl git pkg-config binaryen file libssl-dev
   build-wasix:
+    needs: install-dependencies
     runs-on: ubuntu-latest
     container:
       image: ubuntu:24.04
@@ -26,12 +38,6 @@ jobs:
           key: cargo-${{ runner.os }}-${{ hashFiles('**/Cargo.lock') }}
           restore-keys: |
             cargo-${{ runner.os }}-
-      - name: Install dependencies
-        shell: bash
-        run: |
-          set -euxo pipefail
-          apt-get update
-          apt-get install -y --no-install-recommends build-essential python3 wget ca-certificates jq curl git pkg-config binaryen file libssl-dev
       - name: Configure OpenSSL env
         shell: bash
         run: |
