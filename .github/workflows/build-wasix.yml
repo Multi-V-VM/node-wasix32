@@ -26,67 +26,37 @@ jobs:
           echo "OPENSSL_DIR=/usr" >> $GITHUB_ENV
           echo "OPENSSL_LIB_DIR=/usr/lib/${ARCH}" >> $GITHUB_ENV
           echo "OPENSSL_INCLUDE_DIR=/usr/include" >> $GITHUB_ENV
-      - name: Clone wasixcc
+      - name: Install binaryen
         shell: bash
         run: |
           set -euxo pipefail
-          git clone https://github.com/wasix-org/wasixcc.git
-      - uses: actions/cache@v4
-        with:
-          path: wasixcc/target
-          key: wasixcc-${{ runner.os }}-${{ hashFiles('wasixcc/Cargo.lock') }}
-      - name: Build wasixcc
-        shell: bash
-        run: |
-          set -euxo pipefail
-          cd wasixcc
-          git apply ../wasixcc.patch
-          cargo build --release --features tracing-subscriber
-          cp target/release/wasixcc /usr/local/bin/
+          # Install recent version of binaryen
+          latest_binaryen=$(curl -s https://api.github.com/repos/WebAssembly/binaryen/releases/latest | jq -r .tag_name | sed 's/v//')
+          wget -q "https://github.com/WebAssembly/binaryen/releases/download/v${latest_binaryen}/binaryen-${latest_binaryen}-x86_64-linux.tar.gz"
+          tar xzf "binaryen-${latest_binaryen}-x86_64-linux.tar.gz"
+          cp "binaryen-${latest_binaryen}/bin/"* /usr/local/bin/
           echo "PATH=/usr/local/bin:$PATH" >> $GITHUB_ENV
-      - uses: actions/cache@v4
-        with:
-          path: wasix-sysroot
-          key: sysroot-${{ runner.os }}-v2025-11-06.1
-      - name: Download and install Wasix sysroot
-        timeout-minutes: 10
+      - name: Install wasixcc
         shell: bash
         run: |
           set -euxo pipefail
-          version="v2025-11-06.1"
-          tarball="sysroot-eh.tar.gz"
-          expected_sha256=$(curl -s https://api.github.com/repos/wasix-org/wasix-libc/releases/tags/${version} | jq -r '.assets[] | select(.name == "sysroot-eh.tar.gz") | .digest' | sed 's/^sha256://')
-          url="https://github.com/wasix-org/wasix-libc/releases/download/${version}/${tarball}"
-          wget --tries=3 -q "$url"
-          sha256sum --check <<<"${expected_sha256} $tarball"
-          mkdir -p wasix-sysroot
-          tar xzf "$tarball" -C wasix-sysroot
+          # Install wasixcc using cargo install
+          cargo install wasixcc -F bin
+          # Install all executables to PATH
+          wasixcc --install-executables /usr/local/bin
+          echo "PATH=/usr/local/bin:$PATH" >> $GITHUB_ENV
+      - name: Download LLVM and WASIX components
+        shell: bash
+        run: |
+          set -euxo pipefail
+          # Configure wasixcc download paths
+          export WASIXCC_SYSROOT_PREFIX="$PWD"
+          export WASIXCC_LLVM_LOCATION="$PWD/.wasix"
+          # Download latest LLVM toolchain and WASIX sysroot
+          wasixcc --download-all
+          echo "PATH=$PWD/.wasix/bin:$PATH" >> $GITHUB_ENV
           echo "WASIX_SYSROOT_PATH=$PWD/wasix-sysroot" >> $GITHUB_ENV
-          ls -la wasix-sysroot
-      - name: Get LLVM release info
-        shell: bash
-        run: |
-          set -euxo pipefail
-          latest_release=$(curl -s https://api.github.com/repos/wasix-org/llvm-project/releases/latest | jq -r .tag_name)
-          expected_sha256=$(curl -s https://api.github.com/repos/wasix-org/llvm-project/releases/latest | jq -r '.assets[] | select(.name == "LLVM-Linux-x86_64.tar.gz") | .digest' | sed 's/^sha256://')
-          echo "LATEST_LLVM_RELEASE=$latest_release" >> $GITHUB_ENV
-          echo "EXPECTED_SHA256_LLVM=$expected_sha256" >> $GITHUB_ENV
-      - uses: actions/cache@v4
-        with:
-          path: llvm
-          key: llvm-${{ runner.os }}-${{ env.LATEST_LLVM_RELEASE }}
-      - name: Download and install LLVM
-        timeout-minutes: 10
-        shell: bash
-        run: |
-          set -euxo pipefail
-          tarball="LLVM-Linux-x86_64.tar.gz"
-          url="https://github.com/wasix-org/llvm-project/releases/download/${LATEST_LLVM_RELEASE}/${tarball}"
-          wget --tries=3 -q "$url"
-          sha256sum --check <<<"${EXPECTED_SHA256_LLVM} $tarball"
-          mkdir -p llvm
-          tar xzf "$tarball" -C llvm --strip-components=1
-          echo "PATH=$PWD/llvm/bin:$PATH" >> $GITHUB_ENV
+
       - name: Build node.wasm
         timeout-minutes: 10
         shell: bash
