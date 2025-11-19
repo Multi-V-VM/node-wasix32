@@ -30,8 +30,8 @@ jobs:
         shell: bash
         run: |
           set -euxo pipefail
-          apt-get update
-          apt-get install -y --no-install-recommend jq pkg-config binaryen file libssl-dev
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommend jq pkg-config binaryen file libssl-dev
       - name: Configure OpenSSL env
         shell: bash
         run: |
