@@ -17,12 +17,6 @@ jobs:
       - uses: actions-rust-lang/setup-rust-toolchain@v1
         with:
           toolchain: stable
-      - name: Install dependencies
-        shell: bash
-        run: |
-          set -euxo pipefail
-          sudo apt-get update
-          sudo apt-get install -y jq pkg-config binaryen file libssl-dev
       - name: Configure OpenSSL env
         shell: bash
         run: |
@@ -61,9 +55,11 @@ jobs:
           set -euxo pipefail
           version="v2025-11-06.1"
           tarball="sysroot-eh.tar.gz"
+          sha256_url=$(curl -s https://api.github.com/repos/wasix-org/wasix-libc/releases/tags/${version} | jq -r '.assets[] | select(.name == "sysroot-eh.tar.gz.sha256") | .browser_download_url')
+          expected_sha256=$(curl -s "$sha256_url")
           url="https://github.com/wasix-org/wasix-libc/releases/download/${version}/${tarball}"
           wget --tries=3 -q "$url"
-          sha256sum --check <<<"abcd1234abcd1234abcd1234abcd1234abcd1234abcd1234abcd1234abcd1234 $tarball"
+          sha256sum --check <<<"${expected_sha256} $tarball"
           mkdir -p wasix-sysroot
           tar xzf "$tarball" -C wasix-sysroot
           echo "WASIX_SYSROOT_PATH=$PWD/wasix-sysroot" >> $GITHUB_ENV
