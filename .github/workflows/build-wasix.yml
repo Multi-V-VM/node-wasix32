@@ -68,8 +68,7 @@ jobs:
         run: |
           set -euxo pipefail
           latest_release=$(curl -s https://api.github.com/repos/wasix-org/llvm-project/releases/latest | jq -r .tag_name)
-          sha256_url=$(curl -s https://api.github.com/repos/wasix-org/llvm-project/releases/latest | jq -r '.assets[] | select(.name == "LLVM-Linux-x86_64.tar.gz.sha256") | .browser_download_url')
-          expected_sha256=$(curl -s "$sha256_url")
+          expected_sha256=$(curl -s https://api.github.com/repos/wasix-org/llvm-project/releases/latest | jq -r '.assets[] | select(.name == "LLVM-Linux-x86_64.tar.gz") | .digest' | sed 's/^sha256://')
           echo "LATEST_LLVM_RELEASE=$latest_release" >> $GITHUB_ENV
           echo "EXPECTED_SHA256_LLVM=$expected_sha256" >> $GITHUB_ENV
       - uses: actions/cache@v4
