@@ -8,22 +8,10 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 jobs:
-  install-dependencies:
-    runs-on: ubuntu-latest
-    container:
-      image: ubuntu:24.04
-    steps:
-      - name: Install dependencies
-        shell: bash
-        run: |
-          set -euxo pipefail
-          apt-get update
-          apt-get install -y --no-install-recommends build-essential python3 wget ca-certificates jq curl git pkg-config binaryen file libssl-dev
   build-wasix:
-    needs: install-dependencies
     runs-on: ubuntu-latest
-    container:
-      image: ubuntu:24.04
+    # container:
+    #   image: ubuntu:24.04
     steps:
       - uses: actions/checkout@v4
       - uses: actions-rust-lang/setup-rust-toolchain@v1
@@ -38,6 +26,12 @@ jobs:
           key: cargo-${{ runner.os }}-${{ hashFiles('**/Cargo.lock') }}
           restore-keys: |
             cargo-${{ runner.os }}-
+      - name: Install dependencies
+        shell: bash
+        run: |
+          set -euxo pipefail
+          apt-get update
+          apt-get install -y --no-install-recommend jq pkg-config binaryen file libssl-dev
       - name: Configure OpenSSL env
         shell: bash
         run: |
@@ -115,7 +109,7 @@ jobs:
           set -euxo pipefail
           make node.wasm WASIX_SYSROOT_PATH="$WASIX_SYSROOT_PATH" JOBS=$(nproc)
       - name: Upload artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@4cec3d8aa04e39d1a68397de0c4cd6fb9dce8ec1
         with:
           name: node-wasix
           path: node.wasm
