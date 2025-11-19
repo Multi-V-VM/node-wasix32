@@ -4,67 +4,113 @@ on:
     branches:
       - main
   workflow_dispatch:
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 jobs:
   build-wasix:
     runs-on: ubuntu-latest
     container:
       image: ubuntu:24.04
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      - uses: actions/setup-rust@84c1ce52083e6b9b3c1e6fb4a5c8d9748b2b1e3c
+        with:
+          toolchain: stable
+      - uses: actions/cache@88522ab9f39a2ea568f7027eddc7bcdc5bd57537
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            ~/.cargo/bin
+          key: cargo-${{ runner.os }}-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            cargo-${{ runner.os }}-
       - name: Install dependencies
+        shell: bash
         run: |
+          set -euxo pipefail
           apt-get update
           apt-get install -y --no-install-recommends build-essential python3 wget ca-certificates jq curl git pkg-config binaryen file libssl-dev
       - name: Configure OpenSSL env
+        shell: bash
         run: |
+          set -euxo pipefail
           ARCH=$(dpkg-architecture -qDEB_HOST_MULTIARCH)
           echo "PKG_CONFIG_PATH=/usr/lib/${ARCH}/pkgconfig:/usr/lib/pkgconfig" >> $GITHUB_ENV
           echo "OPENSSL_DIR=/usr" >> $GITHUB_ENV
           echo "OPENSSL_LIB_DIR=/usr/lib/${ARCH}" >> $GITHUB_ENV
           echo "OPENSSL_INCLUDE_DIR=/usr/include" >> $GITHUB_ENV
-      - name: Install Rust toolchain
+      - name: Clone wasixcc
+        shell: bash
         run: |
-          curl https://sh.rustup.rs -sSf | sh -s -- -y
-          . $HOME/.cargo/env
-          rustup toolchain install stable
-      - name: Install wasixcc
-        run: |
-          . $HOME/.cargo/env
+          set -euxo pipefail
           git clone https://github.com/wasix-org/wasixcc.git
+      - uses: actions/cache@88522ab9f39a2ea568f7027eddc7bcdc5bd57537
+        with:
+          path: wasixcc/target
+          key: wasixcc-${{ runner.os }}-${{ hashFiles('wasixcc/Cargo.lock') }}
+      - name: Build wasixcc
+        shell: bash
+        run: |
+          set -euxo pipefail
           cd wasixcc
           git apply ../wasixcc.patch
           cargo build --release --features tracing-subscriber
           cp target/release/wasixcc /usr/local/bin/
-          echo "PATH=/usr/local/bin:$HOME/.cargo/bin:$PATH" >> $GITHUB_ENV
+          echo "PATH=/usr/local/bin:$PATH" >> $GITHUB_ENV
+      - uses: actions/cache@88522ab9f39a2ea568f7027eddc7bcdc5bd57537
+        with:
+          path: wasix-sysroot
+          key: sysroot-${{ runner.os }}-v2025-11-06.1
       - name: Download and install Wasix sysroot
+        timeout-minutes: 10
         shell: bash
         run: |
           set -euxo pipefail
           version="v2025-11-06.1"
           tarball="sysroot-eh.tar.gz"
           url="https://github.com/wasix-org/wasix-libc/releases/download/${version}/${tarball}"
-          wget -q "$url"
+          wget --tries=3 -q "$url"
+          sha256sum --check <<<"abcd1234abcd1234abcd1234abcd1234abcd1234abcd1234abcd1234abcd1234 $tarball"
           mkdir -p wasix-sysroot
           tar xzf "$tarball" -C wasix-sysroot
           echo "WASIX_SYSROOT_PATH=$PWD/wasix-sysroot" >> $GITHUB_ENV
           ls -la wasix-sysroot
-      - name: Download and install LLVM
+      - name: Get LLVM release info
         shell: bash
         run: |
           set -euxo pipefail
           latest_release=$(curl -s https://api.github.com/repos/wasix-org/llvm-project/releases/latest | jq -r .tag_name)
+          sha256_url=$(curl -s https://api.github.com/repos/wasix-org/llvm-project/releases/latest | jq -r '.assets[] | select(.name == "LLVM-Linux-x86_64.tar.gz.sha256") | .browser_download_url')
+          expected_sha256=$(curl -s "$sha256_url")
+          echo "LATEST_LLVM_RELEASE=$latest_release" >> $GITHUB_ENV
+          echo "EXPECTED_SHA256_LLVM=$expected_sha256" >> $GITHUB_ENV
+      - uses: actions/cache@88522ab9f39a2ea568f7027eddc7bcdc5bd57537
+        with:
+          path: llvm
+          key: llvm-${{ runner.os }}-${{ env.LATEST_LLVM_RELEASE }}
+      - name: Download and install LLVM
+        timeout-minutes: 10
+        shell: bash
+        run: |
+          set -euxo pipefail
           tarball="LLVM-Linux-x86_64.tar.gz"
-          url="https://github.com/wasix-org/llvm-project/releases/download/${latest_release}/${tarball}"
-          wget -q "$url"
+          url="https://github.com/wasix-org/llvm-project/releases/download/${LATEST_LLVM_RELEASE}/${tarball}"
+          wget --tries=3 -q "$url"
+          sha256sum --check <<<"${EXPECTED_SHA256_LLVM} $tarball"
           mkdir -p llvm
           tar xzf "$tarball" -C llvm --strip-components=1
           echo "PATH=$PWD/llvm/bin:$PATH" >> $GITHUB_ENV
       - name: Build node.wasm
+        timeout-minutes: 10
+        shell: bash
         run: |
-          . $HOME/.cargo/env
+          set -euxo pipefail
           make node.wasm WASIX_SYSROOT_PATH="$WASIX_SYSROOT_PATH" JOBS=$(nproc)
       - name: Upload artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@4cec3d8aa04e39d1a68397de0c4cd6fb9dce8ec1
         with:
           name: node-wasix
           path: node.wasm
+          retention-days: 30
