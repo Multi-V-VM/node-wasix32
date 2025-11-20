@@ -16,7 +16,10 @@
 #include "node_version.h"
 
 #include "env.h"
+// WASI: gtest headers are not available in WASI builds
+#ifndef __wasi__
 #include "gtest/gtest_prod.h"
+#endif
 #include "node_errors.h"
 #include "node_internals.h"
 

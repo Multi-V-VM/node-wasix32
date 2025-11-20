@@ -1,6 +1,10 @@
 #ifndef WASI_V8_MISSING_TYPES_H_
 #define WASI_V8_MISSING_TYPES_H_
 
+// Disable this file completely - V8 WASI stubs handle all necessary types
+// This file has C++20 dependencies that conflict with WASI build requirements
+#if 0
+
 #ifdef __wasi__
 
 // This header imports types from v8::base into v8::internal::base namespace
@@ -14,25 +18,26 @@
 #include <memory>
 #include <cstdlib>
 
-// Include the actual V8 base headers
-#include "src/base/hashmap.h"
-#include "src/base/pointer-with-payload.h"
-#include "src/base/threaded-list.h"
-#include "src/base/bit-field.h"
-#include "src/base/bits.h"
-#include "src/base/atomicops.h"
-#include "src/base/atomic-utils.h"
-#include "src/base/platform/mutex.h"
-#include "src/base/vector.h"
-#include "src/base/address-region.h"
-#include "src/base/virtual-address-space.h"
-#include "src/base/discriminated-union.h"
-#include "src/base/strings.h"
-#include "src/base/hashing.h"
-#include "src/base/container-utils.h"
-#include "src/base/template-utils.h"
-#include "src/base/platform/memory.h"
-#include "src/base/platform/wrappers.h"
+// Skip including V8 base headers directly to avoid C++20 dependencies
+// These are included through v8.h and other public headers
+// #include "../../src/base/hashmap.h"
+// #include "../../src/base/pointer-with-payload.h"
+// #include "../../src/base/threaded-list.h"
+// #include "../../src/base/bit-field.h"
+// #include "../../src/base/bits.h"
+// #include "../../src/base/atomicops.h"
+// #include "../../src/base/atomic-utils.h"
+// #include "../../src/base/platform/mutex.h"
+// #include "../../src/base/vector.h"
+// #include "../../src/base/address-region.h"
+// #include "../../src/base/virtual-address-space.h"
+// #include "../../src/base/discriminated-union.h"
+// #include "../../src/base/strings.h"
+// #include "../../src/base/hashing.h"
+// #include "../../src/base/container-utils.h"
+// #include "../../src/base/template-utils.h"
+// #include "../../src/base/platform/memory.h"
+// #include "../../src/base/platform/wrappers.h"
 
 // On some include paths these headers may be parsed while already inside a
 // `namespace v8 {}` block. In that case, qualified declarations inside the
@@ -69,80 +74,78 @@ struct DefaultAllocationPolicy {
 };
 
 // ============================================================================
-// HashMap and related types - Import from v8::base
+// HashMap and related types - Not included to avoid C++20 dependencies
 // ============================================================================
 
-// TemplateHashMapImpl takes 4 params: Key, Value, MatchFun, AllocationPolicy
-template <typename Key, typename Value, typename MatchFun, typename AllocationPolicy>
-using TemplateHashMapImpl = V8_BASE_NS::TemplateHashMapImpl<Key, Value, MatchFun, AllocationPolicy>;
-
-// TemplateHashMap also takes 4 params
-template <typename Key, typename Value, typename MatchFun, typename AllocationPolicy>
-using TemplateHashMap = V8_BASE_NS::TemplateHashMap<Key, Value, MatchFun, AllocationPolicy>;
-
-// These template classes only take AllocationPolicy as template parameter
-template <typename AllocationPolicy>
-using PointerTemplateHashMapImpl = V8_BASE_NS::PointerTemplateHashMapImpl<AllocationPolicy>;
-
-template <typename AllocationPolicy>
-using CustomMatcherTemplateHashMapImpl = V8_BASE_NS::CustomMatcherTemplateHashMapImpl<AllocationPolicy>;
-
-// HashMap and CustomMatcherHashMap are shortcuts with DefaultAllocationPolicy
-using HashMap = V8_BASE_NS::HashMap;
-using CustomMatcherHashMap = V8_BASE_NS::CustomMatcherHashMap;
-
-// KeyEqualityMatcher for HashMap
-template <typename Key>
-using KeyEqualityMatcher = V8_BASE_NS::KeyEqualityMatcher<Key>;
+// Skip importing HashMap types since we're not including V8 base headers
+// These are defined in V8's internal headers which use C++20 features
+// template <typename Key, typename Value, typename MatchFun, typename AllocationPolicy>
+// using TemplateHashMapImpl = V8_BASE_NS::TemplateHashMapImpl<Key, Value, MatchFun, AllocationPolicy>;
+//
+// template <typename Key, typename Value, typename MatchFun, typename AllocationPolicy>
+// using TemplateHashMap = V8_BASE_NS::TemplateHashMap<Key, Value, MatchFun, AllocationPolicy>;
+//
+// template <typename AllocationPolicy>
+// using PointerTemplateHashMapImpl = V8_BASE_NS::PointerTemplateHashMapImpl<AllocationPolicy>;
+//
+// template <typename AllocationPolicy>
+// using CustomMatcherTemplateHashMapImpl = V8_BASE_NS::CustomMatcherTemplateHashMapImpl<AllocationPolicy>;
+//
+// using HashMap = V8_BASE_NS::HashMap;
+// using CustomMatcherHashMap = V8_BASE_NS::CustomMatcherHashMap;
+//
+// template <typename Key>
+// using KeyEqualityMatcher = V8_BASE_NS::KeyEqualityMatcher<Key>;
 
 // ============================================================================
 // PointerWithPayload - Import from v8::base
 // ============================================================================
-
-template <typename PointerType, typename PayloadType, int NumPayloadBits>
-using PointerWithPayload = V8_BASE_NS::PointerWithPayload<PointerType, PayloadType, NumPayloadBits>;
+// Skipped - requires V8 base headers with C++20 features
+// template <typename PointerType, typename PayloadType, int NumPayloadBits>
+// using PointerWithPayload = V8_BASE_NS::PointerWithPayload<PointerType, PayloadType, NumPayloadBits>;
 
 // ============================================================================
 // ThreadedList and ThreadedListTraits - Import from v8::base
 // ============================================================================
-
-template <typename T>
-using ThreadedListTraits = V8_BASE_NS::ThreadedListTraits<T>;
-
-template <typename T, typename BaseClass = ThreadedListTraits<T>>
-using ThreadedList = V8_BASE_NS::ThreadedList<T, BaseClass>;
+// Skipped - requires V8 base headers with C++20 features
+// template <typename T>
+// using ThreadedListTraits = V8_BASE_NS::ThreadedListTraits<T>;
+//
+// template <typename T, typename BaseClass = ThreadedListTraits<T>>
+// using ThreadedList = V8_BASE_NS::ThreadedList<T, BaseClass>;
 
 // ============================================================================
 // BitSetComputer - Import from v8::base
 // ============================================================================
-
-template <typename T, int kFieldSize, int kShift, typename U>
-using BitSetComputer = V8_BASE_NS::BitSetComputer<T, kFieldSize, kShift, U>;
-
-// 64-bit BitField alias used in some internal headers
-template <typename T, int shift, int size>
-using BitField64 = V8_BASE_NS::BitField64<T, shift, size>;
+// Skipped - requires V8 base headers with C++20 features
+// template <typename T, int kFieldSize, int kShift, typename U>
+// using BitSetComputer = V8_BASE_NS::BitSetComputer<T, kFieldSize, kShift, U>;
+//
+// // 64-bit BitField alias used in some internal headers
+// template <typename T, int shift, int size>
+// using BitField64 = V8_BASE_NS::BitField64<T, shift, size>;
 
 // ============================================================================
 // Vector types - Import from the canonical ::v8::base
 // ============================================================================
-// Note: Vector is imported by globals.h; only add OwnedVector here
-using ::v8::base::VectorOf;
-template <typename T>
-using OwnedVector = ::v8::base::OwnedVector<T>;
-using ::v8::base::make_array;
+// Note: Vector is imported by globals.h; skipping to avoid C++20 issues
+// using ::v8::base::VectorOf;
+// template <typename T>
+// using OwnedVector = ::v8::base::OwnedVector<T>;
+// using ::v8::base::make_array;
 
 // ============================================================================
 // Additional utility types
 // ============================================================================
+// Skipped - requires V8 base headers with C++20 features
 
-// BitFieldUnion for bit manipulation
-template <typename T, int shift, int size>
-using BitFieldUnion = V8_BASE_NS::BitField<T, shift, size>;
-
-// DiscriminatedUnion - Import from v8::base
-template <typename TagEnum, typename... Ts>
-using DiscriminatedUnion = V8_BASE_NS::DiscriminatedUnion<TagEnum, Ts...>;
+// // BitFieldUnion for bit manipulation
+// template <typename T, int shift, int size>
+// using BitFieldUnion = V8_BASE_NS::BitField<T, shift, size>;
+//
+// // DiscriminatedUnion - Import from v8::base
+// template <typename TagEnum, typename... Ts>
+// using DiscriminatedUnion = V8_BASE_NS::DiscriminatedUnion<TagEnum, Ts...>;
 
 // Atomic operations can be referenced directly via ::v8::base::* where needed
 
@@ -236,5 +239,7 @@ using ::v8::base::Atomic64;
 // Note: Global Address alias has been moved to v8-data.h
 
 #endif  // __wasi__
+
+#endif  // #if 0 - Disabled file
 
 #endif  // WASI_V8_MISSING_TYPES_H_

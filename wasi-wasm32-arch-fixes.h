@@ -8,7 +8,24 @@
 #ifdef V8_TARGET_ARCH_WASM32
 
 namespace v8 {
+namespace base {
+  // Address type definition for WASM32
+  using Address = uintptr_t;
+}
+
 namespace internal {
+  // Register definition for WASM32
+  class Register {
+  public:
+    explicit Register(int code) : code_(code) {}
+    static Register from_code(int code) { return Register(code); }
+    int code() const { return code_; }
+  private:
+    int code_;
+  };
+
+  enum class Builtin : int;
+  using Address = base::Address;
 
 // ============================================================================
 // Memory Operand Definitions
@@ -16,14 +33,14 @@ namespace internal {
 
 class MemOperand {
 public:
-  MemOperand() : base_(), offset_(0) {}
-  explicit MemOperand(Register base, int32_t offset = 0) : base_(base), offset_(offset) {}
+  MemOperand() : base_(0), offset_(0) {}
+  explicit MemOperand(Register base, int32_t offset = 0) : base_(base.code()), offset_(offset) {}
 
-  Register base() const { return base_; }
+  Register base() const { return Register::from_code(base_); }
   int32_t offset() const { return offset_; }
 
 private:
-  Register base_;
+  int base_;
   int32_t offset_;
 };
 
@@ -39,23 +56,21 @@ public:
     MEMORY
   };
 
-  Operand() : tag_(IMMEDIATE), imm_(0) {}
-  explicit Operand(int32_t imm) : tag_(IMMEDIATE), imm_(imm) {}
-  explicit Operand(Register reg) : tag_(REGISTER), reg_(reg) {}
-  explicit Operand(const MemOperand& mem) : tag_(MEMORY), mem_(mem) {}
+  Operand() : tag_(IMMEDIATE), imm_(0), mem_code_(0), mem_offset_(0) {}
+  explicit Operand(int32_t imm) : tag_(IMMEDIATE), imm_(imm), mem_code_(0), mem_offset_(0) {}
+  explicit Operand(Register reg) : tag_(REGISTER), imm_(reg.code()), mem_code_(0), mem_offset_(0) {}
+  explicit Operand(const MemOperand& mem) : tag_(MEMORY), imm_(0), mem_code_(mem.base().code()), mem_offset_(mem.offset()) {}
 
   Tag tag() const { return tag_; }
   int32_t immediate() const { return imm_; }
-  Register reg() const { return reg_; }
-  MemOperand memory() const { return mem_; }
+  Register reg() const { return Register::from_code(imm_); }
+  MemOperand memory() const { return MemOperand(Register::from_code(mem_code_), mem_offset_); }
 
 private:
   Tag tag_;
-  union {
-    int32_t imm_;
-    Register reg_;
-    MemOperand mem_;
-  };
+  int32_t imm_;
+  int mem_code_;
+  int32_t mem_offset_;
 };
 
 // ============================================================================
@@ -124,8 +139,8 @@ public:
 // Register Definitions for WASM32
 // ============================================================================
 
-// Frame pointer
-constexpr Register fp = Register::from_code(10);
+// Frame pointer register (static for WASM32)
+extern Register fp;
 
 // Stack pointer (usually defined elsewhere, but adding for completeness)
 // constexpr Register sp = Register::from_code(13);

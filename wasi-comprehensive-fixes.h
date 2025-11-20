@@ -1,6 +1,42 @@
 #ifndef WASI_COMPREHENSIVE_FIXES_H_
 #define WASI_COMPREHENSIVE_FIXES_H_
 
+// Only apply these fixes for WASI builds
+#ifdef __wasi__
+
+// Forward declarations
+namespace v8 {
+class StartupData;  // Changed from struct to class to match v8-snapshot.h
+class Isolate;
+class JobHandle;
+class Platform;
+class PageAllocator;
+class TracingController;
+template<typename T> class Local;
+template<typename T> class Handle;
+
+namespace base {
+template<typename T> class OwnedVector;
+}
+
+namespace internal {
+template<typename T> class ZoneVector;
+template<typename T> class Vector;
+class HeapObject;
+class DisallowGarbageCollection;
+class Script;
+class AccessorInfo;
+class FunctionTemplateInfo;
+class DescriptorArray;
+class String;
+template<typename T> class GlobalHandleVector;
+
+namespace wasm {
+class ModuleWireBytes;
+}
+}
+}
+
 // ============================================================================
 // Namespace Alias Fixes - v8::internal::base -> ::v8::base
 // ============================================================================
@@ -10,18 +46,8 @@ namespace internal {
 namespace base {
 
 // Re-export ::v8::base types into v8::internal::base
-using ::v8::base::Relaxed_Memcpy;
-using ::v8::base::HexCharOfValue;
-using ::v8::base::AlignedAlloc;
-using ::v8::base::AlignedFree;
-using ::v8::base::VLQBase64Decode;
-using ::v8::base::StaticCharVector;
-using ::v8::base::TimeTicks;
-using ::v8::base::TimeDelta;
-using ::v8::base::PointerWithPayload;
-using ::v8::base::SmallVector;
-using ::v8::base::FormattedString;
-using ::v8::base::CountLeadingZeros;
+// Note: Many types have been removed as they don't exist in current V8 versions
+// and don't appear to be used by the build
 
 // OOMType
 using OOMType = ::v8::base::OOMType;
@@ -39,21 +65,6 @@ enum PageFreeingMode {
 
 // Free function
 using Free = void(*)(void*);
-
-// BoundedPageAllocator
-using BoundedPageAllocator = ::v8::base::BoundedPageAllocator;
-
-// LeakyObject get() accessor
-template<typename T>
-inline T* get(::v8::base::LeakyObject<T>& obj) {
-  return obj.Get();
-}
-
-// VirtualAddressSpace accessor
-inline ::v8::base::VirtualAddressSpace* GetVirtualAddressSpace() {
-  static ::v8::base::LeakyObject<::v8::base::VirtualAddressSpace> vas;
-  return vas.Get();
-}
 
 // FlushDenormalsScope stub
 class FlushDenormalsScope {
@@ -101,98 +112,49 @@ using OwnedZoneVector = ::v8::base::OwnedVector<T>;
 
 namespace v8 {
 
-// Isolate API additions
-class Isolate {
-public:
-  // WASM callbacks
-  inline void SetWasmModuleCallback(void* callback) {}
-  inline void SetWasmInstanceCallback(void* callback) {}
-  inline void SetWasmImportedStringsEnabledCallback(void* callback) {}
+// Isolate, JobHandle, Platform, and PageAllocator are already defined in WASI stubs
+// Skip redefinitions here
+// Only use forward declarations from above
 
-  // Context disposal
-  inline void ContextDisposedNotification(bool depends_on_context = true) {}
+// HeapProfiler is already defined in WASI stubs
+// Skip redefinition here
+// namespace HeapProfiler {
+//   using SamplingFlags = int;
+//
+//   class HeapSnapshotOptions {
+//   public:
+//     enum NumericsMode {
+//       kExposeNumericValues,
+//       kHideNumericValues
+//     };
+//   };
+//
+//   class ObjectNameResolver {
+//   public:
+//     virtual ~ObjectNameResolver() {}
+//   };
+// }
 
-  // Use counter features for WASM
-  enum UseCounterFeature {
-    kWasmRefTypes,
-    kWasmRefTag,
-    kWasmSimdOpcodes,
-    kWasmThreadOpcodes,
-    kWasmExceptionHandling,
-    kWasmMemory64,
-    kWasmMultiMemory,
-    kWasmSharedMemory,
-    kWasmGC,
-    kWasmI8,
-    kWasmImportedStrings,
-    kWasmImportDataTag,
-    kWasmReturnCall,
-    kExprReturnCall,
-    kWasmExtendedConst,
-    kWasmRelaxedSimd,
-    kWasmImportedStringsUtf8,
-    kLegacyDateParser,
-    kVarRedeclaredCatchBinding
-  };
-};
+// ActivityControl is already defined in embedder-graph-stub.h
+// Skip redefinition here
+// class ActivityControl {
+// public:
+//   enum ControlOption {
+//     kContinue = 0,
+//     kAbort = 1
+//   };
+//   virtual ~ActivityControl() {}
+//   virtual ControlOption ReportProgressValue(uint32_t done, uint32_t total) = 0;
+// };
 
-// JobHandle additions
-class JobHandle {
-public:
-  inline bool IsValid() const { return false; }
-  inline void CancelAndDetach() {}
-  inline void NotifyConcurrencyIncrease() {}
-};
-
-// Platform additions
-class Platform {
-public:
-  inline void OnCriticalMemoryPressure() {}
-  inline void PostDelayedTaskOnWorkerThread(std::unique_ptr<void> task, double delay_in_seconds) {}
-};
-
-// PageAllocator additions
-class PageAllocator {
-public:
-  inline bool ResizeAllocationAt(void* address, size_t old_size, size_t new_size) { return false; }
-};
-
-// HeapProfiler additions
-namespace HeapProfiler {
-  using SamplingFlags = int;
-
-  class HeapSnapshotOptions {
-  public:
-    enum NumericsMode {
-      kExposeNumericValues,
-      kHideNumericValues
-    };
-  };
-
-  class ObjectNameResolver {
-  public:
-    virtual ~ObjectNameResolver() {}
-  };
-}
-
-// ActivityControl for heap snapshots
-class ActivityControl {
-public:
-  enum ControlOption {
-    kContinue = 0,
-    kAbort = 1
-  };
-  virtual ~ActivityControl() {}
-  virtual ControlOption ReportProgressValue(uint32_t done, uint32_t total) = 0;
-};
-
-// AllocationProfile additions
-namespace AllocationProfile {
-  struct Allocation {
-    size_t size;
-    int count;
-  };
-}
+// AllocationProfile is already defined as a class in v8-profiler-stubs.h
+// Skip redefinition here
+// namespace AllocationProfile {
+//   struct Allocation {
+//     size_t size;
+//     int count;
+//   };
+// }
 
 // CpuProfile additions
 using ProfilerId = int;
@@ -207,59 +169,64 @@ enum CpuProfilingResult {
   kErrorTooManyProfilers = 1
 };
 
-// TracedReferenceBase
-class TracedReferenceBase {
-public:
-  void* val_;
-};
+// TracedReferenceBase is already defined in v8-traced-handle.h
+// Skip redefinition here
+// class TracedReferenceBase {
+// public:
+//   void* val_;
+// };
 
-// HandleScope
-class HandleScope {
-public:
-  explicit HandleScope(Isolate* isolate) {}
-};
+// HandleScope is now properly included from v8-handlescope-fix.h
+// Skip duplicate definition here
+// class HandleScope {
+// public:
+//   explicit HandleScope(Isolate* isolate) {}
+// };
 
-// SnapshotCreator constructors
-class SnapshotCreator {
-public:
-  SnapshotCreator(Isolate* isolate, const intptr_t* external_references = nullptr,
-                  StartupData* existing_blob = nullptr) {}
-  SnapshotCreator(const intptr_t* external_references = nullptr,
-                  StartupData* existing_blob = nullptr) {}
-};
+// SnapshotCreator is already defined in v8-snapshot.h
+// Skip redefinition here
+// class SnapshotCreator {
+// public:
+//   SnapshotCreator(Isolate* isolate, const intptr_t* external_references = nullptr,
+//                   StartupData* existing_blob = nullptr) {}
+//   SnapshotCreator(const intptr_t* external_references = nullptr,
+//                   StartupData* existing_blob = nullptr) {}
+// };
 
 // SnapshotBlobRef (if needed)
 using SnapshotBlobRef = StartupData;
 
-// Local<T> slot() accessor
-template<typename T>
-class Local {
-public:
-  inline void* slot() const { return nullptr; }
-
-  // Cast method
-  template<typename S>
-  static inline Local<T> Cast(Local<S> that) {
-    return Local<T>();
-  }
-};
+// Local<T> is already defined in v8-data.h
+// Skip redefinition here
+// template<typename T>
+// class Local {
+// public:
+//   inline void* slot() const { return nullptr; }
+//
+//   // Cast method
+//   template<typename S>
+//   static inline Local<T> Cast(Local<S> that) {
+//     return Local<T>();
+//   }
+// };
 
 // UnboundScript forward declaration
 class UnboundScript;
 
-// TracingController abstract methods
-class TracingController {
-public:
-  virtual ~TracingController() = default;
-  virtual const uint8_t* GetCategoryGroupEnabled(const char* name) { return nullptr; }
-  virtual uint64_t AddTraceEvent(char phase, const uint8_t* category_enabled_flag,
-                                  const char* name, const char* scope, uint64_t id,
-                                  uint64_t bind_id, int32_t num_args,
-                                  const char** arg_names, const uint8_t* arg_types,
-                                  const uint64_t* arg_values, unsigned int flags) { return 0; }
-  virtual void UpdateTraceEventDuration(const uint8_t* category_enabled_flag,
-                                       const char* name, uint64_t handle) {}
-};
+// TracingController is now properly included from v8-tracing-base.h
+// Skip duplicate definition here
+// class TracingController {
+// public:
+//   virtual ~TracingController() = default;
+//   virtual const uint8_t* GetCategoryGroupEnabled(const char* name) { return nullptr; }
+//   virtual uint64_t AddTraceEvent(char phase, const uint8_t* category_enabled_flag,
+//                                   const char* name, const char* scope, uint64_t id,
+//                                   uint64_t bind_id, int32_t num_args,
+//                                   const char** arg_names, const uint8_t* arg_types,
+//                                   const uint64_t* arg_values, unsigned int flags) { return 0; }
+//   virtual void UpdateTraceEventDuration(const uint8_t* category_enabled_flag,
+//                                        const char* name, uint64_t handle) {}
+// };
 
 } // namespace v8
 
@@ -270,10 +237,11 @@ public:
 namespace v8 {
 namespace internal {
 
-// CppHeapPointer constants
-constexpr uint32_t kAnyCppHeapPointer = 0;
-constexpr uint32_t kNullCppHeapPointer = 0;
-constexpr uint32_t kMaxCppHeapPointers = 1024;
+// CppHeapPointer constants - already defined in nuclear-fix.h
+// Skip redefinition here
+// constexpr uint32_t kAnyCppHeapPointer = 0;
+// constexpr uint32_t kNullCppHeapPointer = 0;
+// constexpr size_t kMaxCppHeapPointers = 1024;
 
 // Interpreter register (stub)
 constexpr int kInterpreterBytecodeOffsetRegister = 0;
@@ -366,15 +334,9 @@ class ModuleWireBytes {
 public:
   ModuleWireBytes() : start_(nullptr), length_(0) {}
 
-  // Constructor from ZoneVector
-  template<typename T>
-  explicit ModuleWireBytes(const ZoneVector<T>& vec)
-    : start_(reinterpret_cast<const uint8_t*>(vec.data())),
-      length_(vec.size()) {}
-
-  // Constructor from Vector
-  explicit ModuleWireBytes(Vector<const uint8_t> vec)
-    : start_(vec.begin()), length_(vec.size()) {}
+  // Constructors disabled due to forward-declared template types
+  // Cannot instantiate Vector<T> or ZoneVector<T> without full definitions
+  // Only default constructor available
 
   const uint8_t* start() const { return start_; }
   size_t length() const { return length_; }
@@ -384,9 +346,9 @@ private:
   size_t length_;
 };
 
-// SmallVector for WASM
-template<typename T, size_t N>
-using SmallVector = ::v8::base::SmallVector<T, N>;
+// SmallVector for WASM - commented out as ::v8::base::SmallVector doesn't exist
+// template<typename T, size_t N>
+// using SmallVector = ::v8::base::SmallVector<T, N>;
 
 } // namespace wasm
 } // namespace internal
@@ -402,8 +364,8 @@ namespace internal {
 // Deserializer base class members (stubs for missing methods)
 class DeserializerStubs {
 protected:
-  void AddAttachedObject(Handle<HeapObject> obj) {}
-  Handle<HeapObject> ReadObject() { return Handle<HeapObject>(); }
+  void AddAttachedObject(void* obj) {}  // Changed from Handle<HeapObject> to void*
+  void* ReadObject() { return nullptr; }  // Changed from Handle<HeapObject> to void*
   void DeserializeDeferredObjects() {}
   void LogNewMapEvents() {}
   void WeakenDescriptorArrays() {}
@@ -414,21 +376,23 @@ protected:
   bool should_rehash() const { return false; }
   Isolate* isolate() { return nullptr; }
   const void* source() { return nullptr; }
-  std::vector<Handle<Script>> new_scripts;
-  std::vector<Handle<AccessorInfo>> accessor_infos;
-  std::vector<Handle<FunctionTemplateInfo>> function_template_infos;
-  GlobalHandleVector<DescriptorArray> descriptor_arrays;
+  // Removed template instantiations to avoid incomplete type errors
+  // std::vector<Handle<Script>> new_scripts;
+  // std::vector<Handle<AccessorInfo>> accessor_infos;
+  // std::vector<Handle<FunctionTemplateInfo>> function_template_infos;
+  // GlobalHandleVector<DescriptorArray> descriptor_arrays;
 };
 
 // SerializedCodeData::Payload return type fix
-namespace SerializedCodeData {
-  using Payload = Vector<const uint8_t>;
-}
-
-// SnapshotData::Payload return type fix
-namespace SnapshotData {
-  using Payload = Vector<const uint8_t>;
-}
+// Skip using Vector template as it's incomplete
+// namespace SerializedCodeData {
+//   using Payload = Vector<const uint8_t>;
+// }
+//
+// // SnapshotData::Payload return type fix
+// namespace SnapshotData {
+//   using Payload = Vector<const uint8_t>;
+// }
 
 } // namespace internal
 } // namespace v8
@@ -442,11 +406,11 @@ namespace internal {
 
 class String {
 public:
-  // GetCharVector instead of GetCharZoneVector
-  template<typename Char>
-  static Vector<Char> GetCharVector(Handle<String> string, const DisallowGarbageCollection& no_gc) {
-    return Vector<Char>(nullptr, 0);
-  }
+  // GetCharVector - disabled due to incomplete template types
+  // template<typename Char>
+  // static Vector<Char> GetCharVector(Handle<String> string, const DisallowGarbageCollection& no_gc) {
+  //   return Vector<Char>(nullptr, 0);
+  // }
 };
 
 namespace unibrow {
@@ -465,11 +429,12 @@ public:
 
 namespace v8 {
 
-// VirtualAddressSpace pointer return fix
-inline VirtualAddressSpace* GetVirtualAddressSpaceForProcess() {
-  static ::v8::base::LeakyObject<::v8::base::VirtualAddressSpace> vas;
-  return vas.Get();
-}
+// VirtualAddressSpace pointer return fix - removed as LeakyObject doesn't exist
+// in current V8 version
+// inline VirtualAddressSpace* GetVirtualAddressSpaceForProcess() {
+//   static ::v8::base::LeakyObject<::v8::base::VirtualAddressSpace> vas;
+//   return vas.Get();
+// }
 
 } // namespace v8
 

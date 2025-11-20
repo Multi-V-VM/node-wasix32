@@ -832,6 +832,7 @@
       'include_dirs': [
         'src',
         'deps/postject',
+        'deps/v8/include',
         '<(SHARED_INTERMEDIATE_DIR)' # for node_natives.h
       ],
       'dependencies': [
@@ -1334,9 +1335,11 @@
       'target_name': 'node_js2c',
       'type': 'executable',
       'toolsets': ['host'],
+      'defines': ['__wasi__=1'],
       'include_dirs': [
         'tools',
         'src',
+        'deps/v8/third_party/simdutf',
       ],
       'sources': [
         'tools/js2c.cc',

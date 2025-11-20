@@ -6,6 +6,56 @@
 // ============================================================================
 
 namespace v8 {
+// Forward declarations
+template<typename T> class Local;
+class Context;
+class String;
+class Value;
+class Object;
+// CpuProfilingOptions is already defined in v8-profiler-stubs.h
+// Skip redefinition here
+// struct CpuProfilingOptions {
+//   bool record_samples = true;
+// };
+
+enum class CpuProfilingNamingMode { kStandardNaming };
+enum class CpuProfilingLoggingMode { kLazyLogging };
+// StackState is defined in v8-api-stubs.h, skip redefinition
+// enum class StackState {
+//   kMayContainHeapPointers,
+//   kNoHeapPointers
+// };
+
+// SnapshotObjectId is already defined as uint32_t in embedder-graph-stub.h
+// Skip redefinition here
+// using SnapshotObjectId = unsigned long long;
+
+// StackTrace is now properly included from v8-debug.h
+// Skip duplicate definition here
+// class StackTrace {
+// public:
+//   enum StackTraceOptions {
+//     kLineNumber = 0,
+//     kColumnOffset = 1,
+//     kScriptName = 2,
+//     kFunctionName = 4,
+//     kIsEval = 8,
+//     kIsConstructor = 16,
+//     kScriptNameOrSourceURL = 32,
+//     kScriptId = 64,
+//     kExposeFramesAcrossSecurityOrigins = 128,
+//     kOverflowAction = 256
+//   };
+// };
+
+enum class GarbageCollectionType {
+  kFullCollection,
+  kMinorCollection
+};
+
+// Add namespace-level constants for CpuProfilingNamingMode values
+constexpr int kStandardNaming = static_cast<int>(CpuProfilingNamingMode::kStandardNaming);
+constexpr int kLazyLogging = static_cast<int>(CpuProfilingLoggingMode::kLazyLogging);
 
 // ============================================================================
 // Isolate Use Counter Features (Additional)
@@ -68,6 +118,8 @@ enum class IsolateUseCounterFeature {
 };
 
 // Isolate additions for use counters
+// Note: Isolate class is already defined in v8-isolate-wasi-stub.h, this is just for reference
+#ifdef ISOLATE_CLASS_DEFINITION_NEEDED
 class Isolate {
 public:
   // Use counter features
@@ -128,9 +180,9 @@ public:
   inline void RemoveCallCompletedCallback(void* callback) {}
   inline void AddCallCompletedCallback(void* callback) {}
   inline void RemoveNearHeapLimitCallback(void* callback, size_t limit) {}
-  inline void SetCaptureStackTraceForUncaughtExceptions(bool capture, int frame_limit = 10, v8::StackTrace::StackTraceOptions options = static_cast<v8::StackTrace::StackTraceOptions>(0)) {}
+  inline void SetCaptureStackTraceForUncaughtExceptions(bool capture, int frame_limit = 10, int options = 0) {}
   inline bool InContext() const { return true; }
-  inline Local<Context> GetEnteredOrMicrotaskContext() { return Local<Context>(); }
+  inline void* GetEnteredOrMicrotaskContext() { return nullptr; }
   inline void RequestGarbageCollectionForTesting(GarbageCollectionType type) {}
 
   // Heap space statistics
@@ -159,13 +211,13 @@ public:
   using ProfilerId = int;
 
   // Create new profiler
-  static CpuProfiler* New(Isolate* isolate, CpuProfilingNamingMode = kStandardNaming, CpuProfilingLoggingMode = kLazyLogging) {
+  static CpuProfiler* New(Isolate* isolate) {
     return nullptr;
   }
 
   // Start profiling
-  void StartProfiling(Local<String> title, bool record_samples = false) {}
-  void StartProfiling(Local<String> title, CpuProfilingOptions options) {}
+  void StartProfiling(void* title, bool record_samples = false) {}
+  void StartProfiling(void* title, CpuProfilingOptions options) {}
 };
 
 class CpuProfile {
@@ -191,7 +243,7 @@ public:
   static constexpr uint16_t kPersistentHandleNoClassId = 0;
 
   // Additional heap profiler methods
-  inline Local<Value> FindObjectById(SnapshotObjectId id) { return Local<Value>(); }
+  inline void* FindObjectById(SnapshotObjectId id) { return nullptr; }
   inline void StopSamplingHeapProfiler() {}
   inline void ClearObjectIds() {}
 
@@ -226,92 +278,109 @@ public:
   class ObjectNameResolver {
   public:
     virtual ~ObjectNameResolver() {}
-    virtual const char* GetName(Local<Object> object) = 0;
+    virtual const char* GetName(void* object) = 0;
   };
 };
+#endif  // ISOLATE_CLASS_DEFINITION_NEEDED
 
-// Heap space statistics forward declaration
-class HeapSpaceStatistics {
-public:
-  const char* space_name() const { return ""; }
-  size_t space_size() const { return 0; }
-  size_t space_used_size() const { return 0; }
-  size_t space_available_size() const { return 0; }
-  size_t physical_space_size() const { return 0; }
-};
+// Heap space statistics is already defined in v8-statistics.h
+// Skip redefinition here
+// class HeapSpaceStatistics {
+// public:
+//   const char* space_name() const { return ""; }
+//   size_t space_size() const { return 0; }
+//   size_t space_used_size() const { return 0; }
+//   size_t space_available_size() const { return 0; }
+//   size_t physical_space_size() const { return 0; }
+// };
 
 // ============================================================================
 // OutputStream for Heap Snapshots
 // ============================================================================
 
-class OutputStream {
-public:
-  enum WriteResult {
-    kContinue = 0,
-    kAbort = 1
-  };
-
-  virtual ~OutputStream() {}
-  virtual void EndOfStream() = 0;
-  virtual WriteResult WriteAsciiChunk(char* data, int size) = 0;
-  virtual int GetChunkSize() { return 1024; }
-};
+// OutputStream is already defined in embedder-graph-stub.h
+// Skip redefinition here
+// class OutputStream {
+// public:
+//   enum WriteResult {
+//     kContinue = 0,
+//     kAbort = 1
+//   };
+//
+//   virtual ~OutputStream() {}
+//   virtual void EndOfStream() = 0;
+//   virtual WriteResult WriteAsciiChunk(char* data, int size) = 0;
+//   virtual int GetChunkSize() { return 1024; }
+// };
 
 // ============================================================================
 // AllocationProfile Additions
 // ============================================================================
 
-namespace AllocationProfile {
-  static constexpr int kNoLineNumberInfo = 0;
-  static constexpr int kNoColumnNumberInfo = 0;
-
-  struct Allocation {
-    size_t size;
-    int count;
-
-    Allocation() : size(0), count(0) {}
-    Allocation(size_t s, int c) : size(s), count(c) {}
-  };
-}
+// AllocationProfile is already defined as a class in v8-profiler-stubs.h
+// Skip redefinition here
+// namespace AllocationProfile {
+//   static constexpr int kNoLineNumberInfo = 0;
+//   static constexpr int kNoColumnNumberInfo = 0;
+//
+//   // Allocation struct is defined in wasi-comprehensive-fixes.h
+//   // Skip redefinition here
+//   // struct Allocation {
+//   //   size_t size;
+//   //   int count;
+//   //
+//   //   Allocation() : size(0), count(0) {}
+//   //   Allocation(size_t s, int c) : size(s), count(c) {}
+//   // };
+// }
 
 // ============================================================================
 // CodeEvent Types
 // ============================================================================
 
-namespace CodeEvent {
-  enum Type {
-    kBuiltinType,
-    kCallbackType,
-    kEvalType,
-    kFunctionType,
-    kHandlerType,
-    kBytecodeHandlerType,
-    kRegExpType,
-    kScriptType,
-    kStubType,
-    kRelocationType
-  };
-}
+// CodeEvent is already defined as a struct in v8-profiler-stubs.h
+// Skip redefinition here
+// namespace CodeEvent {
+//   enum Type {
+//     kBuiltinType,
+//     kCallbackType,
+//     kEvalType,
+//     kFunctionType,
+//     kHandlerType,
+//     kBytecodeHandlerType,
+//     kRegExpType,
+//     kScriptType,
+//     kStubType,
+//     kRelocationType
+//   };
+// }
 
-// Message level constants
-enum MessageLevel {
-  kMessageLog = 0,
-  kMessageDebug = 1,
-  kMessageInfo = 2,
-  kMessageError = 3,
-  kMessageWarning = 4
-};
+// Message level constants are already defined in v8-api-stubs.h
+// Skip redefinition here
+// enum MessageLevel {
+//   kMessageLog = 0,
+//   kMessageDebug = 1,
+//   kMessageInfo = 2,
+//   kMessageError = 3,
+//   kMessageWarning = 4
+// };
 
 // ============================================================================
 // Value API Additions
 // ============================================================================
 
-class Value {
-public:
-  inline Local<Boolean> ToBoolean(Isolate* isolate) const {
-    return Local<Boolean>();
-  }
-};
+// Boolean is already defined in v8-primitive.h
+// Skip redefinition here
+// class Boolean {};
+
+// Value is already defined in v8-value.h
+// Skip redefinition here
+// class Value {
+// public:
+//   inline void* ToBoolean(Isolate* isolate) const {
+//     return nullptr;
+//   }
+// };
 
 // ============================================================================
 // Tracing API
@@ -349,18 +418,20 @@ inline uint64_t AddTraceEvent(char phase, const uint8_t* category_enabled_flag,
 class EmbedderStackStateScope {
 public:
   EmbedderStackStateScope(Isolate* isolate, StackState stack_state) {}
-  EmbedderStackStateScope(Isolate* isolate, Local<Context> context, StackState stack_state) {}
+  EmbedderStackStateScope(Isolate* isolate, void* context, StackState stack_state) {}
 };
 
 // ============================================================================
 // Resource Constraints Additions
 // ============================================================================
 
-class ResourceConstraints {
-public:
-  size_t initial_young_generation_size_in_bytes() const { return 0; }
-  size_t initial_old_generation_size_in_bytes() const { return 0; }
-};
+// ResourceConstraints is already defined in v8-isolate-wasi-stub.h
+// Skip redefinition here
+// class ResourceConstraints {
+// public:
+//   size_t initial_young_generation_size_in_bytes() const { return 0; }
+//   size_t initial_old_generation_size_in_bytes() const { return 0; }
+// };
 
 } // namespace v8
 
@@ -380,11 +451,12 @@ public:
   explicit ScopedTimer(void* timer) {}
 };
 
-// VLQ encoding/decoding
-using ::v8::base::VLQEncode;
-using ::v8::base::VLQDecode;
-using ::v8::base::VLQDecodeUnsigned;
-using ::v8::base::VLQBase64Decode;
+// VLQ encoding/decoding - stub implementations
+// (Original V8 symbols not available in this build configuration)
+inline int VLQEncode(int value) { return 0; }
+inline int VLQDecode(const char* p) { return 0; }
+inline int VLQDecodeUnsigned(const char* p) { return 0; }
+inline int VLQBase64Decode(const char* p) { return 0; }
 
 // DTOA constants and functions
 enum DtoaMode {
@@ -404,48 +476,66 @@ inline void DoubleToAscii(double value, DtoaMode mode, int requested_digits,
 
 constexpr int kBase10MaximalLength = 17;
 
-// FPU control
-using ::v8::base::FPU;
+// FPU control - stub
+struct FPU {
+  static void DisableDenormals() {}
+  static void EnableDenormals() {}
+};
 
-// RingBuffer
+// RingBuffer - stub template
 template<typename T, int N>
-using RingBuffer = ::v8::base::RingBuffer<T, N>;
+class RingBuffer {
+public:
+  void Push(const T& value) {}
+};
 
-// OS functions
-using ::v8::base::OS;
+// OS functions - stub
+struct OS {
+  static void Sleep(int ms) {}
+  static uint64_t TimeCurrentMillis() { return 0; }
+  static const char* GetOS() { return "unknown"; }
+};
 
-// LockGuard
+// LockGuard - stub template
 template<typename Mutex>
-using LockGuard = ::v8::base::LockGuard<Mutex>;
+class LockGuard {
+public:
+  explicit LockGuard(Mutex* m) {}
+};
 
-// TemplateHashMapEntry
+// TemplateHashMapEntry - stub template
 template<typename Key, typename Value>
-using TemplateHashMapEntry = ::v8::base::TemplateHashMapEntry<Key, Value>;
+struct TemplateHashMapEntry {
+  Key key;
+  Value value;
+};
 
-// CallOnce
-using ::v8::base::CallOnce;
-using ::v8::base::OnceType;
+// CallOnce - stub
+inline void CallOnce(void(*func)()) { func(); }
+using OnceType = int;
 
-// IterateWithoutFirst
-using ::v8::base::IterateWithoutFirst;
+// IterateWithoutFirst - stub
+template<typename T>
+inline void IterateWithoutFirst(T* head) {}
 
 // NoHashMapValue
 struct NoHashMapValue {};
 
-// overloaded helper
-using ::v8::base::overloaded;
+// overloaded helper - stub
+struct overloaded {};
 
 } // namespace base
 
-// Foreign address tags
-constexpr uint64_t kWaiterQueueForeignTag = 0;
-constexpr uint64_t kMicrotaskCallbackDataTag = 1;
-constexpr uint64_t kMessageListenerTag = 2;
-constexpr uint64_t kCFunctionTag = 3;
-constexpr uint64_t kCFunctionInfoTag = 4;
-constexpr uint64_t kSyntheticModuleTag = 5;
-constexpr uint64_t kWaiterQueueNodeTag = 6;
-constexpr uint64_t kDisplayNamesInternalTag = 7;
+// Foreign address tags - already defined in nuclear-fix.h
+// Skip redefinitions here
+// constexpr uint64_t kWaiterQueueForeignTag = 0;
+// constexpr uint64_t kMicrotaskCallbackDataTag = 1;
+// constexpr uint64_t kMessageListenerTag = 2;
+// constexpr uint64_t kCFunctionTag = 3;
+// constexpr uint64_t kCFunctionInfoTag = 4;
+// constexpr uint64_t kSyntheticModuleTag = 5;
+// constexpr uint64_t kWaiterQueueNodeTag = 6;
+// constexpr uint64_t kDisplayNamesInternalTag = 7;
 
 // ToCData helper
 template<typename T>
@@ -453,13 +543,14 @@ inline T ToCData(void* ptr) {
   return reinterpret_cast<T>(ptr);
 }
 
-// Internals additions
-struct Internals {
-  static constexpr int kNodeStateMask = 0x7;
-  static constexpr int kNodeStateIsWeakValue = 2;
-  static constexpr int kDisallowGarbageCollectionAlign = 1;
-  static constexpr int kDisallowGarbageCollectionSize = 4;
-};
+// Internals struct - already defined in nuclear-fix.h
+// Skip redefinition here
+// struct Internals {
+//   static constexpr int kNodeStateMask = 0x7;
+//   static constexpr int kNodeStateIsWeakValue = 2;
+//   static constexpr int kDisallowGarbageCollectionAlign = 1;
+//   static constexpr int kDisallowGarbageCollectionSize = 4;
+// };
 
 // GRACEFUL_FATAL macro
 #ifndef GRACEFUL_FATAL

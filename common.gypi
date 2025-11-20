@@ -301,11 +301,12 @@
           '-include', '<(DEPTH)/wasi-all-fixes.h',
         ],
       }],
-      ['_toolset=="host"', {
-        'cflags_cc': [
-          '-include', '<(DEPTH)/wasi-all-fixes.h',
-        ],
-      }],
+      # Host builds should not include WASI fixes
+      # ['_toolset=="host"', {
+      #   'cflags_cc': [
+      #     '-include', '<(DEPTH)/wasi-all-fixes.h',
+      #   ],
+      # }],
     ],
     'msvs_settings': {
       'VCCLCompilerTool': {
