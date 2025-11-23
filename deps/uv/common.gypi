@@ -154,6 +154,7 @@
           }],
           [ 'OS=="linux"', {
             'cflags': [ '-ansi' ],
+            'defines': [ '__wasi__=1' ],
           }],
           [ 'OS=="solaris"', {
             'cflags': [ '-pthreads' ],
