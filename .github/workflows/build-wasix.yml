@@ -31,8 +31,8 @@ jobs:
         run: |
           set -euxo pipefail
           # Install recent version of binaryen
-          latest_binaryen=$(curl -s https://api.github.com/repos/WebAssembly/binaryen/releases/latest | jq -r .tag_name | sed 's/v//')
-          wget -q "https://github.com/WebAssembly/binaryen/releases/download/v${latest_binaryen}/binaryen-${latest_binaryen}-x86_64-linux.tar.gz"
+          latest_binaryen=$(curl -s https://api.github.com/repos/WebAssembly/binaryen/releases/latest | jq -r .tag_name)
+          wget -q "https://github.com/WebAssembly/binaryen/releases/download/${latest_binaryen}/binaryen-${latest_binaryen}-x86_64-linux.tar.gz"
           tar xzf "binaryen-${latest_binaryen}-x86_64-linux.tar.gz"
           cp "binaryen-${latest_binaryen}/bin/"* /usr/local/bin/
           echo "PATH=/usr/local/bin:$PATH" >> $GITHUB_ENV
