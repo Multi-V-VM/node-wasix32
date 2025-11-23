@@ -566,8 +566,8 @@ node.wasm: ## Build Node.js for WebAssembly using WASI.
 		CC="$(CC) --sysroot=$(WASIX_SYSROOT_PATH) -D_WASI_EMULATED_SIGNAL -matomics -mbulk-memory" \
 		CXX="$(CXX) --sysroot=$(WASIX_SYSROOT_PATH) -D_WASI_EMULATED_SIGNAL -matomics -mbulk-memory" \
 		LDFLAGS="-L$(WASIX_SYSROOT_PATH)/lib -lwasi-emulated-signal --shared-memory" \
-		CFLAGS="-I$(WASIX_SYSROOT_PATH)/include -I../ -I../src -Wfatal-errors -ferror-limit=1" \
-		CPPFLAGS="-I$(WASIX_SYSROOT_PATH)/include -I../ -I../src" \
+		CFLAGS="-I$(WASIX_SYSROOT_PATH)/include -I../ -I../src -Wfatal-errors -ferror-limit=1 $${CFLAGS}" \
+		CPPFLAGS="-I$(WASIX_SYSROOT_PATH)/include -I../ -I../src $${CXXFLAGS}" \
 		$(MAKE) -C out BUILDTYPE=Release node && \
 		echo "📦 Renaming output to node.wasm..." && \
 		mv out/Release/node node.wasm && \
