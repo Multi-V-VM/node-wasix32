@@ -50,19 +50,19 @@ jobs:
         run: |
           set -euxo pipefail
           # Configure wasixcc download paths
-          export WASIXCC_SYSROOT_PREFIX="$PWD"
-          export WASIXCC_LLVM_LOCATION="$PWD/.wasix"
+          # export WASIXCC_SYSROOT_PREFIX="$PWD"
+          # export WASIXCC_LLVM_LOCATION="$PWD/.wasix"
           # Download latest LLVM toolchain and WASIX sysroot
           wasixcc --download-all
-          echo "PATH=$PWD/.wasix/bin:$PATH" >> $GITHUB_ENV
-          echo "WASIX_SYSROOT_PATH=$PWD/wasix-sysroot" >> $GITHUB_ENV
+          # echo "PATH=$PWD/.wasix/bin:$PATH" >> $GITHUB_ENV
+          # echo "WASIX_SYSROOT_PATH=$PWD/wasix-sysroot" >> $GITHUB_ENV
 
       - name: Build node.wasm
         timeout-minutes: 10
         shell: bash
         run: |
           set -euxo pipefail
-          make node.wasm WASIX_SYSROOT_PATH="$WASIX_SYSROOT_PATH" JOBS=$(nproc)
+          make node.wasm JOBS=$(nproc)
       - name: Upload artifact
         uses: actions/upload-artifact@4cec3d8aa04e39d1a68397de0c4cd6fb9dce8ec1
         with:
