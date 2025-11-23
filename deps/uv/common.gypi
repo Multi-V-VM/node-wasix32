@@ -142,6 +142,9 @@
           ['_type=="static_library"', {
             'standalone_static_library': 1, # disable thin archive which needs binutils >= 2.19
           }],
+          ['_toolset=="target" and target_arch=="wasm32"', {
+            'defines': [ '__wasi__=1' ],
+          }],
         ],
         'conditions': [
           [ 'host_arch != target_arch and target_arch=="ia32"', {
@@ -154,7 +157,6 @@
           }],
           [ 'OS=="linux"', {
             'cflags': [ '-ansi' ],
-            'defines': [ '__wasi__=1' ],
           }],
           [ 'OS=="solaris"', {
             'cflags': [ '-pthreads' ],
