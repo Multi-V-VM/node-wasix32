@@ -26,26 +26,30 @@ jobs:
           echo "OPENSSL_DIR=/usr" >> $GITHUB_ENV
           echo "OPENSSL_LIB_DIR=/usr/lib/${ARCH}" >> $GITHUB_ENV
           echo "OPENSSL_INCLUDE_DIR=/usr/include" >> $GITHUB_ENV
-      - name: Install binaryen
-        shell: bash
-        run: |
-          set -euxo pipefail
-          # Install recent version of binaryen
-          latest_binaryen=$(curl -s https://api.github.com/repos/WebAssembly/binaryen/releases/latest | jq -r .tag_name)
-          wget -q "https://github.com/WebAssembly/binaryen/releases/download/${latest_binaryen}/binaryen-${latest_binaryen}-x86_64-linux.tar.gz"
-          tar xzf "binaryen-${latest_binaryen}-x86_64-linux.tar.gz"
-          cp "binaryen-${latest_binaryen}/bin/"* /usr/local/bin/
-          echo "PATH=/usr/local/bin:$PATH" >> $GITHUB_ENV
+      # - name: Install binaryen
+      #   shell: bash
+      #   run: |
+      #     set -euxo pipefail
+      #     # Install recent version of binaryen
+      #     latest_binaryen=$(curl -s https://api.github.com/repos/WebAssembly/binaryen/releases/latest | jq -r .tag_name)
+      #     wget -q "https://github.com/WebAssembly/binaryen/releases/download/${latest_binaryen}/binaryen-${latest_binaryen}-x86_64-linux.tar.gz"
+      #     tar xzf "binaryen-${latest_binaryen}-x86_64-linux.tar.gz"
+      #     cp "binaryen-${latest_binaryen}/bin/"* /usr/local/bin/
+      #     echo "PATH=/usr/local/bin:$PATH" >> $GITHUB_ENV
       - name: Install wasixcc
         shell: bash
         run: |
           set -euxo pipefail
           # Install wasixcc using cargo install
-          cargo install wasixcc -F bin
+          # cargo install wasixcc -F bin
+          mkdir -p /tmp/wasixcc
+          git clone https://github.com/wasix-org/wasixcc /tmp/wasixcc
+          cd /tmp/wasixcc
+          cargo build -r -F bin --bin wasixcc
           # Install all executables to PATH
-          wasixcc --install-executables /usr/local/bin
+          /tmp/wasixcc/target/release/wasixcc --install-executables /usr/local/bin
           echo "PATH=/usr/local/bin:$PATH" >> $GITHUB_ENV
-      - name: Download LLVM and WASIX components
+      - name: Download LLVM, binaryen and WASIX components
         shell: bash
         run: |
           set -euxo pipefail
