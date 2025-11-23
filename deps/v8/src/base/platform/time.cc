@@ -264,7 +264,7 @@ int64_t v8::base::TimeDelta::InNanoseconds() const {
 
 #if V8_OS_DARWIN
 
-::v8::base::TimeDelta ::v8::base::TimeDelta::FromMachTimespec(struct mach_timespec ts) {
+TimeDelta TimeDelta::FromMachTimespec(struct mach_timespec ts) {
   DCHECK_GE(ts.tv_nsec, 0);
   DCHECK_LT(ts.tv_nsec,
             static_cast<long>(Time::kNanosecondsPerSecond));  // NOLINT
@@ -272,7 +272,7 @@ int64_t v8::base::TimeDelta::InNanoseconds() const {
                    ts.tv_nsec / Time::kNanosecondsPerMicrosecond);
 }
 
-struct mach_timespec ::v8::base::TimeDelta::ToMachTimespec() const {
+struct mach_timespec TimeDelta::ToMachTimespec() const {
   struct mach_timespec ts;
   DCHECK_GE(delta_, 0);
   ts.tv_sec = static_cast<unsigned>(delta_ / Time::kMicrosecondsPerSecond);
@@ -285,7 +285,7 @@ struct mach_timespec ::v8::base::TimeDelta::ToMachTimespec() const {
 
 #if V8_OS_POSIX
 
-::v8::base::TimeDelta ::v8::base::TimeDelta::FromTimespec(struct timespec ts) {
+TimeDelta TimeDelta::FromTimespec(struct timespec ts) {
   DCHECK_GE(ts.tv_nsec, 0);
   DCHECK_LT(ts.tv_nsec,
             static_cast<long>(Time::kNanosecondsPerSecond));  // NOLINT
@@ -293,7 +293,7 @@ struct mach_timespec ::v8::base::TimeDelta::ToMachTimespec() const {
                    ts.tv_nsec / Time::kNanosecondsPerMicrosecond);
 }
 
-struct timespec ::v8::base::TimeDelta::ToTimespec() const {
+struct timespec TimeDelta::ToTimespec() const {
   struct timespec ts;
   ts.tv_sec = static_cast<time_t>(delta_ / Time::kMicrosecondsPerSecond);
   ts.tv_nsec = (delta_ % Time::kMicrosecondsPerSecond) *
@@ -401,7 +401,7 @@ FILETIME Time::ToFiletime() const {
 
 #elif V8_OS_POSIX || V8_OS_STARBOARD
 
-::v8::base::Time ::v8::base::Time::Now() {
+Time Time::Now() {
   struct timeval tv;
   int result = gettimeofday(&tv, nullptr);
   DCHECK_EQ(0, result);
@@ -409,9 +409,9 @@ FILETIME Time::ToFiletime() const {
   return FromTimeval(tv);
 }
 
-::v8::base::Time ::v8::base::Time::NowFromSystemTime() { return Now(); }
+Time Time::NowFromSystemTime() { return Now(); }
 
-::v8::base::Time ::v8::base::Time::FromTimespec(struct timespec ts) {
+Time Time::FromTimespec(struct timespec ts) {
   DCHECK_GE(ts.tv_nsec, 0);
   DCHECK_LT(ts.tv_nsec, kNanosecondsPerSecond);
   if (ts.tv_nsec == 0 && ts.tv_sec == 0) {
@@ -425,7 +425,7 @@ FILETIME Time::ToFiletime() const {
               ts.tv_nsec / kNanosecondsPerMicrosecond);
 }
 
-struct timespec ::v8::base::Time::ToTimespec() const {
+struct timespec Time::ToTimespec() const {
   struct timespec ts;
   if (IsNull()) {
     ts.tv_sec = 0;
@@ -442,7 +442,7 @@ struct timespec ::v8::base::Time::ToTimespec() const {
   return ts;
 }
 
-::v8::base::Time ::v8::base::Time::FromTimeval(struct timeval tv) {
+Time Time::FromTimeval(struct timeval tv) {
   DCHECK_GE(tv.tv_usec, 0);
   DCHECK(tv.tv_usec < static_cast<suseconds_t>(kMicrosecondsPerSecond));
   if (tv.tv_usec == 0 && tv.tv_sec == 0) {
@@ -455,7 +455,7 @@ struct timespec ::v8::base::Time::ToTimespec() const {
   return Time(tv.tv_sec * kMicrosecondsPerSecond + tv.tv_usec);
 }
 
-struct timeval ::v8::base::Time::ToTimeval() const {
+struct timeval Time::ToTimeval() const {
   struct timeval tv;
   if (IsNull()) {
     tv.tv_sec = 0;
