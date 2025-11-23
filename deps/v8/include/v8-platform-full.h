@@ -245,6 +245,12 @@ class VirtualAddressSpace {
   virtual bool AllocateGuardRegion(Address /*address*/, size_t /*size*/) { return false; }
   virtual void FreeGuardRegion(Address /*address*/, size_t /*size*/) {}
 
+  virtual Address AllocateSharedPages(Address /*hint*/, size_t /*size*/,
+                                      PagePermissions /*permissions*/,
+                                      PlatformSharedMemoryHandle /*handle*/,
+                                      uint64_t /*offset*/) { return 0; }
+  virtual void FreeSharedPages(Address /*address*/, size_t /*size*/) {}
+
   virtual bool CanAllocateSubspaces() { return false; }
   virtual std::unique_ptr<VirtualAddressSpace> AllocateSubspace(
       Address /*hint*/, size_t /*size*/, size_t /*alignment*/,

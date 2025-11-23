@@ -77,7 +77,7 @@ class V8_BASE_EXPORT EmulatedVirtualAddressSubspace final
 
   bool CanAllocateSubspaces() override;
 
-  std::unique_ptr<VirtualAddressSpace> AllocateSubspace(
+  std::unique_ptr<v8::VirtualAddressSpace> AllocateSubspace(
       Address hint, size_t size, size_t alignment,
       PagePermissions max_page_permissions) override;
 
