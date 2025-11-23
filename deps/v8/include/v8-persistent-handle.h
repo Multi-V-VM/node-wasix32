@@ -215,7 +215,11 @@ class PersistentBase : public api_internal::IndirectHandleBase {
   V8_INLINE uint16_t WrapperClassId() const;
 
   V8_INLINE bool IsEmpty() const {
+#ifdef __wasi__
     return slot() == nullptr || *slot() == ::v8::internal::kNullAddress;
+#else
+    return slot() == nullptr || *slot() == ::v8::internal::Internals::kNullAddress;
+#endif
   }
 
   V8_INLINE void Clear() {
