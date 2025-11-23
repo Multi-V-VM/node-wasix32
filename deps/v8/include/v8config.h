@@ -125,6 +125,14 @@
 // cross-compilation. Provide the minimal macro set expected by the headers
 // above without pulling in the full upstream configuration.
 
+#if defined(__APPLE__)
+#define V8_OS_DARWIN 1
+#define V8_OS_POSIX 1
+#elif defined(__linux__)
+#define V8_OS_LINUX 1
+#define V8_OS_POSIX 1
+#endif
+
 #ifndef V8_EXPORT
 #define V8_EXPORT
 #endif

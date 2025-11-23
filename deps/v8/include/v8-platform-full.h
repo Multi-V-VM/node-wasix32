@@ -101,9 +101,14 @@ class PageAllocator {
   virtual bool SealPages(void* address, size_t size) = 0;
   
   // Shared memory support
+  class SharedMemoryMapping;
+
   class SharedMemory {
    public:
     virtual ~SharedMemory() = default;
+    virtual void* GetMemory() const = 0;
+    virtual size_t GetSize() const = 0;
+    virtual std::unique_ptr<SharedMemoryMapping> RemapTo(void* new_address) const = 0;
   };
   
   class SharedMemoryMapping {
@@ -112,6 +117,9 @@ class PageAllocator {
     virtual void* GetMemory() const = 0;
     virtual void Remap(void* new_address) = 0;
   };
+  
+  virtual bool CanAllocateSharedPages() { return false; }
+  virtual std::unique_ptr<SharedMemory> AllocateSharedPages(size_t size, const void* original_address) { return nullptr; }
 };
 #endif  // V8_PAGE_ALLOCATOR_INTERFACE_DEFINED
 
@@ -233,6 +241,22 @@ class VirtualAddressSpace {
 
   virtual ~VirtualAddressSpace() = default;
 
+ protected:
+  // Default constructor
+  VirtualAddressSpace() = default;
+
+  // Constructor for derived classes
+  VirtualAddressSpace(size_t page_size, size_t allocation_granularity,
+                      Address base, size_t size,
+                      PagePermissions max_page_permissions)
+      : page_size_(page_size),
+        allocation_granularity_(allocation_granularity),
+        base_(base),
+        size_(size),
+        max_page_permissions_(max_page_permissions) {}
+
+ public:
+
   virtual void SetRandomSeed(int64_t) {}
   virtual Address RandomPageAddress() { return 0; }
 
@@ -262,11 +286,18 @@ class VirtualAddressSpace {
   virtual bool DecommitPages(Address /*address*/, size_t /*size*/) { return false; }
 
   // Introspection helpers used by segmented tables.
-  virtual Address base() const { return 0; }
-  virtual size_t size() const { return 0; }
-  virtual size_t page_size() const { return 4096; }
-  virtual size_t allocation_granularity() const { return 4096; }
-  virtual PagePermissions max_page_permissions() const { return PagePermissions::kReadWrite; }
+  virtual Address base() const { return base_; }
+  virtual size_t size() const { return size_; }
+  virtual size_t page_size() const { return page_size_; }
+  virtual size_t allocation_granularity() const { return allocation_granularity_; }
+  virtual PagePermissions max_page_permissions() const { return max_page_permissions_; }
+
+ private:
+  size_t page_size_ = 4096;
+  size_t allocation_granularity_ = 4096;
+  Address base_ = 0;
+  size_t size_ = 0;
+  PagePermissions max_page_permissions_ = PagePermissions::kReadWrite;
 };
 
 }  // namespace v8
