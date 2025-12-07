@@ -63,11 +63,56 @@ def find_host_torque():
     return None
 
 
+def build_host_torque():
+    """Build the host torque executable if it doesn't exist."""
+    script_dir = Path(__file__).resolve().parent
+    repo_root = script_dir.parents[3]
+    out_dir = repo_root / 'out'
+
+    if not out_dir.exists():
+        return False
+
+    if os.environ.get('TORQUE_WRAPPER_DEBUG'):
+        print(f"torque_host_wrapper: Building host torque...", file=sys.stderr)
+
+    # Try to build torque for the host
+    try:
+        result = subprocess.run(
+            ['make', '-C', str(out_dir), 'BUILDTYPE=Release', 'torque'],
+            capture_output=True,
+            timeout=600,  # 10 minute timeout
+            check=False
+        )
+
+        if result.returncode == 0:
+            if os.environ.get('TORQUE_WRAPPER_DEBUG'):
+                print(f"torque_host_wrapper: Successfully built host torque", file=sys.stderr)
+            return True
+        else:
+            if os.environ.get('TORQUE_WRAPPER_DEBUG'):
+                print(f"torque_host_wrapper: make failed with code {result.returncode}", file=sys.stderr)
+                print(f"stderr: {result.stderr.decode('utf-8', errors='ignore')}", file=sys.stderr)
+            return False
+    except Exception as e:
+        if os.environ.get('TORQUE_WRAPPER_DEBUG'):
+            print(f"torque_host_wrapper: Error building torque: {e}", file=sys.stderr)
+        return False
+
+
 def main():
     torque_path = find_host_torque()
 
+    # If torque not found, try to build it
     if not torque_path:
-        print("Error: Host torque executable not found.", file=sys.stderr)
+        if os.environ.get('TORQUE_WRAPPER_DEBUG'):
+            print(f"torque_host_wrapper: Host torque not found, attempting to build...", file=sys.stderr)
+
+        if build_host_torque():
+            # Try to find it again after building
+            torque_path = find_host_torque()
+
+    if not torque_path:
+        print("Error: Host torque executable not found and could not be built.", file=sys.stderr)
         print("", file=sys.stderr)
         print("Expected locations:", file=sys.stderr)
         print("  - out/Release/torque", file=sys.stderr)
