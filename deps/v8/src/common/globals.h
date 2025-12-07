@@ -994,30 +994,30 @@ using CppHeapPointer_t = uintptr_t;
 using IndirectPointerHandle = uint32_t;
 #endif
 
-// Missing Smi-related constants
+// Missing Smi-related constants (only define if not already defined)
 // Smi (Small Integer) tagging scheme constants
 #if !(defined(__wasi__) || defined(V8_USING_WASI_SHIMS))
-#if V8_TARGET_ARCH_64_BIT
-// On 64-bit systems with 8-byte tagged values
-constexpr int kSmiValueSize = 31;  // 31-bit values for proper Smi tagging
+#if V8_TARGET_ARCH_64_BIT && !defined(V8_COMPRESS_POINTERS)
+// On 64-bit systems without compressed pointers: 32-bit Smi values in upper bits
+constexpr int kSmiValueSize = 32;  // 32-bit values for upper 32-bit Smi
 constexpr int kSmiShiftSize = 32;  // Shift to upper 32 bits
+constexpr int kSmiTagSize = 0;     // No tag in upper 32 bits
+#elif V8_TARGET_ARCH_64_BIT && defined(V8_COMPRESS_POINTERS)
+// On 64-bit systems with compressed pointers: 31-bit Smi values
+constexpr int kSmiValueSize = 31;  // 31-bit values for compressed pointers
+constexpr int kSmiShiftSize = 0;   // No shift
 constexpr int kSmiTagSize = 1;     // 1 bit for tag
-#else
-// On 32-bit systems with 4-byte tagged values (including WASM32)
+#elif defined(V8_TARGET_ARCH_32_BIT)
+// On 32-bit systems: 31-bit Smi values in lower 32 bits
 constexpr int kSmiValueSize = 31;  // 31-bit values on 32-bit (1 bit for tag)
 constexpr int kSmiShiftSize = 0;   // No shift
 constexpr int kSmiTagSize = 1;     // 1 bit for tag
 #endif
 #endif
 
-// Missing JS dispatch handle constants (if not already defined)
-#if !(defined(__wasi__) || defined(V8_USING_WASI_SHIMS))
-constexpr int kJSDispatchHandleShift = 0;
-#endif
-
 // Smi value check functions
 // Note: For WASI builds, these are defined in wasi/nuclear-fix.h
-#if !defined(__wasi__) && !defined(V8_USING_WASI_SHIMS)
+#if !defined(__wasi__) && !defined(V8_USING_WASI_SHIMS) && !defined(SmiValuesAre31Bits)
 inline constexpr bool SmiValuesAre31Bits() { return kSmiValueSize == 31; }
 inline constexpr bool SmiValuesAre32Bits() { return kSmiValueSize == 32; }
 #endif
