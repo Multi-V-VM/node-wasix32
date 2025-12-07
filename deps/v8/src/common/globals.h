@@ -935,8 +935,13 @@ static constexpr bool kCompressGraphZone = COMPRESS_ZONES_BOOL;
 #if !(defined(__wasi__) || defined(V8_USING_WASI_SHIMS))
 // These types define raw and atomic storage types for tagged values stored
 // on V8 heap.
+#if defined(V8_TARGET_ARCH_WASM32)
+using Tagged_t = uint32_t;
+using AtomicTagged_t = uint32_t;
+#else
 using Tagged_t = Address;
 using AtomicTagged_t = ::v8::base::AtomicWord;
+#endif
 #endif
 
 //

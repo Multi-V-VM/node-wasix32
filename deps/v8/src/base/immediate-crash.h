@@ -42,7 +42,10 @@
 
 #if V8_CC_GNU
 
-#if V8_HOST_ARCH_X64 || V8_HOST_ARCH_IA32
+#if defined(V8_OS_WASI)
+#define TRAP_SEQUENCE1_() __builtin_trap()
+#define TRAP_SEQUENCE2_() asm volatile("")
+#elif V8_HOST_ARCH_X64 || V8_HOST_ARCH_IA32
 
 // TODO(https://crbug.com/958675): In theory, it should be possible to use just
 // int3. However, there are a number of crashes with SIGILL as the exception

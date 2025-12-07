@@ -100,6 +100,9 @@
 #endif
 
 // Compiler detection
+#if defined(__GNUC__)
+#define V8_CC_GNU 1
+#endif
 #define V8_CC_CLANG 1
 
 // Detect common 64-bit host architectures so AtomicWord matches pointer size.
@@ -131,6 +134,19 @@
 #elif defined(__linux__)
 #define V8_OS_LINUX 1
 #define V8_OS_POSIX 1
+#endif
+
+// Host architecture detection
+#if defined(__x86_64__) || defined(_M_X64)
+#define V8_HOST_ARCH_X64 1
+#define V8_HOST_ARCH_64_BIT 1
+#elif defined(__i386__) || defined(_M_IX86)
+#define V8_HOST_ARCH_IA32 1
+#elif defined(__aarch64__) || defined(_M_ARM64)
+#define V8_HOST_ARCH_ARM64 1
+#define V8_HOST_ARCH_64_BIT 1
+#elif defined(__arm__) || defined(_M_ARM)
+#define V8_HOST_ARCH_ARM 1
 #endif
 
 #ifndef V8_EXPORT
@@ -180,6 +196,9 @@
 #endif
 
 #define V8_CC_CLANG 1
+#if defined(__GNUC__)
+#define V8_CC_GNU 1
+#endif
 #endif
 
 #endif // V8_CONFIG_H_

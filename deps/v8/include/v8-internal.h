@@ -115,6 +115,8 @@ class Internals {
   static constexpr int kDontThrow = 0;
   static constexpr int kThrowOnError = 1;
   static bool HasHeapObjectTag(Address) { return false; }
+  static constexpr int IntToSmi(int value) { return (value << 1) | 1; }
+  static constexpr int SmiValue(int smi) { return smi >> 1; }
 };
 
 }  // namespace internal

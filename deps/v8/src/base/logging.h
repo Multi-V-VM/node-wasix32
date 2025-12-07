@@ -162,6 +162,12 @@ namespace v8 { namespace base {
 
 template <typename T>
 inline const T& PrintCheckOperand(const T& value) { return value; }
+
+// Stub for CheckMessageStream to satisfy torque/types.h
+struct CheckMessageStream {
+  template <typename T>
+  CheckMessageStream& operator<<(const T&) { return *this; }
+};
 constexpr const char* kUnreachableCodeMessage = "Unreachable code";
 
 // Out-of-memory error types
