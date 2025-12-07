@@ -21,11 +21,19 @@ jobs:
         shell: bash
         run: |
           set -euxo pipefail
-          ARCH=$(dpkg-architecture -qDEB_HOST_MULTIARCH)
-          echo "PKG_CONFIG_PATH=/usr/lib/${ARCH}/pkgconfig:/usr/lib/pkgconfig" >> $GITHUB_ENV
-          echo "OPENSSL_DIR=/usr" >> $GITHUB_ENV
-          echo "OPENSSL_LIB_DIR=/usr/lib/${ARCH}" >> $GITHUB_ENV
-          echo "OPENSSL_INCLUDE_DIR=/usr/include" >> $GITHUB_ENV
+          # Use Homebrew OpenSSL if available, otherwise fall back to system
+          if [ -d "/usr/local/opt/openssl" ]; then
+            OPENSSL_PREFIX="/usr/local/opt/openssl"
+          elif [ -d "/opt/homebrew/opt/openssl" ]; then
+            OPENSSL_PREFIX="/opt/homebrew/opt/openssl"
+          else
+            OPENSSL_PREFIX="/usr"
+          fi
+          
+          echo "PKG_CONFIG_PATH=${OPENSSL_PREFIX}/lib/pkgconfig:/usr/lib/pkgconfig" >> $GITHUB_ENV
+          echo "OPENSSL_DIR=${OPENSSL_PREFIX}" >> $GITHUB_ENV
+          echo "OPENSSL_LIB_DIR=${OPENSSL_PREFIX}/lib" >> $GITHUB_ENV
+          echo "OPENSSL_INCLUDE_DIR=${OPENSSL_PREFIX}/include" >> $GITHUB_ENV
       - name: Get wasixcc version
         id: get-wasixcc-version
         run: |
