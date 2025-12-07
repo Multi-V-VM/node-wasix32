@@ -63,6 +63,42 @@ def find_host_torque():
     return None
 
 
+def apply_patches():
+    """Apply patch_host_makefiles.py if it exists and hasn't been applied."""
+    script_dir = Path(__file__).resolve().parent
+    repo_root = script_dir.parents[3]
+    patch_script = repo_root / 'patch_host_makefiles.py'
+
+    if not patch_script.exists():
+        return True  # No patch script, assume already patched or not needed
+
+    if os.environ.get('TORQUE_WRAPPER_DEBUG'):
+        print(f"torque_host_wrapper: Applying host makefile patches...", file=sys.stderr)
+
+    try:
+        result = subprocess.run(
+            ['python3', str(patch_script)],
+            cwd=str(repo_root),
+            capture_output=True,
+            timeout=30,
+            check=False
+        )
+
+        if result.returncode == 0:
+            if os.environ.get('TORQUE_WRAPPER_DEBUG'):
+                print(f"torque_host_wrapper: Successfully applied patches", file=sys.stderr)
+            return True
+        else:
+            if os.environ.get('TORQUE_WRAPPER_DEBUG'):
+                print(f"torque_host_wrapper: patch script failed with code {result.returncode}", file=sys.stderr)
+                print(f"stderr: {result.stderr.decode('utf-8', errors='ignore')}", file=sys.stderr)
+            return False
+    except Exception as e:
+        if os.environ.get('TORQUE_WRAPPER_DEBUG'):
+            print(f"torque_host_wrapper: Error applying patches: {e}", file=sys.stderr)
+        return False
+
+
 def build_host_torque():
     """Build the host torque executable if it doesn't exist."""
     script_dir = Path(__file__).resolve().parent
@@ -72,6 +108,11 @@ def build_host_torque():
     if not out_dir.exists():
         return False
 
+    # First ensure patches are applied
+    if not apply_patches():
+        if os.environ.get('TORQUE_WRAPPER_DEBUG'):
+            print(f"torque_host_wrapper: Warning: Failed to apply patches, continuing anyway", file=sys.stderr)
+
     if os.environ.get('TORQUE_WRAPPER_DEBUG'):
         print(f"torque_host_wrapper: Building host torque...", file=sys.stderr)
 
@@ -79,7 +120,6 @@ def build_host_torque():
     try:
         result = subprocess.run(
             ['make', '-C', str(out_dir), 'BUILDTYPE=Release', 'torque'],
-            capture_output=True,
             timeout=600,  # 10 minute timeout
             check=False
         )
@@ -91,7 +131,6 @@ def build_host_torque():
         else:
             if os.environ.get('TORQUE_WRAPPER_DEBUG'):
                 print(f"torque_host_wrapper: make failed with code {result.returncode}", file=sys.stderr)
-                print(f"stderr: {result.stderr.decode('utf-8', errors='ignore')}", file=sys.stderr)
             return False
     except Exception as e:
         if os.environ.get('TORQUE_WRAPPER_DEBUG'):
