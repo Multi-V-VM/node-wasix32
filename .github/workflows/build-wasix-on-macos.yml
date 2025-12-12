@@ -34,12 +34,6 @@ jobs:
           echo "OPENSSL_DIR=${OPENSSL_PREFIX}" >> $GITHUB_ENV
           echo "OPENSSL_LIB_DIR=${OPENSSL_PREFIX}/lib" >> $GITHUB_ENV
           echo "OPENSSL_INCLUDE_DIR=${OPENSSL_PREFIX}/include" >> $GITHUB_ENV
-      - name: Install dependencies
-        shell: bash
-        run: |
-          set -euxo pipefail
-          # Install binaryen
-          brew install binaryen
       - uses: cargo-bins/cargo-binstall@main
       - name: Install wasixcc
         shell: bash
@@ -58,6 +52,7 @@ jobs:
           # export WASIXCC_LLVM_LOCATION="$PWD/.wasix"
           # Download latest LLVM toolchain and WASIX sysroot
           wasixcc --download-all
+          sudo wasixcc --install-executables /usr/local/bin
 
       - name: Build node.wasm
         timeout-minutes: 10
