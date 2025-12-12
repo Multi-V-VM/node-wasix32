@@ -37,7 +37,7 @@ jobs:
       - name: Get wasixcc version
         id: get-wasixcc-version
         run: |
-          echo "SHA=$(git ls-remote https://github.com/tonidy/wasixcc HEAD | awk '{ print $1 }')" >> $GITHUB_OUTPUT
+          echo "SHA=$(git ls-remote https://github.com/wasix-org/wasixcc HEAD | awk '{ print $1 }')" >> $GITHUB_OUTPUT
 
       - name: Cache wasixcc
         id: cache-wasixcc
@@ -53,7 +53,7 @@ jobs:
           
           if [ ! -d "/tmp/wasixcc" ]; then
             mkdir -p /tmp/wasixcc
-            git clone https://github.com/tonidy/wasixcc /tmp/wasixcc
+            git clone https://github.com/wasix-org/wasixcc /tmp/wasixcc
             cd /tmp/wasixcc
             cargo build -r -F bin --bin wasixcc
           fi
