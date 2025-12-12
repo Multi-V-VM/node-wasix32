@@ -21,6 +21,12 @@ def patch_makefile(filepath):
     # Replace the WASM32 arch flag with ARM64
     content = content.replace("'-DV8_TARGET_ARCH_WASM32'", "'-DV8_TARGET_ARCH_ARM64'")
 
+    # Remove the GLIBCXX ABI flag since macOS uses libc++, not libstdc++
+    content = content.replace("'-D_GLIBCXX_USE_CXX11_ABI=1' \\\n", "")
+
+    # Use C++2b for spaceship operator and concepts support
+    content = content.replace("-std=c++20", "-std=c++2b -fconcepts")
+
     # Add the 64_BIT flag if ARM64 is defined but 64_BIT is not
     # We need to handle both DEFS_Debug and DEFS_Release sections
     if "'-DV8_TARGET_ARCH_ARM64'" in content:
@@ -69,7 +75,91 @@ def patch_root_makefile():
 
     if old_alink in content:
         content = content.replace(old_alink, new_alink)
+
+    if content != original_content:
         with open(makefile_path, 'w') as f:
+            f.write(content)
+        return True
+
+    return False
+
+def patch_torque_makefile():
+    """Patch torque.host.mk specifically to add necessary libraries and frameworks."""
+    torque_mk = 'out/tools/v8_gypfiles/torque.host.mk'
+    
+    if not os.path.exists(torque_mk):
+        return False
+
+    with open(torque_mk, 'r') as f:
+        content = f.read()
+
+    original_content = content
+
+    # Add C++ library to LIBS if not present
+    if 'LIBS := ' in content and 'LIBS := -lc++' not in content:
+        content = re.sub(
+            r'^LIBS\s*:=\s*$',
+            'LIBS := -lc++',
+            content,
+            flags=re.MULTILINE
+        )
+
+    # Add CoreFoundation framework for macOS time zone support
+    if 'LDFLAGS_Release :=' in content and '-framework CoreFoundation' not in content:
+        content = re.sub(
+            r'(LDFLAGS_Release\s*:=\s*.*?)(?=\\?$)',
+            r'\1 \\\n\t-framework CoreFoundation',
+            content,
+            flags=re.MULTILINE
+        )
+    
+    # Also add CoreFoundation to Debug builds if they exist
+    if 'LDFLAGS_Debug :=' in content and '-framework CoreFoundation' not in content:
+        content = re.sub(
+            r'(LDFLAGS_Debug\s*:=\s*.*?)(?=\\?$)',
+            r'\1 \\\n\t-framework CoreFoundation',
+            content,
+            flags=re.MULTILINE
+        )
+
+    # Add system libraries for proper symbol resolution
+    if 'LIBS := -lc++' in content and '-framework CoreFoundation' not in content:
+        content = content.replace('LIBS := -lc++', 'LIBS := -lc++ -framework CoreFoundation')
+    
+    # Add system libraries for V8 and C++ standard library symbols
+    if 'LIBS := -lc++ -framework CoreFoundation' in content:
+        # Add system libraries that V8 and C++ standard library might need
+        if '-framework SystemConfiguration' not in content:
+            content = content.replace('LIBS := -lc++ -framework CoreFoundation', 
+                                    'LIBS := -lc++ -framework CoreFoundation -framework SystemConfiguration')
+        
+        # Add essential system libraries for threading and memory management
+        if '-lpthread' not in content and '-lSystem' not in content:
+            content = content.replace('LIBS := -lc++ -framework CoreFoundation -framework SystemConfiguration',
+                                    'LIBS := -lc++ -framework CoreFoundation -framework SystemConfiguration -lpthread -lSystem')
+    
+    # Add system libraries to LDFLAGS as well
+    if 'LDFLAGS_Release :=' in content:
+        # Add SystemConfiguration framework for networking and system calls
+        if '-framework SystemConfiguration' not in content:
+            content = re.sub(
+                r'(LDFLAGS_Release\s*:=\s*.*?)(?=\\?$)',
+                r'\1 \\\n\t-framework SystemConfiguration \\\n\t-lpthread \\\n\t-lSystem',
+                content,
+                flags=re.MULTILINE
+            )
+    
+    if 'LDFLAGS_Debug :=' in content:
+        if '-framework SystemConfiguration' not in content:
+            content = re.sub(
+                r'(LDFLAGS_Debug\s*:=\s*.*?)(?=\\?$)',
+                r'\1 \\\n\t-framework SystemConfiguration \\\n\t-lpthread \\\n\t-lSystem',
+                content,
+                flags=re.MULTILINE
+            )
+
+    if content != original_content:
+        with open(torque_mk, 'w') as f:
             f.write(content)
         return True
 
@@ -96,28 +186,9 @@ def main():
     if patch_root_makefile():
         print(f"✅ Patched root Makefile alink command")
 
-    # Also patch torque.host.mk specifically to add C++ library linking
-    torque_mk = os.path.join(makefile_dir, 'torque.host.mk')
-    if os.path.exists(torque_mk):
-        with open(torque_mk, 'r') as f:
-            content = f.read()
-
-        original_torque_content = content
-
-        # Add C++ library to LIBS - be careful to only match the standalone LIBS := assignment
-        if 'LIBS := ' in content and 'LIBS := -lc++' not in content:
-            # Find the LIBS := assignment that's at the end of a line before other targets/variables
-            content = re.sub(
-                r'^LIBS\s*:=\s*$',
-                'LIBS := -lc++',
-                content,
-                flags=re.MULTILINE
-            )
-
-        if content != original_torque_content:
-            with open(torque_mk, 'w') as f:
-                f.write(content)
-            print(f"✅ Configured torque.host.mk with C++ library")
+    # Patch torque.host.mk specifically to add C++ library and CoreFoundation
+    if patch_torque_makefile():
+        print(f"✅ Configured torque.host.mk with C++ library and CoreFoundation")
 
 if __name__ == '__main__':
     main()
