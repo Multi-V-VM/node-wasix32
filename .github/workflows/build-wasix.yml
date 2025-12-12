@@ -14,11 +14,54 @@ jobs:
     #   image: ubuntu:24.04
     steps:
       - uses: actions/checkout@v4
+      - uses: actions-rust-lang/setup-rust-toolchain@v1
+        with:
+          toolchain: stable
+      - name: Configure OpenSSL env
+        shell: bash
+        run: |
+          set -euxo pipefail
+          ARCH=$(dpkg-architecture -qDEB_HOST_MULTIARCH)
+          echo "PKG_CONFIG_PATH=/usr/lib/${ARCH}/pkgconfig:/usr/lib/pkgconfig" >> $GITHUB_ENV
+          echo "OPENSSL_DIR=/usr" >> $GITHUB_ENV
+          echo "OPENSSL_LIB_DIR=/usr/lib/${ARCH}" >> $GITHUB_ENV
+          echo "OPENSSL_INCLUDE_DIR=/usr/include" >> $GITHUB_ENV
+      - name: Get wasixcc version
+        id: get-wasixcc-version
+        run: |
+          echo "SHA=$(git ls-remote https://github.com/wasix-org/wasixcc HEAD | awk '{ print $1 }')" >> $GITHUB_OUTPUT
+
+      - name: Cache wasixcc
+        id: cache-wasixcc
+        uses: actions/cache@v4
+        with:
+          path: /tmp/wasixcc
+          key: ${{ runner.os }}-wasixcc-${{ steps.get-wasixcc-version.outputs.SHA }}
+
       - name: Install wasixcc
         shell: bash
         run: |
           set -euxo pipefail
-          .github/scripts/install-wasixcc.sh
+          
+          if [ ! -d "/tmp/wasixcc" ]; then
+            mkdir -p /tmp/wasixcc
+            git clone https://github.com/wasix-org/wasixcc /tmp/wasixcc
+            cd /tmp/wasixcc
+            cargo build -r -F bin --bin wasixcc
+          fi
+          
+          # Install all executables to PATH
+          /tmp/wasixcc/target/release/wasixcc --install-executables /usr/local/bin
+          echo "PATH=/usr/local/bin:$PATH" >> $GITHUB_ENV
+      - name: Download LLVM, binaryen and WASIX components
+        shell: bash
+        run: |
+          set -euxo pipefail
+          # Configure wasixcc download paths
+          # export WASIXCC_SYSROOT_PREFIX="$PWD"
+          # export WASIXCC_LLVM_LOCATION="$PWD/.wasix"
+          # Download latest LLVM toolchain and WASIX sysroot
+          wasixcc --download-all
 
       - name: Build node.wasm
         timeout-minutes: 10
