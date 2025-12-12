@@ -80,14 +80,32 @@ if [ -d /tmp/wasixcc ]; then
   rm -rf /tmp/wasixcc
 fi
 
-mv wasixcc /tmp/wasixcc
-chmod +x /tmp/wasixcc
+# Move to /tmp and make binaries executable
+if [ -d wasixcc ]; then
+  mv wasixcc /tmp/wasixcc
+  chmod +x /tmp/wasixcc/bin/* 2>/dev/null || chmod +x /tmp/wasixcc/*
+else
+  # If it's a single binary, move it directly
+  mkdir -p /tmp/wasixcc
+  mv wasixcc /tmp/wasixcc/wasixcc
+  chmod +x /tmp/wasixcc/wasixcc
+fi
+
+# Determine the correct path to wasixcc binary
+if [ -f /tmp/wasixcc/bin/wasixcc ]; then
+  WASIXCC_BIN="/tmp/wasixcc/bin/wasixcc"
+elif [ -f /tmp/wasixcc/wasixcc ]; then
+  WASIXCC_BIN="/tmp/wasixcc/wasixcc"
+else
+  echo "Error: Could not find wasixcc binary"
+  exit 1
+fi
 
 # Download sysroot and LLVM
-/tmp/wasixcc --download-all
+$WASIXCC_BIN --download-all
 
 # Install executables to /usr/local/bin
-sudo /tmp/wasixcc --install-executables /usr/local/bin
+sudo $WASIXCC_BIN --install-executables /usr/local/bin
 
 echo "wasixcc version: $(wasixcc --version)"
 echo "wasixcc executables installed to /usr/local/bin"
