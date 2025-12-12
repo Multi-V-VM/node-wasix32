@@ -20,6 +20,12 @@ jobs:
           set -euxo pipefail
           .github/scripts/install-wasixcc.sh
 
+      - name: Verify wasixcc installation
+        run: |
+          wasixcc --version
+          wasixcc --print-sysroot
+          $HOME/.wasixcc/llvm/bin/clang --version
+
       - name: Build node.wasm
         timeout-minutes: 10
         shell: bash
@@ -27,7 +33,7 @@ jobs:
           set -euxo pipefail
           export CFLAGS="-D_GNU_SOURCE"
           export CXXFLAGS="-D_GNU_SOURCE"
-          make node.wasm JOBS=$(nproc)
+          make node.wasm JOBS=$(sysctl -n hw.ncpu)
       - name: Upload artifact
         uses: actions/upload-artifact@4cec3d8aa04e39d1a68397de0c4cd6fb9dce8ec1
         with:
