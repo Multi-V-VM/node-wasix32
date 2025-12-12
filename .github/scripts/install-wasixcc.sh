@@ -83,6 +83,9 @@ fi
 mv wasixcc /tmp/wasixcc
 chmod +x /tmp/wasixcc
 
+# Download sysroot and LLVM
+/tmp/wasixcc --download-all
+
 # Install executables to /usr/local/bin
 sudo /tmp/wasixcc --install-executables /usr/local/bin
 

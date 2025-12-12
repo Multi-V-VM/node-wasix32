@@ -19,15 +19,6 @@ jobs:
         run: |
           set -euxo pipefail
           .github/scripts/install-wasixcc.sh
-      - name: Download LLVM, binaryen and WASIX components
-        shell: bash
-        run: |
-          set -euxo pipefail
-          # Configure wasixcc download paths
-          # export WASIXCC_SYSROOT_PREFIX="$PWD"
-          # export WASIXCC_LLVM_LOCATION="$PWD/.wasix"
-          # Download latest LLVM toolchain and WASIX sysroot
-          wasixcc --download-all
 
       - name: Build node.wasm
         timeout-minutes: 10
