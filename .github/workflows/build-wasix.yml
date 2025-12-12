@@ -26,33 +26,21 @@ jobs:
           echo "OPENSSL_DIR=/usr" >> $GITHUB_ENV
           echo "OPENSSL_LIB_DIR=/usr/lib/${ARCH}" >> $GITHUB_ENV
           echo "OPENSSL_INCLUDE_DIR=/usr/include" >> $GITHUB_ENV
-      - name: Get wasixcc version
-        id: get-wasixcc-version
+      - name: Install dependencies
+        shell: bash
         run: |
-          echo "SHA=$(git ls-remote https://github.com/wasix-org/wasixcc HEAD | awk '{ print $1 }')" >> $GITHUB_OUTPUT
-
-      - name: Cache wasixcc
-        id: cache-wasixcc
-        uses: actions/cache@v4
-        with:
-          path: /tmp/wasixcc
-          key: ${{ runner.os }}-wasixcc-${{ steps.get-wasixcc-version.outputs.SHA }}
-
+          set -euxo pipefail
+          # Install binaryen
+          sudo apt update && sudo apt install -y binaryen
+      - uses: cargo-bins/cargo-binstall@main
       - name: Install wasixcc
         shell: bash
         run: |
           set -euxo pipefail
-          
-          if [ ! -d "/tmp/wasixcc" ]; then
-            mkdir -p /tmp/wasixcc
-            git clone https://github.com/wasix-org/wasixcc /tmp/wasixcc
-            cd /tmp/wasixcc
-            cargo build -r -F bin --bin wasixcc
-          fi
-          
-          # Install all executables to PATH
-          /tmp/wasixcc/target/release/wasixcc --install-executables /usr/local/bin
-          echo "PATH=/usr/local/bin:$PATH" >> $GITHUB_ENV
+          # Install wasixcc using cargo binstall
+          cargo binstall wasixcc
+          # Add cargo bin to PATH
+          echo "PATH=$HOME/.cargo/bin:$PATH" >> $GITHUB_ENV
       - name: Download LLVM, binaryen and WASIX components
         shell: bash
         run: |
