@@ -14,33 +14,11 @@ jobs:
     #   image: ubuntu:24.04
     steps:
       - uses: actions/checkout@v4
-      - uses: actions-rust-lang/setup-rust-toolchain@v1
-        with:
-          toolchain: stable
-      - name: Configure OpenSSL env
-        shell: bash
-        run: |
-          set -euxo pipefail
-          # Use Homebrew OpenSSL if available, otherwise fall back to system
-          if [ -d "/usr/local/opt/openssl" ]; then
-            OPENSSL_PREFIX="/usr/local/opt/openssl"
-          elif [ -d "/opt/homebrew/opt/openssl" ]; then
-            OPENSSL_PREFIX="/opt/homebrew/opt/openssl"
-          else
-            OPENSSL_PREFIX="/usr"
-          fi
-          
-          echo "PKG_CONFIG_PATH=${OPENSSL_PREFIX}/lib/pkgconfig:/usr/lib/pkgconfig" >> $GITHUB_ENV
-          echo "OPENSSL_DIR=${OPENSSL_PREFIX}" >> $GITHUB_ENV
-          echo "OPENSSL_LIB_DIR=${OPENSSL_PREFIX}/lib" >> $GITHUB_ENV
-          echo "OPENSSL_INCLUDE_DIR=${OPENSSL_PREFIX}/include" >> $GITHUB_ENV
-      - uses: cargo-bins/cargo-binstall@main
       - name: Install wasixcc
         shell: bash
         run: |
           set -euxo pipefail
-          # Install wasixcc using cargo binstall
-          cargo binstall --force wasixcc
+          .github/scripts/install-wasixcc.sh
       - name: Download LLVM, binaryen and WASIX components
         shell: bash
         run: |
@@ -49,8 +27,7 @@ jobs:
           # export WASIXCC_SYSROOT_PREFIX="$PWD"
           # export WASIXCC_LLVM_LOCATION="$PWD/.wasix"
           # Download latest LLVM toolchain and WASIX sysroot
-          $HOME/.cargo/bin/wasixcc --download-all
-          sudo $HOME/.cargo/bin/wasixcc --install-executables /usr/local/bin
+          wasixcc --download-all
 
       - name: Build node.wasm
         timeout-minutes: 10

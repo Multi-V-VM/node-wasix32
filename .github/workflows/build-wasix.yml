@@ -14,25 +14,11 @@ jobs:
     #   image: ubuntu:24.04
     steps:
       - uses: actions/checkout@v4
-      - uses: actions-rust-lang/setup-rust-toolchain@v1
-        with:
-          toolchain: stable
-      - name: Configure OpenSSL env
-        shell: bash
-        run: |
-          set -euxo pipefail
-          ARCH=$(dpkg-architecture -qDEB_HOST_MULTIARCH)
-          echo "PKG_CONFIG_PATH=/usr/lib/${ARCH}/pkgconfig:/usr/lib/pkgconfig" >> $GITHUB_ENV
-          echo "OPENSSL_DIR=/usr" >> $GITHUB_ENV
-          echo "OPENSSL_LIB_DIR=/usr/lib/${ARCH}" >> $GITHUB_ENV
-          echo "OPENSSL_INCLUDE_DIR=/usr/include" >> $GITHUB_ENV
-      - uses: cargo-bins/cargo-binstall@main
       - name: Install wasixcc
         shell: bash
         run: |
           set -euxo pipefail
-          # Install wasixcc using cargo binstall
-          cargo binstall --force wasixcc
+          .github/scripts/install-wasixcc.sh
       - name: Download LLVM, binaryen and WASIX components
         shell: bash
         run: |
@@ -41,8 +27,7 @@ jobs:
           # export WASIXCC_SYSROOT_PREFIX="$PWD"
           # export WASIXCC_LLVM_LOCATION="$PWD/.wasix"
           # Download latest LLVM toolchain and WASIX sysroot
-          $HOME/.cargo/bin/wasixcc --download-all
-          sudo $HOME/.cargo/bin/wasixcc --install-executables /usr/local/bin
+          wasixcc --download-all
 
       - name: Build node.wasm
         timeout-minutes: 10
