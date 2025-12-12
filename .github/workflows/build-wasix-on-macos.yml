@@ -40,9 +40,7 @@ jobs:
         run: |
           set -euxo pipefail
           # Install wasixcc using cargo binstall
-          cargo binstall wasixcc
-          # Add cargo bin to PATH
-          echo "PATH=$HOME/.cargo/bin:$PATH" >> $GITHUB_ENV
+          cargo binstall --force wasixcc
       - name: Download LLVM, binaryen and WASIX components
         shell: bash
         run: |
@@ -51,8 +49,8 @@ jobs:
           # export WASIXCC_SYSROOT_PREFIX="$PWD"
           # export WASIXCC_LLVM_LOCATION="$PWD/.wasix"
           # Download latest LLVM toolchain and WASIX sysroot
-          wasixcc --download-all
-          sudo wasixcc --install-executables /usr/local/bin
+          $HOME/.cargo/bin/wasixcc --download-all
+          sudo $HOME/.cargo/bin/wasixcc --install-executables /usr/local/bin
 
       - name: Build node.wasm
         timeout-minutes: 10
