@@ -115,7 +115,7 @@ class SimulatorStack : public v8::internal::AllStatic {
 #if V8_ENABLE_WEBASSEMBLY
   static inline ZoneVector<uint8_t> GetCentralStackView(
       v8::internal::Isolate* isolate) {
-    uintptr_t upper_bound = base::Stack::GetStackStart();
+    uintptr_t upper_bound = ::v8::base::Stack::GetStackStart();
     size_t size = isolate->stack_size() + JSStackLimitMargin();
     uintptr_t lower_bound = upper_bound - size;
     return base::VectorOf(reinterpret_cast<uint8_t*>(lower_bound), size);

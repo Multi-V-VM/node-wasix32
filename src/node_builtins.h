@@ -68,7 +68,41 @@ struct CodeCacheInfo {
   BuiltinCodeCacheData data;
 };
 
-using BuiltinSourceMap = std::map<std::string, UnionBytes>;
+enum class BuiltinSourceType {
+  kFunction,
+  kBootstrapScript,
+  kBootstrapRealm,
+  kMainScript,
+  kPerContextScript,
+  kSourceTextModule
+};
+
+struct BuiltinSource {
+  std::string id;
+  UnionBytes source;
+  BuiltinSourceType type;
+
+  BuiltinSource() : source(static_cast<StaticExternalOneByteResource*>(nullptr)) {}
+  BuiltinSource(const char* id, UnionBytes source, BuiltinSourceType type)
+      : id(id), source(source), type(type) {}
+
+  // Allow implicit construction from UnionBytes for compatibility with Add()
+  BuiltinSource(const UnionBytes& bytes)
+      : source(bytes), type(BuiltinSourceType::kFunction) {}
+
+  // Forward ToStringChecked to embedded source
+  v8::Local<v8::String> ToStringChecked(v8::Isolate* isolate) const {
+    return source.ToStringChecked(isolate);
+  }
+
+  // Forward is_one_byte to embedded source
+  bool is_one_byte() const { return source.is_one_byte(); }
+
+  // Allow implicit conversion to UnionBytes for compatibility
+  operator const UnionBytes&() const { return source; }
+};
+
+using BuiltinSourceMap = std::map<std::string, BuiltinSource>;
 using BuiltinCodeCacheMap =
     std::unordered_map<std::string, BuiltinCodeCacheData>;
 

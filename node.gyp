@@ -534,6 +534,7 @@
       'include_dirs': [
         'src',
         'deps/v8/include',
+        'deps/v8',
         'deps/postject'
       ],
 
@@ -832,6 +833,7 @@
       'include_dirs': [
         'src',
         'deps/postject',
+        'deps/v8',
         '<(SHARED_INTERMEDIATE_DIR)' # for node_natives.h
       ],
       'dependencies': [

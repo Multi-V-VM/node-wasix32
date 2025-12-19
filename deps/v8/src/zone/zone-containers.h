@@ -119,10 +119,12 @@ class ZoneVector {
 
   // Construct a non-owning view from a base::Vector when both source and target
   // element types are trivially copyable and layout-compatible.
+  // Only allow conversion if const-ness is preserved (can't cast const to non-const).
   template <typename S,
             typename = std::enable_if_t<std::is_trivially_copyable_v<S> &&
                                         std::is_trivially_copyable_v<T> &&
-                                        (sizeof(S) == sizeof(T))>>
+                                        (sizeof(S) == sizeof(T)) &&
+                                        (!std::is_const_v<S> || std::is_const_v<T>)>>
   ZoneVector(::v8::base::Vector<S> v) : zone_(nullptr) {
     data_ = reinterpret_cast<T*>(v.begin());
     end_ = capacity_ = data_ + v.size();
@@ -1148,6 +1150,10 @@ class ZoneVector<DirectHandle<T>> {
     }
   }
 
+  // Constructor from base::Vector for compatibility (non-owning view)
+  ZoneVector(::v8::base::Vector<value_type> vec)
+      : storage_(reinterpret_cast<InternalType*>(vec.begin()), vec.size()) {}
+
   // Element access - reinterpret_cast is safe because DirectHandle and
   // DirectHandleUnchecked have the same layout
   reference operator[](size_t pos) {
@@ -1226,6 +1232,14 @@ class ZoneVector<const T> {
   ZoneVector(const ::v8::base::Vector<const T>& vec)
       : data_(vec.begin()), size_(vec.size()) {}
 
+  // Constructor from base::Vector with compatible element type (e.g., uint8_t to char)
+  template <typename S,
+            typename = std::enable_if_t<sizeof(S) == sizeof(T) &&
+                                        std::is_trivially_copyable_v<S> &&
+                                        std::is_trivially_copyable_v<T>>>
+  ZoneVector(const ::v8::base::Vector<S>& vec)
+      : data_(reinterpret_cast<const T*>(vec.begin())), size_(vec.size()) {}
+
   // Copy from non-const ZoneVector
   ZoneVector(const ZoneVector<T>& other)
       : data_(other.data()), size_(other.size()) {}
@@ -1263,6 +1277,20 @@ class ZoneVector<const T> {
     return SubVector(from, size_);
   }
 
+  // Produce a sliced non-owning view advanced by offset elements.
+  ZoneVector<const T> operator+(size_t offset) const {
+    DCHECK_LE(offset, size_);
+    return ZoneVector<const T>(data_ + offset, size_ - offset);
+  }
+
+  // Advance this non-owning view by offset elements in-place.
+  ZoneVector<const T>& operator+=(size_t offset) {
+    DCHECK_LE(offset, size_);
+    data_ += offset;
+    size_ -= offset;
+    return *this;
+  }
+
   // Data access
   const T* data() const { return data_; }
 
@@ -1279,6 +1307,14 @@ class ZoneVector<const T> {
       // so we can't. This case should not occur in practice for const views.
       UNREACHABLE();
     }
+  }
+
+  // Cast from ZoneVector to ZoneVector<const T>
+  template <typename S>
+  static ZoneVector<const T> cast(const ZoneVector<S>& input) {
+    static_assert(sizeof(S) == sizeof(T));
+    return ZoneVector<const T>(reinterpret_cast<const T*>(input.data()),
+                                input.size());
   }
 };
 
