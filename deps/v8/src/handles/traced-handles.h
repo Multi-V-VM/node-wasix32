@@ -19,11 +19,13 @@ namespace v8::internal {
 
 // Forward declare missing types for WASI compatibility
 enum class TracedReferenceStoreMode {
-  kDrop,
-  kAssign,
-  kAssigningStore = kAssign  // Alias for compatibility
+  kInitializingStore,
+  kAssigningStore
 };
-enum class TracedReferenceHandling { kDefault };
+enum class TracedReferenceHandling {
+  kDefault,
+  kDroppable
+};
 
 class CppHeap;
 class Isolate;

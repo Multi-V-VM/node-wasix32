@@ -93,7 +93,7 @@ class OutputStreamWriter {
 
   v8::OutputStream* stream_;
   int chunk_size_;
-  base::ScopedZoneVector<char> chunk_;
+  ::v8::base::ScopedVector<char> chunk_;
   int chunk_pos_;
   bool aborted_;
 };

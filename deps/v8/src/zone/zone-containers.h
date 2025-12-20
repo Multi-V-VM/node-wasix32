@@ -1294,6 +1294,11 @@ class ZoneVector<const T> {
   // Data access
   const T* data() const { return data_; }
 
+  // Implicit conversion to base::Vector<const T> for compatibility
+  operator ::v8::base::Vector<const T>() const {
+    return ::v8::base::Vector<const T>(data_, size_);
+  }
+
   // Cast from base::Vector to ZoneVector<const T>
   template <typename S>
   static ZoneVector<const T> cast(const ::v8::base::Vector<S>& input) {
@@ -1309,12 +1314,24 @@ class ZoneVector<const T> {
     }
   }
 
-  // Cast from ZoneVector to ZoneVector<const T>
-  template <typename S>
+  // Cast from ZoneVector to ZoneVector<const T> - only enabled when sizes match
+  template <typename S,
+            typename = std::enable_if_t<sizeof(S) == sizeof(T)>>
   static ZoneVector<const T> cast(const ZoneVector<S>& input) {
-    static_assert(sizeof(S) == sizeof(T));
     return ZoneVector<const T>(reinterpret_cast<const T*>(input.data()),
                                 input.size());
+  }
+
+  // Cast from ZoneVector<const S> to ZoneVector<const T> - handles reinterpret
+  // casting bytes to wider types (e.g., uint8_t to uint16_t)
+  template <typename S>
+  static ZoneVector<const T> cast(const ZoneVector<const S>& input) {
+    static_assert(std::is_trivially_copyable_v<S> && std::is_trivially_copyable_v<T>,
+                  "Types must be trivially copyable for reinterpret cast");
+    // Calculate the new size based on the ratio of element sizes
+    size_t byte_size = input.size() * sizeof(S);
+    size_t new_size = byte_size / sizeof(T);
+    return ZoneVector<const T>(reinterpret_cast<const T*>(input.data()), new_size);
   }
 };
 

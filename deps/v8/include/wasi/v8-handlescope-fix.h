@@ -47,13 +47,19 @@ class HandleScope {
 #endif
 
   void Initialize(Isolate* isolate);
-  Isolate* GetIsolate() const { return reinterpret_cast<Isolate*>(internal_isolate_); }
+  Isolate* GetIsolate() const { return reinterpret_cast<Isolate*>(i_isolate_); }
 
- private:
+ protected:
+  // Default constructor for use by derived classes that call Initialize separately
+  HandleScope() : i_isolate_(nullptr), prev_next_(nullptr), prev_limit_(nullptr) {}
   // Implementation details hidden
-  void* internal_isolate_;
-  void* prev_next_;
-  void* prev_limit_;
+  // Match member names used by api.cc
+  ::v8::internal::Isolate* i_isolate_;
+  ::v8::internal::Address* prev_next_;
+  ::v8::internal::Address* prev_limit_;
+#ifdef V8_ENABLE_CHECKS
+  int scope_level_ = 0;
+#endif
 };
 
 class EscapableHandleScope : public HandleScope {
@@ -103,8 +109,9 @@ class SealHandleScope {
   ~SealHandleScope();
 
  private:
-  void* internal_isolate_;
-  void* prev_limit_;
+  ::v8::internal::Isolate* i_isolate_;
+  ::v8::internal::Address* prev_limit_;
+  int prev_sealed_level_;
 };
 
 #endif // V8_HANDLESCOPE_DEFINED

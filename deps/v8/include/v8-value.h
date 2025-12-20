@@ -19,6 +19,12 @@ class Object;
 class String;
 class Number;
 class Boolean;
+class BigInt;
+class Numeric;
+class Primitive;
+class Integer;
+class Int32;
+class Uint32;
 
 /**
  * The superclass of all JavaScript values and objects.
@@ -379,7 +385,7 @@ class V8_EXPORT Value : public Data {
 #ifdef __wasi__
   // WASI: Add missing ToString method
   MaybeLocal<String> ToString(Local<Context> context) const;
-  
+
   // WASI: Add missing StrictEquals method
   bool StrictEquals(Local<Value> that) const {
     // For WASI, we implement strict equality following ECMAScript semantics
@@ -387,19 +393,46 @@ class V8_EXPORT Value : public Data {
     // For now, just do pointer comparison
     return this == *that;
   }
-  
+
   // WASI: Add missing SameValue method
   bool SameValue(Local<Value> that) const {
     // SameValue is similar to strict equality but treats NaN as equal to itself
     // and +0 and -0 as not equal. For WASI stub, use pointer comparison.
     return this == *that;
   }
-  
+
   // WASI: Add missing methods
   MaybeLocal<Number> ToNumber(Local<Context> context) const;
   MaybeLocal<String> ToDetailString(Local<Context> context) const;
   Local<String> TypeOf(Isolate* isolate) const;
   MaybeLocal<Boolean> InstanceOf(Local<Context> context, Local<Object> object) const;
+
+  // WASI: Add Full* methods used by api.cc
+  bool FullIsUndefined() const;
+  bool FullIsNull() const;
+  bool FullIsTrue() const;
+  bool FullIsFalse() const;
+  bool FullIsString() const;
+  bool IsPrimitive() const;
+
+  // WASI: Add additional type check methods
+  bool IsWasmMemoryMapDescriptor() const;
+
+  // WASI: Add conversion methods
+  V8_WARN_UNUSED_RESULT MaybeLocal<BigInt> ToBigInt(Local<Context> context) const;
+  V8_WARN_UNUSED_RESULT MaybeLocal<Primitive> ToPrimitive(Local<Context> context) const;
+  V8_WARN_UNUSED_RESULT MaybeLocal<Numeric> ToNumeric(Local<Context> context) const;
+  Local<Boolean> ToBoolean(Isolate* isolate) const;
+
+  // WASI: Add more conversion methods
+  V8_WARN_UNUSED_RESULT MaybeLocal<Integer> ToInteger(Local<Context> context) const;
+  V8_WARN_UNUSED_RESULT MaybeLocal<Int32> ToInt32(Local<Context> context) const;
+  V8_WARN_UNUSED_RESULT MaybeLocal<Uint32> ToUint32(Local<Context> context) const;
+  V8_WARN_UNUSED_RESULT MaybeLocal<Uint32> ToArrayIndex(Local<Context> context) const;
+
+  // WASI: Add equality and hash methods
+  V8_WARN_UNUSED_RESULT Maybe<bool> Equals(Local<Context> context, Local<Value> that) const;
+  uint32_t GetHash();
 #endif
 
  private:

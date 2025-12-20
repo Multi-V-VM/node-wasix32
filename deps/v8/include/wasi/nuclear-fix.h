@@ -243,7 +243,10 @@ enum ExternalPointerTag : uint64_t {
   kApiAccessCheckCallbackTag = 0x002F000000000000ULL,
   kApiAbortScriptExecutionCallbackTag = 0x0030000000000000ULL,
   kMicrotaskCallbackTag = 0x0031000000000000ULL,
-  kLastExternalPointerTag = kWasmRefTag,
+  // Foreign object tags for CFunction
+  kCFunctionTag = 0x0032000000000000ULL,
+  kCFunctionInfoTag = 0x0033000000000000ULL,
+  kLastExternalPointerTag = kCFunctionInfoTag,
 };
 
 #endif // V8_EXTERNAL_POINTER_TAGS_DEFINED
@@ -446,7 +449,7 @@ class Internals {
   static constexpr uint64_t kExternalStringResourceTag = 0x0002000000000000ULL;
   static constexpr uint64_t kEmbedderDataSlotPayloadTag = 0x0005000000000000ULL;
   static constexpr int kJSAPIObjectWithEmbedderSlotsHeaderSize = 16;
-  static constexpr int kEmbedderDataSlotSize = 8;
+  static constexpr int kEmbedderDataSlotSize = sizeof(void*);  // 4 on WASM32, 8 on 64-bit
   static constexpr int kEmbedderDataSlotExternalPointerOffset = 0;
   static constexpr int kJSObjectHeaderSize = 12;
   // FixedArray header size used by some public header checks.

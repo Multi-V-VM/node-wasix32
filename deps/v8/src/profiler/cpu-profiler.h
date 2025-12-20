@@ -10,6 +10,7 @@
 
 #include "src/base/platform/condition-variable.h"
 #include "src/base/platform/mutex.h"
+#include "src/base/platform/platform-thread.h"
 #include "src/base/platform/time.h"
 #include "src/profiler/circular-queue.h"
 #include "src/profiler/profiler-listener.h"
@@ -18,10 +19,6 @@
 
 #if V8_OS_WIN
 #include "src/base/platform/platform-win32.h"
-#endif
-
-#ifdef __wasi__
-#include "include/wasi/v8-profiler-wasi-stubs.h"
 #endif
 
 namespace v8 {
@@ -170,7 +167,7 @@ class ProfilerCodeObserver;
 
 // This class implements both the profile events processor thread and
 // methods called by event producers: VM and stack sampler threads.
-class V8_EXPORT_PRIVATE ProfilerEventsProcessor : public base::Thread,
+class V8_EXPORT_PRIVATE ProfilerEventsProcessor : public ::v8::base::Thread,
                                                   public CodeEventObserver {
  public:
   ~ProfilerEventsProcessor() override;

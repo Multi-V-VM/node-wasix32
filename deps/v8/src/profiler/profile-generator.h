@@ -20,16 +20,48 @@
 #include "src/execution/vm-state.h"
 #include "src/logging/code-events.h"
 #include "src/profiler/output-stream-writer.h"
-#include "src/profiler/cpu-profiler.h"
 #include "src/profiler/strings-storage.h"
 #include "src/utils/allocation.h"
 
-#ifdef __wasi__
-#include "include/wasi/v8-profiler-wasi-stubs.h"
-#endif
-
 namespace v8 {
+
+#ifdef __wasi__
+// WASI: Type aliases for profiler types that are inside CpuProfiler class
+using CpuProfilingNamingMode = CpuProfiler::CpuProfilingNamingMode;
+using CpuProfilingLoggingMode = CpuProfiler::CpuProfilingLoggingMode;
+constexpr auto kDebugNaming = CpuProfiler::kDebugNaming;
+constexpr auto kLazyLogging = CpuProfiler::kLazyLogging;
+
+// CpuProfilingResult enum
+enum class CpuProfilingResult {
+  kStarted,
+  kAlreadyStarted,
+  kErrorTooManyProfilers
+};
+
+// CpuProfilingStatus is an alias for CpuProfilingResult
+using CpuProfilingStatus = CpuProfilingResult;
+#endif  // __wasi__
+
 namespace internal {
+
+#ifdef __wasi__
+// WASI: Define ProfilerId type
+using ProfilerId = int;
+
+// WASI: Stub DiscardedSamplesDelegate
+class DiscardedSamplesDelegate {
+ public:
+  virtual ~DiscardedSamplesDelegate() = default;
+  virtual void Notify() = 0;
+};
+
+// WASI: Also define these types in internal namespace for code that uses them unqualified
+using CpuProfilingNamingMode = v8::CpuProfilingNamingMode;
+using CpuProfilingLoggingMode = v8::CpuProfilingLoggingMode;
+constexpr auto kDebugNaming = v8::kDebugNaming;
+constexpr auto kLazyLogging = v8::kLazyLogging;
+#endif  // __wasi__
 
 struct TickSample;
 

@@ -10,6 +10,7 @@
 // either via v8.h or the more fine-grained headers.
 
 #include <vector>
+#include "v8config.h"
 
 namespace v8 {
 

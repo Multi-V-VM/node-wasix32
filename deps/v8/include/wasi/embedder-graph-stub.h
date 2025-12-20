@@ -135,16 +135,20 @@ class HeapProfiler {
     kExposeInternals = 1,
   };
   
+  // NumericsMode enum - defined at HeapProfiler level for v8::HeapProfiler::NumericsMode access
+  enum class NumericsMode {
+    kHideNumericValues = 0,
+    kExposeNumericValues = 1,
+  };
+
   struct HeapSnapshotOptions {
     enum class ControlOption {
       kDefault = 0,
     };
-    
-    enum class NumericsMode {
-      kHideNumericValues = 0,
-      kExposeNumericValues = 1,
-    };
-    
+
+    // Use the HeapProfiler-level NumericsMode
+    using NumericsMode = HeapProfiler::NumericsMode;
+
     ControlOption control;
     NumericsMode numerics_mode;
     bool capture_numeric_value;
@@ -152,9 +156,9 @@ class HeapProfiler {
     int stack_state = 0;
     v8::HeapProfiler::ObjectNameResolver* global_object_name_resolver = nullptr;
     HeapSnapshotMode snapshot_mode;
-    
+
     // Constructor with default values
-    HeapSnapshotOptions() 
+    HeapSnapshotOptions()
       : control(ControlOption::kDefault),
         numerics_mode(NumericsMode::kHideNumericValues),
         capture_numeric_value(false),

@@ -168,11 +168,17 @@ enum GCCallbackFlags { kNoGCCallbackFlags = 0 };
 class ResourceConstraints {
  public:
   size_t max_old_generation_size_in_bytes() const { return 0; }
-  void ConfigureDefaults(size_t /*physical_memory*/, size_t /*virtual_memory_limit*/) {}
+  void ConfigureDefaults(uint64_t /*physical_memory*/, uint64_t /*virtual_memory_limit*/) {}
+  void ConfigureDefaultsFromHeapSize(size_t /*initial_heap_size_in_bytes*/,
+                                     size_t /*maximum_heap_size_in_bytes*/) {}
   void set_stack_limit(uint32_t*) {}
   void set_max_young_generation_size_in_bytes(size_t) {}
   size_t max_young_generation_size_in_bytes() const { return 0; }
   void set_max_old_generation_size_in_bytes(size_t) {}
+  void set_initial_young_generation_size_in_bytes(size_t) {}
+  size_t initial_young_generation_size_in_bytes() const { return 0; }
+  void set_initial_old_generation_size_in_bytes(size_t) {}
+  size_t initial_old_generation_size_in_bytes() const { return 0; }
   void set_code_range_size_in_bytes(size_t) {}
   size_t code_range_size_in_bytes() const { return 0; }
 };
@@ -248,6 +254,7 @@ class V8_EXPORT Isolate {
     kTurboFanOsrCompileStarted,
     // Parser/language feature tracking
     kSloppyModeBlockScopedFunctionRedefinition,
+    kVarRedeclaredCatchBinding,
     kForInInitializer,
     kHtmlComment,
     kHtmlCommentInExternalScript,

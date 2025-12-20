@@ -107,9 +107,25 @@ class Local {
     return Local<T>(reinterpret_cast<T*>(*slot));
   }
 
+  // Returns a pointer to the slot used internally
+  internal::Address* slot() const {
+    return reinterpret_cast<internal::Address*>(const_cast<T**>(&val_));
+  }
+
   // FromRepr creates a Local from an internal representation
   static Local<T> FromRepr(internal::Address value) {
     return Local<T>(reinterpret_cast<T*>(value));
+  }
+
+  // FromAddress creates a Local from an internal Address
+  static Local<T> FromAddress(internal::Address address) {
+    return Local<T>(reinterpret_cast<T*>(address));
+  }
+
+  // Cast - static type cast from one Local type to another
+  template <class S>
+  static Local<T> Cast(Local<S> that) {
+    return Local<T>(reinterpret_cast<T*>(*that));
   }
 
  private:
@@ -123,15 +139,17 @@ class Local {
  */
 class V8_EXPORT Data {
  public:
-  // Add base class methods if needed
-#ifdef __wasi__
-  // WASI: Add missing IsValue method
-  bool IsValue() const {
-    // In the V8 hierarchy, Value inherits from Data
-    // For WASI stub, we assume all Data objects are Values
-    return true;
-  }
-#endif
+  // Type checking methods
+  bool IsValue() const;
+  bool IsModule() const;
+  bool IsModuleRequest() const;
+  bool IsFixedArray() const;
+  bool IsPrivate() const;
+  bool IsObjectTemplate() const;
+  bool IsFunctionTemplate() const;
+  bool IsContext() const;
+  bool IsCppHeapExternal() const;
+
  private:
   Data() = delete;
 };

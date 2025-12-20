@@ -184,7 +184,12 @@ struct BackingStoreBase {};
 #endif  // !defined(__wasi__) && !defined(V8_USING_WASI_SHIMS)
 
 // Debug helper used by v8-function-callback.h when V8_ENABLE_CHECKS.
+// Only provide this stub for WASI builds; other builds use the definition in api.cc.
+#if defined(__wasi__) || defined(V8_USING_WASI_SHIMS)
 inline void VerifyHandleIsNonEmpty(bool) {}
+#else
+V8_EXPORT void VerifyHandleIsNonEmpty(bool is_empty);
+#endif
 
 }  // namespace internal
 }  // namespace v8

@@ -53,5 +53,82 @@ inline Maybe<double> Value::NumberValue(Local<Context> context) const {
   return Just<double>(0.0);
 }
 
+// WASI stubs for Full* methods
+inline bool Value::FullIsUndefined() const { return IsUndefined(); }
+inline bool Value::FullIsNull() const { return IsNull(); }
+inline bool Value::FullIsTrue() const { return IsTrue(); }
+inline bool Value::FullIsFalse() const { return IsFalse(); }
+inline bool Value::FullIsString() const { return IsString(); }
+inline bool Value::IsPrimitive() const {
+  return IsUndefined() || IsNull() || IsBoolean() || IsNumber() || IsString() || IsSymbol() || IsBigInt();
+}
+inline bool Value::IsWasmMemoryMapDescriptor() const { return false; }
+
+// WASI stubs for conversion methods
+inline MaybeLocal<Number> Value::ToNumber(Local<Context> context) const {
+  return MaybeLocal<Number>();
+}
+
+inline MaybeLocal<String> Value::ToDetailString(Local<Context> context) const {
+  return MaybeLocal<String>();
+}
+
+inline Local<String> Value::TypeOf(Isolate* isolate) const {
+  return Local<String>();
+}
+
+inline MaybeLocal<Boolean> Value::InstanceOf(Local<Context> context, Local<Object> object) const {
+  return MaybeLocal<Boolean>();
+}
+
+inline MaybeLocal<BigInt> Value::ToBigInt(Local<Context> context) const {
+  return MaybeLocal<BigInt>();
+}
+
+inline MaybeLocal<Primitive> Value::ToPrimitive(Local<Context> context) const {
+  return MaybeLocal<Primitive>();
+}
+
+inline MaybeLocal<Numeric> Value::ToNumeric(Local<Context> context) const {
+  return MaybeLocal<Numeric>();
+}
+
+inline Local<Boolean> Value::ToBoolean(Isolate* isolate) const {
+  return Local<Boolean>();
+}
+
+inline MaybeLocal<String> Value::ToString(Local<Context> context) const {
+  return MaybeLocal<String>();
+}
+
+inline MaybeLocal<Integer> Value::ToInteger(Local<Context> context) const {
+  return MaybeLocal<Integer>();
+}
+
+inline MaybeLocal<Int32> Value::ToInt32(Local<Context> context) const {
+  return MaybeLocal<Int32>();
+}
+
+inline MaybeLocal<Uint32> Value::ToUint32(Local<Context> context) const {
+  return MaybeLocal<Uint32>();
+}
+
+inline MaybeLocal<Uint32> Value::ToArrayIndex(Local<Context> context) const {
+  return MaybeLocal<Uint32>();
+}
+
+inline Maybe<bool> Value::Equals(Local<Context> context, Local<Value> that) const {
+  return Just(this == *that);
+}
+
+inline uint32_t Value::GetHash() {
+  return 0;
+}
+
+// WASI: Wasm type check methods
+inline bool Value::IsWasmMemoryObject() const { return false; }
+inline bool Value::IsWasmModuleObject() const { return false; }
+inline bool Value::IsWasmNull() const { return false; }
+
 } // namespace v8
 #endif // V8_VALUE_INLINE_IMPL_H_

@@ -73,6 +73,7 @@ class DetachableVector : public DetachableVectorBase {
     DCHECK_LT(i, size_);
     return data()[i];
   }
+  T& operator[](size_t i) const { return data()[i]; }
   T& back() const { return at(size_ - 1); }
   T& front() const { return at(0); }
 

@@ -233,7 +233,7 @@ void i::V8::FatalProcessOutOfMemory(i::Isolate* i_isolate, const char* location,
     // Give the embedder a chance to handle the condition. If it doesn't,
     // just crash.
     if (g_oom_error_callback) g_oom_error_callback(location, details);
-    base::FatalOOM(base::OOMType::kProcess, location);
+    ::v8::base::FatalOOM(::v8::base::OOMType::kProcess, location);
     UNREACHABLE();
   }
 
@@ -368,6 +368,7 @@ SnapshotCreator::SnapshotCreator(const intptr_t* external_references,
                                  const StartupData* existing_snapshot)
     : SnapshotCreator(nullptr, external_references, existing_snapshot) {}
 
+#if !defined(__wasi__) && defined(V8_ISOLATE_FULLY_DEFINED)
 SnapshotCreator::SnapshotCreator(const v8::Isolate::CreateParams& params)
     : impl_(new i::SnapshotCreatorImpl(params)) {}
 
@@ -375,6 +376,7 @@ SnapshotCreator::SnapshotCreator(v8::Isolate* isolate,
                                  const v8::Isolate::CreateParams& params)
     : impl_(new i::SnapshotCreatorImpl(reinterpret_cast<i::Isolate*>(isolate),
                                        params)) {}
+#endif  // !defined(__wasi__) && defined(V8_ISOLATE_FULLY_DEFINED)
 
 SnapshotCreator::~SnapshotCreator() {
   DCHECK_NOT_NULL(impl_);
@@ -430,11 +432,21 @@ bool StartupData::CanBeRehashed() const {
 bool StartupData::IsValid() const { return i::Snapshot::VersionIsValid(this); }
 
 void V8::SetDcheckErrorHandler(DcheckErrorCallback that) {
+#if defined(__wasi__)
+  // WASI: SetDcheckFunction not available, ignore
+  USE(that);
+#else
   v8::base::SetDcheckFunction(that);
+#endif
 }
 
 void V8::SetFatalErrorHandler(V8FatalErrorCallback that) {
+#if defined(__wasi__)
+  // WASI: SetFatalFunction not available, ignore
+  USE(that);
+#else
   v8::base::SetFatalFunction(that);
+#endif
 }
 
 void V8::SetFlagsFromString(const char* str) {
@@ -508,6 +520,7 @@ Extension::Extension(const char* name, const char* source, int dep_count,
   CHECK(source != nullptr || source_length_ == 0);
 }
 
+#if !defined(__wasi__)
 void ResourceConstraints::ConfigureDefaultsFromHeapSize(
     size_t initial_heap_size_in_bytes, size_t maximum_heap_size_in_bytes) {
   CHECK_LE(initial_heap_size_in_bytes, maximum_heap_size_in_bytes);
@@ -533,7 +546,9 @@ void ResourceConstraints::ConfigureDefaultsFromHeapSize(
         std::min(i::kMaximalCodeRangeSize, maximum_heap_size_in_bytes));
   }
 }
+#endif  // !defined(__wasi__)
 
+#if !defined(__wasi__)
 void ResourceConstraints::ConfigureDefaults(uint64_t physical_memory,
                                             uint64_t virtual_memory_limit) {
   size_t heap_size = i::Heap::HeapSizeFromPhysicalMemory(physical_memory);
@@ -549,6 +564,7 @@ void ResourceConstraints::ConfigureDefaults(uint64_t physical_memory,
                  static_cast<size_t>(virtual_memory_limit / 8)));
   }
 }
+#endif  // !defined(__wasi__)
 
 #ifdef ENABLE_SLOW_DCHECKS
 namespace api_internal {
@@ -562,10 +578,12 @@ void StackAllocated<true>::VerifyOnStack() const {
 
 namespace internal {
 
+#if !defined(__wasi__)
 void VerifyHandleIsNonEmpty(bool is_empty) {
   Utils::ApiCheck(!is_empty, "v8::ReturnValue",
                   "SetNonEmpty() called with empty handle.");
 }
+#endif  // !defined(__wasi__)
 
 i::Address* GlobalizeTracedReference(
     i::Isolate* i_isolate, i::Address value, internal::Address* slot,
@@ -728,10 +746,12 @@ HandleScope::~HandleScope() {
   i::HandleScope::CloseScope(i_isolate_, prev_next_, prev_limit_);
 }
 
+#if !defined(__wasi__)
 void* HandleScope::operator new(size_t) { base::OS::Abort(); }
 void* HandleScope::operator new[](size_t) { base::OS::Abort(); }
 void HandleScope::operator delete(void*, size_t) { base::OS::Abort(); }
 void HandleScope::operator delete[](void*, size_t) { base::OS::Abort(); }
+#endif  // !defined(__wasi__)
 
 int HandleScope::NumberOfHandles(Isolate* v8_isolate) {
   return i::HandleScope::NumberOfHandles(
@@ -2089,6 +2109,7 @@ void v8::PrimitiveArray::CheckCast(v8::Data* that) {
       "v8::PrimitiveArray will not be compatible in the future");
 }
 
+#if !defined(__wasi__)
 int FixedArray::Length() const {
   return Utils::OpenDirectHandle(this)->length();
 }
@@ -2099,6 +2120,7 @@ Local<Data> FixedArray::Get(Local<Context> context, int i) const {
   CHECK_LT(i, self->length());
   return ToApiHandle<Data>(i::direct_handle(self->get(i), i_isolate));
 }
+#endif  // !defined(__wasi__)
 
 Local<String> ModuleRequest::GetSpecifier() const {
   auto self = Utils::OpenDirectHandle(this);
@@ -3391,7 +3413,7 @@ const SharedValueConveyor* ValueDeserializer::Delegate::GetSharedValueConveyor(
 }
 
 struct ValueDeserializer::PrivateData {
-  PrivateData(i::Isolate* i_isolate, ZoneVector<const uint8_t> data,
+  PrivateData(i::Isolate* i_isolate, i::ZoneVector<const uint8_t> data,
               Delegate* delegate)
       : isolate(i_isolate), deserializer(i_isolate, data, delegate) {}
   i::Isolate* isolate;
@@ -3406,7 +3428,7 @@ ValueDeserializer::ValueDeserializer(Isolate* v8_isolate, const uint8_t* data,
 ValueDeserializer::ValueDeserializer(Isolate* v8_isolate, const uint8_t* data,
                                      size_t size, Delegate* delegate) {
   private_ = new PrivateData(reinterpret_cast<i::Isolate*>(v8_isolate),
-                             ZoneVector<const uint8_t>(data, size), delegate);
+                             i::ZoneVector<const uint8_t>(data, size), delegate);
 }
 
 ValueDeserializer::~ValueDeserializer() { delete private_; }
@@ -3487,6 +3509,7 @@ bool ValueDeserializer::ReadRawBytes(size_t length, const void** data) {
 
 // --- D a t a ---
 
+#if !defined(__wasi__)
 bool Value::FullIsUndefined() const {
   bool result = i::IsUndefined(*Utils::OpenDirectHandle(this));
   DCHECK_EQ(result, QuickIsUndefined());
@@ -3515,6 +3538,7 @@ bool Value::IsPrimitive() const {
   auto object = Utils::OpenDirectHandle(this);
   return i::IsPrimitive(*object) && !IsPrivateSymbol(*object);
 }
+#endif  // !defined(__wasi__)
 
 bool Value::IsFunction() const {
   return IsCallable(*Utils::OpenDirectHandle(this));
@@ -3522,11 +3546,13 @@ bool Value::IsFunction() const {
 
 bool Value::IsName() const { return i::IsName(*Utils::OpenDirectHandle(this)); }
 
+#if !defined(__wasi__)
 bool Value::FullIsString() const {
   bool result = i::IsString(*Utils::OpenDirectHandle(this));
   DCHECK_EQ(result, QuickIsString());
   return result;
 }
+#endif  // !defined(__wasi__)
 
 bool Value::IsSymbol() const {
   return IsPublicSymbol(*Utils::OpenDirectHandle(this));
@@ -3609,17 +3635,17 @@ VALUE_IS_SPECIFIC_TYPE(SymbolObject, SymbolWrapper)
 VALUE_IS_SPECIFIC_TYPE(Date, JSDate)
 VALUE_IS_SPECIFIC_TYPE(Map, JSMap)
 VALUE_IS_SPECIFIC_TYPE(Set, JSSet)
-#if V8_ENABLE_WEBASSEMBLY
+#if V8_ENABLE_WEBASSEMBLY && !defined(__wasi__)
 VALUE_IS_SPECIFIC_TYPE(WasmMemoryMapDescriptor, WasmMemoryMapDescriptor)
 VALUE_IS_SPECIFIC_TYPE(WasmMemoryObject, WasmMemoryObject)
 VALUE_IS_SPECIFIC_TYPE(WasmModuleObject, WasmModuleObject)
 VALUE_IS_SPECIFIC_TYPE(WasmNull, WasmNull)
-#else
+#elif !defined(__wasi__)
 bool Value::IsWasmMemoryMapDescriptor() const { return false; }
 bool Value::IsWasmMemoryObject() const { return false; }
 bool Value::IsWasmModuleObject() const { return false; }
 bool Value::IsWasmNull() const { return false; }
-#endif  // V8_ENABLE_WEBASSEMBLY
+#endif  // V8_ENABLE_WEBASSEMBLY && !defined(__wasi__)
 VALUE_IS_SPECIFIC_TYPE(WeakMap, JSWeakMap)
 VALUE_IS_SPECIFIC_TYPE(WeakSet, JSWeakSet)
 VALUE_IS_SPECIFIC_TYPE(WeakRef, JSWeakRef)
@@ -3698,6 +3724,7 @@ bool Value::IsModuleNamespaceObject() const {
   return IsJSModuleNamespace(*Utils::OpenDirectHandle(this));
 }
 
+#if !defined(__wasi__)
 MaybeLocal<String> Value::ToString(Local<Context> context) const {
   auto obj = Utils::OpenDirectHandle(this);
   if (i::IsString(*obj)) return ToApiHandle<String>(obj);
@@ -3722,7 +3749,9 @@ MaybeLocal<String> Value::ToDetailString(Local<Context> context) const {
   ENTER_V8_NO_SCRIPT_NO_EXCEPTION(i_isolate);
   return Utils::ToLocal(i::Object::NoSideEffectsToString(i_isolate, obj));
 }
+#endif  // !defined(__wasi__)
 
+#if !defined(__wasi__)
 MaybeLocal<Object> Value::ToObject(Local<Context> context) const {
   auto obj = Utils::OpenDirectHandle(this);
   if (i::IsJSReceiver(*obj)) return ToApiHandle<Object>(obj);
@@ -3778,7 +3807,9 @@ Local<Boolean> Value::ToBoolean(Isolate* v8_isolate) const {
   return ToApiHandle<Boolean>(
       i_isolate->factory()->ToBoolean(BooleanValue(v8_isolate)));
 }
+#endif  // !defined(__wasi__)
 
+#if !defined(__wasi__)
 MaybeLocal<Number> Value::ToNumber(Local<Context> context) const {
   auto obj = Utils::OpenDirectHandle(this);
   if (i::IsNumber(*obj)) return ToApiHandle<Number>(obj);
@@ -3789,7 +3820,9 @@ MaybeLocal<Number> Value::ToNumber(Local<Context> context) const {
   RETURN_ON_FAILED_EXECUTION(Number);
   RETURN_ESCAPED(result);
 }
+#endif  // !defined(__wasi__)
 
+#if !defined(__wasi__)
 MaybeLocal<Integer> Value::ToInteger(Local<Context> context) const {
   auto obj = Utils::OpenDirectHandle(this);
   if (i::IsSmi(*obj)) return ToApiHandle<Integer>(obj);
@@ -3826,6 +3859,7 @@ i::Isolate* i::IsolateFromNeverReadOnlySpaceObject(i::Address obj) {
   return i::GetIsolateFromWritableObject(
       i::Cast<i::HeapObject>(i::Tagged<i::Object>(obj)));
 }
+#endif  // !defined(__wasi__)
 
 namespace api_internal {
 i::Address ConvertToJSGlobalProxyIfNecessary(i::Address holder_ptr) {
@@ -3839,6 +3873,7 @@ i::Address ConvertToJSGlobalProxyIfNecessary(i::Address holder_ptr) {
 }
 }  // namespace api_internal
 
+#if !defined(__wasi__)
 bool i::ShouldThrowOnError(i::Isolate* i_isolate) {
   return i::GetShouldThrow(i_isolate, Nothing<i::ShouldThrow>()) ==
          i::ShouldThrow::kThrowOnError;
@@ -3850,6 +3885,7 @@ void i::Internals::CheckInitializedImpl(v8::Isolate* external_isolate) {
                   "v8::internal::Internals::CheckInitialized",
                   "Isolate is not initialized or V8 has died");
 }
+#endif  // !defined(__wasi__)
 
 void v8::Value::CheckCast(Data* that) {
   Utils::ApiCheck(that->IsValue(), "v8::Value::Cast", "Data is not a Value");
@@ -3901,11 +3937,13 @@ void v8::Private::CheckCast(v8::Data* that) {
                   "v8::Private::Cast", "Value is not a Private");
 }
 
+#if !defined(__wasi__)
 void v8::FixedArray::CheckCast(v8::Data* that) {
   auto obj = Utils::OpenDirectHandle(that);
   Utils::ApiCheck(i::IsFixedArray(*obj), "v8::FixedArray::Cast",
                   "Value is not a FixedArray");
 }
+#endif  // !defined(__wasi__)
 
 void v8::ModuleRequest::CheckCast(v8::Data* that) {
   auto obj = Utils::OpenDirectHandle(that);
@@ -4168,6 +4206,7 @@ void v8::RegExp::CheckCast(v8::Value* that) {
                   "Value is not a RegExp");
 }
 
+#if !defined(__wasi__)
 Maybe<double> Value::NumberValue(Local<Context> context) const {
   auto obj = Utils::OpenDirectHandle(this);
   if (i::IsNumber(*obj)) {
@@ -4219,7 +4258,9 @@ Maybe<uint32_t> Value::Uint32Value(Local<Context> context) const {
                           : static_cast<uint32_t>(
                                 i::Cast<i::HeapNumber>(*num)->value()));
 }
+#endif  // !defined(__wasi__)
 
+#if !defined(__wasi__)
 MaybeLocal<Uint32> Value::ToArrayIndex(Local<Context> context) const {
   auto self = Utils::OpenDirectHandle(this);
   if (i::IsSmi(*self)) {
@@ -4254,7 +4295,9 @@ Maybe<bool> Value::Equals(Local<Context> context, Local<Value> that) const {
   RETURN_ON_FAILED_EXECUTION_PRIMITIVE(bool);
   return result;
 }
+#endif  // !defined(__wasi__)
 
+#if !defined(__wasi__)
 bool Value::StrictEquals(Local<Value> that) const {
   auto self = Utils::OpenDirectHandle(this);
   auto other = Utils::OpenDirectHandle(*that);
@@ -4306,6 +4349,7 @@ uint32_t Value::GetHash() {
   DCHECK_NO_SCRIPT_NO_EXCEPTION(i_isolate);
   return obj->GetOrCreateIdentityHash(i_isolate).value();
 }
+#endif  // !defined(__wasi__)
 
 Maybe<bool> v8::Object::Set(v8::Local<v8::Context> context,
                             v8::Local<Value> key, v8::Local<Value> value) {
@@ -5797,7 +5841,7 @@ namespace {
 // units until the buffer capacity is reached, would be exceeded by the next
 // unit, or all code units have been written out.
 template <typename Char>
-static int WriteUtf8Impl(ZoneVector<const Char> string, char* write_start,
+static int WriteUtf8Impl(i::ZoneVector<const Char> string, char* write_start,
                          int write_capacity, int options,
                          int* utf16_chars_read_out) {
   bool write_null = !(options & v8::String::NO_NULL_TERMINATION);
@@ -6791,6 +6835,7 @@ Local<Context> NewContext(
   return Utils::ToLocal(scope.CloseAndEscape(env));
 }
 
+#if !defined(__wasi__)
 Local<Context> v8::Context::New(
     v8::Isolate* external_isolate, v8::ExtensionConfiguration* extensions,
     v8::MaybeLocal<ObjectTemplate> global_template,
@@ -6857,6 +6902,7 @@ MaybeLocal<Object> v8::Context::NewRemoteContext(
   }
   return Utils::ToLocal(scope.CloseAndEscape(global_proxy));
 }
+#endif  // !defined(__wasi__)
 
 void v8::Context::SetSecurityToken(Local<Value> token) {
   auto env = Utils::OpenDirectHandle(this);
@@ -6876,6 +6922,7 @@ Local<Value> v8::Context::GetSecurityToken() {
   return Utils::ToLocal(i::direct_handle(security_token, i_isolate));
 }
 
+#if !defined(__wasi__)
 namespace {
 
 bool MayContainObjectsToFreeze(i::InstanceType obj_type) {
@@ -7147,7 +7194,7 @@ class ObjectVisitorDeepFreezer : i::ObjectVisitor {
     i::DirectHandle<i::NativeContext> native_context =
         isolate_->native_context();
 
-    i::DirectHandle<ZoneVector<i::AccessorPair> lazy_accessor_pairs_to_freeze(
+    i::DirectHandle<i::ZoneVector<i::AccessorPair>> lazy_accessor_pairs_to_freeze(
         isolate_);
     std::swap(lazy_accessor_pairs_to_freeze, lazy_accessor_pairs_to_freeze_);
 
@@ -7166,8 +7213,8 @@ class ObjectVisitorDeepFreezer : i::ObjectVisitor {
   i::Isolate* isolate_;
   Context::DeepFreezeDelegate* delegate_;
   std::unordered_set<i::Tagged<i::Object>, i::Object::Hasher> done_list_;
-  i::DirectHandle<ZoneVector<i::JSReceiver> objects_to_freeze_;
-  i::DirectHandle<ZoneVector<i::AccessorPair> lazy_accessor_pairs_to_freeze_;
+  i::DirectHandle<i::ZoneVector<i::JSReceiver>> objects_to_freeze_;
+  i::DirectHandle<i::ZoneVector<i::AccessorPair>> lazy_accessor_pairs_to_freeze_;
   std::optional<ErrorInfo> error_;
 };
 
@@ -7189,6 +7236,7 @@ Maybe<void> Context::DeepFreeze(DeepFreezeDelegate* delegate) {
   RETURN_ON_FAILED_EXECUTION_PRIMITIVE(void);
   return JustVoid();
 }
+#endif  // !defined(__wasi__)
 
 v8::Isolate* Context::GetIsolate() {
   return reinterpret_cast<Isolate*>(
@@ -7567,7 +7615,7 @@ inline int StringLength(const uint16_t* string) {
 V8_WARN_UNUSED_RESULT
 inline i::MaybeHandle<i::String> NewString(i::Factory* factory,
                                            NewStringType type,
-                                           ZoneVector<const char> string) {
+                                           i::ZoneVector<const char> string) {
   if (type == NewStringType::kInternalized) {
     return factory->InternalizeUtf8String(string);
   }
@@ -7577,7 +7625,7 @@ inline i::MaybeHandle<i::String> NewString(i::Factory* factory,
 V8_WARN_UNUSED_RESULT
 inline i::MaybeHandle<i::String> NewString(i::Factory* factory,
                                            NewStringType type,
-                                           ZoneVector<const uint8_t> string) {
+                                           i::ZoneVector<const uint8_t> string) {
   if (type == NewStringType::kInternalized) {
     return factory->InternalizeString(string);
   }
@@ -7587,7 +7635,7 @@ inline i::MaybeHandle<i::String> NewString(i::Factory* factory,
 V8_WARN_UNUSED_RESULT
 inline i::MaybeHandle<i::String> NewString(
     i::Factory* factory, NewStringType type,
-    ZoneVector<const uint16_t> string) {
+    i::ZoneVector<const uint16_t> string) {
   if (type == NewStringType::kInternalized) {
     return factory->InternalizeString(string);
   }
@@ -7614,7 +7662,7 @@ static_assert(v8::String::kMaxLength == i::String::kMaxLength);
     if (length < 0) length = StringLength(data);                              \
     i::DirectHandle<i::String> handle_result =                                \
         NewString(i_isolate->factory(), type,                                 \
-                  ZoneVector<const Char>(data, length))                     \
+                  i::ZoneVector<const Char>(data, length))                     \
             .ToHandleChecked();                                               \
     result = Utils::ToLocal(handle_result);                                   \
   }
@@ -7628,7 +7676,7 @@ Local<String> String::NewFromUtf8Literal(Isolate* v8_isolate,
   API_RCS_SCOPE(i_isolate, String, NewFromUtf8Literal);
   i::DirectHandle<i::String> handle_result =
       NewString(i_isolate->factory(), type,
-                ZoneVector<const char>(literal, length))
+                i::ZoneVector<const char>(literal, length))
           .ToHandleChecked();
   return Utils::ToLocal(handle_result);
 }
@@ -8408,6 +8456,7 @@ Maybe<void> v8::Array::Iterate(Local<Context> context,
   return JustVoid();
 }
 
+#if !defined(__wasi__)
 v8::TypecheckWitness::TypecheckWitness(Isolate* isolate)
 #ifdef V8_ENABLE_DIRECT_HANDLE
     // An empty local suffices.
@@ -8445,6 +8494,7 @@ void v8::TypecheckWitness::Update(Local<Value> baseline) {
   cache.PatchValue(map);
 #endif
 }
+#endif  // !defined(__wasi__)
 
 Local<v8::Map> v8::Map::New(Isolate* v8_isolate) {
   i::Isolate* i_isolate = reinterpret_cast<i::Isolate*>(v8_isolate);
@@ -8871,7 +8921,7 @@ OwnedBuffer CompiledWasmModule::Serialize() {
 
 MemorySpan<const uint8_t> CompiledWasmModule::GetWireBytesRef() {
 #if V8_ENABLE_WEBASSEMBLY
-  ZoneVector<const uint8_t> bytes_vec = native_module_->wire_bytes();
+  i::ZoneVector<const uint8_t> bytes_vec = native_module_->wire_bytes();
   return {bytes_vec.begin(), bytes_vec.size()};
 #else
   UNREACHABLE();
@@ -8919,7 +8969,7 @@ MaybeLocal<WasmModuleObject> WasmModuleObject::FromCompiledModule(
 MaybeLocal<WasmModuleObject> WasmModuleObject::Compile(
     Isolate* v8_isolate, MemorySpan<const uint8_t> wire_bytes) {
 #if V8_ENABLE_WEBASSEMBLY
-  base::OwnedZoneVector<const uint8_t> bytes = base::OwnedCopyOf(wire_bytes);
+  base::OwnedVector<const uint8_t> bytes = base::OwnedCopyOf(wire_bytes.data(), wire_bytes.size());
   i::Isolate* i_isolate = reinterpret_cast<i::Isolate*>(v8_isolate);
   // We don't check for `IsWasmCodegenAllowed` here, because this function is
   // used for ESM integration, which in terms of security is equivalent to
@@ -9680,6 +9730,7 @@ void BigInt::ToWordsArray(int* sign_bit, int* word_count,
   *word_count = base::checked_cast<int>(unsigned_word_count);
 }
 
+#if !defined(__wasi__)
 int64_t Isolate::AdjustAmountOfExternalAllocatedMemoryImpl(
     int64_t change_in_bytes) {
   // Try to check for unreasonably large or small values from the embedder.
@@ -9708,7 +9759,9 @@ void Isolate::HandleExternalMemoryInterrupt() {
   if (heap->gc_state() != i::Heap::NOT_IN_GC) return;
   heap->HandleExternalMemoryInterrupt();
 }
+#endif  // !defined(__wasi__)
 
+#if !defined(__wasi__)
 IsolateGroup::IsolateGroup(i::IsolateGroup*&& isolate_group)
     : isolate_group_(isolate_group) {
   DCHECK_NOT_NULL(isolate_group_);
@@ -12524,6 +12577,8 @@ TryToCopyAndConvertArrayToCppBuffer<CTypeInfoBuilder<double>::Build().GetId(),
       CTypeInfo(CTypeInfo::Type::kFloat64).GetId(), double>(src, dst,
                                                             max_length);
 }
+
+#endif  // !defined(__wasi__) - closes guard from line 9764
 
 }  // namespace v8
 
