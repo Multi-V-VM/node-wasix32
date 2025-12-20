@@ -835,6 +835,7 @@ void JSExternalObject::JSExternalObjectPrint(std::ostream& os) {
 }
 
 void CppHeapExternalObject::CppHeapExternalObjectPrint(std::ostream& os) {
+#if !defined(__wasi__)
   if (i::Isolate* isolate = i::Isolate::TryGetCurrent()) {
     os << "\n - cpp_heap_wrappable: "
        << CppHeapObjectWrapper(*this).GetCppHeapWrappable(isolate,
@@ -842,6 +843,9 @@ void CppHeapExternalObject::CppHeapExternalObjectPrint(std::ostream& os) {
   } else {
     os << "\n - cpp_heap_wrappable: <object>";
   }
+#else
+  os << "\n - cpp_heap_wrappable: <not available on WASI>";
+#endif
 }
 
 void JSGeneratorObject::JSGeneratorObjectPrint(std::ostream& os) {

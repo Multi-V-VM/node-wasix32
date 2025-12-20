@@ -5,6 +5,7 @@
 #ifndef V8_EXECUTION_WASM32_FRAME_CONSTANTS_WASM32_H_
 #define V8_EXECUTION_WASM32_FRAME_CONSTANTS_WASM32_H_
 
+#include "src/base/bits.h"
 #include "src/base/macros.h"
 #include "src/codegen/register.h"
 #include "src/execution/frame-constants.h"
@@ -65,14 +66,38 @@ class WasmLiftoffFrameConstants : public TypedFrameConstants {
 class WasmDebugBreakFrameConstants : public TypedFrameConstants {
  public:
   // WASM32 has limited registers compared to other architectures
-  // This will need to be filled in based on actual wasm32 register allocation
+  // Virtual register set for debugging support
   static constexpr int kNumPushedGpRegisters = 4;
   static constexpr int kNumPushedFpRegisters = 4;
+
+  // Register lists for push/pop operations (r0-r3 for GP, d0-d3 for FP)
+  static constexpr RegList kPushedGpRegs = {Register::r0(), Register::r1(),
+                                             Register::r2(), Register::r3()};
+  static constexpr DoubleRegList kPushedFpRegs = {
+      DoubleRegister::d0(), DoubleRegister::d1(),
+      DoubleRegister::d2(), DoubleRegister::d3()};
 
   static constexpr int kLastPushedGpRegisterOffset =
       -kFixedFrameSizeFromFp - kNumPushedGpRegisters * kSystemPointerSize;
   static constexpr int kLastPushedFpRegisterOffset =
       kLastPushedGpRegisterOffset - kNumPushedFpRegisters * kSimd128Size;
+
+  // Offsets are fp-relative.
+  static int GetPushedGpRegisterOffset(int reg_code) {
+    DCHECK_NE(0, kPushedGpRegs.bits() & (1 << reg_code));
+    uint32_t lower_regs =
+        kPushedGpRegs.bits() & ((uint32_t{1} << reg_code) - 1);
+    return kLastPushedGpRegisterOffset +
+           base::bits::CountPopulation(lower_regs) * kSystemPointerSize;
+  }
+
+  static int GetPushedFpRegisterOffset(int reg_code) {
+    DCHECK_NE(0, kPushedFpRegs.bits() & (1 << reg_code));
+    uint32_t lower_regs =
+        kPushedFpRegs.bits() & ((uint32_t{1} << reg_code) - 1);
+    return kLastPushedFpRegisterOffset +
+           base::bits::CountPopulation(lower_regs) * kDoubleSize;
+  }
 };
 
 }  // namespace internal

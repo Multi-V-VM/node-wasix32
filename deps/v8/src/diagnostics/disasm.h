@@ -6,8 +6,13 @@
 #define V8_DIAGNOSTICS_DISASM_H_
 
 #include "src/base/vector.h"
+#include "src/zone/zone-containers.h"
 
 namespace disasm {
+
+// Forward declaration
+template <typename T>
+using ZoneVector = v8::internal::ZoneVector<T>;
 
 // Interface and default implementation for converting addresses and
 // register-numbers to text.  The default implementation is machine

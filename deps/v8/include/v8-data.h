@@ -128,6 +128,11 @@ class Local {
     return Local<T>(reinterpret_cast<T*>(*that));
   }
 
+  // ToLocalChecked - returns this Local (for compatibility with MaybeLocal pattern)
+  Local<T> ToLocalChecked() const {
+    return *this;
+  }
+
  private:
   T* val_;
 };

@@ -138,6 +138,12 @@ class TrustedRange;
 class TrustedSpace;
 class WeakObjectRetainer;
 
+// Forward declaration for GlobalHandleVector and its alias
+template <typename T>
+class GlobalHandleVector;
+template <typename T>
+using GlobalHandleZoneVector = GlobalHandleVector<T>;
+
 enum class ClearRecordedSlots { kYes, kNo };
 
 enum class InvalidateRecordedSlots { kYes, kNo };
@@ -635,7 +641,7 @@ class Heap final {
   void CompactWeakArrayLists();
 
   V8_EXPORT_PRIVATE void AddRetainedMaps(DirectHandle<NativeContext> context,
-                                         v8::base::Vector<Map> maps);
+                                         GlobalHandleZoneVector<Map> maps);
 
   // This event is triggered after object is moved to a new place.
   void OnMoveEvent(Tagged<HeapObject> source, Tagged<HeapObject> target,

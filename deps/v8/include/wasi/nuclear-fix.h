@@ -472,6 +472,11 @@ class Internals {
   // Number of embedder data slots reserved in IsolateData
   static constexpr int kNumIsolateDataSlots = 4;
 
+  // DisallowGarbageCollection layout constants for assert-scope.cc static_assert
+  // On WASM32, alignment is 4 bytes and size is 4 bytes (single pointer)
+  static constexpr int kDisallowGarbageCollectionAlign = 4;
+  static constexpr int kDisallowGarbageCollectionSize = 4;
+
   // No-op initialization checks for WASI stubs
   static void CheckInitialized(void*) {}
   template <typename T>

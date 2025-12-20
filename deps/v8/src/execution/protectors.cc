@@ -37,6 +37,10 @@ void TraceProtectorInvalidation(const char* protector_name) {
 // fails, add the use counter in V8 and chromium. Note: IsDefined is not
 // strictly needed but clarifies the intent of the static assert.
 constexpr bool IsDefined(v8::Isolate::UseCounterFeature) { return true; }
+#ifdef __wasi__
+// WASI stubs use a separate InvalidatedProtector enum
+constexpr bool IsDefined(v8::Isolate::InvalidatedProtector) { return true; }
+#endif
 #define V(Name, ...) \
   static_assert(IsDefined(v8::Isolate::kInvalidated##Name##Protector));
 

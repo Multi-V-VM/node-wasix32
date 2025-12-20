@@ -33,8 +33,12 @@ enum Wasm32Feature {
 class V8_EXPORT_PRIVATE Assembler : public AssemblerBase {
  public:
   // Creation, destruction
+  // Constructor with zone parameter (for compatibility with MacroAssemblerBase)
+  Assembler(MaybeAssemblerZone zone, const AssemblerOptions& options,
+            std::unique_ptr<AssemblerBuffer> buffer = {});
+  // Legacy constructor without zone
   explicit Assembler(const AssemblerOptions& options,
-                          std::unique_ptr<AssemblerBuffer> buffer = {});
+                     std::unique_ptr<AssemblerBuffer> buffer = {});
   ~Assembler() override;
 
   // GetCode emits any pending (non-emitted) code and fills the descriptor desc.

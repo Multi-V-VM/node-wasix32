@@ -118,15 +118,19 @@ class ZoneVector {
   }
 
   // Construct a non-owning view from a base::Vector when both source and target
-  // element types are trivially copyable and layout-compatible.
+  // element types are layout-compatible.
   // Only allow conversion if const-ness is preserved (can't cast const to non-const).
   template <typename S,
-            typename = std::enable_if_t<std::is_trivially_copyable_v<S> &&
-                                        std::is_trivially_copyable_v<T> &&
-                                        (sizeof(S) == sizeof(T)) &&
+            typename = std::enable_if_t<(sizeof(S) == sizeof(T)) &&
                                         (!std::is_const_v<S> || std::is_const_v<T>)>>
   ZoneVector(::v8::base::Vector<S> v) : zone_(nullptr) {
     data_ = reinterpret_cast<T*>(v.begin());
+    end_ = capacity_ = data_ + v.size();
+  }
+
+  // Direct conversion from base::Vector of same type
+  ZoneVector(::v8::base::Vector<T> v) : zone_(nullptr) {
+    data_ = v.begin();
     end_ = capacity_ = data_ + v.size();
   }
 
@@ -1202,6 +1206,10 @@ class ZoneVector<DirectHandle<T>> {
   // Other members
   void swap(ZoneVector& other) { storage_.swap(other.storage_); }
   Zone* zone() const { return storage_.zone(); }
+
+  // Data access - returns pointer to underlying storage
+  value_type* data() { return reinterpret_cast<value_type*>(storage_.data()); }
+  const value_type* data() const { return reinterpret_cast<const value_type*>(storage_.data()); }
 };
 
 // Specialization of ZoneVector for const T - provides a read-only view
@@ -1346,9 +1354,24 @@ inline size_t hash_value(v8::internal::ZoneVector<T> const& v) {
 }
 
 #endif  // V8_ZONE_ZONE_CONTAINERS_H_
-// Provide compatibility alias for code expecting v8::internal::base::OwnedZoneVector.
-// Map it to the existing ::v8::base::OwnedVector implementation.
+
+// Provide compatibility aliases for code expecting v8::internal::base types.
+// Map them to the existing ::v8::base implementations.
+// Include platform headers for Thread
+#include "src/base/platform/platform.h"
+
+namespace v8 {
+namespace internal {
 namespace base {
 template <typename T>
 using OwnedZoneVector = ::v8::base::OwnedVector<T>;
+template <typename T>
+using ScopedZoneVector = ::v8::base::ScopedVector<T>;
+using Thread = ::v8::base::Thread;
+template <typename T>
+using LockGuard = ::v8::base::LockGuard<T>;
+using Mutex = ::v8::base::Mutex;
+using FlushDenormalsScope = ::v8::base::FlushDenormalsScope;
 }  // namespace base
+}  // namespace internal
+}  // namespace v8

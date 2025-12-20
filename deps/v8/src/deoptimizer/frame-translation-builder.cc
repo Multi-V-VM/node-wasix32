@@ -253,7 +253,7 @@ FrameTranslationBuilder::ToFrameTranslation(LocalFactory* factory) {
   return result;
 }
 
-Vector<const uint8_t> FrameTranslationBuilder::ToFrameTranslationWasm() {
+ZoneVector<const uint8_t> FrameTranslationBuilder::ToFrameTranslationWasm() {
   DCHECK(!v8_flags.turbo_compress_frame_translations);
   FinishPendingInstructionIfNeeded();
   ZoneVector<const uint8_t> result(contents_.data(), contents_.size());

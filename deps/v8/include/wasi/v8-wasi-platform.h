@@ -186,6 +186,7 @@ class JobHandle {
   virtual bool IsValid() { return false; }
   virtual bool UpdatePriorityEnabled() const { return false; }
   virtual void UpdatePriority(TaskPriority priority) {}
+  virtual void NotifyConcurrencyIncrease() {}
 };
 
 // Platform interface

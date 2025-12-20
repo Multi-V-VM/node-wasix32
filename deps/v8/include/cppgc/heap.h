@@ -38,10 +38,13 @@ enum class SweepingType {
   kIncrementalAndConcurrent 
 };
 
+#ifndef CPPGC_STACKSTATE_DEFINED
+#define CPPGC_STACKSTATE_DEFINED
 enum class StackState {
   kMayContainHeapPointers,
   kNoHeapPointers,
 };
+#endif
 
 // Support level for stack scanning on the current platform/embedder.
 // Matches usage in V8's cppgc GC invoker.

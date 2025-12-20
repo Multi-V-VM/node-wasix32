@@ -45,6 +45,7 @@ class JobHandle {
   virtual void UpdatePriority(TaskPriority) {}
   virtual void CancelAndDetach() { Cancel(); }
   virtual bool IsValid() { return IsActive(); }
+  virtual void NotifyConcurrencyIncrease() {}
 };
 
 // JobDelegate interface

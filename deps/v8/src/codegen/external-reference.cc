@@ -10,6 +10,7 @@
 #include <optional>
 
 #include "include/cppgc/allocation.h"
+#include "include/cppgc/garbage-collected.h"
 #include "include/v8-fast-api-calls.h"
 #include "src/api/api-inl.h"
 #include "src/base/bits.h"

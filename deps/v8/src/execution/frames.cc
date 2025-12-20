@@ -3408,7 +3408,7 @@ void WasmFrame::Print(StringStream* accumulator, PrintMode mode,
       module_object()->GetRawFunctionName(function_index());
   const int kMaxPrintedFunctionName = 64;
   char func_name[kMaxPrintedFunctionName + 1];
-  int func_name_len = std::min(kMaxPrintedFunctionName, raw_func_name.length());
+  int func_name_len = std::min(kMaxPrintedFunctionName, static_cast<int>(raw_func_name.size()));
   memcpy(func_name, raw_func_name.begin(), func_name_len);
   func_name[func_name_len] = '\0';
   int pos = position();

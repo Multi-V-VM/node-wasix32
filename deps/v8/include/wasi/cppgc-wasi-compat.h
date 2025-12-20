@@ -20,10 +20,13 @@ enum class CollectionType {
 };
 
 // Stack state for GC (in main cppgc namespace)
+#ifndef CPPGC_STACKSTATE_DEFINED
+#define CPPGC_STACKSTATE_DEFINED
 enum class StackState {
   kMayContainHeapPointers,
   kNoHeapPointers
 };
+#endif
 
 // Marking type (in main cppgc namespace)
 enum class MarkingType {

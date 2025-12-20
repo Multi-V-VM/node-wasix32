@@ -7,6 +7,17 @@
 #include <cstddef>
 #include <cstdint>
 
+// Forward declare cppgc::StackState to avoid circular includes
+namespace cppgc {
+#ifndef CPPGC_STACKSTATE_DEFINED
+#define CPPGC_STACKSTATE_DEFINED
+enum class StackState {
+  kMayContainHeapPointers,
+  kNoHeapPointers
+};
+#endif
+}  // namespace cppgc
+
 namespace v8 {
 
 // Memory pressure level enum
@@ -25,14 +36,12 @@ enum MessageErrorLevel {
   kMessageError = 4
 };
 
-// StackState - forward declare and alias
+// StackState - use the same type as cppgc for compatibility
 // The actual definition is in cppgc/heap.h
 #ifndef V8_STACKSTATE_DEFINED
 #define V8_STACKSTATE_DEFINED
-enum class StackState {
-  kMayContainHeapPointers,
-  kNoHeapPointers
-};
+// Import cppgc::StackState into v8 namespace
+using StackState = ::cppgc::StackState;
 #endif
 
 }  // namespace v8

@@ -167,6 +167,13 @@ class V8_EXPORT_PRIVATE CppHeap final
 
   Isolate* isolate() const { return isolate_; }
 
+#ifdef __wasi__
+  // WASI-specific: implement pure virtual from v8::CppHeap
+  ::cppgc::AllocationHandle& GetAllocationHandle() override {
+    return object_allocator();
+  }
+#endif
+
   size_t used_size() const {
     return used_size_.load(std::memory_order_relaxed);
   }

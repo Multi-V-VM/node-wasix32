@@ -22,9 +22,10 @@
 #undef V8_ENABLE_MAGLEV
 #undef V8_ENABLE_TURBOFAN
 #undef V8_ENABLE_SPARKPLUG
-#define V8_COMPRESS_POINTERS 0
-#define V8_31BIT_SMIS_ON_64BIT_ARCH 0
-#define V8_ENABLE_POINTER_COMPRESSION 0
+// Use #undef for these so that #ifdef checks fail correctly
+#undef V8_COMPRESS_POINTERS
+#undef V8_31BIT_SMIS_ON_64BIT_ARCH
+#undef V8_ENABLE_POINTER_COMPRESSION
 
 // Compiler attributes
 #define V8_EXPORT

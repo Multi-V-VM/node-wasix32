@@ -378,7 +378,7 @@ constexpr Register kWasmImplicitArgRegister = kContextRegister;
 constexpr Register kWasmCompileLazyFuncIndexRegister = Register::r6();
 constexpr Register kWasmTrapHandlerFaultAddressRegister = Register::r10();
 
-// Define RegisterName function inline
+// Define RegisterName functions inline
 inline const char* RegisterName(Register reg) {
   static constexpr const char* Names[] = {
     #define REGISTER_NAME(R) #R,
@@ -388,6 +388,30 @@ inline const char* RegisterName(Register reg) {
   };
   static_assert(sizeof(Names) / sizeof(Names[0]) == Register::kNumRegisters);
   return reg.is_valid() ? Names[reg.code()] : "invalid";
+}
+
+inline const char* RegisterName(FloatRegister reg) {
+  static constexpr const char* Names[] = {
+    "f0", "f1", "f2", "f3", "f4", "f5", "f6", "f7",
+    "f8", "f9", "f10", "f11", "f12", "f13", "f14", "f15"
+  };
+  return reg.is_valid() && reg.code() < 16 ? Names[reg.code()] : "invalid";
+}
+
+inline const char* RegisterName(DoubleRegister reg) {
+  static constexpr const char* Names[] = {
+    "d0", "d1", "d2", "d3", "d4", "d5", "d6", "d7",
+    "d8", "d9", "d10", "d11", "d12", "d13", "d14", "d15"
+  };
+  return reg.is_valid() && reg.code() < 16 ? Names[reg.code()] : "invalid";
+}
+
+inline const char* RegisterName(Simd128Register reg) {
+  static constexpr const char* Names[] = {
+    "v0", "v1", "v2", "v3", "v4", "v5", "v6", "v7",
+    "v8", "v9", "v10", "v11", "v12", "v13", "v14", "v15"
+  };
+  return reg.is_valid() && reg.code() < 16 ? Names[reg.code()] : "invalid";
 }
 
 }  // namespace internal
