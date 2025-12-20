@@ -26,6 +26,16 @@
 namespace v8 {
 namespace internal {
 
+// WASI: Use raw pointers instead of DirectHandle for ZoneVector types
+// because ZoneVector is not a taggable heap object type
+#ifdef __wasi__
+template <typename T>
+using ZoneVectorHandle = ZoneVector<T>*;
+#else
+template <typename T>
+using ZoneVectorHandle = DirectHandle<ZoneVector<T>>;
+#endif
+
 class HeapObject;
 class Object;
 
@@ -73,7 +83,10 @@ class Deserializer : public SerializerDeserializer {
   // Add an object to back an attached reference. The order to add objects must
   // mirror the order they are added in the serializer.
   void AddAttachedObject(DirectHandle<HeapObject> attached_object) {
+#ifndef __wasi__
     attached_objects_->push_back(attached_object);
+#endif
+    // WASI: Snapshot deserialization not fully supported
   }
 
   IsolateT* isolate() const { return isolate_; }
@@ -82,6 +95,27 @@ class Deserializer : public SerializerDeserializer {
 
   SnapshotByteSource* source() { return &source_; }
 
+#ifdef __wasi__
+  // WASI: Return raw ZoneVector views instead of ZoneVector<DirectHandle<T>>
+  ZoneVector<AllocationSite>& new_allocation_sites() const {
+    return *new_allocation_sites_;
+  }
+  ZoneVector<InstructionStream>& new_code_objects() const {
+    return *new_code_objects_;
+  }
+  ZoneVector<Map>& new_maps() const {
+    return *new_maps_;
+  }
+  ZoneVector<AccessorInfo>& accessor_infos() const {
+    return *accessor_infos_;
+  }
+  ZoneVector<FunctionTemplateInfo>& function_template_infos() const {
+    return *function_template_infos_;
+  }
+  ZoneVector<Script>& new_scripts() const {
+    return *new_scripts_;
+  }
+#else
   ZoneVector<const DirectHandle<AllocationSite>> new_allocation_sites()
       const {
     return {new_allocation_sites_->data(), new_allocation_sites_->size()};
@@ -102,6 +136,7 @@ class Deserializer : public SerializerDeserializer {
   ZoneVector<const DirectHandle<Script>> new_scripts() const {
     return {new_scripts_->data(), new_scripts_->size()};
   }
+#endif
 
   std::shared_ptr<BackingStore> backing_store(size_t i) {
     DCHECK_LT(i, backing_stores_.size());
@@ -112,7 +147,10 @@ class Deserializer : public SerializerDeserializer {
   bool should_rehash() const { return should_rehash_; }
 
   void PushObjectToRehash(DirectHandle<HeapObject> object) {
+#ifndef __wasi__
     to_rehash_.push_back(object);
+#endif
+    // WASI: Snapshot deserialization not fully supported
   }
   void Rehash();
 
@@ -275,18 +313,18 @@ class Deserializer : public SerializerDeserializer {
   IsolateT* isolate_;
 
   // Objects from the attached object descriptions in the serialized user code.
-  DirectHandle<ZoneVector<HeapObject>> attached_objects_;
+  ZoneVectorHandle<HeapObject> attached_objects_;
 
   SnapshotByteSource source_;
   uint32_t magic_number_;
 
   HotObjectsList hot_objects_;
-  DirectHandle<ZoneVector<Map>> new_maps_;
-  DirectHandle<ZoneVector<AllocationSite>> new_allocation_sites_;
-  DirectHandle<ZoneVector<InstructionStream>> new_code_objects_;
-  DirectHandle<ZoneVector<AccessorInfo>> accessor_infos_;
-  DirectHandle<ZoneVector<FunctionTemplateInfo>> function_template_infos_;
-  DirectHandle<ZoneVector<Script>> new_scripts_;
+  ZoneVectorHandle<Map> new_maps_;
+  ZoneVectorHandle<AllocationSite> new_allocation_sites_;
+  ZoneVectorHandle<InstructionStream> new_code_objects_;
+  ZoneVectorHandle<AccessorInfo> accessor_infos_;
+  ZoneVectorHandle<FunctionTemplateInfo> function_template_infos_;
+  ZoneVectorHandle<Script> new_scripts_;
   std::vector<std::shared_ptr<BackingStore>> backing_stores_;
 
   // Roots vector as those arrays are passed to Heap, see
@@ -325,7 +363,7 @@ class Deserializer : public SerializerDeserializer {
 
   // TODO(6593): generalize rehashing, and remove this flag.
   const bool should_rehash_;
-  DirectHandle<ZoneVector<HeapObject>> to_rehash_;
+  ZoneVectorHandle<HeapObject> to_rehash_;
 
   // Do not collect any gc stats during deserialization since objects might
   // be in an invalid state

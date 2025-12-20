@@ -29,6 +29,11 @@
 namespace v8 {
 namespace internal {
 
+#ifdef __wasi__
+// WASI: Define external pointer tags not available from sandbox headers
+constexpr Address kMessageListenerTag = 0x9;
+#endif
+
 MessageLocation::MessageLocation(Handle<Script> script, int start_pos,
                                  int end_pos)
     : script_(script),

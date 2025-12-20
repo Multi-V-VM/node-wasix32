@@ -67,7 +67,9 @@ class Data;
 class Object;
 class Array;
 
-
+namespace internal {
+class MicrotaskQueue;
+}  // namespace internal
 
 // Promise reject types - use unique guard to prevent double definition
 // This guard prevents redefinition when v8-promise.h is later included
@@ -287,6 +289,7 @@ class V8_EXPORT Isolate {
     // Additional features
     kTemporalObject,
     kIndexAccessor,
+    kErrorStackTraceLimit,
     // Reserve space for unknown future features.
     kUseCounterFeatureCount = 256
   };
@@ -311,7 +314,10 @@ class V8_EXPORT Isolate {
     kInvalidatedRegExpSpeciesLookupChainProtector = 15,
     kInvalidatedSetIteratorLookupChainProtector = 16,
     kInvalidatedStringIteratorLookupChainProtector = 17,
-    kInvalidatedStringLengthOverflowLookupChainProtector = 18
+    kInvalidatedStringLengthOverflowLookupChainProtector = 18,
+    kInvalidatedStringWrapperToPrimitiveProtector = 19,
+    kInvalidatedTypedArrayLengthLookupChainProtector = 20,
+    kInvalidatedTypedArraySpeciesLookupChainProtector = 21
   };
 
   // GC type enumeration
@@ -372,6 +378,7 @@ class V8_EXPORT Isolate {
 
   // Usage counting (no-op on WASI)
   void CountUsage(UseCounterFeature) {}
+  void CountUsage(InvalidatedProtector) {}
   
   // Exception handling stubs for WASI builds
   bool HasPendingException() const { return pending_exception_; }
@@ -613,6 +620,7 @@ class V8_EXPORT Isolate {
   class SuppressMicrotaskExecutionScope {
    public:
     explicit SuppressMicrotaskExecutionScope(Isolate*) {}
+    SuppressMicrotaskExecutionScope(Isolate*, internal::MicrotaskQueue*) {}
   };
   
   // Priority enum

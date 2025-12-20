@@ -107,11 +107,11 @@ class FutexWaitList {
   // As long as the map does not grow beyond 16 entries, there is no dynamic
   // allocation and deallocation happening in wait or wake, which reduces the
   // time spend in the critical section.
-  base::SmallMap<std::map<void*, HeadAndTail>, 16> location_lists_;
+  ::v8::base::SmallMap<std::map<void*, HeadAndTail>, 16> location_lists_;
 
   // Isolate* -> linked list of Nodes which are waiting for their Promises to
   // be resolved.
-  base::SmallMap<std::map<Isolate*, HeadAndTail>> isolate_promises_to_resolve_;
+  ::v8::base::SmallMap<std::map<Isolate*, HeadAndTail>> isolate_promises_to_resolve_;
 };
 
 namespace {

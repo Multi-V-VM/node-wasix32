@@ -100,10 +100,17 @@ class AsyncEventDelegate;
 
 namespace internal {
 
+#ifdef __wasi__
+void DefaultWasmAsyncResolvePromiseCallback(
+    v8::Isolate* isolate, v8::Local<v8::Context> context,
+    v8::Local<v8::Object> resolver,
+    v8::Local<v8::Value> compilation_result, WasmAsyncSuccess success);
+#else
 void DefaultWasmAsyncResolvePromiseCallback(
     v8::Isolate* isolate, v8::Local<v8::Context> context,
     v8::Local<v8::Promise::Resolver> resolver,
     v8::Local<v8::Value> compilation_result, WasmAsyncSuccess success);
+#endif
 
 namespace heap {
 class HeapTester;
@@ -1826,6 +1833,10 @@ class V8_EXPORT_PRIVATE Isolate final : private HiddenFactory {
   // Count multiple usages at once; cheaper than calling the {CountUsage}
   // separately for each feature.
   void CountUsage(ZoneVector<const v8::Isolate::UseCounterFeature> features);
+#ifdef __wasi__
+  // WASI: Overload for InvalidatedProtector enum
+  void CountUsage(v8::Isolate::InvalidatedProtector) {}
+#endif
 
   static std::string GetTurboCfgFileName(Isolate* isolate);
 

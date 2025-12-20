@@ -4,6 +4,7 @@
 
 #include "src/flags/flags.h"
 #include <vector>
+#include "src/zone/zone-containers.h"
 
 #include <algorithm>
 #include <array>
@@ -298,7 +299,7 @@ Flag flags[] = {
 
 constexpr size_t kNumFlags = arraysize(flags);
 
-Vector<Flag> Flags() { return base::ArrayVector(flags); }
+ZoneVector<Flag> Flags() { return ZoneVector<Flag>(const_cast<Flag*>(flags), kNumFlags); }
 
 struct FlagLess {
   bool operator()(const Flag* a, const Flag* b) const {

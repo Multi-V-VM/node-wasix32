@@ -5,6 +5,7 @@
 #include "src/execution/stack-guard.h"
 
 #include "src/base/atomicops.h"
+#include "src/base/platform/platform.h"
 #include "src/compiler-dispatcher/optimizing-compile-dispatcher.h"
 #include "src/execution/interrupts-scope.h"
 #include "src/execution/isolate.h"
@@ -247,8 +248,8 @@ void StackGuard::FreeThreadResources() {
 void StackGuard::ThreadLocal::Initialize(Isolate* isolate,
                                          const ExecutionAccess& lock) {
   const uintptr_t kLimitSize = v8_flags.stack_size * KB;
-  DCHECK_GT(base::Stack::GetStackStart(), kLimitSize);
-  uintptr_t limit = base::Stack::GetStackStart() - kLimitSize;
+  DCHECK_GT(::v8::base::Stack::GetStackStart(), kLimitSize);
+  uintptr_t limit = ::v8::base::Stack::GetStackStart() - kLimitSize;
   real_jslimit_ = SimulatorStack::JsLimitFromCLimit(isolate, limit);
   set_jslimit(SimulatorStack::JsLimitFromCLimit(isolate, limit));
 #ifdef USE_SIMULATOR

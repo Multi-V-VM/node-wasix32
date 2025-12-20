@@ -12,6 +12,7 @@
 #include "src/base/logging.h"
 #include "src/execution/isolate.h"
 #include "src/handles/handles-inl.h"
+#include "src/heap/factory-inl.h"
 #include "src/objects/microtask-inl.h"
 #include "src/objects/visitors.h"
 #include "src/roots/roots-inl.h"

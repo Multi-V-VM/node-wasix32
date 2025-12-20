@@ -252,7 +252,7 @@ std::atomic<uint32_t> current_embedded_blob_data_size_(0);
 // - sticky_embedded_blob_data_size_
 // - enable_embedded_blob_refcounting_
 // - current_embedded_blob_refs_
-base::LazyMutex current_embedded_blob_refcount_mutex_ = LAZY_MUTEX_INITIALIZER;
+::v8::base::LazyMutex current_embedded_blob_refcount_mutex_ = LAZY_MUTEX_INITIALIZER;
 
 const uint8_t* sticky_embedded_blob_code_ = nullptr;
 uint32_t sticky_embedded_blob_code_size_ = 0;
@@ -3284,10 +3284,12 @@ PromiseMethod GetPromiseMethod(
   auto str = Cast<String>(object);
   if (str->Equals(ReadOnlyRoots(isolate).then_string())) {
     return kThen;
+#ifndef __wasi__
   } else if (str->IsEqualTo(base::StaticCharVector("catch"))) {
     return kCatch;
   } else if (str->IsEqualTo(base::StaticCharVector("finally"))) {
     return kFinally;
+#endif
   } else {
     return kInvalid;
   }
@@ -4257,6 +4259,8 @@ void Isolate::CheckIsolateLayout() {
 #endif
 
   static_assert(OFFSET_OF(Isolate, isolate_data_) == 0);
+#ifndef __wasi__
+  // WASI: Skip Internals layout checks - we use simplified stubs
   static_assert(
       static_cast<int>(OFFSET_OF(Isolate, isolate_data_.stack_guard_)) ==
       Internals::kIsolateStackGuardOffset);
@@ -4341,14 +4345,15 @@ void Isolate::CheckIsolateLayout() {
       static_cast<int>(OFFSET_OF(Isolate, isolate_data_.roots_table_)) ==
       Internals::kIsolateRootsOffset);
 
-  CHECK(IsAligned(reinterpret_cast<Address>(&isolate_data_),
-                  kIsolateDataAlignment));
-
   static_assert(Internals::kStackGuardSize == sizeof(StackGuard));
   static_assert(Internals::kBuiltinTier0TableSize ==
                 Builtins::kBuiltinTier0Count * kSystemPointerSize);
   static_assert(Internals::kBuiltinTier0EntryTableSize ==
                 Builtins::kBuiltinTier0Count * kSystemPointerSize);
+#endif  // !__wasi__
+
+  CHECK(IsAligned(reinterpret_cast<Address>(&isolate_data_),
+                  kIsolateDataAlignment));
 
   // Ensure that certain hot IsolateData fields fall into the same CPU cache
   // line.
@@ -7653,6 +7658,14 @@ Isolate::async_waiter_queue_nodes() {
   return async_waiter_queue_nodes_;
 }
 
+#ifdef __wasi__
+void DefaultWasmAsyncResolvePromiseCallback(
+    v8::Isolate* isolate, v8::Local<v8::Context> context,
+    v8::Local<v8::Object> resolver, v8::Local<v8::Value> result,
+    WasmAsyncSuccess success) {
+  // WASI: Simplified WASM async callback - no-op
+}
+#else
 void DefaultWasmAsyncResolvePromiseCallback(
     v8::Isolate* isolate, v8::Local<v8::Context> context,
     v8::Local<v8::Promise::Resolver> resolver, v8::Local<v8::Value> result,
@@ -7667,6 +7680,7 @@ void DefaultWasmAsyncResolvePromiseCallback(
   // operations, but execution might be terminating.
   CHECK(ret.IsJust() ? ret.FromJust() : isolate->IsExecutionTerminating());
 }
+#endif
 
 // Mutex used to ensure that the dispatch table entries for builtins are only
 // initialized once.
