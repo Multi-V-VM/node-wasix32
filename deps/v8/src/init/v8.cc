@@ -105,7 +105,9 @@ void V8::InitializePlatform(v8::Platform* platform) {
   CHECK(!platform_);
   CHECK_NOT_NULL(platform);
   platform_ = platform;
+#ifndef __wasi__
   v8::base::SetPrintStackTrace(platform_->GetStackTracePrinter());
+#endif
   v8::tracing::TracingCategoryObserver::SetUp();
 #if defined(V8_ENABLE_ETW_STACK_WALKING)
   if (v8_flags.enable_etw_stack_walking ||
@@ -264,7 +266,9 @@ void V8::DisposePlatform() {
   }
 #endif
   v8::tracing::TracingCategoryObserver::TearDown();
+#ifndef __wasi__
   v8::base::SetPrintStackTrace(nullptr);
+#endif
 
 #ifdef V8_ENABLE_SANDBOX
   Sandbox::TearDownDefault();
@@ -305,6 +309,7 @@ double Platform::SystemClockTimeMillis() {
   return base::OS::TimeCurrentMillis();
 }
 
+#ifndef __wasi__
 // static
 void ThreadIsolatedAllocator::SetDefaultPermissionsForSignalHandler() {
 #if V8_HAS_PKU_JIT_WRITE_PROTECT
@@ -319,5 +324,6 @@ void ThreadIsolatedAllocator::SetDefaultPermissionsForSignalHandler() {
 void SandboxHardwareSupport::InitializeBeforeThreadCreation() {
   internal::SandboxHardwareSupport::InitializeBeforeThreadCreation();
 }
+#endif  // !__wasi__
 
 }  // namespace v8

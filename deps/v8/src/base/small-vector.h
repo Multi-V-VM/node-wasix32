@@ -60,16 +60,15 @@ class SmallVector {
     ::std::uninitialized_move(init.begin(), init.end(), begin_);
     end_ = begin_ + init.size();
   }
-  // ZoneVector constructor removed - ZoneVector is not available in base namespace
-  // If needed, this should be added in zone/zone-containers.h as a specialization
-  // explicit V8_INLINE SmallVector(ZoneVector<const T> init,
-  //                                const Allocator& allocator = Allocator())
-  //     : allocator_(allocator) {
-  //   if (init.size() > capacity()) Grow(init.size());
-  //   DCHECK_GE(capacity(), init.size());  // Sanity check.
-  //   ::std::uninitialized_copy(init.begin(), init.end(), begin_);
-  //   end_ = begin_ + init.size();
-  // }
+  // Constructor from base::Vector<T>
+  explicit V8_INLINE SmallVector(Vector<T> init,
+                                 const Allocator& allocator = Allocator())
+      : allocator_(allocator) {
+    if (init.size() > capacity()) Grow(init.size());
+    DCHECK_GE(capacity(), init.size());  // Sanity check.
+    ::std::uninitialized_copy(init.begin(), init.end(), begin_);
+    end_ = begin_ + init.size();
+  }
 
   ~SmallVector() { FreeStorage(); }
 

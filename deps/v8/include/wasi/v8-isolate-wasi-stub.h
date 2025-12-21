@@ -66,6 +66,7 @@ class Module;
 class Data;
 class Object;
 class Array;
+class CppHeap;  // Forward declaration for CppHeap
 
 namespace internal {
 class MicrotaskQueue;
@@ -290,6 +291,11 @@ class V8_EXPORT Isolate {
     kTemporalObject,
     kIndexAccessor,
     kErrorStackTraceLimit,
+    // Prototype element tracking
+    kObjectPrototypeHasElements,
+    kArrayPrototypeHasElements,
+    // GC counter feature used by heap
+    kForcedGC,
     // Reserve space for unknown future features.
     kUseCounterFeatureCount = 256
   };
@@ -327,7 +333,6 @@ class V8_EXPORT Isolate {
     kMarkSweepCompactGC = 1 << 2,
     kIncrementalMarkingGC = 1 << 3,
     kProcessWeakCallbacksGC = 1 << 4,
-    kForcedGC = 1 << 5,
     kFullGarbageCollection = kMarkSweepCompactGC | kIncrementalMarkingGC
   };
 
@@ -344,7 +349,7 @@ class V8_EXPORT Isolate {
 
   // Callback types
   using UseCounterCallback = void (*)(Isolate*, UseCounterFeature);
-  using ReleaseCppHeapCallback = void (*)(Isolate*);
+  using ReleaseCppHeapCallback = void (*)(std::unique_ptr<CppHeap>);
   using GCCallback = void (*)(Isolate*, GCType, GCCallbackFlags);
   using GCCallbackWithData = void (*)(Isolate*, GCType, GCCallbackFlags, void*);
 
@@ -665,6 +670,12 @@ class V8_EXPORT Isolate {
     // WASI stub - no-op
   }
   
+  // Testing GC method
+  void RequestGarbageCollectionForTesting(GCType gc_type,
+                                          cppgc::StackState stack_state = cppgc::StackState::kMayContainHeapPointers) {
+    // WASI stub - no-op
+  }
+
   void LowMemoryNotification() {
     // WASI stub - no-op
   }

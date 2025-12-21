@@ -158,7 +158,7 @@ class Graph final : public ZoneObject {
   ZoneVector<Node*>& node_buffer() { return node_buffer_; }
 
   // Running JS2, 99.99% of the cases, we have less than 2 dependencies.
-  using SmallAllocationVector = SmallVector<InlinedAllocation*, 2>;
+  using SmallAllocationVector = base::SmallVector<InlinedAllocation*, 2>;
 
   // If the key K of the map escape, all the set allocations_escape_map[K] must
   // also escape.

@@ -6201,7 +6201,7 @@ void Isolate::MaybeInitializeVectorListFromHeap() {
   }
 
   // Collect existing feedback vectors.
-  DirectHandle<ZoneVector<FeedbackVector> vectors(this);
+  GlobalHandleVector<FeedbackVector> vectors(heap());
 
   {
     HeapObjectIterator heap_iterator(heap());
@@ -6215,7 +6215,7 @@ void Isolate::MaybeInitializeVectorListFromHeap() {
       // No need to preserve the feedback vector for non-user-visible functions.
       if (!shared->IsSubjectToDebugging()) continue;
 
-      vectors.emplace_back(vector, this);
+      vectors.Push(vector);
     }
   }
 
@@ -7093,7 +7093,10 @@ void Isolate::CountUsage(
       }
     }
   } else {
+#ifndef __wasi__
     heap_.IncrementDeferredCounts(features);
+#endif
+    // WASI: Skip deferred counts - not supported
   }
 }
 
@@ -7203,7 +7206,7 @@ void Isolate::SetPriority(v8::Isolate::Priority priority) {
 }
 
 namespace {
-base::LazyMutex print_with_timestamp_mutex_ = LAZY_MUTEX_INITIALIZER;
+::v8::base::LazyMutex print_with_timestamp_mutex_ = LAZY_MUTEX_INITIALIZER;
 }  // namespace
 
 void Isolate::PrintWithTimestamp(const char* format, ...) {
@@ -7267,8 +7270,14 @@ std::string GetStringFromLocales(Isolate* isolate,
 bool StringEqualsLocales(Isolate* isolate, const std::string& str,
                          DirectHandle<Object> locales) {
   if (IsUndefined(*locales, isolate)) return str.empty();
+#ifdef __wasi__
+  // WASI: Use string comparison directly since IsEqualTo uses ZoneVector
+  std::string locale_str = GetStringFromLocales(isolate, locales);
+  return str == locale_str;
+#else
   return Cast<String>(locales)->IsEqualTo(
       base::VectorOf(str.c_str(), str.length()));
+#endif
 }
 
 }  // namespace
@@ -7684,7 +7693,7 @@ void DefaultWasmAsyncResolvePromiseCallback(
 
 // Mutex used to ensure that the dispatch table entries for builtins are only
 // initialized once.
-base::LazyMutex read_only_dispatch_entries_mutex_ = LAZY_MUTEX_INITIALIZER;
+::v8::base::LazyMutex read_only_dispatch_entries_mutex_ = LAZY_MUTEX_INITIALIZER;
 
 void Isolate::InitializeBuiltinJSDispatchTable() {
 #ifdef V8_ENABLE_LEAPTIERING

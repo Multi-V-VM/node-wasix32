@@ -7689,7 +7689,7 @@ class PolymorphicAccessInfo {
         hash = base::hash_combine(hash, constant_.hash_value());
         break;
       case kConstantDouble:
-        hash = base::hash_combine(hash, ::v8::base::hash<double>{}(constant_double_));
+        hash = base::hash_combine(hash, ::v8::base::hash<double>{}(constant_double_.get_scalar()));
         break;
       case kDataLoad:
         hash = base::hash_combine(hash, data_load_.holder_.hash_value());

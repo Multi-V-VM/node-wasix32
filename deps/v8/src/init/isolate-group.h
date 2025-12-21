@@ -6,12 +6,15 @@
 #define V8_INIT_ISOLATE_GROUP_H_
 
 #include <memory>
+#include <unordered_set>
 
+#ifndef __wasi__
 #if __has_include("absl/container/flat_hash_set.h")
 #include "absl/container/flat_hash_set.h"
 #else
 #include "third_party/abseil-cpp/absl/container/flat_hash_set.h"
 #endif
+#endif  // __wasi__
 #include "include/v8-memory-span.h"
 #include "src/base/logging.h"
 #include "src/base/once.h"
@@ -337,7 +340,11 @@ class V8_EXPORT_PRIVATE IsolateGroup final {
       optimizing_compile_task_executor_;
 
   // Set of isolates currently in the IsolateGroup. Guarded by mutex_.
+#ifdef __wasi__
+  std::unordered_set<Isolate*> isolates_;
+#else
   absl::flat_hash_set<Isolate*> isolates_;
+#endif
 
   // The first isolate to join the group. However, it will be replaced by
   // another isolate if that isolate tears down before all other isolates have

@@ -139,6 +139,12 @@
 namespace v8 {
 namespace internal {
 
+#ifdef __wasi__
+// WASI: Bring base namespace utilities into scope
+using ::v8::base::Malloc;
+using ::v8::base::Free;
+#endif  // __wasi__
+
 void Heap::SetConstructStubCreateDeoptPCOffset(int pc_offset) {
   DCHECK_EQ(Smi::zero(), construct_stub_create_deopt_pc_offset());
   set_construct_stub_create_deopt_pc_offset(Smi::FromInt(pc_offset));
@@ -749,6 +755,7 @@ void Heap::PrintFreeListsStats() {
   PrintIsolate(isolate_, "%s", out_str.str().c_str());
 }
 
+#ifndef __wasi__
 void Heap::DumpJSONHeapStatistics(std::stringstream& stream) {
   HeapStatistics stats;
   reinterpret_cast<v8::Isolate*>(isolate())->GetHeapStatistics(&stats);
@@ -807,6 +814,7 @@ void Heap::DumpJSONHeapStatistics(std::stringstream& stream) {
 #undef MEMBER
   // clang-format on
 }
+#endif  // !__wasi__
 
 void Heap::ReportStatisticsAfterGC() {
   if (deferred_counters_.empty()) return;
@@ -5651,6 +5659,7 @@ void Heap::SetUp(LocalHeap* main_thread_local_heap) {
     concurrent_marking_.reset(new ConcurrentMarking(this, nullptr));
   }
 
+#ifndef __wasi__
   // Set up layout tracing callback.
   if (V8_UNLIKELY(v8_flags.trace_gc_heap_layout)) {
     v8::GCType gc_type = kGCTypeMarkSweepCompact;
@@ -5663,6 +5672,7 @@ void Heap::SetUp(LocalHeap* main_thread_local_heap) {
     AddGCEpilogueCallback(HeapLayoutTracer::GCEpiloguePrintHeapLayout, gc_type,
                           nullptr);
   }
+#endif  // !__wasi__
 }
 
 void Heap::SetUpFromReadOnlyHeap(ReadOnlyHeap* ro_heap) {
@@ -5946,8 +5956,9 @@ int Heap::NextStressMarkingLimit() {
   return isolate()->fuzzer_rng()->NextInt(v8_flags.stress_marking + 1);
 }
 
+#ifndef __wasi__
 void Heap::WeakenDescriptorArrays(
-    GlobalHandleZoneVector<DescriptorArray> strong_descriptor_arrays) {
+    v8::base::Vector<DescriptorArray> strong_descriptor_arrays) {
   if (incremental_marking()->IsMajorMarking()) {
     // During incremental/concurrent marking regular DescriptorArray objects are
     // treated with custom weakness. This weakness depends on
@@ -5972,6 +5983,7 @@ void Heap::WeakenDescriptorArrays(
     DCHECK_EQ(array->raw_gc_state(kRelaxedLoad), 0);
   }
 }
+#endif  // !__wasi__
 
 void Heap::NotifyDeserializationComplete() {
   // There are no concurrent/background threads yet.
@@ -6248,6 +6260,7 @@ bool Heap::IsFreeSpaceValid(FreeSpace object) {
   return true;
 }
 
+#ifndef __wasi__
 void Heap::AddGCPrologueCallback(v8::Isolate::GCCallbackWithData callback,
                                  GCType gc_type, void* data) {
   gc_prologue_callbacks_.Add(
@@ -6269,6 +6282,7 @@ void Heap::RemoveGCEpilogueCallback(v8::Isolate::GCCallbackWithData callback,
                                     void* data) {
   gc_epilogue_callbacks_.Remove(callback, data);
 }
+#endif  // !__wasi__
 
 namespace {
 Handle<WeakArrayList> CompactWeakArrayList(Heap* heap,
@@ -7218,6 +7232,7 @@ uint8_t* Heap::IsMinorMarkingFlagAddress() {
   return &isolate()->isolate_data()->is_minor_marking_flag_;
 }
 
+#ifndef __wasi__
 StrongRootAllocatorBase::StrongRootAllocatorBase(LocalHeap* heap)
     : StrongRootAllocatorBase(heap->heap()) {}
 StrongRootAllocatorBase::StrongRootAllocatorBase(Isolate* isolate)
@@ -7239,7 +7254,7 @@ StrongRootAllocatorBase::StrongRootAllocatorBase(LocalIsolate* isolate)
 // heap as a strong root array, saves that entry in StrongRootsEntry*, and
 // returns a pointer to Address 1.
 Address* StrongRootAllocatorBase::allocate_impl(size_t n) {
-  void* block = base::Malloc(sizeof(StrongRootsEntry*) + n * sizeof(Address));
+  void* block = ::v8::base::Malloc(sizeof(StrongRootsEntry*) + n * sizeof(Address));
 
   StrongRootsEntry** header = reinterpret_cast<StrongRootsEntry**>(block);
   Address* ret = reinterpret_cast<Address*>(reinterpret_cast<char*>(block) +
@@ -7260,8 +7275,9 @@ void StrongRootAllocatorBase::deallocate_impl(Address* p, size_t n) noexcept {
 
   heap()->UnregisterStrongRoots(*header);
 
-  base::Free(block);
+  ::v8::base::Free(block);
 }
+#endif  // !__wasi__
 
 #ifdef V8_ENABLE_ALLOCATION_TIMEOUT
 void Heap::set_allocation_timeout(int allocation_timeout) {

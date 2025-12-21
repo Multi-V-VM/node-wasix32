@@ -6,6 +6,7 @@
 #include <cstdint>
 #include <cstddef>
 #include <limits>
+#include <memory>
 #include <type_traits>
 #include <cstring>
 
@@ -64,16 +65,20 @@ class PageAllocator {
   virtual bool DiscardSystemPages(void* address, size_t size) = 0;
   virtual bool SealPages(void* address, size_t size) = 0;
 
-  class SharedMemory {
-   public:
-    virtual ~SharedMemory() = default;
-  };
-
   class SharedMemoryMapping {
    public:
     virtual ~SharedMemoryMapping() = default;
     virtual void* GetMemory() const = 0;
     virtual void Remap(void* new_address) = 0;
+  };
+
+  class SharedMemory {
+   public:
+    virtual ~SharedMemory() = default;
+    // Stub for WASI - shared memory remapping not supported
+    virtual std::unique_ptr<SharedMemoryMapping> RemapTo(void* new_address) {
+      return nullptr;
+    }
   };
 };
 
@@ -243,10 +248,15 @@ enum ExternalPointerTag : uint64_t {
   kApiAccessCheckCallbackTag = 0x002F000000000000ULL,
   kApiAbortScriptExecutionCallbackTag = 0x0030000000000000ULL,
   kMicrotaskCallbackTag = 0x0031000000000000ULL,
+  kMicrotaskCallbackDataTag = 0x0031000000000000ULL,  // Same as kMicrotaskCallbackTag
   // Foreign object tags for CFunction
   kCFunctionTag = 0x0032000000000000ULL,
   kCFunctionInfoTag = 0x0033000000000000ULL,
-  kLastExternalPointerTag = kCFunctionInfoTag,
+  // Message listener tag
+  kMessageListenerTag = 0x0034000000000000ULL,
+  // Synthetic module tag for evaluation steps
+  kSyntheticModuleTag = 0x0035000000000000ULL,
+  kLastExternalPointerTag = kSyntheticModuleTag,
 };
 
 #endif // V8_EXTERNAL_POINTER_TAGS_DEFINED
@@ -254,8 +264,7 @@ enum ExternalPointerTag : uint64_t {
 // Provide aliases for renamed tags used in newer V8 code paths.
 #ifndef V8_WASI_EXTERNAL_POINTER_TAG_ALIASES
 #define V8_WASI_EXTERNAL_POINTER_TAG_ALIASES 1
-// Some sources refer to kMicrotaskCallbackDataTag.
-static constexpr uint64_t kMicrotaskCallbackDataTag = kMicrotaskCallbackTag;
+// kMicrotaskCallbackDataTag is now in the enum above
 // Some sources refer to waiter queue "foreign" tag; alias to node tag.
 static constexpr uint64_t kWaiterQueueForeignTag = kWaiterQueueNodeTag;
 #endif

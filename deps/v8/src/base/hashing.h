@@ -284,6 +284,17 @@ V8_INLINE size_t hash_value(double v) {
   return v != 0.0 ? hash_value(bit_cast<uint64_t>(v)) : 0;
 }
 
+// Explicit specializations for float and double to ensure hash<T> works
+template <>
+struct hash<float> {
+  V8_INLINE size_t operator()(float v) const { return hash_value(v); }
+};
+
+template <>
+struct hash<double> {
+  V8_INLINE size_t operator()(double v) const { return hash_value(v); }
+};
+
 template <typename T, size_t N>
 V8_INLINE size_t hash_value(const T (&v)[N]) {
   return Hasher{}.AddRange(v, v + N).hash();

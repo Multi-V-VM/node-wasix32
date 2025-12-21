@@ -88,22 +88,27 @@ class EmbedderGraph {
       kAttached = 1,
       kDetached = 2,
     };
-    
+
     virtual ~Node() = default;
     virtual const char* Name() = 0;
-    virtual const char* NamePrefix() = 0;
+    virtual const char* NamePrefix() { return ""; }  // Default to empty prefix
     virtual size_t SizeInBytes() = 0;
     virtual Node* JSWrapperNode() { return nullptr; }
     virtual Node* WrapperNode() { return JSWrapperNode(); }  // Alias for compatibility
     virtual bool IsRootNode() { return false; }
     virtual bool IsEmbedderNode() { return true; }
     virtual Detachedness GetDetachedness() { return Detachedness::kUnknown; }
+    virtual const void* GetAddress() { return nullptr; }  // Address of underlying object
   };
-  
+
   virtual ~EmbedderGraph() = default;
   virtual Node* V8Node(Local<Value> value) = 0;
   virtual Node* AddNode(::std::unique_ptr<Node> node) = 0;
   virtual void AddEdge(Node* from, Node* to, const char* name = nullptr) = 0;
+  // Add native size to a node for tracking native memory
+  virtual void AddNativeSize(Node* node, size_t size) {}
+  // Add native size without specifying a node (for global native memory)
+  virtual void AddNativeSize(size_t size) {}
 };
 #endif // V8_EMBEDDER_GRAPH_DEFINED
 
@@ -122,6 +127,10 @@ class QueryObjectPredicate {
 #define V8_HEAP_PROFILER_DEFINED
 class HeapProfiler {
  public:
+  // Constants for persistent handles
+  static constexpr uint16_t kPersistentHandleNoClassId = 0;
+  static constexpr uintptr_t kPersistentHandleZapValue = 0xDEADBEEF;
+
   // Resolve object names for heap snapshot nodes.
   class ObjectNameResolver {
    public:

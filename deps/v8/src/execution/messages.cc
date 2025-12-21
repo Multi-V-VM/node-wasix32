@@ -29,10 +29,7 @@
 namespace v8 {
 namespace internal {
 
-#ifdef __wasi__
-// WASI: Define external pointer tags not available from sandbox headers
-constexpr Address kMessageListenerTag = 0x9;
-#endif
+// WASI: kMessageListenerTag is now defined in nuclear-fix.h as an ExternalPointerTag enum value
 
 MessageLocation::MessageLocation(Handle<Script> script, int start_pos,
                                  int end_pos)
@@ -417,8 +414,13 @@ DirectHandle<String> MessageFormatter::Format(
   Handle<String> result_string;
   if (!maybe_result_string.ToHandle(&result_string)) {
     DCHECK(isolate->has_exception());
+#ifdef __wasi__
+    // WASI: Use const char* overload instead of Vector
+    return isolate->factory()->InternalizeString("<error>");
+#else
     return isolate->factory()->InternalizeString(
         base::StaticCharVector("<error>"));
+#endif
   }
   // A string that has been obtained from JS code in this way is
   // likely to be a complicated ConsString of some sort.  We flatten it

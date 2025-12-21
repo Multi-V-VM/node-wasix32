@@ -40,9 +40,9 @@ enum class SweepingType {
 
 #ifndef CPPGC_STACKSTATE_DEFINED
 #define CPPGC_STACKSTATE_DEFINED
-enum class StackState {
-  kMayContainHeapPointers,
+enum class StackState : uint8_t {
   kNoHeapPointers,
+  kMayContainHeapPointers,
 };
 #endif
 
@@ -97,6 +97,14 @@ struct HeapStatistics {
 };
 
 struct HeapOptions {
+  // Custom spaces for embedder-defined allocation areas
+  std::vector<std::unique_ptr<CustomSpaceBase>> custom_spaces;
+
+  // Marking and sweeping support levels (aliases for CppHeapCreateParams compatibility)
+  MarkingType marking_support = MarkingType::kIncrementalAndConcurrent;
+  SweepingType sweeping_support = SweepingType::kIncrementalAndConcurrent;
+
+  // Legacy names for backwards compatibility
   MarkingType marking_type = MarkingType::kIncrementalAndConcurrent;
   SweepingType sweeping_type = SweepingType::kIncrementalAndConcurrent;
 };

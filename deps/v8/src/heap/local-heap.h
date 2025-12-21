@@ -211,9 +211,11 @@ class V8_EXPORT_PRIVATE LocalHeap {
                                  GCCallbacksInSafepoint::GCType::kAll);
   void RemoveGCEpilogueCallback(GCEpilogueCallback* callback, void* data);
 
+#ifndef __wasi__
   // Weakens StrongDescriptorArray objects into regular DescriptorArray objects.
   void WeakenDescriptorArrays(
       GlobalHandleZoneVector<DescriptorArray> strong_descriptor_arrays);
+#endif  // !__wasi__
 
   // Used to make SetupMainThread() available to unit tests.
   void SetUpMainThreadForTesting();

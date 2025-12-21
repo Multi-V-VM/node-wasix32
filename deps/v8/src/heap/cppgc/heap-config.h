@@ -53,6 +53,7 @@ struct GCConfig {
   using SweepingType = SweepingConfig::SweepingType;
   using StackState = MarkingConfig::StackState;
   using IsForcedGC = MarkingConfig::IsForcedGC;
+  using FreeMemoryHandling = SweepingConfig::FreeMemoryHandling;
 
   static constexpr GCConfig Default() {
     return {StackState::kMayContainHeapPointers, MarkingConfig::Default(),
@@ -62,6 +63,8 @@ struct GCConfig {
   StackState stack_state = StackState::kMayContainHeapPointers;
   MarkingConfig marking_config;
   SweepingConfig sweeping_config;
+  // Convenience accessor for free memory handling (same as sweeping_config.free_memory_handling)
+  FreeMemoryHandling free_memory_handling = FreeMemoryHandling::kDoNotDiscard;
 };
 
 }  // namespace internal

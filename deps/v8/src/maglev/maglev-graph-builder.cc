@@ -103,7 +103,7 @@ bool IsSupported(CpuOperation op) {
 #elif defined(V8_TARGET_ARCH_ARM64) || defined(V8_TARGET_ARCH_PPC64) ||   \
     defined(V8_TARGET_ARCH_S390X) || defined(V8_TARGET_ARCH_RISCV64) ||   \
     defined(V8_TARGET_ARCH_RISCV32) || defined(V8_TARGET_ARCH_LOONG64) || \
-    defined(V8_TARGET_ARCH_MIPS64)
+    defined(V8_TARGET_ARCH_MIPS64) || defined(V8_TARGET_ARCH_WASM32)
       return true;
 #else
 #error "V8 does not support this architecture."
@@ -378,7 +378,7 @@ class V8_NODISCARD MaglevGraphBuilder::DeoptFrameScope {
       : builder_(builder),
         parent_(builder->current_deopt_scope_),
         data_(DeoptFrame::BuiltinContinuationFrameData{
-            continuation, builder->zone()->CloneVector(parameters),
+            continuation, builder->zone()->CloneVector(::v8::base::Vector<ValueNode* const>{parameters.data(), parameters.size()}),
             builder->GetContext(), maybe_js_target}) {
     builder_->current_interpreter_frame().virtual_objects().Snapshot();
     builder_->current_deopt_scope_ = this;
@@ -5327,7 +5327,7 @@ void MaglevGraphBuilder::BuildInitializeStore(InlinedAllocation* object,
     escape_deps->second.push_back(inlined_value);
     // Add to the elided set.
     auto& elided_map = graph()->allocations_elide_map();
-    auto elided_deps = elided_map.try_emplace(inlined_value, zone()).first;
+    auto elided_deps = elided_map.try_emplace(inlined_value, Graph::SmallAllocationVector{}).first;
     elided_deps->second.push_back(object);
     inlined_value->AddNonEscapingUses();
   }
@@ -9661,7 +9661,7 @@ namespace {
 template <size_t MaxKindCount, typename KindsToIndexFunc>
 bool CanInlineArrayResizingBuiltin(
     compiler::JSHeapBroker* broker, const PossibleMaps& possible_maps,
-    std::array<SmallVector<compiler::MapRef, 2>, MaxKindCount>& map_kinds,
+    std::array<base::SmallVector<compiler::MapRef, 2>, MaxKindCount>& map_kinds,
     KindsToIndexFunc&& elements_kind_to_index, int* unique_kind_count,
     bool is_loading) {
   uint8_t kind_bitmap = 0;
@@ -9949,10 +9949,10 @@ MaybeReduceResult MaglevGraphBuilder::TryReduceArrayPrototypePush(
 
   // Check that inlining resizing array builtins is supported and group maps
   // by elements kind.
-  std::array<SmallVector<compiler::MapRef, 2>, 3> map_kinds = {
-      SmallVector<compiler::MapRef, 2>(zone()),
-      SmallVector<compiler::MapRef, 2>(zone()),
-      SmallVector<compiler::MapRef, 2>(zone())};
+  std::array<base::SmallVector<compiler::MapRef, 2>, 3> map_kinds = {
+      base::SmallVector<compiler::MapRef, 2>(),
+      base::SmallVector<compiler::MapRef, 2>(),
+      base::SmallVector<compiler::MapRef, 2>()};
   // Function to group maps by elements kind, ignoring packedness. Packedness
   // doesn't matter for push().
   // Kinds we care about are all paired in the first 6 values of ElementsKind,
@@ -10079,11 +10079,11 @@ MaybeReduceResult MaglevGraphBuilder::TryReduceArrayPrototypePop(
   }
 
   constexpr int max_kind_count = 4;
-  std::array<SmallVector<compiler::MapRef, 2>, max_kind_count> map_kinds = {
-      SmallVector<compiler::MapRef, 2>(zone()),
-      SmallVector<compiler::MapRef, 2>(zone()),
-      SmallVector<compiler::MapRef, 2>(zone()),
-      SmallVector<compiler::MapRef, 2>(zone())};
+  std::array<base::SmallVector<compiler::MapRef, 2>, max_kind_count> map_kinds = {
+      base::SmallVector<compiler::MapRef, 2>(),
+      base::SmallVector<compiler::MapRef, 2>(),
+      base::SmallVector<compiler::MapRef, 2>(),
+      base::SmallVector<compiler::MapRef, 2>()};
   // Smi and Object elements kinds are treated as identical for pop, so we can
   // group them together without differentiation.
   // ElementsKind is mapped to an index in the 4 element array using:
@@ -10613,7 +10613,7 @@ ValueNode* MaglevGraphBuilder::GetConvertReceiver(
       {receiver}, broker()->target_native_context(), args.receiver_mode());
 }
 
-Vector<ValueNode*> MaglevGraphBuilder::GetArgumentsAsArrayOfValueNodes(
+ZoneVector<ValueNode*> MaglevGraphBuilder::GetArgumentsAsArrayOfValueNodes(
     compiler::SharedFunctionInfoRef shared, const CallArguments& args) {
   // TODO(victorgomes): Investigate if we can avoid this copy.
   int arg_count = static_cast<int>(args.count());
@@ -13341,7 +13341,7 @@ InlinedAllocation* MaglevGraphBuilder::ExtendOrReallocateCurrentAllocationBlock(
   DCHECK_GE(current_size, 0);
   InlinedAllocation* allocation =
       AddNewNode<InlinedAllocation>({current_allocation_block_}, vobject);
-  graph()->allocations_escape_map().emplace(allocation, zone());
+  graph()->allocations_escape_map().emplace(allocation, Graph::SmallAllocationVector{});
   current_allocation_block_->Add(allocation);
   vobject->set_allocation(allocation);
   return allocation;
@@ -13455,7 +13455,7 @@ InlinedAllocation* MaglevGraphBuilder::BuildInlinedAllocation(
           BuildInlinedAllocationForConsString(vobject, allocation_type);
       break;
     case VirtualObject::kDefault: {
-      SmallVector<ValueNode*, 8> values(zone());
+      base::SmallVector<ValueNode*, 8> values;
       vobject->ForEachInput([&](ValueNode*& node) {
         ValueNode* value_to_push;
         if (node->Is<VirtualObject>()) {

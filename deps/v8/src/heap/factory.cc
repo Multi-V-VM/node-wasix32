@@ -1729,7 +1729,7 @@ DirectHandle<WasmTypeInfo> Factory::NewWasmTypeInfo(
   // (2) The object visitors need to read the WasmTypeInfo to find tagged
   //     fields in Wasm structs; in the middle of a GC cycle that's only
   //     safe to do if the WTI is in old space.
-  DirectHandle<ZoneVector<Object> supertypes(isolate());
+  std::vector<DirectHandle<Object>> supertypes;
   if (opt_parent.is_null()) {
     supertypes.resize(wasm::kMinimumSupertypeArraySize, undefined_value());
   } else {

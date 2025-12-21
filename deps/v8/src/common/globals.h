@@ -1920,9 +1920,13 @@ enum class GarbageCollectionReason : int {
   NUM_REASONS,
 };
 
-// static_assert(kGarbageCollectionReasonMaxValue ==
-// static_cast<int>(GarbageCollectionReason::NUM_REASONS) - 1,
-// "The value of kGarbageCollectionReasonMaxValue is inconsistent.");
+// Maximum value for GarbageCollectionReason enum (for histogram bucket sizing)
+constexpr int kGarbageCollectionReasonMaxValue =
+    static_cast<int>(GarbageCollectionReason::NUM_REASONS) - 1;
+
+static_assert(kGarbageCollectionReasonMaxValue ==
+              static_cast<int>(GarbageCollectionReason::NUM_REASONS) - 1,
+              "The value of kGarbageCollectionReasonMaxValue is inconsistent.");
 
 constexpr const char* ToString(GarbageCollectionReason reason) {
   switch (reason) {

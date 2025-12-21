@@ -140,6 +140,12 @@ class Platform {
   virtual PageAllocator* GetPageAllocator() = 0;
   virtual int NumberOfWorkerThreads() = 0;
   virtual std::shared_ptr<TaskRunner> GetForegroundTaskRunner(Isolate* isolate) = 0;
+  // Overload with TaskPriority for cppgc platform adapter compatibility
+  virtual std::shared_ptr<TaskRunner> GetForegroundTaskRunner(
+      Isolate* isolate, TaskPriority priority) {
+    // Default: ignore priority and delegate to single-arg version
+    return GetForegroundTaskRunner(isolate);
+  }
   virtual void CallOnWorkerThread(std::unique_ptr<Task> task) = 0;
   virtual void CallDelayedOnWorkerThread(std::unique_ptr<Task> task, double delay_in_seconds) = 0;
   virtual bool IdleTasksEnabled(Isolate* isolate) = 0;

@@ -5,11 +5,15 @@
 #ifndef V8_HEAP_CPPGC_JS_UNIFIED_HEAP_MARKING_VERIFIER_H_
 #define V8_HEAP_CPPGC_JS_UNIFIED_HEAP_MARKING_VERIFIER_H_
 
+#include "include/cppgc/visitor.h"
 #include "src/heap/cppgc/marking-verifier.h"
 #include "v8-traced-handle.h"
 
 namespace v8 {
 namespace internal {
+
+// JSVisitor is an alias for cppgc::Visitor used by unified heap visitors
+using JSVisitor = cppgc::Visitor;
 
 class UnifiedHeapVerificationState : public cppgc::internal::VerificationState {
  public:

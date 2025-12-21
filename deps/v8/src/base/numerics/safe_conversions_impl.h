@@ -62,12 +62,19 @@ constexpr typename std::enable_if<std::is_integral<T>::value,
 
 // This performs a safe, absolute value via unsigned overflow.
 template <typename T>
-constexpr typename std::enable_if<std::is_integral<T>::value, 
+constexpr typename std::enable_if<std::is_integral<T>::value,
     typename std::make_unsigned<T>::type>::type SafeUnsignedAbs(T value) {
   using UnsignedT = std::make_unsigned_t<T>;
   return IsValueNegative(value)
              ? static_cast<UnsignedT>(0u - static_cast<UnsignedT>(value))
              : static_cast<UnsignedT>(value);
+}
+
+// Overload for floating point types - just return absolute value as same type
+template <typename T>
+constexpr typename std::enable_if<std::is_floating_point<T>::value, T>::type
+SafeUnsignedAbs(T value) {
+  return value < T(0) ? -value : value;
 }
 
 // TODO(jschuh): Debug builds don't reliably propagate constants, so we restrict
@@ -535,10 +542,18 @@ as_signed(Src value) {
 // Numeric template) cast as an unsigned integral of equivalent precision.
 // I.e. it's mostly an alias for: static_cast<std::make_unsigned<T>::type>(t)
 template <typename Src,
+          typename = std::enable_if_t<std::is_integral<UnderlyingType<Src>>::value>,
           typename Dst = std::make_unsigned_t<UnderlyingType<Src>>>
-constexpr typename std::enable_if<std::is_integral<Dst>::value, Dst>::type
-as_unsigned(Src value) {
+constexpr Dst as_unsigned(Src value) {
   return static_cast<Dst>(value);
+}
+
+// Overload for floating point types - return as-is since make_unsigned
+// doesn't work for floats
+template <typename Src>
+constexpr std::enable_if_t<std::is_floating_point<UnderlyingType<Src>>::value, Src>
+as_unsigned(Src value) {
+  return value;
 }
 
 template <typename L, typename R>

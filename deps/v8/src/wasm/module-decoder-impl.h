@@ -133,22 +133,23 @@ inline SectionCode IdentifyUnknownSectionInternal(Decoder* decoder,
         static_cast<int>(section_name_start - decoder->start()),
         string.length() < 20 ? string.length() : 20, section_name_start);
 
-  using SpecialSectionPair = std::pair<ZoneVector<const char>, SectionCode>;
+  using SpecialSectionPair = std::pair<::v8::base::Vector<const char>, SectionCode>;
   static constexpr SpecialSectionPair kSpecialSections[]{
-      {base::StaticCharVector(kNameString), kNameSectionCode},
-      {base::StaticCharVector(kSourceMappingURLString),
+      {::v8::base::StaticCharVector(kNameString), kNameSectionCode},
+      {::v8::base::StaticCharVector(kSourceMappingURLString),
        kSourceMappingURLSectionCode},
-      {base::StaticCharVector(kInstTraceString), kInstTraceSectionCode},
-      {base::StaticCharVector(kCompilationHintsString),
+      {::v8::base::StaticCharVector(kInstTraceString), kInstTraceSectionCode},
+      {::v8::base::StaticCharVector(kCompilationHintsString),
        kCompilationHintsSectionCode},
-      {base::StaticCharVector(kBranchHintsString), kBranchHintsSectionCode},
-      {base::StaticCharVector(kDebugInfoString), kDebugInfoSectionCode},
-      {base::StaticCharVector(kExternalDebugInfoString),
+      {::v8::base::StaticCharVector(kBranchHintsString), kBranchHintsSectionCode},
+      {::v8::base::StaticCharVector(kDebugInfoString), kDebugInfoSectionCode},
+      {::v8::base::StaticCharVector(kExternalDebugInfoString),
        kExternalDebugInfoSectionCode},
-      {base::StaticCharVector(kBuildIdString), kBuildIdSectionCode}};
+      {::v8::base::StaticCharVector(kBuildIdString), kBuildIdSectionCode}};
 
-  auto name_vec = ZoneVector<const char>::cast(
-      base::VectorOf(section_name_start, string.length()));
+  // section_name_start is uint8_t*, need to cast to const char* for comparison
+  auto name_vec = ::v8::base::Vector<const char>(
+      reinterpret_cast<const char*>(section_name_start), string.length());
   for (auto& special_section : kSpecialSections) {
     if (name_vec == special_section.first) return special_section.second;
   }

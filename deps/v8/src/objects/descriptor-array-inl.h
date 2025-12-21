@@ -101,11 +101,27 @@ InternalIndex DescriptorArray::BinarySearch(Tagged<Name> name,
 
   // Find the first descriptor whose key's hash is greater-than-or-equal-to the
   // search hash.
+#ifdef __wasi__
+  // WASI: Use manual binary search instead of C++20 ranges
+  int number = 0;
+  int low = 0, high = end;
+  while (low < high) {
+    int mid = low + (high - low) / 2;
+    Tagged<Name> entry = GetSortedKey(mid);
+    if (entry->hash() < hash) {
+      low = mid + 1;
+    } else {
+      high = mid;
+    }
+  }
+  number = low;
+#else
   int number = *std::ranges::lower_bound(std::views::iota(0, end), hash,
                                          std::less<>(), [&](int i) {
                                            Tagged<Name> entry = GetSortedKey(i);
                                            return entry->hash();
                                          });
+#endif
 
   // There may have been hash collisions, so search for the name from the first
   // index until the first non-matching hash.

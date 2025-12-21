@@ -10,6 +10,20 @@
 #include "src/base/macros.h"
 #include "src/zone/zone-containers.h"
 
+#ifdef __wasi__
+// WASI: Provide hash function for std::pair since std::hash doesn't support it
+namespace std {
+template <typename T1, typename T2>
+struct hash<std::pair<T1, T2>> {
+  size_t operator()(const std::pair<T1, T2>& p) const {
+    size_t h1 = std::hash<T1>{}(p.first);
+    size_t h2 = std::hash<T2>{}(p.second);
+    return h1 ^ (h2 << 1);
+  }
+};
+}  // namespace std
+#endif  // __wasi__
+
 namespace v8 {
 namespace internal {
 

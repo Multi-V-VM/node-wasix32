@@ -8,12 +8,9 @@
 #include <unordered_map>
 
 #ifdef __wasi__
-#if __has_include("absl/container/flat_hash_map.h")
-#include "absl/container/flat_hash_map.h"
-#elif __has_include("third_party/abseil-cpp/absl/container/flat_hash_map.h")
-#include "third_party/abseil-cpp/absl/container/flat_hash_map.h"
-#else
-// Fallback to std::unordered_map if Abseil is unavailable.
+// WASI: Use std::unordered_map instead of abseil
+#ifndef ABSL_FLAT_HASH_MAP_WASI_DEFINED
+#define ABSL_FLAT_HASH_MAP_WASI_DEFINED
 namespace absl {
 template <class K, class V, class Hash = std::hash<K>, class Eq = std::equal_to<K>,
           class Alloc = std::allocator<std::pair<const K, V>>>
@@ -26,7 +23,7 @@ using flat_hash_map = std::unordered_map<K, V, Hash, Eq, Alloc>;
 #else
 #include "third_party/abseil-cpp/absl/container/flat_hash_map.h"
 #endif
-#endif
+#endif  // __wasi__
 #include "src/base/hashing.h"
 
 namespace heap::base {

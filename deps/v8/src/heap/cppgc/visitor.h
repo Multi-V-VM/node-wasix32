@@ -3,6 +3,7 @@
 
 #include "include/cppgc/visitor.h"
 #include "include/cppgc/source-location.h"
+#include "include/cppgc/persistent.h"  // For cppgc::internal::RootVisitor
 
 namespace cppgc {
 namespace internal {
@@ -13,28 +14,51 @@ namespace internal {
 class VisitorBase : public cppgc::Visitor {
  public:
   explicit VisitorBase(HeapHandle& heap_handle) : cppgc::Visitor(heap_handle) {}
+  explicit VisitorBase(cppgc::internal::VisitorFactory::Key key) : cppgc::Visitor(key) {}
   virtual ~VisitorBase() = default;
-};
 
-class RootVisitorBase : public cppgc::Visitor {
- public:
-  explicit RootVisitorBase(HeapHandle& heap_handle) : cppgc::Visitor(heap_handle) {}
-  virtual ~RootVisitorBase() = default;
-
-  void VisitRoot(const void* object, TraceDescriptor desc, const SourceLocation& loc) {
+  // Default implementation of pure virtual Visit - can be overridden
+  void Visit(const void* object, TraceDescriptor desc) override {
     if (desc.callback) {
       desc.callback(this, desc.base_object_payload);
     }
   }
-  
-  void VisitWeakRoot(const void* object, TraceDescriptor desc,
-                     void* weak_callback, const void* weak_callback_data,
-                     const SourceLocation& loc) {
+};
+
+class RootVisitorBase : public cppgc::Visitor, public RootVisitor {
+ public:
+  explicit RootVisitorBase(HeapHandle& heap_handle) : cppgc::Visitor(heap_handle) {}
+  explicit RootVisitorBase(cppgc::internal::VisitorFactory::Key key) : cppgc::Visitor(key) {}
+  // Default constructor for subclasses that manage their own initialization
+  RootVisitorBase() : cppgc::Visitor(cppgc::internal::VisitorFactory::CreateKey()) {}
+  virtual ~RootVisitorBase() = default;
+
+  // Default implementation of pure virtual Visit - can be overridden
+  void Visit(const void* object, TraceDescriptor desc) override {
+    if (desc.callback) {
+      desc.callback(this, desc.base_object_payload);
+    }
+  }
+
+  // Override RootVisitor::Trace for persistent iteration
+  void Trace(const void* object) {
+    // Default trace implementation - delegates to Visit if needed
+  }
+
+  virtual void VisitRoot(const void* object, TraceDescriptor desc, const SourceLocation& loc) {
+    if (desc.callback) {
+      desc.callback(this, desc.base_object_payload);
+    }
+  }
+
+  virtual void VisitWeakRoot(const void* object, TraceDescriptor desc,
+                             void* weak_callback, const void* weak_callback_data,
+                             const SourceLocation& loc) {
     if (desc.callback) {
       desc.callback(this, desc.base_object_payload);
     }
     if (weak_callback) {
-      RegisterWeakCallback(weak_callback, weak_callback_data);
+      RegisterWeakCallback(reinterpret_cast<WeakCallback>(weak_callback), weak_callback_data);
     }
   }
 };
@@ -58,16 +82,18 @@ class ConservativeTracingVisitor {
  public:
   ConservativeTracingVisitor(HeapBase& heap, PageBackend& page_backend,
                              cppgc::Visitor& visitor);
+  virtual ~ConservativeTracingVisitor() = default;
 
   void TraceConservatively(const HeapObjectHeader& header);
   void TryTracePointerConservatively(const void* address);
-  void TraceConservativelyIfNeeded(const void* address);
-  void TraceConservativelyIfNeeded(HeapObjectHeader& header);
+  virtual void TraceConservativelyIfNeeded(const void* address);
+  virtual void TraceConservativelyIfNeeded(HeapObjectHeader& header);
 
   // Overridables used by specific marking visitors.
-  void VisitFullyConstructedConservatively(HeapObjectHeader& header);
-  void VisitInConstructionConservatively(HeapObjectHeader& header,
+  virtual void VisitFullyConstructedConservatively(HeapObjectHeader& header);
+  virtual void VisitInConstructionConservatively(HeapObjectHeader& header,
                                          TraceConservativelyCallback callback);
+  virtual void VisitPointer(const void*) {}
 
  protected:
   HeapBase& heap_;

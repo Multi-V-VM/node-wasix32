@@ -14,6 +14,7 @@
 
 #include <inttypes.h>
 
+#include <algorithm>
 #include <optional>
 
 #include "src/base/bounds.h"
@@ -1628,7 +1629,7 @@ class FastZoneVector {
  private:
   V8_NOINLINE V8_PRESERVE_MOST void Grow(int slots_needed, Zone* zone) {
     size_t new_capacity = std::max(
-        size_t{8}, base::bits::RoundUpToPowerOfTwo(size() + slots_needed));
+        size_t{8}, static_cast<size_t>(base::bits::RoundUpToPowerOfTwo(static_cast<size_t>(size()) + static_cast<size_t>(slots_needed))));
     CHECK_GE(kMaxUInt32, new_capacity);
     DCHECK_LT(capacity_end_ - begin_, new_capacity);
     T* new_begin = zone->template AllocateArray<T>(new_capacity);

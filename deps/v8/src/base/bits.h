@@ -18,7 +18,7 @@ namespace base {
 namespace bits {
 
 // Generic implementations available in both WASI and non-WASI builds.
-inline uint32_t RoundUpToPowerOfTwo32(uint32_t value) {
+constexpr uint32_t RoundUpToPowerOfTwo32(uint32_t value) {
   if (value <= 1) return 1;
   value--;
   value |= value >> 1;
@@ -29,7 +29,7 @@ inline uint32_t RoundUpToPowerOfTwo32(uint32_t value) {
   return value + 1;
 }
 
-inline uint64_t RoundUpToPowerOfTwo64(uint64_t value) {
+constexpr uint64_t RoundUpToPowerOfTwo64(uint64_t value) {
   if (value <= 1) return 1;
   value--;
   value |= value >> 1;
@@ -41,7 +41,7 @@ inline uint64_t RoundUpToPowerOfTwo64(uint64_t value) {
   return value + 1;
 }
 
-inline uint32_t RoundDownToPowerOfTwo32(uint32_t value) {
+constexpr uint32_t RoundDownToPowerOfTwo32(uint32_t value) {
   if (value <= 1) return value;
   // Set all bits below the highest set bit
   value |= value >> 1;
@@ -55,7 +55,7 @@ inline uint32_t RoundDownToPowerOfTwo32(uint32_t value) {
 
 // Generic RoundUpToPowerOfTwo for integral types
 template <typename T>
-inline T RoundUpToPowerOfTwo(T value) {
+constexpr T RoundUpToPowerOfTwo(T value) {
   static_assert(::std::is_integral<T>::value, "T must be integral");
   if constexpr (sizeof(T) <= sizeof(uint32_t)) {
     return static_cast<T>(RoundUpToPowerOfTwo32(static_cast<uint32_t>(value)));

@@ -29,6 +29,9 @@
 namespace v8 {
 namespace internal {
 
+// JSVisitor is an alias for cppgc::Visitor used by unified heap visitors
+using JSVisitor = cppgc::Visitor;
+
 class CppGraphBuilderImpl;
 class StateStorage;
 class State;
@@ -46,6 +49,7 @@ class EmbedderNode : public v8::EmbedderGraph::Node {
   ~EmbedderNode() override = default;
 
   const char* Name() final { return name_; }
+  const char* NamePrefix() final { return ""; }
   size_t SizeInBytes() final { return size_; }
 
   void SetWrapperNode(v8::EmbedderGraph::Node* wrapper_node) {
@@ -629,6 +633,14 @@ class WeakVisitor : public JSVisitor {
       : JSVisitor(cppgc::internal::VisitorFactory::CreateKey()),
         graph_builder_(graph_builder) {}
 
+  // Default Visit implementation - can be overridden by derived classes
+  void Visit(const void* object, cppgc::TraceDescriptor desc) override {
+    // Default behavior - trace the object if callback is set
+    if (desc.callback) {
+      desc.callback(this, desc.base_object_payload);
+    }
+  }
+
   void VisitWeakContainer(const void* object,
                           cppgc::TraceDescriptor strong_desc,
                           cppgc::TraceDescriptor weak_desc, cppgc::WeakCallback,
@@ -959,6 +971,14 @@ class GraphBuildingStackVisitor
         graph_builder_(graph_builder),
         root_visitor_(root_visitor) {}
 
+  // Required implementation of pure virtual Visit from cppgc::Visitor
+  void Visit(const void* object, cppgc::TraceDescriptor desc) override {
+    // Default behavior for visiting objects during stack traversal
+    if (desc.callback) {
+      desc.callback(this, desc.base_object_payload);
+    }
+  }
+
   void VisitPointer(const void* address) final {
     // Entry point for stack walk. The conservative visitor dispatches as
     // follows:
@@ -972,7 +992,7 @@ class GraphBuildingStackVisitor
   }
 
   void VisitInConstructionConservatively(HeapObjectHeader& header,
-                                         TraceConservativelyCallback) final {
+                                         cppgc::internal::TraceConservativelyCallback) final {
     VisitConservatively(header);
   }
 

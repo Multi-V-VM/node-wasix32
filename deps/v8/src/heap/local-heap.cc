@@ -484,10 +484,12 @@ void LocalHeap::NotifyObjectSizeChange(
                                  clear_recorded_slots);
 }
 
+#ifndef __wasi__
 void LocalHeap::WeakenDescriptorArrays(
     GlobalHandleZoneVector<DescriptorArray> strong_descriptor_arrays) {
   AsHeap()->WeakenDescriptorArrays(std::move(strong_descriptor_arrays));
 }
+#endif  // !__wasi__
 
 }  // namespace internal
 }  // namespace v8

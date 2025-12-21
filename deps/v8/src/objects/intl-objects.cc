@@ -3172,7 +3172,7 @@ DirectHandle<Object> Intl::GetTimeZoneOffsetTransitionNanoseconds(
   return MillisecondToNanosecond(isolate, time_ms);
 }
 
-DirectHandle<ZoneVector<BigInt>> Intl::GetTimeZonePossibleOffsetNanoseconds(
+DirectHandleSmallVector<BigInt, 2> Intl::GetTimeZonePossibleOffsetNanoseconds(
     Isolate* isolate, int32_t time_zone_index,
     DirectHandle<BigInt> nanosecond_epoch) {
   std::unique_ptr<const icu::BasicTimeZone> basic_time_zone(
@@ -3197,7 +3197,7 @@ DirectHandle<ZoneVector<BigInt>> Intl::GetTimeZonePossibleOffsetNanoseconds(
   // transition
   int64_t offset_latter = raw_offset + dst_offset;
 
-  DirectHandle<ZoneVector<BigInt>> result(isolate);
+  DirectHandleSmallVector<BigInt, 2> result(isolate);
   if (offset_former == offset_latter) {
     // For most of the time, when either interpretation are the same, we are not
     // in a moment of offset transition based on rule changing: Just return that

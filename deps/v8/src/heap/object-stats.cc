@@ -36,7 +36,7 @@ namespace internal {
 
 using StatsEnum = ObjectStats::VirtualInstanceType;
 
-static base::LazyMutex object_stats_mutex = LAZY_MUTEX_INITIALIZER;
+static ::v8::base::LazyMutex object_stats_mutex = LAZY_MUTEX_INITIALIZER;
 
 class FieldStatsCollector : public ObjectVisitorWithCageBases {
  public:

@@ -1183,9 +1183,20 @@ class ZoneVector<DirectHandle<T>> {
   // Capacity
   bool empty() const { return storage_.empty(); }
   size_t size() const { return storage_.size(); }
+  size_t length() const { return size(); }  // Compatibility alias
   size_t capacity() const { return storage_.capacity(); }
   void reserve(size_t n) { storage_.reserve(n); }
   void resize(size_t n) { storage_.resize(n); }
+
+  // Front/back element access
+  reference front() { return reinterpret_cast<reference>(storage_.front()); }
+  const_reference front() const { return reinterpret_cast<const_reference>(storage_.front()); }
+  reference back() { return reinterpret_cast<reference>(storage_.back()); }
+  const_reference back() const { return reinterpret_cast<const_reference>(storage_.back()); }
+  reference first() { return front(); }
+  const_reference first() const { return front(); }
+  reference last() { return back(); }
+  const_reference last() const { return back(); }
 
   // Modifiers
   void push_back(const value_type& value) {
@@ -1273,6 +1284,18 @@ class ZoneVector<const T> {
 
   // Compatibility methods for v8::base::Vector-like interface
   size_t length() const { return size_; }
+
+  // Front/back element access
+  const_reference front() const {
+    DCHECK_GT(size_, 0);
+    return data_[0];
+  }
+  const_reference back() const {
+    DCHECK_GT(size_, 0);
+    return data_[size_ - 1];
+  }
+  const_reference first() const { return front(); }
+  const_reference last() const { return back(); }
 
   // SubVector support
   ZoneVector<const T> SubVector(size_t from, size_t to) const {

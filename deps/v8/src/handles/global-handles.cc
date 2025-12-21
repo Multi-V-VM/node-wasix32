@@ -438,9 +438,11 @@ class GlobalHandles::Node final : public NodeBase<GlobalHandles::Node> {
   };
 
   Node() {
+#ifndef __wasi__
     static_assert(static_cast<int>(NodeState::kMask) ==
                   Internals::kNodeStateMask);
     static_assert(WEAK == Internals::kNodeStateIsWeakValue);
+#endif
     set_in_young_list(false);
   }
 

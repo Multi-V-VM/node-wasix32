@@ -1,6 +1,7 @@
 #ifndef V8_BASE_ONCE_H_
 #define V8_BASE_ONCE_H_
 
+#include <utility>
 #include "../../include/v8config.h"
 #include "base-export.h"
 // Avoid including heavy V8 internals here to prevent include cycles with
@@ -35,6 +36,15 @@ template <typename Function>
 inline void CallOnce(OnceType* once, Function function) {
   if (*once == ONCE_STATE_UNINITIALIZED) {
     function();
+    *once = ONCE_STATE_DONE;
+  }
+}
+
+// Variadic version that forwards multiple arguments to the function.
+template <typename Function, typename... Args>
+inline void CallOnce(OnceType* once, Function function, Args&&... args) {
+  if (*once == ONCE_STATE_UNINITIALIZED) {
+    function(std::forward<Args>(args)...);
     *once = ONCE_STATE_DONE;
   }
 }

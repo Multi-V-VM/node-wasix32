@@ -14,7 +14,7 @@
 	#include <intrin.h>
 #endif
 
-#include <fp16/bitcasts.h>
+#include "bitcasts.h"
 
 
 /*

@@ -153,7 +153,17 @@ struct CpuProfilingOptions {
 // CodeEvent types for logging
 struct CodeEvent {
   enum Type {
-    kUnknown = 0
+    kUnknown = 0,
+    kBuiltinType,
+    kCallbackType,
+    kEvalType,
+    kFunctionType,
+    kHandlerType,
+    kBytecodeHandlerType,
+    kRegExpType,
+    kScriptType,
+    kStubType,
+    kRelocationType
   };
 };
 
@@ -161,7 +171,13 @@ using CodeEventType = CodeEvent::Type;
 
 // JitCodeEventHandler (formerly CodeEventHandler)
 using JitCodeEventHandler = void (*)(const struct JitCodeEvent* event);
-using CodeEventHandler = JitCodeEventHandler;  // Alias for compatibility
+
+// CodeEventHandler - class-based handler for code events
+class CodeEventHandler {
+ public:
+  virtual ~CodeEventHandler() = default;
+  virtual void Handle(CodeEvent* event) {}
+};
 
 // AllocationProfile forward declarations
 class AllocationProfile {

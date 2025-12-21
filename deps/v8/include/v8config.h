@@ -14,6 +14,8 @@
 #define V8_HOST_ARCH_32_BIT 1
 #define V8_TARGET_ARCH_WASM 1
 #define V8_OS_WASI 1
+#define V8_OS_STRING "wasi"
+#define V8_TARGET_OS_STRING "wasi"
 
 // Disable problematic features
 // V8_ENABLE_SANDBOX is not supported on WASI - leave undefined
@@ -33,8 +35,14 @@
 #define V8_INLINE inline
 #define V8_NOINLINE __attribute__((noinline))
 #define V8_TRIVIAL_ABI
+#ifdef __wasi__
+// WASI: Use parenthesized form for compatibility
+#define V8_LIKELY(x) ((__builtin_expect(!!(x), 1)))
+#define V8_UNLIKELY(x) ((__builtin_expect(!!(x), 0)))
+#else
 #define V8_LIKELY(x) __builtin_expect(!!(x), 1)
 #define V8_UNLIKELY(x) __builtin_expect(!!(x), 0)
+#endif
 #define V8_WARN_UNUSED_RESULT __attribute__((warn_unused_result))
 #define V8_NODISCARD [[nodiscard]]
 #define V8_FALLTHROUGH [[fallthrough]]

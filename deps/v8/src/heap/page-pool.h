@@ -5,6 +5,18 @@
 #ifndef V8_HEAP_PAGE_POOL_H_
 #define V8_HEAP_PAGE_POOL_H_
 
+#ifdef __wasi__
+// WASI: Use std::unordered_map instead of abseil
+#include <unordered_map>
+#ifndef ABSL_FLAT_HASH_MAP_WASI_DEFINED
+#define ABSL_FLAT_HASH_MAP_WASI_DEFINED
+namespace absl {
+template <class K, class V, class Hash = std::hash<K>, class Eq = std::equal_to<K>,
+          class Alloc = std::allocator<std::pair<const K, V>>>
+using flat_hash_map = std::unordered_map<K, V, Hash, Eq, Alloc>;
+}  // namespace absl
+#endif
+#else
 #if __has_include("absl/container/flat_hash_map.h")
 #include "absl/container/flat_hash_map.h"
 #elif __has_include("third_party/abseil-cpp/absl/container/flat_hash_map.h")
@@ -20,6 +32,7 @@ template <class K, class V, class Hash = std::hash<K>, class Eq = std::equal_to<
 using flat_hash_map = std::unordered_map<K, V, Hash, Eq, Alloc>;
 }  // namespace absl
 #endif
+#endif  // __wasi__
 #include "src/base/platform/mutex.h"
 #include "src/utils/allocation.h"
 

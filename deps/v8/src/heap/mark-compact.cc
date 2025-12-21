@@ -4181,8 +4181,8 @@ static inline void UpdateSlot(PtrComprCageBase cage_base, TSlot slot,
           std::is_same<TSlot, InstructionStreamSlot>::value ||
           std::is_same<TSlot, ProtectedPointerSlot>::value ||
           std::is_same<TSlot, ProtectedMaybeObjectSlot>::value ||
-          std::is_same<TSlot, WriteProtectedSlot<ObjectSlot>::value> ||
-          std::is_same<TSlot, WriteProtectedSlot<ProtectedPointerSlot>::value>,
+          std::is_same<TSlot, WriteProtectedSlot<ObjectSlot>>::value ||
+          std::is_same<TSlot, WriteProtectedSlot<ProtectedPointerSlot>>::value,
       "Only [Full|OffHeap]ObjectSlot, [Full]MaybeObjectSlot, "
       "InstructionStreamSlot, Protected[Pointer|MaybeObject]Slot, "
       "or WriteProtectedSlot are expected here");
@@ -4719,7 +4719,7 @@ class PageEvacuationJob : public v8::JobTask {
   }
 
   size_t GetMaxConcurrency(size_t worker_count) const override {
-    const size_t kItemsPerWorker = std::max(1, MB / PageMetadata::kPageSize);
+    const size_t kItemsPerWorker = std::max(size_t{1}, MB / PageMetadata::kPageSize);
     // Ceiling division to ensure enough workers for all
     // |remaining_evacuation_items_|
     size_t wanted_num_workers =

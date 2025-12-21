@@ -22,9 +22,9 @@ enum class CollectionType {
 // Stack state for GC (in main cppgc namespace)
 #ifndef CPPGC_STACKSTATE_DEFINED
 #define CPPGC_STACKSTATE_DEFINED
-enum class StackState {
-  kMayContainHeapPointers,
-  kNoHeapPointers
+enum class StackState : uint8_t {
+  kNoHeapPointers,
+  kMayContainHeapPointers
 };
 #endif
 

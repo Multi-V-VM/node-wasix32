@@ -53,6 +53,11 @@ enum CppHeapPointerTag : uint32_t {
   kLastTag = 0x7fff
 };
 
+// WASI: Add kAnyCppHeapPointer as a CppHeapPointerTagRange
+inline const internal::CppHeapPointerTagRange kAnyCppHeapPointer(
+    static_cast<int>(CppHeapPointerTag::kFirstTag),
+    static_cast<int>(CppHeapPointerTag::kLastTag));
+
 }  // namespace v8
 
 #endif  // INCLUDE_V8_SANDBOX_H_
