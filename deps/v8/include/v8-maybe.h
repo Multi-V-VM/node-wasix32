@@ -1,6 +1,9 @@
 #ifndef INCLUDE_V8_MAYBE_H_
 #define INCLUDE_V8_MAYBE_H_
 
+#include <type_traits>  // for std::remove_reference_t
+#include <utility>  // for std::move
+
 // For WASI compatibility, v8-maybe.h redirects to v8-maybe-local.h
 #include "v8-maybe-local.h"
 
@@ -11,14 +14,28 @@ template <class T>
 class Maybe {
  public:
   Maybe() : has_value_(false) {}
-  explicit Maybe(const T& value) : value_(value), has_value_(true) {}
-  
+
+  // Use forwarding reference to handle both lvalue and rvalue
+  template <typename U,
+            typename = std::enable_if_t<std::is_convertible_v<U, T>>>
+  explicit Maybe(U&& value) : value_(std::forward<U>(value)), has_value_(true) {}
+
+  // Move and copy support
+  Maybe(const Maybe& other) = default;
+  Maybe(Maybe&& other) noexcept = default;
+  Maybe& operator=(const Maybe& other) = default;
+  Maybe& operator=(Maybe&& other) noexcept = default;
+
   bool IsNothing() const { return !has_value_; }
   bool IsJust() const { return has_value_; }
-  T FromJust() const { return value_; }
-  T FromMaybe(const T& default_value) const { 
-    return has_value_ ? value_ : default_value; 
+
+  T FromJust() && { return std::move(value_); }
+  const T& FromJust() const& { return value_; }
+
+  T FromMaybe(const T& default_value) const {
+    return has_value_ ? value_ : default_value;
   }
+
   bool To(T* out) const {
     if (has_value_) {
       *out = value_;
@@ -26,25 +43,26 @@ class Maybe {
     }
     return false;
   }
-  
+
   static Maybe<T> Nothing() { return Maybe<T>(); }
-  static Maybe<T> Just(const T& value) { return Maybe<T>(value); }
-  
+
+  template <typename U>
+  static Maybe<T> Just(U&& value) { return Maybe<T>(std::forward<U>(value)); }
+
   // Check method for WASI compatibility - assumes success when has_value_
   void Check() const {
     // In WASI, we just assume check succeeds if we have a value
     // This is a simplified implementation for compatibility
   }
-  
+
   // ToChecked method - returns the value or crashes if empty
-  T ToChecked() const {
-    if (!has_value_) {
-      // In production, this would crash. For WASI, return default value
-      return T();
-    }
+  T ToChecked() && {
+    return std::move(value_);
+  }
+  const T& ToChecked() const& {
     return value_;
   }
-  
+
  private:
   T value_;
   bool has_value_;
@@ -122,10 +140,10 @@ Maybe<T> Nothing() {
   return Maybe<T>::Nothing();
 }
 
-// Standalone Just function template for convenience  
+// Standalone Just function template for convenience - for explicit type specification
 template <class T>
-Maybe<T> Just(const T& value) {
-  return Maybe<T>::Just(value);
+Maybe<T> Just(T value) {
+  return Maybe<T>(std::move(value));
 }
 
 // Helper function for creating Maybe<void>

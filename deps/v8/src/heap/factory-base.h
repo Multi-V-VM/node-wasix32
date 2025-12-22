@@ -46,8 +46,7 @@ class UncompiledDataWithoutPreparseData;
 class UncompiledDataWithPreparseData;
 struct SourceRange;
 enum class Builtin : int32_t;
-template <typename T>
-class ZoneVector;
+// base::Vector is already declared in src/base/vector.h
 
 namespace wasm {
 class ValueType;
@@ -292,22 +291,22 @@ class FactoryBase : public TorqueGeneratedFactory<Impl> {
       int slot_count, int create_closure_slot_count,
       AllocationType allocation = AllocationType::kOld);
 
-  Handle<CoverageInfo> NewCoverageInfo(const ZoneVector<SourceRange>& slots);
+  Handle<CoverageInfo> NewCoverageInfo(base::Vector<const SourceRange> slots);
 
-  Handle<String> InternalizeString(ZoneVector<const uint8_t> string,
+  Handle<String> InternalizeString(base::Vector<const uint8_t> string,
                                    bool convert_encoding = false);
-  Handle<String> InternalizeString(ZoneVector<const uint16_t> string,
+  Handle<String> InternalizeString(base::Vector<const uint16_t> string,
                                    bool convert_encoding = false);
 
   template <class StringTableKey>
   Handle<String> InternalizeStringWithKey(StringTableKey* key);
 
   Handle<SeqOneByteString> NewOneByteInternalizedString(
-      ZoneVector<const uint8_t> str, uint32_t raw_hash_field);
+      base::Vector<const uint8_t> str, uint32_t raw_hash_field);
   Handle<SeqTwoByteString> NewTwoByteInternalizedString(
-      ZoneVector<const ::v8::base::uc16> str, uint32_t raw_hash_field);
+      base::Vector<const ::v8::base::uc16> str, uint32_t raw_hash_field);
   DirectHandle<SeqOneByteString> NewOneByteInternalizedStringFromTwoByte(
-      ZoneVector<const ::v8::base::uc16> str, uint32_t raw_hash_field);
+      base::Vector<const ::v8::base::uc16> str, uint32_t raw_hash_field);
 
   Handle<SeqOneByteString> AllocateRawOneByteInternalizedString(
       int length, uint32_t raw_hash_field);
@@ -319,7 +318,7 @@ class FactoryBase : public TorqueGeneratedFactory<Impl> {
   Handle<String> LookupSingleCharacterStringFromCode(uint16_t code);
 
   MaybeHandle<String> NewStringFromOneByte(
-      ZoneVector<const uint8_t> string,
+      base::Vector<const uint8_t> string,
       AllocationType allocation = AllocationType::kYoung);
 
   inline Handle<String> NewStringFromAsciiChecked(

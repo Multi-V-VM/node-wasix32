@@ -311,7 +311,7 @@ ValueSerializer::~ValueSerializer() {
     if (delegate_) {
       delegate_->FreeBufferMemory(buffer_);
     } else {
-      base::Free(buffer_);
+      free(buffer_);
     }
   }
 }
@@ -370,12 +370,12 @@ void ValueSerializer::WriteDouble(double value) {
   WriteRawBytes(&value, sizeof(value));
 }
 
-void ValueSerializer::WriteOneByteString(ZoneVector<const uint8_t> chars) {
+void ValueSerializer::WriteOneByteString(base::Vector<const uint8_t> chars) {
   WriteVarint<uint32_t>(chars.length());
   WriteRawBytes(chars.begin(), chars.length() * sizeof(uint8_t));
 }
 
-void ValueSerializer::WriteTwoByteString(ZoneVector<const base::uc16> chars) {
+void ValueSerializer::WriteTwoByteString(base::Vector<const base::uc16> chars) {
   // Warning: this uses host endianness.
   WriteVarint<uint32_t>(chars.length() * sizeof(base::uc16));
   WriteRawBytes(chars.begin(), chars.length() * sizeof(base::uc16));
@@ -421,7 +421,7 @@ Maybe<bool> ValueSerializer::ExpandBuffer(size_t required_capacity) {
     new_buffer = delegate_->ReallocateBufferMemory(buffer_, requested_capacity,
                                                    &provided_capacity);
   } else {
-    new_buffer = base::Realloc(buffer_, requested_capacity);
+    new_buffer = realloc(buffer_, requested_capacity);
     provided_capacity = requested_capacity;
   }
   if (new_buffer) {
@@ -562,11 +562,11 @@ void ValueSerializer::WriteString(DirectHandle<String> string) {
   String::FlatContent flat = string->GetFlatContent(no_gc);
   DCHECK(flat.IsFlat());
   if (flat.IsOneByte()) {
-    ZoneVector<const uint8_t> chars = flat.ToOneByteVector();
+    base::Vector<const uint8_t> chars = flat.ToOneByteVector();
     WriteTag(SerializationTag::kOneByteString);
     WriteOneByteString(chars);
   } else if (flat.IsTwoByte()) {
-    ZoneVector<const base::uc16> chars = flat.ToUC16Vector();
+    base::Vector<const base::uc16> chars = flat.ToUC16Vector();
     uint32_t byte_length = chars.length() * sizeof(base::uc16);
     // The existing reading code expects 16-byte strings to be aligned.
     if ((buffer_size_ + 1 + BytesNeededForVarint(byte_length)) & 1)
@@ -1336,7 +1336,7 @@ Maybe<bool> ValueSerializer::ThrowDataCloneError(MessageTemplate index,
 }
 
 ValueDeserializer::ValueDeserializer(Isolate* isolate,
-                                     ZoneVector<const uint8_t> data,
+                                     base::Vector<const uint8_t> data,
                                      v8::ValueDeserializer::Delegate* delegate)
     : isolate_(isolate),
       delegate_(delegate),
@@ -1516,25 +1516,25 @@ Maybe<double> ValueDeserializer::ReadDouble() {
   return Just(value);
 }
 
-Maybe<ZoneVector<const uint8_t>> ValueDeserializer::ReadRawBytes(
+Maybe<base::Vector<const uint8_t>> ValueDeserializer::ReadRawBytes(
     size_t size) {
   if (size > static_cast<size_t>(end_ - position_)) {
-    return Nothing<ZoneVector<const uint8_t>>();
+    return Nothing<base::Vector<const uint8_t>>();
   }
   const uint8_t* start = position_;
   position_ += size;
-  return Just(ZoneVector<const uint8_t>(start, size));
+  return Just(base::Vector<const uint8_t>(start, size));
 }
 
-Maybe<ZoneVector<const base::uc16>> ValueDeserializer::ReadRawTwoBytes(
+Maybe<base::Vector<const base::uc16>> ValueDeserializer::ReadRawTwoBytes(
     size_t size) {
   if (size > static_cast<size_t>(end_ - position_) ||
       size % sizeof(base::uc16) != 0) {
-    return Nothing<ZoneVector<const base::uc16>>();
+    return Nothing<base::Vector<const base::uc16>>();
   }
   const base::uc16* start = (const base::uc16*)(position_);
   position_ += size;
-  return Just(ZoneVector<const base::uc16>(start, size / sizeof(base::uc16)));
+  return Just(base::Vector<const base::uc16>(start, size / sizeof(base::uc16)));
 }
 
 bool ValueDeserializer::ReadByte(uint8_t* value) {
@@ -1760,7 +1760,7 @@ MaybeDirectHandle<BigInt> ValueDeserializer::ReadBigInt() {
   uint32_t bitfield;
   if (!ReadVarint<uint32_t>().To(&bitfield)) return MaybeDirectHandle<BigInt>();
   size_t bytelength = BigInt::DigitsByteLengthForBitfield(bitfield);
-  ZoneVector<const uint8_t> digits_storage;
+  base::Vector<const uint8_t> digits_storage;
   if (!ReadRawBytes(bytelength).To(&digits_storage)) {
     return MaybeDirectHandle<BigInt>();
   }
@@ -1772,16 +1772,16 @@ MaybeDirectHandle<String> ValueDeserializer::ReadUtf8String(
   uint32_t utf8_length;
   if (!ReadVarint<uint32_t>().To(&utf8_length)) return {};
   // utf8_length is checked in ReadRawBytes.
-  ZoneVector<const uint8_t> utf8_bytes;
+  base::Vector<const uint8_t> utf8_bytes;
   if (!ReadRawBytes(utf8_length).To(&utf8_bytes)) return {};
   return isolate_->factory()->NewStringFromUtf8(
-      ZoneVector<const char>::cast(utf8_bytes), allocation);
+      base::Vector<const char>::cast(utf8_bytes), allocation);
 }
 
 MaybeDirectHandle<String> ValueDeserializer::ReadOneByteString(
     AllocationType allocation) {
   uint32_t byte_length;
-  ZoneVector<const uint8_t> bytes;
+  base::Vector<const uint8_t> bytes;
   if (!ReadVarint<uint32_t>().To(&byte_length)) return {};
   // byte_length is checked in ReadRawBytes.
   if (!ReadRawBytes(byte_length).To(&bytes)) return {};
@@ -1791,7 +1791,7 @@ MaybeDirectHandle<String> ValueDeserializer::ReadOneByteString(
 MaybeDirectHandle<String> ValueDeserializer::ReadTwoByteString(
     AllocationType allocation) {
   uint32_t byte_length;
-  ZoneVector<const uint8_t> bytes;
+  base::Vector<const uint8_t> bytes;
   if (!ReadVarint<uint32_t>().To(&byte_length)) return {};
   // byte_length is checked in ReadRawBytes.
   if (byte_length % sizeof(base::uc16) != 0 ||
@@ -2518,7 +2518,7 @@ MaybeDirectHandle<JSObject> ValueDeserializer::ReadHostObject() {
 // be used.
 static void CommitProperties(
     Isolate* isolate, DirectHandle<JSObject> object, DirectHandle<Map> map,
-    ZoneVector<const DirectHandle<Object>> properties) {
+    base::Vector<const DirectHandle<Object>> properties) {
   JSObject::AllocateStorageForMap(isolate, object, map);
   DCHECK(!object->map()->is_dictionary_map());
 
@@ -2549,7 +2549,7 @@ Maybe<uint32_t> ValueDeserializer::ReadJSObjectProperties(
     DirectHandle<Map> map(object->map(), isolate_);
     DCHECK(!map->is_dictionary_map());
     DCHECK_EQ(0, map->instance_descriptors(isolate_)->number_of_descriptors());
-    DirectHandle<ZoneVector<Object>> properties(isolate_);
+    std::vector<DirectHandle<Object>> properties;
     properties.reserve(8);
 
     while (transitioning) {
@@ -2583,17 +2583,17 @@ Maybe<uint32_t> ValueDeserializer::ReadJSObjectProperties(
       {
         TransitionsAccessor transitions(isolate_, *map);
         if (tag == SerializationTag::kOneByteString) {
-          ZoneVector<const uint8_t> key_chars;
+          base::Vector<const uint8_t> key_chars;
           if (ReadRawBytes(byte_length).To(&key_chars)) {
             expected_transition = transitions.ExpectedTransition(key_chars);
           }
         } else if (tag == SerializationTag::kTwoByteString) {
-          ZoneVector<const base::uc16> key_chars;
+          base::Vector<const base::uc16> key_chars;
           if (ReadRawTwoBytes(byte_length).To(&key_chars)) {
             expected_transition = transitions.ExpectedTransition(key_chars);
           }
         } else if (tag == SerializationTag::kUtf8String) {
-          ZoneVector<const uint8_t> key_chars;
+          base::Vector<const uint8_t> key_chars;
           if (ReadRawBytes(byte_length).To(&key_chars) &&
               String::IsAscii(key_chars.begin(), key_chars.length())) {
             expected_transition = transitions.ExpectedTransition(key_chars);
@@ -2765,7 +2765,7 @@ MaybeDirectHandle<Object>
 ValueDeserializer::ReadObjectUsingEntireBufferForLegacyFormat() {
   DCHECK_EQ(version_, 0u);
   HandleScope scope(isolate_);
-  DirectHandle<ZoneVector<Object>> stack(isolate_);
+  std::vector<DirectHandle<Object>> stack;
   while (position_ < end_) {
     SerializationTag tag;
     if (!PeekTag().To(&tag)) break;

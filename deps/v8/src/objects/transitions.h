@@ -123,11 +123,11 @@ class V8_EXPORT_PRIVATE TransitionsAccessor {
   template <typename Char>
   inline bool IsExpectedTransition(Tagged<Name> transition_name,
                                    Tagged<Map> transition_target,
-                                   ZoneVector<const Char> key_chars);
+                                   base::Vector<const Char> key_chars);
 
   template <typename Char>
   inline std::pair<Handle<String>, Handle<Map>> ExpectedTransition(
-      ZoneVector<const Char> key_chars);
+      base::Vector<const Char> key_chars);
 
   template <typename Callback, typename ProtoCallback,
             typename SideStepCallback>

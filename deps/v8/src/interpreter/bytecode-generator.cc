@@ -1489,7 +1489,8 @@ Handle<BytecodeArray> BytecodeGenerator::FinalizeBytecode(
 
   if (block_coverage_builder_) {
     Handle<CoverageInfo> coverage_info =
-        isolate->factory()->NewCoverageInfo(block_coverage_builder_->slots());
+        isolate->factory()->NewCoverageInfo(
+            base::VectorOf(block_coverage_builder_->slots()));
     info()->set_coverage_info(coverage_info);
     if (v8_flags.trace_block_coverage) {
       StdoutStream os;

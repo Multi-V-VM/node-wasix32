@@ -209,10 +209,13 @@ Handle<ScopeInfo> ScopeInfo::Create(IsolateT* isolate, Zone* zone, Scope* scope,
   }
 
   // Make sure the Fields enum agrees with Torque-generated offsets.
+  // Note: These assertions may not hold for WASM32 due to different pointer sizes.
+#if !defined(V8_TARGET_ARCH_WASM32)
   static_assert(OffsetOfElementAt(kFlags) == kFlagsOffset);
   static_assert(OffsetOfElementAt(kParameterCount) == kParameterCountOffset);
   static_assert(OffsetOfElementAt(kContextLocalCount) ==
                 kContextLocalCountOffset);
+#endif
 
   FunctionKind function_kind = FunctionKind::kNormalFunction;
   bool sloppy_eval_can_extend_vars = false;

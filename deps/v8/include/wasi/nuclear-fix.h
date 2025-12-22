@@ -227,8 +227,11 @@ enum ExternalPointerTag : uint64_t {
   kIcuCollatorTag = 0x0028000000000000ULL,
   kIcuPluralRulesTag = 0x0029000000000000ULL,
   kIcuLocalizedNumberFormatterTag = 0x002A000000000000ULL,
+  // Display names internal tag (js-display-names.cc)
+  kDisplayNamesInternalTag = 0x002B000000000000ULL,
   // Used by Atomics waiters list (slots.h/js-atomics-synchronization)
   kWaiterQueueNodeTag = 0x001d000000000000ULL,
+  kWaiterQueueForeignTag = 0x001e000000000000ULL,
   kWasmWasmStreamingTag = 0x0020000000000000ULL,
   // API callback tags used by property interceptors and microtasks
   kApiNamedPropertyGetterCallbackTag = 0x0021000000000000ULL,
@@ -265,8 +268,7 @@ enum ExternalPointerTag : uint64_t {
 #ifndef V8_WASI_EXTERNAL_POINTER_TAG_ALIASES
 #define V8_WASI_EXTERNAL_POINTER_TAG_ALIASES 1
 // kMicrotaskCallbackDataTag is now in the enum above
-// Some sources refer to waiter queue "foreign" tag; alias to node tag.
-static constexpr uint64_t kWaiterQueueForeignTag = kWaiterQueueNodeTag;
+// kWaiterQueueForeignTag is now in the ExternalPointerTag enum above
 #endif
 
 // Trusted pointer tags
@@ -786,10 +788,11 @@ constexpr bool operator!=(const ExternalPointerTagRange& range,
   inline constexpr ExternalPointerTagRange kAnyExternalPointerTagRange(
       kAnyExternalPointerTag);
 
-  inline bool IsManagedExternalPointerType(ExternalPointerTag) { return false; }
-  inline bool IsSharedExternalPointerType(ExternalPointerTagRange) { return false; }
-  inline bool IsSharedExternalPointerType(ExternalPointerTag) { return false; }
-  inline bool IsMaybeReadOnlyExternalPointerType(ExternalPointerTagRange) { return false; }
+  // Return true for WASI stubs so Managed<T> static_asserts pass
+  inline constexpr bool IsManagedExternalPointerType(ExternalPointerTag) { return true; }
+  inline constexpr bool IsSharedExternalPointerType(ExternalPointerTagRange) { return false; }
+  inline constexpr bool IsSharedExternalPointerType(ExternalPointerTag) { return false; }
+  inline constexpr bool IsMaybeReadOnlyExternalPointerType(ExternalPointerTagRange) { return false; }
 
   // Managed range constant alias used in some code paths.
   inline constexpr ExternalPointerTagRange kAnyManagedExternalPointerTagRange(

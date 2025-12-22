@@ -226,7 +226,7 @@ Tagged<Object> DoFunctionBind(Isolate* isolate, BuiltinArguments args,
   ASSIGN_RETURN_FAILURE_ON_EXCEPTION(
       isolate, function,
       isolate->factory()->NewJSBoundFunction(
-          target, this_arg, argv, proto));
+          target, this_arg, base::VectorOf(argv), proto));
   Maybe<bool> result =
       JSFunctionOrBoundFunctionOrWrappedFunction::CopyNameAndLength(
           isolate, function, target, isolate->factory()->bound__string(),

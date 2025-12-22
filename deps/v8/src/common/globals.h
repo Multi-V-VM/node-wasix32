@@ -161,6 +161,8 @@ using ::v8::base::SeqCst_MemoryFence;
 // Character and vector helpers
 using ::v8::base::uc16;
 using ::v8::base::uc32;
+template <typename T>
+using Vector = ::v8::base::Vector<T>;
 using ::v8::base::StaticCharVector;
 using ::v8::base::CStrVector;
 using ::v8::base::ArrayVector;
@@ -318,9 +320,9 @@ using ContextualClass = ::v8::base::ContextualClass<T>;
 template <typename... Args>
 using SmallMap = ::v8::base::SmallMap<Args...>;
 
-// Lazy instance
-template <typename T>
-using LazyInstance = ::v8::base::LazyInstance<T>;
+// Lazy instance - forward all template arguments to support CreateTrait
+template <typename T, typename... Args>
+using LazyInstance = ::v8::base::LazyInstance<T, Args...>;
 
 template <typename T, typename S = int>
 using EnumSet = ::v8::base::EnumSet<T, S>;

@@ -296,6 +296,9 @@ class V8_EXPORT Isolate {
     kArrayPrototypeHasElements,
     // GC counter feature used by heap
     kForcedGC,
+    // Prototype read-only override attempts
+    kAttemptOverrideReadOnlyOnPrototypeStrict,
+    kAttemptOverrideReadOnlyOnPrototypeSloppy,
     // Reserve space for unknown future features.
     kUseCounterFeatureCount = 256
   };

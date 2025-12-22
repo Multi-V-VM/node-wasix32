@@ -203,21 +203,26 @@ struct NarrowingRange {
                                     ? (DstLimits::digits - SrcLimits::digits)
                                     : 0;
 
+  // Overload for integral types
   template <typename T>
   static constexpr typename std::enable_if<
       std::is_same<T, Dst>::value &&
-      ((std::is_integral<T>::value && kShift < DstLimits::digits) ||
-       (std::is_floating_point<T>::value && kShift == 0)), T>::type
+      std::is_integral<T>::value && kShift < DstLimits::digits, T>::type
   Adjust(T value) {
-    if (std::is_integral<T>::value) {
-      using UnsignedDst = typename std::make_unsigned_t<T>;
-      return static_cast<T>(
-          ConditionalNegate(SafeUnsignedAbs(value) &
-                                ~((UnsignedDst{1} << kShift) - UnsignedDst{1}),
-                            IsValueNegative(value)));
-    } else {
-      return value;
-    }
+    using UnsignedDst = typename std::make_unsigned_t<T>;
+    return static_cast<T>(
+        ConditionalNegate(SafeUnsignedAbs(value) &
+                              ~((UnsignedDst{1} << kShift) - UnsignedDst{1}),
+                          IsValueNegative(value)));
+  }
+
+  // Overload for floating point types
+  template <typename T>
+  static constexpr typename std::enable_if<
+      std::is_same<T, Dst>::value &&
+      std::is_floating_point<T>::value && kShift == 0, T>::type
+  Adjust(T value) {
+    return value;
   }
 
   static constexpr Dst max() { return Adjust(Bounds<Dst>::max()); }

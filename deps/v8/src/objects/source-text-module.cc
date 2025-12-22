@@ -1362,13 +1362,13 @@ void SourceTextModule::Reset(Isolate* isolate,
   raw_module->set_dfs_ancestor_index(-1);
 }
 
-std::pair<DetachableZoneVector<DirectHandle<SourceTextModule>>,
-          DetachableZoneVector<DirectHandle<JSMessageObject>>>
+std::pair<DetachableVector<DirectHandle<SourceTextModule>>,
+          DetachableVector<DirectHandle<JSMessageObject>>>
 SourceTextModule::GetStalledTopLevelAwaitMessages(Isolate* isolate) {
   Zone zone(isolate->allocator(), ZONE_NAME);
   UnorderedModuleSet visited(&zone);
-  DetachableZoneVector<DirectHandle<SourceTextModule>> stalled_modules;
-  DetachableZoneVector<DirectHandle<JSMessageObject>> messages;
+  DetachableVector<DirectHandle<SourceTextModule>> stalled_modules;
+  DetachableVector<DirectHandle<JSMessageObject>> messages;
   InnerGetStalledTopLevelAwaitModule(isolate, &visited, &stalled_modules);
   size_t stalled_modules_size = stalled_modules.size();
   if (stalled_modules_size == 0) return {stalled_modules, messages};
@@ -1392,7 +1392,7 @@ SourceTextModule::GetStalledTopLevelAwaitMessages(Isolate* isolate) {
 
 void SourceTextModule::InnerGetStalledTopLevelAwaitModule(
     Isolate* isolate, UnorderedModuleSet* visited,
-    DetachableZoneVector<DirectHandle<SourceTextModule>>* result) {
+    DetachableVector<DirectHandle<SourceTextModule>>* result) {
   DisallowGarbageCollection no_gc;
   // If it's a module that is waiting for no other modules but itself,
   // it's what we are looking for. Add it to the results.
