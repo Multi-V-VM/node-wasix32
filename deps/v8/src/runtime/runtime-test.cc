@@ -1408,12 +1408,12 @@ RUNTIME_FUNCTION(Runtime_DebugPrintFloat) {
 
   if (!IsSmi(args[4]) || (Cast<Smi>(args[4]).value() == fileno(stderr))) {
     StderrStream os;
-    streamsize precision = os.precision();
+    std::streamsize precision = os.precision();
     os << std::setprecision(20) << base::bit_cast<double>(value) << std::endl;
     os.precision(precision);
   } else {
     StdoutStream os;
-    streamsize precision = os.precision();
+    std::streamsize precision = os.precision();
     os << std::setprecision(20) << base::bit_cast<double>(value) << std::endl;
     os.precision(precision);
   }
@@ -1540,7 +1540,7 @@ RUNTIME_FUNCTION(Runtime_AbortCSADcheck) {
     return CrashUnlessFuzzing(isolate);
   }
   DirectHandle<String> message = args.at<String>(0);
-  if (base::ControlledCrashesAreHarmless()) {
+  if (::v8::base::ControlledCrashesAreHarmless()) {
     base::OS::PrintError(
         "Safely terminating process due to CSA check failure\n");
     // Also prefix the error message (printed below). This has two purposes:

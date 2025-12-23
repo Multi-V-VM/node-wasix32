@@ -259,7 +259,13 @@ enum ExternalPointerTag : uint64_t {
   kMessageListenerTag = 0x0034000000000000ULL,
   // Synthetic module tag for evaluation steps
   kSyntheticModuleTag = 0x0035000000000000ULL,
-  kLastExternalPointerTag = kSyntheticModuleTag,
+  // Generic managed tag for Managed<T> objects (heap-snapshot-generator.cc)
+  kGenericManagedTag = 0x0036000000000000ULL,
+  // WASM function data tags (heap-snapshot-generator.cc)
+  kWasmFuncDataTag = 0x0037000000000000ULL,
+  kWasmManagedDataTag = 0x0038000000000000ULL,
+  kWasmNativeModuleTag = 0x0039000000000000ULL,
+  kLastExternalPointerTag = kWasmNativeModuleTag,
 };
 
 #endif // V8_EXTERNAL_POINTER_TAGS_DEFINED
@@ -442,12 +448,12 @@ class Internals {
   // Commonly referenced layout constants in public API headers
   static constexpr int kNodeClassIdOffset = 4;
   static constexpr int kNodeStateIsWeakValue = 1;
-  static constexpr int kEmptyStringRootIndex = 0;
-  static constexpr int kUndefinedValueRootIndex = 1;
-  static constexpr int kNullValueRootIndex = 2;
-  static constexpr int kTrueValueRootIndex = 3;
-  static constexpr int kFalseValueRootIndex = 4;
+  static constexpr int kUndefinedValueRootIndex = 4;
   static constexpr int kTheHoleValueRootIndex = 5;
+  static constexpr int kNullValueRootIndex = 6;
+  static constexpr int kTrueValueRootIndex = 7;
+  static constexpr int kFalseValueRootIndex = 8;
+  static constexpr int kEmptyStringRootIndex = 9;
   // On 32-bit layouts, ExternalString::resource_ follows String header fields.
   // For this port, match the 12-byte offset used by current V8 layout.
   static constexpr int kStringResourceOffset = 12;

@@ -6,15 +6,25 @@
 
 #ifdef __wasi__
 // WASI stub for cppgc common
-// Note: StackState is defined in cppgc/heap.h
-// EmbedderStackState is defined here as a forward declaration
-// and will be aliased after StackState is defined
+// StackState is defined in cppgc-wasi-compat.h (included via other paths)
+// EmbedderStackState is defined as an alias in the cppgc namespace
+#include <cstdint>
+
 namespace cppgc {
-  // Forward declare - will be defined as alias to StackState in cppgc/heap.h
-  enum class StackState : uint8_t;
-  // EmbedderStackState is the public-facing type, same as StackState
-  using EmbedderStackState = StackState;
-}
+
+// Forward declare StackState - it's defined in cppgc-wasi-compat.h
+#ifndef CPPGC_STACKSTATE_DEFINED
+#define CPPGC_STACKSTATE_DEFINED
+enum class StackState : uint8_t {
+  kNoHeapPointers,
+  kMayContainHeapPointers
+};
+#endif
+
+// EmbedderStackState is the public API name, same as StackState
+using EmbedderStackState = StackState;
+
+}  // namespace cppgc
 #else
 // Include real cppgc/common.h for non-WASI
 #endif

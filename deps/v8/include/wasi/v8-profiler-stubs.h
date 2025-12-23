@@ -48,8 +48,11 @@ class CpuProfileNode {
   };
 
   const char* GetFunctionName() const { return ""; }
+  const char* GetFunctionNameStr() const { return ""; }
   int GetScriptId() const { return 0; }
   const char* GetScriptResourceName() const { return ""; }
+  const char* GetScriptResourceNameStr() const { return ""; }
+  const char* GetBailoutReason() const { return ""; }
   int GetLineNumber() const { return 0; }
   int GetColumnNumber() const { return 0; }
   unsigned int GetHitCount() const { return 0; }
@@ -57,7 +60,9 @@ class CpuProfileNode {
   int GetChildrenCount() const { return 0; }
   const CpuProfileNode* GetChild(int index) const { return nullptr; }
   SourceType GetSourceType() const { return kScript; }
+  // GetLineTicks - two overloads for compatibility
   const LineTick* GetLineTicks() const { return nullptr; }
+  bool GetLineTicks(LineTick* entries, unsigned int length) const { return false; }
   int GetHitLineCount() const { return 0; }
   const std::vector<CpuProfileDeoptInfo>& GetDeoptInfos() const {
     static std::vector<CpuProfileDeoptInfo> empty;
@@ -129,6 +134,17 @@ class CpuProfiler {
 // v8::CpuProfilingMode.
 using CpuProfilingMode = CpuProfiler::CpuProfilingMode;
 
+// DiscardedSamplesDelegate stub
+class DiscardedSamplesDelegate {
+ public:
+  virtual ~DiscardedSamplesDelegate() = default;
+  virtual void Notify() {}
+  void SetId(unsigned id) { id_ = id; }
+  unsigned GetId() const { return id_; }
+ private:
+  unsigned id_ = 0;
+};
+
 // Provide a top-level CpuProfilingOptions compatible with src/* expectations.
 struct CpuProfilingOptions {
   using CpuProfilingMode = CpuProfiler::CpuProfilingMode;
@@ -136,18 +152,25 @@ struct CpuProfilingOptions {
   CpuProfilingMode mode_;
   unsigned max_samples_limit_;
   int sampling_interval_us_;
+  void* filter_context_ = nullptr;
   CpuProfilingOptions()
       : mode_(CpuProfiler::kLeafNodeLineNumbers),
         max_samples_limit_(kNoSampleLimit),
-        sampling_interval_us_(0) {}
+        sampling_interval_us_(0),
+        filter_context_(nullptr) {}
   explicit CpuProfilingOptions(CpuProfilingMode mode,
                                unsigned max_samples_arg = kNoSampleLimit,
-                               int sampling_interval_us_arg = 0)
+                               int sampling_interval_us_arg = 0,
+                               void* filter_context = nullptr)
       : mode_(mode),
         max_samples_limit_(max_samples_arg),
-        sampling_interval_us_(sampling_interval_us_arg) {}
+        sampling_interval_us_(sampling_interval_us_arg),
+        filter_context_(filter_context) {}
   unsigned max_samples() const { return max_samples_limit_; }
   int sampling_interval_us() const { return sampling_interval_us_; }
+  CpuProfilingMode mode() const { return mode_; }
+  bool has_filter_context() const { return filter_context_ != nullptr; }
+  void* raw_filter_context() const { return filter_context_; }
 };
 
 // CodeEvent types for logging
@@ -186,29 +209,38 @@ class AllocationProfile {
   static constexpr int kNoColumnNumberInfo = 0;
   class Node;
   class Sample;
+  struct Allocation;
 
-  class Node {
-   public:
+  struct Allocation {
+    size_t size;
+    unsigned int count;
+  };
+
+  // Node structure for heap allocation profiling
+  // Fields match what sampling-heap-profiler.cc expects for aggregate initialization
+  struct Node {
     using Code = void*;
-    const char* name() const { return ""; }
-    const char* script_name() const { return ""; }
-    int script_id() const { return 0; }
-    int line_number() const { return 0; }
-    int column_number() const { return 0; }
-    size_t byte_size() const { return 0; }
-    std::vector<Node*> children() const { return {}; }
-   std::vector<Sample*> allocations() const { return {}; }
+    Local<String> name;           // Script/function name (Local<String>, not const char*)
+    Local<String> script_name;    // Script resource name
+    int script_id;
+    int start_position;
+    int line_number;
+    int column_number;
+    unsigned int node_id;         // Unique node identifier
+    std::vector<Node*> children;
+    std::vector<Allocation> allocations;
   };
 
-  class Sample {
-   public:
-    size_t size() const { return 0; }
-    unsigned int node_id() const { return 0; }
-    int script_id() const { return 0; }
+  struct Sample {
+    unsigned int node_id;
+    size_t size;
+    unsigned int count;
+    uint64_t sample_id;
   };
 
-  virtual Node* GetRootNode() const { return nullptr; }
-  virtual const std::vector<Sample>& GetSamples() const {
+  virtual ~AllocationProfile() = default;
+  virtual Node* GetRootNode() { return nullptr; }
+  virtual const std::vector<Sample>& GetSamples() {
     static std::vector<Sample> empty;
     return empty;
   }

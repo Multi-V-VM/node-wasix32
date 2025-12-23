@@ -75,12 +75,12 @@ class Internals {
   static constexpr int kExternalTwoByteRepresentationTag = 0;
   // CppHeap pointer tagging shift used by sandbox helpers
   static constexpr int kCppHeapPointerTagShift = 1;
-  // Root indices (host stub values)
-  static constexpr int kEmptyStringRootIndex = 0;
-  static constexpr int kUndefinedValueRootIndex = 0;
-  static constexpr int kNullValueRootIndex = 0;
-  static constexpr int kTrueValueRootIndex = 0;
-  static constexpr int kFalseValueRootIndex = 0;
+  // Root indices (must match RootIndex enum in src/roots/roots.h)
+  static constexpr int kUndefinedValueRootIndex = 4;
+  static constexpr int kNullValueRootIndex = 6;
+  static constexpr int kTrueValueRootIndex = 7;
+  static constexpr int kFalseValueRootIndex = 8;
+  static constexpr int kEmptyStringRootIndex = 9;
   template <int kTag>
   static uintptr_t ReadExternalPointerField(::v8::Isolate*, Address, int) {
     return 0;

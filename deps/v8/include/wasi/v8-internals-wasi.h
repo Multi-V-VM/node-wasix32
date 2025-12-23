@@ -28,12 +28,12 @@ class InternalsWASI {
   static constexpr uint8_t kNodeStateMask = 0x0f;
   static constexpr uint8_t kNodeStateIsWeakValue = 2;
 
-  // Root indices - these map to specific slots in the root table
+  // Root indices - these map to specific slots in the root table (must match RootIndex enum)
   static constexpr int kUndefinedValueRootIndex = 4;
-  static constexpr int kNullValueRootIndex = 5;
-  static constexpr int kTrueValueRootIndex = 6;
-  static constexpr int kFalseValueRootIndex = 7;
-  static constexpr int kEmptyStringRootIndex = 8;
+  static constexpr int kNullValueRootIndex = 6;
+  static constexpr int kTrueValueRootIndex = 7;
+  static constexpr int kFalseValueRootIndex = 8;
+  static constexpr int kEmptyStringRootIndex = 9;
 
   // Pointer compression cage base alignment
   static constexpr size_t kPtrComprCageBaseAlignment = 4 * 1024 * 1024 * 1024ULL;  // 4GB

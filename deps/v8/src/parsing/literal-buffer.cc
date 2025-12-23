@@ -33,7 +33,7 @@ int LiteralBuffer::NewCapacity(int min_capacity) {
 }
 
 void LiteralBuffer::ExpandBuffer() {
-  int min_capacity = std::max({kInitialCapacity, backing_store_.length()});
+  int min_capacity = std::max({kInitialCapacity, static_cast<int>(backing_store_.size())});
   ZoneVector<uint8_t> new_store =
       ZoneVector<uint8_t>::New(NewCapacity(min_capacity));
   if (position_ > 0) {
@@ -47,7 +47,7 @@ void LiteralBuffer::ConvertToTwoByte() {
   DCHECK(is_one_byte());
   ZoneVector<uint8_t> new_store;
   int new_content_size = position_ * base::kUC16Size;
-  if (new_content_size >= backing_store_.length()) {
+  if (new_content_size >= static_cast<int>(backing_store_.size())) {
     // Ensure room for all currently read code units as UC16 as well
     // as the code unit about to be stored.
     new_store = ZoneVector<uint8_t>::New(NewCapacity(new_content_size));
@@ -69,7 +69,7 @@ void LiteralBuffer::ConvertToTwoByte() {
 
 void LiteralBuffer::AddTwoByteChar(base::uc32 code_unit) {
   DCHECK(!is_one_byte());
-  if (position_ >= backing_store_.length()) ExpandBuffer();
+  if (position_ >= static_cast<int>(backing_store_.size())) ExpandBuffer();
   if (code_unit <=
       static_cast<base::uc32>(unibrow::Utf16::kMaxNonSurrogateCharCode)) {
     *reinterpret_cast<uint16_t*>(&backing_store_[position_]) = code_unit;
@@ -78,7 +78,7 @@ void LiteralBuffer::AddTwoByteChar(base::uc32 code_unit) {
     *reinterpret_cast<uint16_t*>(&backing_store_[position_]) =
         unibrow::Utf16::LeadSurrogate(code_unit);
     position_ += base::kUC16Size;
-    if (position_ >= backing_store_.length()) ExpandBuffer();
+    if (position_ >= static_cast<int>(backing_store_.size())) ExpandBuffer();
     *reinterpret_cast<uint16_t*>(&backing_store_[position_]) =
         unibrow::Utf16::TrailSurrogate(code_unit);
     position_ += base::kUC16Size;

@@ -396,12 +396,12 @@ void RegExpImpl::AtomCompile(Isolate* isolate, DirectHandle<JSRegExp> re,
 namespace {
 
 template <typename SChar, typename PChar>
-int AtomExecRawImpl(Isolate* isolate, ZoneVector<const SChar> subject,
-                    ZoneVector<const PChar> pattern, int index,
+int AtomExecRawImpl(Isolate* isolate, base::Vector<const SChar> subject,
+                    base::Vector<const PChar> pattern, int index,
                     RegExpFlags flags, int32_t* output, int output_size,
                     const DisallowGarbageCollection& no_gc) {
-  const int subject_length = subject.length();
-  const int pattern_length = pattern.length();
+  const int subject_length = static_cast<int>(subject.length());
+  const int pattern_length = static_cast<int>(pattern.length());
   DCHECK_GT(pattern_length, 0);
   const int max_index = subject_length - pattern_length;
 

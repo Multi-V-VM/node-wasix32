@@ -13,6 +13,7 @@
 #include "src/utils/ostreams.h"
 #include "src/utils/utils.h"
 #include "src/zone/zone-allocator.h"
+#include "src/zone/zone-containers.h"
 #include "src/zone/zone-list-inl.h"
 
 #ifdef V8_INTL_SUPPORT
@@ -48,7 +49,7 @@ enum class ClassSetOperandType {
 
 class RegExpTextBuilder {
  public:
-  using SmallRegExpTreeVector = SmallVector<RegExpTree*, 8>;
+  using SmallRegExpTreeVector = SmallZoneVector<RegExpTree*, 8>;
 
   RegExpTextBuilder(Zone* zone, SmallRegExpTreeVector* terms_storage,
                     RegExpFlags flags)
@@ -332,7 +333,7 @@ class RegExpBuilder {
   bool pending_empty_ = false;
   const RegExpFlags flags_;
 
-  using SmallRegExpTreeVector = SmallVector<RegExpTree*, 8>;
+  using SmallRegExpTreeVector = SmallZoneVector<RegExpTree*, 8>;
   SmallRegExpTreeVector terms_;
   SmallRegExpTreeVector alternatives_;
   RegExpTextBuilder text_builder_;
@@ -3256,12 +3257,12 @@ bool RegExpParser::ParseRegExpFromHeapString(Isolate* isolate, Zone* zone,
   String::FlatContent content = input->GetFlatContent(no_gc);
   if (content.IsOneByte()) {
     ZoneVector<const uint8_t> v = content.ToOneByteVector();
-    return RegExpParserImpl<uint8_t>{v.begin(),   v.length(), flags,
+    return RegExpParserImpl<uint8_t>{v.begin(),   static_cast<int>(v.length()), flags,
                                      stack_limit, zone,       no_gc}
         .Parse(result);
   } else {
     ZoneVector<const base::uc16> v = content.ToUC16Vector();
-    return RegExpParserImpl<base::uc16>{v.begin(),   v.length(), flags,
+    return RegExpParserImpl<base::uc16>{v.begin(),   static_cast<int>(v.length()), flags,
                                         stack_limit, zone,       no_gc}
         .Parse(result);
   }

@@ -7,11 +7,15 @@
 #include "v8-local-handle.h"
 #include "v8-value.h"
 #include "v8-persistent-handle.h"
+#include "cppgc/common.h"
 
 // Define WASI stubs for profiler
 #define V8_WASI_EMBEDDER_GRAPH_STUB_ACTIVE 1
 
 namespace v8 {
+
+// Forward declarations
+class Data;
 
 // Provide a generic native object handle type for APIs that accept embedder
 // objects.
@@ -47,12 +51,16 @@ class OutputStream {
     kAbort = 0,
     kContinue = 1
   };
-  
+
   virtual ~OutputStream() = default;
   virtual void EndOfStream() = 0;
-  virtual int GetChunkSize() = 0;
+  virtual int GetChunkSize() { return 4096; }  // Default chunk size
   virtual WriteResult WriteAsciiChunk(char* data, int size) = 0;
-  virtual void WriteHeapStatsChunk(const HeapStatsUpdate* data, int count) = 0;
+  // WriteHeapStatsChunk can return either WriteResult or void depending on usage
+  // V8 internal expects WriteResult, Node.js expects void
+  virtual WriteResult WriteHeapStatsChunk(const HeapStatsUpdate* data, int count) {
+    return kContinue;  // Default no-op implementation
+  }
 };
 
 // SerializationFormat enum
@@ -99,10 +107,12 @@ class EmbedderGraph {
     virtual bool IsEmbedderNode() { return true; }
     virtual Detachedness GetDetachedness() { return Detachedness::kUnknown; }
     virtual const void* GetAddress() { return nullptr; }  // Address of underlying object
+    virtual NativeObject GetNativeObject() { return nullptr; }  // Native object handle
   };
 
   virtual ~EmbedderGraph() = default;
-  virtual Node* V8Node(Local<Value> value) = 0;
+  virtual Node* V8Node(const Local<Value>& value) = 0;
+  virtual Node* V8Node(const Local<Data>& data) { return nullptr; }
   virtual Node* AddNode(::std::unique_ptr<Node> node) = 0;
   virtual void AddEdge(Node* from, Node* to, const char* name = nullptr) = 0;
   // Add native size to a node for tracking native memory
@@ -131,6 +141,9 @@ class HeapProfiler {
   static constexpr uint16_t kPersistentHandleNoClassId = 0;
   static constexpr uintptr_t kPersistentHandleZapValue = 0xDEADBEEF;
 
+  // Unknown object id constant
+  static constexpr SnapshotObjectId kUnknownObjectId = 0;
+
   // Resolve object names for heap snapshot nodes.
   class ObjectNameResolver {
    public:
@@ -151,41 +164,38 @@ class HeapProfiler {
   };
 
   struct HeapSnapshotOptions {
-    enum class ControlOption {
-      kDefault = 0,
-    };
-
     // Use the HeapProfiler-level NumericsMode
     using NumericsMode = HeapProfiler::NumericsMode;
 
-    ControlOption control;
-    NumericsMode numerics_mode;
-    bool capture_numeric_value;
-    // Additional fields referenced by inspector
-    int stack_state = 0;
-    v8::HeapProfiler::ObjectNameResolver* global_object_name_resolver = nullptr;
-    HeapSnapshotMode snapshot_mode;
+    // The control used to report intermediate progress to.
+    ActivityControl* control = nullptr;
+    // The resolver used by the snapshot generator to get names for V8 objects.
+    ObjectNameResolver* global_object_name_resolver = nullptr;
+    // Mode for taking the snapshot
+    HeapSnapshotMode snapshot_mode = HeapSnapshotMode::kRegular;
+    // Mode for dealing with numeric values
+    NumericsMode numerics_mode = NumericsMode::kHideNumericValues;
+    // Whether stack is considered as a root set
+    cppgc::EmbedderStackState stack_state = cppgc::EmbedderStackState::kMayContainHeapPointers;
 
     // Constructor with default values
-    HeapSnapshotOptions()
-      : control(ControlOption::kDefault),
-        numerics_mode(NumericsMode::kHideNumericValues),
-        capture_numeric_value(false),
-        snapshot_mode(HeapSnapshotMode::kRegular) {}
+    HeapSnapshotOptions() {}
   };
 
   // Flags controlling sampling behavior of the sampling heap profiler.
-  enum class SamplingFlags : uint32_t {
+  // Use regular enum (not enum class) to allow bitwise operations with uint32_t
+  enum SamplingFlags : uint32_t {
     kNoFlags = 0,
     kSamplingForceGC = 1,
     kSamplingIncludeObjectsCollectedByMinorGC = 1 << 1,
     kSamplingIncludeObjectsCollectedByMajorGC = 1 << 2,
   };
 
-  
   // Callback types
   using BuildEmbedderGraphCallback = void (*)(v8::Isolate* isolate, EmbedderGraph* graph, void* data);
-  using GetDetachednessCallback = bool (*)(Local<Value>, uint16_t, void*);
+  using GetDetachednessCallback = EmbedderGraph::Node::Detachedness (*)(
+      v8::Isolate* isolate, const v8::Local<v8::Value>& v8_value,
+      uint16_t class_id, void* data);
   
   // WASI: Add missing methods
   void RemoveBuildEmbedderGraphCallback(BuildEmbedderGraphCallback callback, void* data) {

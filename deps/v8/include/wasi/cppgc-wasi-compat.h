@@ -149,16 +149,7 @@ struct GCConfig {
   SweepingConfig sweeping_config;
 };
 
-// Embedder stack state
-struct EmbedderStackState {
-  enum class State {
-    kMayContainHeapPointers,
-    kNoHeapPointers,
-    kUnknown
-  };
-
-  State state = State::kMayContainHeapPointers;
-};
+// EmbedderStackState is defined in cppgc/common.h as alias to StackState
 
 // Write barrier parameters
 struct WriteBarrierParams {

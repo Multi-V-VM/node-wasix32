@@ -398,7 +398,7 @@ inline Condition NegateCondition(Condition cc) {
   return static_cast<Condition>(cc ^ 1);
 }
 
-// Foreign object tags for type identification
+// Foreign object tags for type identification (ExternalPointerTag)
 constexpr Address kSyntheticModuleTag = 0x1;
 constexpr Address kCFunctionTag = 0x2;
 constexpr Address kCFunctionInfoTag = 0x3;
@@ -409,6 +409,20 @@ constexpr Address kGenericManagedTag = 0x7;
 constexpr Address kWasmImportDataTag = 0x8;
 constexpr Address kMessageListenerTag = 0x9;
 constexpr Address kDisplayNamesInternalTag = 0xA;
+constexpr Address kWasmWasmStreamingTag = 0xB;
+constexpr Address kIcuBreakIteratorTag = 0xC;
+constexpr Address kIcuCollatorTag = 0xD;
+constexpr Address kIcuDateFormatTag = 0xE;
+constexpr Address kIcuDecimalFormatTag = 0xF;
+constexpr Address kIcuListFormatterTag = 0x10;
+constexpr Address kIcuLocaleTag = 0x11;
+constexpr Address kIcuNumberFormatterTag = 0x12;
+constexpr Address kIcuPluralRulesTag = 0x13;
+constexpr Address kIcuRelativeDateTimeFormatterTag = 0x14;
+constexpr Address kIcuSegmenterTag = 0x15;
+constexpr Address kIcuSegmentIteratorTag = 0x16;
+constexpr Address kIcuSimpleDateFormatTag = 0x17;
+constexpr Address kIcuUnicodeStringTag = 0x18;
 
 // Cpp heap pointer constants
 constexpr uint32_t kAnyCppHeapPointer = 0;

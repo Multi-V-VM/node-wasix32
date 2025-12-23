@@ -534,7 +534,7 @@ CpuProfiler::CpuProfiler(Isolate* isolate, CpuProfilingNamingMode naming_mode,
   profiles_->set_cpu_profiler(this);
   GetProfilersManager()->AddProfiler(isolate, this);
 
-  if (logging_mode == kEagerLogging) EnableLogging();
+  if (logging_mode == ::v8::CpuProfiler::kEagerLogging) EnableLogging();
 }
 
 CpuProfiler::~CpuProfiler() {

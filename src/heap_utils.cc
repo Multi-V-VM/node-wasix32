@@ -84,7 +84,7 @@ class JSGraph : public EmbedderGraph {
  public:
   explicit JSGraph(Isolate* isolate) : isolate_(isolate) {}
 
-  Node* V8Node(Local<Value> value) override {
+  Node* V8Node(const Local<Value>& value) override {
     std::unique_ptr<JSGraphJSNode> n { new JSGraphJSNode(isolate_, value.As<v8::Data>()) };
     auto it = engine_nodes_.find(n.get());
     if (it != engine_nodes_.end())
@@ -93,18 +93,13 @@ class JSGraph : public EmbedderGraph {
     return AddNode(std::unique_ptr<Node>(n.release()));
   }
 
-  // Additional helper methods (not overrides)
-  Node* V8Node(const Local<v8::Data>& value) {
+  Node* V8Node(const Local<v8::Data>& value) override {
     std::unique_ptr<JSGraphJSNode> n { new JSGraphJSNode(isolate_, value) };
     auto it = engine_nodes_.find(n.get());
     if (it != engine_nodes_.end())
       return *it;
     engine_nodes_.insert(n.get());
     return AddNode(std::unique_ptr<Node>(n.release()));
-  }
-
-  Node* V8Node(const Local<v8::Value>& value) {
-    return V8Node(value.As<v8::Data>());
   }
 
   Node* AddNode(std::unique_ptr<Node> node) override {
@@ -269,8 +264,9 @@ class FileOutputStream : public v8::OutputStream {
     return kContinue;
   }
 
-  void WriteHeapStatsChunk(const v8::HeapStatsUpdate* data, int count) override {
+  WriteResult WriteHeapStatsChunk(const v8::HeapStatsUpdate* data, int count) override {
     // Not implemented for file output - heap stats are not written to files
+    return kContinue;
   }
 
   int status() const { return status_; }
@@ -343,8 +339,9 @@ class HeapSnapshotStream : public AsyncWrap,
     UNREACHABLE();
   }
 
-  void WriteHeapStatsChunk(const v8::HeapStatsUpdate* data, int count) override {
+  WriteResult WriteHeapStatsChunk(const v8::HeapStatsUpdate* data, int count) override {
     // Not implemented for snapshot stream - heap stats are separate from snapshots
+    return kContinue;
   }
 
   bool IsAlive() override { return snapshot_ != nullptr; }

@@ -30,27 +30,36 @@ enum class CpuProfilingLoggingMode {
   kEagerLogging
 };
 
+// ProfilerId - Unique identifier for profilers (in v8 namespace like original)
+using ProfilerId = uint32_t;
+
+// CPU Profiling status enum (in v8 namespace like original)
+enum class CpuProfilingStatus {
+  kStarted,
+  kAlreadyStarted,
+  kErrorTooManyProfilers
+};
+
+// CPU Profiling result struct (in v8 namespace like original)
+struct CpuProfilingResult {
+  const ProfilerId id;
+  const CpuProfilingStatus status;
+};
+
 namespace internal {
 
 // Forward declarations
 class CodeEventObserver;
 class LogEventListener;
 
-// ProfilerId - Unique identifier for profilers
-using ProfilerId = int;
+// Import ProfilerId from v8 namespace for internal use
+using ProfilerId = v8::ProfilerId;
 
 // Discarded samples delegate - callback for discarded profiling samples
 class DiscardedSamplesDelegate {
  public:
   virtual ~DiscardedSamplesDelegate() = default;
   virtual void NotifyDiscardedSamples(int count) = 0;
-};
-
-// CPU Profiling result type
-enum class CpuProfilingResult {
-  kSuccess,
-  kAlreadyStarted,
-  kErrorTooManySamples
 };
 
 // Code entry - represents a single code entry in the profiler

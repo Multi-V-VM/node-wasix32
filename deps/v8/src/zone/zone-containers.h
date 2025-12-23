@@ -286,6 +286,17 @@ class ZoneVector {
     std::swap(capacity_, other.capacity_);
   }
 
+  // Dispose of a non-zone-allocated buffer (created via New()).
+  // For zone-allocated buffers, this is a no-op since the zone owns the memory.
+  void Dispose() {
+    if (zone_ == nullptr && data_ != nullptr) {
+      DeleteArray(data_);
+    }
+    data_ = nullptr;
+    end_ = nullptr;
+    capacity_ = nullptr;
+  }
+
   void resize(size_t new_size) {
     EnsureCapacity(new_size);
     T* new_end = data_ + new_size;

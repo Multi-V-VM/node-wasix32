@@ -26,11 +26,41 @@
 namespace v8 {
 namespace internal {
 
-// WASI: Use raw pointers instead of DirectHandle for ZoneVector types
+// WASI: Use a wrapper class instead of DirectHandle for ZoneVector types
 // because ZoneVector is not a taggable heap object type
 #ifdef __wasi__
+// WASI stub wrapper for ZoneVectorHandle - provides no-op behavior
+// since snapshot deserialization is not fully supported
 template <typename T>
-using ZoneVectorHandle = ZoneVector<T>*;
+class WasiZoneVectorHandle {
+ public:
+  // Can be "constructed" from Isolate* but does nothing
+  template <typename IsolateT>
+  explicit WasiZoneVectorHandle(IsolateT*) {}
+  WasiZoneVectorHandle() = default;
+
+  // No-op push_back - snapshot deserialization not fully supported
+  void push_back(const T&) {}
+  void push_back(T&&) {}
+  template <typename H>
+  void push_back(const H&) {}  // Accept Handle types too
+
+  // Always empty
+  size_t size() const { return 0; }
+  bool empty() const { return true; }
+
+  // Return default value for access (should not be used in practice)
+  T operator[](size_t) const { return T{}; }
+
+  // Iterator support (always empty range)
+  T* begin() { return nullptr; }
+  T* end() { return nullptr; }
+  const T* begin() const { return nullptr; }
+  const T* end() const { return nullptr; }
+};
+
+template <typename T>
+using ZoneVectorHandle = WasiZoneVectorHandle<T>;
 #else
 template <typename T>
 using ZoneVectorHandle = DirectHandle<ZoneVector<T>>;
@@ -96,24 +126,25 @@ class Deserializer : public SerializerDeserializer {
   SnapshotByteSource* source() { return &source_; }
 
 #ifdef __wasi__
-  // WASI: Return raw ZoneVector views instead of ZoneVector<DirectHandle<T>>
-  ZoneVector<AllocationSite>& new_allocation_sites() const {
-    return *new_allocation_sites_;
+  // WASI: Snapshot deserialization not fully supported
+  // Return wrapper iterators that provide empty views
+  WasiZoneVectorHandle<AllocationSite>& new_allocation_sites() {
+    return new_allocation_sites_;
   }
-  ZoneVector<InstructionStream>& new_code_objects() const {
-    return *new_code_objects_;
+  WasiZoneVectorHandle<InstructionStream>& new_code_objects() {
+    return new_code_objects_;
   }
-  ZoneVector<Map>& new_maps() const {
-    return *new_maps_;
+  WasiZoneVectorHandle<Map>& new_maps() {
+    return new_maps_;
   }
-  ZoneVector<AccessorInfo>& accessor_infos() const {
-    return *accessor_infos_;
+  WasiZoneVectorHandle<AccessorInfo>& accessor_infos() {
+    return accessor_infos_;
   }
-  ZoneVector<FunctionTemplateInfo>& function_template_infos() const {
-    return *function_template_infos_;
+  WasiZoneVectorHandle<FunctionTemplateInfo>& function_template_infos() {
+    return function_template_infos_;
   }
-  ZoneVector<Script>& new_scripts() const {
-    return *new_scripts_;
+  WasiZoneVectorHandle<Script>& new_scripts() {
+    return new_scripts_;
   }
 #else
   ZoneVector<const DirectHandle<AllocationSite>> new_allocation_sites()

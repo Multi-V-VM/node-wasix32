@@ -91,7 +91,7 @@ void TracingCpuProfilerImpl::StartProfiling() {
   profiler_.reset(new CpuProfiler(isolate_, kDebugNaming));
   profiler_->set_sampling_interval(
       ::v8::base::TimeDelta::FromMicroseconds(sampling_interval_us));
-  profiler_->StartProfiling("", {kLeafNodeLineNumbers});
+  profiler_->StartProfiling("", v8::CpuProfilingOptions(kLeafNodeLineNumbers));
 }
 
 void TracingCpuProfilerImpl::StopProfiling() {

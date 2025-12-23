@@ -356,9 +356,12 @@ Deserializer<IsolateT>::Deserializer(IsolateT* isolate,
 template <typename IsolateT>
 void Deserializer<IsolateT>::Rehash() {
   DCHECK(should_rehash());
+#ifndef __wasi__
   for (DirectHandle<HeapObject> item : to_rehash_) {
     item->RehashBasedOnMap(isolate());
   }
+#endif
+  // WASI: Rehashing not supported - to_rehash_ is empty
 }
 
 template <typename IsolateT>
@@ -1273,6 +1276,11 @@ template <typename SlotAccessor>
 int Deserializer<IsolateT>::ReadAttachedReference(uint8_t data,
                                                   SlotAccessor slot_accessor) {
   int index = source_.GetUint30();
+#ifdef __wasi__
+  // WASI: Attached references not supported in snapshot deserialization
+  UNREACHABLE();
+  return 0;
+#else
   DirectHandle<HeapObject> heap_object = attached_objects_[index];
   if (v8_flags.trace_deserialization) {
     PrintF("%*sAttachedReference [%u] : ", depth_, "", index);
@@ -1281,6 +1289,7 @@ int Deserializer<IsolateT>::ReadAttachedReference(uint8_t data,
   }
   return WriteHeapPointer(slot_accessor, heap_object,
                           GetAndResetNextReferenceDescriptor());
+#endif
 }
 
 template <typename IsolateT>

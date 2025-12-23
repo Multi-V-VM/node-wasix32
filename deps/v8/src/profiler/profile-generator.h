@@ -32,35 +32,49 @@ using CpuProfilingLoggingMode = CpuProfiler::CpuProfilingLoggingMode;
 constexpr auto kDebugNaming = CpuProfiler::kDebugNaming;
 constexpr auto kLazyLogging = CpuProfiler::kLazyLogging;
 
-// CpuProfilingResult enum
-enum class CpuProfilingResult {
+// WASI: ProfilerId type
+using ProfilerId = uint32_t;
+
+// CpuProfilingStatus enum
+enum class CpuProfilingStatus {
   kStarted,
   kAlreadyStarted,
   kErrorTooManyProfilers
 };
 
-// CpuProfilingStatus is an alias for CpuProfilingResult
-using CpuProfilingStatus = CpuProfilingResult;
+// CpuProfilingResult struct
+struct CpuProfilingResult {
+  const ProfilerId id;
+  const CpuProfilingStatus status;
+};
 #endif  // __wasi__
 
 namespace internal {
 
 #ifdef __wasi__
-// WASI: Define ProfilerId type
-using ProfilerId = int;
+// WASI: Import ProfilerId from v8 namespace
+using ProfilerId = v8::ProfilerId;
 
 // WASI: Stub DiscardedSamplesDelegate
 class DiscardedSamplesDelegate {
  public:
   virtual ~DiscardedSamplesDelegate() = default;
   virtual void Notify() = 0;
+  void SetId(unsigned id) { id_ = id; }
+  unsigned GetId() const { return id_; }
+ private:
+  unsigned id_ = 0;
 };
 
 // WASI: Also define these types in internal namespace for code that uses them unqualified
 using CpuProfilingNamingMode = v8::CpuProfilingNamingMode;
 using CpuProfilingLoggingMode = v8::CpuProfilingLoggingMode;
-constexpr auto kDebugNaming = v8::kDebugNaming;
-constexpr auto kLazyLogging = v8::kLazyLogging;
+using CpuProfilingStatus = v8::CpuProfilingStatus;
+using CpuProfilingResult = v8::CpuProfilingResult;
+constexpr auto kDebugNaming = v8::CpuProfilingNamingMode::kDebugNaming;
+constexpr auto kStandardNaming = v8::CpuProfilingNamingMode::kStandardNaming;
+constexpr auto kLazyLogging = v8::CpuProfilingLoggingMode::kLazyLogging;
+constexpr auto kLeafNodeLineNumbers = v8::CpuProfiler::kLeafNodeLineNumbers;
 #endif  // __wasi__
 
 struct TickSample;
