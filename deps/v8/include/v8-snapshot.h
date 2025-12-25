@@ -26,6 +26,8 @@ namespace internal {
 class SnapshotCreatorImpl;
 }  // namespace internal
 
+#ifndef V8_STARTUP_DATA_DEFINED
+#define V8_STARTUP_DATA_DEFINED
 class V8_EXPORT StartupData {
  public:
   /**
@@ -43,6 +45,7 @@ class V8_EXPORT StartupData {
   const char* data;
   int raw_size;
 };
+#endif  // V8_STARTUP_DATA_DEFINED
 
 /**
  * Callback and supporting data used in SnapshotCreator to implement embedder

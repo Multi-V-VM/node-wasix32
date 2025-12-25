@@ -840,7 +840,7 @@ AlignedCachedData* SerializedCodeData::GetScriptData() {
   return result;
 }
 
-Vector<const uint8_t> SerializedCodeData::Payload() const {
+ZoneVector<const uint8_t> SerializedCodeData::Payload() const {
   const uint8_t* payload = data_ + kHeaderSize;
   DCHECK(IsAligned(reinterpret_cast<intptr_t>(payload), kPointerAlignment));
   int length = GetHeaderValue(kPayloadLengthOffset);

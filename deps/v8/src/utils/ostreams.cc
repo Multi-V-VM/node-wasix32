@@ -77,8 +77,8 @@ OFStreamBase::int_type OFStreamBase::overflow(int_type c) {
   return (c != EOF) ? std::fputc(c, f_) : c;
 }
 
-streamsize OFStreamBase::xsputn(const char* s, streamsize n) {
-  return static_cast<streamsize>(
+std::streamsize OFStreamBase::xsputn(const char* s, std::streamsize n) {
+  return static_cast<std::streamsize>(
       std::fwrite(s, 1, static_cast<size_t>(n), f_));
 }
 
@@ -96,7 +96,7 @@ AndroidLogStream::~AndroidLogStream() {
   }
 }
 
-streamsize AndroidLogStream::xsputn(const char* s, streamsize n) {
+std::streamsize AndroidLogStream::xsputn(const char* s, std::streamsize n) {
   const char* const e = s + n;
   while (s < e) {
     const char* newline = reinterpret_cast<const char*>(memchr(s, '\n', e - s));

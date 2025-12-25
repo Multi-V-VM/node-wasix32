@@ -43,7 +43,7 @@ void SharedHeapDeserializer::DeserializeStringTable() {
   const int length = source()->GetUint30();
 
   // .. and the contents.
-  DirectHandle<ZoneVector<String> strings(isolate());
+  std::vector<DirectHandle<String>> strings;
   strings.reserve(length);
   for (int i = 0; i < length; ++i) {
     strings.emplace_back(Cast<String>(ReadObject()));
@@ -52,7 +52,7 @@ void SharedHeapDeserializer::DeserializeStringTable() {
   StringTable* t = isolate()->string_table();
   DCHECK_EQ(t->NumberOfElements(), 0);
   t->InsertForIsolateDeserialization(
-      isolate(), base::VectorOf(strings.data(), strings.size()));
+      isolate(), base::VectorOf(strings));
   DCHECK_EQ(t->NumberOfElements(), length);
 }
 

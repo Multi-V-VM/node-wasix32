@@ -872,8 +872,8 @@ class Graph {
   }
 
   class OpIndexIterator
-      : public base::iterator<std::bidirectional_iterator_tag, OpIndex,
-                              std::ptrdiff_t, OpIndex*, OpIndex> {
+      : public ::v8::base::iterator<std::bidirectional_iterator_tag, OpIndex,
+                                    std::ptrdiff_t, OpIndex*, OpIndex> {
    public:
     using value_type = OpIndex;
 
@@ -901,7 +901,7 @@ class Graph {
 
   template <class OperationT, typename GraphT>
   class OperationIterator
-      : public base::iterator<std::bidirectional_iterator_tag, OperationT> {
+      : public ::v8::base::iterator<std::bidirectional_iterator_tag, OperationT> {
    public:
     static_assert(std::is_same_v<std::remove_const_t<OperationT>, Operation> &&
                   std::is_same_v<std::remove_const_t<GraphT>, Graph>);
@@ -936,39 +936,39 @@ class Graph {
   using ConstOperationIterator =
       OperationIterator<const Operation, const Graph>;
 
-  base::iterator_range<MutableOperationIterator> AllOperations() {
+  ::v8::base::iterator_range<MutableOperationIterator> AllOperations() {
     return operations(BeginIndex(), EndIndex());
   }
-  base::iterator_range<ConstOperationIterator> AllOperations() const {
+  ::v8::base::iterator_range<ConstOperationIterator> AllOperations() const {
     return operations(BeginIndex(), EndIndex());
   }
 
-  base::iterator_range<OpIndexIterator> AllOperationIndices() const {
+  ::v8::base::iterator_range<OpIndexIterator> AllOperationIndices() const {
     return OperationIndices(BeginIndex(), EndIndex());
   }
 
-  base::iterator_range<MutableOperationIterator> operations(
+  ::v8::base::iterator_range<MutableOperationIterator> operations(
       const Block& block) {
     return operations(block.begin_, block.end_);
   }
-  base::iterator_range<ConstOperationIterator> operations(
+  ::v8::base::iterator_range<ConstOperationIterator> operations(
       const Block& block) const {
     return operations(block.begin_, block.end_);
   }
 
-  base::iterator_range<OpIndexIterator> OperationIndices(
+  ::v8::base::iterator_range<OpIndexIterator> OperationIndices(
       const Block& block) const {
     return OperationIndices(block.begin_, block.end_);
   }
 
-  base::iterator_range<ConstOperationIterator> operations(OpIndex begin,
+  ::v8::base::iterator_range<ConstOperationIterator> operations(OpIndex begin,
                                                           OpIndex end) const {
     DCHECK(begin.valid());
     DCHECK(end.valid());
     return {ConstOperationIterator(begin, this),
             ConstOperationIterator(end, this)};
   }
-  base::iterator_range<MutableOperationIterator> operations(OpIndex begin,
+  ::v8::base::iterator_range<MutableOperationIterator> operations(OpIndex begin,
                                                             OpIndex end) {
     DCHECK(begin.valid());
     DCHECK(end.valid());
@@ -976,21 +976,21 @@ class Graph {
             MutableOperationIterator(end, this)};
   }
 
-  base::iterator_range<OpIndexIterator> OperationIndices(OpIndex begin,
+  ::v8::base::iterator_range<OpIndexIterator> OperationIndices(OpIndex begin,
                                                          OpIndex end) const {
     DCHECK(begin.valid());
     DCHECK(end.valid());
     return {OpIndexIterator(begin, this), OpIndexIterator(end, this)};
   }
 
-  base::iterator_range<base::DerefPtrIterator<Block>> blocks() {
-    return {base::DerefPtrIterator<Block>(bound_blocks_.data()),
-            base::DerefPtrIterator<Block>(bound_blocks_.data() +
+  ::v8::base::iterator_range<::v8::base::DerefPtrIterator<Block>> blocks() {
+    return {::v8::base::DerefPtrIterator<Block>(bound_blocks_.data()),
+            ::v8::base::DerefPtrIterator<Block>(bound_blocks_.data() +
                                           bound_blocks_.size())};
   }
-  base::iterator_range<base::DerefPtrIterator<const Block>> blocks() const {
-    return {base::DerefPtrIterator<const Block>(bound_blocks_.data()),
-            base::DerefPtrIterator<const Block>(bound_blocks_.data() +
+  ::v8::base::iterator_range<::v8::base::DerefPtrIterator<const Block>> blocks() const {
+    return {::v8::base::DerefPtrIterator<const Block>(bound_blocks_.data()),
+            ::v8::base::DerefPtrIterator<const Block>(bound_blocks_.data() +
                                                 bound_blocks_.size())};
   }
   const ZoneVector<Block*>& blocks_vector() const { return bound_blocks_; }

@@ -3042,7 +3042,10 @@ struct LoadOp : OperationT<LoadOp> {
                              MaybeRegisterRepresentation::WordPtr())
             : MaybeRepZoneVector(MaybeRegisterRepresentation::WordPtr(),
                              MaybeRegisterRepresentation::WordPtr());
-    return index().valid() ? result : base::VectorOf(result.data(), 1);
+    if (index().valid()) {
+      return result;
+    }
+    return base::VectorOf(result.data(), 1);
   }
 
   OpIndex base() const { return input(0); }

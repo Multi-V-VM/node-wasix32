@@ -7,6 +7,7 @@
 #include "v8-api-stubs.h"
 #include "../v8-local-handle.h"
 #include "../v8-maybe-local.h"
+#include "../v8-maybe.h"  // For Maybe<T> and Just() helper
 #include "../v8-callbacks.h"  // Ensure canonical callback/GC typedefs and forward decls
 #include <cstddef>   // size_t
 #include <cstring>  // for memset
@@ -40,16 +41,23 @@
 #include "../v8-statistics.h"  // For MeasureMemoryMode
 // Don't include v8-snapshot.h here to avoid circular dependency
 
-// SnapshotBlobRef stub if not defined elsewhere
-#ifndef V8_SNAPSHOT_BLOB_REF_DEFINED
-#define V8_SNAPSHOT_BLOB_REF_DEFINED
-struct SnapshotBlobRef {
-  const uint8_t* data;
+// SnapshotBlobRef is no longer used - use v8::StartupData instead
+
+namespace v8 {
+
+// StartupData struct for snapshot data - guard against redefinition
+#ifndef V8_STARTUP_DATA_DEFINED
+#define V8_STARTUP_DATA_DEFINED
+class V8_EXPORT StartupData {
+ public:
+  // Methods required by Node.js - implementations in api.cc
+  bool CanBeRehashed() const;
+  bool IsValid() const;
+
+  const char* data;
   int raw_size;
 };
 #endif
-
-namespace v8 {
 
 // Forward declarations required by callback typedefs
 class Context;
@@ -67,6 +75,7 @@ class Data;
 class Object;
 class Array;
 class CppHeap;  // Forward declaration for CppHeap
+class Private;  // Forward declaration for Private (used by SetPrivate)
 
 namespace internal {
 class MicrotaskQueue;
@@ -188,6 +197,142 @@ class ResourceConstraints {
 
 // Type definitions that need to be before Isolate class
 using AbortOnUncaughtExceptionCallback = bool (*)(Isolate*);
+
+// Enums for ArrayBuffer - guard against redefinition
+#ifndef V8_ARRAY_BUFFER_ENUMS_DEFINED
+#define V8_ARRAY_BUFFER_ENUMS_DEFINED
+enum class ArrayBufferCreationMode { kInternalized, kExternalized };
+enum class BackingStoreInitializationMode { kZeroInitialized, kUninitialized };
+enum class BackingStoreOnFailureMode { kReturnNull, kOutOfMemory };
+#endif
+
+// BackingStore class stub - declarations only, implementations in api.cc
+#ifndef V8_BACKING_STORE_DEFINED
+#define V8_BACKING_STORE_DEFINED
+
+// Define internal::BackingStoreBase if not already defined
+// (already defined in nuclear-fix.h with guard V8_WASI_BACKINGSTORE_BASE_DEFINED)
+namespace internal {
+#ifndef V8_WASI_BACKINGSTORE_BASE_DEFINED
+#define V8_WASI_BACKINGSTORE_BASE_DEFINED 1
+class BackingStoreBase {
+ public:
+  virtual ~BackingStoreBase() = default;
+};
+#endif
+}  // namespace internal
+
+class V8_EXPORT BackingStore : public internal::BackingStoreBase {
+ public:
+  ~BackingStore();
+  void* Data() const;
+  size_t ByteLength() const;
+  size_t MaxByteLength() const;
+  bool IsShared() const;
+  bool IsResizableByUserJavaScript() const;
+
+  using DeleterCallback = void (*)(void* data, size_t length, void* deleter_data);
+  static void EmptyDeleter(void* data, size_t length, void* deleter_data);
+
+  void operator delete(void* ptr) { ::operator delete(ptr); }
+
+ private:
+  BackingStore();
+};
+#endif
+
+// ArrayBuffer class stub for WASI - doesn't inherit from Object
+// This avoids the complex V8 internal dependencies
+// Declarations only, implementations in api.cc
+#ifndef V8_ARRAY_BUFFER_DEFINED
+#define V8_ARRAY_BUFFER_DEFINED
+class V8_EXPORT ArrayBuffer {
+ public:
+  static constexpr size_t kMaxByteLength = 0x7FFFFFFF;
+  static constexpr int kInternalFieldCount = 2;
+  static constexpr int kEmbedderFieldCount = kInternalFieldCount;
+
+  class V8_EXPORT Allocator {
+   public:
+    virtual ~Allocator() = default;
+    virtual void* Allocate(size_t length) = 0;
+    virtual void* AllocateUninitialized(size_t length) = 0;
+    virtual void Free(void* data, size_t length) = 0;
+    virtual size_t MaxAllocationSize() const { return kMaxByteLength; }
+    enum class AllocationMode { kNormal, kReservation };
+    static Allocator* NewDefaultAllocator();
+  };
+
+  size_t ByteLength() const;
+  size_t MaxByteLength() const;
+
+  static MaybeLocal<ArrayBuffer> MaybeNew(
+      Isolate* isolate, size_t byte_length,
+      BackingStoreInitializationMode initialization_mode =
+          BackingStoreInitializationMode::kZeroInitialized);
+
+  static Local<ArrayBuffer> New(
+      Isolate* isolate, size_t byte_length,
+      BackingStoreInitializationMode initialization_mode =
+          BackingStoreInitializationMode::kZeroInitialized);
+
+  static Local<ArrayBuffer> New(Isolate* isolate,
+                                std::shared_ptr<BackingStore> backing_store);
+
+  static std::unique_ptr<BackingStore> NewBackingStore(
+      Isolate* isolate, size_t byte_length,
+      BackingStoreInitializationMode initialization_mode =
+          BackingStoreInitializationMode::kZeroInitialized,
+      BackingStoreOnFailureMode on_failure =
+          BackingStoreOnFailureMode::kOutOfMemory);
+
+  static std::unique_ptr<BackingStore> NewBackingStore(
+      void* data, size_t byte_length, BackingStore::DeleterCallback deleter,
+      void* deleter_data);
+
+  static std::unique_ptr<BackingStore> NewResizableBackingStore(
+      size_t byte_length, size_t max_byte_length);
+
+  bool IsDetachable() const;
+  bool WasDetached() const;
+  void Detach();
+  V8_WARN_UNUSED_RESULT Maybe<bool> Detach(Local<Value> key);
+  void SetDetachKey(Local<Value> key);
+  std::shared_ptr<BackingStore> GetBackingStore();
+  bool IsResizableByUserJavaScript() const;
+  void* Data() const;
+
+  // Methods from Object base class (inline stub implementations for WASI)
+  V8_WARN_UNUSED_RESULT Maybe<bool> SetPrivate(Local<Context> context,
+                                                Local<Private> key,
+                                                Local<Value> value) {
+    return Just(true);  // Stub - always succeed
+  }
+  MaybeLocal<Value> GetPrivate(Local<Context> context, Local<Private> key) {
+    return MaybeLocal<Value>();  // Stub - return empty
+  }
+  V8_WARN_UNUSED_RESULT Maybe<bool> HasPrivate(Local<Context> context,
+                                                Local<Private> key) {
+    return Just(false);  // Stub - key not found
+  }
+  V8_WARN_UNUSED_RESULT Maybe<bool> DeletePrivate(Local<Context> context,
+                                                   Local<Private> key) {
+    return Just(true);  // Stub - always succeed
+  }
+
+  V8_INLINE static ArrayBuffer* Cast(Value* value) {
+#ifdef __wasi__
+    return reinterpret_cast<ArrayBuffer*>(value);
+#else
+    return static_cast<ArrayBuffer*>(value);
+#endif
+  }
+
+ private:
+  ArrayBuffer();
+  static void CheckCast(Value* obj);
+};
+#endif
 
 // Minimal Isolate stub for WASI
 class V8_EXPORT Isolate {
@@ -359,20 +504,20 @@ class V8_EXPORT Isolate {
   // CreateParams stub with Node.js required fields
   struct CreateParams {
     CreateParams() = default;
-    
+
     // Node.js required fields
     ResourceConstraints constraints;
-    
+
     int embedder_wrapper_object_index = -1;
     int embedder_wrapper_type_index = -1;
-    
-    const SnapshotBlobRef* snapshot_blob = nullptr;
-    
+
+    const StartupData* snapshot_blob = nullptr;
+
     // Additional fields for Node.js
     const intptr_t* external_references = nullptr;
-    void* cpp_heap = nullptr;
-    void* array_buffer_allocator = nullptr;
-    std::shared_ptr<void> array_buffer_allocator_shared;
+    CppHeap* cpp_heap = nullptr;
+    ArrayBuffer::Allocator* array_buffer_allocator = nullptr;
+    std::shared_ptr<ArrayBuffer::Allocator> array_buffer_allocator_shared;
   };
   
   static Isolate* GetCurrent() { return nullptr; }

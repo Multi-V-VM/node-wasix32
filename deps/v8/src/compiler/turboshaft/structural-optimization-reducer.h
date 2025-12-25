@@ -283,17 +283,17 @@ class StructuralOptimizationReducer : public Next {
   // Visits and emits {input_block} right now (ie, in the current block)
   // until the one before the last operation is reached.
   void InlineAllOperationsWithoutLast(const Block* input_block) {
-    base::iterator_range<Graph::OpIndexIterator> all_ops =
+    ::v8::base::iterator_range<Graph::OpIndexIterator> all_ops =
         Asm().input_graph().OperationIndices(*input_block);
 
-    for (OpIndex op : base::IterateWithoutLast(all_ops)) {
+    for (OpIndex op : ::v8::base::IterateWithoutLast(all_ops)) {
       Asm().InlineOp(op, input_block);
     }
   }
 
   V<None> EmitSwitch(OpIndex switch_var,
-                     base::SmallVector<SwitchOp::Case, 16>& cases,
-                     base::SmallVector<const Block*, 16>& false_blocks,
+                     ::v8::base::SmallVector<SwitchOp::Case, 16>& cases,
+                     ::v8::base::SmallVector<const Block*, 16>& false_blocks,
                      Block* current_if_false, BranchHint next_hint) {
     // We're skipping the last false block, as it becomes the default block.
     for (size_t i = 0; i < false_blocks.size() - 1; ++i) {

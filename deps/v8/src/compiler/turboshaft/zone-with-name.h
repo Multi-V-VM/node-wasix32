@@ -27,7 +27,7 @@ namespace v8::internal::compiler::turboshaft {
 // possible, even when `foo`'s arguments expects raw types. NOTE: In release
 // builds, `ZoneWithNamePointer<T, Name>` is merely an alias to `T*`.
 #if defined(DEBUG) && defined(HAS_CPP_CLASS_TYPES_AS_TEMPLATE_ARGS)
-template <typename T, base::tmp::StringLiteral Name>
+template <typename T, ::v8::base::tmp::StringLiteral Name>
 class ZoneWithNamePointerImpl final {
  public:
   using pointer_type = T*;
@@ -66,7 +66,7 @@ class ZoneWithNamePointerImpl final {
   pointer_type ptr_ = pointer_type{};
 };
 
-template <typename T, base::tmp::StringLiteral Name>
+template <typename T, ::v8::base::tmp::StringLiteral Name>
 using ZoneWithNamePointer = ZoneWithNamePointerImpl<T, Name>;
 #else
 template <typename T, auto>
@@ -74,7 +74,7 @@ using ZoneWithNamePointer = T*;
 #endif
 
 #ifdef HAS_CPP_CLASS_TYPES_AS_TEMPLATE_ARGS
-template <base::tmp::StringLiteral Name>
+template <::v8::base::tmp::StringLiteral Name>
 #else
 template <auto Name>
 #endif

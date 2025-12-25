@@ -871,11 +871,10 @@ void SnapshotBuilder::InitializeIsolateParams(const SnapshotData* data,
   if (params->external_references == nullptr) {
     params->external_references = CollectExternalReferences().data();
   }
-  // WASI uses SnapshotBlobRef instead of StartupData
-  static SnapshotBlobRef snapshot_ref;
-  snapshot_ref.data = reinterpret_cast<const uint8_t*>(data->v8_snapshot_blob_data.data);
-  snapshot_ref.raw_size = data->v8_snapshot_blob_data.raw_size;
-  params->snapshot_blob = &snapshot_ref;
+  static v8::StartupData snapshot_blob_static;
+  snapshot_blob_static.data = data->v8_snapshot_blob_data.data;
+  snapshot_blob_static.raw_size = data->v8_snapshot_blob_data.raw_size;
+  params->snapshot_blob = &snapshot_blob_static;
 }
 
 SnapshotFlags operator|(SnapshotFlags x, SnapshotFlags y) {

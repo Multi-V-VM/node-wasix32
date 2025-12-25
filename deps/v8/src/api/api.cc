@@ -348,7 +348,7 @@ class ArrayBufferAllocator : public v8::ArrayBuffer::Allocator {
 
   void Free(void* data, size_t) override { base::Free(data); }
 
-  PageAllocator* GetPageAllocator() override {
+  PageAllocator* GetPageAllocator() {
     return i::GetPlatformPageAllocator();
   }
 };

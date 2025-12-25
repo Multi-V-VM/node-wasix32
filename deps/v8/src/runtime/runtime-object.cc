@@ -1188,8 +1188,8 @@ RUNTIME_FUNCTION(Runtime_CopyDataPropertiesWithExcludedPropertiesOnStack) {
         isolate, source, MaybeDirectHandle<Object>());
   }
 
-  DirectHandle<ZoneVector<Object>> excluded_properties(isolate,
-                                                 excluded_property_count);
+  std::vector<DirectHandle<Object>> excluded_properties;
+  excluded_properties.reserve(excluded_property_count);
   for (int i = 0; i < excluded_property_count; i++) {
     // Because the excluded properties on stack is from high address
     // to low address, so we need to use sub
@@ -1204,7 +1204,7 @@ RUNTIME_FUNCTION(Runtime_CopyDataPropertiesWithExcludedPropertiesOnStack) {
       property = isolate->factory()->NewNumberFromUint(property_num);
     }
 
-    excluded_properties[i] = property;
+    excluded_properties.push_back(property);
   }
 
   DirectHandle<JSObject> target =
@@ -1213,7 +1213,7 @@ RUNTIME_FUNCTION(Runtime_CopyDataPropertiesWithExcludedPropertiesOnStack) {
       JSReceiver::SetOrCopyDataProperties(
           isolate, target, source,
           PropertiesEnumerationMode::kPropertyAdditionOrder,
-          {excluded_properties.data(), excluded_properties.size()}, false),
+          base::VectorOf(excluded_properties), false),
       ReadOnlyRoots(isolate).exception());
   return *target;
 }

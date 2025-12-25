@@ -18,6 +18,7 @@
 #include "src/wasm/wasm-module.h"
 #include "src/wasm/wasm-opcodes.h"
 #include "src/wasm/wasm-value.h"
+#include "src/zone/zone-containers.h"
 
 // Forward declarations.
 namespace v8::internal::compiler {
@@ -25,6 +26,19 @@ class CallDescriptor;
 }  // namespace v8::internal::compiler
 
 namespace v8::internal::wasm {
+
+// Import Condition enum from v8::internal for WASM32 platform
+using ::v8::internal::Condition;
+using ::v8::internal::kEqual;
+using ::v8::internal::kNotEqual;
+using ::v8::internal::kLessThan;
+using ::v8::internal::kLessThanOrEqual;
+using ::v8::internal::kGreaterThan;
+using ::v8::internal::kGreaterThanOrEqual;
+using ::v8::internal::kUnsignedLessThan;
+using ::v8::internal::kUnsignedLessThanOrEqual;
+using ::v8::internal::kUnsignedGreaterThan;
+using ::v8::internal::kUnsignedGreaterThanOrEqual;
 
 inline constexpr Condition Negate(Condition cond) {
   switch (cond) {

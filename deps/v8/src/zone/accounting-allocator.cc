@@ -46,7 +46,7 @@ class CompressedZones final {
       return memory;
     }
 
-    base::FatalOOM(base::OOMType::kProcess,
+    ::v8::base::FatalOOM(::v8::base::OOMType::kProcess,
                    "Failed to reserve memory for compressed zones");
     UNREACHABLE();
   }
@@ -56,11 +56,11 @@ class CompressedZones final {
     CHECK(reservation_start);
     CHECK(IsAligned(reservation_start, ZoneCompression::kReservationAlignment));
 
-    auto allocator = std::make_unique<v8::base::BoundedPageAllocator>(
+    auto allocator = std::make_unique<::v8::base::BoundedPageAllocator>(
         platform_allocator, reservation_start,
         ZoneCompression::kReservationSize, kZonePageSize,
-        base::PageInitializationMode::kAllocatedPagesCanBeUninitialized,
-        base::PageFreeingMode::kMakeInaccessible);
+        ::v8::base::PageInitializationMode::kAllocatedPagesCanBeUninitialized,
+        ::v8::base::PageFreeingMode::kMakeInaccessible);
 
     // Exclude first page from allocation to ensure that accesses through
     // decompressed null pointer will seg-fault.
@@ -70,7 +70,7 @@ class CompressedZones final {
   }
 
   static std::pair<std::unique_ptr<VirtualMemory>,
-                   std::unique_ptr<base::BoundedPageAllocator>>
+                   std::unique_ptr<::v8::base::BoundedPageAllocator>>
   Initialize() {
     ::v8::PageAllocator* platform_page_allocator = GetPlatformPageAllocator();
     VirtualMemory memory =

@@ -1086,16 +1086,16 @@ int32_t ScanTemporalInstantString(ZoneVector<Char> str, int32_t s,
 }
 
 // ==============================================================================
-#define SATISIFY(T, R)                            \
-  template <typename Char>                        \
+#define SATISIFY(T, R)                         \
+  template <typename Char>                     \
   bool Satisfy##T(ZoneVector<Char> str, R* r) { \
-    R ret;                                        \
-    int32_t len = Scan##T(str, 0, &ret);          \
-    if ((len > 0) && (len == str.length())) {     \
-      *r = ret;                                   \
-      return true;                                \
-    }                                             \
-    return false;                                 \
+    R ret;                                     \
+    int32_t len = Scan##T(str, 0, &ret);       \
+    if ((len > 0) && (len == str.length())) {  \
+      *r = ret;                                \
+      return true;                             \
+    }                                          \
+    return false;                              \
   }
 
 #define IF_SATISFY_RETURN(T)             \
@@ -1103,12 +1103,12 @@ int32_t ScanTemporalInstantString(ZoneVector<Char> str, int32_t s,
     if (Satisfy##T(str, r)) return true; \
   }
 
-#define SATISIFY_EITHER(T1, T2, T3, R)             \
-  template <typename Char>                         \
+#define SATISIFY_EITHER(T1, T2, T3, R)          \
+  template <typename Char>                      \
   bool Satisfy##T1(ZoneVector<Char> str, R* r) { \
-    IF_SATISFY_RETURN(T2)                          \
-    IF_SATISFY_RETURN(T3)                          \
-    return false;                                  \
+    IF_SATISFY_RETURN(T2)                       \
+    IF_SATISFY_RETURN(T3)                       \
+    return false;                               \
   }
 
 SATISIFY(TemporalDateTimeString, ParsedISO8601Result)
@@ -1373,23 +1373,23 @@ SATISIFY(TemporalDurationString, ParsedISO8601Duration)
 
 }  // namespace
 
-#define IMPL_PARSE_METHOD(R, NAME)                                         \
-  std::optional<R> TemporalParser::Parse##NAME(                            \
-      Isolate* isolate, DirectHandle<String> iso_string) {                 \
-    bool valid;                                                            \
-    R parsed;                                                              \
-    iso_string = String::Flatten(isolate, iso_string);                     \
-    {                                                                      \
-      DisallowGarbageCollection no_gc;                                     \
-      String::FlatContent str_content = iso_string->GetFlatContent(no_gc); \
-      if (str_content.IsOneByte()) {                                       \
-        valid = Satisfy##NAME(str_content.ToOneByteVector(), &parsed);     \
-      } else {                                                             \
-        valid = Satisfy##NAME(str_content.ToUC16Vector(), &parsed);        \
-      }                                                                    \
-    }                                                                      \
-    if (valid) return parsed;                                              \
-    return std::nullopt;                                                   \
+#define IMPL_PARSE_METHOD(R, NAME)                                                     \
+  std::optional<R> TemporalParser::Parse##NAME(                                        \
+      Isolate* isolate, DirectHandle<String> iso_string) {                             \
+    bool valid;                                                                        \
+    R parsed;                                                                          \
+    iso_string = String::Flatten(isolate, iso_string);                                 \
+    {                                                                                  \
+      DisallowGarbageCollection no_gc;                                                 \
+      String::FlatContent str_content = iso_string->GetFlatContent(no_gc);             \
+      if (str_content.IsOneByte()) {                                                   \
+        valid = Satisfy##NAME(ZoneVector<const uint8_t>(str_content.ToOneByteVector()), &parsed); \
+      } else {                                                                         \
+        valid = Satisfy##NAME(ZoneVector<const base::uc16>(str_content.ToUC16Vector()), &parsed); \
+      }                                                                                \
+    }                                                                                  \
+    if (valid) return parsed;                                                          \
+    return std::nullopt;                                                               \
   }
 
 IMPL_PARSE_METHOD(ParsedISO8601Result, TemporalDateTimeString)

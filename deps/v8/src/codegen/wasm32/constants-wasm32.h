@@ -165,6 +165,12 @@ enum Condition : int {
   kAlways = 6,
   kNever = 7,
 
+  // Additional conditions for completeness
+  kGreaterThan = 16,
+  kLessThanOrEqual = 17,
+  kGreaterThanUnsigned = 18,
+  kLessThanOrEqualUnsigned = 19,
+
   // Floating point conditions
   kFloatEqual = 8,
   kFloatNotEqual = 9,
@@ -174,6 +180,12 @@ enum Condition : int {
   kFloatGreaterThanOrEqual = 13,
   kFloatUnordered = 14,
   kFloatOrdered = 15,
+
+  // Aliases for liftoff compatibility
+  kUnsignedLessThan = kLessThanUnsigned,
+  kUnsignedGreaterThan = kGreaterThanUnsigned,
+  kUnsignedLessThanOrEqual = kLessThanOrEqualUnsigned,
+  kUnsignedGreaterThanOrEqual = kGreaterThanOrEqualUnsigned,
 
   // Aliases
   eq = kEqual,

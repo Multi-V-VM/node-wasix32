@@ -433,7 +433,9 @@ void Deserializer<IsolateT>::LogNewMapEvents() {
 
 template <typename IsolateT>
 void Deserializer<IsolateT>::WeakenDescriptorArrays() {
+#ifndef __wasi__
   isolate()->heap()->WeakenDescriptorArrays(std::move(new_descriptor_arrays_));
+#endif  // !__wasi__
 }
 
 template <typename IsolateT>

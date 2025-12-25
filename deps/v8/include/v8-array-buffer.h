@@ -33,9 +33,12 @@ class IsolateGroup;
 #define V8_ARRAY_BUFFER_INTERNAL_FIELD_COUNT 2
 #endif
 
+#ifndef V8_ARRAY_BUFFER_ENUMS_DEFINED
+#define V8_ARRAY_BUFFER_ENUMS_DEFINED
 enum class ArrayBufferCreationMode { kInternalized, kExternalized };
 enum class BackingStoreInitializationMode { kZeroInitialized, kUninitialized };
 enum class BackingStoreOnFailureMode { kReturnNull, kOutOfMemory };
+#endif
 
 /**
  * A wrapper around the backing store (i.e. the raw memory) of an array buffer.
@@ -50,6 +53,8 @@ enum class BackingStoreOnFailureMode { kReturnNull, kOutOfMemory };
  * default. Use Isolate::CreateParams::array_buffer_allocator_shared when
  * creating the Isolate to make it hold a reference to the allocator itself.
  */
+#ifndef V8_BACKING_STORE_DEFINED
+#define V8_BACKING_STORE_DEFINED
 class V8_EXPORT BackingStore : public internal::BackingStoreBase {
  public:
   ~BackingStore();
@@ -121,6 +126,7 @@ class V8_EXPORT BackingStore : public internal::BackingStoreBase {
    */
   BackingStore();
 };
+#endif  // V8_BACKING_STORE_DEFINED
 
 #if !defined(V8_IMMINENT_DEPRECATION_WARNINGS)
 // Use v8::BackingStore::DeleterCallback instead.
@@ -132,6 +138,8 @@ using BackingStoreDeleterCallback = void (*)(void* data, size_t length,
 /**
  * An instance of the built-in ArrayBuffer constructor (ES6 draft 15.13.5).
  */
+#ifndef V8_ARRAY_BUFFER_DEFINED
+#define V8_ARRAY_BUFFER_DEFINED
 class V8_EXPORT ArrayBuffer : public Object {
  public:
   /**
@@ -409,6 +417,7 @@ class V8_EXPORT ArrayBuffer : public Object {
   static void CheckCast(Value* obj);
   friend class TypedArray;
 };
+#endif  // V8_ARRAY_BUFFER_DEFINED
 
 #ifndef V8_ARRAY_BUFFER_VIEW_INTERNAL_FIELD_COUNT
 // Defined using gn arg `v8_array_buffer_view_internal_field_count`.

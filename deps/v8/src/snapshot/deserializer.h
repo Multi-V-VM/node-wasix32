@@ -34,6 +34,8 @@ namespace internal {
 template <typename T>
 class WasiZoneVectorHandle {
  public:
+  using HandleType = DirectHandle<T>;
+
   // Can be "constructed" from Isolate* but does nothing
   template <typename IsolateT>
   explicit WasiZoneVectorHandle(IsolateT*) {}
@@ -42,6 +44,7 @@ class WasiZoneVectorHandle {
   // No-op push_back - snapshot deserialization not fully supported
   void push_back(const T&) {}
   void push_back(T&&) {}
+  void push_back(const HandleType&) {}
   template <typename H>
   void push_back(const H&) {}  // Accept Handle types too
 
@@ -50,13 +53,13 @@ class WasiZoneVectorHandle {
   bool empty() const { return true; }
 
   // Return default value for access (should not be used in practice)
-  T operator[](size_t) const { return T{}; }
+  HandleType operator[](size_t) const { return HandleType(); }
 
-  // Iterator support (always empty range)
-  T* begin() { return nullptr; }
-  T* end() { return nullptr; }
-  const T* begin() const { return nullptr; }
-  const T* end() const { return nullptr; }
+  // Iterator support (always empty range) - iterates over DirectHandle<T>
+  const HandleType* begin() const { return nullptr; }
+  const HandleType* end() const { return nullptr; }
+  HandleType* begin() { return nullptr; }
+  HandleType* end() { return nullptr; }
 };
 
 template <typename T>

@@ -693,7 +693,7 @@ Vector<const uint8_t> ExtractData(const v8::StartupData* snapshot,
 }
 }  // namespace
 
-Vector<const uint8_t> SnapshotImpl::ExtractStartupData(
+ZoneVector<const uint8_t> SnapshotImpl::ExtractStartupData(
     const v8::StartupData* data) {
   DCHECK(Snapshot::SnapshotIsValid(data));
 
@@ -702,7 +702,7 @@ Vector<const uint8_t> SnapshotImpl::ExtractStartupData(
                      GetHeaderValue(data, kReadOnlyOffsetOffset));
 }
 
-Vector<const uint8_t> SnapshotImpl::ExtractReadOnlyData(
+ZoneVector<const uint8_t> SnapshotImpl::ExtractReadOnlyData(
     const v8::StartupData* data) {
   DCHECK(Snapshot::SnapshotIsValid(data));
 
@@ -710,7 +710,7 @@ Vector<const uint8_t> SnapshotImpl::ExtractReadOnlyData(
                      GetHeaderValue(data, kSharedHeapOffsetOffset));
 }
 
-Vector<const uint8_t> SnapshotImpl::ExtractSharedHeapData(
+ZoneVector<const uint8_t> SnapshotImpl::ExtractSharedHeapData(
     const v8::StartupData* data) {
   DCHECK(Snapshot::SnapshotIsValid(data));
 
@@ -718,7 +718,7 @@ Vector<const uint8_t> SnapshotImpl::ExtractSharedHeapData(
                      GetHeaderValue(data, ContextSnapshotOffsetOffset(0)));
 }
 
-Vector<const uint8_t> SnapshotImpl::ExtractContextData(
+ZoneVector<const uint8_t> SnapshotImpl::ExtractContextData(
     const v8::StartupData* data, uint32_t index) {
   uint32_t num_contexts = ExtractNumContexts(data);
   CHECK_LT(index, num_contexts);
@@ -801,6 +801,7 @@ v8::StartupData CreateSnapshotDataBlobInternal(
   return creator->CreateBlob(function_code_handling, serializer_flags);
 }
 
+#ifndef __wasi__
 v8::StartupData CreateSnapshotDataBlobInternal(
     v8::SnapshotCreator::FunctionCodeHandling function_code_handling,
     const char* embedded_source, Snapshot::SerializerFlags serializer_flags) {
@@ -848,7 +849,7 @@ v8::StartupData WarmUpSnapshotDataBlobInternal(
   }
   {
     v8::HandleScope handle_scope(isolate);
-    isolate->ContextDisposedNotification(v8::ContextDependants::kNoDependants);
+    isolate->ContextDisposedNotification(false);
     v8::Local<v8::Context> context = v8::Context::New(isolate);
     snapshot_creator.SetDefaultContext(context);
   }
@@ -856,6 +857,7 @@ v8::StartupData WarmUpSnapshotDataBlobInternal(
   return snapshot_creator.CreateBlob(
       v8::SnapshotCreator::FunctionCodeHandling::kKeep);
 }
+#endif  // !__wasi__
 
 void SnapshotCreatorImpl::InitInternal(const StartupData* blob) {
   isolate_->enable_serializer();

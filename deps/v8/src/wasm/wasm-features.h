@@ -14,6 +14,7 @@
 
 #include "src/base/small-vector.h"
 #include "src/common/globals.h"
+#include "src/zone/zone-containers.h"
 // The feature flags are declared in their own header.
 #include "src/wasm/wasm-feature-flags.h"
 

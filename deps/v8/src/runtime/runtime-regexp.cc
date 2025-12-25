@@ -303,7 +303,9 @@ class CompiledReplacement {
             while (capture_index != -1) {
               capture_index = LookupNamedCapture(
                   [=](Tagged<String> capture_name) {
-                    return capture_name->IsEqualTo(requested_name);
+                    return capture_name->IsEqualTo(
+                        base::Vector<const Char>(requested_name.data(),
+                                                 requested_name.size()));
                   },
                   capture_name_map, &capture_name_map_index);
               DCHECK(capture_index == -1 ||
@@ -367,11 +369,11 @@ bool CompiledReplacement::Compile(Isolate* isolate,
     bool simple;
     if (content.IsOneByte()) {
       simple =
-          ParseReplacementPattern(content.ToOneByteVector(), capture_name_map,
+          ParseReplacementPattern(ZoneVector<const uint8_t>(content.ToOneByteVector()), capture_name_map,
                                   capture_count, subject_length);
     } else {
       DCHECK(content.IsTwoByte());
-      simple = ParseReplacementPattern(content.ToUC16Vector(), capture_name_map,
+      simple = ParseReplacementPattern(ZoneVector<const base::uc16>(content.ToUC16Vector()), capture_name_map,
                                        capture_count, subject_length);
     }
     if (simple) return true;
@@ -513,7 +515,7 @@ void FindStringIndicesDispatch(Isolate* isolate, Tagged<String> subject,
         }
       } else {
         FindStringIndices(isolate, subject_vector,
-                          pattern_content.ToUC16Vector(), indices, limit);
+                          ZoneVector<const base::uc16>(pattern_content.ToUC16Vector()), indices, limit);
       }
     } else {
       ZoneVector<const base::uc16> subject_vector =
@@ -2240,16 +2242,16 @@ inline void RegExpMatchGlobalAtom_Dispatch(
   DCHECK_NOT_NULL(number_of_matches);
   DCHECK_NOT_NULL(last_match_index);
   if (pattern.IsOneByte()) {
-    auto pv = pattern.ToOneByteVector();
+    ZoneVector<const uint8_t> pv = pattern.ToOneByteVector();
     if (subject.IsOneByte()) {
-      auto sv = subject.ToOneByteVector();
+      ZoneVector<const uint8_t> sv = subject.ToOneByteVector();
       if (pattern.length() == 1) {
         CALL_OneCharPattern();
       } else {
         CALL_Generic();
       }
     } else {
-      auto sv = subject.ToUC16Vector();
+      ZoneVector<const base::uc16> sv = subject.ToUC16Vector();
       if (pattern.length() == 1) {
         CALL_OneCharPattern();
       } else {
@@ -2257,12 +2259,12 @@ inline void RegExpMatchGlobalAtom_Dispatch(
       }
     }
   } else {
-    auto pv = pattern.ToUC16Vector();
+    ZoneVector<const base::uc16> pv = pattern.ToUC16Vector();
     if (subject.IsOneByte()) {
-      auto sv = subject.ToOneByteVector();
+      ZoneVector<const uint8_t> sv = subject.ToOneByteVector();
       CALL_Generic();
     } else {
-      auto sv = subject.ToUC16Vector();
+      ZoneVector<const base::uc16> sv = subject.ToUC16Vector();
       if (pattern.length() == 1) {
         CALL_OneCharPattern();
       } else {

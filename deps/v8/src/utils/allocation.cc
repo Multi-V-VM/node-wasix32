@@ -69,12 +69,12 @@ v8::PageAllocator* GetPlatformPageAllocator() {
   return GetPageAllocatorInitializer()->page_allocator();
 }
 
-v8::VirtualAddressSpace* GetPlatformVirtualAddressSpace() {
+VirtualAddressSpace* GetPlatformVirtualAddressSpace() {
 #if defined(LEAK_SANITIZER)
-  static base::LeakyObject<base::LsanVirtualAddressSpace> vas(
-      std::make_unique<base::VirtualAddressSpace>());
+  static ::v8::base::LeakyObject<::v8::base::LsanVirtualAddressSpace> vas(
+      std::make_unique<::v8::base::VirtualAddressSpace>());
 #else
-  static base::LeakyObject<base::VirtualAddressSpace> vas;
+  static ::v8::base::LeakyObject<::v8::base::VirtualAddressSpace> vas;
 #endif
   return vas.get();
 }
@@ -101,7 +101,7 @@ void* Malloced::operator new(size_t size) {
   return result;
 }
 
-void Malloced::operator delete(void* p) { base::Free(p); }
+void Malloced::operator delete(void* p) { ::v8::base::Free(p); }
 
 char* StrDup(const char* str) {
   size_t length = strlen(str);
@@ -203,7 +203,9 @@ bool SetPermissions(v8::PageAllocator* page_allocator, void* address,
 }
 
 void OnCriticalMemoryPressure() {
+#ifndef __wasi__
   V8::GetCurrentPlatform()->OnCriticalMemoryPressure();
+#endif
 }
 
 VirtualMemory::VirtualMemory() = default;
@@ -255,12 +257,17 @@ bool VirtualMemory::Resize(Address address, size_t new_size,
                            ::v8::PagePermissions access) {
   DCHECK(IsAligned(new_size, page_allocator_->CommitPageSize()));
   DCHECK_LE(region_.size(), new_size);
+#ifdef __wasi__
+  // WASI: ResizeAllocationAt not supported
+  return false;
+#else
   if (!page_allocator_->ResizeAllocationAt(reinterpret_cast<void*>(address),
                                            region_.size(), new_size, access)) {
     return false;
   }
   region_.set_size(new_size);
   return true;
+#endif
 }
 
 bool VirtualMemory::DiscardSystemPages(Address address, size_t size) {
@@ -358,7 +365,7 @@ bool VirtualMemoryCage::InitReservation(
       params.reservation_size - (allocatable_base - base_), params.page_size);
   size_ = allocatable_base + allocatable_size - base_;
 
-  page_allocator_ = std::make_unique<base::BoundedPageAllocator>(
+  page_allocator_ = std::make_unique<::v8::base::BoundedPageAllocator>(
       params.page_allocator, allocatable_base, allocatable_size,
       params.page_size, params.page_initialization_mode,
       params.page_freeing_mode);

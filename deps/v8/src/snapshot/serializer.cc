@@ -1142,7 +1142,8 @@ void Serializer::ObjectSerializer::VisitCppHeapPointer(
   sink_->Put(
       FixedRawDataWithSize::Encode(kCppHeapPointerSlotSize >> kTaggedSizeLog2),
       "FixedRawData");
-  sink_->PutRaw(reinterpret_cast<const uint8_t*>(&kNullCppHeapPointer),
+  static constexpr CppHeapPointerHandle null_handle = kNullCppHeapPointerHandle;
+  sink_->PutRaw(reinterpret_cast<const uint8_t*>(&null_handle),
                 kCppHeapPointerSlotSize, "empty cpp heap pointer handle");
   bytes_processed_so_far_ += kCppHeapPointerSlotSize;
 }

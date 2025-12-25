@@ -42,7 +42,7 @@ SnapshotData::SnapshotData(const Serializer* serializer) {
             static_cast<size_t>(payload->size()));
 }
 
-Vector<const uint8_t> SnapshotData::Payload() const {
+ZoneVector<const uint8_t> SnapshotData::Payload() const {
   const uint8_t* payload = data_ + kHeaderSize;
   uint32_t length = GetHeaderValue(kPayloadLengthOffset);
   DCHECK_EQ(data_ + size_, payload + length);

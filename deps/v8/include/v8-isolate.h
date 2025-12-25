@@ -18,13 +18,14 @@ namespace v8 { class Isolate; }
 
 #include "v8-callbacks.h"          // NOLINT(build/include_directory)
 #include "v8config.h"              // NOLINT(build/include_directory)
+#include "v8-array-buffer.h"       // NOLINT(build/include_directory)
+#include "v8-snapshot.h"           // NOLINT(build/include_directory)
 
 namespace v8 {
 
 class CppHeap;
 class HeapProfiler;
 class MicrotaskQueue;
-class StartupData;
 class ScriptOrModule;
 class SharedArrayBuffer;
 enum class MicrotasksPolicy;
@@ -43,21 +44,22 @@ class V8_EXPORT Isolate {
  public:
   struct CreateParams {
     CreateParams() = default;
-    
+
     // Add fields needed by v8-snapshot.h and Node.js
     struct {
       size_t max_old_generation_size_in_bytes() const { return 0; }
       void ConfigureDefaults(size_t physical_memory, size_t virtual_memory_limit) {}
     } constraints;
-    
+
     int embedder_wrapper_object_index = -1;
     int embedder_wrapper_type_index = -1;
-    
+
     // Additional fields for Node.js
     const intptr_t* external_references = nullptr;
-    void* cpp_heap = nullptr;
-    void* array_buffer_allocator = nullptr;
-    std::shared_ptr<void> array_buffer_allocator_shared;
+    const StartupData* snapshot_blob = nullptr;
+    CppHeap* cpp_heap = nullptr;
+    ArrayBuffer::Allocator* array_buffer_allocator = nullptr;
+    std::shared_ptr<ArrayBuffer::Allocator> array_buffer_allocator_shared;
   };
   
   // Add other minimal methods as needed

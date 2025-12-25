@@ -62,12 +62,12 @@ class PipelineData;
 
 template <typename Phase>
 struct HasProperRunMethod {
-  using parameters = base::tmp::call_parameters_t<decltype(&Phase::Run)>;
+  using parameters = ::v8::base::tmp::call_parameters_t<decltype(&Phase::Run)>;
   static_assert(
-      base::tmp::length_v<parameters> >= 2,
+      ::v8::base::tmp::length_v<parameters> >= 2,
       "Phase::Run needs at least two parameters (PipelineData* and Zone*)");
-  using parameter0 = base::tmp::element_t<parameters, 0>;
-  using parameter1 = base::tmp::element_t<parameters, 1>;
+  using parameter0 = ::v8::base::tmp::element_t<parameters, 0>;
+  using parameter1 = ::v8::base::tmp::element_t<parameters, 1>;
   static constexpr bool value = std::is_same<parameter0, PipelineData*>::value &&
                                 std::is_same<parameter1, Zone*>::value;
 };
@@ -93,7 +93,7 @@ struct produces_printable_graph_impl<
     : std::bool_constant<P::kOutputIsTraceableGraph> {};
 
 #ifdef HAS_CPP_CLASS_TYPES_AS_TEMPLATE_ARGS
-template <base::tmp::StringLiteral ZoneName>
+template <::v8::base::tmp::StringLiteral ZoneName>
 #else
 template <auto ZoneName>
 #endif
