@@ -167,7 +167,7 @@ class V8_EXPORT_PRIVATE CompilationState {
   size_t EstimateCurrentMemoryConsumption() const;
 
   std::vector<WasmCode*> PublishCode(
-      ZoneVector<UnpublishedWasmCode> unpublished_code);
+      base::Vector<UnpublishedWasmCode> unpublished_code);
 
   WasmDetectedFeatures detected_features() const;
 

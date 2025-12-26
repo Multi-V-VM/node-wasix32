@@ -1248,8 +1248,8 @@ class GenericReducerBase : public ReducerBaseForwarder<Next> {
       effects = effects.RequiredWhenUnused();
       has_catch_block = CatchIfInCatchScope(raw_call);
     }
-    return ReduceDidntThrow(raw_call, has_catch_block, &descriptor->out_reps,
-                            effects);
+    return ReduceDidntThrow(raw_call, has_catch_block,
+                            base::VectorOf(descriptor->out_reps), effects);
   }
 
   OpIndex REDUCE(FastApiCall)(
@@ -1261,11 +1261,11 @@ class GenericReducerBase : public ReducerBaseForwarder<Next> {
         frame_state, data_argument, context, arguments, parameters, out_reps);
     bool has_catch_block = CatchIfInCatchScope(raw_call);
     return ReduceDidntThrow(raw_call, has_catch_block,
-                            &Asm()
-                                 .output_graph()
-                                 .Get(raw_call)
-                                 .template Cast<FastApiCallOp>()
-                                 .out_reps,
+                            base::VectorOf(Asm()
+                                               .output_graph()
+                                               .Get(raw_call)
+                                               .template Cast<FastApiCallOp>()
+                                               .out_reps),
                             OpEffects().CanCallAnything());
   }
 
@@ -1276,7 +1276,7 @@ class GenericReducerBase : public ReducerBaseForwarder<Next> {
     bool has_catch_block = CatchIfInCatchScope(raw_op_index);                \
     const Name##Op& raw_op =                                                 \
         Asm().output_graph().Get(raw_op_index).template Cast<Name##Op>();    \
-    return ReduceDidntThrow(raw_op_index, has_catch_block, &raw_op.kOutReps, \
+    return ReduceDidntThrow(raw_op_index, has_catch_block, raw_op.kOutReps,  \
                             raw_op.Effects());                               \
   }
   TURBOSHAFT_THROWING_STATIC_OUTPUTS_OPERATIONS_LIST(REDUCE_THROWING_OP)

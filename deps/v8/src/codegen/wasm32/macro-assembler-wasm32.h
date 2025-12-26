@@ -173,6 +173,22 @@ public:
   void RecordDeoptReason(DeoptimizeReason, int, SourcePosition, int) {}
   void CallForDeoptimization(Builtin, int, Label*, DeoptimizeKind, Label*, Label*) { assembler_.nop(); }
 
+  // Map and Smi operations
+  void LoadMap(Register dst, Register object);
+  void LoadCompressedMap(Register dst, Register object);
+  void SmiTag(Register dst, Register src);
+  void SmiTag(Register reg) { SmiTag(reg, reg); }
+  void SmiUntag(Register dst, Register src);
+  void SmiUntag(Register reg) { SmiUntag(reg, reg); }
+  void SmiToInt32(Register dst, Register src) { SmiUntag(dst, src); }
+  void SmiToInt32(Register reg) { SmiUntag(reg, reg); }
+  void AssertSmi(Register object);
+  void AssertNotSmi(Register object);
+
+  // Exception handling
+  void ExceptionHandler(Label* label) { bind(label); }
+  void ExceptionHandler() { assembler_.nop(); }  // No-op for already bound handler
+
 private:
   Assembler assembler_;
   int current_stack_depth_ = 0;

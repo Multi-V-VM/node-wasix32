@@ -825,10 +825,10 @@ class InstanceBuilder {
   DirectHandle<JSArrayBuffer> shared_untagged_globals_;
   DirectHandle<FixedArray> tagged_globals_;
   DirectHandle<FixedArray> shared_tagged_globals_;
-  DirectHandle<ZoneVector<WasmTagObject> tags_wrappers_;
-  DirectHandle<ZoneVector<WasmTagObject> shared_tags_wrappers_;
+  DirectHandleVector<WasmTagObject> tags_wrappers_;
+  DirectHandleVector<WasmTagObject> shared_tags_wrappers_;
   DirectHandle<JSFunction> start_function_;
-  DirectHandle<ZoneVector<Object> sanitized_imports_;
+  DirectHandleVector<Object> sanitized_imports_;
   std::vector<WellKnownImport> well_known_imports_;
   // We pass this {Zone} to the temporary {WasmFullDecoder} we allocate during
   // each call to {EvaluateConstantExpression}, and reset it after each such

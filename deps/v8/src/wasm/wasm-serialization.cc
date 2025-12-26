@@ -12,6 +12,7 @@
 
 #include "src/codegen/assembler-arch.h"
 #include "src/codegen/assembler-inl.h"
+#include "src/codegen/flush-instruction-cache.h"
 #include "src/debug/debug.h"
 #include "src/runtime/runtime.h"
 #include "src/snapshot/snapshot-data.h"

@@ -9716,7 +9716,7 @@ std::unique_ptr<DebugSideTable> GenerateLiftoffDebugSideTable(
          code->for_debugging() == kForStepping);
   ZoneVector<const int> breakpoints =
       code->for_debugging() == kForStepping
-          ? base::ArrayVector(kSteppingBreakpoints)
+          ? ZoneVector<const int>(base::ArrayVector(kSteppingBreakpoints))
           : ZoneVector<const int>{};
   WasmFullDecoder<Decoder::NoValidationTag, LiftoffCompiler> decoder(
       &zone, native_module->module(), env.enabled_features, &detected,

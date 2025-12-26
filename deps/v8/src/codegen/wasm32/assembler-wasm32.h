@@ -33,6 +33,8 @@ enum Wasm32Feature {
 class V8_EXPORT_PRIVATE Assembler : public AssemblerBase {
  public:
   // Creation, destruction
+  // Default constructor for cases where assembler is used as a member
+  Assembler();
   // Constructor with zone parameter (for compatibility with MacroAssemblerBase)
   Assembler(MaybeAssemblerZone zone, const AssemblerOptions& options,
             std::unique_ptr<AssemblerBuffer> buffer = {});
@@ -250,9 +252,9 @@ class V8_EXPORT_PRIVATE Assembler : public AssemblerBase {
                                                     Tagged<Code> code,
                                                     Address target);
   static int deserialization_special_target_size(Address instruction_payload);
-  static void deserialization_set_target_internal_reference_at(Address pc,
-                                                               Address target,
-                                                               RelocInfo::Mode mode);
+  inline static void deserialization_set_target_internal_reference_at(
+      Address pc, Address target, WritableJitAllocation& jit_allocation,
+      RelocInfo::Mode mode = RelocInfo::INTERNAL_REFERENCE);
   static void FlushInstructionCache(Address start, size_t size);
   // Three-arguments overload used in some code paths
   static void set_target_address_at(Address pc, Address constant_pool,

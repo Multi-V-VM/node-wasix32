@@ -214,7 +214,7 @@ int WasmCode::jump_table_info_size() const {
 }
 
 std::unique_ptr<const uint8_t[]> WasmCode::ConcatenateBytes(
-    std::initializer_list<ZoneVector<const uint8_t>> vectors) {
+    std::initializer_list<::v8::base::Vector<const uint8_t>> vectors) {
   size_t total_size = 0;
   for (auto& vec : vectors) total_size += vec.size();
   // Use default-initialization (== no initialization).
@@ -826,17 +826,17 @@ void WasmCodeAllocator::InitializeCodeRange(NativeModule* native_module,
 #endif  // V8_OS_WIN64
 }
 
-Vector<uint8_t> WasmCodeAllocator::AllocateForCode(
+base::Vector<uint8_t> WasmCodeAllocator::AllocateForCode(
     NativeModule* native_module, size_t size) {
   return AllocateForCodeInRegion(native_module, size, kUnrestrictedRegion);
 }
 
-Vector<uint8_t> WasmCodeAllocator::AllocateForWrapper(size_t size) {
+base::Vector<uint8_t> WasmCodeAllocator::AllocateForWrapper(size_t size) {
   return AllocateForCodeInRegion(nullptr, size, kUnrestrictedRegion);
 }
 
 // {native_module} may be {nullptr} when allocating wrapper code.
-Vector<uint8_t> WasmCodeAllocator::AllocateForCodeInRegion(
+base::Vector<uint8_t> WasmCodeAllocator::AllocateForCodeInRegion(
     NativeModule* native_module, size_t size, base::AddressRegion region) {
   DCHECK_LT(0, size);
   auto* code_manager = GetWasmCodeManager();
@@ -1138,7 +1138,7 @@ WasmCode* NativeModule::AddCodeForTesting(DirectHandle<Code> code,
                    constant_pool_offset,     // constant_pool_offset
                    code_comments_offset,     // code_comments_offset
                    jump_table_info_offset,   // jump_table_info_offset
-                   instructions.length(),    // unpadded_binary_size
+                   static_cast<int>(instructions.length()),    // unpadded_binary_size
                    {},                       // protected_instructions
                    reloc_info.as_vector(),   // reloc_info
                    source_pos.as_vector(),   // source positions
@@ -1400,7 +1400,7 @@ WasmCode* NativeModule::PublishCode(UnpublishedWasmCode unpublished_code) {
 }
 
 std::vector<WasmCode*> NativeModule::PublishCode(
-    ZoneVector<UnpublishedWasmCode> unpublished_codes) {
+    base::Vector<UnpublishedWasmCode> unpublished_codes) {
   TRACE_EVENT1(TRACE_DISABLED_BY_DEFAULT("v8.wasm.detailed"),
                "wasm.PublishCode", "number", unpublished_codes.size());
   std::vector<WasmCode*> published_code;
@@ -2478,8 +2478,10 @@ std::shared_ptr<NativeModule> WasmCodeManager::NewNativeModule(
           ->wasm_flushed_liftoff_metadata_size_bytes()
           ->AddSample(static_cast<int>(metadata_size));
     }
+#ifndef __wasi__
     (reinterpret_cast<v8::Isolate*>(isolate))
         ->MemoryPressureNotification(MemoryPressureLevel::kCritical);
+#endif
     size_t committed = total_committed_code_space_.load();
     DCHECK_GE(max_committed_code_space_, committed);
     critical_committed_code_space_.store(

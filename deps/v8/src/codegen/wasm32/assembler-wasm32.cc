@@ -18,6 +18,13 @@ static const unsigned wasm32_features =
     (1u << WASM32_ATOMICS);    // Assume atomics support
 
 // Assembler implementation
+Assembler::Assembler()
+    : AssemblerBase(AssemblerOptions{}, nullptr) {
+  buffer_start_ = nullptr;
+  buffer_end_ = nullptr;
+  pc_ = nullptr;
+}
+
 Assembler::Assembler(MaybeAssemblerZone zone, const AssemblerOptions& options,
                      std::unique_ptr<AssemblerBuffer> buffer)
     : AssemblerBase(options, std::move(buffer)) {

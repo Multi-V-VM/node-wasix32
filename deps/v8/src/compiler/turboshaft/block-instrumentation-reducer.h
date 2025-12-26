@@ -76,7 +76,7 @@ class BlockInstrumentationReducer
 
   V<Any> REDUCE(DidntThrow)(
       V<Any> throwing_operation, bool has_catch_block,
-      const ZoneVector<const RegisterRepresentation>* results_rep,
+      base::Vector<const RegisterRepresentation> results_rep,
       OpEffects throwing_op_effects) {
     // Skip generic callback as we don't want to emit instrumentation BEFORE
     // this operation.

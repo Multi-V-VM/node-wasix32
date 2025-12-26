@@ -181,10 +181,10 @@ MaybeDirectHandle<String> WasmModuleObject::GetFunctionNameOrNull(
                                           kNoInternalize);
 }
 
-Vector<const uint8_t> WasmModuleObject::GetRawFunctionName(
+base::Vector<const uint8_t> WasmModuleObject::GetRawFunctionName(
     int func_index) {
   if (func_index == wasm::kAnonymousFuncIndex) {
-    return ZoneVector<const uint8_t>({nullptr, 0});
+    return {};
   }
   DCHECK_GT(module()->functions.size(), func_index);
   wasm::ModuleWireBytes wire_bytes(native_module()->wire_bytes());
@@ -192,7 +192,7 @@ Vector<const uint8_t> WasmModuleObject::GetRawFunctionName(
       module()->lazily_generated_names.LookupFunctionName(wire_bytes,
                                                           func_index);
   wasm::WasmName name = wire_bytes.GetNameOrNull(name_ref);
-  return ZoneVector<const uint8_t>::cast(name);
+  return {reinterpret_cast<const uint8_t*>(name.data()), name.size()};
 }
 
 DirectHandle<WasmTableObject> WasmTableObject::New(

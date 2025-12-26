@@ -48,11 +48,6 @@ using i::wasm::AddressType;
 using i::wasm::CompileTimeImport;
 using i::wasm::CompileTimeImports;
 using i::wasm::ErrorThrower;
-// WASI: Add missing using declarations
-template <typename T>
-using ZoneVector = internal::ZoneVector<T>;
-template <typename T>
-using OwnedZoneVector = internal::base::OwnedVector<T>;
 using i::wasm::WasmEnabledFeatures;
 
 namespace internal {
@@ -97,7 +92,7 @@ class WasmStreaming::WasmStreamingImpl {
     resolver_->OnCompilationFailed(exception.ToHandleChecked());
   }
 
-  bool SetCompiledModuleBytes(ZoneVector<const uint8_t> bytes) {
+  bool SetCompiledModuleBytes(internal::ZoneVector<const uint8_t> bytes) {
     if (!i::wasm::IsSupportedVersion(bytes, enabled_features_)) return false;
     streaming_decoder_->SetCompiledModuleBytes(bytes);
     return true;
@@ -113,7 +108,7 @@ class WasmStreaming::WasmStreamingImpl {
         });
   }
 
-  void SetUrl(ZoneVector<const char> url) { streaming_decoder_->SetUrl(url); }
+  void SetUrl(internal::ZoneVector<const char> url) { streaming_decoder_->SetUrl(url); }
 
  private:
   i::Isolate* const i_isolate_;
@@ -209,14 +204,14 @@ Vector<const uint8_t> GetFirstArgumentAsBytes(
   const uint8_t* start = nullptr;
   size_t length = 0;
   v8::Local<v8::Value> source = info[0];
-  if (source->IsArrayBuffer()) {
+  if (source->IsArrayBuffer() || source->IsSharedArrayBuffer()) {
     // A raw array buffer was passed.
     Local<ArrayBuffer> buffer = Local<ArrayBuffer>::Cast(source);
     auto backing_store = buffer->GetBackingStore();
 
     start = reinterpret_cast<const uint8_t*>(backing_store->Data());
     length = backing_store->ByteLength();
-    *is_shared = buffer->IsSharedArrayBuffer();
+    *is_shared = source->IsSharedArrayBuffer();
   } else if (source->IsTypedArray()) {
     // A TypedArray was passed.
     Local<TypedArray> array = Local<TypedArray>::Cast(source);
@@ -227,7 +222,7 @@ Vector<const uint8_t> GetFirstArgumentAsBytes(
     start = reinterpret_cast<const uint8_t*>(backing_store->Data()) +
             array->ByteOffset();
     length = array->ByteLength();
-    *is_shared = buffer->IsSharedArrayBuffer();
+    *is_shared = backing_store->IsShared();
   } else {
     thrower->TypeError("Argument 0 must be a buffer source");
     return {};
@@ -248,11 +243,11 @@ Vector<const uint8_t> GetFirstArgumentAsBytes(
   return base::VectorOf(start, length);
 }
 
-base::OwnedZoneVector<const uint8_t> GetAndCopyFirstArgumentAsBytes(
+base::OwnedVector<const uint8_t> GetAndCopyFirstArgumentAsBytes(
     const v8::FunctionCallbackInfo<v8::Value>& info, size_t max_length,
     ErrorThrower* thrower) {
   bool is_shared = false;
-  ZoneVector<const uint8_t> bytes =
+  base::Vector<const uint8_t> bytes =
       GetFirstArgumentAsBytes(info, max_length, thrower, &is_shared);
   if (bytes.empty()) {
     return {};
@@ -260,7 +255,7 @@ base::OwnedZoneVector<const uint8_t> GetAndCopyFirstArgumentAsBytes(
 
   // Use relaxed reads (and writes, which is unnecessary here) to avoid TSan
   // reports in case the buffer is shared and is being modified concurrently.
-  auto result = base::OwnedZoneVector<uint8_t>::NewForOverwrite(bytes.size());
+  auto result = base::OwnedVector<uint8_t>::NewForOverwrite(bytes.size());
   base::Relaxed_Memcpy(reinterpret_cast<base::Atomic8*>(result.begin()),
                        reinterpret_cast<const base::Atomic8*>(bytes.data()),
                        bytes.size());
@@ -739,7 +734,7 @@ void WebAssemblyCompileImpl(const v8::FunctionCallbackInfo<v8::Value>& info) {
     return;
   }
 
-  base::OwnedZoneVector<const uint8_t> bytes = GetAndCopyFirstArgumentAsBytes(
+  base::OwnedVector<const uint8_t> bytes = GetAndCopyFirstArgumentAsBytes(
       info, i::wasm::max_module_size(), &thrower);
   if (bytes.empty()) {
     resolver->OnCompilationFailed(thrower.Reify());
@@ -772,7 +767,7 @@ void WasmStreamingCallbackForTesting(
   // We don't check the buffer length up front, to allow d8 to test that the
   // streaming decoder implementation handles overly large inputs correctly.
   size_t unlimited = std::numeric_limits<size_t>::max();
-  base::OwnedZoneVector<const uint8_t> bytes =
+  base::OwnedVector<const uint8_t> bytes =
       GetAndCopyFirstArgumentAsBytes(info, unlimited, &thrower);
   if (bytes.empty()) {
     streaming->Abort(Utils::ToLocal(thrower.Reify()));
@@ -897,7 +892,7 @@ void WebAssemblyValidateImpl(const v8::FunctionCallbackInfo<v8::Value>& info) {
   v8::ReturnValue<v8::Value> return_value = info.GetReturnValue();
 
   bool bytes_are_shared = false;
-  ZoneVector<const uint8_t> bytes = GetFirstArgumentAsBytes(
+  internal::ZoneVector<const uint8_t> bytes = GetFirstArgumentAsBytes(
       info, i::wasm::max_module_size(), &thrower, &bytes_are_shared);
   if (bytes.empty()) {
     js_api_scope.AssertException();
@@ -924,7 +919,7 @@ void WebAssemblyValidateImpl(const v8::FunctionCallbackInfo<v8::Value>& info) {
     // Make a copy of the wire bytes to avoid concurrent modification.
     // Use relaxed reads (and writes, which is unnecessary here) to avoid TSan
     // reports in case the buffer is shared and is being modified concurrently.
-    auto bytes_copy = base::OwnedZoneVector<uint8_t>::NewForOverwrite(bytes.size());
+    auto bytes_copy = base::OwnedVector<uint8_t>::NewForOverwrite(bytes.size());
     base::Relaxed_Memcpy(reinterpret_cast<base::Atomic8*>(bytes_copy.begin()),
                          reinterpret_cast<const base::Atomic8*>(bytes.data()),
                          bytes.size());
@@ -980,7 +975,7 @@ void WebAssemblyModuleImpl(const v8::FunctionCallbackInfo<v8::Value>& info) {
     return;
   }
 
-  base::OwnedZoneVector<const uint8_t> bytes = GetAndCopyFirstArgumentAsBytes(
+  base::OwnedVector<const uint8_t> bytes = GetAndCopyFirstArgumentAsBytes(
       info, i::wasm::max_module_size(), &thrower);
 
   if (bytes.empty()) return js_api_scope.AssertException();
@@ -1215,7 +1210,7 @@ void WebAssemblyInstantiateImpl(
     return;
   }
 
-  base::OwnedZoneVector<const uint8_t> bytes = GetAndCopyFirstArgumentAsBytes(
+  base::OwnedVector<const uint8_t> bytes = GetAndCopyFirstArgumentAsBytes(
       info, i::wasm::max_module_size(), &thrower);
   if (bytes.empty()) {
     resolver->OnInstantiationFailed(thrower.Reify());

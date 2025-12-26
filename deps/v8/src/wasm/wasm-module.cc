@@ -189,7 +189,7 @@ void AsmJsOffsetInformation::EnsureDecodedOffsets() {
 
 // Get a string stored in the module bytes representing a name.
 WasmName ModuleWireBytes::GetNameOrNull(WireBytesRef ref) const {
-  if (!ref.is_set()) return {nullptr, 0};  // no name.
+  if (!ref.is_set()) return WasmName();  // no name.
   DCHECK(BoundsCheck(ref));
   return WasmName::cast(
       module_bytes_.SubVector(ref.offset(), ref.end_offset()));
@@ -632,7 +632,7 @@ DirectHandle<JSArray> GetCustomSections(
   std::vector<CustomSectionOffset> custom_sections =
       DecodeCustomSections(wire_bytes);
 
-  DirectHandle<ZoneVector<Object> matching_sections(isolate);
+  DirectHandleVector<Object> matching_sections(isolate);
 
   // Gather matching sections.
   for (auto& section : custom_sections) {

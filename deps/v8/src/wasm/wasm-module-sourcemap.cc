@@ -2,6 +2,10 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
+#ifdef __wasi__
+#include "include/wasi/v8-handlescope-fix.h"
+#endif
+
 #include "src/wasm/wasm-module-sourcemap.h"
 
 #include <algorithm>

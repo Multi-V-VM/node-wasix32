@@ -88,7 +88,7 @@ class DebugSideTable {
     // Stack height, including locals.
     int stack_height() const { return stack_height_; }
 
-    ZoneVector<const Value> changed_values() const {
+    base::Vector<const Value> changed_values() const {
       return base::VectorOf(changed_values_);
     }
 

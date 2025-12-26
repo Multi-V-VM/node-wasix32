@@ -36,12 +36,15 @@
 #include "src/wasm/wasm-objects-inl.h"
 #include "src/wasm/wasm-objects.h"
 #include "src/wasm/wasm-opcodes-inl.h"
+#include "src/zone/zone-containers.h"
 
 namespace v8::internal::wasm {
 
 #include "src/compiler/turboshaft/define-assembler-macros.inc"
 
 using ::v8::base::SmallVector;
+template <typename T, size_t kSize>
+using SmallZoneVector = ::v8::internal::SmallZoneVector<T, kSize>;
 using compiler::AccessBuilder;
 using compiler::CallDescriptor;
 using compiler::MemoryAccessKind;
@@ -164,7 +167,7 @@ OpIndex WasmGraphBuilderBase::CallRuntime(
               MemoryRepresentation::UintPtr(), builtin_slot_offset);
   // CallRuntime is always called with 0 or 1 argument, so a vector of size 4
   // always suffices.
-  SmallVector<OpIndex, 4> centry_args(zone);
+  SmallZoneVector<OpIndex, 4> centry_args(zone);
   for (OpIndex arg : args) centry_args.emplace_back(arg);
   centry_args.emplace_back(__ ExternalConstant(ExternalReference::Create(f)));
   centry_args.emplace_back(__ Word32Constant(fun->nargs));
@@ -925,7 +928,7 @@ class TurboshaftGraphBuildingInterface : public WasmGraphBuilderBase {
             -> AllocateArray<compiler::turboshaft::SwitchOp::Case>(
                              imm.table_count);
     BranchTableIterator<ValidationTag> new_block_iterator(decoder, imm);
-    SmallVector<TSBlock*, 16> intermediate_blocks(decoder->zone_);
+    SmallZoneVector<TSBlock*, 16> intermediate_blocks(decoder->zone_);
     TSBlock* default_case = nullptr;
     while (new_block_iterator.has_next()) {
       TSBlock* intermediate = __ NewBlock();
@@ -1066,7 +1069,7 @@ class TurboshaftGraphBuildingInterface : public WasmGraphBuilderBase {
 
   void DoReturn(FullDecoder* decoder, uint32_t drop_values) {
     size_t return_count = decoder->sig_->return_count();
-    SmallVector<OpIndex, 16> return_values(return_count, decoder->zone_);
+    SmallZoneVector<OpIndex, 16> return_values(return_count, decoder->zone_);
     Value* stack_base = return_count == 0
                             ? nullptr
                             : decoder->stack_value(static_cast<uint32_t>(
@@ -2922,7 +2925,7 @@ class TurboshaftGraphBuildingInterface : public WasmGraphBuilderBase {
             __ Bind(inline_block);
           }
 
-          SmallVector<Value, 4> direct_returns(return_count,
+          SmallZoneVector<Value, 4> direct_returns(return_count,
                                                    decoder->zone_);
           if (v8_flags.trace_wasm_inlining) {
             PrintF(
@@ -2956,7 +2959,7 @@ class TurboshaftGraphBuildingInterface : public WasmGraphBuilderBase {
           auto [call_target, call_implicit_arg] =
               BuildIndirectCallTargetAndImplicitArg(decoder, index_wordptr,
                                                     imm);
-          SmallVector<Value, 4> indirect_returns(return_count,
+          SmallZoneVector<Value, 4> indirect_returns(return_count,
                                                      decoder->zone_);
           BuildWasmCall(decoder, imm.sig, call_target, call_implicit_arg, args,
                         indirect_returns.data(),
@@ -3182,7 +3185,7 @@ class TurboshaftGraphBuildingInterface : public WasmGraphBuilderBase {
           __ Bind(inline_block);
         }
 
-        SmallVector<Value, 4> direct_returns(return_count, decoder->zone_);
+        SmallZoneVector<Value, 4> direct_returns(return_count, decoder->zone_);
         if (v8_flags.trace_wasm_inlining) {
           PrintF(
               "[function %d%s: Speculatively inlining call_ref #%d, case #%zu, "
@@ -3211,7 +3214,7 @@ class TurboshaftGraphBuildingInterface : public WasmGraphBuilderBase {
         auto [target, implicit_arg] =
             BuildFunctionReferenceTargetAndImplicitArg(func_ref.op,
                                                        func_ref.type);
-        SmallVector<Value, 4> ref_returns(return_count, decoder->zone_);
+        SmallZoneVector<Value, 4> ref_returns(return_count, decoder->zone_);
         BuildWasmCall(decoder, sig, target, implicit_arg, args,
                       ref_returns.data(), compiler::kWasmIndirectFunction);
         for (size_t ret = 0; ret < ref_returns.size(); ret++) {
@@ -3673,7 +3676,7 @@ class TurboshaftGraphBuildingInterface : public WasmGraphBuilderBase {
   void Throw(FullDecoder* decoder, const TagIndexImmediate& imm,
              const Value arg_values[]) {
     size_t count = imm.tag->sig->parameter_count();
-    SmallVector<OpIndex, 16> values(count, decoder->zone_);
+    SmallZoneVector<OpIndex, 16> values(count, decoder->zone_);
     for (size_t index = 0; index < count; index++) {
       values[index] = arg_values[index].op;
     }
@@ -4270,11 +4273,11 @@ class TurboshaftGraphBuildingInterface : public WasmGraphBuilderBase {
     }
     DCHECK_EQ(info.op_type, kLoad);
     RegisterRepresentation loaded_value_rep = info.in_out_rep;
+    [[maybe_unused]] bool needs_zero_extension_64 = false;
 #if V8_TARGET_BIG_ENDIAN
     // Do not sign-extend / zero-extend the value to 64 bits as the bytes need
     // to be reversed first to keep little-endian load / store semantics. Still
     // extend for 1 byte loads as it doesn't require reversing any bytes.
-    bool needs_zero_extension_64 = false;
     if (info.in_out_rep == RegisterRepresentation::Word64() &&
         info.memory_rep.SizeInBytes() < 8 &&
         info.memory_rep.SizeInBytes() != 1) {
@@ -4585,7 +4588,7 @@ class TurboshaftGraphBuildingInterface : public WasmGraphBuilderBase {
   void StructNew(FullDecoder* decoder, const StructIndexImmediate& imm,
                  const Value& descriptor, const Value args[], Value* result) {
     uint32_t field_count = imm.struct_type->field_count();
-    SmallVector<OpIndex, 16> args_vector(field_count, decoder->zone_);
+    SmallZoneVector<OpIndex, 16> args_vector(field_count, decoder->zone_);
     for (uint32_t i = 0; i < field_count; ++i) {
       args_vector[i] = args[i].op;
     }
@@ -4596,7 +4599,7 @@ class TurboshaftGraphBuildingInterface : public WasmGraphBuilderBase {
   void StructNewDefault(FullDecoder* decoder, const StructIndexImmediate& imm,
                         const Value& descriptor, Value* result) {
     uint32_t field_count = imm.struct_type->field_count();
-    SmallVector<OpIndex, 16> args(field_count, decoder->zone_);
+    SmallZoneVector<OpIndex, 16> args(field_count, decoder->zone_);
     for (uint32_t i = 0; i < field_count; i++) {
       ValueType field_type = imm.struct_type->field(i);
       args[i] = DefaultValue(field_type);
@@ -7635,7 +7638,7 @@ class TurboshaftGraphBuildingInterface : public WasmGraphBuilderBase {
         compiler::CanThrow::kYes, compiler::LazyDeoptOnThrow::kNo,
         __ graph_zone());
 
-    SmallVector<OpIndex, 16> arg_indices(sig->parameter_count() + 1,
+    SmallZoneVector<OpIndex, 16> arg_indices(sig->parameter_count() + 1,
                                              decoder->zone());
     arg_indices[0] = ref;
     for (uint32_t i = 0; i < sig->parameter_count(); i++) {
@@ -7670,7 +7673,7 @@ class TurboshaftGraphBuildingInterface : public WasmGraphBuilderBase {
           compiler::CanThrow::kYes, compiler::LazyDeoptOnThrow::kNo,
           __ graph_zone());
 
-      SmallVector<OpIndex, 16> arg_indices(sig->parameter_count() + 1,
+      SmallZoneVector<OpIndex, 16> arg_indices(sig->parameter_count() + 1,
                                                decoder->zone_);
       arg_indices[0] = ref;
       for (uint32_t i = 0; i < sig->parameter_count(); i++) {
@@ -7683,7 +7686,7 @@ class TurboshaftGraphBuildingInterface : public WasmGraphBuilderBase {
       // Transform the tail call into a regular call, and return the return
       // values to the caller.
       size_t return_count = sig->return_count();
-      SmallVector<Value, 16> returns(return_count, decoder->zone_);
+      SmallZoneVector<Value, 16> returns(return_count, decoder->zone_);
       // Since an exception in a tail call cannot be caught in this frame, we
       // should only catch exceptions in the generated call if this is a
       // recursively inlined function, and the parent frame provides a handler.
@@ -8393,7 +8396,7 @@ class TurboshaftGraphBuildingInterface : public WasmGraphBuilderBase {
     // In a corrupted sandbox, we can't trust the collected feedback.
     SBXCHECK(InlineTargetIsTypeCompatible(decoder->module_, sig, inlinee.sig));
 
-    SmallVector<OpIndex, 16> inlinee_args(
+    SmallZoneVector<OpIndex, 16> inlinee_args(
         inlinee.sig->parameter_count() + 1, decoder->zone_);
     bool inlinee_is_shared = decoder->module_->function_is_shared(func_index);
     inlinee_args[0] = trusted_instance_data(inlinee_is_shared);

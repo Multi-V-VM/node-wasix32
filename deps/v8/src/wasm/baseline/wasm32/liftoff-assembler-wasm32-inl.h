@@ -508,9 +508,8 @@ bool LiftoffAssembler::emit_i64_popcnt(LiftoffRegister dst,
   BAILOUT_RETURN("emit_i64_popcnt", false);
 }
 
-void LiftoffAssembler::emit_u32_to_uintptr(Register dst, Register src) {
-  BAILOUT("emit_u32_to_uintptr");
-}
+// emit_u32_to_uintptr is defined in liftoff-assembler-inl.h for 32-bit
+// architectures.
 
 bool LiftoffAssembler::emit_type_conversion(WasmOpcode opcode,
                                              LiftoffRegister dst,
@@ -984,10 +983,10 @@ SIMD_BINOP_STUB(f32x4_pmax)
 SIMD_UNOP_STUB(f32x4_abs)
 SIMD_UNOP_STUB(f32x4_neg)
 SIMD_UNOP_STUB(f32x4_sqrt)
-SIMD_UNOP_STUB(f32x4_ceil)
-SIMD_UNOP_STUB(f32x4_floor)
-SIMD_UNOP_STUB(f32x4_trunc)
-SIMD_UNOP_STUB(f32x4_nearest_int)
+SIMD_BOOL_UNOP_STUB(f32x4_ceil)
+SIMD_BOOL_UNOP_STUB(f32x4_floor)
+SIMD_BOOL_UNOP_STUB(f32x4_trunc)
+SIMD_BOOL_UNOP_STUB(f32x4_nearest_int)
 SIMD_BINOP_STUB(f64x2_add)
 SIMD_BINOP_STUB(f64x2_sub)
 SIMD_BINOP_STUB(f64x2_mul)
@@ -999,10 +998,10 @@ SIMD_BINOP_STUB(f64x2_pmax)
 SIMD_UNOP_STUB(f64x2_abs)
 SIMD_UNOP_STUB(f64x2_neg)
 SIMD_UNOP_STUB(f64x2_sqrt)
-SIMD_UNOP_STUB(f64x2_ceil)
-SIMD_UNOP_STUB(f64x2_floor)
-SIMD_UNOP_STUB(f64x2_trunc)
-SIMD_UNOP_STUB(f64x2_nearest_int)
+SIMD_BOOL_UNOP_STUB(f64x2_ceil)
+SIMD_BOOL_UNOP_STUB(f64x2_floor)
+SIMD_BOOL_UNOP_STUB(f64x2_trunc)
+SIMD_BOOL_UNOP_STUB(f64x2_nearest_int)
 SIMD_UNOP_STUB(i8x16_abs)
 SIMD_UNOP_STUB(i16x8_abs)
 SIMD_UNOP_STUB(i32x4_abs)
@@ -1026,20 +1025,20 @@ SIMD_BINOP_STUB(i64x2_extmul_high_i32x4_u)
 SIMD_BINOP_STUB(i16x8_q15mulr_sat_s)
 SIMD_BINOP_STUB(i16x8_relaxed_q15mulr_s)
 SIMD_BINOP_STUB(i16x8_dot_i8x16_i7x16_s)
-SIMD_UNOP_STUB(i32x4_trunc_sat_f32x4_s)
-SIMD_UNOP_STUB(i32x4_trunc_sat_f32x4_u)
-SIMD_UNOP_STUB(f32x4_convert_i32x4_s)
-SIMD_UNOP_STUB(f32x4_convert_i32x4_u)
+SIMD_UNOP_STUB(i32x4_sconvert_f32x4)
+SIMD_UNOP_STUB(i32x4_uconvert_f32x4)
+SIMD_UNOP_STUB(f32x4_sconvert_i32x4)
+SIMD_UNOP_STUB(f32x4_uconvert_i32x4)
 SIMD_UNOP_STUB(i32x4_trunc_sat_f64x2_s_zero)
 SIMD_UNOP_STUB(i32x4_trunc_sat_f64x2_u_zero)
 SIMD_UNOP_STUB(f64x2_convert_low_i32x4_s)
 SIMD_UNOP_STUB(f64x2_convert_low_i32x4_u)
 SIMD_UNOP_STUB(f64x2_promote_low_f32x4)
 SIMD_UNOP_STUB(f32x4_demote_f64x2_zero)
-SIMD_UNOP_STUB(i8x16_sconvert_i16x8)
-SIMD_UNOP_STUB(i8x16_uconvert_i16x8)
-SIMD_UNOP_STUB(i16x8_sconvert_i32x4)
-SIMD_UNOP_STUB(i16x8_uconvert_i32x4)
+SIMD_BINOP_STUB(i8x16_sconvert_i16x8)
+SIMD_BINOP_STUB(i8x16_uconvert_i16x8)
+SIMD_BINOP_STUB(i16x8_sconvert_i32x4)
+SIMD_BINOP_STUB(i16x8_uconvert_i32x4)
 SIMD_UNOP_STUB(i16x8_sconvert_i8x16_low)
 SIMD_UNOP_STUB(i16x8_sconvert_i8x16_high)
 SIMD_UNOP_STUB(i16x8_uconvert_i8x16_low)
@@ -1444,11 +1443,6 @@ void LiftoffAssembler::RecordSpillsInSafepoint(
     SafepointTableBuilder::Safepoint& safepoint, LiftoffRegList all_spills,
     LiftoffRegList ref_spills, int spill_offset) {
   BAILOUT("RecordSpillsInSafepoint");
-}
-
-void LiftoffAssembler::LoadSpillToHalfStackSlot(int offset, LiftoffRegList regs,
-                                                 RegPairHalf half) {
-  BAILOUT("LoadSpillToHalfStackSlot");
 }
 
 void LiftoffAssembler::emit_i8x16_bitmask(LiftoffRegister dst,

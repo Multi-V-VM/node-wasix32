@@ -1622,7 +1622,7 @@ RUNTIME_FUNCTION(Runtime_WasmStringNewSegmentWtf8) {
 namespace {
 // TODO(12868): Consider unifying with api.cc:String::Utf8Length.
 template <typename T>
-int MeasureWtf8(ZoneVector<const T> wtf16) {
+int MeasureWtf8(base::Vector<const T> wtf16) {
   int previous = unibrow::Utf16::kNoPreviousCharacter;
   int length = 0;
   DCHECK(wtf16.size() <= String::kMaxLength);
@@ -1643,23 +1643,23 @@ int MeasureWtf8(Isolate* isolate, DirectHandle<String> string) {
   return content.IsOneByte() ? MeasureWtf8(content.ToOneByteVector())
                              : MeasureWtf8(content.ToUC16Vector());
 }
-size_t MaxEncodedSize(ZoneVector<const uint8_t> wtf16) {
+size_t MaxEncodedSize(base::Vector<const uint8_t> wtf16) {
   DCHECK(wtf16.size() < std::numeric_limits<size_t>::max() /
                             unibrow::Utf8::kMax8BitCodeUnitSize);
   return wtf16.size() * unibrow::Utf8::kMax8BitCodeUnitSize;
 }
-size_t MaxEncodedSize(ZoneVector<const base::uc16> wtf16) {
+size_t MaxEncodedSize(base::Vector<const base::uc16> wtf16) {
   DCHECK(wtf16.size() < std::numeric_limits<size_t>::max() /
                             unibrow::Utf8::kMax16BitCodeUnitSize);
   return wtf16.size() * unibrow::Utf8::kMax16BitCodeUnitSize;
 }
-bool HasUnpairedSurrogate(ZoneVector<const uint8_t> wtf16) { return false; }
-bool HasUnpairedSurrogate(ZoneVector<const base::uc16> wtf16) {
+bool HasUnpairedSurrogate(base::Vector<const uint8_t> wtf16) { return false; }
+bool HasUnpairedSurrogate(base::Vector<const base::uc16> wtf16) {
   return unibrow::Utf16::HasUnpairedSurrogate(wtf16.begin(), wtf16.size());
 }
 template <typename T>
-int EncodeWtf8(ZoneVector<char> bytes, size_t offset,
-               ZoneVector<const T> wtf16, unibrow::Utf8Variant variant,
+int EncodeWtf8(base::Vector<char> bytes, size_t offset,
+               base::Vector<const T> wtf16, unibrow::Utf8Variant variant,
                MessageTemplate* message, MessageTemplate out_of_bounds) {
   // The first check is a quick estimate to decide whether the second check
   // is worth the computation.
@@ -1687,8 +1687,10 @@ int EncodeWtf8(ZoneVector<char> bytes, size_t offset,
   }
 
   bool write_null = false;
+  // Convert base::Vector to ZoneVector for Encode function
+  ZoneVector<const T> wtf16_zone(wtf16);
   unibrow::Utf8::EncodingResult result =
-      unibrow::Utf8::Encode(wtf16, bytes.begin() + offset,
+      unibrow::Utf8::Encode(wtf16_zone, bytes.begin() + offset,
                             bytes.size() - offset, write_null, replace_invalid);
   DCHECK_EQ(result.characters_processed, wtf16.size());
   DCHECK_LE(result.bytes_written, kMaxInt);
@@ -1705,7 +1707,7 @@ Tagged<Object> EncodeWtf8(Isolate* isolate, unibrow::Utf8Variant variant,
   {
     DisallowGarbageCollection no_gc;
     String::FlatContent content = string->GetFlatContent(no_gc);
-    ZoneVector<char> dst = get_writable_bytes(no_gc);
+    base::Vector<char> dst = get_writable_bytes(no_gc);
     written = content.IsOneByte()
                   ? EncodeWtf8(dst, offset, content.ToOneByteVector(), variant,
                                &message, out_of_bounds_message)
@@ -1757,7 +1759,7 @@ RUNTIME_FUNCTION(Runtime_WasmStringMeasureUtf8) {
     if (content.IsOneByte()) {
       length = MeasureWtf8(content.ToOneByteVector());
     } else {
-      ZoneVector<const base::uc16> code_units = content.ToUC16Vector();
+      base::Vector<const base::uc16> code_units = content.ToUC16Vector();
       if (unibrow::Utf16::HasUnpairedSurrogate(code_units.begin(),
                                                code_units.size())) {
         length = -1;

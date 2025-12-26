@@ -490,22 +490,22 @@ class ZoneVector {
   ZoneVector<T> SubVectorFrom(size_t from) const { return SubVector(from, size()); }
 
   reverse_iterator rbegin() V8_NOEXCEPT {
-    return std::make_reverse_iterator(end());
+    return ::std::make_reverse_iterator(end());
   }
   const_reverse_iterator rbegin() const V8_NOEXCEPT {
-    return std::make_reverse_iterator(end());
+    return ::std::make_reverse_iterator(end());
   }
   const_reverse_iterator crbegin() const V8_NOEXCEPT {
-    return std::make_reverse_iterator(cend());
+    return ::std::make_reverse_iterator(cend());
   }
   reverse_iterator rend() V8_NOEXCEPT {
-    return std::make_reverse_iterator(begin());
+    return ::std::make_reverse_iterator(begin());
   }
   const_reverse_iterator rend() const V8_NOEXCEPT {
-    return std::make_reverse_iterator(begin());
+    return ::std::make_reverse_iterator(begin());
   }
   const_reverse_iterator crend() const V8_NOEXCEPT {
-    return std::make_reverse_iterator(cbegin());
+    return ::std::make_reverse_iterator(cbegin());
   }
 
   // Truncate the vector to new_size elements.
@@ -1286,8 +1286,18 @@ class ZoneVector<const T> {
   }
 
   // Iterators
+  using reverse_iterator = ::std::reverse_iterator<const_iterator>;
+  using const_reverse_iterator = ::std::reverse_iterator<const_iterator>;
+
   const_iterator begin() const { return data_; }
   const_iterator end() const { return data_ + size_; }
+  const_iterator cbegin() const { return data_; }
+  const_iterator cend() const { return data_ + size_; }
+
+  reverse_iterator rbegin() const { return ::std::make_reverse_iterator(end()); }
+  reverse_iterator rend() const { return ::std::make_reverse_iterator(begin()); }
+  const_reverse_iterator crbegin() const { return ::std::make_reverse_iterator(cend()); }
+  const_reverse_iterator crend() const { return ::std::make_reverse_iterator(cbegin()); }
 
   // Capacity
   bool empty() const { return size_ == 0; }

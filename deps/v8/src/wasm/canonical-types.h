@@ -426,7 +426,7 @@ class TypeCanonicalizer {
     }
 
     // The storage of this vector is the TypeCanonicalizer's zone_.
-    const ZoneVector<CanonicalType> types;
+    ZoneVector<CanonicalType> types;
     const CanonicalTypeIndex first;
   };
 

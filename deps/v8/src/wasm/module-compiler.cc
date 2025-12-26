@@ -728,7 +728,7 @@ class CompilationStateImpl {
   // been compiled to the top tier in the meantime.
   void TriggerCachingAfterTimeout();
 
-  std::vector<WasmCode*> PublishCode(ZoneVector<UnpublishedWasmCode> codes);
+  std::vector<WasmCode*> PublishCode(base::Vector<UnpublishedWasmCode> codes);
 
  private:
   // Trigger callbacks according to the internal counters below
@@ -953,7 +953,7 @@ size_t CompilationState::EstimateCurrentMemoryConsumption() const {
 }
 
 std::vector<WasmCode*> CompilationState::PublishCode(
-    ZoneVector<UnpublishedWasmCode> unpublished_code) {
+    base::Vector<UnpublishedWasmCode> unpublished_code) {
   return Impl(this)->PublishCode(unpublished_code);
 }
 
@@ -2728,8 +2728,8 @@ void AsyncCompileJob::PrepareRuntimeObjects() {
   // Create heap objects for script and module bytes to be stored in the
   // module object. Asm.js is not compiled asynchronously.
   DCHECK(module_object_.is_null());
-  auto source_url =
-      stream_ ? base::VectorOf(stream_->url()) : ZoneVector<const char>();
+  base::Vector<const char> source_url =
+      stream_ ? base::VectorOf(stream_->url()) : base::Vector<const char>();
   auto script =
       GetWasmEngine()->GetOrCreateScript(isolate_, native_module_, source_url);
   DirectHandle<WasmModuleObject> module_object =
@@ -4279,10 +4279,10 @@ void CompilationStateImpl::PublishCompilationResults(
 }
 
 std::vector<WasmCode*> CompilationStateImpl::PublishCode(
-    ZoneVector<UnpublishedWasmCode> code) {
+    base::Vector<UnpublishedWasmCode> code) {
   WasmCodeRefScope code_ref_scope;
   std::vector<WasmCode*> published_code =
-      native_module_->PublishCode(std::move(code));
+      native_module_->PublishCode(code);
   // Defer logging code in case wire bytes were not fully received yet.
   if (native_module_->log_code() && native_module_->HasWireBytes()) {
     GetWasmEngine()->LogCode(base::VectorOf(published_code));

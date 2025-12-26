@@ -728,7 +728,7 @@ MaybeDirectHandle<WasmModuleObject> WasmEngine::SyncCompile(
   }
 #endif
 
-  constexpr ZoneVector<const char> kNoSourceUrl;
+  ZoneVector<const char> kNoSourceUrl;
   DirectHandle<Script> script =
       GetOrCreateScript(isolate, native_module, kNoSourceUrl);
 
@@ -1267,8 +1267,9 @@ void WasmEngine::AddIsolate(Isolate* isolate) {
   // TODO(v8:7424): For now we sample module sizes in a GC callback. This will
   // bias samples towards apps with high memory pressure. We should switch to
   // using sampling based on regular intervals independent of the GC.
-  auto callback = [](v8::Isolate* v8_isolate, v8::GCType type,
-                     v8::GCCallbackFlags flags, void* data) {
+  auto callback =
+      +[](v8::Isolate* v8_isolate, GCType type,
+          GCCallbackFlags flags, void* data) {
     Isolate* isolate = reinterpret_cast<Isolate*>(v8_isolate);
     Counters* counters = isolate->counters();
     WasmEngine* engine = GetWasmEngine();
@@ -1290,8 +1291,9 @@ void WasmEngine::AddIsolate(Isolate* isolate) {
       metadata_histogram->AddSample(static_cast<int>(engine_meta_data / KB));
     }
   };
-  isolate->heap()->AddGCEpilogueCallback(callback, v8::kGCTypeMarkSweepCompact,
-                                         nullptr);
+  isolate->heap()->AddGCEpilogueCallback(
+      reinterpret_cast<v8::Isolate::GCCallbackWithData>(callback),
+      v8::kGCTypeMarkSweepCompact, nullptr);
 
 #ifdef V8_ENABLE_WASM_GDB_REMOTE_DEBUGGING
   if (gdb_server_) {

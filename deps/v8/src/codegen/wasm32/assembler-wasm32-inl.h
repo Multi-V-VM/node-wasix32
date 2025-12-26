@@ -257,8 +257,9 @@ int Assembler::deserialization_special_target_size(
 }
 
 void Assembler::deserialization_set_target_internal_reference_at(
-    Address pc, Address target, RelocInfo::Mode mode) {
-  Memory<Address>(pc) = target;
+    Address pc, Address target, WritableJitAllocation& jit_allocation,
+    RelocInfo::Mode mode) {
+  jit_allocation.WriteUnalignedValue<Address>(pc, target);
 }
 
 // CPU-specific functions

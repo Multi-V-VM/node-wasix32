@@ -590,6 +590,8 @@ struct IndexImmediate {
   uint32_t index;
   uint32_t length;
 
+  IndexImmediate() : index(0), length(0) {}
+
   template <typename ValidationTag>
   IndexImmediate(Decoder* decoder, const uint8_t* pc, const char* name,
                  ValidationTag = {}) {
@@ -617,6 +619,8 @@ struct TableIndexImmediate : public IndexImmediate {
 
 struct TagIndexImmediate : public IndexImmediate {
   const WasmTag* tag = nullptr;
+
+  TagIndexImmediate() : IndexImmediate() {}
 
   template <typename ValidationTag>
   TagIndexImmediate(Decoder* decoder, const uint8_t* pc,
@@ -794,6 +798,8 @@ struct BranchDepthImmediate {
   uint32_t depth;
   uint32_t length;
 
+  BranchDepthImmediate() : depth(0), length(0) {}
+
   template <typename ValidationTag>
   BranchDepthImmediate(Decoder* decoder, const uint8_t* pc,
                        ValidationTag = {}) {
@@ -893,8 +899,14 @@ struct CatchCase {
   union MaybeTagIndex {
     uint8_t empty;
     TagIndexImmediate tag_imm;
+    MaybeTagIndex() : empty(0) {}
+    explicit MaybeTagIndex(uint8_t v) : empty(v) {}
   } maybe_tag;
   BranchDepthImmediate br_imm;
+
+  CatchCase() : kind(kCatchAll), maybe_tag(), br_imm() {}
+  CatchCase(CatchKind k, MaybeTagIndex t, BranchDepthImmediate b)
+      : kind(k), maybe_tag(t), br_imm(b) {}
 };
 
 // A helper to iterate over a try table.
@@ -952,7 +964,13 @@ struct HandlerCase {
   union MaybeHandlerDepth {
     uint8_t empty;
     BranchDepthImmediate br;
+    MaybeHandlerDepth() : empty(0) {}
+    explicit MaybeHandlerDepth(uint8_t v) : empty(v) {}
   } maybe_depth;
+
+  HandlerCase() : kind(kOnSuspend), tag(), maybe_depth() {}
+  HandlerCase(SwitchKind k, TagIndexImmediate t, MaybeHandlerDepth d)
+      : kind(k), tag(t), maybe_depth(d) {}
 };
 
 // A helper to iterate over a handler table.

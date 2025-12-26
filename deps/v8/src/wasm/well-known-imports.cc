@@ -4,6 +4,8 @@
 
 #include "src/wasm/well-known-imports.h"
 
+#include "src/zone/zone-containers.h"
+
 namespace v8::internal::wasm {
 
 const char* WellKnownImportName(WellKnownImport wki) {

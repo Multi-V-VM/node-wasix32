@@ -339,7 +339,7 @@ class WasmWrapperTSGraphBuilder : public WasmGraphBuilderBase {
   void BuildCallWasmFromWrapper(Zone* zone, const CanonicalSig* sig,
                                 V<Word32> callee,
                                 V<HeapObject> implicit_first_arg,
-                                const ZoneVector<OpIndex> args,
+                                ZoneVector<OpIndex> args,
                                 ZoneVector<OpIndex> returns) {
     const TSCallDescriptor* descriptor = TSCallDescriptor::Create(
         compiler::GetWasmCallDescriptor(

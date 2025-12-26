@@ -573,14 +573,14 @@ class WasmCodeAllocator {
 
   // Allocate code space. Returns a valid buffer or fails with OOM (crash).
   // Hold the {NativeModule}'s {allocation_mutex_} when calling this method.
-  ZoneVector<uint8_t> AllocateForCode(NativeModule*, size_t size);
+  ::v8::base::Vector<uint8_t> AllocateForCode(NativeModule*, size_t size);
   // Same, but for wrappers (which are shared across NativeModules).
-  ZoneVector<uint8_t> AllocateForWrapper(size_t size);
+  ::v8::base::Vector<uint8_t> AllocateForWrapper(size_t size);
 
   // Allocate code space within a specific region. Returns a valid buffer or
   // fails with OOM (crash).
   // Hold the {NativeModule}'s {allocation_mutex_} when calling this method.
-  ZoneVector<uint8_t> AllocateForCodeInRegion(NativeModule*, size_t size,
+  ::v8::base::Vector<uint8_t> AllocateForCodeInRegion(NativeModule*, size_t size,
                                                 ::v8::base::AddressRegion);
 
   // Free memory pages of all given code objects. Used for wasm code GC.
@@ -655,7 +655,7 @@ class V8_EXPORT_PRIVATE NativeModule final {
   // {NativeModule}. Returns {nullptr} if the {AssumptionsJournal} in the
   // argument is non-nullptr and contains invalid assumptions.
   WasmCode* PublishCode(UnpublishedWasmCode);
-  std::vector<WasmCode*> PublishCode(ZoneVector<UnpublishedWasmCode>);
+  std::vector<WasmCode*> PublishCode(base::Vector<UnpublishedWasmCode>);
 
   // Clears outdated code as necessary when a new instantiation's imports
   // conflict with previously seen well-known imports.

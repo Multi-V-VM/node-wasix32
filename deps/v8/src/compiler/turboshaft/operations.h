@@ -4259,14 +4259,14 @@ struct DidntThrowOp : FixedArityOperationT<1, DidntThrowOp> {
   // If there is a `CheckException` operation with a catch block for
   // `throwing_operation`.
   bool has_catch_block;
-  // This is a pointer to a vector instead of a vector to save a bit of memory,
-  // using optimal 16 bytes instead of 24.
-  const ZoneVector<const RegisterRepresentation>* results_rep;
+  // Store a base::Vector directly to support both ZoneVector and static
+  // base::Vector sources.
+  base::Vector<const RegisterRepresentation> results_rep;
 
   OpEffects Effects() const { return throwing_op_effects; }
 
-  ZoneVector<const RegisterRepresentation> outputs_rep() const {
-    return *results_rep;
+  base::Vector<const RegisterRepresentation> outputs_rep() const {
+    return results_rep;
   }
 
   ZoneVector<const MaybeRegisterRepresentation> inputs_rep(
@@ -4278,7 +4278,7 @@ struct DidntThrowOp : FixedArityOperationT<1, DidntThrowOp> {
 
   explicit DidntThrowOp(
       OpIndex throwing_operation, bool has_catch_block,
-      const ZoneVector<const RegisterRepresentation>* results_rep,
+      base::Vector<const RegisterRepresentation> results_rep,
       OpEffects throwing_op_effects)
       : Base(throwing_operation),
         throwing_op_effects(throwing_op_effects),
