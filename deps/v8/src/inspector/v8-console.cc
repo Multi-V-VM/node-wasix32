@@ -464,7 +464,7 @@ void V8Console::TimeStamp(const v8::debug::ConsoleCallArguments& info,
   v8::Local<v8::String> label = helper.firstArgToString();
 
   v8::Isolate* isolate = m_inspector->isolate();
-  std::vector<v8::Local<v8::Value>> args;
+  v8::LocalVector<v8::Value> args(isolate);
   args.reserve(info.Length());
   for (int i = 0; i < info.Length(); i++) {
     args.push_back(info[i]);

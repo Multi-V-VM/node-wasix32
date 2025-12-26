@@ -34,6 +34,7 @@ class PageAllocatorInitializer {
  public:
   PageAllocatorInitializer() {
     page_allocator_ = V8::GetCurrentPlatform()->GetPageAllocator();
+#ifndef __wasi__
     if (page_allocator_ == nullptr) {
       static base::LeakyObject<base::PageAllocator> default_page_allocator;
       page_allocator_ = default_page_allocator.get();
@@ -43,6 +44,7 @@ class PageAllocatorInitializer {
         page_allocator_);
     page_allocator_ = lsan_allocator.get();
 #endif
+#endif  // __wasi__
   }
 
   PageAllocator* page_allocator() const { return page_allocator_; }
@@ -69,6 +71,7 @@ v8::PageAllocator* GetPlatformPageAllocator() {
   return GetPageAllocatorInitializer()->page_allocator();
 }
 
+#ifndef __wasi__
 VirtualAddressSpace* GetPlatformVirtualAddressSpace() {
 #if defined(LEAK_SANITIZER)
   static ::v8::base::LeakyObject<::v8::base::LsanVirtualAddressSpace> vas(
@@ -78,6 +81,7 @@ VirtualAddressSpace* GetPlatformVirtualAddressSpace() {
 #endif
   return vas.get();
 }
+#endif
 
 #ifdef V8_ENABLE_SANDBOX
 v8::PageAllocator* GetSandboxPageAllocator() {

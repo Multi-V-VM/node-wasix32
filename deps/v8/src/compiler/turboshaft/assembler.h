@@ -285,7 +285,7 @@ class Zip {
 
   template <typename A>
   iterator_type Begin(A& assembler) {
-    return base::tuple_map(
+    return ::v8::base::tuple_map(
         iterables_, [&assembler](auto& it) { return it.Begin(assembler); });
   }
 
@@ -294,11 +294,11 @@ class Zip {
     // TODO(nicohartmann): Currently we don't short-circuit the disjunction here
     // because that's slightly more difficult to do with the current `IsEnd`
     // predicate. We can consider making this more powerful if we see use cases.
-    auto results = base::tuple_map2(iterables_, current_iterator,
+    auto results = ::v8::base::tuple_map2(iterables_, current_iterator,
                                     [&assembler](auto& it, auto current) {
                                       return it.IsEnd(assembler, current);
                                     });
-    return base::tuple_fold(
+    return ::v8::base::tuple_fold(
         OptionalV<Word32>::Nullopt(), results,
         [&assembler](OptionalV<Word32> acc, OptionalV<Word32> next) {
           if (!next.has_value()) return acc;
@@ -310,7 +310,7 @@ class Zip {
 
   template <typename A>
   iterator_type Advance(A& assembler, iterator_type current_iterator) {
-    return base::tuple_map2(iterables_, current_iterator,
+    return ::v8::base::tuple_map2(iterables_, current_iterator,
                             [&assembler](auto& it, auto current) {
                               return it.Advance(assembler, current);
                             });
@@ -318,7 +318,7 @@ class Zip {
 
   template <typename A>
   value_type Dereference(A& assembler, iterator_type current_iterator) {
-    return base::tuple_map2(iterables_, current_iterator,
+    return ::v8::base::tuple_map2(iterables_, current_iterator,
                             [&assembler](auto& it, auto current) {
                               return it.Dereference(assembler, current);
                             });

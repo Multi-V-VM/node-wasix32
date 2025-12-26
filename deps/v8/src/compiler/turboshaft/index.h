@@ -842,6 +842,21 @@ class ShadowyOpIndexVectorWrapper {
   ShadowyOpIndexVectorWrapper(
       ZoneVector<OpIndex> indices)  // NOLINT(runtime/explicit)
       : indices_(indices) {}
+  // WASI: Add constructors from base::Vector
+  template <typename T>
+  ShadowyOpIndexVectorWrapper(
+      ::v8::base::Vector<const V<T>> indices)  // NOLINT(runtime/explicit)
+      : indices_(indices.data(), indices.size()) {}
+  ShadowyOpIndexVectorWrapper(
+      ::v8::base::Vector<const OpIndex> indices)  // NOLINT(runtime/explicit)
+      : indices_(indices.data(), indices.size()) {}
+  template <typename T>
+  ShadowyOpIndexVectorWrapper(
+      ::v8::base::Vector<V<T>> indices)  // NOLINT(runtime/explicit)
+      : indices_(indices.data(), indices.size()) {}
+  ShadowyOpIndexVectorWrapper(
+      ::v8::base::Vector<OpIndex> indices)  // NOLINT(runtime/explicit)
+      : indices_(indices.data(), indices.size()) {}
 
   operator ZoneVector<const OpIndex>() const {  // NOLINT(runtime/explicit)
     return indices_;

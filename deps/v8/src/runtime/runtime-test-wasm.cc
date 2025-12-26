@@ -49,7 +49,7 @@ using WasmCompileControlsMap = std::map<v8::Isolate*, WasmCompileControls>;
 // To avoid upsetting the static initializer count, we lazy initialize this.
 DEFINE_LAZY_LEAKY_OBJECT_GETTER(WasmCompileControlsMap,
                                 GetPerIsolateWasmControls)
-base::LazyMutex g_PerIsolateWasmControlsMutex = LAZY_MUTEX_INITIALIZER;
+::v8::base::LazyMutex g_PerIsolateWasmControlsMutex = LAZY_MUTEX_INITIALIZER;
 
 bool IsWasmCompileAllowed(v8::Isolate* isolate, v8::Local<v8::Value> value,
                           bool is_async) {

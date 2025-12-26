@@ -19,6 +19,10 @@
 #include "src/wasm/wasm-opcodes.h"
 #include "src/wasm/wasm-value.h"
 #include "src/zone/zone-containers.h"
+#include "src/base/small-vector.h"
+
+// Bring SmallVector into scope for wasm code
+using ::v8::base::SmallVector;
 
 // Forward declarations.
 namespace v8::internal::compiler {
@@ -39,6 +43,8 @@ using ::v8::internal::kUnsignedLessThan;
 using ::v8::internal::kUnsignedLessThanOrEqual;
 using ::v8::internal::kUnsignedGreaterThan;
 using ::v8::internal::kUnsignedGreaterThanOrEqual;
+using ::v8::internal::kZero;
+using ::v8::internal::kNotZero;
 
 inline constexpr Condition Negate(Condition cond) {
   switch (cond) {
@@ -62,6 +68,10 @@ inline constexpr Condition Negate(Condition cond) {
       return kUnsignedLessThan;
     case kUnsignedGreaterThan:
       return kUnsignedLessThanOrEqual;
+    case kZero:
+      return kNotZero;
+    case kNotZero:
+      return kZero;
     default:
       UNREACHABLE();
   }
@@ -89,6 +99,10 @@ inline constexpr Condition Flip(Condition cond) {
       return kUnsignedLessThanOrEqual;
     case kUnsignedGreaterThan:
       return kUnsignedLessThan;
+    case kZero:
+      return kZero;
+    case kNotZero:
+      return kNotZero;
     default:
       UNREACHABLE();
   }

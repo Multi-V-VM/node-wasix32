@@ -270,7 +270,7 @@ class StructuralOptimizationReducer : public Next {
 
  private:
   static bool ContainsOnlyPureOps(const Block* block, const Graph& graph) {
-    for (const auto& op : base::IterateWithoutLast(graph.operations(*block))) {
+    for (const auto& op : ::v8::base::IterateWithoutLast(graph.operations(*block))) {
       // We are moving the block content to before the switch, effectively
       // moving it before the previously existing branches.
       if (!op.Effects().hoistable_before_a_branch()) {

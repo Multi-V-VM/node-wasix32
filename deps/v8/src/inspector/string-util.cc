@@ -148,6 +148,11 @@ String16 toProtocolString(v8::Isolate* isolate, v8::Local<v8::String> value) {
   return String16(buffer.get(), length);
 }
 
+String16 toProtocolString(v8::Isolate* isolate, const char* value) {
+  if (!value) return String16();
+  return String16(value);
+}
+
 String16 toProtocolStringWithTypeCheck(v8::Isolate* isolate,
                                        v8::Local<v8::Value> value) {
   if (value.IsEmpty() || !value->IsString()) return String16();

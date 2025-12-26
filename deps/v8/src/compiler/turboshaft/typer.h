@@ -56,7 +56,7 @@ struct WordOperationTyper {
   static constexpr word_t max = std::numeric_limits<word_t>::max();
 
   static type_t FromElements(ElementsVector elements, Zone* zone) {
-    base::sort(elements);
+    std::sort(elements.begin(), elements.end());
     auto it = std::unique(elements.begin(), elements.end());
     elements.pop_back(std::distance(it, elements.end()));
     DCHECK(!elements.empty());
@@ -423,7 +423,7 @@ struct FloatOperationTyper {
 
   static type_t Set(std::vector<float_t> elements, uint32_t special_values,
                     Zone* zone) {
-    base::sort(elements);
+    std::sort(elements.begin(), elements.end());
     elements.erase(std::unique(elements.begin(), elements.end()),
                    elements.end());
     if (base::erase_if(elements, [](float_t v) { return std::isnan(v); }) > 0) {
@@ -495,7 +495,7 @@ struct FloatOperationTyper {
     if (base::erase_if(results, [](float_t v) { return IsMinusZero(v); }) > 0) {
       special_values |= type_t::kMinusZero;
     }
-    base::sort(results);
+    std::sort(results.begin(), results.end());
     auto it = std::unique(results.begin(), results.end());
     if (std::distance(results.begin(), it) > kSetThreshold)
       return Type::Invalid();

@@ -1450,9 +1450,10 @@ bool doesAttributeHaveObservableSideEffectOnGet(v8::Local<v8::Context> context,
   if (context->Global()
           ->GetRealNamedProperty(context, toV8String(isolate, "Request"))
           .ToLocal(&request)) {
+    v8::Local<v8::Boolean> result;
     if (request->IsObject() &&
         object->InstanceOf(context, request.As<v8::Object>())
-            .FromMaybe(false)) {
+            .ToLocal(&result) && result->IsTrue()) {
       return true;
     }
   }
@@ -1462,9 +1463,10 @@ bool doesAttributeHaveObservableSideEffectOnGet(v8::Local<v8::Context> context,
   if (context->Global()
           ->GetRealNamedProperty(context, toV8String(isolate, "Response"))
           .ToLocal(&response)) {
+    v8::Local<v8::Boolean> result;
     if (response->IsObject() &&
         object->InstanceOf(context, response.As<v8::Object>())
-            .FromMaybe(false)) {
+            .ToLocal(&result) && result->IsTrue()) {
       return true;
     }
   }

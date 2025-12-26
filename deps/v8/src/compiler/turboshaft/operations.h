@@ -1383,7 +1383,7 @@ class V8_EXPORT_PRIVATE SupportedOperations {
   SUPPORTED_OPERATIONS_LIST(DECLARE_FIELD)
 
   static bool initialized_;
-  static base::LazyMutex mutex_;
+  static ::v8::base::LazyMutex mutex_;
   static SupportedOperations instance_;
 
 #undef DECLARE_FIELD

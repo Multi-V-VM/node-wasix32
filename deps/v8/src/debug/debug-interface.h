@@ -95,8 +95,8 @@ enum class PrivateMemberFilter {
  */
 V8_EXPORT_PRIVATE bool GetPrivateMembers(
     Local<Context> context, Local<Object> value, int filter,
-    ::v8::internal::ZoneVector<Value>* names_out,
-    ::v8::internal::ZoneVector<Value>* values_out);
+    LocalVector<Value>* names_out,
+    LocalVector<Value>* values_out);
 
 /**
  * Forwards to v8::Object::CreationContext, but with special handling for

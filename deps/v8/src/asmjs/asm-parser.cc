@@ -257,8 +257,9 @@ uint32_t AsmJsParser::TempVariable(int index) {
   return function_temp_locals_offset_ + index;
 }
 
-Vector<const char> AsmJsParser::CopyCurrentIdentifierString() {
-  return zone()->CloneVector(base::VectorOf(scanner_.GetIdentifierString()));
+ZoneVector<const char> AsmJsParser::CopyCurrentIdentifierString() {
+  auto vec = zone()->CloneVector(base::VectorOf(scanner_.GetIdentifierString()));
+  return ZoneVector<const char>(vec);
 }
 
 void AsmJsParser::SkipSemicolon() {
@@ -757,7 +758,7 @@ void AsmJsParser::ValidateFunction() {
   current_function_builder_->SetAsmFunctionStartPosition(
       function_start_position);
 
-  CachedZoneVector<AsmType*> params(&cached_asm_type_p_vectors_);
+  CachedVector<AsmType*> params(&cached_asm_type_p_vectors_);
   ValidateFunctionParams(&params);
 
   // Check against limit on number of parameters.
@@ -765,7 +766,7 @@ void AsmJsParser::ValidateFunction() {
     FAIL("Number of parameters exceeds internal limit");
   }
 
-  CachedZoneVector<ValueType> locals(&cached_valuetype_vectors_);
+  CachedVector<ValueType> locals(&cached_valuetype_vectors_);
   ValidateFunctionLocals(params.size(), &locals);
 
   function_temp_locals_offset_ = static_cast<uint32_t>(
@@ -846,7 +847,7 @@ void AsmJsParser::ValidateFunctionParams(ZoneVector<AsmType*>* params) {
   // inside.
   scanner_.EnterLocalScope();
   EXPECT_TOKEN('(');
-  CachedZoneVector<AsmJsScanner::token_t> function_parameters(
+  CachedVector<AsmJsScanner::token_t> function_parameters(
       &cached_token_t_vectors_);
   while (!failed_ && !Peek(')')) {
     if (!scanner_.IsLocal()) {
@@ -1323,7 +1324,7 @@ void AsmJsParser::SwitchStatement() {
   Begin(pending_label_);
   pending_label_ = 0;
   // TODO(bradnelson): Make less weird.
-  CachedZoneVector<int32_t> cases(&cached_int_vectors_);
+  CachedVector<int32_t> cases(&cached_int_vectors_);
   GatherCases(&cases);
   EXPECT_TOKEN('{');
   size_t count = cases.size() + 1;
@@ -2183,8 +2184,8 @@ AsmType* AsmJsParser::ValidateCall() {
   }
 
   // Parse argument list and gather types.
-  CachedZoneVector<AsmType*> param_types(&cached_asm_type_p_vectors_);
-  CachedZoneVector<AsmType*> param_specific_types(&cached_asm_type_p_vectors_);
+  CachedVector<AsmType*> param_types(&cached_asm_type_p_vectors_);
+  CachedVector<AsmType*> param_specific_types(&cached_asm_type_p_vectors_);
   EXPECT_TOKENn('(');
   while (!failed_ && !Peek(')')) {
     AsmType* t;

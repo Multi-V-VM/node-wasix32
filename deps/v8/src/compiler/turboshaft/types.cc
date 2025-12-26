@@ -322,7 +322,7 @@ WordType<Bits> WordType<Bits>::LeastUpperBound(const WordType<Bits>& lhs,
     base::vector_append(result_elements, lhs.set_elements());
     base::vector_append(result_elements, rhs.set_elements());
     DCHECK(!result_elements.empty());
-    base::sort(result_elements);
+    std::sort(result_elements.begin(), result_elements.end());
     auto it = std::unique(result_elements.begin(), result_elements.end());
     result_elements.pop_back(std::distance(it, result_elements.end()));
     if (result_elements.size() <= kMaxSetSize) {
@@ -553,7 +553,7 @@ FloatType<Bits> FloatType<Bits>::LeastUpperBound(const FloatType<Bits>& lhs,
     if (result_elements.empty()) {
       return OnlySpecialValues(special_values);
     }
-    base::sort(result_elements);
+    std::sort(result_elements.begin(), result_elements.end());
     auto it = std::unique(result_elements.begin(), result_elements.end());
     result_elements.pop_back(std::distance(it, result_elements.end()));
     if (result_elements.size() <= kMaxSetSize) {

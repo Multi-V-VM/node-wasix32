@@ -370,7 +370,7 @@ LiftoffAssembler::LiftoffAssembler(Zone* zone,
 
 LiftoffAssembler::~LiftoffAssembler() {
   if (num_locals_ > kInlineLocalKinds) {
-    base::Free(more_local_kinds_);
+    ::v8::base::Free(more_local_kinds_);
   }
 }
 
@@ -1188,7 +1188,7 @@ void LiftoffAssembler::set_num_locals(uint32_t num_locals) {
   num_locals_ = num_locals;
   if (num_locals > kInlineLocalKinds) {
     more_local_kinds_ = reinterpret_cast<ValueKind*>(
-        base::Malloc(num_locals * sizeof(ValueKind)));
+        ::v8::base::Malloc(num_locals * sizeof(ValueKind)));
     DCHECK_NOT_NULL(more_local_kinds_);
   }
 }

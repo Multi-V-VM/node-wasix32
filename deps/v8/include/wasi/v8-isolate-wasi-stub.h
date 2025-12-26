@@ -570,11 +570,22 @@ class V8_EXPORT Isolate {
   // Heap profiler
   HeapProfiler* GetHeapProfiler() { return nullptr; }
 
+  // Cpp heap support (WASI stub - no cpp heap)
+  CppHeap* GetCppHeap() { return nullptr; }
+
+  // WASM callback methods (WASI stubs - no-op)
+  template <typename F>
+  void SetWasmModuleCallback(F) {}
+  template <typename F>
+  void SetWasmInstanceCallback(F) {}
+  template <typename F>
+  void SetWasmImportedStringsEnabledCallback(F) {}
+
   // Near-heap-limit callbacks
   using NearHeapLimitCallback = size_t (*)(void* data, size_t current_limit,
                                           size_t initial_limit);
   void AddNearHeapLimitCallback(NearHeapLimitCallback, void*, size_t initial_limit = 0) {}
-  void RemoveNearHeapLimitCallback(NearHeapLimitCallback, void*) {}
+  void RemoveNearHeapLimitCallback(NearHeapLimitCallback, size_t) {}
 
   // Stack trace capture configuration
   void SetCaptureStackTraceForUncaughtExceptions(bool, int = 0) {}

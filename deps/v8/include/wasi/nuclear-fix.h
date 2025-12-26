@@ -777,6 +777,15 @@ constexpr bool operator==(ExternalPointerTag tag,
                           const ExternalPointerTagRange& range) {
   return range == tag;
 }
+// Compare two ExternalPointerTagRange objects
+constexpr bool operator==(const ExternalPointerTagRange& lhs,
+                          const ExternalPointerTagRange& rhs) {
+  return lhs.start == rhs.start && lhs.end == rhs.end;
+}
+constexpr bool operator!=(const ExternalPointerTagRange& lhs,
+                          const ExternalPointerTagRange& rhs) {
+  return !(lhs == rhs);
+}
 constexpr bool operator!=(const ExternalPointerTagRange& range,
                           ExternalPointerTag tag) {
   return !(range == tag);

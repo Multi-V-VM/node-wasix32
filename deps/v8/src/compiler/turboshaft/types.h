@@ -365,7 +365,7 @@ class WordType : public Type {
         elements.push_back(std::numeric_limits<word_t>::max());
         for (word_t i = 0; i < to; ++i) elements.push_back(i);
         elements.push_back(to);
-        base::sort(elements);
+        std::sort(elements.begin(), elements.end());
         return Set(elements, zone);
       }
     }

@@ -462,19 +462,19 @@ std::unique_ptr<V8ConsoleMessage> V8ConsoleMessage::createForConsoleAPI(
     message->m_message += V8ValueStringBuilder::toString(arg, v8Context);
   }
 
-  v8::MessageErrorLevel clientLevel = v8::kMessageInfo;
+  v8::Isolate::MessageErrorLevel clientLevel = v8::Isolate::kMessageInfo;
   if (type == ConsoleAPIType::kDebug || type == ConsoleAPIType::kCount ||
       type == ConsoleAPIType::kTimeEnd) {
-    clientLevel = v8::kMessageDebug;
+    clientLevel = v8::Isolate::kMessageDebug;
   } else if (type == ConsoleAPIType::kError ||
              type == ConsoleAPIType::kAssert) {
-    clientLevel = v8::kMessageError;
+    clientLevel = v8::Isolate::kMessageError;
   } else if (type == ConsoleAPIType::kWarning) {
-    clientLevel = v8::kMessageWarning;
+    clientLevel = v8::Isolate::kMessageWarning;
   } else if (type == ConsoleAPIType::kInfo) {
-    clientLevel = v8::kMessageInfo;
+    clientLevel = v8::Isolate::kMessageInfo;
   } else if (type == ConsoleAPIType::kLog) {
-    clientLevel = v8::kMessageLog;
+    clientLevel = v8::Isolate::kMessageLog;
   }
 
   if (type != ConsoleAPIType::kClear) {

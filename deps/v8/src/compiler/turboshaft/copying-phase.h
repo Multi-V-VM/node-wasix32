@@ -435,7 +435,7 @@ class GraphVisitor : public OutputGraphAssembler<GraphVisitor<AfterNext>,
     // VisitAllBlock function will emit.
     ZoneVector<Block*> old_mappings(sub_graph.size(), Asm().phase_zone());
     for (auto&& [input_block, old_mapping] :
-         base::zip(sub_graph, old_mappings)) {
+         ::v8::base::zip(sub_graph, old_mappings)) {
       old_mapping = block_mapping_[input_block->index()];
       Block::Kind kind = keep_loop_kinds && input_block->IsLoop()
                              ? Block::Kind::kLoopHeader
@@ -461,7 +461,7 @@ class GraphVisitor : public OutputGraphAssembler<GraphVisitor<AfterNext>,
 
     // 3. Restore initial old->new mapping
     for (auto&& [input_block, old_mapping] :
-         base::zip(sub_graph, old_mappings)) {
+         ::v8::base::zip(sub_graph, old_mappings)) {
       block_mapping_[input_block->index()] = old_mapping;
     }
 
@@ -610,7 +610,7 @@ class GraphVisitor : public OutputGraphAssembler<GraphVisitor<AfterNext>,
     // operations.
     int phi_num = 0;
     bool stopped_early = false;
-    for (OpIndex index : base::IterateWithoutLast(
+    for (OpIndex index : ::v8::base::IterateWithoutLast(
              Asm().input_graph().OperationIndices(*input_block))) {
       if (ShouldSkipOperation(Asm().input_graph().Get(index))) continue;
       const Operation& op = Asm().input_graph().Get(index);

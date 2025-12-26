@@ -171,6 +171,10 @@ enum Condition : int {
   kGreaterThanUnsigned = 18,
   kLessThanOrEqualUnsigned = 19,
 
+  // Zero/NonZero conditions for branch-on-value
+  kZero = 20,
+  kNotZero = 21,
+
   // Floating point conditions
   kFloatEqual = 8,
   kFloatNotEqual = 9,
@@ -196,6 +200,8 @@ enum Condition : int {
   hs = kGreaterThanOrEqualUnsigned,
   al = kAlways,
   nv = kNever,
+  zero = kZero,
+  not_zero = kNotZero,
 };
 
 // Memory barrier types

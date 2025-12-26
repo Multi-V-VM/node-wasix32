@@ -1972,7 +1972,7 @@ std::string Operation::ToString() const {
   return ss.str();
 }
 
-base::LazyMutex SupportedOperations::mutex_ = LAZY_MUTEX_INITIALIZER;
+::v8::base::LazyMutex SupportedOperations::mutex_ = LAZY_MUTEX_INITIALIZER;
 SupportedOperations SupportedOperations::instance_;
 bool SupportedOperations::initialized_;
 

@@ -72,7 +72,7 @@ class TypeParser {
       if (IsNext("}")) break;
       if (!ConsumeIf(",")) return std::nullopt;
     }
-    base::sort(elements);
+    std::sort(elements.begin(), elements.end());
     elements.erase(std::unique(elements.begin(), elements.end()),
                    elements.end());
     return elements;

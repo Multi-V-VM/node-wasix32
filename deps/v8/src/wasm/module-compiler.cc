@@ -1755,6 +1755,8 @@ void PublishDetectedFeatures(WasmDetectedFeatures detected_features,
 
   // Check that every staging or shipping feature has a use counter as that is
   // the main point of tracking used features.
+#ifndef __wasi__
+  // WASI: Skip constexpr checks due to compiler limitations with constexpr arrays
   auto check_use_counter = [](WasmDetectedFeature feat) constexpr -> bool {
     // Some features intentionally do not have a use counter.
     constexpr WasmDetectedFeature kIntentionallyNoUseCounter[] = {
@@ -1774,6 +1776,7 @@ void PublishDetectedFeatures(WasmDetectedFeatures detected_features,
   FOREACH_WASM_SHIPPED_FEATURE_FLAG(CHECK_USE_COUNTER)
   FOREACH_WASM_NON_FLAG_FEATURE(CHECK_USE_COUNTER)
 #undef CHECK_USE_COUNTER
+#endif  // __wasi__
 
   static constexpr size_t kMaxFeatures = arraysize(kUseCounters) + 1;
   base::SmallVector<Feature, kMaxFeatures> use_counter_features;

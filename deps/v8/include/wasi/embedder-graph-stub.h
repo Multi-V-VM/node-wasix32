@@ -16,6 +16,7 @@ namespace v8 {
 
 // Forward declarations
 class Data;
+class AllocationProfile;  // Defined in v8-profiler-stubs.h
 
 // Provide a generic native object handle type for APIs that accept embedder
 // objects.
@@ -24,12 +25,12 @@ using NativeObject = void*;
 // ActivityControl interface for reporting snapshot progress.
 class ActivityControl {
  public:
-  enum Control {
+  enum ControlOption {
     kAbort = 0,
     kContinue = 1,
   };
   virtual ~ActivityControl() = default;
-  virtual Control ReportProgressValue(int done, int total) = 0;
+  virtual ControlOption ReportProgressValue(uint32_t done, uint32_t total) = 0;
 };
 
 // Forward declarations
@@ -57,9 +58,12 @@ class OutputStream {
   virtual int GetChunkSize() { return 4096; }  // Default chunk size
   virtual WriteResult WriteAsciiChunk(char* data, int size) = 0;
   // WriteHeapStatsChunk can return either WriteResult or void depending on usage
-  // V8 internal expects WriteResult, Node.js expects void
-  virtual WriteResult WriteHeapStatsChunk(const HeapStatsUpdate* data, int count) {
+  // V8 internal expects non-const, Node.js expects const - provide both
+  virtual WriteResult WriteHeapStatsChunk(HeapStatsUpdate* data, int count) {
     return kContinue;  // Default no-op implementation
+  }
+  virtual WriteResult WriteHeapStatsChunk(const HeapStatsUpdate* data, int count) {
+    return kContinue;  // Default no-op implementation for const version
   }
 };
 
@@ -76,6 +80,7 @@ class HeapSnapshot {
   virtual ~HeapSnapshot() = default;
   virtual void Delete() = 0;
   virtual void Serialize(OutputStream* stream, SerializationFormat format) const = 0;
+  void Serialize(OutputStream* stream) const { Serialize(stream, kJSON); }
   virtual const HeapGraphNode* GetRoot() const = 0;
   virtual const HeapGraphNode* GetNodeById(SnapshotObjectId id) const = 0;
   virtual int GetNodesCount() const = 0;
@@ -148,7 +153,7 @@ class HeapProfiler {
   class ObjectNameResolver {
    public:
     virtual ~ObjectNameResolver() = default;
-    virtual const char* GetName(Local<Value> value) { return nullptr; }
+    virtual const char* GetName(Local<Object> object) { return nullptr; }
   };
 
   // HeapSnapshotMode enum for WASI
@@ -252,10 +257,23 @@ class HeapProfiler {
   // Object id APIs
   void ClearObjectIds() {}
 
+  SnapshotObjectId GetObjectId(Local<Value> /*value*/) { return kUnknownObjectId; }
+  SnapshotObjectId GetObjectId(NativeObject /*value*/) { return kUnknownObjectId; }
+
+  // Heap stats - returns false meaning no updates
+  bool GetHeapStats(OutputStream* stream, int64_t* timestamp_us = nullptr) {
+    if (timestamp_us) *timestamp_us = 0;
+    return false;
+  }
+
+  // Allocation profile - returns nullptr as profiler isn't running
+  // Use the v8::AllocationProfile type defined in v8-profiler-stubs.h
+  v8::AllocationProfile* GetAllocationProfile() { return nullptr; }
+
   // Sampling heap profiler controls (stubs)
   bool StartSamplingHeapProfiler(uint64_t /*sample_interval*/, int /*stack_depth*/, SamplingFlags /*flags*/) { return true; }
   void StopSamplingHeapProfiler() {}
-  
+
   ~HeapProfiler() = default;
 };
 #endif // V8_HEAP_PROFILER_DEFINED

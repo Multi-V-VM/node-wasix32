@@ -20,7 +20,7 @@ class IsolateWASIExt {
   
   static void RemoveNearHeapLimitCallback(Isolate* isolate,
                                          NearHeapLimitCallback callback,
-                                         void* data) {
+                                         size_t initial_heap_limit) {
     // No-op for WASI
   }
   
@@ -38,6 +38,27 @@ class IsolateWASIExt {
   
   static Isolate* Allocate() {
     // WASI doesn't support custom allocation - use New() instead
+    return nullptr;
+  }
+
+  // WASM callback methods - no-op for WASI
+  static void SetWasmModuleCallback(Isolate* isolate,
+                                    bool (*callback)(const FunctionCallbackInfo<Value>&)) {
+    // No-op for WASI
+  }
+
+  static void SetWasmInstanceCallback(Isolate* isolate,
+                                      bool (*callback)(const FunctionCallbackInfo<Value>&)) {
+    // No-op for WASI
+  }
+
+  static void SetWasmImportedStringsEnabledCallback(Isolate* isolate,
+                                                    bool (*callback)(Local<Context>)) {
+    // No-op for WASI
+  }
+
+  static CppHeap* GetCppHeap(Isolate* isolate) {
+    // No CppHeap support in WASI
     return nullptr;
   }
 };
@@ -73,8 +94,8 @@ class WASIJobHandle : public JobHandle {
   void AddNearHeapLimitCallback(NearHeapLimitCallback callback, void* data) { \
     v8::IsolateWASIExt::AddNearHeapLimitCallback(this, callback, data); \
   } \
-  void RemoveNearHeapLimitCallback(NearHeapLimitCallback callback, void* data) { \
-    v8::IsolateWASIExt::RemoveNearHeapLimitCallback(this, callback, data); \
+  void RemoveNearHeapLimitCallback(NearHeapLimitCallback callback, size_t initial_heap_limit) { \
+    v8::IsolateWASIExt::RemoveNearHeapLimitCallback(this, callback, initial_heap_limit); \
   } \
   void SetCaptureStackTraceForUncaughtExceptions( \
       bool capture, \
@@ -88,6 +109,18 @@ class WASIJobHandle : public JobHandle {
   } \
   static Isolate* Allocate() { \
     return v8::IsolateWASIExt::Allocate(); \
+  } \
+  void SetWasmModuleCallback(bool (*callback)(const FunctionCallbackInfo<Value>&)) { \
+    v8::IsolateWASIExt::SetWasmModuleCallback(this, callback); \
+  } \
+  void SetWasmInstanceCallback(bool (*callback)(const FunctionCallbackInfo<Value>&)) { \
+    v8::IsolateWASIExt::SetWasmInstanceCallback(this, callback); \
+  } \
+  void SetWasmImportedStringsEnabledCallback(bool (*callback)(Local<Context>)) { \
+    v8::IsolateWASIExt::SetWasmImportedStringsEnabledCallback(this, callback); \
+  } \
+  CppHeap* GetCppHeap() { \
+    return v8::IsolateWASIExt::GetCppHeap(this); \
   }
 
 #endif // __wasi__

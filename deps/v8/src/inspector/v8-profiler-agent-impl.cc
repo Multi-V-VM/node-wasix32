@@ -41,6 +41,14 @@ String16 resourceNameToUrl(V8InspectorImpl* inspector,
   return url ? toString16(url->string()) : name;
 }
 
+String16 resourceNameToUrl(V8InspectorImpl* inspector, const char* cName) {
+  String16 name = toProtocolString(inspector->isolate(), cName);
+  if (!inspector) return name;
+  std::unique_ptr<StringBuffer> url =
+      inspector->client()->resourceNameToUrl(toStringView(name));
+  return url ? toString16(url->string()) : name;
+}
+
 std::unique_ptr<protocol::Array<protocol::Profiler::PositionTickInfo>>
 buildInspectorObjectForPositionTicks(const v8::CpuProfileNode* node) {
   unsigned lineCount = node->GetHitLineCount();

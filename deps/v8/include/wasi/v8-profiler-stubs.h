@@ -122,7 +122,12 @@ class CpuProfiler {
   void StartProfiling(const char* title, CpuProfilingMode mode,
                      bool record_samples = false) {}
   void StartProfiling(const char* title, bool record_samples = false) {}
+  void StartProfiling(Local<String> title, CpuProfilingOptions options = CpuProfilingOptions()) {}
+  void StartProfiling(Local<String> title, CpuProfilingMode mode,
+                     bool record_samples = false) {}
+  void StartProfiling(Local<String> title, bool record_samples = false) {}
   CpuProfile* StopProfiling(const char* title) { return nullptr; }
+  CpuProfile* StopProfiling(Local<String> title) { return nullptr; }
   void Dispose() {}
 
   static CpuProfiler* New(Isolate* /*isolate*/) { return new CpuProfiler(); }
