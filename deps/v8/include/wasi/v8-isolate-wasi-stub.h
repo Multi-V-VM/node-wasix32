@@ -444,6 +444,10 @@ class V8_EXPORT Isolate {
     // Prototype read-only override attempts
     kAttemptOverrideReadOnlyOnPrototypeStrict,
     kAttemptOverrideReadOnlyOnPrototypeSloppy,
+    // Additional WASM features
+    kWasmJavaScriptPromiseIntegration,
+    kWasmBranchHinting,
+    kWasmModuleCompilation,
     // Reserve space for unknown future features.
     kUseCounterFeatureCount = 256
   };

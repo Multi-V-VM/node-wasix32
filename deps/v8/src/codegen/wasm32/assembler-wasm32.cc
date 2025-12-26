@@ -17,10 +17,6 @@ static const unsigned wasm32_features =
     (1u << WASM32_SIMD) |      // Assume SIMD support
     (1u << WASM32_ATOMICS);    // Assume atomics support
 
-void CpuFeatures::FlushICache(void* start, size_t size) {
-  // No instruction cache on WASM32 virtual ISA
-}
-
 // Assembler implementation
 Assembler::Assembler(MaybeAssemblerZone zone, const AssemblerOptions& options,
                      std::unique_ptr<AssemblerBuffer> buffer)

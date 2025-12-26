@@ -845,6 +845,52 @@ void JumpTableAssembler::SkipUntil(int offset) {
   DCHECK_EQ(offset, pc_offset());
 }
 
+#elif V8_TARGET_ARCH_WASM32
+// WASM32 is an interpreted/JIT-less target - jump tables are not used in the
+// traditional sense. These are stubs to satisfy the linker.
+
+void JumpTableAssembler::EmitLazyCompileJumpSlot(uint32_t func_index,
+                                                 Address lazy_compile_target) {
+  // WASM32 does not generate native code, so jump slots are no-ops.
+  // Just advance the PC to maintain the expected layout.
+  static_assert(kLazyCompileTableSlotSize >= 4);
+  for (size_t i = 0; i < kLazyCompileTableSlotSize / 4; ++i) {
+    emit<uint32_t>(0);  // NOP placeholder
+  }
+}
+
+bool JumpTableAssembler::EmitJumpSlot(Address target) {
+  // WASM32 does not have native jump slots.
+  // Emit placeholder bytes to maintain expected slot size.
+  static_assert(kJumpTableSlotSize >= 4);
+  for (size_t i = 0; i < kJumpTableSlotSize / 4; ++i) {
+    emit<uint32_t>(0);  // NOP placeholder
+  }
+  return true;
+}
+
+void JumpTableAssembler::EmitFarJumpSlot(Address target) {
+  // Far jump slots may be larger than regular jump slots on WASM32.
+  // Emit placeholder bytes to maintain expected slot size.
+  static_assert(kFarJumpTableSlotSize >= 4);
+  for (size_t i = 0; i < kFarJumpTableSlotSize / 4; ++i) {
+    emit<uint32_t>(0);  // NOP placeholder
+  }
+}
+
+// static
+void JumpTableAssembler::PatchFarJumpSlot(WritableJitAllocation& jit_allocation,
+                                          Address slot, Address target) {
+  // Not supported on WASM32.
+  UNREACHABLE();
+}
+
+void JumpTableAssembler::SkipUntil(int offset) {
+  // On this platform the jump table is not zapped with valid instructions, so
+  // skipping over bytes is not allowed.
+  DCHECK_EQ(offset, pc_offset());
+}
+
 #else
 #error Unknown architecture.
 #endif

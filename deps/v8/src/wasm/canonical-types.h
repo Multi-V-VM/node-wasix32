@@ -446,6 +446,16 @@ class TypeCanonicalizer {
     CanonicalTypeIndex index;
   };
 
+  // Custom hashers for use with std::unordered_set (defined before use)
+  struct CanonicalGroupHash {
+    size_t operator()(const CanonicalGroup& g) const { return g.hash_value(); }
+  };
+  struct CanonicalSingletonGroupHash {
+    size_t operator()(const CanonicalSingletonGroup& g) const {
+      return g.hash_value();
+    }
+  };
+
   // Conceptually a vector of CanonicalType. Modification generally requires
   // synchronization, read-only access can be done without locking.
   class CanonicalTypeVector {
@@ -560,9 +570,10 @@ class TypeCanonicalizer {
 
   std::vector<CanonicalTypeIndex> canonical_supertypes_;
   // Set of all known canonical recgroups of size >=2.
-  std::unordered_set<CanonicalGroup> canonical_groups_;
+  std::unordered_set<CanonicalGroup, CanonicalGroupHash> canonical_groups_;
   // Set of all known canonical recgroups of size 1.
-  std::unordered_set<CanonicalSingletonGroup> canonical_singleton_groups_;
+  std::unordered_set<CanonicalSingletonGroup, CanonicalSingletonGroupHash>
+      canonical_singleton_groups_;
   // Maps canonical indices back to the types.
   CanonicalTypeVector canonical_types_;
   AccountingAllocator allocator_;

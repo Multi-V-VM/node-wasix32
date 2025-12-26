@@ -186,13 +186,13 @@ constexpr Condition GetCompareCondition(WasmOpcode opcode) {
     case kExprI32GtU:
       return kUnsignedGreaterThan;
     case kExprI32LeS:
-      return kLessThanEqual;
+      return kLessThanOrEqual;
     case kExprI32LeU:
-      return kUnsignedLessThanEqual;
+      return kUnsignedLessThanOrEqual;
     case kExprI32GeS:
-      return kGreaterThanEqual;
+      return kGreaterThanOrEqual;
     case kExprI32GeU:
-      return kUnsignedGreaterThanEqual;
+      return kUnsignedGreaterThanOrEqual;
     default:
       UNREACHABLE();
   }
@@ -2558,16 +2558,16 @@ class LiftoffCompiler {
             &LiftoffAssembler::emit_i64_set_cond, kUnsignedGreaterThan));
       case kExprI64LeS:
         return EmitBinOp<kI64, kI32>(
-            BindFirst(&LiftoffAssembler::emit_i64_set_cond, kLessThanEqual));
+            BindFirst(&LiftoffAssembler::emit_i64_set_cond, kLessThanOrEqual));
       case kExprI64LeU:
         return EmitBinOp<kI64, kI32>(BindFirst(
-            &LiftoffAssembler::emit_i64_set_cond, kUnsignedLessThanEqual));
+            &LiftoffAssembler::emit_i64_set_cond, kUnsignedLessThanOrEqual));
       case kExprI64GeS:
         return EmitBinOp<kI64, kI32>(
-            BindFirst(&LiftoffAssembler::emit_i64_set_cond, kGreaterThanEqual));
+            BindFirst(&LiftoffAssembler::emit_i64_set_cond, kGreaterThanOrEqual));
       case kExprI64GeU:
         return EmitBinOp<kI64, kI32>(BindFirst(
-            &LiftoffAssembler::emit_i64_set_cond, kUnsignedGreaterThanEqual));
+            &LiftoffAssembler::emit_i64_set_cond, kUnsignedGreaterThanOrEqual));
       case kExprF32Eq:
         return EmitBinOp<kF32, kI32>(
             BindFirst(&LiftoffAssembler::emit_f32_set_cond, kEqual));
@@ -2582,10 +2582,10 @@ class LiftoffCompiler {
             &LiftoffAssembler::emit_f32_set_cond, kUnsignedGreaterThan));
       case kExprF32Le:
         return EmitBinOp<kF32, kI32>(BindFirst(
-            &LiftoffAssembler::emit_f32_set_cond, kUnsignedLessThanEqual));
+            &LiftoffAssembler::emit_f32_set_cond, kUnsignedLessThanOrEqual));
       case kExprF32Ge:
         return EmitBinOp<kF32, kI32>(BindFirst(
-            &LiftoffAssembler::emit_f32_set_cond, kUnsignedGreaterThanEqual));
+            &LiftoffAssembler::emit_f32_set_cond, kUnsignedGreaterThanOrEqual));
       case kExprF64Eq:
         return EmitBinOp<kF64, kI32>(
             BindFirst(&LiftoffAssembler::emit_f64_set_cond, kEqual));
@@ -2600,10 +2600,10 @@ class LiftoffCompiler {
             &LiftoffAssembler::emit_f64_set_cond, kUnsignedGreaterThan));
       case kExprF64Le:
         return EmitBinOp<kF64, kI32>(BindFirst(
-            &LiftoffAssembler::emit_f64_set_cond, kUnsignedLessThanEqual));
+            &LiftoffAssembler::emit_f64_set_cond, kUnsignedLessThanOrEqual));
       case kExprF64Ge:
         return EmitBinOp<kF64, kI32>(BindFirst(
-            &LiftoffAssembler::emit_f64_set_cond, kUnsignedGreaterThanEqual));
+            &LiftoffAssembler::emit_f64_set_cond, kUnsignedGreaterThanOrEqual));
       case kExprI32Shl:
         return EmitBinOpImm<kI32, kI32>(&LiftoffAssembler::emit_i32_shl,
                                         &LiftoffAssembler::emit_i32_shli);
@@ -3331,7 +3331,7 @@ class LiftoffCompiler {
 
     uint32_t split = min + (max - min) / 2;
     Label upper_half;
-    __ emit_i32_cond_jumpi(kUnsignedGreaterThanEqual, &upper_half, value.gp(),
+    __ emit_i32_cond_jumpi(kUnsignedGreaterThanOrEqual, &upper_half, value.gp(),
                            split, frozen);
     // Emit br table for lower half:
     GenerateBrTable(decoder, value, min, split, table_iterator, br_targets,
@@ -3365,7 +3365,7 @@ class LiftoffCompiler {
     if (imm.table_count > 0) {
       FREEZE_STATE(frozen);
       Label case_default;
-      __ emit_i32_cond_jumpi(kUnsignedGreaterThanEqual, &case_default,
+      __ emit_i32_cond_jumpi(kUnsignedGreaterThanOrEqual, &case_default,
                              value.gp(), imm.table_count, frozen);
 
       GenerateBrTable(decoder, value, 0, imm.table_count, &table_iterator,
@@ -3570,7 +3570,7 @@ class LiftoffCompiler {
     // the end offset against the actual memory size, which is not known at
     // compile time. Otherwise, only one check is required (see below).
     if (end_offset > memory->min_memory_size) {
-      __ emit_cond_jump(kUnsignedGreaterThanEqual, trap.label(), kIntPtrKind,
+      __ emit_cond_jump(kUnsignedGreaterThanOrEqual, trap.label(), kIntPtrKind,
                         end_offset_reg.gp(), mem_size.gp(), trap.frozen());
     }
 
@@ -3580,7 +3580,7 @@ class LiftoffCompiler {
     __ emit_ptrsize_sub(effective_size_reg.gp(), mem_size.gp(),
                         end_offset_reg.gp());
 
-    __ emit_cond_jump(kUnsignedGreaterThanEqual, trap.label(), kIntPtrKind,
+    __ emit_cond_jump(kUnsignedGreaterThanOrEqual, trap.label(), kIntPtrKind,
                       index_ptrsize, effective_size_reg.gp(), trap.frozen());
     return index_ptrsize;
   }
@@ -7288,7 +7288,7 @@ class LiftoffCompiler {
         int offset =
             ObjectAccess::ToTagged(WasmTypeInfo::kSupertypesLengthOffset);
         __ LoadSmiAsInt32(list_length, tmp1, offset);
-        __ emit_i32_cond_jumpi(kUnsignedLessThanEqual, no_match,
+        __ emit_i32_cond_jumpi(kUnsignedLessThanOrEqual, no_match,
                                list_length.gp(), rtt_depth, frozen);
       }
       // Step 3: load the candidate list slot into {tmp1}, and compare it.
@@ -7700,7 +7700,7 @@ class LiftoffCompiler {
   void StringCheck(TypeCheck& check, const FreezeCacheState& frozen) {
     LoadInstanceType(check, frozen, check.no_match);
     LiftoffRegister instance_type(check.instance_type());
-    __ emit_i32_cond_jumpi(kUnsignedGreaterThanEqual, check.no_match,
+    __ emit_i32_cond_jumpi(kUnsignedGreaterThanOrEqual, check.no_match,
                            check.instance_type(), FIRST_NONSTRING_TYPE, frozen);
   }
 
@@ -8769,7 +8769,7 @@ class LiftoffCompiler {
                 LoadType::kI32Load);
 
         if (is_static_index) {
-          __ emit_i32_cond_jumpi(kUnsignedLessThanEqual, out_of_bounds.label(),
+          __ emit_i32_cond_jumpi(kUnsignedLessThanOrEqual, out_of_bounds.label(),
                                  table_size.gp_reg(), index_slot.i32_const(),
                                  out_of_bounds.frozen());
         } else {
@@ -8779,7 +8779,7 @@ class LiftoffCompiler {
             __ emit_u32_to_uintptr(table_size.gp_reg(), table_size.gp_reg());
             comparison_type = kIntPtrKind;
           }
-          __ emit_cond_jump(kUnsignedLessThanEqual, out_of_bounds.label(),
+          __ emit_cond_jump(kUnsignedLessThanOrEqual, out_of_bounds.label(),
                             comparison_type, table_size.gp_reg(), index_reg,
                             out_of_bounds.frozen());
         }
@@ -8793,11 +8793,11 @@ class LiftoffCompiler {
           // Note: {max_table_size} will be sign-extended, which is fine because
           // the MSB is known to be 0 (asserted by the static_assert below).
           static_assert(kV8MaxWasmTableSize <= kMaxInt);
-          __ emit_ptrsize_cond_jumpi(kUnsignedGreaterThanEqual,
+          __ emit_ptrsize_cond_jumpi(kUnsignedGreaterThanOrEqual,
                                      out_of_bounds.label(), index_reg,
                                      max_table_size, out_of_bounds.frozen());
         } else {
-          __ emit_i32_cond_jumpi(kUnsignedGreaterThanEqual,
+          __ emit_i32_cond_jumpi(kUnsignedGreaterThanOrEqual,
                                  out_of_bounds.label(), index_reg,
                                  max_table_size, out_of_bounds.frozen());
         }
@@ -8915,7 +8915,7 @@ class LiftoffCompiler {
           int offset =
               ObjectAccess::ToTagged(WasmTypeInfo::kSupertypesLengthOffset);
           __ LoadSmiAsInt32(list_length.reg(), type_info.gp_reg(), offset);
-          __ emit_i32_cond_jumpi(kUnsignedLessThanEqual, sig_mismatch.label(),
+          __ emit_i32_cond_jumpi(kUnsignedLessThanOrEqual, sig_mismatch.label(),
                                  list_length.gp_reg(), rtt_depth,
                                  sig_mismatch.frozen());
         }
@@ -9247,7 +9247,7 @@ class LiftoffCompiler {
     }
     OolTrapLabel trap =
         AddOutOfLineTrap(decoder, Builtin::kThrowWasmTrapArrayOutOfBounds);
-    __ emit_cond_jump(kUnsignedGreaterThanEqual, trap.label(), kI32, index.gp(),
+    __ emit_cond_jump(kUnsignedGreaterThanOrEqual, trap.label(), kI32, index.gp(),
                       length.gp(), trap.frozen());
   }
 
@@ -9413,7 +9413,7 @@ class LiftoffCompiler {
     FREEZE_STATE(frozen_for_conditional_jumps);
     Label loop, done;
     __ bind(&loop);
-    __ emit_cond_jump(kUnsignedGreaterThanEqual, &done, kI32, offset.gp(),
+    __ emit_cond_jump(kUnsignedGreaterThanOrEqual, &done, kI32, offset.gp(),
                       end_offset.gp(), frozen_for_conditional_jumps);
     StoreObjectField(decoder, obj.gp(), offset.gp(), 0, value, false, pinned,
                      elem_kind, skip_write_barrier);

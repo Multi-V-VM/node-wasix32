@@ -13,6 +13,7 @@
 #endif
 #include "include/v8-fast-api-calls.h"
 #include "src/base/logging.h"
+#include "src/base/small-vector.h"
 #include "src/builtins/builtins.h"
 #include "src/builtins/data-view-ops.h"
 #include "src/common/globals.h"
@@ -40,6 +41,7 @@ namespace v8::internal::wasm {
 
 #include "src/compiler/turboshaft/define-assembler-macros.inc"
 
+using ::v8::base::SmallVector;
 using compiler::AccessBuilder;
 using compiler::CallDescriptor;
 using compiler::MemoryAccessKind;

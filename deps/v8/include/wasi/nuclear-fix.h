@@ -880,5 +880,10 @@ constexpr Address kCppHeapPointerMarkBit = static_cast<Address>(0);
 }  // namespace internal
 }  // namespace v8
 
+// ---------------------------------------------------------------------------
+// Hash specializations for WASM types used in unordered containers
+// Hash specializations for WasmCodePointer are defined in globals.h
+// Hash specializations for TypeCanonicalizer types are in canonical-types.h
+
 #endif  // defined(__wasi__) || defined(V8_USING_WASI_SHIMS)
 #endif  // V8_INCLUDE_WASI_NUCLEAR_FIX_H_

@@ -48,6 +48,11 @@ using i::wasm::AddressType;
 using i::wasm::CompileTimeImport;
 using i::wasm::CompileTimeImports;
 using i::wasm::ErrorThrower;
+// WASI: Add missing using declarations
+template <typename T>
+using ZoneVector = internal::ZoneVector<T>;
+template <typename T>
+using OwnedZoneVector = internal::base::OwnedVector<T>;
 using i::wasm::WasmEnabledFeatures;
 
 namespace internal {

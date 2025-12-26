@@ -3410,6 +3410,16 @@ constexpr int kSmiMaxValue = (1 << 30) - 1;
 
 }  // namespace v8
 
+// std::hash specialization for WasmCodePointer - needed for unordered containers
+namespace std {
+template <>
+struct hash<v8::internal::WasmCodePointer> {
+  size_t operator()(const v8::internal::WasmCodePointer& p) const {
+    return std::hash<uint32_t>{}(p.value());
+  }
+};
+}  // namespace std
+
 namespace i = v8::internal;
 
 #endif  // V8_COMMON_GLOBALS_H_

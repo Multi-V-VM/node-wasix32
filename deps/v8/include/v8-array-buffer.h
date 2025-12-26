@@ -381,6 +381,16 @@ class V8_EXPORT ArrayBuffer : public Object {
   bool IsResizableByUserJavaScript() const;
 
   /**
+   * Returns true if this ArrayBuffer is backed by a SharedArrayBuffer.
+   * Always returns false for ArrayBuffer (SharedArrayBuffer is a separate type).
+   */
+#ifdef __wasi__
+  bool IsSharedArrayBuffer() const { return false; }
+#else
+  bool IsSharedArrayBuffer() const;
+#endif
+
+  /**
    * More efficient shortcut for GetBackingStore()->Data(). The returned pointer
    * is valid as long as the ArrayBuffer is alive.
    */

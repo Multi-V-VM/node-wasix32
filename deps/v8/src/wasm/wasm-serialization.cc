@@ -76,6 +76,22 @@ class Writer {
     }
   }
 
+  // Overload for base::Vector
+  template <typename T>
+  void WriteVector(base::Vector<T> v) {
+    base::Vector<const uint8_t> bytes = base::Vector<const uint8_t>::cast(v);
+    DCHECK_GE(current_size(), bytes.size());
+    if (!bytes.empty()) {
+      memcpy(current_location(), bytes.begin(), bytes.size());
+      pos_ += bytes.size();
+    }
+    if (v8_flags.trace_wasm_serialization) {
+      StdoutStream{} << "wrote vector of " << v.size()
+                     << " elements (total size " << bytes.size() << " bytes)"
+                     << std::endl;
+    }
+  }
+
   void Skip(size_t size) { pos_ += size; }
 
  private:
