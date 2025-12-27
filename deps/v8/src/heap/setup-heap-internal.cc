@@ -102,14 +102,15 @@ bool IsMutableMap(InstanceType instance_type, ElementsKind elements_kind) {
 #endif
 
 struct ConstantStringInit {
-  ZoneVector<const char> contents;
+  const char* contents;
+  size_t length;
   RootIndex index;
 };
 
 constexpr std::initializer_list<ConstantStringInit>
     kImportantConstantStringTable{
 #define CONSTANT_STRING_ELEMENT(_, name, contents) \
-  {{contents, arraysize(contents) - 1}, RootIndex::k##name},
+  {contents, arraysize(contents) - 1, RootIndex::k##name},
         EXTRA_IMPORTANT_INTERNALIZED_STRING_LIST_GENERATOR(
             CONSTANT_STRING_ELEMENT, /* not used */)
             IMPORTANT_INTERNALIZED_STRING_LIST_GENERATOR(
@@ -120,7 +121,7 @@ constexpr std::initializer_list<ConstantStringInit>
 constexpr std::initializer_list<ConstantStringInit>
     kNotImportantConstantStringTable{
 #define CONSTANT_STRING_ELEMENT(_, name, contents) \
-  {{contents, arraysize(contents) - 1}, RootIndex::k##name},
+  {contents, arraysize(contents) - 1, RootIndex::k##name},
         NOT_IMPORTANT_INTERNALIZED_STRING_LIST_GENERATOR(
             CONSTANT_STRING_ELEMENT, /* not used */)
 #undef CONSTANT_STRING_ELEMENT
@@ -920,7 +921,8 @@ bool Heap::CreateImportantReadOnlyObjects() {
       // the initial section.
       isolate()->string_table()->InsertEmptyStringForBootstrapping(isolate());
     } else {
-      DirectHandle<String> str = factory->InternalizeString(entry.contents);
+      DirectHandle<String> str = factory->InternalizeString(
+          base::Vector<const char>(entry.contents, entry.length));
       roots_table()[entry.index] = str->ptr();
     }
   }
@@ -1093,7 +1095,8 @@ bool Heap::CreateReadOnlyObjects() {
       Context::BIGINT_FUNCTION_INDEX);
 
   for (const ConstantStringInit& entry : kNotImportantConstantStringTable) {
-    DirectHandle<String> str = factory->InternalizeString(entry.contents);
+    DirectHandle<String> str = factory->InternalizeString(
+        base::Vector<const char>(entry.contents, entry.length));
     roots_table()[entry.index] = str->ptr();
   }
 

@@ -49,6 +49,10 @@ class V8_EXPORT_PRIVATE Assembler : public AssemblerBase {
   void GetCode(LocalIsolate* isolate, CodeDesc* desc,
                SafepointTableBuilder* safepoint_table_builder = kNoSafepointTable,
                int handler_table_offset = kNoHandlerTable);
+  void GetCode(Isolate* isolate, CodeDesc* desc);
+  void GetCode(LocalIsolate* isolate, CodeDesc* desc) {
+    GetCode(isolate, desc, kNoSafepointTable, kNoHandlerTable);
+  }
 
   // Unused on this architecture.
   void MaybeEmitOutOfLineConstantPool() {}

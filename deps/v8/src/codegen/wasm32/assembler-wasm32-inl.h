@@ -44,57 +44,57 @@ const char* const Simd128RegisterNames[] = {
 };
 
 // Register name accessors
-const char* Register::AllocationIndexToString(int index) {
+inline const char* Register::AllocationIndexToString(int index) {
   DCHECK(index >= 0 && index < kAllocatableGeneralRegisters.Count());
   return RegisterNames[kRegisterCodeByAllocationIndex[index]];
 }
 
-const char* Register::Mnemonic(int code) {
+inline const char* Register::Mnemonic(int code) {
   DCHECK(code >= 0 && code < kNumRegisters);
   return RegisterNames[code];
 }
 
-const char* FloatRegister::AllocationIndexToString(int index) {
+inline const char* FloatRegister::AllocationIndexToString(int index) {
   DCHECK(index >= 0 && index < kNumRegisters);
   return FloatRegisterNames[index];
 }
 
-const char* FloatRegister::Mnemonic(int code) {
+inline const char* FloatRegister::Mnemonic(int code) {
   DCHECK(code >= 0 && code < kNumRegisters);
   return FloatRegisterNames[code];
 }
 
-const char* DoubleRegister::AllocationIndexToString(int index) {
+inline const char* DoubleRegister::AllocationIndexToString(int index) {
   DCHECK(index >= 0 && index < kNumRegisters);
   return DoubleRegisterNames[index];
 }
 
-const char* DoubleRegister::Mnemonic(int code) {
+inline const char* DoubleRegister::Mnemonic(int code) {
   DCHECK(code >= 0 && code < kNumRegisters);
   return DoubleRegisterNames[code];
 }
 
-const char* Simd128Register::AllocationIndexToString(int index) {
+inline const char* Simd128Register::AllocationIndexToString(int index) {
   DCHECK(index >= 0 && index < kNumRegisters);
   return Simd128RegisterNames[index];
 }
 
-const char* Simd128Register::Mnemonic(int code) {
+inline const char* Simd128Register::Mnemonic(int code) {
   DCHECK(code >= 0 && code < kNumRegisters);
   return Simd128RegisterNames[code];
 }
 
 
 // CPU features
-bool CpuFeatures::SupportsOptimizer() {
+inline bool CpuFeatures::SupportsOptimizer() {
   // WASM32 always supports optimization
   return true;
 }
 
-bool CpuFeatures::SupportsWasmSimd128() { return true; }
+inline bool CpuFeatures::SupportsWasmSimd128() { return true; }
 
 // Operand encoding helpers
-int ToNumber(Register reg) {
+inline int ToNumber(Register reg) {
   DCHECK(reg.is_valid());
   return reg.code();
 }
@@ -116,7 +116,7 @@ class MemOperand {
 };
 
 // RelocInfo / WritableRelocInfo functions expected by V8 core
-void WritableRelocInfo::apply(intptr_t delta) {
+inline void WritableRelocInfo::apply(intptr_t delta) {
   if (IsInternalReference(rmode_)) {
     Address target = Memory<Address>(pc_);
     jit_allocation_.WriteValue(pc_, target + delta);
@@ -127,7 +127,7 @@ void WritableRelocInfo::apply(intptr_t delta) {
   }
 }
 
-Address RelocInfo::target_internal_reference() {
+inline Address RelocInfo::target_internal_reference() {
   if (IsInternalReference(rmode_)) {
     return Memory<Address>(pc_);
   } else {
@@ -136,29 +136,29 @@ Address RelocInfo::target_internal_reference() {
   }
 }
 
-Address RelocInfo::target_internal_reference_address() {
+inline Address RelocInfo::target_internal_reference_address() {
   DCHECK(IsInternalReference(rmode_) || IsInternalReferenceEncoded(rmode_));
   return pc_;
 }
 
-Address RelocInfo::target_address() {
+inline Address RelocInfo::target_address() {
   DCHECK(IsCodeTargetMode(rmode_) || IsNearBuiltinEntry(rmode_));
   return Assembler::target_address_at(pc_, constant_pool_);
 }
 
-Address RelocInfo::target_address_address() { return pc_; }
+inline Address RelocInfo::target_address_address() { return pc_; }
 
-Address RelocInfo::constant_pool_entry_address() { UNREACHABLE(); }
+inline Address RelocInfo::constant_pool_entry_address() { UNREACHABLE(); }
 
-int RelocInfo::target_address_size() { return kSystemPointerSize; }
+inline int RelocInfo::target_address_size() { return kSystemPointerSize; }
 
-Tagged<HeapObject> RelocInfo::target_object(PtrComprCageBase /*cage_base*/) {
+inline Tagged<HeapObject> RelocInfo::target_object(PtrComprCageBase /*cage_base*/) {
   DCHECK(IsCodeTarget(rmode_) || IsFullEmbeddedObject(rmode_));
   return Cast<HeapObject>(
       Tagged<Object>(Assembler::target_address_at(pc_, constant_pool_)));
 }
 
-DirectHandle<HeapObject> RelocInfo::target_object_handle(Assembler* origin) {
+inline DirectHandle<HeapObject> RelocInfo::target_object_handle(Assembler* origin) {
   DCHECK(IsCodeTarget(rmode_) || IsFullEmbeddedObject(rmode_));
   return Cast<HeapObject>(
       origin->code_target_object_handle_at(pc_, constant_pool_));
@@ -167,12 +167,12 @@ DirectHandle<HeapObject> RelocInfo::target_object_handle(Assembler* origin) {
 // target_internal_reference and target_internal_reference_address are defined
 // above with support for both INTERNAL_REFERENCE and INTERNAL_REFERENCE_ENCODED.
 
-Builtin RelocInfo::target_builtin_at(Assembler* origin) {
+inline Builtin RelocInfo::target_builtin_at(Assembler* origin) {
   DCHECK(IsNearBuiltinEntry(rmode_));
   return Builtins::FromInt(ReadUnalignedValue<int32_t>(pc_));
 }
 
-Address RelocInfo::target_off_heap_target() {
+inline Address RelocInfo::target_off_heap_target() {
   DCHECK(IsOffHeapTarget(rmode_));
   return Assembler::target_address_from_return_address(pc_);
 }
@@ -180,12 +180,12 @@ Address RelocInfo::target_off_heap_target() {
 // No WipeOut implementation for wasm32.
 
 // Assembler static functions
-Address Assembler::target_address_from_return_address(Address pc) {
+inline Address Assembler::target_address_from_return_address(Address pc) {
   // Assuming the return address is after a call instruction
   return Memory<uint32_t>(pc - kWasm32InstrSize);
 }
 
-void Assembler::set_target_compressed_address_at(
+inline void Assembler::set_target_compressed_address_at(
     Address pc, Address constant_pool, Tagged_t target,
     WritableJitAllocation* jit_allocation,
     ICacheFlushMode icache_flush_mode) {
@@ -194,76 +194,76 @@ void Assembler::set_target_compressed_address_at(
                                    jit_allocation, icache_flush_mode);
 }
 
-Tagged_t Assembler::target_compressed_address_at(Address pc,
+inline Tagged_t Assembler::target_compressed_address_at(Address pc,
                                                  Address constant_pool) {
   return static_cast<Tagged_t>(target_address_at(pc, constant_pool));
 }
 
-Handle<Object> Assembler::code_target_object_handle_at(Address pc,
+inline Handle<Object> Assembler::code_target_object_handle_at(Address pc,
                                                        Address constant_pool) {
   Address address = target_address_at(pc, constant_pool);
   return Handle<Object>(reinterpret_cast<Address*>(address));
 }
 
-Handle<HeapObject> Assembler::compressed_embedded_object_handle_at(
+inline Handle<HeapObject> Assembler::compressed_embedded_object_handle_at(
     Address pc, Address constant_pool) {
   Address address = target_address_at(pc, constant_pool);
   return Handle<HeapObject>(reinterpret_cast<Address*>(address));
 }
 
-Address Assembler::target_address_at(Address pc, Address constant_pool) {
+inline Address Assembler::target_address_at(Address pc, Address constant_pool) {
   // Read the target address from the instruction stream
   uint32_t* instr_ptr = reinterpret_cast<uint32_t*>(pc);
   uint32_t instr = *instr_ptr;
-  
+
   // Extract immediate offset from instruction
-  int32_t offset = static_cast<int32_t>((instr & Instruction::kImmMask) >> 
+  int32_t offset = static_cast<int32_t>((instr & Instruction::kImmMask) >>
                                         Instruction::kImmShift);
   // Sign extend
   if (offset & 0x800) {
     offset |= 0xFFFFF000;
   }
-  
+
   return pc + offset;
 }
 
-void Assembler::set_target_address_at(Address pc, Address constant_pool,
+inline void Assembler::set_target_address_at(Address pc, Address constant_pool,
                                      Address target,
                                      WritableJitAllocation* /*jit_allocation*/,
                                      ICacheFlushMode icache_flush_mode) {
   int32_t offset = target - pc;
   PatchBranchOffset(reinterpret_cast<uint8_t*>(pc), offset);
-  
+
   if (icache_flush_mode != SKIP_ICACHE_FLUSH) {
     FlushInstructionCache(pc, kWasm32InstrSize);
   }
 }
 
-void Assembler::set_target_address_at(Address pc, Address constant_pool,
+inline void Assembler::set_target_address_at(Address pc, Address constant_pool,
                                      Address target) {
   set_target_address_at(pc, constant_pool, target, nullptr, SKIP_ICACHE_FLUSH);
 }
 
-void Assembler::deserialization_set_special_target_at(
+inline void Assembler::deserialization_set_special_target_at(
     Address instruction_payload, Tagged<Code> code, Address target) {
   set_target_address_at(instruction_payload,
                        !code.is_null() ? code->constant_pool() : kNullAddress,
                        target);
 }
 
-int Assembler::deserialization_special_target_size(
+inline int Assembler::deserialization_special_target_size(
     Address instruction_payload) {
   return kSystemPointerSize;
 }
 
-void Assembler::deserialization_set_target_internal_reference_at(
+inline void Assembler::deserialization_set_target_internal_reference_at(
     Address pc, Address target, WritableJitAllocation& jit_allocation,
     RelocInfo::Mode mode) {
   jit_allocation.WriteUnalignedValue<Address>(pc, target);
 }
 
 // CPU-specific functions
-void Assembler::FlushInstructionCache(Address start, size_t size) {
+inline void Assembler::FlushInstructionCache(Address start, size_t size) {
   // No instruction cache on WASM32 virtual ISA
 }
 

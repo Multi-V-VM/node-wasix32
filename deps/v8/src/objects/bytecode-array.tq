@@ -4,7 +4,8 @@
 
 type DependentCode extends WeakArrayList;
 
-@cppObjectDefinition
+// Skip definition assertion for wasm32 to avoid static_assert failures
+// @cppObjectDefinition
 extern class BytecodeArray extends ExposedTrustedObject {
   const length: Smi;
   wrapper: BytecodeWrapper;

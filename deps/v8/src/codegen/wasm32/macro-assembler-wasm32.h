@@ -54,6 +54,18 @@ public:
     assembler_.nop();
   }
 
+  void Move(Register dst, Tagged<Smi> smi) {
+    static_cast<void>(dst);
+    static_cast<void>(smi);
+    assembler_.nop();
+  }
+
+  void Move(Register dst, ExternalReference ext) {
+    static_cast<void>(dst);
+    static_cast<void>(ext);
+    assembler_.nop();
+  }
+
   // Arithmetic operations
   void Add(Register dst, Register src1, Register src2) {
     static_cast<void>(dst);
@@ -95,6 +107,12 @@ public:
     assembler_.call(func_index);
   }
 
+  void Call(Register target) {
+    // Indirect call through register
+    static_cast<void>(target);
+    assembler_.nop();  // Stub - indirect calls need call_indirect in WASM
+  }
+
   void CallRuntime(Runtime::FunctionId fid) {
     // Runtime calls in WASI go through imports
     uint32_t import_index = RuntimeToImportIndex(fid);
@@ -105,6 +123,12 @@ public:
   void Jump(Label* label) {
     assembler_.br(CalculateBranchDepth(label));
   }
+
+  void Jump(Register target);
+  void Jump(Address target, RelocInfo::Mode rmode = RelocInfo::NO_INFO);
+  void Jump(Handle<Code> code, RelocInfo::Mode rmode = RelocInfo::CODE_TARGET);
+  void Jump(const ExternalReference& reference);
+  void Jump(intptr_t target, RelocInfo::Mode rmode = RelocInfo::NO_INFO);
 
   void Bind(Label* label) {
     assembler_.bind(label);
@@ -127,6 +151,16 @@ public:
 
   // Abort/Debug
   void Abort(AbortReason reason) {
+    assembler_.unreachable();
+  }
+
+  void Trap() {
+    assembler_.unreachable();
+  }
+
+  void CallBuiltin(Builtin builtin) {
+    // For wasm32, builtins are not directly callable
+    // This is a stub implementation
     assembler_.unreachable();
   }
 

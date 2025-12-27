@@ -2702,7 +2702,7 @@ TNode<BoolT> CodeStubAssembler::IsStrong(TNode<MaybeObject> value) {
 TNode<BoolT> CodeStubAssembler::IsStrong(TNode<HeapObjectReference> value) {
   return IsNotSetWord32(
       TruncateIntPtrToInt32(BitcastTaggedToWordForTagAndSmiBits(value)),
-      kHeapObjectReferenceTagMask);
+      kWeakHeapObjectTag);
 }
 
 TNode<HeapObject> CodeStubAssembler::GetHeapObjectIfStrong(
@@ -2728,7 +2728,7 @@ TNode<BoolT> CodeStubAssembler::IsWeakOrCleared(
     TNode<HeapObjectReference> value) {
   return IsSetWord32(
       TruncateIntPtrToInt32(BitcastTaggedToWordForTagAndSmiBits(value)),
-      kHeapObjectReferenceTagMask);
+      kWeakHeapObjectTag);
 }
 
 TNode<BoolT> CodeStubAssembler::IsCleared(TNode<MaybeObject> value) {

@@ -448,6 +448,27 @@ class V8_EXPORT Isolate {
     kWasmJavaScriptPromiseIntegration,
     kWasmBranchHinting,
     kWasmModuleCompilation,
+    // Torque-generated use counters
+    kArrayGroup,
+    kArrayByCopy,
+    kArrayFindLast,
+    kWeakReferences,
+    kSetMethods,
+    kFloat16Array,
+    kRegExpReplaceCalledOnSlowRegExp,
+    kIteratorMethods,
+    kPromiseTry,
+    kPromiseWithResolvers,
+    kStringWellFormed,
+    kStringReplaceAll,
+    kArrayFromAsync,
+    kPromiseAny,
+    kPromiseConstructorReturnedUndefined,
+    kRegExpExecCalledOnSlowRegExp,
+    kRegExpPrototypeStickyGetter,
+    kRegExpPrototypeUnicodeGetter,
+    kRegExpMatchIsTrueishOnNonJSRegExp,
+    kRegExpMatchIsFalseishOnJSRegExp,
     // Reserve space for unknown future features.
     kUseCounterFeatureCount = 256
   };
@@ -810,6 +831,12 @@ class V8_EXPORT Isolate {
   }
   
   void DumpAndResetStats() {
+    // WASI stub - no-op
+  }
+
+  // Counter function callback
+  using CounterLookupCallback = int* (*)(const char* name);
+  void SetCounterFunction(CounterLookupCallback callback) {
     // WASI stub - no-op
   }
 

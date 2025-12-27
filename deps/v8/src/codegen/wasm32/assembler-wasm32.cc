@@ -76,6 +76,10 @@ void Assembler::GetCode(LocalIsolate* isolate, CodeDesc* desc,
   desc->unwinding_info = nullptr;
 }
 
+void Assembler::GetCode(Isolate* isolate, CodeDesc* desc) {
+  GetCode(isolate->main_thread_local_isolate(), desc);
+}
+
 void Assembler::bind(Label* L) {
   DCHECK(!L->is_bound());
   L->bind_to(pc_offset());

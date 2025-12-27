@@ -183,9 +183,7 @@ class V8_EXPORT SnapshotCreator {
    *               - `params.existing_blob` is an optional snapshot blob from
    *                 which can be used to initialize the new blob.
    */
-  #if !defined(__wasi__) && defined(V8_ISOLATE_FULLY_DEFINED)
   explicit SnapshotCreator(const Isolate::CreateParams& params);
-  #endif
 
   /**
    * Initializes an Isolate for serialization and enters it. The creator does
@@ -198,10 +196,8 @@ class V8_EXPORT SnapshotCreator {
    *               - `params.existing_blob` is an optional snapshot blob from
    *                 which can be used to initialize the new blob.
    */
-  #if !defined(__wasi__) && defined(V8_ISOLATE_FULLY_DEFINED)
   SnapshotCreator(v8::Isolate* isolate,
                   const v8::Isolate::CreateParams& params);
-  #endif
 
   /**
    * Destroy the snapshot creator, and exit and dispose of the Isolate

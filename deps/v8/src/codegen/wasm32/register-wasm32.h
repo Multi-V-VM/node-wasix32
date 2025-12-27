@@ -299,6 +299,9 @@ constexpr Simd128Register kScratchSimd128Reg = Simd128Register::s15();
 constexpr Register kPtrComprCageBaseRegister = kRootRegister;
 // Interpreter accumulator register alias.
 constexpr Register kInterpreterAccumulatorRegister = Register::r0();
+// Interpreter bytecode registers
+constexpr Register kInterpreterBytecodeOffsetRegister = Register::r10();
+constexpr Register kInterpreterBytecodeArrayRegister = Register::r11();
 
 // Zero register (always returns 0 when read, writes are ignored)
 constexpr Register kZeroRegister = Register::r15();
