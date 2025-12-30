@@ -8,10 +8,6 @@
 #include <type_traits>
 
 #include "src/base/bits.h"
-#ifdef __wasi__
-// Adjusted include path for WASI bits fixes to point to repo root.
-#include "../../../../wasi-v8-bits-fixes.h"
-#endif
 #include "src/base/iterator.h"
 
 namespace v8 {
@@ -36,6 +32,7 @@ class BitsIterator : public iterator<std::forward_iterator_tag, int> {
   }
 
   bool operator==(BitsIterator other) { return bits_ == other.bits_; }
+  bool operator!=(BitsIterator other) { return bits_ != other.bits_; }
 
  private:
   T bits_;
@@ -57,6 +54,5 @@ auto IterateBitsBackwards(T bits) {
 }  // namespace bits
 }  // namespace base
 }  // namespace v8
-
 
 #endif  // V8_BASE_BITS_ITERATOR_H_

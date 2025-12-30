@@ -2,10 +2,6 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-#ifdef __wasi__
-// LSAN not supported on WASI - empty implementation
-#else
-
 #include "src/base/sanitizer/lsan-virtual-address-space.h"
 
 #include "include/v8-platform.h"
@@ -20,7 +16,10 @@ namespace base {
 
 LsanVirtualAddressSpace::LsanVirtualAddressSpace(
     std::unique_ptr<v8::VirtualAddressSpace> vas)
-    : vas_(std::move(vas)) {
+    : VirtualAddressSpace(vas->page_size(), vas->allocation_granularity(),
+                          vas->base(), vas->size(),
+                          vas->max_page_permissions()),
+      vas_(std::move(vas)) {
   DCHECK_NOT_NULL(vas_);
 }
 
@@ -78,5 +77,3 @@ std::unique_ptr<VirtualAddressSpace> LsanVirtualAddressSpace::AllocateSubspace(
 
 }  // namespace base
 }  // namespace v8
-
-#endif  // __wasi__

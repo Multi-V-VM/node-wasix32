@@ -1,7 +1,3 @@
-#ifdef __wasi__
-#include "../../../../wasi-v8-flags-fix.h"
-#endif
-
 // Copyright 2014 the V8 project authors. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
@@ -24,10 +20,8 @@ namespace base {
 // that there's no type checking at all; any enum value can be OR'd with any
 // other enum value and passed on to a function that takes an int or unsigned
 // int.
-#ifndef V8_BASE_FLAGS_DEFINED
-#define V8_BASE_FLAGS_DEFINED
 template <typename EnumT, typename BitfieldT = int,
-          typename BitfieldStorageT = BitfieldT> 
+          typename BitfieldStorageT = BitfieldT>
 class Flags final {
  public:
   static_assert(sizeof(BitfieldStorageT) >= sizeof(BitfieldT));
@@ -42,6 +36,9 @@ class Flags final {
 
   constexpr bool operator==(flag_type flag) const {
     return mask_ == static_cast<mask_type>(flag);
+  }
+  constexpr bool operator!=(flag_type flag) const {
+    return mask_ != static_cast<mask_type>(flag);
   }
 
   Flags& operator&=(const Flags& flags) {
@@ -135,9 +132,7 @@ class Flags final {
     return ~Type(val);                                                   \
   }
 
-#endif
 }  // namespace base
 }  // namespace v8
-
 
 #endif  // V8_BASE_FLAGS_H_

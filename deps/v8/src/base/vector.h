@@ -6,17 +6,18 @@
 #define V8_BASE_VECTOR_H_
 
 #include <algorithm>
-#include <array>
 #include <cstring>
 #include <iterator>
 #include <limits>
 #include <memory>
 #include <type_traits>
 
+#include "src/base/functional.h"
 #include "src/base/logging.h"
 #include "src/base/macros.h"
 
-namespace v8 { namespace base {
+namespace v8 {
+namespace base {
 
 template <typename T>
 class Vector {
@@ -61,7 +62,7 @@ class Vector {
   // Returns the length of the vector. Only use this if you really need an
   // integer return value. Use {size()} otherwise.
   int length() const {
-    CHECK_GE(std::numeric_limits<int>::max(), length_);
+    DCHECK_GE(std::numeric_limits<int>::max(), length_);
     return static_cast<int>(length_);
   }
 
@@ -129,7 +130,7 @@ class Vector {
     length_ = 0;
   }
 
-  const Vector<T> operator+(size_t offset) const {
+  Vector<T> operator+(size_t offset) {
     DCHECK_LE(offset, length_);
     return Vector<T>(start_ + offset, length_ - offset);
   }
@@ -141,18 +142,8 @@ class Vector {
     return *this;
   }
 
-  // Implicit conversion from ::v8::base::Vector<T> to ::v8::base::Vector<const U> if
-  // - T* is convertible to const U*, and
-  // - U and T have the same size.
-  // Note that this conversion is only safe for `*const* U`; writes would
-  // violate covariance.
-  template <typename U, 
-            typename = typename std::enable_if<
-                std::is_convertible<T*, const U*>::value && 
-                (sizeof(U) == sizeof(T))>::type>
-  operator Vector<const U>() const {
-    return {start_, length_};
-  }
+  // Implicit conversion from Vector<T> to Vector<const T>.
+  operator Vector<const T>() const { return {start_, length_}; }
 
   template <typename S>
   static Vector<T> cast(Vector<S> input) {
@@ -166,22 +157,24 @@ class Vector {
                      input.size() * sizeof(S) / sizeof(T));
   }
 
-  // Equality comparison
   bool operator==(const Vector<T>& other) const {
-    if (length_ != other.length_) return false;
-    if (start_ == other.start_) return true;
-    if (start_ == nullptr || other.start_ == nullptr) return false;
-    return std::equal(start_, start_ + length_, other.start_);
+    return std::equal(begin(), end(), other.begin(), other.end());
   }
 
   bool operator!=(const Vector<T>& other) const {
-    return !(*this == other);
+    return !operator==(other);
   }
 
-  template <typename TT = T,
-            typename = typename std::enable_if<!std::is_const<TT>::value>::type>
-  bool operator==(const Vector<const T>& other) const {
+  template<typename TT = T>
+  std::enable_if_t<!std::is_const_v<TT>, bool> operator==(
+      const Vector<const T>& other) const {
     return std::equal(begin(), end(), other.begin(), other.end());
+  }
+
+  template<typename TT = T>
+  std::enable_if_t<!std::is_const_v<TT>, bool> operator!=(
+      const Vector<const T>& other) const {
+    return !operator==(other);
   }
 
  private:
@@ -189,21 +182,20 @@ class Vector {
   size_t length_;
 };
 
+template <typename T>
+V8_INLINE size_t hash_value(base::Vector<T> v) {
+  return hash_range(v.begin(), v.end());
+}
 
 template <typename T>
-class V8_NODISCARD ScopedVector : public ::v8::base::Vector<T> {
+class V8_NODISCARD ScopedVector : public Vector<T> {
  public:
-  explicit ScopedVector(size_t length) : ::v8::base::Vector<T>(new T[length], length) {}
+  explicit ScopedVector(size_t length) : Vector<T>(new T[length], length) {}
   ~ScopedVector() { delete[] this->begin(); }
 
  private:
   DISALLOW_IMPLICIT_CONSTRUCTORS(ScopedVector);
 };
-
-// Some code refers to ScopedZoneVector for a scoped, heap-allocated
-// sequential buffer. On platforms without a zone, alias it to ScopedVector.
-template <typename T>
-using ScopedZoneVector = ScopedVector<T>;
 
 template <typename T>
 class OwnedVector {
@@ -226,13 +218,15 @@ class OwnedVector {
   // These also function as the standard move construction/assignment operator.
   // {other} is left as an empty vector.
   template <typename U,
-            typename = typename std::enable_if<std::is_convertible<std::unique_ptr<U>, std::unique_ptr<T>>::value>::type>
+            typename = typename std::enable_if<std::is_convertible<
+                std::unique_ptr<U>, std::unique_ptr<T>>::value>::type>
   OwnedVector(OwnedVector<U>&& other) V8_NOEXCEPT {
     *this = std::move(other);
   }
 
   template <typename U,
-            typename = typename std::enable_if<std::is_convertible<std::unique_ptr<U>, std::unique_ptr<T>>::value>::type>
+            typename = typename std::enable_if<std::is_convertible<
+                std::unique_ptr<U>, std::unique_ptr<T>>::value>::type>
   OwnedVector& operator=(OwnedVector<U>&& other) V8_NOEXCEPT {
     static_assert(sizeof(U) == sizeof(T));
     data_ = std::move(other.data_);
@@ -272,8 +266,8 @@ class OwnedVector {
     return data_[index];
   }
 
-  // Returns a {::v8::base::Vector<T>} view of the data in this vector.
-  ::v8::base::Vector<T> as_vector() const { return {begin(), size()}; }
+  // Returns a {Vector<T>} view of the data in this vector.
+  Vector<T> as_vector() const { return {begin(), size()}; }
 
   // Releases the backing data from this vector and transfers ownership to the
   // caller. This vector will be empty afterwards.
@@ -289,34 +283,32 @@ class OwnedVector {
     return OwnedVector<T>(std::make_unique<T[]>(size), size);
   }
 
-  // Allocates a new vector of the specified size via the default allocator and
-  // initializes all elements by assigning from `init`.
-  template <typename U>
-  static OwnedVector<T> New(size_t size, U init) {
-    if (size == 0) return {};
-    OwnedVector<T> vec = NewForOverwrite(size);
-    std::fill_n(vec.begin(), size, init);
-    return vec;
-  }
-
   // Allocates a new vector of the specified size via the default allocator.
   // Elements in the new vector are default-initialized.
   static OwnedVector<T> NewForOverwrite(size_t size) {
     if (size == 0) return {};
-    return OwnedVector<T>(std::make_unique_for_overwrite<T[]>(size), size);
+    // TODO(v8): Use {std::make_unique_for_overwrite} once we allow C++20.
+    return OwnedVector<T>(std::unique_ptr<T[]>(new T[size]), size);
   }
 
   // Allocates a new vector containing the specified collection of values.
   // {Iterator} is the common type of {std::begin} and {std::end} called on a
   // {const U&}. This function is only instantiable if that type exists.
-  template <typename U>
-  static OwnedVector<U> NewByCopying(const U* data, size_t size) {
-    auto result = OwnedVector<U>::NewForOverwrite(size);
-    std::copy(data, data + size, result.begin());
-    return result;
+  template <typename U, typename Iterator = typename std::common_type<
+                            decltype(std::begin(std::declval<const U&>())),
+                            decltype(std::end(std::declval<const U&>()))>::type>
+  static OwnedVector<T> Of(const U& collection) {
+    Iterator begin = std::begin(collection);
+    Iterator end = std::end(collection);
+    using non_const_t = typename std::remove_const<T>::type;
+    auto vec =
+        OwnedVector<non_const_t>::NewForOverwrite(std::distance(begin, end));
+    std::copy(begin, end, vec.begin());
+    return vec;
   }
 
   bool operator==(std::nullptr_t) const { return data_ == nullptr; }
+  bool operator!=(std::nullptr_t) const { return data_ != nullptr; }
 
  private:
   template <typename U>
@@ -332,22 +324,22 @@ class OwnedVector {
 
 // Known length, constexpr.
 template <size_t N>
-constexpr ::v8::base::Vector<const char> StaticCharVector(const char (&array)[N]) {
+constexpr Vector<const char> StaticCharVector(const char (&array)[N]) {
   return {array, N - 1};
 }
 
 // Unknown length, not constexpr.
-inline ::v8::base::Vector<const char> CStrVector(const char* data) {
+inline Vector<const char> CStrVector(const char* data) {
   return {data, strlen(data)};
 }
 
 // OneByteVector is never constexpr because the data pointer is
 // {reinterpret_cast}ed.
-inline ::v8::base::Vector<const uint8_t> OneByteVector(const char* data, size_t length) {
+inline Vector<const uint8_t> OneByteVector(const char* data, size_t length) {
   return {reinterpret_cast<const uint8_t*>(data), length};
 }
 
-inline ::v8::base::Vector<const uint8_t> OneByteVector(const char* data) {
+inline Vector<const uint8_t> OneByteVector(const char* data) {
   return OneByteVector(data, strlen(data));
 }
 
@@ -360,53 +352,36 @@ Vector<const uint8_t> StaticOneByteVector(const char (&array)[N]) {
 // with length 4 and null-termination.
 // If you want ['f', 'o', 'o'], use CStrVector("foo").
 template <typename T, size_t N>
-inline constexpr ::v8::base::Vector<T> ArrayVector(T (&arr)[N]) {
+inline constexpr Vector<T> ArrayVector(T (&arr)[N]) {
   return {arr, N};
 }
 
 // Construct a Vector from a start pointer and a size.
 template <typename T>
-inline constexpr ::v8::base::Vector<T> VectorOf(T* start, size_t size) {
+inline constexpr Vector<T> VectorOf(T* start, size_t size) {
   return {start, size};
 }
 
-// Construct a Vector from anything compatible with std::data and std::size (ie,
-// an array, or a container providing a {data()} and {size()} accessor).
+// Construct a Vector from anything providing a {data()} and {size()} accessor.
 template <typename Container>
 inline constexpr auto VectorOf(Container&& c)
-    -> decltype(VectorOf(std::data(c), std::size(c))) {
-  return VectorOf(std::data(c), std::size(c));
+    -> decltype(VectorOf(c.data(), c.size())) {
+  return VectorOf(c.data(), c.size());
 }
 
 // Construct a Vector from an initializer list. The vector can obviously only be
 // used as long as the initializer list is live. Valid uses include direct use
 // in parameter lists: F(VectorOf({1, 2, 3}));
 template <typename T>
-inline constexpr ::v8::base::Vector<const T> VectorOf(std::initializer_list<T> list) {
+inline constexpr Vector<const T> VectorOf(std::initializer_list<T> list) {
   return VectorOf(list.begin(), list.size());
 }
 
-// Construct an OwnedVector from a start pointer and a size.
-// The data will be copied.
-template <typename T>
-inline OwnedVector<T> OwnedCopyOf(const T* data, size_t size) {
-  return OwnedVector<T>::NewByCopying(data, size);
-}
-
-// Construct an OwnedVector from anything compatible with std::data and
-// std::size (e.g. an array, or a container providing a {data()} and {size()}
-// accessor). The data will be copied.
-template <typename Container>
-inline auto OwnedCopyOf(const Container& c)
-    -> decltype(OwnedCopyOf(std::data(c), std::size(c))) {
-  return OwnedCopyOf(std::data(c), std::size(c));
-}
-
 template <typename T, size_t kSize>
-class EmbeddedVector : public ::v8::base::Vector<T> {
+class EmbeddedVector : public Vector<T> {
  public:
-  EmbeddedVector() : ::v8::base::Vector<T>(buffer_, kSize) {}
-  explicit EmbeddedVector(const T& initial_value) : ::v8::base::Vector<T>(buffer_, kSize) {
+  EmbeddedVector() : Vector<T>(buffer_, kSize) {}
+  explicit EmbeddedVector(const T& initial_value) : Vector<T>(buffer_, kSize) {
     std::fill_n(buffer_, kSize, initial_value);
   }
   EmbeddedVector(const EmbeddedVector&) = delete;
@@ -416,17 +391,6 @@ class EmbeddedVector : public ::v8::base::Vector<T> {
   T buffer_[kSize];
 };
 
-}  // namespace base
-}  // namespace v8
-
-// Provide compatibility alias used in newer V8 sources: base::Owned::Vector<T>
-// resolves to OwnedVector<T>.
-namespace v8 {
-namespace base {
-namespace Owned {
-template <typename T>
-using Vector = ::v8::base::OwnedVector<T>;
-}  // namespace Owned
 }  // namespace base
 }  // namespace v8
 

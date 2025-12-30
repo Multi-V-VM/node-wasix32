@@ -17,7 +17,7 @@
 // used in spinlock loops in conjunction with atomic accesses, such spinlock
 // loops can exhibit starvation in TSAN. To work around the problem, have
 // YIELD_PROCESSOR sleep the process for 1ms.
-#define YIELD_PROCESSOR base::OS::Sleep(::v8::base::TimeDelta::FromMilliseconds(1))
+#define YIELD_PROCESSOR base::OS::Sleep(base::TimeDelta::FromMilliseconds(1))
 
 #else  // !THREAD_SANITIZER
 

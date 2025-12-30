@@ -1,34 +1,14 @@
-#ifdef V8_TARGET_ARCH_WASM32
-#include "../../include/libplatform/libplatform-wasi-fix.h"
-#endif
 // Copyright 2016 the V8 project authors. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
-
-#ifdef __wasi__
-// WASI stub implementation
-#include <ostream>
-#include <string>
-#include "include/libplatform/v8-tracing.h"
-
-namespace v8 {
-namespace platform {
-namespace tracing {
-// TraceWriter is already declared in v8-tracing.h, just provide stub implementations
-TraceWriter* TraceWriter::CreateJSONTraceWriter(std::ostream&) { return nullptr; }
-TraceWriter* TraceWriter::CreateJSONTraceWriter(std::ostream&, const std::string&) { return nullptr; }
-}  // namespace tracing
-}  // namespace platform
-}  // namespace v8
-#else
 
 #include "src/libplatform/tracing/trace-writer.h"
 
 #include <cmath>
 
+#include "base/trace_event/common/trace_event_common.h"
 #include "include/v8-platform.h"
 #include "src/base/platform/platform.h"
-#include "src/tracing/trace-event-no-perfetto.h"
 
 #if defined(V8_ENABLE_SYSTEM_INSTRUMENTATION)
 #include "src/libplatform/tracing/recorder.h"
@@ -108,7 +88,7 @@ void JSONTraceWriter::AppendArgValue(uint8_t type,
         }
       } else if (std::isnan(val)) {
         // The JSON spec doesn't allow NaN and Infinity (since these are
-        // objects in ECMAScript).  Use strings instead.
+        // objects in EcmaScript).  Use strings instead.
         real = "\"NaN\"";
       } else if (val < 0) {
         real = "\"-Infinity\"";
@@ -137,9 +117,9 @@ void JSONTraceWriter::AppendArgValue(uint8_t type,
 }
 
 void JSONTraceWriter::AppendArgValue(ConvertableToTraceFormat* value) {
-  char buffer[1024];
-  value->AppendAsTraceFormat(buffer, sizeof(buffer));
-  stream_ << buffer;
+  std::string arg_stringified;
+  value->AppendAsTraceFormat(&arg_stringified);
+  stream_ << arg_stringified;
 }
 
 JSONTraceWriter::JSONTraceWriter(std::ostream& stream)
@@ -188,7 +168,7 @@ void JSONTraceWriter::AppendTraceEvent(TraceObject* trace_event) {
   const char** arg_names = trace_event->arg_names();
   const uint8_t* arg_types = trace_event->arg_types();
   TraceObject::ArgValue* arg_values = trace_event->arg_values();
-  std::unique_ptr<::v8::ConvertableToTraceFormat>* arg_convertables =
+  std::unique_ptr<v8::ConvertableToTraceFormat>* arg_convertables =
       trace_event->arg_convertables();
   for (int i = 0; i < trace_event->num_args(); ++i) {
     if (i > 0) stream_ << ",";
@@ -240,4 +220,3 @@ TraceWriter* TraceWriter::CreateSystemInstrumentationTraceWriter() {
 }  // namespace tracing
 }  // namespace platform
 }  // namespace v8
-#endif // __wasi__

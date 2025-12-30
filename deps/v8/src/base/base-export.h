@@ -5,15 +5,8 @@
 #ifndef V8_BASE_BASE_EXPORT_H_
 #define V8_BASE_BASE_EXPORT_H_
 
-#include "../../include/v8config.h"
+#include "include/v8config.h"
 
-// Include WASI fixes first to prevent macro redefinition
-#ifdef __wasi__
-// Resolve via -I deps/v8/include
-#include "wasi/macro-fixes.h"
-#endif
-
-#ifndef V8_BASE_EXPORT
 #if V8_OS_WIN
 
 #ifdef BUILDING_V8_BASE_SHARED
@@ -27,13 +20,12 @@
 #else  // !V8_OS_WIN
 
 // Setup for Linux shared library export.
-#if defined(BUILDING_V8_BASE_SHARED) || USING_V8_BASE_SHARED
+#ifdef BUILDING_V8_BASE_SHARED
 #define V8_BASE_EXPORT __attribute__((visibility("default")))
 #else
 #define V8_BASE_EXPORT
-#endif  // defined(BUILDING_V8_BASE_SHARED) || ...
+#endif
 
 #endif  // V8_OS_WIN
-#endif  // V8_BASE_EXPORT
 
 #endif  // V8_BASE_BASE_EXPORT_H_

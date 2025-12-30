@@ -1,10 +1,6 @@
-#ifdef V8_TARGET_ARCH_WASM32
-#include "../../include/libplatform/libplatform-wasi-fix.h"
-#endif
 // Copyright 2020 the V8 project authors. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
-
 #ifndef V8_LIBPLATFORM_TRACING_RECORDER_WIN_H_
 #define V8_LIBPLATFORM_TRACING_RECORDER_WIN_H_
 

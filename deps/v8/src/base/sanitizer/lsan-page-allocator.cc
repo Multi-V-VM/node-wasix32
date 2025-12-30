@@ -23,27 +23,16 @@ LsanPageAllocator::LsanPageAllocator(v8::PageAllocator* page_allocator)
 
 void* LsanPageAllocator::AllocatePages(void* hint, size_t size,
                                        size_t alignment,
-                                       v8::PagePermissions access) {
+                                       PageAllocator::Permission access) {
   void* result = page_allocator_->AllocatePages(hint, size, alignment, access);
 #if defined(LEAK_SANITIZER)
   if (result != nullptr) {
-    if (access != v8::PagePermissions::kNoAccessWillJitLater) {
-      __lsan_register_root_region(result, size);
-    } else {
-      // We allocate the JIT cage as RWX from the beginning und use Discard to
-      // mark the memory as unused. This makes tests with LSAN enabled 2-3x
-      // slower since it will always try to scan the area for pointers. So skip
-      // registering the JIT regions with LSAN.
-      ::v8::base::MutexGuard lock(&not_registered_regions_mutex_);
-      DCHECK_EQ(0, not_registered_regions_.count(result));
-      not_registered_regions_.insert(result);
-    }
+    __lsan_register_root_region(result, size);
   }
 #endif
   return result;
 }
 
-#ifndef __wasi__
 std::unique_ptr<v8::PageAllocator::SharedMemory>
 LsanPageAllocator::AllocateSharedPages(size_t size,
                                        const void* original_address) {
@@ -59,29 +48,22 @@ LsanPageAllocator::AllocateSharedPages(size_t size,
 bool LsanPageAllocator::CanAllocateSharedPages() {
   return page_allocator_->CanAllocateSharedPages();
 }
-#endif
 
 bool LsanPageAllocator::FreePages(void* address, size_t size) {
-#if defined(LEAK_SANITIZER)
-  ::v8::base::MutexGuard lock(&not_registered_regions_mutex_);
-  if (not_registered_regions_.count(address) == 0) {
-    __lsan_unregister_root_region(address, size);
-  } else {
-    not_registered_regions_.erase(address);
-  }
-#endif
   CHECK(page_allocator_->FreePages(address, size));
+#if defined(LEAK_SANITIZER)
+  __lsan_unregister_root_region(address, size);
+#endif
   return true;
 }
 
-bool LsanPageAllocator::ReleasePages(void* address, size_t size) {
+bool LsanPageAllocator::ReleasePages(void* address, size_t size,
+                                     size_t new_size) {
+  CHECK(page_allocator_->ReleasePages(address, size, new_size));
 #if defined(LEAK_SANITIZER)
-  ::v8::base::MutexGuard lock(&not_registered_regions_mutex_);
-  if (not_registered_regions_.count(address) == 0) {
-    __lsan_unregister_root_region(address, size);
-  }
+  __lsan_unregister_root_region(address, size);
+  __lsan_register_root_region(address, new_size);
 #endif
-  CHECK(page_allocator_->ReleasePages(address, size));
   return true;
 }
 

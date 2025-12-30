@@ -129,10 +129,10 @@ void OS::SignalCodeMovingGC() {}
 
 void OS::AdjustSchedulingParams() {}
 
-std::optional<OS::MemoryRange> OS::GetFirstFreeMemoryRangeWithin(
+std::vector<OS::MemoryRange> OS::GetFreeMemoryRangesWithin(
     OS::Address boundary_start, OS::Address boundary_end, size_t minimum_size,
     size_t alignment) {
-  return std::nullopt;
+  return {};
 }
 
 // static

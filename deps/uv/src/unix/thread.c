@@ -938,7 +938,7 @@ int uv__thread_setname(const char* name) {
   char namebuf[UV_PTHREAD_MAX_NAMELEN_NP];
   strncpy(namebuf, name, sizeof(namebuf) - 1);
   namebuf[sizeof(namebuf) - 1] = '\0';
-  return uv__err(pthread_setname_np(pthread_self(), namebuf));
+  return UV__ERR(pthread_setname_np(pthread_self(), namebuf));
 }
 #endif
 

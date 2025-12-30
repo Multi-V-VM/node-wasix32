@@ -32,9 +32,6 @@ class V8_BASE_EXPORT MemoryProtectionKey {
   // mprotect().
   static constexpr int kNoMemoryProtectionKey = -1;
 
-  // The default ProtectionKey can be used to remove pkey assignments.
-  static constexpr int kDefaultProtectionKey = 0;
-
   // Permissions for memory protection keys on top of the page's permissions.
   // NOTE: Since there is no executable bit, the executable permission cannot be
   // withdrawn by memory protection keys.
@@ -53,10 +50,7 @@ class V8_BASE_EXPORT MemoryProtectionKey {
 
   // Call exactly once per process to determine if PKU is supported on this
   // platform and initialize global data structures.
-  static bool HasMemoryProtectionKeySupport();
-
-  // Allocates a new key. Returns -1 on error.
-  static int AllocateKey();
+  static bool InitializeMemoryProtectionKeySupport();
 
   // Associates a memory protection {key} with the given {region}.
   // If {key} is {kNoMemoryProtectionKey} this behaves like "plain"
@@ -71,7 +65,7 @@ class V8_BASE_EXPORT MemoryProtectionKey {
   // key, use {SetPermissionsForKey()} instead.
   static bool SetPermissionsAndKey(
       base::AddressRegion region,
-      ::v8::PageAllocator::Permission page_permissions, int key);
+      v8::PageAllocator::Permission page_permissions, int key);
 
   // Set the key's permissions. {key} must be valid, i.e. not
   // {kNoMemoryProtectionKey}.

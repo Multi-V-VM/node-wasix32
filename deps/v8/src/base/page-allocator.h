@@ -5,8 +5,6 @@
 #ifndef V8_BASE_PAGE_ALLOCATOR_H_
 #define V8_BASE_PAGE_ALLOCATOR_H_
 
-#ifdef __wasi__
-
 #include <memory>
 
 #include "include/v8-platform.h"
@@ -33,31 +31,26 @@ class V8_BASE_EXPORT PageAllocator
   void* GetRandomMmapAddr() override;
 
   void* AllocatePages(void* hint, size_t size, size_t alignment,
-                      v8::PagePermissions access) override;
+                      PageAllocator::Permission access) override;
 
-  // Remove methods not in base interface for WASI
-#ifndef __wasi__
-  bool CanAllocateSharedPages();
+  bool CanAllocateSharedPages() override;
 
   std::unique_ptr<v8::PageAllocator::SharedMemory> AllocateSharedPages(
-      size_t size, const void* original_address);
-#endif
+      size_t size, const void* original_address) override;
 
   bool FreePages(void* address, size_t size) override;
 
-  bool ReleasePages(void* address, size_t size) override;
+  bool ReleasePages(void* address, size_t size, size_t new_size) override;
 
   bool SetPermissions(void* address, size_t size,
-                      v8::PagePermissions access) override;
+                      PageAllocator::Permission access) override;
 
   bool RecommitPages(void* address, size_t size,
-                     v8::PagePermissions access) override;
+                     PageAllocator::Permission access) override;
 
   bool DiscardSystemPages(void* address, size_t size) override;
 
   bool DecommitPages(void* address, size_t size) override;
-
-  bool SealPages(void* address, size_t size) override;
 
  private:
   friend class v8::base::SharedMemory;
@@ -70,6 +63,4 @@ class V8_BASE_EXPORT PageAllocator
 
 }  // namespace base
 }  // namespace v8
-
-#endif  // __wasi__
 #endif  // V8_BASE_PAGE_ALLOCATOR_H_

@@ -10,6 +10,7 @@
 #include "src/base/numbers/cached-powers.h"
 #include "src/base/numbers/diy-fp.h"
 #include "src/base/numbers/double.h"
+#include "src/base/v8-fallthrough.h"
 
 namespace v8 {
 namespace base {
@@ -264,7 +265,7 @@ static inline void BiggestPowerTen(uint32_t number, int number_bits,
         *exponent = 9;
         break;
       }
-      [[fallthrough]];
+      V8_FALLTHROUGH;
     case 29:
     case 28:
     case 27:
@@ -273,7 +274,7 @@ static inline void BiggestPowerTen(uint32_t number, int number_bits,
         *exponent = 8;
         break;
       }
-      [[fallthrough]];
+      V8_FALLTHROUGH;
     case 26:
     case 25:
     case 24:
@@ -282,7 +283,7 @@ static inline void BiggestPowerTen(uint32_t number, int number_bits,
         *exponent = 7;
         break;
       }
-      [[fallthrough]];
+      V8_FALLTHROUGH;
     case 23:
     case 22:
     case 21:
@@ -292,7 +293,7 @@ static inline void BiggestPowerTen(uint32_t number, int number_bits,
         *exponent = 6;
         break;
       }
-      [[fallthrough]];
+      V8_FALLTHROUGH;
     case 19:
     case 18:
     case 17:
@@ -301,7 +302,7 @@ static inline void BiggestPowerTen(uint32_t number, int number_bits,
         *exponent = 5;
         break;
       }
-      [[fallthrough]];
+      V8_FALLTHROUGH;
     case 16:
     case 15:
     case 14:
@@ -310,7 +311,7 @@ static inline void BiggestPowerTen(uint32_t number, int number_bits,
         *exponent = 4;
         break;
       }
-      [[fallthrough]];
+      V8_FALLTHROUGH;
     case 13:
     case 12:
     case 11:
@@ -320,7 +321,7 @@ static inline void BiggestPowerTen(uint32_t number, int number_bits,
         *exponent = 3;
         break;
       }
-      [[fallthrough]];
+      V8_FALLTHROUGH;
     case 9:
     case 8:
     case 7:
@@ -329,7 +330,7 @@ static inline void BiggestPowerTen(uint32_t number, int number_bits,
         *exponent = 2;
         break;
       }
-      [[fallthrough]];
+      V8_FALLTHROUGH;
     case 6:
     case 5:
     case 4:
@@ -338,7 +339,7 @@ static inline void BiggestPowerTen(uint32_t number, int number_bits,
         *exponent = 1;
         break;
       }
-      [[fallthrough]];
+      V8_FALLTHROUGH;
     case 3:
     case 2:
     case 1:
@@ -347,7 +348,7 @@ static inline void BiggestPowerTen(uint32_t number, int number_bits,
         *exponent = 0;
         break;
       }
-      [[fallthrough]];
+      V8_FALLTHROUGH;
     case 0:
       *power = 0;
       *exponent = -1;

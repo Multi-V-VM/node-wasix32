@@ -11,8 +11,8 @@
 
 #include "include/libplatform/libplatform-export.h"
 #include "src/base/platform/condition-variable.h"
+#include "src/base/platform/mutex.h"
 #include "src/base/platform/time.h"
-#include "v8-task-full.h"
 
 namespace v8 {
 
@@ -49,7 +49,7 @@ class V8_PLATFORM_EXPORT DelayedTaskQueue {
   struct MaybeNextTask {
     enum { kTask, kWaitIndefinite, kWaitDelayed, kTerminated } state;
     std::unique_ptr<Task> task;
-    ::v8::base::TimeDelta wait_time;
+    base::TimeDelta wait_time;
   };
   // Returns the next task to process, or the amount of time to wait until the
   // next delayed task.  Returns nullptr if the queue is terminated. Will return
@@ -65,7 +65,7 @@ class V8_PLATFORM_EXPORT DelayedTaskQueue {
   std::unique_ptr<Task> PopTaskFromDelayedQueue(double now);
 
   std::queue<std::unique_ptr<Task>> task_queue_;
-  ::std::multimap<double, std::unique_ptr<Task>> delayed_task_queue_;
+  std::multimap<double, std::unique_ptr<Task>> delayed_task_queue_;
   bool terminated_ = false;
   TimeFunction time_function_;
 };

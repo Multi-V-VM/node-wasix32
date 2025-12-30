@@ -1,6 +1,3 @@
-#ifdef V8_TARGET_ARCH_WASM32
-#include "../../include/libplatform/libplatform-wasi-fix.h"
-#endif
 // Copyright 2013 the V8 project authors. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
@@ -23,7 +20,7 @@ WorkerThread::~WorkerThread() {
 }
 
 void WorkerThread::Run() {
-  while (::std::unique_ptr<::v8::Task> task = queue_->GetNext()) {
+  while (std::unique_ptr<Task> task = queue_->GetNext()) {
     task->Run();
   }
 }

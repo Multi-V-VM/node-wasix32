@@ -1,37 +1,247 @@
-#ifndef V8_SRC_BASE_BITS_H_
-#define V8_SRC_BASE_BITS_H_
+// Copyright 2014 the V8 project authors. All rights reserved.
+// Use of this source code is governed by a BSD-style license that can be
+// found in the LICENSE file.
 
-#if 1  // WASI and generic implementations
-#include <cstdint>
+#ifndef V8_BASE_BITS_H_
+#define V8_BASE_BITS_H_
+
+#include <stdint.h>
 #include <type_traits>
-#include <climits>
-#include <limits>
 
-#if 0
-// Avoid including large WASI shims here to prevent circular includes.
-// #include "wasi/nuclear-fix.h"
+#include "src/base/base-export.h"
+#include "src/base/macros.h"
+#if V8_CC_MSVC
+#include <intrin.h>
 #endif
-#include "src/base/bits-namespace-fix.h"
+#if V8_OS_WIN32
+#include "src/base/win32-headers.h"
+#endif
 
 namespace v8 {
 namespace base {
 namespace bits {
 
-// Generic implementations available in both WASI and non-WASI builds.
-constexpr uint32_t RoundUpToPowerOfTwo32(uint32_t value) {
-  if (value <= 1) return 1;
-  value--;
+// CountPopulation(value) returns the number of bits set in |value|.
+template <typename T>
+constexpr inline
+    typename std::enable_if<std::is_unsigned<T>::value && sizeof(T) <= 8,
+                            unsigned>::type
+    CountPopulation(T value) {
+  static_assert(sizeof(T) <= 8);
+#if V8_HAS_BUILTIN_POPCOUNT
+  return sizeof(T) == 8 ? __builtin_popcountll(static_cast<uint64_t>(value))
+                        : __builtin_popcount(static_cast<uint32_t>(value));
+#else
+  // Fall back to divide-and-conquer popcount (see "Hacker's Delight" by Henry
+  // S. Warren, Jr.), chapter 5-1.
+  constexpr uint64_t mask[] = {0x5555555555555555, 0x3333333333333333,
+                               0x0f0f0f0f0f0f0f0f};
+  // Start with 64 buckets of 1 bits, holding values from [0,1].
+  value = ((value >> 1) & mask[0]) + (value & mask[0]);
+  // Having 32 buckets of 2 bits, holding values from [0,2] now.
+  value = ((value >> 2) & mask[1]) + (value & mask[1]);
+  // Having 16 buckets of 4 bits, holding values from [0,4] now.
+  value = ((value >> 4) & mask[2]) + (value & mask[2]);
+  // Having 8 buckets of 8 bits, holding values from [0,8] now.
+  // From this point on, the buckets are bigger than the number of bits
+  // required to hold the values, and the buckets are bigger the maximum
+  // result, so there's no need to mask value anymore, since there's no
+  // more risk of overflow between buckets.
+  if (sizeof(T) > 1) value = (value >> (sizeof(T) > 1 ? 8 : 0)) + value;
+  // Having 4 buckets of 16 bits, holding values from [0,16] now.
+  if (sizeof(T) > 2) value = (value >> (sizeof(T) > 2 ? 16 : 0)) + value;
+  // Having 2 buckets of 32 bits, holding values from [0,32] now.
+  if (sizeof(T) > 4) value = (value >> (sizeof(T) > 4 ? 32 : 0)) + value;
+  // Having 1 buckets of 64 bits, holding values from [0,64] now.
+  return static_cast<unsigned>(value & 0xff);
+#endif
+}
+
+// ReverseBits(value) returns |value| in reverse bit order.
+template <typename T>
+T ReverseBits(T value) {
+  static_assert((sizeof(value) == 1) || (sizeof(value) == 2) ||
+                (sizeof(value) == 4) || (sizeof(value) == 8));
+  T result = 0;
+  for (unsigned i = 0; i < (sizeof(value) * 8); i++) {
+    result = (result << 1) | (value & 1);
+    value >>= 1;
+  }
+  return result;
+}
+
+// ReverseBytes(value) returns |value| in reverse byte order.
+template <typename T>
+T ReverseBytes(T value) {
+  static_assert((sizeof(value) == 1) || (sizeof(value) == 2) ||
+                (sizeof(value) == 4) || (sizeof(value) == 8));
+  T result = 0;
+  for (unsigned i = 0; i < sizeof(value); i++) {
+    result = (result << 8) | (value & 0xff);
+    value >>= 8;
+  }
+  return result;
+}
+
+template <class T>
+inline constexpr std::make_unsigned_t<T> Unsigned(T value) {
+  static_assert(std::is_signed_v<T>);
+  return static_cast<std::make_unsigned_t<T>>(value);
+}
+template <class T>
+inline constexpr std::make_signed_t<T> Signed(T value) {
+  static_assert(std::is_unsigned_v<T>);
+  return static_cast<std::make_signed_t<T>>(value);
+}
+
+// CountLeadingZeros(value) returns the number of zero bits following the most
+// significant 1 bit in |value| if |value| is non-zero, otherwise it returns
+// {sizeof(T) * 8}.
+template <typename T, unsigned bits = sizeof(T) * 8>
+inline constexpr
+    typename std::enable_if<std::is_unsigned<T>::value && sizeof(T) <= 8,
+                            unsigned>::type
+    CountLeadingZeros(T value) {
+  static_assert(bits > 0, "invalid instantiation");
+#if V8_HAS_BUILTIN_CLZ
+  return value == 0
+             ? bits
+             : bits == 64
+                   ? __builtin_clzll(static_cast<uint64_t>(value))
+                   : __builtin_clz(static_cast<uint32_t>(value)) - (32 - bits);
+#else
+  // Binary search algorithm taken from "Hacker's Delight" (by Henry S. Warren,
+  // Jr.), figures 5-11 and 5-12.
+  if (bits == 1) return static_cast<unsigned>(value) ^ 1;
+  T upper_half = value >> (bits / 2);
+  T next_value = upper_half != 0 ? upper_half : value;
+  unsigned add = upper_half != 0 ? 0 : bits / 2;
+  constexpr unsigned next_bits = bits == 1 ? 1 : bits / 2;
+  return CountLeadingZeros<T, next_bits>(next_value) + add;
+#endif
+}
+
+inline constexpr unsigned CountLeadingZeros32(uint32_t value) {
+  return CountLeadingZeros(value);
+}
+inline constexpr unsigned CountLeadingZeros64(uint64_t value) {
+  return CountLeadingZeros(value);
+}
+
+// The number of leading zeros for a positive number,
+// the number of leading ones for a negative number.
+template <class T>
+constexpr unsigned CountLeadingSignBits(T value) {
+  static_assert(std::is_signed_v<T>);
+  return value < 0 ? CountLeadingZeros(~Unsigned(value))
+                   : CountLeadingZeros(Unsigned(value));
+}
+
+// CountTrailingZeros(value) returns the number of zero bits preceding the
+// least significant 1 bit in |value| if |value| is non-zero, otherwise it
+// returns {sizeof(T) * 8}.
+// See CountTrailingZerosNonZero for an optimized version for the case that
+// |value| is guaranteed to be non-zero.
+template <typename T, unsigned bits = sizeof(T) * 8>
+inline constexpr
+    typename std::enable_if<std::is_integral<T>::value && sizeof(T) <= 8,
+                            unsigned>::type
+    CountTrailingZeros(T value) {
+#if V8_HAS_BUILTIN_CTZ
+  return value == 0 ? bits
+                    : bits == 64 ? __builtin_ctzll(static_cast<uint64_t>(value))
+                                 : __builtin_ctz(static_cast<uint32_t>(value));
+#else
+  // Fall back to popcount (see "Hacker's Delight" by Henry S. Warren, Jr.),
+  // chapter 5-4. On x64, since is faster than counting in a loop and faster
+  // than doing binary search.
+  using U = typename std::make_unsigned<T>::type;
+  U u = value;
+  return CountPopulation(static_cast<U>(~u & (u - 1u)));
+#endif
+}
+
+inline constexpr unsigned CountTrailingZeros32(uint32_t value) {
+  return CountTrailingZeros(value);
+}
+inline constexpr unsigned CountTrailingZeros64(uint64_t value) {
+  return CountTrailingZeros(value);
+}
+
+// CountTrailingZerosNonZero(value) returns the number of zero bits preceding
+// the least significant 1 bit in |value| if |value| is non-zero, otherwise the
+// behavior is undefined.
+// See CountTrailingZeros for an alternative version that allows |value| == 0.
+template <typename T, unsigned bits = sizeof(T) * 8>
+inline constexpr
+    typename std::enable_if<std::is_integral<T>::value && sizeof(T) <= 8,
+                            unsigned>::type
+    CountTrailingZerosNonZero(T value) {
+  DCHECK_NE(0, value);
+#if V8_HAS_BUILTIN_CTZ
+  return bits == 64 ? __builtin_ctzll(static_cast<uint64_t>(value))
+                    : __builtin_ctz(static_cast<uint32_t>(value));
+#else
+  return CountTrailingZeros<T, bits>(value);
+#endif
+}
+
+// Returns true iff |value| is a power of 2.
+template <typename T,
+          typename = typename std::enable_if<std::is_integral<T>::value ||
+                                             std::is_enum<T>::value>::type>
+constexpr inline bool IsPowerOfTwo(T value) {
+  return value > 0 && (value & (value - 1)) == 0;
+}
+
+// Identical to {CountTrailingZeros}, but only works for powers of 2.
+template <typename T,
+          typename = typename std::enable_if<std::is_integral<T>::value>::type>
+inline constexpr int WhichPowerOfTwo(T value) {
+  DCHECK(IsPowerOfTwo(value));
+#if V8_HAS_BUILTIN_CTZ
+  static_assert(sizeof(T) <= 8);
+  return sizeof(T) == 8 ? __builtin_ctzll(static_cast<uint64_t>(value))
+                        : __builtin_ctz(static_cast<uint32_t>(value));
+#else
+  // Fall back to popcount (see "Hacker's Delight" by Henry S. Warren, Jr.),
+  // chapter 5-4. On x64, since is faster than counting in a loop and faster
+  // than doing binary search.
+  using U = typename std::make_unsigned<T>::type;
+  U u = value;
+  return CountPopulation(static_cast<U>(u - 1));
+#endif
+}
+
+// RoundUpToPowerOfTwo32(value) returns the smallest power of two which is
+// greater than or equal to |value|. If you pass in a |value| that is already a
+// power of two, it is returned as is. |value| must be less than or equal to
+// 0x80000000u. Uses computation based on leading zeros if we have compiler
+// support for that. Falls back to the implementation from "Hacker's Delight" by
+// Henry S. Warren, Jr., figure 3-3, page 48, where the function is called clp2.
+V8_BASE_EXPORT constexpr uint32_t RoundUpToPowerOfTwo32(uint32_t value) {
+  DCHECK_LE(value, uint32_t{1} << 31);
+  if (value) --value;
+// Use computation based on leading zeros if we have compiler support for that.
+#if V8_HAS_BUILTIN_CLZ || V8_CC_MSVC
+  return 1u << (32 - CountLeadingZeros(value));
+#else
   value |= value >> 1;
   value |= value >> 2;
   value |= value >> 4;
   value |= value >> 8;
   value |= value >> 16;
   return value + 1;
+#endif
 }
-
-constexpr uint64_t RoundUpToPowerOfTwo64(uint64_t value) {
-  if (value <= 1) return 1;
-  value--;
+// Same for 64 bit integers. |value| must be <= 2^63
+V8_BASE_EXPORT constexpr uint64_t RoundUpToPowerOfTwo64(uint64_t value) {
+  DCHECK_LE(value, uint64_t{1} << 63);
+  if (value) --value;
+// Use computation based on leading zeros if we have compiler support for that.
+#if V8_HAS_BUILTIN_CLZ
+  return uint64_t{1} << (64 - CountLeadingZeros(value));
+#else
   value |= value >> 1;
   value |= value >> 2;
   value |= value >> 4;
@@ -39,334 +249,244 @@ constexpr uint64_t RoundUpToPowerOfTwo64(uint64_t value) {
   value |= value >> 16;
   value |= value >> 32;
   return value + 1;
-}
-
-constexpr uint32_t RoundDownToPowerOfTwo32(uint32_t value) {
-  if (value <= 1) return value;
-  // Set all bits below the highest set bit
-  value |= value >> 1;
-  value |= value >> 2;
-  value |= value >> 4;
-  value |= value >> 8;
-  value |= value >> 16;
-  // Remove all bits except the highest
-  return value - (value >> 1);
-}
-
-// Generic RoundUpToPowerOfTwo for integral types
-template <typename T>
-constexpr T RoundUpToPowerOfTwo(T value) {
-  static_assert(::std::is_integral<T>::value, "T must be integral");
-  if constexpr (sizeof(T) <= sizeof(uint32_t)) {
-    return static_cast<T>(RoundUpToPowerOfTwo32(static_cast<uint32_t>(value)));
-  } else {
-    return static_cast<T>(RoundUpToPowerOfTwo64(static_cast<uint64_t>(value)));
-  }
-}
-
-// Count functions inline implementations
-// Some code expects explicit 32-bit variant.
-constexpr int CountLeadingZeros32(uint32_t value) { return __builtin_clz(value); }
-constexpr int CountLeadingZeros64(uint64_t value) { return __builtin_clzll(value); }
-constexpr int CountLeadingZeros(uint32_t value) { return __builtin_clz(value); }
-constexpr int CountLeadingZeros(uint64_t value) { return __builtin_clzll(value); }
-#if SIZE_MAX != UINT64_MAX
-// Only provide size_t overload when it's not identical to uint64_t.
-constexpr int CountLeadingZeros(size_t value) {
-  return __builtin_clz(static_cast<uint32_t>(value));
-}
 #endif
-constexpr int CountLeadingZeros(uint8_t value) {
-  return __builtin_clz(static_cast<uint32_t>(value)) - (32 - 8);
 }
-constexpr int CountTrailingZeros32(uint32_t value) { return __builtin_ctz(value); }
-constexpr int CountTrailingZeros64(uint64_t value) { return __builtin_ctzll(value); }
-constexpr int CountTrailingZeros(uint32_t value) { return __builtin_ctz(value); }
-constexpr int CountTrailingZeros(uint64_t value) { return __builtin_ctzll(value); }
-constexpr int CountTrailingZeros(uint8_t value) {
-  return __builtin_ctz(static_cast<uint32_t>(value));
-}
-// Variants that require value != 0. Callers ensure non-zero.
-#ifndef V8_BITS_CTZ_NZ_DEFINED
-constexpr int CountTrailingZerosNonZero(uint32_t value) { return __builtin_ctz(value); }
-constexpr int CountTrailingZerosNonZero(uint64_t value) { return __builtin_ctzll(value); }
-template <typename T>
-constexpr int CountTrailingZerosNonZero(T value) {
-  if constexpr (sizeof(T) <= sizeof(uint32_t)) {
-    return CountTrailingZerosNonZero(static_cast<uint32_t>(value));
+// Same for size_t integers.
+inline constexpr size_t RoundUpToPowerOfTwo(size_t value) {
+  if (sizeof(size_t) == sizeof(uint64_t)) {
+    return RoundUpToPowerOfTwo64(value);
   } else {
-    return CountTrailingZerosNonZero(static_cast<uint64_t>(value));
+    // Without windows.h included this line triggers a truncation warning on
+    // 64-bit builds. Presumably windows.h disables the relevant warning.
+    return RoundUpToPowerOfTwo32(static_cast<uint32_t>(value));
   }
 }
-#define V8_BITS_CTZ_NZ_DEFINED 1
+
+// RoundDownToPowerOfTwo32(value) returns the greatest power of two which is
+// less than or equal to |value|. If you pass in a |value| that is already a
+// power of two, it is returned as is.
+inline uint32_t RoundDownToPowerOfTwo32(uint32_t value) {
+  if (value > 0x80000000u) return 0x80000000u;
+  uint32_t result = RoundUpToPowerOfTwo32(value);
+  if (result > value) result >>= 1;
+  return result;
+}
+
+
+// Precondition: 0 <= shift < 32
+inline constexpr uint32_t RotateRight32(uint32_t value, uint32_t shift) {
+  return (value >> shift) | (value << ((32 - shift) & 31));
+}
+
+// Precondition: 0 <= shift < 32
+inline constexpr uint32_t RotateLeft32(uint32_t value, uint32_t shift) {
+  return (value << shift) | (value >> ((32 - shift) & 31));
+}
+
+// Precondition: 0 <= shift < 64
+inline constexpr uint64_t RotateRight64(uint64_t value, uint64_t shift) {
+  return (value >> shift) | (value << ((64 - shift) & 63));
+}
+
+// Precondition: 0 <= shift < 64
+inline constexpr uint64_t RotateLeft64(uint64_t value, uint64_t shift) {
+  return (value << shift) | (value >> ((64 - shift) & 63));
+}
+
+// SignedAddOverflow32(lhs,rhs,val) performs a signed summation of |lhs| and
+// |rhs| and stores the result into the variable pointed to by |val| and
+// returns true if the signed summation resulted in an overflow.
+inline bool SignedAddOverflow32(int32_t lhs, int32_t rhs, int32_t* val) {
+#if V8_HAS_BUILTIN_SADD_OVERFLOW
+  return __builtin_sadd_overflow(lhs, rhs, val);
+#else
+  uint32_t res = static_cast<uint32_t>(lhs) + static_cast<uint32_t>(rhs);
+  *val = base::bit_cast<int32_t>(res);
+  return ((res ^ lhs) & (res ^ rhs) & (1U << 31)) != 0;
 #endif
+}
 
-constexpr int CountPopulation(uint32_t value) { return __builtin_popcount(value); }
-constexpr int CountPopulation(uint64_t value) { return __builtin_popcountll(value); }
 
-// Template wrappers used by newer V8 call sites (e.g. CountTrailingZeros<uint32_t>)
-// Provide these to preserve compatibility with templated usage.
-template <typename T>
-constexpr int CountTrailingZeros(T value) {
-  if constexpr (sizeof(T) <= sizeof(uint32_t)) {
-    return CountTrailingZeros(static_cast<uint32_t>(value));
-  } else {
-    return CountTrailingZeros(static_cast<uint64_t>(value));
+// SignedSubOverflow32(lhs,rhs,val) performs a signed subtraction of |lhs| and
+// |rhs| and stores the result into the variable pointed to by |val| and
+// returns true if the signed subtraction resulted in an overflow.
+inline bool SignedSubOverflow32(int32_t lhs, int32_t rhs, int32_t* val) {
+#if V8_HAS_BUILTIN_SSUB_OVERFLOW
+  return __builtin_ssub_overflow(lhs, rhs, val);
+#else
+  uint32_t res = static_cast<uint32_t>(lhs) - static_cast<uint32_t>(rhs);
+  *val = base::bit_cast<int32_t>(res);
+  return ((res ^ lhs) & (res ^ ~rhs) & (1U << 31)) != 0;
+#endif
+}
+
+// SignedMulOverflow32(lhs,rhs,val) performs a signed multiplication of |lhs|
+// and |rhs| and stores the result into the variable pointed to by |val| and
+// returns true if the signed multiplication resulted in an overflow.
+inline bool SignedMulOverflow32(int32_t lhs, int32_t rhs, int32_t* val) {
+#if V8_HAS_BUILTIN_SMUL_OVERFLOW
+  return __builtin_smul_overflow(lhs, rhs, val);
+#else
+  // Compute the result as {int64_t}, then check for overflow.
+  int64_t result = int64_t{lhs} * int64_t{rhs};
+  *val = static_cast<int32_t>(result);
+  using limits = std::numeric_limits<int32_t>;
+  return result < limits::min() || result > limits::max();
+#endif
+}
+
+// SignedAddOverflow64(lhs,rhs,val) performs a signed summation of |lhs| and
+// |rhs| and stores the result into the variable pointed to by |val| and
+// returns true if the signed summation resulted in an overflow.
+inline bool SignedAddOverflow64(int64_t lhs, int64_t rhs, int64_t* val) {
+#if V8_HAS_BUILTIN_ADD_OVERFLOW
+  return __builtin_add_overflow(lhs, rhs, val);
+#else
+  uint64_t res = static_cast<uint64_t>(lhs) + static_cast<uint64_t>(rhs);
+  *val = base::bit_cast<int64_t>(res);
+  return ((res ^ lhs) & (res ^ rhs) & (1ULL << 63)) != 0;
+#endif
+}
+
+
+// SignedSubOverflow64(lhs,rhs,val) performs a signed subtraction of |lhs| and
+// |rhs| and stores the result into the variable pointed to by |val| and
+// returns true if the signed subtraction resulted in an overflow.
+inline bool SignedSubOverflow64(int64_t lhs, int64_t rhs, int64_t* val) {
+#if V8_HAS_BUILTIN_SUB_OVERFLOW
+  return __builtin_sub_overflow(lhs, rhs, val);
+#else
+  uint64_t res = static_cast<uint64_t>(lhs) - static_cast<uint64_t>(rhs);
+  *val = base::bit_cast<int64_t>(res);
+  return ((res ^ lhs) & (res ^ ~rhs) & (1ULL << 63)) != 0;
+#endif
+}
+
+// SignedMulOverflow64(lhs,rhs,val) performs a signed multiplication of |lhs|
+// and |rhs| and stores the result into the variable pointed to by |val| and
+// returns true if the signed multiplication resulted in an overflow.
+inline bool SignedMulOverflow64(int64_t lhs, int64_t rhs, int64_t* val) {
+#if V8_HAS_BUILTIN_MUL_OVERFLOW
+  return __builtin_mul_overflow(lhs, rhs, val);
+#else
+  int64_t res = base::bit_cast<int64_t>(static_cast<uint64_t>(lhs) *
+                                        static_cast<uint64_t>(rhs));
+  *val = res;
+
+  // Check for INT64_MIN / -1 as it's undefined behaviour and could cause
+  // hardware exceptions.
+  if ((res == INT64_MIN && lhs == -1)) {
+    return true;
   }
+
+  return lhs != 0 && (res / lhs) != rhs;
+#endif
 }
 
-// Additional helpers used throughout V8
-template <typename T>
-constexpr int WhichPowerOfTwo(T value) {
-  // Caller ensures value is a power of two and non-zero.
-  return CountTrailingZerosNonZero(static_cast<std::make_unsigned_t<T>>(value));
+// SignedMulHigh32(lhs, rhs) multiplies two signed 32-bit values |lhs| and
+// |rhs|, extracts the most significant 32 bits of the result, and returns
+// those.
+V8_BASE_EXPORT int32_t SignedMulHigh32(int32_t lhs, int32_t rhs);
+
+// UnsignedMulHigh32(lhs, rhs) multiplies two unsigned 32-bit values |lhs| and
+// |rhs|, extracts the most significant 32 bits of the result, and returns
+// those.
+V8_BASE_EXPORT uint32_t UnsignedMulHigh32(uint32_t lhs, uint32_t rhs);
+
+// SignedMulHigh64(lhs, rhs) multiplies two signed 64-bit values |lhs| and
+// |rhs|, extracts the most significant 64 bits of the result, and returns
+// those.
+V8_BASE_EXPORT int64_t SignedMulHigh64(int64_t lhs, int64_t rhs);
+
+// UnsignedMulHigh64(lhs, rhs) multiplies two unsigned 64-bit values |lhs| and
+// |rhs|, extracts the most significant 64 bits of the result, and returns
+// those.
+V8_BASE_EXPORT uint64_t UnsignedMulHigh64(uint64_t lhs, uint64_t rhs);
+
+// SignedMulHighAndAdd32(lhs, rhs, acc) multiplies two signed 32-bit values
+// |lhs| and |rhs|, extracts the most significant 32 bits of the result, and
+// adds the accumulate value |acc|.
+V8_BASE_EXPORT int32_t SignedMulHighAndAdd32(int32_t lhs, int32_t rhs,
+                                             int32_t acc);
+
+// SignedDiv32(lhs, rhs) divides |lhs| by |rhs| and returns the quotient
+// truncated to int32. If |rhs| is zero, then zero is returned. If |lhs|
+// is minint and |rhs| is -1, it returns minint.
+V8_BASE_EXPORT int32_t SignedDiv32(int32_t lhs, int32_t rhs);
+
+// SignedDiv64(lhs, rhs) divides |lhs| by |rhs| and returns the quotient
+// truncated to int64. If |rhs| is zero, then zero is returned. If |lhs|
+// is minint and |rhs| is -1, it returns minint.
+V8_BASE_EXPORT int64_t SignedDiv64(int64_t lhs, int64_t rhs);
+
+// SignedMod32(lhs, rhs) divides |lhs| by |rhs| and returns the remainder
+// truncated to int32. If either |rhs| is zero or |lhs| is minint and |rhs|
+// is -1, it returns zero.
+V8_BASE_EXPORT int32_t SignedMod32(int32_t lhs, int32_t rhs);
+
+// SignedMod64(lhs, rhs) divides |lhs| by |rhs| and returns the remainder
+// truncated to int64. If either |rhs| is zero or |lhs| is minint and |rhs|
+// is -1, it returns zero.
+V8_BASE_EXPORT int64_t SignedMod64(int64_t lhs, int64_t rhs);
+
+// UnsignedAddOverflow32(lhs,rhs,val) performs an unsigned summation of |lhs|
+// and |rhs| and stores the result into the variable pointed to by |val| and
+// returns true if the unsigned summation resulted in an overflow.
+inline bool UnsignedAddOverflow32(uint32_t lhs, uint32_t rhs, uint32_t* val) {
+#if V8_HAS_BUILTIN_SADD_OVERFLOW
+  return __builtin_uadd_overflow(lhs, rhs, val);
+#else
+  *val = lhs + rhs;
+  return *val < (lhs | rhs);
+#endif
 }
 
-inline bool SignedAddOverflow32(int32_t a, int32_t b, int32_t* out) {
-  long long r = static_cast<long long>(a) + static_cast<long long>(b);
-  *out = static_cast<int32_t>(r);
-  return r > INT32_MAX || r < INT32_MIN;
-}
 
-inline bool SignedSubOverflow32(int32_t a, int32_t b, int32_t* out) {
-  long long r = static_cast<long long>(a) - static_cast<long long>(b);
-  *out = static_cast<int32_t>(r);
-  return r > INT32_MAX || r < INT32_MIN;
-}
-
-inline bool SignedMulOverflow32(int32_t a, int32_t b, int32_t* out) {
-  long long r = static_cast<long long>(a) * static_cast<long long>(b);
-  *out = static_cast<int32_t>(r);
-  return r > INT32_MAX || r < INT32_MIN;
-}
-
-// Division and modulo operations for compiler use
-inline int32_t SignedDiv32(int32_t lhs, int32_t rhs) {
-  if (rhs == 0) return 0;
-  if (rhs == -1 && lhs == INT32_MIN) return lhs;  // Prevent overflow
-  return lhs / rhs;
-}
-
-inline int64_t SignedDiv64(int64_t lhs, int64_t rhs) {
-  if (rhs == 0) return 0;
-  if (rhs == -1 && lhs == INT64_MIN) return lhs;  // Prevent overflow
-  return lhs / rhs;
-}
-
-inline int32_t SignedMod32(int32_t lhs, int32_t rhs) {
-  if (rhs == 0) return 0;
-  if (rhs == -1) return 0;  // Prevent overflow
-  return lhs % rhs;
-}
-
-inline int64_t SignedMod64(int64_t lhs, int64_t rhs) {
-  if (rhs == 0) return 0;
-  if (rhs == -1) return 0;  // Prevent overflow
-  return lhs % rhs;
-}
-
+// UnsignedDiv32(lhs, rhs) divides |lhs| by |rhs| and returns the quotient
+// truncated to uint32. If |rhs| is zero, then zero is returned.
 inline uint32_t UnsignedDiv32(uint32_t lhs, uint32_t rhs) {
-  if (rhs == 0) return 0;
-  return lhs / rhs;
+  return rhs ? lhs / rhs : 0u;
 }
 
+// UnsignedDiv64(lhs, rhs) divides |lhs| by |rhs| and returns the quotient
+// truncated to uint64. If |rhs| is zero, then zero is returned.
 inline uint64_t UnsignedDiv64(uint64_t lhs, uint64_t rhs) {
-  if (rhs == 0) return 0;
-  return lhs / rhs;
+  return rhs ? lhs / rhs : 0u;
 }
 
+// UnsignedMod32(lhs, rhs) divides |lhs| by |rhs| and returns the remainder
+// truncated to uint32. If |rhs| is zero, then zero is returned.
 inline uint32_t UnsignedMod32(uint32_t lhs, uint32_t rhs) {
-  if (rhs == 0) return 0;
-  return lhs % rhs;
+  return rhs ? lhs % rhs : 0u;
 }
 
+// UnsignedMod64(lhs, rhs) divides |lhs| by |rhs| and returns the remainder
+// truncated to uint64. If |rhs| is zero, then zero is returned.
 inline uint64_t UnsignedMod64(uint64_t lhs, uint64_t rhs) {
-  if (rhs == 0) return 0;
-  return lhs % rhs;
+  return rhs ? lhs % rhs : 0u;
 }
 
-// ReverseBytes helpers for 32/64-bit integers.
-inline uint32_t ReverseBytes(uint32_t v) { return __builtin_bswap32(v); }
-inline uint64_t ReverseBytes(uint64_t v) { return __builtin_bswap64(v); }
-// CountLeadingSignBits: number of leading bits equal to the sign bit.
-inline int CountLeadingSignBits(int32_t v) {
-  // For non-negative, count leading zeros; for negative, count leading ones as clz(~v).
-  return v >= 0 ? CountLeadingZeros(static_cast<uint32_t>(v))
-                : CountLeadingZeros(static_cast<uint32_t>(~v));
-}
-inline int CountLeadingSignBits(int64_t v) {
-  return v >= 0 ? CountLeadingZeros(static_cast<uint64_t>(v))
-                : CountLeadingZeros(static_cast<uint64_t>(~v));
+// Wraparound integer arithmetic without undefined behavior.
+
+inline int32_t WraparoundAdd32(int32_t lhs, int32_t rhs) {
+  return static_cast<int32_t>(static_cast<uint32_t>(lhs) +
+                              static_cast<uint32_t>(rhs));
 }
 
-// Overflow detection helpers for 64-bit signed ops.
-inline bool SignedAddOverflow64(int64_t a, int64_t b, int64_t* out) {
-  return __builtin_add_overflow(a, b, out);
-}
-inline bool SignedSubOverflow64(int64_t a, int64_t b, int64_t* out) {
-  return __builtin_sub_overflow(a, b, out);
-}
-inline bool SignedMulOverflow64(int64_t a, int64_t b, int64_t* out) {
-  return __builtin_mul_overflow(a, b, out);
+inline int32_t WraparoundNeg32(int32_t x) {
+  return static_cast<int32_t>(-static_cast<uint32_t>(x));
 }
 
-// High-part multiply helpers.
-inline int32_t SignedMulHigh32(int32_t a, int32_t b) {
-  long long p = static_cast<long long>(a) * static_cast<long long>(b);
-  return static_cast<int32_t>(p >> 32);
-}
-inline int64_t SignedMulHigh64(int64_t a, int64_t b) {
-#if defined(__SIZEOF_INT128__)
-  __int128 p = static_cast<__int128>(a) * static_cast<__int128>(b);
-  return static_cast<int64_t>(p >> 64);
-#else
-  // Fallback (approximate): not used in critical paths for WASI build.
-  return 0;
-#endif
-}
-inline uint32_t UnsignedMulHigh32(uint32_t a, uint32_t b) {
-  uint64_t p = static_cast<uint64_t>(a) * static_cast<uint64_t>(b);
-  return static_cast<uint32_t>(p >> 32);
-}
-inline uint64_t UnsignedMulHigh64(uint64_t a, uint64_t b) {
-#if defined(__SIZEOF_INT128__)
-  unsigned __int128 p = static_cast<unsigned __int128>(a) * static_cast<unsigned __int128>(b);
-  return static_cast<uint64_t>(p >> 64);
-#else
-  return 0;
-#endif
-}
+// SignedSaturatedAdd64(lhs, rhs) adds |lhs| and |rhs|,
+// checks and returns the result.
+V8_BASE_EXPORT int64_t SignedSaturatedAdd64(int64_t lhs, int64_t rhs);
 
-// Convert signed to unsigned of same width.
-template <typename T>
-constexpr typename ::std::make_unsigned<T>::type Unsigned(T v) {
-  return static_cast<typename ::std::make_unsigned<T>::type>(v);
-}
-
-template <typename T>
-constexpr int CountPopulation(T value) {
-  if constexpr (sizeof(T) <= sizeof(uint32_t)) {
-    return CountPopulation(static_cast<uint32_t>(value));
-  } else {
-    return CountPopulation(static_cast<uint64_t>(value));
-  }
-}
-
-template <typename T>
-constexpr int CountLeadingZeros(T value) {
-  if constexpr (sizeof(T) <= sizeof(uint32_t)) {
-    return CountLeadingZeros(static_cast<uint32_t>(value));
-  } else {
-    return CountLeadingZeros(static_cast<uint64_t>(value));
-  }
-}
-
-// CountTrailingZerosNonZero is defined in nuclear-fix.h
-
-// Provide saturated 64-bit add/sub for WASI builds
-constexpr int64_t SignedSaturatedAdd64(int64_t a, int64_t b) {
-  const int64_t max = ::std::numeric_limits<int64_t>::max();
-  const int64_t min = ::std::numeric_limits<int64_t>::min();
-  if (b > 0 && a > max - b) return max;
-  if (b < 0 && a < min - b) return min;
-  return a + b;
-}
-
-constexpr int64_t SignedSaturatedSub64(int64_t a, int64_t b) {
-  const int64_t max = ::std::numeric_limits<int64_t>::max();
-  const int64_t min = ::std::numeric_limits<int64_t>::min();
-  if (b < 0 && a > max + b) return max;
-  if (b > 0 && a < min + b) return min;
-  return a - b;
-}
-
-// Close WASI-specific section
-#endif  // end generic implementations
-
-// IsPowerOfTwo helper used by RNG; accept signed and cast to unsigned
-template <typename T,
-          typename ::std::enable_if<::std::is_integral<T>::value ||
-                                    ::std::is_enum<T>::value, int>::type = 0>
-constexpr bool IsPowerOfTwo(T value) {
-  using U = typename ::std::make_unsigned<T>::type;
-  return value > 0 && ((U(value) & (U(value) - 1)) == 0);
-}
-
-// BitWidth: number of bits needed to represent value (0 => 0)
-template <typename T>
-constexpr int BitWidth(T value) {
-  using U = typename ::std::make_unsigned<T>::type;
-  U v = static_cast<U>(value);
-  if (v == 0) return 0;
-  if constexpr (sizeof(U) == 8) {
-    return static_cast<int>(8 * sizeof(U) - __builtin_clzll(v));
-  } else {
-    return static_cast<int>(8 * sizeof(U) - __builtin_clz(static_cast<uint32_t>(v)));
-  }
-}
-
-
+// SignedSaturatedSub64(lhs, rhs) subtracts |lhs| by |rhs|,
+// checks and returns the result.
+V8_BASE_EXPORT int64_t SignedSaturatedSub64(int64_t lhs, int64_t rhs);
 
 }  // namespace bits
 }  // namespace base
 }  // namespace v8
 
-// Close the generic implementations block (#if 1)
-#endif
-
-// Exporting into v8::internal::base::bits can create nested namespace issues
-// when included from within a namespace v8 block. Avoid this bridge on WASI.
-#ifndef __wasi__
-// Make selected ::v8::base::bits helpers visible under v8::internal::base::bits
-// so internal code can refer to base::bits::* without including globals.h.
-namespace v8 {
-namespace internal {
-namespace base {
-namespace bits {
-using ::v8::base::bits::RoundUpToPowerOfTwo32;
-using ::v8::base::bits::RoundUpToPowerOfTwo64;
-using ::v8::base::bits::RoundUpToPowerOfTwo;
-using ::v8::base::bits::CountTrailingZerosNonZero;
-using ::v8::base::bits::CountTrailingZeros;
-using ::v8::base::bits::CountTrailingZeros32;
-using ::v8::base::bits::CountTrailingZeros64;
-using ::v8::base::bits::CountLeadingZeros;
-using ::v8::base::bits::CountLeadingZeros32;
-using ::v8::base::bits::CountLeadingZeros64;
-using ::v8::base::bits::CountPopulation;
-using ::v8::base::bits::CountLeadingSignBits;
-using ::v8::base::bits::SignedSaturatedAdd64;
-using ::v8::base::bits::SignedSaturatedSub64;
-using ::v8::base::bits::IsPowerOfTwo;
-using ::v8::base::bits::ReverseBytes;
-using ::v8::base::bits::SignedAddOverflow64;
-using ::v8::base::bits::SignedSubOverflow64;
-using ::v8::base::bits::SignedMulOverflow64;
-using ::v8::base::bits::SignedMulHigh32;
-using ::v8::base::bits::SignedMulHigh64;
-using ::v8::base::bits::UnsignedMulHigh32;
-using ::v8::base::bits::UnsignedMulHigh64;
-using ::v8::base::bits::Unsigned;
-using ::v8::base::bits::WhichPowerOfTwo;
-using ::v8::base::bits::SignedAddOverflow32;
-using ::v8::base::bits::SignedSubOverflow32;
-using ::v8::base::bits::SignedMulOverflow32;
-using ::v8::base::bits::SignedDiv32;
-using ::v8::base::bits::SignedDiv64;
-using ::v8::base::bits::SignedMod32;
-using ::v8::base::bits::SignedMod64;
-using ::v8::base::bits::UnsignedDiv32;
-using ::v8::base::bits::UnsignedDiv64;
-using ::v8::base::bits::UnsignedMod32;
-using ::v8::base::bits::UnsignedMod64;
-using ::v8::base::bits::RotateRight32;
-using ::v8::base::bits::RotateRight64;
-using ::v8::base::bits::RotateLeft32;
-using ::v8::base::bits::RotateLeft64;
-using ::v8::base::bits::RoundDownToPowerOfTwo32;
-}  // namespace bits
-}  // namespace base
-}  // namespace internal
-}  // namespace v8
-
-#endif  // V8_SRC_BASE_BITS_H_
+#endif  // V8_BASE_BITS_H_

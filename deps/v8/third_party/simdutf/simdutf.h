@@ -1,11 +1,9 @@
-// WASI-compatible simdutf header
-#ifndef SIMDUTF_H_WASI
-#define SIMDUTF_H_WASI
+// Minimal simdutf header for both WASI and host builds
+#ifndef SIMDUTF_H_MINIMAL
+#define SIMDUTF_H_MINIMAL
 
 #include <cstddef>
 #include <cstdint>
-
-#ifdef __wasi__
 
 // Define the macro if not already defined
 #ifndef simdutf_warn_unused
@@ -63,10 +61,7 @@ inline size_t convert_utf8_to_utf16(const char* input, size_t length, char16_t* 
     return convert_utf8_to_utf16le(input, length, output);
 }
 
-inline result convert_utf8_to_latin1_with_errors(const char* input, size_t length, char* output) noexcept {
-    for (size_t i = 0; i < length; ++i) output[i] = input[i];
-    return {length, error_code::SUCCESS};
-}
+result convert_utf8_to_latin1_with_errors(const char* input, size_t length, char* output) noexcept;
 
 // Minimal base64 API used by V8; implemented in simdutf_wasi.cpp
 size_t maximal_binary_length_from_base64(const char* input, size_t length) noexcept;
@@ -87,5 +82,4 @@ size_t binary_to_base64(const char* input, size_t length, char* output,
 
 }  // namespace simdutf
 
-#endif // __wasi__
-#endif // SIMDUTF_H_WASI
+#endif // SIMDUTF_H_MINIMAL

@@ -5,10 +5,6 @@
 // Platform-specific code shared between macOS and iOS goes here. The
 // POSIX-compatible parts in platform-posix.cc.
 
-#ifdef __wasi__
-// Empty stub for WASI builds
-#else
-
 #include <AvailabilityMacros.h>
 #include <dlfcn.h>
 #include <errno.h>
@@ -100,7 +96,7 @@ std::vector<OS::SharedLibraryAddress> OS::GetSharedLibraryAddresses() {
 #endif
     if (code_ptr == nullptr) continue;
     const intptr_t slide = _dyld_get_image_vmaddr_slide(i);
-    const uintptr_t start = reinterpret_cast<uintptr_t>(code_ptr);
+    const uintptr_t start = reinterpret_cast<uintptr_t>(code_ptr) + slide;
     result.push_back(SharedLibraryAddress(_dyld_get_image_name(i), start,
                                           start + size, slide));
   }
@@ -133,10 +129,10 @@ void OS::AdjustSchedulingParams() {
 #endif
 }
 
-std::optional<OS::MemoryRange> OS::GetFirstFreeMemoryRangeWithin(
+std::vector<OS::MemoryRange> OS::GetFreeMemoryRangesWithin(
     OS::Address boundary_start, OS::Address boundary_end, size_t minimum_size,
     size_t alignment) {
-  return std::nullopt;
+  return {};
 }
 
 // static
@@ -242,5 +238,3 @@ V8_BASE_EXPORT void SetJitWriteProtected(int enable) {
 
 }  // namespace base
 }  // namespace v8
-
-#endif  // __wasi__

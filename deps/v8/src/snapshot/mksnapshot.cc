@@ -8,6 +8,24 @@
 
 #include <iomanip>
 
+#ifdef __wasi__
+#include <cstdlib>
+
+// C++ exception handling stubs for WASI
+extern "C" {
+void* __cxa_allocate_exception(size_t) { abort(); }
+[[noreturn]] void __cxa_throw(void*, void*, void (*)(void*)) { abort(); }
+void* __cxa_begin_catch(void*) { return nullptr; }
+void __cxa_end_catch() {}
+[[noreturn]] void __cxa_rethrow() { abort(); }
+}
+
+// Forward declarations and includes for WASI stubs
+#include "include/v8-microtask-queue.h"
+#include "src/api/api-inl.h"
+#include "src/heap/cppgc/heap-object-header.h"
+#endif  // __wasi__
+
 #include "include/libplatform/libplatform.h"
 #include "include/v8-initialization.h"
 #include "src/base/platform/elapsed-timer.h"
@@ -328,3 +346,157 @@ int main(int argc, char** argv) {
   v8::V8::DisposePlatform();
   return 0;
 }
+
+#ifdef __wasi__
+// WASI stubs for missing symbols - defined after all includes have access to types
+
+// Include additional headers needed for stubs
+#include "cppgc/allocation.h"
+#include "cppgc/internal/gc-info.h"
+#include "src/codegen/assembler.h"
+#include "src/codegen/reloc-info.h"
+#include "src/deoptimizer/deoptimizer.h"
+
+// simdutf function stubs - types are already defined in simdutf.h via headers
+namespace simdutf {
+size_t maximal_binary_length_from_base64(const char*, size_t) noexcept { return 0; }
+size_t base64_length_from_binary(size_t, base64_options) noexcept { return 0; }
+size_t binary_to_base64(const char*, size_t, char*, base64_options) noexcept { return 0; }
+result base64_to_binary_safe(const char* input, size_t input_length, char* output,
+                             size_t output_length, base64_options alphabet,
+                             last_chunk_handling_options last_chunk) noexcept {
+  return {0, error_code::SUCCESS};
+}
+result base64_to_binary_safe(const char16_t* input, size_t input_length, char* output,
+                             size_t output_length, base64_options alphabet,
+                             last_chunk_handling_options last_chunk) noexcept {
+  return {0, error_code::SUCCESS};
+}
+}  // namespace simdutf
+
+namespace cppgc {
+bool IsInitialized() { return false; }
+void InitializeProcess(v8::PageAllocator*, size_t) {}
+void ShutdownProcess() {}
+
+namespace internal {
+// GCInfo stubs - must match gc-info.h signatures
+GCInfoIndex EnsureGCInfoIndexTrait::EnsureGCInfoIndex(
+    std::atomic<GCInfoIndex>&, TraceCallback, FinalizationCallback, NameCallback) {
+  return 1;
+}
+GCInfoIndex EnsureGCInfoIndexTrait::EnsureGCInfoIndex(
+    std::atomic<GCInfoIndex>&, TraceCallback, FinalizationCallback) {
+  return 1;
+}
+GCInfoIndex EnsureGCInfoIndexTrait::EnsureGCInfoIndex(
+    std::atomic<GCInfoIndex>&, TraceCallback, NameCallback) {
+  return 1;
+}
+GCInfoIndex EnsureGCInfoIndexTrait::EnsureGCInfoIndex(
+    std::atomic<GCInfoIndex>&, TraceCallback) {
+  return 1;
+}
+
+// MakeGarbageCollectedTraitInternal stubs - must match allocation.h signatures
+void* MakeGarbageCollectedTraitInternal::Allocate(
+    cppgc::AllocationHandle&, size_t, GCInfoIndex) {
+  return nullptr;
+}
+void* MakeGarbageCollectedTraitInternal::Allocate(
+    cppgc::AllocationHandle&, size_t, AlignVal, GCInfoIndex) {
+  return nullptr;
+}
+void* MakeGarbageCollectedTraitInternal::Allocate(
+    cppgc::AllocationHandle&, size_t, GCInfoIndex, cppgc::CustomSpaceIndex) {
+  return nullptr;
+}
+void* MakeGarbageCollectedTraitInternal::Allocate(
+    cppgc::AllocationHandle&, size_t, AlignVal, GCInfoIndex, cppgc::CustomSpaceIndex) {
+  return nullptr;
+}
+}  // namespace internal
+}  // namespace cppgc
+
+namespace v8 {
+namespace base {
+// Semaphore stub
+Semaphore::~Semaphore() {}
+}  // namespace base
+
+namespace internal {
+// CpuFeatures::ProbeImpl is defined in cpu-wasm32.cc for WASM32 target
+
+StartupData WarmUpSnapshotDataBlobInternal(StartupData cold_snapshot, const char* warmup_script) {
+  return cold_snapshot;
+}
+
+// StrongRootAllocatorBase stubs - must match heap.h signatures
+Address* StrongRootAllocatorBase::allocate_impl(size_t) { return nullptr; }
+void StrongRootAllocatorBase::deallocate_impl(Address* p, size_t n) noexcept {}
+
+// Callback invocation stubs - must match api.h signatures
+void InvokeFunctionCallbackGeneric(
+    const v8::FunctionCallbackInfo<v8::Value>& info) {}
+void InvokeFunctionCallbackOptimized(
+    const v8::FunctionCallbackInfo<v8::Value>& info) {}
+void InvokeAccessorGetterCallback(
+    v8::Local<v8::Name> property,
+    const v8::PropertyCallbackInfo<v8::Value>& info) {}
+
+// Note: Assembler methods are in assembler-wasm32.cc
+// RelocInfo stubs - architecture-specific, not fully implemented for WASM32
+Address RelocInfo::target_external_reference() { return 0; }
+JSDispatchHandle RelocInfo::js_dispatch_handle() { return JSDispatchHandle(); }
+
+// Deoptimizer stub
+void Deoptimizer::PatchToJump(Address, Address) {}
+
+}  // namespace internal
+
+namespace platform {
+std::unique_ptr<Platform> NewDefaultPlatform(
+    int thread_pool_size,
+    IdleTaskSupport idle_task_support,
+    InProcessStackDumping in_process_stack_dumping,
+    std::unique_ptr<v8::TracingController> tracing_controller) {
+  // Return nullptr for WASI - snapshot creation won't work but allows linking
+  return nullptr;
+}
+}  // namespace platform
+
+SnapshotCreator::SnapshotCreator(Isolate* isolate, const Isolate::CreateParams& params) {
+  // Stub constructor for WASI
+}
+
+// ExternalMemoryAccounter stubs
+ExternalMemoryAccounter::~ExternalMemoryAccounter() {}
+void ExternalMemoryAccounter::Increase(Isolate* isolate, size_t size) {}
+void ExternalMemoryAccounter::Decrease(Isolate* isolate, size_t size) {}
+
+// MicrotasksScope stubs
+MicrotasksScope::MicrotasksScope(Isolate* v8_isolate, MicrotaskQueue* microtask_queue,
+                                 MicrotasksScope::Type type)
+    : i_isolate_(nullptr), microtask_queue_(nullptr), run_(false) {}
+MicrotasksScope::~MicrotasksScope() {}
+
+}  // namespace v8
+
+namespace v8 {
+namespace base {
+// OS stubs
+void OS::AdjustSchedulingParams() {}
+}  // namespace base
+
+namespace internal {
+// HandleScopeImplementer stubs
+char* HandleScopeImplementer::Iterate(RootVisitor* v, char* storage) {
+  return storage;
+}
+int HandleScopeImplementer::ArchiveSpacePerThread() {
+  return 0;
+}
+}  // namespace internal
+}  // namespace v8
+
+#endif  // __wasi__

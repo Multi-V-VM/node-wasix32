@@ -1,13 +1,15 @@
 // Copyright 2024 the V8 project authors. All rights reserved.
-// WASI/WebAssembly macro assembler for V8
+// Minimal WASM32 macro assembler stub - provides symbols for linking but
+// actual code generation is not supported since WASM32 is an interpreter target.
 
 #ifndef V8_CODEGEN_WASM32_MACRO_ASSEMBLER_WASM32_H_
 #define V8_CODEGEN_WASM32_MACRO_ASSEMBLER_WASM32_H_
 
-#include "src/codegen/macro-assembler.h"
-#include "src/codegen/bailout-reason.h"  // For AbortReason
+#include "src/codegen/macro-assembler-base.h"
+#include "src/codegen/bailout-reason.h"
 #include "src/codegen/wasm32/assembler-wasm32.h"
 #include "src/execution/frame-constants.h"
+#include "src/execution/frames.h"
 
 namespace v8 {
 namespace internal {
@@ -16,240 +18,97 @@ namespace internal {
 struct MoveCycleState {};
 
 class V8_EXPORT_PRIVATE MacroAssembler : public MacroAssemblerBase {
-public:
+ public:
   using MacroAssemblerBase::MacroAssemblerBase;
 
-  MacroAssembler(Isolate* isolate, CodeObjectRequired create_code_object,
-                       const AssemblerOptions& options,
-                       std::unique_ptr<AssemblerBuffer> buffer = {})
-      : MacroAssemblerBase(isolate, options, create_code_object,
-                           std::move(buffer)),
-        assembler_(options) {}
+  // Stack operations - all stubs
+  void Push(Register) { nop(); }
+  void Pop(Register) { nop(); }
 
-  Assembler* assembler() { return &assembler_; }
+  // Memory operations - all stubs
+  void Move(Register, Register) { nop(); }
+  void Move(Register, int32_t) { nop(); }
+  void Move(Register, Tagged<Smi>) { nop(); }
+  void Move(Register, ExternalReference) { nop(); }
 
-  // Stack operations
-  void Push(Register reg) {
-    static_cast<void>(reg);
-    assembler_.nop();
-    current_stack_depth_++;
-  }
+  // Arithmetic operations - all stubs
+  void Add(Register, Register, Register) { nop(); }
+  void Sub(Register, Register, Register) { nop(); }
+  void Mul(Register, Register, Register) { nop(); }
 
-  void Pop(Register reg) {
-    static_cast<void>(reg);
-    assembler_.nop();
-    current_stack_depth_--;
-  }
+  // Comparison operations - stub
+  void CompareAndBranch(Register, Register, Condition, Label*) { nop(); }
 
-  // Memory operations
-  void Move(Register dst, Register src) {
-    static_cast<void>(dst);
-    static_cast<void>(src);
-    assembler_.nop();
-  }
+  // Function calls - all stubs
+  void Call(Address) { nop(); }
+  void Call(Register) { nop(); }
+  void CallRuntime(Runtime::FunctionId) { nop(); }
 
-  void Move(Register dst, int32_t imm) {
-    static_cast<void>(dst);
-    static_cast<void>(imm);
-    assembler_.nop();
-  }
+  // Control flow - stubs
+  void Jump(Label*) { nop(); }
+  void Jump(Register) { nop(); }
+  void Jump(Address, RelocInfo::Mode = RelocInfo::NO_INFO) { nop(); }
+  void Jump(Handle<Code>, RelocInfo::Mode = RelocInfo::CODE_TARGET) { nop(); }
+  void Jump(const ExternalReference&) { nop(); }
+  void Jump(intptr_t, RelocInfo::Mode = RelocInfo::NO_INFO) { nop(); }
 
-  void Move(Register dst, Tagged<Smi> smi) {
-    static_cast<void>(dst);
-    static_cast<void>(smi);
-    assembler_.nop();
-  }
+  void Bind(Label* label) { bind(label); }
+  void Ret() { nop(); }
 
-  void Move(Register dst, ExternalReference ext) {
-    static_cast<void>(dst);
-    static_cast<void>(ext);
-    assembler_.nop();
-  }
+  // Stack frame operations - stubs
+  void EnterFrame(StackFrame::Type) { nop(); }
+  void LeaveFrame(StackFrame::Type) { nop(); }
 
-  // Arithmetic operations
-  void Add(Register dst, Register src1, Register src2) {
-    static_cast<void>(dst);
-    static_cast<void>(src1);
-    static_cast<void>(src2);
-    assembler_.nop();
-  }
-
-  void Sub(Register dst, Register src1, Register src2) {
-    static_cast<void>(dst);
-    static_cast<void>(src1);
-    static_cast<void>(src2);
-    assembler_.nop();
-  }
-
-  void Mul(Register dst, Register src1, Register src2) {
-    static_cast<void>(dst);
-    static_cast<void>(src1);
-    static_cast<void>(src2);
-    assembler_.nop();
-  }
-
-  // Comparison operations
-  void CompareAndBranch(Register lhs, Register rhs, Condition cond, Label* label) {
-    assembler_.local_get(lhs.code());
-    assembler_.local_get(rhs.code());
-    
-    static_cast<void>(lhs);
-    static_cast<void>(rhs);
-    static_cast<void>(cond);
-    static_cast<void>(label);
-    assembler_.nop();
-  }
-
-  // Function calls
-  void Call(Address target) {
-    // In WebAssembly, calls are by function index
-    uint32_t func_index = AddressToFunctionIndex(target);
-    assembler_.call(func_index);
-  }
-
-  void Call(Register target) {
-    // Indirect call through register
-    static_cast<void>(target);
-    assembler_.nop();  // Stub - indirect calls need call_indirect in WASM
-  }
-
-  void CallRuntime(Runtime::FunctionId fid) {
-    // Runtime calls in WASI go through imports
-    uint32_t import_index = RuntimeToImportIndex(fid);
-    assembler_.call(import_index);
-  }
-
-  // Control flow
-  void Jump(Label* label) {
-    assembler_.br(CalculateBranchDepth(label));
-  }
-
-  void Jump(Register target);
-  void Jump(Address target, RelocInfo::Mode rmode = RelocInfo::NO_INFO);
-  void Jump(Handle<Code> code, RelocInfo::Mode rmode = RelocInfo::CODE_TARGET);
-  void Jump(const ExternalReference& reference);
-  void Jump(intptr_t target, RelocInfo::Mode rmode = RelocInfo::NO_INFO);
-
-  void Bind(Label* label) {
-    assembler_.bind(label);
-  }
-
-  void Ret() {
-    assembler_.wasm_return();
-  }
-
-  // Stack frame operations
-  void EnterFrame(StackFrame::Type type) {
-    // WebAssembly manages its own stack
-    assembler_.nop();
-  }
-
-  void LeaveFrame(StackFrame::Type type) {
-    // WebAssembly manages its own stack
-    assembler_.nop();
-  }
-
-  // Abort/Debug
-  void Abort(AbortReason reason) {
-    assembler_.unreachable();
-  }
-
-  void Trap() {
-    assembler_.unreachable();
-  }
-
-  void CallBuiltin(Builtin builtin) {
-    // For wasm32, builtins are not directly callable
-    // This is a stub implementation
-    assembler_.unreachable();
-  }
+  // Abort/Debug - stubs
+  void Abort(AbortReason) { nop(); }
+  void Trap() { nop(); }
+  void CallBuiltin(Builtin) { nop(); }
 
   // Required for MacroAssemblerBase
-  void RecordComment(const char* comment) {
-    // WebAssembly doesn't support comments in bytecode
-  }
+  void RecordComment(const char*) {}
+  void RequireCodeRange() {}
 
-  void RequireCodeRange() {
-    // Not applicable for WebAssembly
-  }
+  static constexpr int kFramePointerRegister = 0;
 
-  static constexpr int kFramePointerRegister = 0;  // No real frame pointer in WASM
+  // Implement pure virtuals from MacroAssemblerBase as no-ops
+  void LoadFromConstantsTable(Register, int) override { nop(); }
+  void LoadRootRegisterOffset(Register, intptr_t) override { nop(); }
+  void LoadRootRelative(Register, int32_t) override { nop(); }
+  void StoreRootRelative(int32_t, Register) override { nop(); }
+  void LoadRoot(Register, RootIndex) override { nop(); }
 
-  // Implement pure virtuals from MacroAssemblerBase as no-ops on wasm32.
-  void LoadFromConstantsTable(Register destination, int constant_index) override {
-    static_cast<void>(destination); static_cast<void>(constant_index); assembler_.nop();
-  }
-  void LoadRootRegisterOffset(Register destination, intptr_t offset) override {
-    static_cast<void>(destination); static_cast<void>(offset); assembler_.nop();
-  }
-  void LoadRootRelative(Register destination, int32_t offset) override {
-    static_cast<void>(destination); static_cast<void>(offset); assembler_.nop();
-  }
-  void StoreRootRelative(int32_t offset, Register value) override {
-    static_cast<void>(offset); static_cast<void>(value); assembler_.nop();
-  }
-  void LoadRoot(Register destination, RootIndex index) override {
-    static_cast<void>(destination); static_cast<void>(index); assembler_.nop();
-  }
-
-  // Backend helpers used by CodeGenerator.
+  // Backend helpers used by CodeGenerator
   void BindExceptionHandler(Label* label) { bind(label); }
-  void CodeEntry() { assembler_.nop(); }
-  void LoopHeaderAlign() { assembler_.nop(); }
-  void CodeTargetAlign() { assembler_.nop(); }
-  void Align(int) { assembler_.nop(); }
-  void JumpIfEqual(Register, int, Label*) { assembler_.nop(); }
-  void JumpIfLessThan(Register, int, Label*) { assembler_.nop(); }
-  void bind(Label* label) { assembler_.bind(label); }
-  void jmp(Label* label) { assembler_.EmitJump(label); }
+  void CodeEntry() { nop(); }
+  void LoopHeaderAlign() { nop(); }
+  void CodeTargetAlign() { nop(); }
+  void JumpIfEqual(Register, int, Label*) { nop(); }
+  void JumpIfLessThan(Register, int, Label*) { nop(); }
+  void jmp(Label*) { nop(); }
   void FinalizeJumpOptimizationInfo() {}
-  void MaybeEmitOutOfLineConstantPool() {}
-  void RecordDeoptReason(DeoptimizeReason, int, SourcePosition, int) {}
-  void CallForDeoptimization(Builtin, int, Label*, DeoptimizeKind, Label*, Label*) { assembler_.nop(); }
+  void CallForDeoptimization(Builtin, int, Label*, DeoptimizeKind, Label*,
+                             Label*) {
+    nop();
+  }
 
-  // Map and Smi operations
-  void LoadMap(Register dst, Register object);
-  void LoadCompressedMap(Register dst, Register object);
-  void SmiTag(Register dst, Register src);
+  // Map and Smi operations - stubs
+  void LoadMap(Register, Register) { nop(); }
+  void LoadCompressedMap(Register, Register) { nop(); }
+  void SmiTag(Register, Register) { nop(); }
   void SmiTag(Register reg) { SmiTag(reg, reg); }
-  void SmiUntag(Register dst, Register src);
+  void SmiUntag(Register, Register) { nop(); }
   void SmiUntag(Register reg) { SmiUntag(reg, reg); }
   void SmiToInt32(Register dst, Register src) { SmiUntag(dst, src); }
   void SmiToInt32(Register reg) { SmiUntag(reg, reg); }
-  void AssertSmi(Register object);
-  void AssertNotSmi(Register object);
+  void AssertSmi(Register) { nop(); }
+  void AssertNotSmi(Register) { nop(); }
 
   // Exception handling
   void ExceptionHandler(Label* label) { bind(label); }
-  void ExceptionHandler() { assembler_.nop(); }  // No-op for already bound handler
-
-private:
-  Assembler assembler_;
-  int current_stack_depth_ = 0;
-
-  uint32_t AddressToFunctionIndex(Address addr) {
-    // Convert address to WebAssembly function index
-    // This would need proper implementation based on module structure
-    return 0;
-  }
-
-  uint32_t RuntimeToImportIndex(Runtime::FunctionId fid) {
-    // Map runtime functions to WebAssembly imports
-    return static_cast<uint32_t>(fid);
-  }
-
-  uint32_t CalculateBranchDepth(Label* label) {
-    // Calculate WebAssembly branch depth from label
-    return 0;
-  }
+  void ExceptionHandler() { nop(); }
 };
-
-// Do not alias MacroAssembler to avoid conflicts with the generic
-// v8::internal::MacroAssembler on other architectures.
 
 }  // namespace internal
 }  // namespace v8
-
-// No alias necessary; wasm32 directly defines MacroAssembler above.
 
 #endif  // V8_CODEGEN_WASM32_MACRO_ASSEMBLER_WASM32_H_

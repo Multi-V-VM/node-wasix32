@@ -44,6 +44,7 @@ void PrintPropertyCallbackInfo(void*);
 #if defined(__wasi__) || defined(V8_USING_WASI_SHIMS)
 #else
 // Non-WASI content would go here
+#include "v8config.h"  // For V8_EXPORT and other macros
 #include <cstdint>
 #include <cstddef>
 #include <optional>

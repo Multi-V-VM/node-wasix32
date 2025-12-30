@@ -2,12 +2,12 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-#ifndef V8_BASE_HASHMAP_H_
-#define V8_BASE_HASHMAP_H_
-
 // The reason we write our own hash map instead of using unordered_map in STL,
 // is that STL containers use a mutex pool on debug build, which will lead to
 // deadlock when we are using async signal handler.
+
+#ifndef V8_BASE_HASHMAP_H_
+#define V8_BASE_HASHMAP_H_
 
 #include <stdlib.h>
 
@@ -16,18 +16,18 @@
 #include "src/base/logging.h"
 #include "src/base/platform/memory.h"
 
-
-namespace v8 { namespace base {
+namespace v8 {
+namespace base {
 
 class DefaultAllocationPolicy {
  public:
   template <typename T, typename TypeTag = T[]>
   V8_INLINE T* AllocateArray(size_t length) {
-    return static_cast<T*>(::v8::base::Malloc(length * sizeof(T)));
+    return static_cast<T*>(base::Malloc(length * sizeof(T)));
   }
   template <typename T, typename TypeTag = T[]>
   V8_INLINE void DeleteArray(T* p, size_t length) {
-    ::v8::base::Free(p);
+    base::Free(p);
   }
 };
 
@@ -326,7 +326,9 @@ template <typename Key, typename Value, typename MatchFun,
           class AllocationPolicy>
 void TemplateHashMapImpl<Key, Value, MatchFun, AllocationPolicy>::Clear() {
   // Mark all entries as empty.
-  memset(impl_.map_, 0, capacity() * sizeof(Entry));
+  for (size_t i = 0; i < capacity(); ++i) {
+    impl_.map_[i].clear();
+  }
   impl_.occupancy_ = 0;
 }
 
@@ -358,7 +360,6 @@ template <typename LookupKey>
 typename TemplateHashMapImpl<Key, Value, MatchFun, AllocationPolicy>::Entry*
 TemplateHashMapImpl<Key, Value, MatchFun, AllocationPolicy>::Probe(
     const LookupKey& key, uint32_t hash) const {
-  hash &= 0x7FFFFFFF;
   DCHECK(base::bits::IsPowerOfTwo(capacity()));
   size_t i = hash & (capacity() - 1);
   DCHECK(i < capacity());
@@ -544,7 +545,7 @@ class TemplateHashMap
     }
 
     value_type* operator->() { return reinterpret_cast<value_type*>(entry_); }
-    bool operator==(const Iterator& other) { return entry_ == other.entry_; }
+    bool operator!=(const Iterator& other) { return entry_ != other.entry_; }
 
    private:
     Iterator(const Base* map, typename Base::Entry* entry)
@@ -573,6 +574,5 @@ class TemplateHashMap
 
 }  // namespace base
 }  // namespace v8
-
 
 #endif  // V8_BASE_HASHMAP_H_

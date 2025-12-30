@@ -24,6 +24,8 @@
 #include "src/base/macros.h"
 #if V8_OS_WIN
 #include <windows.h>
+
+#include "src/base/win32-headers.h"
 #endif
 
 #if V8_OS_STARBOARD
@@ -43,9 +45,6 @@ int SysInfo::NumberOfProcessors() {
     return 1;
   }
   return ncpu;
-#elif V8_OS_ZOS
-  // This is from zoslib:
-  return __get_num_online_cpus();
 #elif V8_OS_POSIX
   long result = sysconf(_SC_NPROCESSORS_ONLN);  // NOLINT(runtime/int)
   if (result == -1) {
@@ -58,9 +57,6 @@ int SysInfo::NumberOfProcessors() {
   return static_cast<int>(system_info.dwNumberOfProcessors);
 #elif V8_OS_STARBOARD
   return SbSystemGetNumberOfProcessors();
-#else
-  // Default for WASI and other platforms
-  return 1;
 #endif
 }
 
@@ -102,10 +98,6 @@ int64_t SysInfo::AmountOfPhysicalMemory() {
 #elif V8_OS_AIX
   int64_t result = sysconf(_SC_AIX_REALMEM);
   return static_cast<int64_t>(result) * 1024L;
-#elif V8_OS_ZOS
-  int pages = __get_num_frames();
-  long page_size = sysconf(_SC_PAGESIZE);
-  return static_cast<uint64_t>(pages) * page_size;
 #elif V8_OS_POSIX
   long pages = sysconf(_SC_PHYS_PAGES);    // NOLINT(runtime/int)
   long page_size = sysconf(_SC_PAGESIZE);  // NOLINT(runtime/int)
@@ -115,9 +107,6 @@ int64_t SysInfo::AmountOfPhysicalMemory() {
   return static_cast<int64_t>(pages) * page_size;
 #elif V8_OS_STARBOARD
   return SbSystemGetTotalCPUMemory();
-#else
-  // Default for WASI and other platforms
-  return 256 * 1024 * 1024;  // 256MB default
 #endif
 }
 
@@ -134,9 +123,6 @@ int64_t SysInfo::AmountOfVirtualMemory() {
   }
   return (rlim.rlim_cur == RLIM_INFINITY) ? 0 : rlim.rlim_cur;
 #elif V8_OS_STARBOARD
-  return 0;
-#else
-  // Default for WASI and other platforms
   return 0;
 #endif
 }

@@ -1,6 +1,3 @@
-#ifdef __wasi__
-#define V8_TARGET_ARCH_WASM32 1
-#endif
 // Copyright 2012 the V8 project authors. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
@@ -395,7 +392,7 @@ double Strtod(Vector<const char> buffer, int exponent) {
   Vector<const char> left_trimmed = TrimLeadingZeros(buffer);
   Vector<const char> trimmed = TrimTrailingZeros(left_trimmed);
   exponent += left_trimmed.length() - trimmed.length();
-  if (trimmed.empty()) return 0.0;
+  if (trimmed.length() == 0) return 0.0;
   if (trimmed.length() > kMaxSignificantDecimalDigits) {
     char significant_buffer[kMaxSignificantDecimalDigits];
     int significant_exponent;

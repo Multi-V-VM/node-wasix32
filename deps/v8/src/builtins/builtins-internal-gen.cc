@@ -10,6 +10,7 @@
 #include "src/api/api.h"
 #include "src/baseline/baseline.h"
 #include "src/builtins/builtins-inl.h"
+#include "src/builtins/builtins-utils.h"
 #include "src/builtins/builtins-utils-gen.h"
 #include "src/codegen/code-stub-assembler-inl.h"
 #include "src/codegen/interface-descriptors-inl.h"

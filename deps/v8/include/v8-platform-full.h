@@ -41,7 +41,7 @@ class JobHandle {
   virtual void Cancel() = 0;
   virtual bool IsActive() = 0;
   // Additional controls used by various V8 subsystems; default no-ops.
-  virtual bool UpdatePriorityEnabled() { return false; }
+  virtual bool UpdatePriorityEnabled() const { return false; }
   virtual void UpdatePriority(TaskPriority) {}
   virtual void CancelAndDetach() { Cancel(); }
   virtual bool IsValid() { return IsActive(); }
@@ -100,19 +100,23 @@ class PageAllocator {
   virtual bool DecommitPages(void* address, size_t length) = 0;
   virtual bool DiscardSystemPages(void* address, size_t size) = 0;
   virtual bool SealPages(void* address, size_t size) = 0;
-  
+
   // Shared memory support
   class SharedMemory {
    public:
     virtual ~SharedMemory() = default;
   };
-  
+
   class SharedMemoryMapping {
    public:
     virtual ~SharedMemoryMapping() = default;
     virtual void* GetMemory() const = 0;
     virtual void Remap(void* new_address) = 0;
   };
+
+  virtual bool CanAllocateSharedPages() { return false; }
+  virtual std::unique_ptr<SharedMemory> AllocateSharedPages(size_t length, const void* original_address) { return nullptr; }
+  virtual void FreeSharedPages(void* address, size_t length) {}
 };
 #endif  // V8_PAGE_ALLOCATOR_INTERFACE_DEFINED
 
@@ -201,6 +205,16 @@ class Platform {
     return &observer;
   }
   
+  // Methods for priority-based task scheduling - required by libplatform
+  virtual void CallBlockingTaskOnWorkerThread(std::unique_ptr<Task> task) {
+    // Default: forward to general worker thread (PostTaskOnWorkerThread with high priority)
+    PostTaskOnWorkerThread(TaskPriority::kUserBlocking, std::move(task));
+  }
+  virtual void CallLowPriorityTaskOnWorkerThread(std::unique_ptr<Task> task) {
+    // Default: forward to general worker thread with low priority
+    PostTaskOnWorkerThread(TaskPriority::kBestEffort, std::move(task));
+  }
+
   // Deprecated methods with default implementations
   virtual void CallOnForegroundThread(Isolate* isolate, std::unique_ptr<Task> task) {}
   virtual void CallDelayedOnForegroundThread(Isolate* isolate, std::unique_ptr<Task> task, double delay_in_seconds) {}
@@ -238,6 +252,12 @@ class VirtualAddressSpace {
   using Address = uintptr_t;
   static constexpr Address kNoHint = 0;
 
+  VirtualAddressSpace() = default;
+  VirtualAddressSpace(size_t page_size, size_t allocation_granularity,
+                      Address base, size_t size, PagePermissions max_page_permissions)
+      : page_size_(page_size), allocation_granularity_(allocation_granularity),
+        base_(base), size_(size), max_page_permissions_(max_page_permissions) {}
+
   virtual ~VirtualAddressSpace() = default;
 
   virtual void SetRandomSeed(int64_t) {}
@@ -257,17 +277,31 @@ class VirtualAddressSpace {
       Address /*hint*/, size_t /*size*/, size_t /*alignment*/,
       PagePermissions /*max_perms*/) { return nullptr; }
 
+  // Shared memory support
+  virtual Address AllocateSharedPages(Address /*hint*/, size_t /*size*/,
+                                      PagePermissions /*permissions*/,
+                                      PlatformSharedMemoryHandle /*handle*/,
+                                      uint64_t /*offset*/) { return 0; }
+  virtual void FreeSharedPages(Address /*address*/, size_t /*size*/) {}
+
   virtual bool RecommitPages(Address /*address*/, size_t /*size*/,
                              PagePermissions /*perms*/) { return false; }
   virtual bool DiscardSystemPages(Address /*address*/, size_t /*size*/) { return false; }
   virtual bool DecommitPages(Address /*address*/, size_t /*size*/) { return false; }
 
   // Introspection helpers used by segmented tables.
-  virtual Address base() const { return 0; }
-  virtual size_t size() const { return 0; }
-  virtual size_t page_size() const { return 4096; }
-  virtual size_t allocation_granularity() const { return 4096; }
-  virtual PagePermissions max_page_permissions() const { return PagePermissions::kReadWrite; }
+  virtual Address base() const { return base_; }
+  virtual size_t size() const { return size_; }
+  virtual size_t page_size() const { return page_size_; }
+  virtual size_t allocation_granularity() const { return allocation_granularity_; }
+  virtual PagePermissions max_page_permissions() const { return max_page_permissions_; }
+
+ protected:
+  size_t page_size_ = 4096;
+  size_t allocation_granularity_ = 4096;
+  Address base_ = 0;
+  size_t size_ = 0;
+  PagePermissions max_page_permissions_ = PagePermissions::kReadWrite;
 };
 
 }  // namespace v8

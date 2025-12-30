@@ -11,7 +11,7 @@
 
 #include "src/base/macros.h"
 
-namespace v8 { namespace base {
+namespace v8::base {
 
 // SmallMap is a container with a std::map-like interface. It starts out backed
 // by an unsorted array but switches to some other container type if it grows
@@ -234,6 +234,10 @@ class SmallMap {
       }
     }
 
+    V8_INLINE bool operator!=(const iterator& other) const {
+      return !(*this == other);
+    }
+
    private:
     friend class SmallMap;
     friend class const_iterator;
@@ -304,6 +308,10 @@ class SmallMap {
         return array_iter_ == other.array_iter_;
       }
       return other.array_iter_ == nullptr && map_iter_ == other.map_iter_;
+    }
+
+    V8_INLINE bool operator!=(const const_iterator& other) const {
+      return !(*this == other);
     }
 
    private:
@@ -616,7 +624,6 @@ class SmallMap {
   }
 };
 
-}  // namespace base
-}  // namespace v8
+}  // namespace v8::base
 
 #endif  // V8_BASE_SMALL_MAP_H_

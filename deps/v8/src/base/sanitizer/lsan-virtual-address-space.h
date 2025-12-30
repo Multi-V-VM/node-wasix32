@@ -1,10 +1,3 @@
-#ifdef __wasi__
-// LSAN not supported on WASI
-#ifndef V8_BASE_SANITIZER_LSAN_VIRTUAL_ADDRESS_SPACE_H_
-#define V8_BASE_SANITIZER_LSAN_VIRTUAL_ADDRESS_SPACE_H_
-// Empty header for WASI
-#endif
-#else
 // Copyright 2021 the V8 project authors. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
@@ -81,10 +74,6 @@ class V8_BASE_EXPORT LsanVirtualAddressSpace final
     return vas_->DecommitPages(address, size);
   }
 
-  // Required VirtualAddressSpace interface methods
-  Address base() const override { return vas_->base(); }
-  size_t size() const override { return vas_->size(); }
-
  private:
   std::unique_ptr<v8::VirtualAddressSpace> vas_;
 };
@@ -92,4 +81,3 @@ class V8_BASE_EXPORT LsanVirtualAddressSpace final
 }  // namespace base
 }  // namespace v8
 #endif  // V8_BASE_SANITIZER_LSAN_VIRTUAL_ADDRESS_SPACE_H_
-#endif // __wasi__

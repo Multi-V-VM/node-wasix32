@@ -1,13 +1,11 @@
-#ifdef V8_TARGET_ARCH_WASM32
-#include "../../include/libplatform/libplatform-wasi-fix.h"
-#endif
 // Copyright 2020 the V8 project authors. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
+#include "src/libplatform/default-job.h"
+
 #include "src/base/bits.h"
 #include "src/base/macros.h"
-#include "src/libplatform/default-job.h"
 
 namespace v8 {
 namespace platform {
@@ -30,14 +28,14 @@ uint8_t DefaultJobState::JobDelegate::GetTaskId() {
   return task_id_;
 }
 
-DefaultJobState::DefaultJobState(::v8::Platform* platform,
+DefaultJobState::DefaultJobState(Platform* platform,
                                  std::unique_ptr<JobTask> job_task,
                                  TaskPriority priority,
                                  size_t num_worker_threads)
     : platform_(platform),
-      job_task_(::std::move(job_task)),
+      job_task_(std::move(job_task)),
       priority_(priority),
-      num_worker_threads_(::std::min(num_worker_threads, kMaxWorkersPerJob)) {}
+      num_worker_threads_(std::min(num_worker_threads, kMaxWorkersPerJob)) {}
 
 DefaultJobState::~DefaultJobState() { DCHECK_EQ(0U, active_workers_); }
 
@@ -47,7 +45,7 @@ void DefaultJobState::NotifyConcurrencyIncrease() {
   size_t num_tasks_to_post = 0;
   TaskPriority priority;
   {
-    ::v8::base::MutexGuard guard(&mutex_);
+    base::MutexGuard guard(&mutex_);
     const size_t max_concurrency = CappedMaxConcurrency(active_workers_);
     // Consider |pending_tasks_| to avoid posting too many tasks.
     if (max_concurrency > active_workers_ + pending_tasks_) {
@@ -58,7 +56,7 @@ void DefaultJobState::NotifyConcurrencyIncrease() {
   }
   // Post additional worker tasks to reach |max_concurrency|.
   for (size_t i = 0; i < num_tasks_to_post; ++i) {
-    CallOnWorkerThread(priority, ::std::make_unique<DefaultJobWorker>(
+    CallOnWorkerThread(priority, std::make_unique<DefaultJobWorker>(
                                      shared_from_this(), job_task_.get()));
   }
 }
@@ -68,7 +66,7 @@ uint8_t DefaultJobState::AcquireTaskId() {
                 "TaskId bitfield isn't big enough to fit kMaxWorkersPerJob.");
   uint32_t assigned_task_ids =
       assigned_task_ids_.load(std::memory_order_relaxed);
-  DCHECK_LE(::v8::base::bits::CountPopulation(assigned_task_ids) + 1,
+  DCHECK_LE(v8::base::bits::CountPopulation(assigned_task_ids) + 1,
             kMaxWorkersPerJob);
   uint32_t new_assigned_task_ids = 0;
   uint8_t task_id = 0;
@@ -78,7 +76,7 @@ uint8_t DefaultJobState::AcquireTaskId() {
   do {
     // Count trailing one bits. This is the id of the right-most 0-bit in
     // |assigned_task_ids|.
-    task_id = ::v8::base::bits::CountTrailingZerosNonZero(~assigned_task_ids);
+    task_id = v8::base::bits::CountTrailingZeros32(~assigned_task_ids);
     new_assigned_task_ids = assigned_task_ids | (uint32_t(1) << task_id);
   } while (!assigned_task_ids_.compare_exchange_weak(
       assigned_task_ids, new_assigned_task_ids, std::memory_order_acquire,
@@ -115,7 +113,7 @@ void DefaultJobState::Join() {
 
   size_t num_tasks_to_post = 0;
   {
-    ::v8::base::MutexGuard guard(&mutex_);
+    base::MutexGuard guard(&mutex_);
     priority_ = TaskPriority::kUserBlocking;
     // Reserve a worker for the joining (current) thread.
     // GetMaxConcurrency() is ignored here, but if necessary we wait below
@@ -133,8 +131,8 @@ void DefaultJobState::Join() {
   // Spawn more worker tasks if needed.
   for (size_t i = 0; i < num_tasks_to_post; ++i) {
     CallOnWorkerThread(TaskPriority::kUserBlocking,
-                       ::std::make_unique<DefaultJobWorker>(shared_from_this(),
-                                                           job_task_.get()));
+                       std::make_unique<DefaultJobWorker>(shared_from_this(),
+                                                          job_task_.get()));
   }
 
   DefaultJobState::JobDelegate delegate(this, true);
@@ -142,14 +140,14 @@ void DefaultJobState::Join() {
     // Participate in job execution, as one active worker.
     job_task_->Run(&delegate);
 
-    ::v8::base::MutexGuard guard(&mutex_);
+    base::MutexGuard guard(&mutex_);
     if (WaitForParticipationOpportunity() == 0) return;
   }
 }
 
 void DefaultJobState::CancelAndWait() {
   {
-    ::v8::base::MutexGuard guard(&mutex_);
+    base::MutexGuard guard(&mutex_);
     is_canceled_.store(true, std::memory_order_relaxed);
     while (active_workers_ > 0) {
       worker_released_condition_.Wait(&mutex_);
@@ -162,13 +160,13 @@ void DefaultJobState::CancelAndDetach() {
 }
 
 bool DefaultJobState::IsActive() {
-  ::v8::base::MutexGuard guard(&mutex_);
+  base::MutexGuard guard(&mutex_);
   return job_task_->GetMaxConcurrency(active_workers_) != 0 ||
          active_workers_ != 0;
 }
 
 bool DefaultJobState::CanRunFirstTask() {
-  ::v8::base::MutexGuard guard(&mutex_);
+  base::MutexGuard guard(&mutex_);
   --pending_tasks_;
   if (is_canceled_.load(std::memory_order_relaxed)) return false;
   if (active_workers_ >= CappedMaxConcurrency(active_workers_)) return false;
@@ -181,7 +179,7 @@ bool DefaultJobState::DidRunTask() {
   size_t num_tasks_to_post = 0;
   TaskPriority priority;
   {
-    ::v8::base::MutexGuard guard(&mutex_);
+    base::MutexGuard guard(&mutex_);
     const size_t max_concurrency = CappedMaxConcurrency(active_workers_ - 1);
     if (is_canceled_.load(std::memory_order_relaxed) ||
         active_workers_ > max_concurrency) {
@@ -203,29 +201,36 @@ bool DefaultJobState::DidRunTask() {
   // users of PostJob() batch work and tend to call NotifyConcurrencyIncrease()
   // late. Posting here allows us to spawn new workers sooner.
   for (size_t i = 0; i < num_tasks_to_post; ++i) {
-    CallOnWorkerThread(priority, ::std::make_unique<DefaultJobWorker>(
+    CallOnWorkerThread(priority, std::make_unique<DefaultJobWorker>(
                                      shared_from_this(), job_task_.get()));
   }
   return true;
 }
 
 size_t DefaultJobState::CappedMaxConcurrency(size_t worker_count) const {
-  return ::std::min(job_task_->GetMaxConcurrency(worker_count),
-                    num_worker_threads_);
+  return std::min(job_task_->GetMaxConcurrency(worker_count),
+                  num_worker_threads_);
 }
 
 void DefaultJobState::CallOnWorkerThread(TaskPriority priority,
-                                         ::std::unique_ptr<Task> task) {
-  platform_->PostTaskOnWorkerThread(priority, ::std::move(task));
+                                         std::unique_ptr<Task> task) {
+  switch (priority) {
+    case TaskPriority::kBestEffort:
+      return platform_->CallLowPriorityTaskOnWorkerThread(std::move(task));
+    case TaskPriority::kUserVisible:
+      return platform_->CallOnWorkerThread(std::move(task));
+    case TaskPriority::kUserBlocking:
+      return platform_->CallBlockingTaskOnWorkerThread(std::move(task));
+  }
 }
 
 void DefaultJobState::UpdatePriority(TaskPriority priority) {
-  ::v8::base::MutexGuard guard(&mutex_);
+  base::MutexGuard guard(&mutex_);
   priority_ = priority;
 }
 
-DefaultJobHandle::DefaultJobHandle(::std::shared_ptr<DefaultJobState> state)
-    : state_(::std::move(state)) {}
+DefaultJobHandle::DefaultJobHandle(std::shared_ptr<DefaultJobState> state)
+    : state_(std::move(state)) {}
 
 DefaultJobHandle::~DefaultJobHandle() { DCHECK_EQ(nullptr, state_); }
 

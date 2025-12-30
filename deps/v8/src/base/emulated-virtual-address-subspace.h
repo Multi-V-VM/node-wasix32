@@ -15,17 +15,6 @@
 namespace v8 {
 namespace base {
 
-#ifdef __wasi__
-
-class V8_BASE_EXPORT EmulatedVirtualAddressSubspace final {
- public:
-  using Address = uintptr_t;
-  EmulatedVirtualAddressSubspace(void* /*parent_space*/, Address, size_t, size_t) {}
-  ~EmulatedVirtualAddressSubspace() = default;
-};
-
-#else  // !__wasi__
-
 /**
  * Emulates a virtual address subspace.
  *
@@ -40,13 +29,13 @@ class V8_BASE_EXPORT EmulatedVirtualAddressSubspace final {
  * provide the same security gurarantees.
  */
 class V8_BASE_EXPORT EmulatedVirtualAddressSubspace final
-    : public VirtualAddressSpace {
+    : public NON_EXPORTED_BASE(::v8::VirtualAddressSpace) {
  public:
   // Construct an emulated virtual address subspace of the specified total size,
   // potentially backed by a page allocation from the parent space. The newly
   // created instance takes ownership of the page allocation (if any) and frees
   // it during destruction.
-  EmulatedVirtualAddressSubspace(VirtualAddressSpace* parent_space,
+  EmulatedVirtualAddressSubspace(v8::VirtualAddressSpace* parent_space,
                                  Address base, size_t mapped_size,
                                  size_t total_size);
 
@@ -77,7 +66,7 @@ class V8_BASE_EXPORT EmulatedVirtualAddressSubspace final
 
   bool CanAllocateSubspaces() override;
 
-  std::unique_ptr<VirtualAddressSpace> AllocateSubspace(
+  std::unique_ptr<v8::VirtualAddressSpace> AllocateSubspace(
       Address hint, size_t size, size_t alignment,
       PagePermissions max_page_permissions) override;
 
@@ -87,13 +76,6 @@ class V8_BASE_EXPORT EmulatedVirtualAddressSubspace final
   bool DiscardSystemPages(Address address, size_t size) override;
 
   bool DecommitPages(Address address, size_t size) override;
-  
-  // VirtualAddressSpace interface implementation
-  Address base() const override { return base_; }
-  size_t size() const override { return size_; }
-  size_t page_size() const override { return parent_space_->page_size(); }
-  size_t allocation_granularity() const override { return parent_space_->allocation_granularity(); }
-  PagePermissions max_page_permissions() const override { return parent_space_->max_page_permissions(); }
 
  private:
   size_t mapped_size() const { return mapped_size_; }
@@ -127,18 +109,12 @@ class V8_BASE_EXPORT EmulatedVirtualAddressSubspace final
     return size <= (unmapped_size() / 2);
   }
 
-  // Base address of this virtual address space
-  Address base_;
-  
-  // Total size of this virtual address space
-  size_t size_;
-  
   // Size of the mapped region located at the beginning of this address space.
-  size_t mapped_size_;
+  const size_t mapped_size_;
 
   // Pointer to the parent space from which the backing pages were allocated.
   // Must be kept alive by the owner of this instance.
-  VirtualAddressSpace* parent_space_;
+  v8::VirtualAddressSpace* parent_space_;
 
   // Mutex guarding the non-threadsafe RegionAllocator and
   // RandomNumberGenerator.
@@ -151,8 +127,6 @@ class V8_BASE_EXPORT EmulatedVirtualAddressSubspace final
   // Random number generator for generating random addresses.
   RandomNumberGenerator rng_;
 };
-
-#endif  // __wasi__
 
 }  // namespace base
 }  // namespace v8

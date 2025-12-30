@@ -1,65 +1,15 @@
-#ifdef V8_TARGET_ARCH_WASM32
-#include "../../include/libplatform/libplatform-wasi-fix.h"
-#endif
 // Copyright 2016 the V8 project authors. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-#ifdef __wasi__
-// WASI stub implementation of TraceObject methods matching the declarations in
-// the public libplatform tracing base header. Avoid redefining the class or
-// constants here to prevent ODR violations.
-#include <memory>
-#include <cstdint>
-#include <cstring>
-#include "include/libplatform/v8-tracing-base.h"
-
-namespace v8 { namespace platform { namespace tracing {
-
-void TraceObject::Initialize(char phase, const uint8_t* category_enabled_flag,
-                             const char* name, const char* scope, uint64_t id,
-                             uint64_t bind_id, int num_args,
-                             const char** arg_names, const uint8_t* arg_types,
-                             const uint64_t* arg_values,
-                             std::unique_ptr<::v8::ConvertableToTraceFormat>* /*arg_convertables*/,
-                             unsigned int flags, int64_t timestamp,
-                             int64_t cpu_timestamp) {
-  pid_ = 0;
-  tid_ = 0;
-  phase_ = phase;
-  category_enabled_flag_ = category_enabled_flag;
-  name_ = name;
-  scope_ = scope;
-  id_ = id;
-  bind_id_ = bind_id;
-  flags_ = flags;
-  ts_ = timestamp;
-  tts_ = cpu_timestamp;
-  duration_ = 0;
-  cpu_duration_ = 0;
-  // Clamp and copy minimal arg metadata.
-  num_args_ = (num_args > kTraceMaxNumArgs) ? kTraceMaxNumArgs : num_args;
-  for (int i = 0; i < num_args_; ++i) {
-    arg_names_[i] = arg_names[i];
-    arg_values_[i].as_uint = arg_values[i];
-    arg_types_[i] = arg_types[i];
-  }
-}
-
-void TraceObject::UpdateDuration(int64_t timestamp, int64_t cpu_timestamp) {
-  duration_ = static_cast<uint64_t>(timestamp - ts_);
-  cpu_duration_ = static_cast<uint64_t>(cpu_timestamp - tts_);
-}
-
-} } }  // namespace v8::platform::tracing
-
-#else
-
+// The trace event constants are now defined in trace-event-no-perfetto.h
+// which was moved from Chromium's base/trace_event/common/trace_event_common.h
+#include "src/tracing/trace-event-no-perfetto.h"
 #include "include/libplatform/v8-tracing.h"
+#include "include/libplatform/v8-tracing-base.h"
 #include "include/v8-platform.h"
 #include "src/base/platform/platform.h"
 #include "src/base/platform/time.h"
-#include "src/tracing/trace-event-no-perfetto.h"
 
 namespace v8 {
 namespace platform {
@@ -87,7 +37,7 @@ void TraceObject::Initialize(
     const char* scope, uint64_t id, uint64_t bind_id, int num_args,
     const char** arg_names, const uint8_t* arg_types,
     const uint64_t* arg_values,
-      std::unique_ptr<::v8::ConvertableToTraceFormat>* arg_convertables,
+    std::unique_ptr<v8::ConvertableToTraceFormat>* arg_convertables,
     unsigned int flags, int64_t timestamp, int64_t cpu_timestamp) {
   pid_ = base::OS::GetCurrentProcessId();
   tid_ = base::OS::GetCurrentThreadId();
@@ -164,7 +114,7 @@ void TraceObject::InitializeForTesting(
     const char* scope, uint64_t id, uint64_t bind_id, int num_args,
     const char** arg_names, const uint8_t* arg_types,
     const uint64_t* arg_values,
-    std::unique_ptr<::v8::ConvertableToTraceFormat>* arg_convertables,
+    std::unique_ptr<v8::ConvertableToTraceFormat>* arg_convertables,
     unsigned int flags, int pid, int tid, int64_t ts, int64_t tts,
     uint64_t duration, uint64_t cpu_duration) {
   pid_ = pid;
@@ -186,5 +136,3 @@ void TraceObject::InitializeForTesting(
 }  // namespace tracing
 }  // namespace platform
 }  // namespace v8
-
-#endif // __wasi__

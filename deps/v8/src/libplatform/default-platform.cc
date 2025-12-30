@@ -1,39 +1,6 @@
-#ifdef V8_TARGET_ARCH_WASM32
-#include "../../include/libplatform/libplatform-wasi-fix.h"
-#endif
 // Copyright 2013 the V8 project authors. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
-
-#ifdef __wasi__
-// WASI stub implementation
-#include "include/libplatform/libplatform.h"
-#include "include/v8-platform.h"
-
-namespace v8 {
-namespace platform {
-
-std::unique_ptr<::v8::Platform> NewDefaultPlatform(
-    int thread_pool_size, IdleTaskSupport idle_task_support,
-    InProcessStackDumping in_process_stack_dumping,
-    std::unique_ptr<::v8::TracingController> tracing_controller,
-    PriorityMode priority_mode) {
-  return nullptr;
-}
-
-bool PumpMessageLoop(::v8::Platform* platform, ::v8::Isolate* isolate,
-                     MessageLoopBehavior behavior) {
-  return false;
-}
-
-void RunIdleTasks(::v8::Platform* platform, ::v8::Isolate* isolate,
-                  double idle_time_in_seconds) {}
-
-void NotifyIsolateShutdown(::v8::Platform* platform, ::v8::Isolate* isolate) {}
-
-}  // namespace platform
-}  // namespace v8
-#else
 
 #include "src/libplatform/default-platform.h"
 
@@ -57,10 +24,10 @@ namespace platform {
 namespace {
 
 void PrintStackTrace() {
-  ::v8::base::debug::StackTrace trace;
+  v8::base::debug::StackTrace trace;
   trace.Print();
   // Avoid dumping duplicate stack trace on abort signal.
-  ::v8::base::debug::DisableSignalStackDump();
+  v8::base::debug::DisableSignalStackDump();
 }
 
 constexpr int kMaxThreadPoolSize = 16;
@@ -68,20 +35,20 @@ constexpr int kMaxThreadPoolSize = 16;
 int GetActualThreadPoolSize(int thread_pool_size) {
   DCHECK_GE(thread_pool_size, 0);
   if (thread_pool_size < 1) {
-    thread_pool_size = ::v8::base::SysInfo::NumberOfProcessors() - 1;
+    thread_pool_size = base::SysInfo::NumberOfProcessors() - 1;
   }
   return std::max(std::min(thread_pool_size, kMaxThreadPoolSize), 1);
 }
 
 }  // namespace
 
-std::unique_ptr<::v8::Platform> NewDefaultPlatform(
+std::unique_ptr<v8::Platform> NewDefaultPlatform(
     int thread_pool_size, IdleTaskSupport idle_task_support,
     InProcessStackDumping in_process_stack_dumping,
-    std::unique_ptr<::v8::TracingController> tracing_controller,
+    std::unique_ptr<v8::TracingController> tracing_controller,
     PriorityMode priority_mode) {
   if (in_process_stack_dumping == InProcessStackDumping::kEnabled) {
-    ::v8::base::debug::EnableInProcessStackDumping();
+    v8::base::debug::EnableInProcessStackDumping();
   }
   thread_pool_size = GetActualThreadPoolSize(thread_pool_size);
   auto platform = std::make_unique<DefaultPlatform>(
@@ -90,12 +57,12 @@ std::unique_ptr<::v8::Platform> NewDefaultPlatform(
   return platform;
 }
 
-std::unique_ptr<::v8::Platform> NewSingleThreadedDefaultPlatform(
+std::unique_ptr<v8::Platform> NewSingleThreadedDefaultPlatform(
     IdleTaskSupport idle_task_support,
     InProcessStackDumping in_process_stack_dumping,
-    std::unique_ptr<::v8::TracingController> tracing_controller) {
+    std::unique_ptr<v8::TracingController> tracing_controller) {
   if (in_process_stack_dumping == InProcessStackDumping::kEnabled) {
-    ::v8::base::debug::EnableInProcessStackDumping();
+    v8::base::debug::EnableInProcessStackDumping();
   }
   auto platform = std::make_unique<DefaultPlatform>(
       0, idle_task_support, std::move(tracing_controller));
@@ -109,30 +76,30 @@ V8_PLATFORM_EXPORT std::unique_ptr<JobHandle> NewDefaultJobHandle(
       platform, std::move(job_task), priority, num_worker_threads));
 }
 
-bool PumpMessageLoop(::v8::Platform* platform, ::v8::Isolate* isolate,
+bool PumpMessageLoop(v8::Platform* platform, v8::Isolate* isolate,
                      MessageLoopBehavior behavior) {
   return static_cast<DefaultPlatform*>(platform)->PumpMessageLoop(isolate,
                                                                   behavior);
 }
 
-void RunIdleTasks(::v8::Platform* platform, ::v8::Isolate* isolate,
+void RunIdleTasks(v8::Platform* platform, v8::Isolate* isolate,
                   double idle_time_in_seconds) {
   static_cast<DefaultPlatform*>(platform)->RunIdleTasks(isolate,
                                                         idle_time_in_seconds);
 }
 
-void NotifyIsolateShutdown(::v8::Platform* platform, ::v8::Isolate* isolate) {
+void NotifyIsolateShutdown(v8::Platform* platform, Isolate* isolate) {
   static_cast<DefaultPlatform*>(platform)->NotifyIsolateShutdown(isolate);
 }
 
 DefaultPlatform::DefaultPlatform(
     int thread_pool_size, IdleTaskSupport idle_task_support,
-    std::unique_ptr<::v8::TracingController> tracing_controller,
+    std::unique_ptr<v8::TracingController> tracing_controller,
     PriorityMode priority_mode)
     : thread_pool_size_(thread_pool_size),
       idle_task_support_(idle_task_support),
       tracing_controller_(std::move(tracing_controller)),
-      page_allocator_(std::make_unique<::v8::base::PageAllocator>()),
+      page_allocator_(std::make_unique<v8::base::PageAllocator>()),
       priority_mode_(priority_mode) {
   if (!tracing_controller_) {
     tracing::TracingController* controller = new tracing::TracingController();
@@ -147,7 +114,7 @@ DefaultPlatform::DefaultPlatform(
 }
 
 DefaultPlatform::~DefaultPlatform() {
-  ::v8::base::MutexGuard guard(&lock_);
+  base::MutexGuard guard(&lock_);
   if (worker_threads_task_runners_[0]) {
     for (int i = 0; i < num_worker_runners(); i++) {
       worker_threads_task_runners_[i]->Terminate();
@@ -161,7 +128,7 @@ DefaultPlatform::~DefaultPlatform() {
 namespace {
 
 double DefaultTimeFunction() {
-  return ::v8::base::TimeTicks::Now().ToInternalValue() /
+  return base::TimeTicks::Now().ToInternalValue() /
          static_cast<double>(base::Time::kMicrosecondsPerSecond);
 }
 
@@ -182,7 +149,7 @@ void DefaultPlatform::EnsureBackgroundTaskRunnerInitialized() {
 
 void DefaultPlatform::SetTimeFunctionForTesting(
     DefaultPlatform::TimeFunction time_function) {
-  ::v8::base::MutexGuard guard(&lock_);
+  base::MutexGuard guard(&lock_);
   time_function_for_testing_ = time_function;
   // The time function has to be right after the construction of the platform.
   DCHECK(foreground_task_runner_map_.empty());
@@ -193,7 +160,7 @@ bool DefaultPlatform::PumpMessageLoop(v8::Isolate* isolate,
   bool failed_result = wait_for_work == MessageLoopBehavior::kWaitForWork;
   std::shared_ptr<DefaultForegroundTaskRunner> task_runner;
   {
-    ::v8::base::MutexGuard guard(&lock_);
+    base::MutexGuard guard(&lock_);
     auto it = foreground_task_runner_map_.find(isolate);
     if (it == foreground_task_runner_map_.end()) return failed_result;
     task_runner = it->second;
@@ -212,7 +179,7 @@ void DefaultPlatform::RunIdleTasks(v8::Isolate* isolate,
   DCHECK_EQ(IdleTaskSupport::kEnabled, idle_task_support_);
   std::shared_ptr<DefaultForegroundTaskRunner> task_runner;
   {
-    ::v8::base::MutexGuard guard(&lock_);
+    base::MutexGuard guard(&lock_);
     if (foreground_task_runner_map_.find(isolate) ==
         foreground_task_runner_map_.end()) {
       return;
@@ -231,8 +198,8 @@ void DefaultPlatform::RunIdleTasks(v8::Isolate* isolate,
 }
 
 std::shared_ptr<TaskRunner> DefaultPlatform::GetForegroundTaskRunner(
-    v8::Isolate* isolate, TaskPriority priority) {
-  ::v8::base::MutexGuard guard(&lock_);
+    v8::Isolate* isolate) {
+  base::MutexGuard guard(&lock_);
   if (foreground_task_runner_map_.find(isolate) ==
       foreground_task_runner_map_.end()) {
     foreground_task_runner_map_.insert(std::make_pair(
@@ -248,10 +215,10 @@ void DefaultPlatform::PostTaskOnWorkerThreadImpl(
     TaskPriority priority, std::unique_ptr<Task> task,
     const SourceLocation& location) {
   // If this DCHECK fires, then this means that either
-  // - V8 is running without the --single-threaded flag but the platform was
-  //   created as a single-threaded platform or
-  // - some component in V8 is ignoring --single-threaded and posting a
-  //   background task.
+  // - V8 is running without the --single-threaded flag but
+  //   but the platform was created as a single-threaded platform.
+  // - or some component in V8 is ignoring --single-threaded
+  //   and posting a background task.
   int index = priority_to_index(priority);
   DCHECK_NOT_NULL(worker_threads_task_runners_[index]);
   worker_threads_task_runners_[index]->PostTask(std::move(task));
@@ -275,9 +242,8 @@ bool DefaultPlatform::IdleTasksEnabled(Isolate* isolate) {
   return idle_task_support_ == IdleTaskSupport::kEnabled;
 }
 
-std::unique_ptr<JobHandle> DefaultPlatform::CreateJobImpl(
-    TaskPriority priority, std::unique_ptr<JobTask> job_task,
-    const SourceLocation& location) {
+std::unique_ptr<JobHandle> DefaultPlatform::CreateJob(
+    TaskPriority priority, std::unique_ptr<JobTask> job_task) {
   size_t num_worker_threads = NumberOfWorkerThreads();
   if (priority == TaskPriority::kBestEffort && num_worker_threads > 2) {
     num_worker_threads = 2;
@@ -325,7 +291,7 @@ v8::ThreadIsolatedAllocator* DefaultPlatform::GetThreadIsolatedAllocator() {
 void DefaultPlatform::NotifyIsolateShutdown(Isolate* isolate) {
   std::shared_ptr<DefaultForegroundTaskRunner> taskrunner;
   {
-    ::v8::base::MutexGuard guard(&lock_);
+    base::MutexGuard guard(&lock_);
     auto it = foreground_task_runner_map_.find(isolate);
     if (it != foreground_task_runner_map_.end()) {
       taskrunner = it->second;
@@ -337,4 +303,3 @@ void DefaultPlatform::NotifyIsolateShutdown(Isolate* isolate) {
 
 }  // namespace platform
 }  // namespace v8
-#endif // __wasi__

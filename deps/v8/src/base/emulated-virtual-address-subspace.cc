@@ -10,17 +10,12 @@
 namespace v8 {
 namespace base {
 
-#ifdef __wasi__
-
-// No-op for WASI: stubbed in header
-
-#else  // !__wasi__
-
 EmulatedVirtualAddressSubspace::EmulatedVirtualAddressSubspace(
     VirtualAddressSpace* parent_space, Address base, size_t mapped_size,
     size_t total_size)
-    : base_(base),
-      size_(total_size),
+    : VirtualAddressSpace(parent_space->page_size(),
+                          parent_space->allocation_granularity(), base,
+                          total_size, parent_space->max_page_permissions()),
       mapped_size_(mapped_size),
       parent_space_(parent_space),
       region_allocator_(base, mapped_size, parent_space_->page_size()) {
@@ -199,8 +194,6 @@ bool EmulatedVirtualAddressSubspace::DecommitPages(Address address,
   DCHECK(Contains(address, size));
   return parent_space_->DecommitPages(address, size);
 }
-
-#endif  // __wasi__
 
 }  // namespace base
 }  // namespace v8

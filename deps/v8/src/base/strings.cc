@@ -7,18 +7,17 @@
 #include <cstdint>
 #include <cstring>
 #include <limits>
-#include <stdarg.h>
 
 #include "src/base/platform/platform.h"
 
 namespace v8 {
 namespace base {
 
-int VSNPrintF(v8::base::Vector<char> str, const char* format, va_list args) {
+int VSNPrintF(Vector<char> str, const char* format, va_list args) {
   return OS::VSNPrintF(str.begin(), str.length(), format, args);
 }
 
-int SNPrintF(v8::base::Vector<char> str, const char* format, ...) {
+int SNPrintF(Vector<char> str, const char* format, ...) {
   va_list args;
   va_start(args, format);
   int result = VSNPrintF(str, format, args);
@@ -26,7 +25,7 @@ int SNPrintF(v8::base::Vector<char> str, const char* format, ...) {
   return result;
 }
 
-void StrNCpy(v8::base::Vector<char> dest, const char* src, size_t n) {
+void StrNCpy(base::Vector<char> dest, const char* src, size_t n) {
   base::OS::StrNCpy(dest.begin(), dest.length(), src, n);
 }
 

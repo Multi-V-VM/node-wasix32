@@ -8,14 +8,12 @@
 #include <map>
 #include <memory>
 
-#include "default-platform-namespace-fix.h"
 #include "include/libplatform/libplatform-export.h"
 #include "include/libplatform/libplatform.h"
 #include "include/libplatform/v8-tracing.h"
 #include "include/v8-platform.h"
 #include "src/base/compiler-specific.h"
 #include "src/base/platform/mutex.h"
-#include "src/base/platform/platform-thread.h"
 #include "src/libplatform/default-thread-isolated-allocator.h"
 
 namespace v8 {
@@ -58,7 +56,7 @@ class V8_PLATFORM_EXPORT DefaultPlatform : public NON_EXPORTED_BASE(Platform) {
   // v8::Platform implementation.
   int NumberOfWorkerThreads() override;
   std::shared_ptr<TaskRunner> GetForegroundTaskRunner(
-      v8::Isolate* isolate, TaskPriority priority) override;
+      v8::Isolate* isolate) override;
   void PostTaskOnWorkerThreadImpl(TaskPriority priority,
                                   std::unique_ptr<Task> task,
                                   const SourceLocation& location) override;
@@ -66,14 +64,13 @@ class V8_PLATFORM_EXPORT DefaultPlatform : public NON_EXPORTED_BASE(Platform) {
       TaskPriority priority, std::unique_ptr<Task> task,
       double delay_in_seconds, const SourceLocation& location) override;
   bool IdleTasksEnabled(Isolate* isolate) override;
-  std::unique_ptr<JobHandle> CreateJobImpl(
-      TaskPriority priority, std::unique_ptr<JobTask> job_state,
-      const SourceLocation& location) override;
+  std::unique_ptr<JobHandle> CreateJob(
+      TaskPriority priority, std::unique_ptr<JobTask> job_state) override;
   double MonotonicallyIncreasingTime() override;
   double CurrentClockTimeMillis() override;
   v8::TracingController* GetTracingController() override;
   StackTracePrinter GetStackTracePrinter() override;
-  ::v8::PageAllocator* GetPageAllocator() override;
+  v8::PageAllocator* GetPageAllocator() override;
   v8::ThreadIsolatedAllocator* GetThreadIsolatedAllocator() override;
 
   void NotifyIsolateShutdown(Isolate* isolate);
@@ -104,7 +101,7 @@ class V8_PLATFORM_EXPORT DefaultPlatform : public NON_EXPORTED_BASE(Platform) {
     return priority_to_index(TaskPriority::kMaxPriority) + 1;
   }
 
-  ::v8::base::Mutex lock_;
+  base::Mutex lock_;
   const int thread_pool_size_;
   IdleTaskSupport idle_task_support_;
   std::shared_ptr<DefaultWorkerThreadsTaskRunner> worker_threads_task_runners_
@@ -122,5 +119,6 @@ class V8_PLATFORM_EXPORT DefaultPlatform : public NON_EXPORTED_BASE(Platform) {
 
 }  // namespace platform
 }  // namespace v8
+
 
 #endif  // V8_LIBPLATFORM_DEFAULT_PLATFORM_H_

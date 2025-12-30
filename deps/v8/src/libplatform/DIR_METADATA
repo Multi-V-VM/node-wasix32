@@ -9,6 +9,3 @@
 monorail {
   component: "Blink>JavaScript>API"
 }
-buganizer_public: {
-  component_id: 1456124
-}

@@ -1,6 +1,3 @@
-#ifdef V8_TARGET_ARCH_WASM32
-#include "../../include/libplatform/libplatform-wasi-fix.h"
-#endif
 // Copyright 2019 the V8 project authors. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
@@ -63,11 +60,11 @@ DelayedTaskQueue::MaybeNextTask DelayedTaskQueue::TryGetNext() {
     if (task_queue_.empty() && !delayed_task_queue_.empty()) {
       // Wait for the next delayed task or a newly posted task.
       double wait_in_seconds = delayed_task_queue_.begin()->first - now;
-      return {MaybeNextTask::kWaitDelayed,
-              {},
-              ::v8::base::TimeDelta::FromMicroseconds(
-                  ::v8::base::TimeConstants::kMicrosecondsPerSecond *
-                  wait_in_seconds)};
+      return {
+          MaybeNextTask::kWaitDelayed,
+          {},
+          base::TimeDelta::FromMicroseconds(
+              base::TimeConstants::kMicrosecondsPerSecond * wait_in_seconds)};
     } else {
       return {MaybeNextTask::kWaitIndefinite, {}, {}};
     }

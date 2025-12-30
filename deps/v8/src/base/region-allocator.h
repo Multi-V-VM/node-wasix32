@@ -5,14 +5,12 @@
 #ifndef V8_BASE_REGION_ALLOCATOR_H_
 #define V8_BASE_REGION_ALLOCATOR_H_
 
-#ifdef __wasi__
-
-#include <functional>
 #include <set>
 
 #include "src/base/address-region.h"
 #include "src/base/utils/random-number-generator.h"
 #include "testing/gtest/include/gtest/gtest_prod.h"  // nogncheck
+
 namespace v8 {
 namespace base {
 
@@ -107,10 +105,6 @@ class V8_BASE_EXPORT RegionAllocator final {
   // frees the region.
   size_t TrimRegion(Address address, size_t new_size);
 
-  // Tries to grow the region at |address| to the size |new_size|. Returns true
-  // on success.
-  bool TryGrowRegion(Address address, size_t new_size);
-
   // If there is a used region starting at given address returns its size
   // otherwise 0.
   size_t CheckRegion(Address address);
@@ -130,7 +124,7 @@ class V8_BASE_EXPORT RegionAllocator final {
     return whole_region_.contains(address, size);
   }
 
-  // Total size of not yet acquired regions.
+  // Total size of not yet aquired regions.
   size_t free_size() const { return free_size_; }
 
   // The alignment of the allocated region's addresses and granularity of
@@ -226,5 +220,4 @@ class V8_BASE_EXPORT RegionAllocator final {
 }  // namespace base
 }  // namespace v8
 
-#endif  // __wasi__
 #endif  // V8_BASE_REGION_ALLOCATOR_H_

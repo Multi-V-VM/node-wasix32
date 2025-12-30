@@ -7,22 +7,16 @@
 namespace v8 {
 namespace base {
 
-#ifdef __wasi__
-
-// No implementation needed for WASI stub (class is fully defined inline)
-
-#else  // !__wasi__
-
 VirtualAddressSpacePageAllocator::VirtualAddressSpacePageAllocator(
-    VirtualAddressSpace* vas)
+    v8::VirtualAddressSpace* vas)
     : vas_(vas) {}
 
 void* VirtualAddressSpacePageAllocator::AllocatePages(
     void* hint, size_t size, size_t alignment,
-    PagePermissions access) {
+    PageAllocator::Permission access) {
   return reinterpret_cast<void*>(
       vas_->AllocatePages(reinterpret_cast<Address>(hint), size, alignment,
-                          access));
+                          static_cast<PagePermissions>(access)));
 }
 
 bool VirtualAddressSpacePageAllocator::FreePages(void* ptr, size_t size) {
@@ -38,7 +32,8 @@ bool VirtualAddressSpacePageAllocator::FreePages(void* ptr, size_t size) {
   return true;
 }
 
-bool VirtualAddressSpacePageAllocator::ReleasePages(void* ptr, size_t size) {
+bool VirtualAddressSpacePageAllocator::ReleasePages(void* ptr, size_t size,
+                                                    size_t new_size) {
   // The VirtualAddressSpace class doesn't support this method because it can't
   // be properly implemented on top of Windows placeholder mappings (they cannot
   // be partially freed or resized while being allocated). Instead, we emulate
@@ -46,21 +41,26 @@ bool VirtualAddressSpacePageAllocator::ReleasePages(void* ptr, size_t size) {
   // exactly what ReleasePages would normally do as well. However, we still need
   // to pass the original size to FreePages eventually, so we'll need to keep
   // track of that.
+  DCHECK_LE(new_size, size);
+
   MutexGuard guard(&mutex_);
-  // For WASI, we don't support partial release, so just return true
+  // Will fail if the allocation was resized previously, which is desired.
+  Address address = reinterpret_cast<Address>(ptr);
+  resized_allocations_.insert({address, size});
+  CHECK(vas_->DecommitPages(address + new_size, size - new_size));
   return true;
 }
 
 bool VirtualAddressSpacePageAllocator::SetPermissions(
-    void* address, size_t size, PagePermissions access) {
+    void* address, size_t size, PageAllocator::Permission access) {
   return vas_->SetPagePermissions(reinterpret_cast<Address>(address), size,
-                                  access);
+                                  static_cast<PagePermissions>(access));
 }
 
 bool VirtualAddressSpacePageAllocator::RecommitPages(
-    void* address, size_t size, PagePermissions access) {
+    void* address, size_t size, PageAllocator::Permission access) {
   return vas_->RecommitPages(reinterpret_cast<Address>(address), size,
-                             access);
+                             static_cast<PagePermissions>(access));
 }
 
 bool VirtualAddressSpacePageAllocator::DiscardSystemPages(void* address,
@@ -72,12 +72,6 @@ bool VirtualAddressSpacePageAllocator::DecommitPages(void* address,
                                                      size_t size) {
   return vas_->DecommitPages(reinterpret_cast<Address>(address), size);
 }
-
-bool VirtualAddressSpacePageAllocator::SealPages(void* address, size_t size) {
-  return false;
-}
-
-#endif  // __wasi__
 
 }  // namespace base
 }  // namespace v8

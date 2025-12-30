@@ -35,7 +35,7 @@ std::unique_ptr<Platform> NewDefaultPlatform(
 }  // namespace v8
 
 #else
-#include "libplatform-original.h"
+#include "libplatform-backup.h"
 #endif  // __wasi__
 
 #endif  // V8_LIBPLATFORM_LIBPLATFORM_FIXED_H_

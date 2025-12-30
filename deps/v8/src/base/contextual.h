@@ -8,12 +8,10 @@
 #include <type_traits>
 
 #include "src/base/export-template.h"
-// Ensure OS is visible to macros which use OS::Abort.
-#include "src/base/platform/platform.h"
 #include "src/base/macros.h"
+#include "src/base/platform/platform.h"
 
-namespace v8 {
-namespace base {
+namespace v8::base {
 
 // {ContextualVariable} provides a clean alternative to a global variable.
 // The contextual variable is mutable, and supports managing the value of
@@ -60,9 +58,7 @@ class V8_EXPORT_PRIVATE ContextualVariable {
     static_assert(std::is_base_of<ContextualVariable, Derived>::value,
                   "Curiously Recurring Template Pattern");
 
-#ifndef __wasi__
     DISALLOW_NEW_AND_DELETE()
-#endif
   };
 
   static VarType& Get() {
@@ -96,13 +92,11 @@ class V8_EXPORT_PRIVATE ContextualVariable {
 // exported. For this, place the following macro in the global namespace inside
 // of a .cc file.
 #define EXPORT_CONTEXTUAL_VARIABLE(VarName)                            \
-  namespace v8 {                                                       \
-  namespace base {                                                     \
+  namespace v8::base {                                                 \
   template <>                                                          \
   V8_EXPORT_PRIVATE typename VarName::Scope*&                          \
   ContextualVariable<VarName, typename VarName::VarT>::ExportedTop() { \
     return top_;                                                       \
-  }                                                                    \
   }                                                                    \
   }
 
@@ -111,29 +105,6 @@ class V8_EXPORT_PRIVATE ContextualVariable {
 template <class T>
 using ContextualClass = ContextualVariable<T, T>;
 
-// {ContextualVariableWithDefault} is similar to a {ContextualVariable},
-// with the difference that a default value is used if there is no active
-// {Scope} object.
-template <class Derived, class VarType, auto... default_args>
-class V8_EXPORT_PRIVATE ContextualVariableWithDefault
-    : public ContextualVariable<Derived, VarType> {
- public:
-  static VarType& Get() {
-    return Base::HasScope() ? Base::Get() : default_value_;
-  }
-
- private:
-  using Base = ContextualVariable<Derived, VarType>;
-  inline static thread_local VarType default_value_{default_args...};
-};
-
-// Usage: DECLARE_CONTEXTUAL_VARIABLE_WITH_DEFAULT(VarName, VarType, Args...)
-#define DECLARE_CONTEXTUAL_VARIABLE_WITH_DEFAULT(VarName, ...) \
-  struct VarName                                               \
-      : ::v8::base::ContextualVariableWithDefault<VarName, __VA_ARGS__> {}
-
-}  // namespace base
-}  // namespace v8
-
+}  // namespace v8::base
 
 #endif  // V8_BASE_CONTEXTUAL_H_

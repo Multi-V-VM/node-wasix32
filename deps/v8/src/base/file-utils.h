@@ -5,8 +5,6 @@
 #ifndef V8_BASE_FILE_UTILS_H_
 #define V8_BASE_FILE_UTILS_H_
 
-#ifdef __wasi__
-
 #include <memory>
 
 #include "src/base/base-export.h"
@@ -22,5 +20,4 @@ std::unique_ptr<char[]> RelativePath(const char* exec_path, const char* name);
 }  // namespace base
 }  // namespace v8
 
-#endif  // __wasi__
 #endif  // V8_BASE_FILE_UTILS_H_

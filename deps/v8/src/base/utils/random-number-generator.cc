@@ -11,7 +11,6 @@
 #endif  //  V8_OS_STARBOARD
 
 #include <algorithm>
-#include <limits>
 #include <new>
 
 #include "src/base/bits.h"
@@ -98,14 +97,14 @@ int RandomNumberGenerator::NextInt(int max) {
   DCHECK_LT(0, max);
 
   // Fast path if max is a power of 2.
-  if (::v8::base::bits::IsPowerOfTwo(max)) {
+  if (bits::IsPowerOfTwo(max)) {
     return static_cast<int>((max * static_cast<int64_t>(Next(31))) >> 31);
   }
 
   while (true) {
     int rnd = Next(31);
     int val = rnd % max;
-    if (::std::numeric_limits<int>::max() - (rnd - val) >= (max - 1)) {
+    if (std::numeric_limits<int>::max() - (rnd - val) >= (max - 1)) {
       return val;
     }
   }

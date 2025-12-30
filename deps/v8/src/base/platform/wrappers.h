@@ -8,8 +8,21 @@
 #include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
-namespace v8 { namespace base {
+#ifdef V8_OS_STARBOARD
+#include "starboard/string.h"
+#endif
+
+namespace v8::base {
+
+inline char* Strdup(const char* source) {
+#if V8_OS_STARBOARD
+  return SbStringDuplicate(source);
+#else
+  return strdup(source);
+#endif
+}
 
 inline FILE* Fopen(const char* filename, const char* mode) {
 #if V8_OS_STARBOARD
@@ -27,7 +40,6 @@ inline int Fclose(FILE* stream) {
 #endif
 }
 
-}  // namespace base
-}  // namespace v8
+}  // namespace v8::base
 
 #endif  // V8_BASE_PLATFORM_WRAPPERS_H_

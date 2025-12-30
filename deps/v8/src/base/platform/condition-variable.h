@@ -5,9 +5,6 @@
 #ifndef V8_BASE_PLATFORM_CONDITION_VARIABLE_H_
 #define V8_BASE_PLATFORM_CONDITION_VARIABLE_H_
 
-#ifndef __wasi__
-#include "absl/synchronization/mutex.h"
-#endif
 #include "src/base/base-export.h"
 #include "src/base/lazy-instance.h"
 #include "src/base/platform/mutex.h"
@@ -22,7 +19,6 @@ namespace base {
 // Forward declarations.
 class ConditionVariableEvent;
 class TimeDelta;
-class Mutex;
 
 // -----------------------------------------------------------------------------
 // ConditionVariable
@@ -67,16 +63,26 @@ class V8_BASE_EXPORT ConditionVariable {
   // spuriously. When unblocked, regardless of the reason, the lock on the mutex
   // is reacquired and |WaitFor()| exits. Returns true if the condition variable
   // was notified prior to the timeout.
- bool WaitFor(Mutex* mutex, const TimeDelta& rel_time) V8_WARN_UNUSED_RESULT;
+  bool WaitFor(Mutex* mutex, const TimeDelta& rel_time) V8_WARN_UNUSED_RESULT;
+
+  // The implementation-defined native handle type.
+#if V8_OS_POSIX
+  using NativeHandle = pthread_cond_t;
+#elif V8_OS_WIN
+  using NativeHandle = V8_CONDITION_VARIABLE;
+#elif V8_OS_STARBOARD
+  using NativeHandle = SbConditionVariable;
+#endif
+
+  NativeHandle& native_handle() {
+    return native_handle_;
+  }
+  const NativeHandle& native_handle() const {
+    return native_handle_;
+  }
 
  private:
-#ifdef __wasi__
-  // Lightweight WASI representation; see platform-wasi-complete.cc
-  class PlatformData;
-  PlatformData* data_;
-#else
-  absl::CondVar native_handle_;
-#endif
+  NativeHandle native_handle_;
 };
 
 // POD ConditionVariable initialized lazily (i.e. the first time Pointer() is
@@ -90,9 +96,9 @@ class V8_BASE_EXPORT ConditionVariable {
 //     my_condvar.Pointer()->Wait(&my_mutex);
 //   }
 using LazyConditionVariable =
-    ::v8::base::LazyStaticInstance<ConditionVariable,
-                                   ::v8::base::DefaultConstructTrait<ConditionVariable>,
-                                   ::v8::base::ThreadSafeInitOnceTrait>::type;
+    LazyStaticInstance<ConditionVariable,
+                       DefaultConstructTrait<ConditionVariable>,
+                       ThreadSafeInitOnceTrait>::type;
 
 #define LAZY_CONDITION_VARIABLE_INITIALIZER LAZY_STATIC_INSTANCE_INITIALIZER
 

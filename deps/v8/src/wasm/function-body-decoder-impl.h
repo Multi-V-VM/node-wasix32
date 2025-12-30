@@ -1675,6 +1675,20 @@ class FastZoneVector {
 template <typename ValidationTag, DecodingMode decoding_mode = kFunctionBody>
 class WasmDecoder : public Decoder {
  public:
+  // Bring base class methods into scope for template lookup
+  using Decoder::pc_offset;
+  using Decoder::ok;
+  using Decoder::failed;
+  using Decoder::error;
+  using Decoder::errorf;
+  using Decoder::pc;
+  using Decoder::start;
+  using Decoder::end;
+  using Decoder::more;
+  using Decoder::consume_bytes;
+  using Decoder::checkAvailable;
+  using Decoder::position;
+
   WasmDecoder(Zone* zone, const WasmModule* module, WasmEnabledFeatures enabled,
               WasmDetectedFeatures* detected, const FunctionSig* sig,
               bool is_shared, const uint8_t* start, const uint8_t* end,
@@ -2925,6 +2939,7 @@ class NoVector {
 template <typename ValidationTag, typename Interface,
           DecodingMode decoding_mode = kFunctionBody>
 class WasmFullDecoder : public WasmDecoder<ValidationTag, decoding_mode> {
+  using Base = WasmDecoder<ValidationTag, decoding_mode>;
   using Value = typename Interface::Value;
   using Control = typename Interface::Control;
   using ArgVector = ZoneVector<Value>;
@@ -2938,6 +2953,27 @@ class WasmFullDecoder : public WasmDecoder<ValidationTag, decoding_mode> {
   ASSERT_TRIVIALLY_COPYABLE(Value);
 
  public:
+  // Bring base class methods into scope for template lookup
+  using Base::pc_offset;
+  using Base::ok;
+  using Base::failed;
+  using Base::error;
+  using Base::errorf;
+  using Base::pc;
+  using Base::start;
+  using Base::end;
+  using Base::more;
+  using Base::consume_bytes;
+  using Base::checkAvailable;
+  using Base::position;
+  using Base::zone_;
+  using Base::module_;
+  using Base::enabled_;
+  using Base::detected_;
+  using Base::sig_;
+  using Base::local_types_;
+  using Base::num_locals_;
+  using Base::current_inst_trace_;
   template <typename... InterfaceArgs>
   WasmFullDecoder(Zone* zone, const WasmModule* module,
                   WasmEnabledFeatures enabled, WasmDetectedFeatures* detected,

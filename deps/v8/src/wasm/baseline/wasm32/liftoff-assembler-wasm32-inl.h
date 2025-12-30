@@ -16,6 +16,13 @@ namespace v8::internal::wasm {
 
 namespace liftoff {
 
+// Simple memory operand helper for WASM32
+struct MemOperand {
+  Register base;
+  int32_t offset;
+  MemOperand(Register b, int32_t o) : base(b), offset(o) {}
+};
+
 #if defined(V8_TARGET_BIG_ENDIAN)
 constexpr int32_t kLowWordOffset = 4;
 constexpr int32_t kHighWordOffset = 0;

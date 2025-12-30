@@ -10,12 +10,9 @@
 
 #include "include/libplatform/libplatform-export.h"
 #include "include/v8-platform.h"
-#include "include/v8-source-location.h"
-#include "v8-task-full.h"
 #include "src/base/platform/condition-variable.h"
 #include "src/base/platform/mutex.h"
 #include "src/base/platform/platform.h"
-#include "src/base/platform/platform-thread.h"
 #include "src/libplatform/delayed-task-queue.h"
 
 namespace v8 {
@@ -37,20 +34,16 @@ class V8_PLATFORM_EXPORT DefaultWorkerThreadsTaskRunner
   double MonotonicallyIncreasingTime();
 
   // v8::TaskRunner implementation.
+  void PostTask(std::unique_ptr<Task> task) override;
+
+  void PostDelayedTask(std::unique_ptr<Task> task,
+                       double delay_in_seconds) override;
+
+  void PostIdleTask(std::unique_ptr<IdleTask> task) override;
+
   bool IdleTasksEnabled() override;
 
  private:
-  // v8::TaskRunner implementation.
-  void PostTaskImpl(::std::unique_ptr<Task> task,
-                    const SourceLocation& location);
-
-  void PostDelayedTaskImpl(::std::unique_ptr<Task> task, double delay_in_seconds,
-                           const SourceLocation& location);
-
-  void PostIdleTaskImpl(::std::unique_ptr<IdleTask> task,
-                        const SourceLocation& location);
-
-#ifndef __wasi__
   class WorkerThread : public base::Thread {
    public:
     explicit WorkerThread(DefaultWorkerThreadsTaskRunner* runner,
@@ -66,27 +59,24 @@ class V8_PLATFORM_EXPORT DefaultWorkerThreadsTaskRunner
     void Notify();
 
    private:
-   DefaultWorkerThreadsTaskRunner* runner_;
-   ::v8::base::ConditionVariable condition_var_;
+    DefaultWorkerThreadsTaskRunner* runner_;
+    base::ConditionVariable condition_var_;
   };
-#endif  // !__wasi__
 
   // Called by the WorkerThread. Gets the next take (delayed or immediate) to be
   // executed. Blocks if no task is available.
-  ::std::unique_ptr<Task> GetNext();
+  std::unique_ptr<Task> GetNext();
 
   bool terminated_ = false;
-  ::v8::base::Mutex lock_;
-#ifndef __wasi__
+  base::Mutex lock_;
   // Vector of idle threads -- these are pushed in LIFO order, so that the most
   // recently active thread is the first to be reactivated.
-  ::std::vector<WorkerThread*> idle_threads_;
-  ::std::vector<::std::unique_ptr<WorkerThread>> thread_pool_;
-#endif
+  std::vector<WorkerThread*> idle_threads_;
+  std::vector<std::unique_ptr<WorkerThread>> thread_pool_;
   // Worker threads access this queue, so we can only destroy it after all
   // workers stopped.
   DelayedTaskQueue queue_;
-  ::std::queue<::std::unique_ptr<Task>> task_queue_;
+  std::queue<std::unique_ptr<Task>> task_queue_;
   TimeFunction time_function_;
 };
 

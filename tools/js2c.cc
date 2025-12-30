@@ -54,6 +54,8 @@ inline bool wasi_starts_with(const std::string& str,
 #define S_IWUSR _S_IWRITE
 #endif  // S_IWUSR
 #endif
+#ifdef __wasi__
+// Stub functions for WASI builds (exception handling and libuv stubs)
 extern "C" {
 void* __cxa_allocate_exception(size_t size) throw() {
   abort();
@@ -67,6 +69,7 @@ void __cxa_throw(void* exception,
 
 void uv__process_title_cleanup(void) {}
 }
+#endif  // __wasi__
 namespace node {
 namespace js2c {
 int Main(int argc, char* argv[]);
@@ -871,7 +874,7 @@ Fragment GetDefinition(const std::string& var, const std::vector<char>& code) {
 #else
   auto result = simdutf::convert_utf8_to_latin1_with_errors(
       code.data(), code.size(), latin1.data());
-  if (!result.error) {
+  if (result.error == simdutf::error_code::SUCCESS) {
     latin1.resize(result.count);
 #endif
     Debug("Latin-1-only, old size %zu, new size %zu\n",

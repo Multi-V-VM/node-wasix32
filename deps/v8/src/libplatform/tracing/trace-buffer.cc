@@ -1,29 +1,8 @@
-#ifdef V8_TARGET_ARCH_WASM32
-#include "../../include/libplatform/libplatform-wasi-fix.h"
-#endif
 // Copyright 2016 the V8 project authors. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-#ifdef __wasi__
-// WASI stub implementation
-#include <cstddef>
-namespace v8 {
-namespace platform {
-namespace tracing {
-class TraceWriter;
-class TraceBuffer {
- public:
-  static TraceBuffer* CreateTraceBufferRingBuffer(size_t, TraceWriter*);
-};
-TraceBuffer* TraceBuffer::CreateTraceBufferRingBuffer(size_t, TraceWriter*) { return nullptr; }
-}  // namespace tracing
-}  // namespace platform
-}  // namespace v8
-#else
-
 #include "src/libplatform/tracing/trace-buffer.h"
-#include "v8-tracing-definitions.h"
 
 namespace v8 {
 namespace platform {
@@ -37,7 +16,7 @@ TraceBufferRingBuffer::TraceBufferRingBuffer(size_t max_chunks,
 }
 
 TraceObject* TraceBufferRingBuffer::AddTraceEvent(uint64_t* handle) {
-  ::v8::base::MutexGuard guard(&mutex_);
+  base::MutexGuard guard(&mutex_);
   if (is_empty_ || chunks_[chunk_index_]->IsFull()) {
     chunk_index_ = is_empty_ ? 0 : NextChunkIndex(chunk_index_);
     is_empty_ = false;
@@ -56,7 +35,7 @@ TraceObject* TraceBufferRingBuffer::AddTraceEvent(uint64_t* handle) {
 }
 
 TraceObject* TraceBufferRingBuffer::GetEventByHandle(uint64_t handle) {
-  ::v8::base::MutexGuard guard(&mutex_);
+  base::MutexGuard guard(&mutex_);
   size_t chunk_index, event_index;
   uint32_t chunk_seq;
   ExtractHandle(handle, &chunk_index, &chunk_seq, &event_index);
@@ -67,7 +46,7 @@ TraceObject* TraceBufferRingBuffer::GetEventByHandle(uint64_t handle) {
 }
 
 bool TraceBufferRingBuffer::Flush() {
-  ::v8::base::MutexGuard guard(&mutex_);
+  base::MutexGuard guard(&mutex_);
   // This flushes all the traces stored in the buffer.
   if (!is_empty_) {
     for (size_t i = NextChunkIndex(chunk_index_);; i = NextChunkIndex(i)) {
@@ -89,7 +68,7 @@ uint64_t TraceBufferRingBuffer::MakeHandle(size_t chunk_index,
                                            uint32_t chunk_seq,
                                            size_t event_index) const {
   return static_cast<uint64_t>(chunk_seq) * Capacity() +
-         chunk_index * TraceBufferChunk::kTraceBufferChunkSize + event_index;
+         chunk_index * TraceBufferChunk::kChunkSize + event_index;
 }
 
 void TraceBufferRingBuffer::ExtractHandle(uint64_t handle, size_t* chunk_index,
@@ -97,8 +76,8 @@ void TraceBufferRingBuffer::ExtractHandle(uint64_t handle, size_t* chunk_index,
                                           size_t* event_index) const {
   *chunk_seq = static_cast<uint32_t>(handle / Capacity());
   size_t indices = handle % Capacity();
-  *chunk_index = indices / TraceBufferChunk::kTraceBufferChunkSize;
-  *event_index = indices % TraceBufferChunk::kTraceBufferChunkSize;
+  *chunk_index = indices / TraceBufferChunk::kChunkSize;
+  *event_index = indices % TraceBufferChunk::kChunkSize;
 }
 
 size_t TraceBufferRingBuffer::NextChunkIndex(size_t index) const {
@@ -126,4 +105,3 @@ TraceBuffer* TraceBuffer::CreateTraceBufferRingBuffer(
 }  // namespace tracing
 }  // namespace platform
 }  // namespace v8
-#endif // __wasi__

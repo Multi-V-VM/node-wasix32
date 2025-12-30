@@ -14,6 +14,7 @@
 
 #include "src/base/enum-set.h"
 #include "src/codegen/assembler-inl.h"
+#include "src/codegen/source-position-table.h"
 // TODO(clemensb): Remove dependences on compiler stuff.
 #include "src/codegen/external-reference.h"
 #include "src/codegen/interface-descriptors-inl.h"

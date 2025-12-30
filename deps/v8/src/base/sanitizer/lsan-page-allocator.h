@@ -5,22 +5,17 @@
 #ifndef V8_BASE_SANITIZER_LSAN_PAGE_ALLOCATOR_H_
 #define V8_BASE_SANITIZER_LSAN_PAGE_ALLOCATOR_H_
 
-#include <set>
-
 #include "include/v8-platform.h"
 #include "src/base/base-export.h"
 #include "src/base/compiler-specific.h"
-#if defined(LEAK_SANITIZER)
-#include "src/base/platform/mutex.h"
-#endif
 
 namespace v8 {
 namespace base {
 
-// This is a ::v8::PageAllocator implementation that decorates provided page
+// This is a v8::PageAllocator implementation that decorates provided page
 // allocator object with leak sanitizer notifications when LEAK_SANITIZER
 // is defined.
-class V8_BASE_EXPORT LsanPageAllocator : public ::v8::PageAllocator {
+class V8_BASE_EXPORT LsanPageAllocator : public v8::PageAllocator {
  public:
   explicit LsanPageAllocator(v8::PageAllocator* page_allocator);
   ~LsanPageAllocator() override = default;
@@ -38,27 +33,24 @@ class V8_BASE_EXPORT LsanPageAllocator : public ::v8::PageAllocator {
   }
 
   void* AllocatePages(void* address, size_t size, size_t alignment,
-                      v8::PagePermissions access) override;
+                      PageAllocator::Permission access) override;
 
-  // Remove methods not in base interface
-#ifndef __wasi__
   std::unique_ptr<SharedMemory> AllocateSharedPages(
-      size_t size, const void* original_address);
+      size_t size, const void* original_address) override;
 
-  bool CanAllocateSharedPages();
-#endif
+  bool CanAllocateSharedPages() override;
 
   bool FreePages(void* address, size_t size) override;
 
-  bool ReleasePages(void* address, size_t size) override;
+  bool ReleasePages(void* address, size_t size, size_t new_size) override;
 
   bool SetPermissions(void* address, size_t size,
-                      v8::PagePermissions access) override {
+                      PageAllocator::Permission access) override {
     return page_allocator_->SetPermissions(address, size, access);
   }
 
   bool RecommitPages(void* address, size_t size,
-                     v8::PagePermissions access) override {
+                     PageAllocator::Permission access) override {
     return page_allocator_->RecommitPages(address, size, access);
   }
 
@@ -70,18 +62,10 @@ class V8_BASE_EXPORT LsanPageAllocator : public ::v8::PageAllocator {
     return page_allocator_->DecommitPages(address, size);
   }
 
-  bool SealPages(void* address, size_t size) override {
-    return page_allocator_->SealPages(address, size);
-  }
-
  private:
-  ::v8::PageAllocator* const page_allocator_;
+  v8::PageAllocator* const page_allocator_;
   const size_t allocate_page_size_;
   const size_t commit_page_size_;
-#if defined(LEAK_SANITIZER)
-  ::v8::base::Mutex not_registered_regions_mutex_;
-  std::set<void*> not_registered_regions_;
-#endif
 };
 
 }  // namespace base

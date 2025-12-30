@@ -5,16 +5,12 @@
 #ifndef V8_BASE_STRINGS_H_
 #define V8_BASE_STRINGS_H_
 
-// Avoid std-preinclude here; this header may be pulled in under `namespace v8`.
 #include "src/base/base-export.h"
 #include "src/base/macros.h"
 #include "src/base/vector.h"
-// Use C headers to ensure ::(global) symbols are available for unqualified
-// uses like `va_list` and `size_t` in these declarations.
-#include <stdarg.h>
-#include <stddef.h>
 
-namespace v8 { namespace base {
+namespace v8 {
+namespace base {
 
 // Latin1/UTF-16 constants
 // Code-point values in Unicode 4.0 are 21 bits wide.
@@ -24,14 +20,14 @@ using uc32 = uint32_t;
 constexpr int kUC16Size = sizeof(uc16);
 
 V8_BASE_EXPORT int PRINTF_FORMAT(2, 0)
-    VSNPrintF(::v8::base::Vector<char> str, const char* format, va_list args);
+    VSNPrintF(Vector<char> str, const char* format, va_list args);
 
 // Safe formatting print. Ensures that str is always null-terminated.
 // Returns the number of chars written, or -1 if output was truncated.
 V8_BASE_EXPORT int PRINTF_FORMAT(2, 3)
-    SNPrintF(::v8::base::Vector<char> str, const char* format, ...);
+    SNPrintF(Vector<char> str, const char* format, ...);
 
-V8_BASE_EXPORT void StrNCpy(::v8::base::Vector<char> dest, const char* src, size_t n);
+V8_BASE_EXPORT void StrNCpy(base::Vector<char> dest, const char* src, size_t n);
 
 // Returns the value (0 .. 15) of a hexadecimal character c.
 // If c is not a legal hexadecimal character, returns a value < 0.

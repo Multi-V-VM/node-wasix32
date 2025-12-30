@@ -1,6 +1,3 @@
-#ifdef __wasi__
-#define V8_TARGET_ARCH_WASM32 1
-#endif
 // Copyright 2020 the V8 project authors. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
@@ -8,9 +5,6 @@
 // Platform-specific code for Starboard goes here. Starboard is the platform
 // abstraction layer for Cobalt, an HTML5 container used mainly by YouTube
 // apps in the living room.
-
-#include <stdio.h>
-#include <sys/mman.h>
 
 #include "src/base/lazy-instance.h"
 #include "src/base/macros.h"
@@ -22,9 +16,10 @@
 #include "starboard/common/condition_variable.h"
 #include "starboard/common/log.h"
 #include "starboard/common/string.h"
-#include "starboard/common/time.h"
 #include "starboard/configuration.h"
 #include "starboard/configuration_constants.h"
+#include "starboard/memory.h"
+#include "starboard/time.h"
 #include "starboard/time_zone.h"
 
 namespace v8 {
@@ -76,22 +71,30 @@ static LazyInstance<RandomNumberGenerator>::type
     platform_random_number_generator = LAZY_INSTANCE_INITIALIZER;
 static LazyMutex rng_mutex = LAZY_MUTEX_INITIALIZER;
 
+bool g_hard_abort = false;
 // We only use this stack size to get the topmost stack frame.
 const int kStackSize = 1;
 
 }  // namespace
 
-void OS::Initialize(AbortMode abort_mode, const char* const gc_fake_mmap) {
-  g_abort_mode = abort_mode;
+void OS::Initialize(bool hard_abort, const char* const gc_fake_mmap) {
+  g_hard_abort = hard_abort;
   // This is only used on Posix, we don't need to use it for anything.
 }
 
 int OS::GetUserTime(uint32_t* secs, uint32_t* usecs) {
-  const int64_t us_time = starboard::CurrentMonotonicThreadTime();
-  if (us_time == 0) return -1;
-  *secs = us_time / TimeConstants::kMicroSecondsPerSecond;
-  *usecs = us_time % TimeConstants::kMicroSecondsPerSecond;
+#if SB_API_VERSION >= 12
+  if (!SbTimeIsTimeThreadNowSupported()) return -1;
+#endif
+
+#if SB_API_VERSION >= 12 || SB_HAS(TIME_THREAD_NOW)
+  SbTimeMonotonic thread_now = SbTimeGetMonotonicThreadNow();
+  *secs = thread_now / kSbTimeSecond;
+  *usecs = thread_now % kSbTimeSecond;
   return 0;
+#else
+  return -1;
+#endif
 }
 
 double OS::TimeCurrentMillis() { return Time::Now().ToJsTime(); }
@@ -103,7 +106,7 @@ int OS::ActivationFrameAlignment() {
   return 8;
 #elif V8_TARGET_ARCH_MIPS
   return 8;
-#elif V8_TARGET_ARCH_S390X
+#elif V8_TARGET_ARCH_S390
   return 8;
 #else
   // Otherwise we just assume 16 byte alignment, i.e.:
@@ -128,13 +131,13 @@ void OS::SetRandomMmapSeed(int64_t seed) { SB_NOTIMPLEMENTED(); }
 void* OS::GetRandomMmapAddr() { return nullptr; }
 
 void* Allocate(void* address, size_t size, OS::MemoryPermission access) {
-  int prot_flags;
+  SbMemoryMapFlags sb_flags;
   switch (access) {
     case OS::MemoryPermission::kNoAccess:
-      prot_flags = PROT_NONE;
+      sb_flags = SbMemoryMapFlags(0);
       break;
     case OS::MemoryPermission::kReadWrite:
-      prot_flags = PROT_READ | PROT_WRITE;
+      sb_flags = SbMemoryMapFlags(kSbMemoryMapProtectReadWrite);
       break;
     default:
       SB_LOG(ERROR) << "The requested memory allocation access is not"
@@ -142,8 +145,8 @@ void* Allocate(void* address, size_t size, OS::MemoryPermission access) {
                     << static_cast<int>(access);
       return nullptr;
   }
-  void* result = mmap(nullptr, size, prot_flags, MAP_PRIVATE | MAP_ANON, -1, 0);
-  if (result == MAP_FAILED) {
+  void* result = SbMemoryMap(size, sb_flags, "v8::Base::Allocate");
+  if (result == SB_MEMORY_MAP_FAILED) {
     return nullptr;
   }
   return result;
@@ -186,29 +189,30 @@ void* OS::Allocate(void* address, size_t size, size_t alignment,
 
 // static
 void OS::Free(void* address, const size_t size) {
-  CHECK_EQ(munmap(address, size), 0);
+  CHECK(SbMemoryUnmap(address, size));
 }
 
 // static
 void OS::Release(void* address, size_t size) {
-  CHECK_EQ(munmap(address, size), 0);
+  CHECK(SbMemoryUnmap(address, size));
 }
 
 // static
 bool OS::SetPermissions(void* address, size_t size, MemoryPermission access) {
-  int new_protection;
+  SbMemoryMapFlags new_protection;
   switch (access) {
     case OS::MemoryPermission::kNoAccess:
-      new_protection = PROT_NONE;
+      new_protection = SbMemoryMapFlags(0);
       break;
     case OS::MemoryPermission::kRead:
-      new_protection = PROT_READ;
+      new_protection = SbMemoryMapFlags(kSbMemoryMapProtectRead);
     case OS::MemoryPermission::kReadWrite:
-      new_protection = PROT_READ | PROT_WRITE;
+      new_protection = SbMemoryMapFlags(kSbMemoryMapProtectReadWrite);
       break;
     case OS::MemoryPermission::kReadExecute:
 #if SB_CAN(MAP_EXECUTABLE_MEMORY)
-      new_protection = PROT_READ | PROT_EXEC;
+      new_protection =
+          SbMemoryMapFlags(kSbMemoryMapProtectRead | kSbMemoryMapProtectExec);
 #else
       UNREACHABLE();
 #endif
@@ -217,7 +221,7 @@ bool OS::SetPermissions(void* address, size_t size, MemoryPermission access) {
       // All other types are not supported by Starboard.
       return false;
   }
-  return mprotect(address, size, new_protection) == 0;
+  return SbMemoryProtect(address, size, new_protection);
 }
 
 // static
@@ -271,7 +275,7 @@ int OS::GetCurrentProcessId() {
   return 0;
 }
 
-int OS::GetCurrentThreadIdInternal() { return SbThreadGetId(); }
+int OS::GetCurrentThreadId() { return SbThreadGetId(); }
 
 int OS::GetLastError() { return SbSystemGetLastError(); }
 
@@ -345,7 +349,7 @@ int OS::SNPrintF(char* str, int length, const char* format, ...) {
 }
 
 int OS::VSNPrintF(char* str, int length, const char* format, va_list args) {
-  int n = vsnprintf(str, length, format, args);
+  int n = SbStringFormat(str, length, format, args);
   if (n < 0 || n >= length) {
     // If the length is zero, the assignment fails.
     if (length > 0) str[length - 1] = '\0';
@@ -360,7 +364,7 @@ int OS::VSNPrintF(char* str, int length, const char* format, va_list args) {
 //
 
 void OS::StrNCpy(char* dest, int length, const char* src, size_t n) {
-  strncpy(dest, src, n);
+  SbStringCopy(dest, src, n);
 }
 
 // ----------------------------------------------------------------------------
@@ -445,18 +449,14 @@ class StarboardDefaultTimezoneCache : public StarboardTimezoneCache {
     return SbTimeZoneGetName();
   }
   double LocalTimeOffset(double time_ms, bool is_utc) override {
-    // SbTimeZoneGetCurrent returns an offset west of Greenwich, which has the
+    // SbTimeZOneGetCurrent returns an offset west of Greenwich, which has the
     // opposite sign V8 expects.
     // The starboard function returns offset in minutes. We convert to return
     // value in milliseconds.
     return SbTimeZoneGetCurrent() * 60.0 * msPerSecond * (-1);
   }
   double DaylightSavingsOffset(double time_ms) override {
-    int64_t posix_microseconds = starboard::CurrentPosixTime();
-    EzTimeValue value = {
-        posix_microseconds / TimeConstants::kMicroSecondsPerSecond,
-        (int32_t)(posix_microseconds % TimeConstants::kMicroSecondsPerSecond)
-    };
+    EzTimeValue value = EzTimeValueFromSbTime(SbTimeGetNow());
     EzTimeExploded ez_exploded;
     bool result =
         EzTimeValueExplode(&value, kEzTimeZoneLocal, &ez_exploded, NULL);
@@ -479,21 +479,15 @@ void OS::SignalCodeMovingGC() { SB_NOTIMPLEMENTED(); }
 
 void OS::AdjustSchedulingParams() {}
 
-std::optional<OS::MemoryRange> OS::GetFirstFreeMemoryRangeWithin(
+std::vector<OS::MemoryRange> OS::GetFreeMemoryRangesWithin(
     OS::Address boundary_start, OS::Address boundary_end, size_t minimum_size,
     size_t alignment) {
-  return std::nullopt;
+  return {};
 }
 
 bool OS::DiscardSystemPages(void* address, size_t size) {
   // Starboard API does not support this function yet.
   return true;
-}
-
-// static
-Stack::StackSlot Stack::GetStackStart() {
-  SB_NOTIMPLEMENTED();
-  return nullptr;
 }
 
 // static

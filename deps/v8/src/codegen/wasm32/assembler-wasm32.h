@@ -7,9 +7,7 @@
 
 #include <memory>
 
-#include "src/base/small-vector.h"
 #include "src/codegen/assembler.h"
-#include "src/codegen/constant-pool.h"
 #include "src/codegen/wasm32/constants-wasm32.h"
 #include "src/codegen/wasm32/register-wasm32.h"
 
@@ -18,363 +16,124 @@ namespace internal {
 
 class SafepointTableBuilder;
 
-// Forward declarations
-class Assembler;
-
-// CPU features for WASM32
-enum Wasm32Feature {
-  WASM32_BASELINE = 0,    // Basic WASM32 support
-  WASM32_SIMD = 1,        // SIMD128 support
-  WASM32_ATOMICS = 2,     // Atomic operations
-  WASM32_EXCEPTION = 3,   // Exception handling
-  WASM32_FEATURE_COUNT = 4
-};
-
+// Minimal WASM32 Assembler stub - provides linker symbols but
+// actual code generation is not supported.
 class V8_EXPORT_PRIVATE Assembler : public AssemblerBase {
  public:
-  // Creation, destruction
-  // Default constructor for cases where assembler is used as a member
-  Assembler();
-  // Constructor with zone parameter (for compatibility with MacroAssemblerBase)
-  Assembler(MaybeAssemblerZone zone, const AssemblerOptions& options,
-            std::unique_ptr<AssemblerBuffer> buffer = {});
-  // Legacy constructor without zone
   explicit Assembler(const AssemblerOptions& options,
                      std::unique_ptr<AssemblerBuffer> buffer = {});
+  // For compatibility with assemblers that require a zone.
+  Assembler(const MaybeAssemblerZone&, const AssemblerOptions& options,
+            std::unique_ptr<AssemblerBuffer> buffer = {})
+      : Assembler(options, std::move(buffer)) {}
   ~Assembler() override;
 
-  // GetCode emits any pending (non-emitted) code and fills the descriptor desc.
+  // GetCode emits any pending code and fills the descriptor
   static constexpr int kNoHandlerTable = 0;
   static constexpr SafepointTableBuilder* kNoSafepointTable = nullptr;
   void GetCode(LocalIsolate* isolate, CodeDesc* desc,
                SafepointTableBuilder* safepoint_table_builder = kNoSafepointTable,
                int handler_table_offset = kNoHandlerTable);
   void GetCode(Isolate* isolate, CodeDesc* desc);
-  void GetCode(LocalIsolate* isolate, CodeDesc* desc) {
-    GetCode(isolate, desc, kNoSafepointTable, kNoHandlerTable);
-  }
 
-  // Unused on this architecture.
+  // Required by codegen infrastructure
   void MaybeEmitOutOfLineConstantPool() {}
-
-  // Label operations
   void bind(Label* L);
   void nop();
-  // WASM-level structured control stubs used by MacroAssemblerWASM32
-  void br(uint32_t /*depth*/) {}
-  void wasm_return() {}
-  void unreachable() {}
-
-  // Check if we have sufficient space in the buffer
-  void CheckBufferSpace();
   void GrowBuffer();
 
-  // Get current position in code buffer
+  // Position info
   int pc_offset() const { return static_cast<int>(pc_ - buffer_start_); }
   uint8_t* pc() const { return pc_; }
 
-  // Instruction emission
-  void Emit(uint32_t instr);
-  void EmitBranch(Label* L, Condition cond, Register rs1, Register rs2);
-  void EmitJump(Label* L);
-
-  // Lightweight WASM-style stack helpers expected by MacroAssembler stubs.
-  // These emit pseudo-ops to keep intent without maintaining a real value
-  // stack, sufficient for code generation pipelines that only need
-  // well-formed streams.
-  void local_get(int /*index*/);
-  void local_set(int /*index*/);
-  void i32_const(int32_t /*value*/);
-  void i32_add();
-  void i32_sub();
-  void i32_mul();
-  void i32_eq();
-  void i32_ne();
-  void i32_lt_s();
-  void i32_gt_s();
-  void br_if(uint32_t /*depth*/);
-  void call(uint32_t /*index*/);
-
-  // === Architecture-specific instructions ===
-  
-  // Load/Store operations
-  void lw(Register rd, Register base, int32_t offset);   // Load word
-  void lh(Register rd, Register base, int32_t offset);   // Load halfword
-  void lb(Register rd, Register base, int32_t offset);   // Load byte
-  void sw(Register rs, Register base, int32_t offset);   // Store word
-  void sh(Register rs, Register base, int32_t offset);   // Store halfword
-  void sb(Register rs, Register base, int32_t offset);   // Store byte
-
-  // Load/Store float operations
-  void flw(FloatRegister fd, Register base, int32_t offset);   // Load float
-  void fsw(FloatRegister fs, Register base, int32_t offset);   // Store float
-  void fld(DoubleRegister fd, Register base, int32_t offset);  // Load double
-  void fsd(DoubleRegister fs, Register base, int32_t offset);  // Store double
-
-  // SIMD Load/Store
-  void vld(Simd128Register vd, Register base, int32_t offset);  // Load SIMD128
-  void vst(Simd128Register vs, Register base, int32_t offset);  // Store SIMD128
-
-  // Arithmetic operations
-  void add(Register rd, Register rs1, Register rs2);
-  void sub(Register rd, Register rs1, Register rs2);
-  void mul(Register rd, Register rs1, Register rs2);
-  void div(Register rd, Register rs1, Register rs2);
-  void rem(Register rd, Register rs1, Register rs2);
-
-  // Immediate arithmetic
-  void addi(Register rd, Register rs1, int32_t imm);
-  void subi(Register rd, Register rs1, int32_t imm) {
-    addi(rd, rs1, -imm);
-  }
-
-  // Logical operations
-  void and_(Register rd, Register rs1, Register rs2);
-  void or_(Register rd, Register rs1, Register rs2);
-  void xor_(Register rd, Register rs1, Register rs2);
-  void not_(Register rd, Register rs) {
-    xor_(rd, rs, Register::from_code(-1));
-  }
-
-  // Shift operations
-  void sll(Register rd, Register rs1, Register rs2);  // Shift left logical
-  void srl(Register rd, Register rs1, Register rs2);  // Shift right logical
-  void sra(Register rd, Register rs1, Register rs2);  // Shift right arithmetic
-
-  // Compare operations
-  void slt(Register rd, Register rs1, Register rs2);   // Set less than
-  void sltu(Register rd, Register rs1, Register rs2);  // Set less than unsigned
-
-  // Branch operations
-  void beq(Register rs1, Register rs2, Label* L) {
-    EmitBranch(L, eq, rs1, rs2);
-  }
-  void bne(Register rs1, Register rs2, Label* L) {
-    EmitBranch(L, ne, rs1, rs2);
-  }
-  void blt(Register rs1, Register rs2, Label* L) {
-    EmitBranch(L, lt, rs1, rs2);
-  }
-  void bge(Register rs1, Register rs2, Label* L) {
-    EmitBranch(L, ge, rs1, rs2);
-  }
-  void bltu(Register rs1, Register rs2, Label* L) {
-    EmitBranch(L, lo, rs1, rs2);
-  }
-  void bgeu(Register rs1, Register rs2, Label* L) {
-    EmitBranch(L, hs, rs1, rs2);
-  }
-
-  // Jump operations
-  void j(Label* L) { EmitJump(L); }
-  void jal(Register rd, Label* L);  // Jump and link
-  void jr(Register rs);              // Jump register
-  void jalr(Register rd, Register rs, int32_t offset = 0); // Jump and link register
-
-  // Move operations
-  void mov(Register rd, Register rs);
-  void li(Register rd, int32_t imm);  // Load immediate
-
-  // Stack operations
-  void push(Register rs);
-  void pop(Register rd);
-  void pushm(RegList regs);  // Push multiple
-  void popm(RegList regs);   // Pop multiple
-
-  // Floating point operations
-  void fadd_s(FloatRegister fd, FloatRegister fs1, FloatRegister fs2);
-  void fsub_s(FloatRegister fd, FloatRegister fs1, FloatRegister fs2);
-  void fmul_s(FloatRegister fd, FloatRegister fs1, FloatRegister fs2);
-  void fdiv_s(FloatRegister fd, FloatRegister fs1, FloatRegister fs2);
-
-  void fadd_d(DoubleRegister fd, DoubleRegister fs1, DoubleRegister fs2);
-  void fsub_d(DoubleRegister fd, DoubleRegister fs1, DoubleRegister fs2);
-  void fmul_d(DoubleRegister fd, DoubleRegister fs1, DoubleRegister fs2);
-  void fdiv_d(DoubleRegister fd, DoubleRegister fs1, DoubleRegister fs2);
-
-  // Floating point move
-  void fmov_s(FloatRegister fd, FloatRegister fs);
-  void fmov_d(DoubleRegister fd, DoubleRegister fs);
-
-  // Conversion operations
-  void fcvt_w_s(Register rd, FloatRegister fs);    // Float to int32
-  void fcvt_s_w(FloatRegister fd, Register rs);    // Int32 to float
-  void fcvt_w_d(Register rd, DoubleRegister fs);   // Double to int32
-  void fcvt_d_w(DoubleRegister fd, Register rs);   // Int32 to double
-  void fcvt_d_s(DoubleRegister fd, FloatRegister fs); // Float to double
-  void fcvt_s_d(FloatRegister fd, DoubleRegister fs); // Double to float
-
-  // System operations
-  void brk(int code);  // Breakpoint
-  void fence();        // Memory fence
-
-  // Constant pool
-  bool use_real_constant_pool() const { return false; }
-  Handle<HeapObject> compressed_embedded_object_handle_for(
-      Address maybe_address) {
-    UNREACHABLE();
-  }
-
   // Code patching
   static void PatchBranchOffset(uint8_t* pc, int32_t offset);
+  void RecordComment(const char* comment);
+  void RecordDeoptReason(DeoptimizeReason reason, uint32_t node_id,
+                         SourcePosition position, int id);
 
-  // Read/modify the uint32 constant used at pc
-  static inline uint32_t uint32_constant_at(Address pc, Address constant_pool) {
-    return base::ReadUnalignedValue<uint32_t>(pc);
-  }
-
-  static inline void set_uint32_constant_at(
-      Address pc, Address constant_pool, uint32_t new_constant,
-      WritableJitAllocation* jit_allocation = nullptr,
-      ICacheFlushMode icache_flush_mode = FLUSH_ICACHE_IF_NEEDED) {
-    if (jit_allocation) {
-      jit_allocation->WriteUnalignedValue<uint32_t>(pc, new_constant);
-    } else {
-      base::WriteUnalignedValue<uint32_t>(pc, new_constant);
-    }
-    if (icache_flush_mode != SKIP_ICACHE_FLUSH) {
-      FlushInstructionCache(pc, sizeof(uint32_t));
-    }
-  }
-
-  // Static helpers used by RelocInfo and serializer interfaces
-  static Address target_address_from_return_address(Address pc);
-  static void set_target_compressed_address_at(Address pc, Address constant_pool,
-                                               Tagged_t target,
-                                               WritableJitAllocation* jit_allocation,
-                                               ICacheFlushMode icache_flush_mode);
-  static Tagged_t target_compressed_address_at(Address pc, Address constant_pool);
-  static Handle<Object> code_target_object_handle_at(Address pc, Address constant_pool);
-  static Handle<HeapObject> compressed_embedded_object_handle_at(Address pc,
-                                                                 Address constant_pool);
+  // Static methods required by RelocInfo
   static Address target_address_at(Address pc, Address constant_pool);
   static void set_target_address_at(Address pc, Address constant_pool,
                                     Address target,
-                                    WritableJitAllocation* jit_allocation,
-                                    ICacheFlushMode icache_flush_mode);
-  static void deserialization_set_special_target_at(Address instruction_payload,
-                                                    Tagged<Code> code,
-                                                    Address target);
-  static int deserialization_special_target_size(Address instruction_payload);
-  inline static void deserialization_set_target_internal_reference_at(
+                                    WritableJitAllocation* jit_allocation = nullptr,
+                                    ICacheFlushMode icache_flush_mode = FLUSH_ICACHE_IF_NEEDED);
+  static uint32_t uint32_constant_at(Address pc, Address constant_pool);
+  static void set_uint32_constant_at(
+      Address pc, Address constant_pool, uint32_t new_constant,
+      WritableJitAllocation* jit_allocation = nullptr,
+      ICacheFlushMode icache_flush_mode = FLUSH_ICACHE_IF_NEEDED);
+  static void deserialization_set_target_internal_reference_at(
       Address pc, Address target, WritableJitAllocation& jit_allocation,
       RelocInfo::Mode mode = RelocInfo::INTERNAL_REFERENCE);
-  static void FlushInstructionCache(Address start, size_t size);
-  // Three-arguments overload used in some code paths
-  static void set_target_address_at(Address pc, Address constant_pool,
-                                    Address target);
 
-  // Debugging
-  void RecordComment(const char* comment);
-  void RecordDeoptReason(DeoptimizeReason reason, uint32_t node_id,
-                        SourcePosition position, int id);
+  // Code comments
   int WriteCodeComments();
-
-  // Constants for code generation
-  static constexpr int kMaxDistToBranchImm = (1 << 12) - 1;  // 12-bit signed offset
-  static constexpr int kMaxDistToJumpImm = (1 << 20) - 1;    // 20-bit signed offset
-  static constexpr int kGap = 32;  // Gap for buffer management
-
-  // Stack pointer operations (for MacroAssembler)
-  static constexpr Register kStackPointer = Register::sp();
-
-  // Required by Assembler base
-  void DataAlign(int m) {
-    DCHECK(m >= 2 && base::bits::IsPowerOfTwo(m));
-    while ((pc_offset() & (m - 1)) != 0) {
-      nop();
-    }
-  }
-
-  // Align pc offset to a multiple of m (power of 2)
-  void Align(int m) {
-    DCHECK(m >= 2 && base::bits::IsPowerOfTwo(m));
-    while ((pc_offset() & (m - 1)) != 0) {
-      nop();
-    }
-  }
-
-  // Data emission methods for inline tables
-  void db(uint8_t data) {
-    CheckSpace(sizeof(uint8_t));
-    *pc_++ = data;
-  }
-
-  void dd(uint32_t data) {
-    CheckSpace(sizeof(uint32_t));
-    *reinterpret_cast<uint32_t*>(pc_) = data;
-    pc_ += sizeof(uint32_t);
-  }
-
-  void dq(uint64_t data) {
-    CheckSpace(sizeof(uint64_t));
-    *reinterpret_cast<uint64_t*>(pc_) = data;
-    pc_ += sizeof(uint64_t);
-  }
-
-  void dp(uintptr_t data) { dq(data); }
-
-  // Required alignment for different purposes
-  static constexpr int kInstrAlignment = 4;
-  static constexpr int kFunctionAlignment = 16;
-
- protected:
-  // Relocation information
   void RecordRelocInfo(RelocInfo::Mode rmode, intptr_t data = 0);
 
-  // Label operations
-  void print(const Label* L);
+  // Constants
+  static constexpr int kGap = 32;
+
+  // Buffer checks
+  void CheckBufferSpace() {
+    if (pc_ + kGap >= buffer_end_) GrowBuffer();
+  }
+  void CheckSpace(int space_needed) {
+    if (pc_ + space_needed >= buffer_end_) GrowBuffer();
+  }
+
+  // Alignment
+  void DataAlign(int m) {
+    while ((pc_offset() & (m - 1)) != 0) nop();
+  }
+  void Align(int m) {
+    while ((pc_offset() & (m - 1)) != 0) nop();
+  }
+
+  // Data emission
+  void db(uint8_t data) {
+    CheckSpace(1);
+    if (pc_) *pc_++ = data;
+  }
+  void dd(uint32_t data) {
+    CheckSpace(4);
+    if (pc_) {
+      *reinterpret_cast<uint32_t*>(pc_) = data;
+      pc_ += 4;
+    }
+  }
+  void dq(uint64_t data) {
+    CheckSpace(8);
+    if (pc_) {
+      *reinterpret_cast<uint64_t*>(pc_) = data;
+      pc_ += 8;
+    }
+  }
+  void dp(uintptr_t data) { dd(static_cast<uint32_t>(data)); }
+
+  // Unused on this architecture
+  bool use_real_constant_pool() const { return false; }
+
+ protected:
   int32_t branch_offset(Label* L);
   int32_t jump_offset(Label* L);
 
-  // Buffer management
-  void CheckSpace(int space_needed) {
-    if (pc_ + space_needed > buffer_end_) {
-      GrowBuffer();
-    }
-  }
-
  private:
-  // Instruction encoding helpers
-  uint32_t EncodeLoadStore(Opcode op, Register rd_rs, Register base, int32_t offset);
-  uint32_t EncodeLoadStoreFloat(Opcode op, FloatRegister fd_fs, Register base, int32_t offset);
-  uint32_t EncodeLoadStoreDouble(Opcode op, DoubleRegister fd_fs, Register base, int32_t offset);
-  uint32_t EncodeLoadStoreSimd(Opcode op, Simd128Register vd_vs, Register base, int32_t offset);
-
-  // Code buffer management
-  uint8_t* buffer_start_;
-  uint8_t* buffer_end_;
-  uint8_t* pc_;
-
-  // Constant pool (unused for WASM32, but required by base)
-  int constant_pool_offset_ = 0;
-
-  // Pending branch/jump fixups
-  struct BranchInfo {
-    uint8_t* pc;
-    Label* label;
-    bool is_jump;  // true for jumps, false for branches
-  };
-  base::SmallVector<BranchInfo, 32> pending_branches_;
-
-  // No-op constants for unused features
-  static constexpr int kNoConstantPool = 0;
+  uint8_t* buffer_start_ = nullptr;
+  uint8_t* buffer_end_ = nullptr;
+  uint8_t* pc_ = nullptr;
 };
 
-// Helper class for EnsureSpace
 class V8_EXPORT_PRIVATE EnsureSpace {
  public:
   explicit EnsureSpace(Assembler* assembler) : assembler_(assembler) {
     assembler_->CheckBufferSpace();
   }
-
  private:
   Assembler* const assembler_;
 };
 
 }  // namespace internal
 }  // namespace v8
-
-// (No additional aliasing needed; Assembler is defined above.)
 
 #endif  // V8_CODEGEN_WASM32_ASSEMBLER_WASM32_H_
