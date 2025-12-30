@@ -77,7 +77,41 @@
 #define MAP_ANONYMOUS MAP_ANON
 #endif
 
-#if defined(V8_OS_SOLARIS)
+#if defined(__wasi__)
+// WASI doesn't have madvise/mprotect, provide no-op stubs
+#ifndef MADV_DONTNEED
+#define MADV_DONTNEED 0
+#endif
+#ifndef MADV_FREE
+#define MADV_FREE 0
+#endif
+#ifndef MADV_FREE_REUSABLE
+#define MADV_FREE_REUSABLE 0
+#endif
+#ifndef MADV_FREE_REUSE
+#define MADV_FREE_REUSE 0
+#endif
+#ifndef MADV_DONTFORK
+#define MADV_DONTFORK 0
+#endif
+#ifndef MADV_HUGEPAGE
+#define MADV_HUGEPAGE 0
+#endif
+#ifndef PROT_READ
+#define PROT_READ 1
+#endif
+#ifndef PROT_WRITE
+#define PROT_WRITE 2
+#endif
+#ifndef PROT_EXEC
+#define PROT_EXEC 4
+#endif
+#ifndef PROT_NONE
+#define PROT_NONE 0
+#endif
+inline int madvise(void*, size_t, int) { return 0; }
+inline int mprotect(void*, size_t, int) { return 0; }
+#elif defined(V8_OS_SOLARIS)
 #if (defined(_POSIX_C_SOURCE) && _POSIX_C_SOURCE > 2) || defined(__EXTENSIONS__)
 extern "C" int madvise(caddr_t, size_t, int);
 #else
@@ -95,6 +129,32 @@ extern "C" void* __libc_stack_end;
 
 namespace v8 {
 namespace base {
+
+// For WASI builds, define PlatformSharedMemoryHandle helpers
+#if defined(__wasi__)
+using PlatformSharedMemoryHandle = int;
+static constexpr PlatformSharedMemoryHandle kInvalidSharedMemoryHandle = -1;
+
+static int FileDescriptorFromSharedMemoryHandle(PlatformSharedMemoryHandle handle) {
+  return handle;
+}
+
+static PlatformSharedMemoryHandle SharedMemoryHandleFromFileDescriptor(int fd) {
+  return fd;
+}
+#else
+// For non-WASI POSIX, PlatformSharedMemoryHandle is intptr_t
+using PlatformSharedMemoryHandle = intptr_t;
+static constexpr PlatformSharedMemoryHandle kInvalidSharedMemoryHandle = -1;
+
+static int FileDescriptorFromSharedMemoryHandle(PlatformSharedMemoryHandle handle) {
+  return static_cast<int>(handle);
+}
+
+static PlatformSharedMemoryHandle SharedMemoryHandleFromFileDescriptor(int fd) {
+  return static_cast<PlatformSharedMemoryHandle>(fd);
+}
+#endif
 
 namespace {
 
@@ -726,6 +786,10 @@ void OS::DebugBreak() {
   asm("ebreak");
 #elif V8_HOST_ARCH_RISCV32
   asm("ebreak");
+#elif V8_HOST_ARCH_WASM32 || defined(__wasi__) || defined(__EMSCRIPTEN__)
+  // WASM doesn't have a debug break instruction
+  // Use __builtin_trap or just do nothing
+  __builtin_trap();
 #else
 #error Unsupported host architecture.
 #endif
@@ -820,6 +884,9 @@ int OS::GetCurrentThreadId() {
 #elif V8_OS_FUCHSIA
   return static_cast<int>(zx_thread_self());
 #elif V8_OS_SOLARIS
+  return static_cast<int>(pthread_self());
+#elif defined(__wasi__) || defined(__EMSCRIPTEN__)
+  // WASI: pthread_self() returns an integer type directly
   return static_cast<int>(pthread_self());
 #else
   return static_cast<int>(reinterpret_cast<intptr_t>(pthread_self()));

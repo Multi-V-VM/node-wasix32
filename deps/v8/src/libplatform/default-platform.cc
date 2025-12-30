@@ -273,8 +273,28 @@ void DefaultPlatform::SetTracingController(
 
 int DefaultPlatform::NumberOfWorkerThreads() { return thread_pool_size_; }
 
-Platform::StackTracePrinter DefaultPlatform::GetStackTracePrinter() {
+StackTracePrinter DefaultPlatform::GetStackTracePrinter() {
   return PrintStackTrace;
+}
+
+void DefaultPlatform::CallOnWorkerThread(std::unique_ptr<Task> task) {
+  PostTaskOnWorkerThread(TaskPriority::kUserVisible, std::move(task));
+}
+
+void DefaultPlatform::CallDelayedOnWorkerThread(std::unique_ptr<Task> task,
+                                                double delay_in_seconds) {
+  PostDelayedTaskOnWorkerThreadImpl(TaskPriority::kUserVisible, std::move(task),
+                                    delay_in_seconds, SourceLocation::Current());
+}
+
+void DefaultPlatform::PostTaskOnWorkerThread(TaskPriority priority,
+                                             std::unique_ptr<Task> task) {
+  PostTaskOnWorkerThreadImpl(priority, std::move(task), SourceLocation::Current());
+}
+
+std::unique_ptr<JobHandle> DefaultPlatform::PostJob(
+    TaskPriority priority, std::unique_ptr<JobTask> job_task) {
+  return CreateJob(priority, std::move(job_task));
 }
 
 v8::PageAllocator* DefaultPlatform::GetPageAllocator() {

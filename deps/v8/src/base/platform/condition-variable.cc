@@ -16,7 +16,34 @@
 namespace v8 {
 namespace base {
 
-#if V8_OS_POSIX
+#if defined(__wasi__) || defined(__EMSCRIPTEN__)
+// WASI/Emscripten stub implementations - single-threaded environment
+// NativeHandle is int for these platforms
+
+ConditionVariable::ConditionVariable() : native_handle_(0) {}
+
+ConditionVariable::~ConditionVariable() {}
+
+void ConditionVariable::NotifyOne() {
+  // No-op in single-threaded environment
+}
+
+void ConditionVariable::NotifyAll() {
+  // No-op in single-threaded environment
+}
+
+void ConditionVariable::Wait(Mutex* mutex) {
+  // In single-threaded WASI, waiting on a condition variable would deadlock
+  // Just return immediately (spurious wakeup behavior)
+}
+
+bool ConditionVariable::WaitFor(Mutex* mutex, const TimeDelta& rel_time) {
+  // In single-threaded WASI, we can't actually wait
+  // Return false to indicate timeout (no signal received)
+  return false;
+}
+
+#elif V8_OS_POSIX
 
 ConditionVariable::ConditionVariable() {
 #if (V8_OS_FREEBSD || V8_OS_NETBSD || V8_OS_OPENBSD || \

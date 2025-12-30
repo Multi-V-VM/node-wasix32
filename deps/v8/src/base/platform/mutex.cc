@@ -80,7 +80,100 @@ bool TryReleaseSharedMutex(SharedMutex* shared_mutex) {
 }  // namespace
 #endif  // DEBUG
 
-#if V8_OS_POSIX
+#if defined(__wasi__) || defined(__EMSCRIPTEN__)
+// WASI/Emscripten stub implementations - single-threaded environment
+// NativeHandle is int for these platforms
+
+Mutex::Mutex() : native_handle_(0) {
+#ifdef DEBUG
+  level_ = 0;
+#endif
+}
+
+Mutex::~Mutex() {
+  DCHECK_EQ(0, level_);
+}
+
+void Mutex::Lock() {
+  // No-op in single-threaded environment
+  AssertUnheldAndMark();
+}
+
+void Mutex::Unlock() {
+  AssertHeldAndUnmark();
+  // No-op in single-threaded environment
+}
+
+bool Mutex::TryLock() {
+  // Always succeeds in single-threaded environment
+  AssertUnheldAndMark();
+  return true;
+}
+
+RecursiveMutex::RecursiveMutex() : native_handle_(0) {
+#ifdef DEBUG
+  level_ = 0;
+#endif
+}
+
+RecursiveMutex::~RecursiveMutex() {
+  DCHECK_EQ(0, level_);
+}
+
+void RecursiveMutex::Lock() {
+#ifdef DEBUG
+  DCHECK_LE(0, level_);
+  level_++;
+#endif
+}
+
+void RecursiveMutex::Unlock() {
+#ifdef DEBUG
+  DCHECK_LT(0, level_);
+  level_--;
+#endif
+}
+
+bool RecursiveMutex::TryLock() {
+#ifdef DEBUG
+  DCHECK_LE(0, level_);
+  level_++;
+#endif
+  return true;
+}
+
+SharedMutex::SharedMutex() : native_handle_(0) {}
+SharedMutex::~SharedMutex() {}
+
+void SharedMutex::LockShared() {
+  DCHECK(TryHoldSharedMutex(this));
+}
+
+void SharedMutex::LockExclusive() {
+  DCHECK(TryHoldSharedMutex(this));
+}
+
+void SharedMutex::UnlockShared() {
+  DCHECK(TryReleaseSharedMutex(this));
+}
+
+void SharedMutex::UnlockExclusive() {
+  DCHECK(TryReleaseSharedMutex(this));
+}
+
+bool SharedMutex::TryLockShared() {
+  DCHECK(SharedMutexNotHeld(this));
+  DCHECK(TryHoldSharedMutex(this));
+  return true;
+}
+
+bool SharedMutex::TryLockExclusive() {
+  DCHECK(SharedMutexNotHeld(this));
+  DCHECK(TryHoldSharedMutex(this));
+  return true;
+}
+
+#elif V8_OS_POSIX
 
 static V8_INLINE void InitializeNativeHandle(pthread_mutex_t* mutex) {
   int result;

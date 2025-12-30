@@ -19,7 +19,38 @@
 namespace v8 {
 namespace base {
 
-#if V8_OS_DARWIN
+#if defined(__wasi__) || defined(__EMSCRIPTEN__)
+// WASI/Emscripten stub implementations - single-threaded environment
+// NativeHandle is int (counter) for these platforms
+
+Semaphore::Semaphore(int count) : native_handle_(count) {
+  DCHECK_GE(count, 0);
+}
+
+Semaphore::~Semaphore() {}
+
+void Semaphore::Signal() {
+  native_handle_++;
+}
+
+void Semaphore::Wait() {
+  // In single-threaded WASI, if count is 0, we would deadlock
+  // Decrement and assume caller knows what they're doing
+  if (native_handle_ > 0) {
+    native_handle_--;
+  }
+}
+
+bool Semaphore::WaitFor(const TimeDelta& rel_time) {
+  if (native_handle_ > 0) {
+    native_handle_--;
+    return true;
+  }
+  // Cannot actually wait in single-threaded environment
+  return false;
+}
+
+#elif V8_OS_DARWIN
 
 Semaphore::Semaphore(int count) {
   native_handle_ = dispatch_semaphore_create(count);

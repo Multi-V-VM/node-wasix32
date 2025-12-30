@@ -56,7 +56,7 @@ class PageAllocator {
   virtual void* AllocatePages(void* address, size_t length, size_t alignment,
                               PagePermissions permissions) = 0;
   virtual bool FreePages(void* address, size_t length) = 0;
-  virtual bool ReleasePages(void* address, size_t length) = 0;
+  virtual bool ReleasePages(void* address, size_t length, size_t new_length) = 0;
   virtual bool SetPermissions(void* address, size_t length,
                               PagePermissions permissions) = 0;
   virtual bool RecommitPages(void* address, size_t length,
@@ -64,22 +64,34 @@ class PageAllocator {
   virtual bool DecommitPages(void* address, size_t length) = 0;
   virtual bool DiscardSystemPages(void* address, size_t size) = 0;
   virtual bool SealPages(void* address, size_t size) = 0;
+  virtual bool ReserveForSharedMemoryMapping(void* address, size_t size) {
+    return false;
+  }
 
   class SharedMemoryMapping {
    public:
     virtual ~SharedMemoryMapping() = default;
     virtual void* GetMemory() const = 0;
-    virtual void Remap(void* new_address) = 0;
+    // Default no-op implementation for platforms that don't support remapping
+    virtual void Remap(void* new_address) {}
   };
 
   class SharedMemory {
    public:
     virtual ~SharedMemory() = default;
+    virtual void* GetMemory() const { return nullptr; }
+    virtual size_t GetSize() const { return 0; }
     // Stub for WASI - shared memory remapping not supported
-    virtual std::unique_ptr<SharedMemoryMapping> RemapTo(void* new_address) {
+    virtual std::unique_ptr<SharedMemoryMapping> RemapTo(void* new_address) const {
       return nullptr;
     }
   };
+
+  // Shared memory allocation - optional, default returns false/nullptr
+  virtual bool CanAllocateSharedPages() { return false; }
+  virtual std::unique_ptr<SharedMemory> AllocateSharedPages(
+      size_t length, const void* original_address) { return nullptr; }
+  virtual void FreeSharedPages(void* address, size_t length) {}
 };
 
 using PagePermissions = PageAllocator::PagePermissions;

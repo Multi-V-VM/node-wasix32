@@ -63,6 +63,12 @@ extern "C" unsigned long __readfsdword(unsigned long);  // NOLINT(runtime/int)
 #endif                                       // V8_CC_MSVC && V8_HOST_ARCH_IA32
 #endif                                       // V8_NO_FAST_TLS
 
+// WASI doesn't have shared memory, define a stub type
+#if defined(__wasi__) || defined(V8_USING_WASI_SHIMS)
+using PlatformSharedMemoryHandle = intptr_t;
+constexpr PlatformSharedMemoryHandle kInvalidSharedMemoryHandle = -1;
+#endif
+
 namespace v8 {
 
 namespace internal {

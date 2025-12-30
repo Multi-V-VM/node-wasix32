@@ -1,8 +1,8 @@
 #ifdef __wasi__
 #include "wasi/concepts-fix.h"
 #endif
-#ifndef V8_LIBPLATFORM_LIBPLATFORM_H_
-#define V8_LIBPLATFORM_LIBPLATFORM_H_
+#ifndef V8_LIBPLATFORM_LIBPLATFORM_BACKUP_H_
+#define V8_LIBPLATFORM_LIBPLATFORM_BACKUP_H_
 
 #ifdef __wasi__
 
@@ -78,4 +78,4 @@ enum class InProcessStackDumping { kDisabled, kEnabled };
 #include "libplatform-original.h"
 #endif  // __wasi__
 
-#endif  // V8_LIBPLATFORM_LIBPLATFORM_H_
+#endif  // V8_LIBPLATFORM_LIBPLATFORM_BACKUP_H_

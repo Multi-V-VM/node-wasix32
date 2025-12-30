@@ -8,20 +8,8 @@
 namespace v8 {
 namespace base {
 
-class CheckMessageStream {
- public:
-  CheckMessageStream() = default;
-  template<typename T>
-  CheckMessageStream& operator<<(const T& value) {
-    stream_ << value;
-    return *this;
-  }
-  
-  std::string str() const { return stream_.str(); }
-  
- private:
-  std::ostringstream stream_;
-};
+// Note: CheckMessageStream is now defined in logging.h, don't redefine here
+// class CheckMessageStream { ... };
 
 // Simple template for operator<< support
 // Removed to avoid ambiguity - use the member function instead
@@ -37,23 +25,8 @@ inline void SetPrintStackTrace(StackTracePrinter printer) {
 }  // namespace base
 }  // namespace v8
 
-// V8_Fatal and V8_Dcheck macros for WASI
-#ifndef V8_Fatal
-#define V8_Fatal(...) do { \
-  fprintf(stderr, "V8 Fatal: "); \
-  fprintf(stderr, __VA_ARGS__); \
-  fprintf(stderr, "\n"); \
-  abort(); \
-} while (0)
-#endif
-
-#ifndef V8_Dcheck
-#define V8_Dcheck(...) do { \
-  fprintf(stderr, "V8 Dcheck: "); \
-  fprintf(stderr, __VA_ARGS__); \
-  fprintf(stderr, "\n"); \
-} while (0)
-#endif
+// Note: V8_Fatal and V8_Dcheck are defined as proper functions in logging.h
+// Do NOT define them as macros here - it would break the function declarations
 
 #ifndef CHECK_NULL
 #define CHECK_NULL(val) do { \

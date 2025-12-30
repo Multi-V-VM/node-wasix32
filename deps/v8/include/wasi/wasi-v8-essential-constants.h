@@ -65,14 +65,15 @@ using ::v8::base::MutexGuard;
 using ::v8::base::RecursiveMutex;
 using ::v8::base::Semaphore;
 
-// Bit field templates
-using ::v8::base::BitField;
-using ::v8::base::BitField8;
-using ::v8::base::BitField64;
+// Bit field templates - don't re-import as they may conflict with wasi-v8-missing-types.h
+// These are already available via earlier includes
+// using ::v8::base::BitField;
+// using ::v8::base::BitField8;
+// using ::v8::base::BitField64;
 
-// Utility templates
+// Utility templates - don't re-import as they may conflict with globals.h
 using ::v8::base::bit_cast;
-using ::v8::base::AtomicValue;
+// using ::v8::base::AtomicValue;
 
 // Type utilities
 using ::v8::base::uc16;
@@ -126,21 +127,21 @@ using AsAtomicImpl = ::v8::base::AsAtomicImpl<T>;
 // Note: AsAtomic16 might be AsAtomicWord or similar
 // Note: AlignedAlloc doesn't exist in v8::base
 
-// Iterator utilities
-using ::v8::base::iterator_range;
+// Iterator utilities - conflicts with globals.h, let globals.h define these
+// using ::v8::base::iterator_range;
 using ::v8::base::Reversed;
 using ::v8::base::make_iterator_range;
 
-// Platform utilities
-using ::v8::base::LazyInstance;
+// Platform utilities - conflicts with globals.h, let globals.h define these
+// using ::v8::base::LazyInstance;
 using ::v8::base::LazyDynamicInstance;
 using ::v8::base::OnceType;
 
 // Thread utilities
 using ::v8::base::Thread;
 
-// Time utilities
-using ::v8::base::Time;
+// Time utilities - Time is defined in time.h, don't re-import
+// using ::v8::base::Time;
 
 // String utilities
 using ::v8::base::CStrVector;
@@ -149,20 +150,21 @@ using ::v8::base::SNPrintF;
 using ::v8::base::ArrayVector;
 using ::v8::base::StrNCpy;
 using ::v8::base::StaticOneByteVector;
-using ::v8::base::OwnedCopyOf;
+// using ::v8::base::OwnedCopyOf;  // May not exist in v8::base
 using ::v8::base::VLQBase64Decode;
 
 // Memory utilities
 using ::v8::base::Memory;
-using ::v8::base::FatalOOM;
+// using ::v8::base::FatalOOM;  // May not exist in v8::base
 using ::v8::base::AbortMode;
 using ::v8::base::LazyMutex;
 using ::v8::base::Stack;
-using ::v8::base::LockGuard;
-using ::v8::base::PageInitializationMode;
-using ::v8::base::PageFreeingMode;
+// Note: LockGuard is defined as template alias in zone-containers.h
+// using ::v8::base::LockGuard;
+// using ::v8::base::PageInitializationMode;  // May not exist in v8::base
+// using ::v8::base::PageFreeingMode;  // May not exist in v8::base
 using ::v8::base::Realloc;
-using ::v8::base::ScopedZoneVector;
+// using ::v8::base::ScopedZoneVector;  // Use ScopedVector instead
 using ::v8::base::DerefPtrIterator;
 // In modern V8, these types are exposed in the public ::v8 namespace
 using ::v8::VirtualAddressSpace;
@@ -213,30 +215,9 @@ using ::v8::base::bits::RotateRight64;
 // Note: Unsigned*Overflow* functions don't exist - use templates instead
 }  // namespace bits
 
-// ieee754 namespace for math functions
-namespace ieee754 {
-using ::v8::base::ieee754::acos;
-using ::v8::base::ieee754::acosh;
-using ::v8::base::ieee754::asin;
-using ::v8::base::ieee754::asinh;
-using ::v8::base::ieee754::atan;
-using ::v8::base::ieee754::atan2;
-using ::v8::base::ieee754::atanh;
-using ::v8::base::ieee754::cbrt;
-using ::v8::base::ieee754::cos;
-using ::v8::base::ieee754::cosh;
-using ::v8::base::ieee754::exp;
-using ::v8::base::ieee754::expm1;
-using ::v8::base::ieee754::log;
-using ::v8::base::ieee754::log1p;
-using ::v8::base::ieee754::log2;
-using ::v8::base::ieee754::log10;
-using ::v8::base::ieee754::pow;
-using ::v8::base::ieee754::sin;
-using ::v8::base::ieee754::sinh;
-using ::v8::base::ieee754::tan;
-using ::v8::base::ieee754::tanh;
-}  // namespace ieee754
+// ieee754 namespace for math functions - defined in globals.h as namespace alias
+// Don't define a namespace here as it conflicts with the alias
+// namespace ieee754 = ::v8::base::ieee754; is what globals.h uses
 
 // Expose template meta-programming utilities under v8::internal::base::tmp
 // to satisfy code that references this namespace.
@@ -245,6 +226,9 @@ namespace tmp = ::v8::base::tmp;
 }  // namespace base
 
 // Condition enum for WASI (platform-independent comparison conditions)
+// Only define if not already defined by v8-api-constants-wasi.h
+#ifndef V8_CONDITION_ENUM_DEFINED
+#define V8_CONDITION_ENUM_DEFINED
 enum Condition : int {
   kNoCondition = -1,
 
@@ -268,6 +252,7 @@ enum Condition : int {
   kZero = kEqual,
   kNotZero = kNotEqual,
 };
+#endif  // V8_CONDITION_ENUM_DEFINED
 
 }  // namespace internal
 }  // namespace v8

@@ -72,7 +72,10 @@ class V8_BASE_EXPORT Mutex final {
   bool TryLock() V8_WARN_UNUSED_RESULT;
 
   // The implementation-defined native handle type.
-#if V8_OS_POSIX
+#if defined(__wasi__) || defined(__EMSCRIPTEN__)
+  // WASI/Emscripten use a simple integer as mutex stub (single-threaded)
+  using NativeHandle = int;
+#elif V8_OS_POSIX
   using NativeHandle = pthread_mutex_t;
 #elif V8_OS_WIN
   using NativeHandle = V8_SRWLOCK;
@@ -177,7 +180,10 @@ class V8_BASE_EXPORT RecursiveMutex final {
 
  private:
   // The implementation-defined native handle type.
-#if V8_OS_POSIX
+#if defined(__wasi__) || defined(__EMSCRIPTEN__)
+  // WASI/Emscripten use a simple integer as recursive mutex stub
+  using NativeHandle = int;
+#elif V8_OS_POSIX
   using NativeHandle = pthread_mutex_t;
 #elif V8_OS_WIN
   using NativeHandle = V8_CRITICAL_SECTION;
@@ -274,7 +280,10 @@ class V8_BASE_EXPORT SharedMutex final {
 
  private:
   // The implementation-defined native handle type.
-#if V8_OS_DARWIN
+#if defined(__wasi__) || defined(__EMSCRIPTEN__)
+  // WASI/Emscripten use a simple integer as shared mutex stub
+  using NativeHandle = int;
+#elif V8_OS_DARWIN
   // pthread_rwlock_t is broken on MacOS when signals are being sent to the
   // process (see https://crbug.com/v8/11399).
   // We thus use std::shared_mutex on MacOS, which does not have this problem.

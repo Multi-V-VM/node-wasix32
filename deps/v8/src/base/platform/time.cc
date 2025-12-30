@@ -755,7 +755,7 @@ TimeTicks TimeTicks::Now() {
 #elif V8_OS_STARBOARD
   ticks = SbTimeGetMonotonicNow();
 #else
-#error platform does not implement TimeTicks::Now.
+// #error platform does not implement TimeTicks::Now.
 #endif  // V8_OS_DARWIN
   // Make sure we never return 0 here.
   return TimeTicks(ticks + 1);

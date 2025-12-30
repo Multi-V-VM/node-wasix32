@@ -66,7 +66,10 @@ class V8_BASE_EXPORT ConditionVariable {
   bool WaitFor(Mutex* mutex, const TimeDelta& rel_time) V8_WARN_UNUSED_RESULT;
 
   // The implementation-defined native handle type.
-#if V8_OS_POSIX
+#if defined(__wasi__) || defined(__EMSCRIPTEN__)
+  // WASI/Emscripten use a simple integer as condition variable stub
+  using NativeHandle = int;
+#elif V8_OS_POSIX
   using NativeHandle = pthread_cond_t;
 #elif V8_OS_WIN
   using NativeHandle = V8_CONDITION_VARIABLE;

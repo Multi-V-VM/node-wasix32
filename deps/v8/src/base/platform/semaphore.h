@@ -57,6 +57,9 @@ class V8_BASE_EXPORT Semaphore {
 
 #if V8_OS_DARWIN
   using NativeHandle = dispatch_semaphore_t;
+#elif defined(__wasi__) || defined(__EMSCRIPTEN__)
+  // WASI/Emscripten use a simple integer counter as semaphore stub
+  using NativeHandle = int;
 #elif V8_OS_POSIX
   using NativeHandle = sem_t;
 #elif V8_OS_WIN

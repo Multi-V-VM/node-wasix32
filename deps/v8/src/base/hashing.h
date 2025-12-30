@@ -9,22 +9,12 @@
 #ifndef V8_BASE_HASHING_H_
 #define V8_BASE_HASHING_H_
 
-#include "src/base/bits-namespace-fix.h"
+// hashing.h extends functional.h with additional utilities like Hasher class.
+// Include functional.h for the core hash functions.
+#include "src/base/functional.h"
 
-#include <stddef.h>
-#include <stdint.h>
-
-#include <cstddef>
-#include <cstring>
-#include <functional>
-#include <type_traits>
-#include <utility>
 #include <vector>
 
-#include "src/base/base-export.h"
-#include "src/base/bits.h"
-#include "src/base/macros.h"
-#include "src/base/vector.h"  // For hash_value(Vector<T>) specialization
 #ifdef __wasi__
 // Also include v8-internal.h to ensure bits namespace is available
 #include "../../include/v8-internal.h"
@@ -32,88 +22,6 @@
 
 namespace v8 {
 namespace base {
-
-// Forward declare below definitions.
-
-// base::hash is an implementation of the hash function object specified by
-// C++11. It was designed to be compatible with std::hash (in C++11) and
-// boost:hash (which in turn is based on the hash function object specified by
-// the Draft Technical Report on C++ Library Extensions (TR1)).
-//
-// base::hash is implemented by calling either the hash_value function or the
-// hash_value member function. In the first case, the namespace is not specified
-// so that it can detect overloads via argument dependent lookup. So if there is
-// a free function hash_value in the same namespace as a custom type, it will
-// get called.
-//
-// If users are asked to implement a hash function for their own types with no
-// guidance, they generally write bad hash functions. Instead, we provide a
-// base::Hasher class to pass hash-relevant member variables into, in order to
-// define a decent hash function.
-//
-// Consider the following example:
-//
-//   namespace v8 {
-//   namespace bar {
-//     struct Coordinate {
-//       int val;
-//       size_t hash_value() const { return hash_value(val); }
-//     };
-//     struct Point {
-//       Coordinate x;
-//       Coordinate y;
-//     };
-//     size_t hash_value(Point const& p) {
-//       return base::Hasher::Combine(p.x, p.y);
-//     }
-//   }
-//
-//   namespace foo {
-//     void DoSomeWork(bar::Point const& p) {
-//       base::hash<bar::Point> h;
-//       ...
-//       size_t hash = h(p);  // calls bar::hash_value(Point const&), which
-//                            // calls p.x.hash_value() and p.y.hash_value().
-//       ...
-//     }
-//   }
-//   }
-//
-// This header also provides implementations of hash_value for basic types.
-//
-// Based on the "Hashing User-Defined Types in C++1y" proposal from Jeffrey
-// Yasskin and Chandler Carruth, see
-// http://www.open-std.org/Jtc1/sc22/wg21/docs/papers/2012/n3333.html.
-
-template <typename>
-struct hash;
-
-// Combine two hash values together. This code was taken from MurmurHash.
-V8_INLINE size_t hash_combine(size_t seed, size_t hash) {
-#if V8_HOST_ARCH_32_BIT
-  const uint32_t c1 = 0xCC9E2D51;
-  const uint32_t c2 = 0x1B873593;
-
-  hash *= c1;
-  hash = ::v8::base::bits::RotateRight32(hash, 15);
-  hash *= c2;
-
-  seed ^= hash;
-  seed = ::v8::base::bits::RotateRight32(seed, 13);
-  seed = seed * 5 + 0xE6546B64;
-#else
-  const uint64_t m = uint64_t{0xC6A4A7935BD1E995};
-  const uint32_t r = 47;
-
-  hash *= m;
-  hash ^= hash >> r;
-  hash *= m;
-
-  seed ^= hash;
-  seed *= m;
-#endif  // V8_HOST_ARCH_32_BIT
-  return seed;
-}
 
 // Hashable trait for WASI compatibility
 template <typename T, typename = void>
@@ -143,14 +51,6 @@ V8_INLINE constexpr size_t ComputeHash(const T& v) {
   }
 }
 
-// Define base::hash to call hash_value or std::hash where available.
-template <typename T>
-struct hash {
-  V8_INLINE constexpr size_t operator()(const T& v) const {
-    return ComputeHash(v);
-  }
-};
-
 // base::Hasher makes it easier to combine multiple fields into one hash and
 // avoids the ambiguity of the different {hash_combine} methods.
 class Hasher {
@@ -174,9 +74,6 @@ class Hasher {
   // Hash a range of values and combine the hashes into this hasher's hash.
   template <typename Iterator>
   Hasher& AddRange(Iterator first, Iterator last) {
-    // TODO(clemensb): If the iterator returns an integral or POD value smaller
-    // than size_t we can combine multiple elements together to get better
-    // hashing performance.
     for (; first != last; ++first) Add(*first);
     return *this;
   }
@@ -200,139 +97,6 @@ class Hasher {
   size_t hash_ = 0;
 };
 
-// Thomas Wang, Integer Hash Functions.
-// https://gist.github.com/badboy/6267743
-template <typename T>
-V8_INLINE size_t hash_value_unsigned_impl(T v) {
-  switch (sizeof(T)) {
-    case 4: {
-      // "32 bit Mix Functions"
-      v = ~v + (v << 15);  // v = (v << 15) - v - 1;
-      v = v ^ (v >> 12);
-      v = v + (v << 2);
-      v = v ^ (v >> 4);
-      v = v * 2057;  // v = (v + (v << 3)) + (v << 11);
-      v = v ^ (v >> 16);
-      return static_cast<size_t>(v);
-    }
-    case 8: {
-      switch (sizeof(size_t)) {
-        case 4: {
-          // "64 bit to 32 bit Hash Functions"
-          v = ~v + (v << 18);  // v = (v << 18) - v - 1;
-          v = v ^ (v >> 31);
-          v = v * 21;  // v = (v + (v << 2)) + (v << 4);
-          v = v ^ (v >> 11);
-          v = v + (v << 6);
-          v = v ^ (v >> 22);
-          return static_cast<size_t>(v);
-        }
-        case 8: {
-          // "64 bit Mix Functions"
-          v = ~v + (v << 21);  // v = (v << 21) - v - 1;
-          v = v ^ (v >> 24);
-          v = (v + (v << 3)) + (v << 8);  // v * 265
-          v = v ^ (v >> 14);
-          v = (v + (v << 2)) + (v << 4);  // v * 21
-          v = v ^ (v >> 28);
-          v = v + (v << 31);
-          return static_cast<size_t>(v);
-        }
-      }
-    }
-  }
-  UNREACHABLE();
-}
-
-#define V8_BASE_HASH_VALUE_TRIVIAL(type) \
-  V8_INLINE size_t hash_value(type v) { return static_cast<size_t>(v); }
-V8_BASE_HASH_VALUE_TRIVIAL(bool)
-V8_BASE_HASH_VALUE_TRIVIAL(unsigned char)
-V8_BASE_HASH_VALUE_TRIVIAL(unsigned short)  // NOLINT(runtime/int)
-#undef V8_BASE_HASH_VALUE_TRIVIAL
-
-V8_INLINE size_t hash_value(unsigned int v) {
-  return hash_value_unsigned_impl(v);
-}
-
-V8_INLINE size_t hash_value(unsigned long v) {  // NOLINT(runtime/int)
-  return hash_value_unsigned_impl(v);
-}
-
-V8_INLINE size_t hash_value(unsigned long long v) {  // NOLINT(runtime/int)
-  return hash_value_unsigned_impl(v);
-}
-
-#define V8_BASE_HASH_VALUE_SIGNED(type)            \
-  V8_INLINE size_t hash_value(signed type v) {     \
-    return hash_value(bit_cast<unsigned type>(v)); \
-  }
-V8_BASE_HASH_VALUE_SIGNED(char)
-V8_BASE_HASH_VALUE_SIGNED(short)      // NOLINT(runtime/int)
-V8_BASE_HASH_VALUE_SIGNED(int)        // NOLINT(runtime/int)
-V8_BASE_HASH_VALUE_SIGNED(long)       // NOLINT(runtime/int)
-V8_BASE_HASH_VALUE_SIGNED(long long)  // NOLINT(runtime/int)
-#undef V8_BASE_HASH_VALUE_SIGNED
-
-V8_INLINE size_t hash_value(float v) {
-  // 0 and -0 both hash to zero.
-  return v != 0.0f ? hash_value(bit_cast<uint32_t>(v)) : 0;
-}
-
-V8_INLINE size_t hash_value(double v) {
-  // 0 and -0 both hash to zero.
-  return v != 0.0 ? hash_value(bit_cast<uint64_t>(v)) : 0;
-}
-
-// Explicit specializations for float and double to ensure hash<T> works
-template <>
-struct hash<float> {
-  V8_INLINE size_t operator()(float v) const { return hash_value(v); }
-};
-
-template <>
-struct hash<double> {
-  V8_INLINE size_t operator()(double v) const { return hash_value(v); }
-};
-
-template <typename T, size_t N>
-V8_INLINE size_t hash_value(const T (&v)[N]) {
-  return Hasher{}.AddRange(v, v + N).hash();
-}
-
-template <typename T, size_t N>
-V8_INLINE size_t hash_value(T (&v)[N]) {
-  return Hasher{}.AddRange(v, v + N).hash();
-}
-
-template <typename T>
-V8_INLINE size_t hash_value(T* const& v) {
-  return hash_value(reinterpret_cast<uintptr_t>(v));
-}
-
-template <typename T1, typename T2>
-V8_INLINE size_t hash_value(::std::pair<T1, T2> const& v) {
-  return Hasher::Combine(v.first, v.second);
-}
-
-template <typename... T, size_t... I>
-V8_INLINE size_t hash_value_impl(::std::tuple<T...> const& v,
-                                 ::std::index_sequence<I...>) {
-  return Hasher::Combine(::std::get<I>(v)...);
-}
-
-template <typename... T>
-V8_INLINE size_t hash_value(::std::tuple<T...> const& v) {
-  return hash_value_impl(v, ::std::make_index_sequence<sizeof...(T)>());
-}
-
-// Enum hash_value implementation
-template <typename T>
-typename ::std::enable_if<::std::is_enum<T>::value, size_t>::type
-hash_value(T v) {
-  return hash_value(static_cast<typename ::std::underlying_type_t<T>>(v));
-}
-
 // Provide a hash_value function for each T with a hash_value member function.
 template <typename T>
 auto hash_value(const T& v) -> decltype(v.hash_value()) {
@@ -345,97 +109,12 @@ V8_INLINE size_t hash_value(const ::std::vector<T>& v) {
   return Hasher{}.AddRange(v).hash();
 }
 
-// (Moved is_hashable/has_std_hash/hash<T> above Hasher.)
-
-// Note: no generic hash_value<T> fallback is defined here to avoid ADL/ODR issues.
-
-// TODO(clemensb): Depending on the types in this template the compiler might
-// pick {hash_combine(size_t, size_t)} instead. Thus remove this template and
-// switch callers to {Hasher::Combine}.
-template <typename... Ts>
-V8_INLINE size_t hash_combine(Ts const&... vs) {
-  return Hasher{}.Combine(vs...);
-}
-
-// TODO(clemensb): Switch users to {Hasher{}.AddRange(first, last).hash()}.
-template <typename Iterator>
-V8_INLINE size_t hash_range(Iterator first, Iterator last) {
-  return Hasher{}.AddRange(first, last).hash();
-}
-
-// Note: no generic hash_value fallback is provided here to avoid ADL/ODR
-// issues. Use base::hash<T> where needed.
-
-// base::bit_equal_to is a function object class for bitwise equality
-// comparison, similar to std::equal_to, except that the comparison is performed
-// on the bit representation of the operands.
-//
-// base::bit_hash is a function object class for bitwise hashing, similar to
-// base::hash. It can be used together with base::bit_equal_to to implement a
-// hash data structure based on the bitwise representation of types.
-
-template <typename T>
-struct bit_equal_to {};
-
-template <typename T>
-struct bit_hash {};
-
-#define V8_BASE_BIT_SPECIALIZE_TRIVIAL(type)                 \
-  template <>                                                \
-  struct bit_equal_to<type> : public std::equal_to<type> {}; \
-  template <>                                                \
-  struct bit_hash<type> : public hash<type> {};
-V8_BASE_BIT_SPECIALIZE_TRIVIAL(signed char)
-V8_BASE_BIT_SPECIALIZE_TRIVIAL(unsigned char)
-V8_BASE_BIT_SPECIALIZE_TRIVIAL(short)           // NOLINT(runtime/int)
-V8_BASE_BIT_SPECIALIZE_TRIVIAL(unsigned short)  // NOLINT(runtime/int)
-V8_BASE_BIT_SPECIALIZE_TRIVIAL(int)
-V8_BASE_BIT_SPECIALIZE_TRIVIAL(unsigned int)
-V8_BASE_BIT_SPECIALIZE_TRIVIAL(long)                // NOLINT(runtime/int)
-V8_BASE_BIT_SPECIALIZE_TRIVIAL(unsigned long)       // NOLINT(runtime/int)
-V8_BASE_BIT_SPECIALIZE_TRIVIAL(long long)           // NOLINT(runtime/int)
-V8_BASE_BIT_SPECIALIZE_TRIVIAL(unsigned long long)  // NOLINT(runtime/int)
-#undef V8_BASE_BIT_SPECIALIZE_TRIVIAL
-
-#define V8_BASE_BIT_SPECIALIZE_BIT_CAST(type, btype)       \
-  template <>                                              \
-  struct bit_equal_to<type> {                              \
-    V8_INLINE bool operator()(type lhs, type rhs) const {  \
-      return bit_cast<btype>(lhs) == bit_cast<btype>(rhs); \
-    }                                                      \
-  };                                                       \
-  template <>                                              \
-  struct bit_hash<type> {                                  \
-    V8_INLINE size_t operator()(type v) const {            \
-      return hash_value(bit_cast<btype>(v));               \
-    }                                                      \
-  };
-V8_BASE_BIT_SPECIALIZE_BIT_CAST(float, uint32_t)
-V8_BASE_BIT_SPECIALIZE_BIT_CAST(double, uint64_t)
-#undef V8_BASE_BIT_SPECIALIZE_BIT_CAST
-
 }  // namespace base
 }  // namespace v8
 
 #ifdef __wasi__
 // Include namespace aliases AFTER v8::base is defined
-// Use include search path for V8's WASI headers
 #include "wasi/v8-internal-base-namespace.h"
 #endif
-
-// Note: std::hash<std::pair<...>> specializations should be defined by users
-// close to use-sites to avoid ODR conflicts. V8-specific specializations
-// should live in V8 headers that own their usage (e.g., torque headers).
-// Intentionally avoid providing std::hash specializations here to prevent
-// conflicts with libc++ inline namespaces and ODR issues. Use ::v8::base::hash
-// for hashing pairs and containers in V8-internal code.
-
-// Specialization for ZoneVector<T> commented out - ZoneVector is not available in base/
-// This should be defined in zone/zone-containers.h or a zone-specific header
-// template <typename T>
-// V8_INLINE size_t hash_value(ZoneVector<T> v) {
-//   return hash_range(v.begin(), v.end());
-// }
-
 
 #endif  // V8_BASE_HASHING_H_

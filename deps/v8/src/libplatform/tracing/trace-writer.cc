@@ -6,7 +6,9 @@
 
 #include <cmath>
 
-#include "base/trace_event/common/trace_event_common.h"
+// The trace event constants are now defined in trace-event-no-perfetto.h
+// which was moved from Chromium's base/trace_event/common/trace_event_common.h
+#include "src/tracing/trace-event-no-perfetto.h"
 #include "include/v8-platform.h"
 #include "src/base/platform/platform.h"
 

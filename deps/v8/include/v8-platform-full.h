@@ -7,6 +7,7 @@
 #include "v8-tracing-base.h"
 #include "v8-isolate.h"
 #include "v8-thread-isolated-allocator.h"
+#include "v8-source-location.h"
 #ifdef __wasi__
 #include "wasi/base-preinclude.h"
 #endif
@@ -92,7 +93,7 @@ class PageAllocator {
       void* address, size_t length, size_t alignment,
       PagePermissions permissions) = 0;
   virtual bool FreePages(void* address, size_t length) = 0;
-  virtual bool ReleasePages(void* address, size_t length) = 0;
+  virtual bool ReleasePages(void* address, size_t length, size_t new_length) = 0;
   virtual bool SetPermissions(void* address, size_t length,
                             PagePermissions permissions) = 0;
   virtual bool RecommitPages(void* address, size_t length,
@@ -101,17 +102,28 @@ class PageAllocator {
   virtual bool DiscardSystemPages(void* address, size_t size) = 0;
   virtual bool SealPages(void* address, size_t size) = 0;
 
-  // Shared memory support
-  class SharedMemory {
-   public:
-    virtual ~SharedMemory() = default;
-  };
+  // Reserve memory for shared memory mapping
+  virtual bool ReserveForSharedMemoryMapping(void* address, size_t size) {
+    return false;
+  }
 
+  // Shared memory support
   class SharedMemoryMapping {
    public:
     virtual ~SharedMemoryMapping() = default;
     virtual void* GetMemory() const = 0;
-    virtual void Remap(void* new_address) = 0;
+    // Default no-op implementation for platforms that don't support remapping
+    virtual void Remap(void* new_address) {}
+  };
+
+  class SharedMemory {
+   public:
+    virtual ~SharedMemory() = default;
+    virtual void* GetMemory() const { return nullptr; }
+    virtual size_t GetSize() const { return 0; }
+    virtual std::unique_ptr<SharedMemoryMapping> RemapTo(void* new_address) const {
+      return nullptr;
+    }
   };
 
   virtual bool CanAllocateSharedPages() { return false; }
@@ -184,6 +196,18 @@ class Platform {
                                              double delay_in_seconds) {
     // WASI default: ignore delay and post immediately.
     PostTaskOnWorkerThread(priority, std::move(task));
+  }
+  // Methods with SourceLocation for task debugging/profiling
+  virtual void PostTaskOnWorkerThreadImpl(TaskPriority priority,
+                                          std::unique_ptr<Task> task,
+                                          const SourceLocation& location) {
+    PostTaskOnWorkerThread(priority, std::move(task));
+  }
+  virtual void PostDelayedTaskOnWorkerThreadImpl(TaskPriority priority,
+                                                 std::unique_ptr<Task> task,
+                                                 double delay_in_seconds,
+                                                 const SourceLocation& location) {
+    PostDelayedTaskOnWorkerThread(priority, std::move(task), delay_in_seconds);
   }
   virtual TracingController* GetTracingController() = 0;
   virtual StackTracePrinter GetStackTracePrinter() = 0;

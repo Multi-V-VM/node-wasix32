@@ -40,6 +40,27 @@ static inline void WriteUnalignedValue(Address p, V value) {
   memcpy(reinterpret_cast<void*>(p), &value, sizeof(V));
 }
 
+// Overloads for pointer types (used by tagged-field.h)
+template <typename V>
+static inline V ReadUnalignedValue(const char* p) {
+  return ReadUnalignedValue<V>(reinterpret_cast<Address>(p));
+}
+
+template <typename V>
+static inline V ReadUnalignedValue(const void* p) {
+  return ReadUnalignedValue<V>(reinterpret_cast<Address>(p));
+}
+
+template <typename V>
+static inline void WriteUnalignedValue(char* p, V value) {
+  WriteUnalignedValue<V>(reinterpret_cast<Address>(p), value);
+}
+
+template <typename V>
+static inline void WriteUnalignedValue(void* p, V value) {
+  WriteUnalignedValue<V>(reinterpret_cast<Address>(p), value);
+}
+
 template <typename V>
 static inline V ReadLittleEndianValue(Address p) {
 #if defined(V8_TARGET_LITTLE_ENDIAN)

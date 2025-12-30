@@ -43,10 +43,12 @@ namespace tracing {
 
 class TraceEventListener;
 
-// TraceObject class is already defined in v8-tracing-base.h
-// We need to be in the right namespace
+// Trace event enabled flag constants
+const int ENABLED_FOR_RECORDING = 1 << 0;
+const int ENABLED_FOR_ETW_EXPORT = 1 << 2;
 
-#if 0
+const int kTraceMaxNumArgs = 2;
+
 class V8_PLATFORM_EXPORT TraceObject {
  public:
   union ArgValue {
@@ -64,7 +66,7 @@ class V8_PLATFORM_EXPORT TraceObject {
       const char* scope, uint64_t id, uint64_t bind_id, int num_args,
       const char** arg_names, const uint8_t* arg_types,
       const uint64_t* arg_values,
-  std::unique_ptr<::v8::ConvertableToTraceFormat>* arg_convertables,
+      std::unique_ptr<::v8::ConvertableToTraceFormat>* arg_convertables,
       unsigned int flags, int64_t timestamp, int64_t cpu_timestamp);
   void UpdateDuration(int64_t timestamp, int64_t cpu_timestamp);
   void InitializeForTesting(
@@ -72,7 +74,7 @@ class V8_PLATFORM_EXPORT TraceObject {
       const char* scope, uint64_t id, uint64_t bind_id, int num_args,
       const char** arg_names, const uint8_t* arg_types,
       const uint64_t* arg_values,
-  std::unique_ptr<::v8::ConvertableToTraceFormat>* arg_convertables,
+      std::unique_ptr<::v8::ConvertableToTraceFormat>* arg_convertables,
       unsigned int flags, int pid, int tid, int64_t ts, int64_t tts,
       uint64_t duration, uint64_t cpu_duration);
 
@@ -100,14 +102,14 @@ class V8_PLATFORM_EXPORT TraceObject {
   uint64_t cpu_duration() { return cpu_duration_; }
 
  private:
-  int pid_;
-  int tid_;
-  char phase_;
-  const char* name_;
-  const char* scope_;
-  const uint8_t* category_enabled_flag_;
-  uint64_t id_;
-  uint64_t bind_id_;
+  int pid_ = 0;
+  int tid_ = 0;
+  char phase_ = 0;
+  const char* name_ = nullptr;
+  const char* scope_ = nullptr;
+  const uint8_t* category_enabled_flag_ = nullptr;
+  uint64_t id_ = 0;
+  uint64_t bind_id_ = 0;
   int num_args_ = 0;
   const char* arg_names_[kTraceMaxNumArgs];
   uint8_t arg_types_[kTraceMaxNumArgs];
@@ -115,19 +117,17 @@ class V8_PLATFORM_EXPORT TraceObject {
   std::unique_ptr<::v8::ConvertableToTraceFormat>
       arg_convertables_[kTraceMaxNumArgs];
   char* parameter_copy_storage_ = nullptr;
-  unsigned int flags_;
-  int64_t ts_;
-  int64_t tts_;
-  uint64_t duration_;
-  uint64_t cpu_duration_;
+  unsigned int flags_ = 0;
+  int64_t ts_ = 0;
+  int64_t tts_ = 0;
+  uint64_t duration_ = 0;
+  uint64_t cpu_duration_ = 0;
 
   // Disallow copy and assign
   TraceObject(const TraceObject&) = delete;
   void operator=(const TraceObject&) = delete;
 };
-#endif
 
-#if 0
 class V8_PLATFORM_EXPORT TraceWriter {
  public:
   TraceWriter() = default;
@@ -146,9 +146,7 @@ class V8_PLATFORM_EXPORT TraceWriter {
   TraceWriter(const TraceWriter&) = delete;
   void operator=(const TraceWriter&) = delete;
 };
-#endif
 
-#if 0
 class V8_PLATFORM_EXPORT TraceBufferChunk {
  public:
   explicit TraceBufferChunk(uint32_t seq);
@@ -162,6 +160,8 @@ class V8_PLATFORM_EXPORT TraceBufferChunk {
   size_t size() const { return next_free_; }
 
   static const size_t kChunkSize = 64;
+  // Alias for Node.js compatibility
+  static const size_t kTraceBufferChunkSize = kChunkSize;
 
  private:
   size_t next_free_ = 0;
@@ -172,7 +172,6 @@ class V8_PLATFORM_EXPORT TraceBufferChunk {
   TraceBufferChunk(const TraceBufferChunk&) = delete;
   void operator=(const TraceBufferChunk&) = delete;
 };
-#endif
 
 class V8_PLATFORM_EXPORT TraceBuffer {
  public:
@@ -230,7 +229,7 @@ class V8_PLATFORM_EXPORT TraceConfig {
 
   void AddIncludedCategory(const char* included_category);
 
-  bool IsCategoryGroupEnabled(const uint8_t* category_group_enabled) const;
+  bool IsCategoryGroupEnabled(const char* category_group) const;
 
  private:
   TraceRecordMode record_mode_;
@@ -299,6 +298,8 @@ class V8_PLATFORM_EXPORT TracingController : public V8TracingController {
 
  private:
   void UpdateCategoryState();
+  void UpdateCategoryGroupEnabledFlag(size_t category_index);
+  void UpdateCategoryGroupEnabledFlags();
 
   std::unique_ptr<TraceBuffer> trace_buffer_;
   std::unique_ptr<TraceConfig> trace_config_;

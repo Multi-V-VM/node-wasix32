@@ -85,6 +85,11 @@
 #endif
 #endif
 
+// V8_PRETTY_FUNCTION macro - use fallback value on WASI
+#ifndef V8_PRETTY_FUNCTION_VALUE_OR
+#define V8_PRETTY_FUNCTION_VALUE_OR(fallback) (fallback)
+#endif
+
 // Deprecation macros
 #ifndef V8_DEPRECATE_SOON
 #define V8_DEPRECATE_SOON(message)

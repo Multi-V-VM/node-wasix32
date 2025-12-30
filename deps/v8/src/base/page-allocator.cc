@@ -162,5 +162,10 @@ bool PageAllocator::DecommitPages(void* address, size_t size) {
   return base::OS::DecommitPages(address, size);
 }
 
+bool PageAllocator::SealPages(void* address, size_t size) {
+  // WASI doesn't support sealing pages, return true as a no-op
+  return true;
+}
+
 }  // namespace base
 }  // namespace v8

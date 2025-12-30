@@ -168,12 +168,14 @@ using ::v8::base::CStrVector;
 using ::v8::base::ArrayVector;
 using ::v8::base::Reversed;
 using ::v8::base::make_iterator_range;
-using ::v8::base::IterateWithoutFirst;
+// IterateWithoutFirst doesn't exist in v8::base, use IterateWithoutLast instead
+// using ::v8::base::IterateWithoutFirst;
 template <typename It>
 using iterator_range = ::v8::base::iterator_range<It>;
 template <typename T>
 using OwnedVector = ::v8::base::OwnedVector<T>;
-using ::v8::base::OwnedCopyOf;
+// OwnedCopyOf doesn't exist in v8::base for WASI builds
+// using ::v8::base::OwnedCopyOf;
 template <typename T>
 using OwnedZoneVector = ::v8::base::OwnedVector<T>;
 // Common containers/utilities are provided via WASI shims in
@@ -267,8 +269,10 @@ using ::v8::base::RecursiveMutex;
 using ::v8::base::Hasher;
 using ::v8::PageAllocator;
 #if defined(__wasi__) || defined(V8_USING_WASI_SHIMS)
-using ::v8::internal::VirtualAddressSpace;
-using ::v8::internal::VirtualAddressSubspace;
+// VirtualAddressSpace is defined in v8 namespace for WASI builds
+using ::v8::VirtualAddressSpace;
+// VirtualAddressSubspace uses same type for WASI
+using VirtualAddressSubspace = ::v8::VirtualAddressSpace;
 #else
 using ::v8::base::VirtualAddressSpace;
 using ::v8::base::VirtualAddressSubspace;
@@ -332,24 +336,29 @@ using Flags = ::v8::base::Flags<T, U, V>;
 
 template <typename T, size_t N, typename Allocator = ::std::allocator<T>>
 using SmallVector = ::v8::base::SmallVector<T, N, Allocator>;
-using ::v8::base::prepend_tuple_type;
-using ::v8::base::base_tuple_head_rt;
-using ::v8::base::base_tuple_drop_rt;
+// Note: prepend_tuple_type, base_tuple_head_rt, base_tuple_drop_rt don't exist in v8::base
+// using ::v8::base::prepend_tuple_type;
+// using ::v8::base::base_tuple_head_rt;
+// using ::v8::base::base_tuple_drop_rt;
 #if !defined(__wasi__) && !defined(V8_USING_WASI_SHIMS)
 using ::v8::base::RecursiveMutexGuard;
 #endif
 using ::v8::base::StaticOneByteVector;
 
 // Provide a local bit_cast in case callers look under v8::internal::base
+// Skip on WASI since it's already imported from wasi-v8-essential-constants.h
+#if !defined(__wasi__) && !defined(V8_USING_WASI_SHIMS)
 template <typename Dest, typename Source>
 inline constexpr Dest bit_cast(const Source& src) {
   return ::std::bit_cast<Dest>(src);
 }
+#endif
 // Bridge bits-iterator helpers into v8::internal::base::bits for call-sites
 // that look them up under the internal namespace.
 namespace bits {
 using ::v8::base::bits::IterateBits;
 using ::v8::base::bits::IterateBitsBackwards;
+using ::v8::base::bits::UnsignedAddOverflow32;
 }
 }  // namespace base
 

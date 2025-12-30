@@ -208,11 +208,18 @@ using ::v8::base::AlignedFree;
 // Iterator type aliases for template compatibility
 // ============================================================================
 
-// Provide iterator alias that forwards to ::v8::base::iterator so
+// Provide iterator alias that forwards to std::iterator so
 // internal code using v8::internal::base::iterator resolves correctly.
+// Note: std::iterator is deprecated in C++17 but still available.
 template <typename Category, typename T, typename Distance = ::std::ptrdiff_t,
           typename Pointer = T*, typename Reference = T&>
-using iterator = ::v8::base::iterator<Category, T, Distance, Pointer, Reference>;
+struct iterator {
+  using iterator_category = Category;
+  using value_type = T;
+  using difference_type = Distance;
+  using pointer = Pointer;
+  using reference = Reference;
+};
 
 // File operations wrapper is provided by ::v8::base::Fclose in wrappers.h
 

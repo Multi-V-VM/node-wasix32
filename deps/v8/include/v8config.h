@@ -159,6 +159,11 @@ path. Add it with -I<path> to the command line
 # define V8_OS_QNX 1
 # define V8_OS_STRING "qnx"
 
+#elif defined(__wasi__) || defined(__EMSCRIPTEN__)
+# define V8_OS_POSIX 1
+# define V8_OS_WASI 1
+# define V8_OS_STRING "wasi"
+
 #elif defined(_WIN32)
 # define V8_OS_WIN 1
 # define V8_OS_STRING "windows"
@@ -784,6 +789,9 @@ V8 shared library set USING_V8_SHARED.
 #else
 #error "Cannot detect Riscv's bitwidth"
 #endif
+#elif defined(__wasm32__) || defined(__wasm__) || defined(__EMSCRIPTEN__)
+#define V8_HOST_ARCH_WASM32 1
+#define V8_HOST_ARCH_32_BIT 1
 #else
 #error "Host architecture was not detected as supported by v8"
 #endif
@@ -797,7 +805,7 @@ V8 shared library set USING_V8_SHARED.
     !V8_TARGET_ARCH_ARM64 && !V8_TARGET_ARCH_MIPS64 && !V8_TARGET_ARCH_PPC && \
     !V8_TARGET_ARCH_PPC64 && !V8_TARGET_ARCH_S390 &&                          \
     !V8_TARGET_ARCH_RISCV64 && !V8_TARGET_ARCH_LOONG64 &&                     \
-    !V8_TARGET_ARCH_RISCV32
+    !V8_TARGET_ARCH_RISCV32 && !V8_TARGET_ARCH_WASM32
 #if defined(_M_X64) || defined(__x86_64__)
 #define V8_TARGET_ARCH_X64 1
 #elif defined(_M_IX86) || defined(__i386__)
@@ -825,6 +833,8 @@ V8 shared library set USING_V8_SHARED.
 #elif __riscv_xlen == 32
 #define V8_TARGET_ARCH_RISCV32 1
 #endif
+#elif defined(__wasm32__) || defined(__wasm__) || defined(__EMSCRIPTEN__)
+#define V8_TARGET_ARCH_WASM32 1
 #else
 #error Target architecture was not detected as supported by v8
 #endif
@@ -864,6 +874,8 @@ V8 shared library set USING_V8_SHARED.
 #elif V8_TARGET_ARCH_RISCV64
 #define V8_TARGET_ARCH_64_BIT 1
 #elif V8_TARGET_ARCH_RISCV32
+#define V8_TARGET_ARCH_32_BIT 1
+#elif V8_TARGET_ARCH_WASM32
 #define V8_TARGET_ARCH_32_BIT 1
 #else
 #define V8_TARGET_ARCH_32_BIT 1

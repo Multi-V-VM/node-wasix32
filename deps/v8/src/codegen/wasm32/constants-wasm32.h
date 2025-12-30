@@ -155,6 +155,8 @@ enum Opcode : uint32_t {
 };
 
 // Condition codes for branches
+#ifndef V8_CONDITION_ENUM_DEFINED
+#define V8_CONDITION_ENUM_DEFINED
 enum Condition : int {
   kEqual = 0,
   kNotEqual = 1,
@@ -203,6 +205,7 @@ enum Condition : int {
   zero = kZero,
   not_zero = kNotZero,
 };
+#endif  // V8_CONDITION_ENUM_DEFINED
 
 // Memory barrier types
 enum BarrierType {

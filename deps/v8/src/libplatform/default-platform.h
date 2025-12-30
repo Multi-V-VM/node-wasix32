@@ -57,6 +57,14 @@ class V8_PLATFORM_EXPORT DefaultPlatform : public NON_EXPORTED_BASE(Platform) {
   int NumberOfWorkerThreads() override;
   std::shared_ptr<TaskRunner> GetForegroundTaskRunner(
       v8::Isolate* isolate) override;
+  // Required pure virtual methods from Platform
+  void CallOnWorkerThread(std::unique_ptr<Task> task) override;
+  void CallDelayedOnWorkerThread(std::unique_ptr<Task> task,
+                                 double delay_in_seconds) override;
+  void PostTaskOnWorkerThread(TaskPriority priority,
+                              std::unique_ptr<Task> task) override;
+  std::unique_ptr<JobHandle> PostJob(TaskPriority priority,
+                                     std::unique_ptr<JobTask> job_task) override;
   void PostTaskOnWorkerThreadImpl(TaskPriority priority,
                                   std::unique_ptr<Task> task,
                                   const SourceLocation& location) override;
