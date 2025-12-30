@@ -1124,6 +1124,9 @@ static_assert(kEmbedderDataSlotSize >= kSystemPointerSize);
 constexpr size_t kExternalAllocationSoftLimit = 64 * 1024 * 1024;
 #endif
 
+// Regular page size for the V8 heap.
+constexpr size_t kRegularPageSize = size_t{1} << kPageSizeBits;
+
 // Maximum object size that gets allocated into regular pages. Objects larger
 // than that size are allocated in large object space and are never moved in
 // memory. This also applies to new space allocation, since objects are never

@@ -99,6 +99,12 @@
 #define V8_DEPRECATED(message)
 #endif
 
+// V8_DEBUGGING_EXPORT is used for debug helper functions
+// On WASI, we define it as nothing (no export needed)
+#ifndef V8_DEBUGGING_EXPORT
+#define V8_DEBUGGING_EXPORT
+#endif
+
 #endif  // __wasi__
 
 #endif  // V8_WASI_MACRO_FIXES_H_

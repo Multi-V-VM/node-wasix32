@@ -266,6 +266,86 @@ inline Atomic32 SeqCst_Load(volatile const Atomic32* ptr) {
                                    std::memory_order_seq_cst);
 }
 
+// WASI/wasm32 specific overloads for unsigned long type
+// On wasm32, unsigned long is 32-bit but different from int32_t for overload resolution
+#if defined(__wasi__) && !defined(V8_HOST_ARCH_64_BIT)
+
+using AtomicULong = unsigned long;
+
+inline AtomicULong Relaxed_CompareAndSwap(volatile AtomicULong* ptr,
+                                          AtomicULong old_value,
+                                          AtomicULong new_value) {
+  std::atomic_compare_exchange_strong_explicit(
+      helper::to_std_atomic(ptr), &old_value, new_value,
+      std::memory_order_relaxed, std::memory_order_relaxed);
+  return old_value;
+}
+
+inline AtomicULong Release_CompareAndSwap(volatile AtomicULong* ptr,
+                                          AtomicULong old_value,
+                                          AtomicULong new_value) {
+  std::atomic_compare_exchange_strong_explicit(
+      helper::to_std_atomic(ptr), &old_value, new_value,
+      std::memory_order_release, std::memory_order_relaxed);
+  return old_value;
+}
+
+inline AtomicULong AcquireRelease_CompareAndSwap(volatile AtomicULong* ptr,
+                                                  AtomicULong old_value,
+                                                  AtomicULong new_value) {
+  std::atomic_compare_exchange_strong_explicit(
+      helper::to_std_atomic(ptr), &old_value, new_value,
+      std::memory_order_acq_rel, std::memory_order_acquire);
+  return old_value;
+}
+
+inline AtomicULong SeqCst_CompareAndSwap(volatile AtomicULong* ptr,
+                                          AtomicULong old_value,
+                                          AtomicULong new_value) {
+  std::atomic_compare_exchange_strong_explicit(
+      helper::to_std_atomic(ptr), &old_value, new_value,
+      std::memory_order_seq_cst, std::memory_order_seq_cst);
+  return old_value;
+}
+
+inline AtomicULong SeqCst_AtomicExchange(volatile AtomicULong* ptr,
+                                          AtomicULong new_value) {
+  return std::atomic_exchange_explicit(helper::to_std_atomic(ptr), new_value,
+                                       std::memory_order_seq_cst);
+}
+
+inline void Relaxed_Store(volatile AtomicULong* ptr, AtomicULong value) {
+  std::atomic_store_explicit(helper::to_std_atomic(ptr), value,
+                             std::memory_order_relaxed);
+}
+
+inline void Release_Store(volatile AtomicULong* ptr, AtomicULong value) {
+  std::atomic_store_explicit(helper::to_std_atomic(ptr), value,
+                             std::memory_order_release);
+}
+
+inline void SeqCst_Store(volatile AtomicULong* ptr, AtomicULong value) {
+  std::atomic_store_explicit(helper::to_std_atomic(ptr), value,
+                             std::memory_order_seq_cst);
+}
+
+inline AtomicULong Relaxed_Load(volatile const AtomicULong* ptr) {
+  return std::atomic_load_explicit(helper::to_std_atomic_const(ptr),
+                                   std::memory_order_relaxed);
+}
+
+inline AtomicULong Acquire_Load(volatile const AtomicULong* ptr) {
+  return std::atomic_load_explicit(helper::to_std_atomic_const(ptr),
+                                   std::memory_order_acquire);
+}
+
+inline AtomicULong SeqCst_Load(volatile const AtomicULong* ptr) {
+  return std::atomic_load_explicit(helper::to_std_atomic_const(ptr),
+                                   std::memory_order_seq_cst);
+}
+
+#endif  // defined(__wasi__) && !defined(V8_HOST_ARCH_64_BIT)
+
 #if defined(V8_HOST_ARCH_64_BIT)
 
 inline Atomic64 Relaxed_CompareAndSwap(volatile Atomic64* ptr,

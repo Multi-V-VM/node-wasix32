@@ -113,6 +113,14 @@ V8_BASE_EXPORT void SetDcheckFunction(void (*dcheck_Function)(const char*, int,
   } while (false)
 #define DCHECK(condition) DCHECK_WITH_MSG(condition, #condition)
 
+// DCHECK with source location for cast checks
+#define DCHECK_WITH_MSG_AND_LOC(condition, message, loc) \
+  do {                                                   \
+    if (V8_UNLIKELY(!(condition))) {                     \
+      V8_Dcheck(loc.FileName(), loc.Line(), message);    \
+    }                                                    \
+  } while (false)
+
 // Helper macro for binary operators.
 // Don't use this macro directly in your code, use CHECK_EQ et al below.
 #define CHECK_OP(name, op, lhs, rhs)                                      \
@@ -152,6 +160,7 @@ V8_BASE_EXPORT void SetDcheckFunction(void (*dcheck_Function)(const char*, int,
   } while (false)
 
 #define DCHECK_WITH_MSG(condition, msg) void(0);
+#define DCHECK_WITH_MSG_AND_LOC(condition, msg, loc) void(0);
 
 #endif
 
@@ -404,6 +413,17 @@ DEFINE_CHECK_OP_IMPL(GT, > )
 #define CHECK_NOT_NULL(val) CHECK((val) != nullptr)
 #define CHECK_IMPLIES(lhs, rhs) \
   CHECK_WITH_MSG(!(lhs) || (rhs), #lhs " implies " #rhs)
+
+// Out-of-memory error types
+enum class OOMType {
+  kProcess,      // General process out of memory
+  kJavaScript    // JavaScript heap out of memory
+};
+
+// Fatal out-of-memory handler
+[[noreturn]] inline void FatalOOM(OOMType type, const char* location) {
+  FATAL("Fatal OOM at %s", location);
+}
 
 }  // namespace base
 }  // namespace v8

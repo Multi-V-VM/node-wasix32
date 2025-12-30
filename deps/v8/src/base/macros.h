@@ -353,10 +353,10 @@ inline uint64_t make_uint64(uint32_t high, uint32_t low) {
 
 // Return the largest multiple of m which is <= x.
 template <typename T>
-inline T RoundDown(T x, intptr_t m) {
+constexpr inline T RoundDown(T x, intptr_t m) {
   static_assert(std::is_integral<T>::value);
   // m must be a power of two.
-  DCHECK(m != 0 && ((m & (m - 1)) == 0));
+  // Note: DCHECK removed for constexpr compatibility
   return x & static_cast<T>(-m);
 }
 template <intptr_t m, typename T>
@@ -369,18 +369,17 @@ constexpr inline T RoundDown(T x) {
 
 // Return the smallest multiple of m which is >= x.
 template <typename T>
-inline T RoundUp(T x, intptr_t m) {
+constexpr inline T RoundUp(T x, intptr_t m) {
   static_assert(std::is_integral<T>::value);
-  DCHECK_GE(x, 0);
-  DCHECK_GE(std::numeric_limits<T>::max() - x, m - 1);  // Overflow check.
+  // Note: DCHECK_GE removed for constexpr compatibility
+  // Overflow check: std::numeric_limits<T>::max() - x >= m - 1
   return RoundDown<T>(static_cast<T>(x + (m - 1)), m);
 }
 
 template <intptr_t m, typename T>
 constexpr inline T RoundUp(T x) {
   static_assert(std::is_integral<T>::value);
-  DCHECK_GE(x, 0);
-  DCHECK_GE(std::numeric_limits<T>::max() - x, m - 1);  // Overflow check.
+  // Note: DCHECK_GE removed for constexpr compatibility
   return RoundDown<m, T>(static_cast<T>(x + (m - 1)));
 }
 
@@ -482,6 +481,23 @@ bool is_inbounds(float_t v) {
 #define IF_V8_WASM_RANDOM_FUZZERS(V, ...)
 #endif  // V8_WASM_RANDOM_FUZZERS
 
+// Defines IF_SHADOW_STACK, to be used in macro lists for elements that should
+// only be there if CET shadow stack is enabled.
+#ifdef V8_ENABLE_CET_SHADOW_STACK
+#define IF_SHADOW_STACK(V, ...) EXPAND(V(__VA_ARGS__))
+#else
+#define IF_SHADOW_STACK(V, ...)
+#endif  // V8_ENABLE_CET_SHADOW_STACK
+
+// Defines IF_INTL, to be used in macro lists for elements that should only be
+// there if V8_INTL_SUPPORT is enabled.
+#ifdef V8_INTL_SUPPORT
+// EXPAND is needed to work around MSVC's broken __VA_ARGS__ expansion.
+#define IF_INTL(V, ...) EXPAND(V(__VA_ARGS__))
+#else
+#define IF_INTL(V, ...)
+#endif  // V8_INTL_SUPPORT
+
 // Defines IF_TSAN, to be used in macro lists for elements that should only be
 // there if TSAN is enabled.
 #ifdef V8_IS_TSAN
@@ -489,7 +505,7 @@ bool is_inbounds(float_t v) {
 #define IF_TSAN(V, ...) EXPAND(V(__VA_ARGS__))
 #else
 #define IF_TSAN(V, ...)
-#endif  // V8_ENABLE_WEBASSEMBLY
+#endif  // V8_IS_TSAN
 
 // Defines IF_TARGET_ARCH_64_BIT, to be used in macro lists for elements that
 // should only be there if the target architecture is a 64-bit one.

@@ -341,6 +341,28 @@ class V8_NODISCARD LockGuard final {
 using MutexGuard = LockGuard<Mutex>;
 using RecursiveMutexGuard = LockGuard<RecursiveMutex>;
 
+// MutexGuardIf - Conditionally locks a mutex based on a boolean flag
+// Useful when locking is only needed in certain conditions
+class V8_NODISCARD MutexGuardIf final {
+ public:
+  MutexGuardIf(Mutex* mutex, bool enable_mutex) {
+    if (enable_mutex && mutex != nullptr) {
+      mutex_ = mutex;
+      mutex_->Lock();
+    } else {
+      mutex_ = nullptr;
+    }
+  }
+  MutexGuardIf(const MutexGuardIf&) = delete;
+  MutexGuardIf& operator=(const MutexGuardIf&) = delete;
+  ~MutexGuardIf() {
+    if (mutex_ != nullptr) mutex_->Unlock();
+  }
+
+ private:
+  Mutex* mutex_;
+};
+
 enum MutexSharedType : bool { kShared = true, kExclusive = false };
 
 template <MutexSharedType kIsShared,

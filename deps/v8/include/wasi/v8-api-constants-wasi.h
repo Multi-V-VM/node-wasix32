@@ -84,17 +84,8 @@ enum SamplingFlags {
   kSamplingForceGC = 1 << 2
 };
 
-// TracedReference storage modes - used to track how traced handles are stored
-enum class TracedReferenceStoreMode {
-  kInitializingStore,  // Initial store, skip write barrier
-  kAssigningStore      // Assignment store, needs write barrier
-};
-
-// TracedReference handling modes - controls GC behavior
-enum class TracedReferenceHandling {
-  kDefault,   // Normal traced reference
-  kDroppable  // Can be dropped by GC if object is unreachable
-};
+// TracedReference storage modes are defined in v8-traced-handle.h
+// Do not duplicate here to avoid redefinition errors
 
 // CppHeap allocation modes
 enum class AllocationMode {
@@ -124,26 +115,8 @@ enum class CompilationHintTier {
   kOptimized
 };
 
-// V8 code kind enumeration - only define if the real one from code-kind.h
-// hasn't been included yet
-#ifndef V8_OBJECTS_CODE_KIND_H_
-#ifndef V8_WASI_CODEKIND_STUB_DEFINED
-#define V8_WASI_CODEKIND_STUB_DEFINED
-enum class CodeKind {
-  kOptimizedFunction,
-  kBytecodeHandler,
-  kForTesting,
-  kBuiltin,
-  kRegExp,
-  kWasmFunction,
-  kWasmToJsFunction,
-  kJsToWasmFunction,
-  kWasmInterpreterEntry,
-  kC2WasmFunction,
-  kCWasmEntry
-};
-#endif  // V8_WASI_CODEKIND_STUB_DEFINED
-#endif  // V8_OBJECTS_CODE_KIND_H_
+// NOTE: CodeKind enum removed - use the real definition from
+// src/objects/code-kind.h to avoid redefinition errors.
 
 // V8 builtin tier
 enum class BuiltinTier {
@@ -237,14 +210,16 @@ enum GCCallbackFlags {
   kGCCallbackScheduleIdleGarbageCollection = 1 << 6
 };
 
-// V8 GC type
-enum class GCType {
+// V8 GC type - use regular enum (not enum class) to allow bitwise operations
+enum GCType {
   kGCTypeScavenge = 1 << 0,
-  kGCTypeMarkSweepCompact = 1 << 1,
-  kGCTypeIncrementalMarking = 1 << 2,
-  kGCTypeProcessWeakCallbacks = 1 << 3,
-  kGCTypeAll = kGCTypeScavenge | kGCTypeMarkSweepCompact |
-               kGCTypeIncrementalMarking | kGCTypeProcessWeakCallbacks
+  kGCTypeMinorMarkSweep = 1 << 1,
+  kGCTypeMarkSweepCompact = 1 << 2,
+  kGCTypeIncrementalMarking = 1 << 3,
+  kGCTypeProcessWeakCallbacks = 1 << 4,
+  kGCTypeAll = kGCTypeScavenge | kGCTypeMinorMarkSweep |
+               kGCTypeMarkSweepCompact | kGCTypeIncrementalMarking |
+               kGCTypeProcessWeakCallbacks
 };
 
 // Interceptor result types
@@ -294,24 +269,8 @@ enum class IntegrityLevel {
   kFrozen
 };
 
-// Key collection mode
-enum class KeyCollectionMode {
-  kOwnOnly,
-  kIncludePrototypes
-};
-
-// Index filter
-enum class IndexFilter {
-  kIncludeIndices,
-  kSkipIndices
-};
-
-// Key conversion mode
-enum class KeyConversionMode {
-  kConvertToString,
-  kKeepNumbers,
-  kNoNumbers
-};
+// KeyCollectionMode, IndexFilter, KeyConversionMode are defined in v8-object.h
+// Do not duplicate here to avoid redefinition errors
 
 // Promise reject event
 enum class PromiseRejectEvent {
@@ -356,10 +315,12 @@ struct WasmFeatures {
 };
 
 // Condition codes for comparisons (unified cross-platform)
-// Defined in wasi-v8-essential-constants.h - don't redefine here
+// For WASI, we need unique values for each condition to avoid duplicate case errors
+// in switch statements (kZero and kEqual must be different values)
 #ifndef V8_CONDITION_ENUM_DEFINED
 #define V8_CONDITION_ENUM_DEFINED
 enum Condition : int {
+  // Base conditions with unique values
   overflow = 0,
   no_overflow = 1,
   below = 2,
@@ -376,12 +337,15 @@ enum Condition : int {
   greater_equal = 13,
   less_equal = 14,
   greater = 15,
+  // Additional unique values for kZero/kNotZero to avoid duplicate case errors
+  zero_cond = 16,
+  not_zero_cond = 17,
 
   // aliases
   carry = below,
   not_carry = above_equal,
-  zero = equal,
-  not_zero = not_equal,
+  zero = zero_cond,      // Use unique value, not equal
+  not_zero = not_zero_cond,  // Use unique value, not not_equal
   sign = negative,
   not_sign = positive,
 
@@ -392,18 +356,26 @@ enum Condition : int {
   kGreaterThan = greater,
   kLessThanEqual = less_equal,
   kGreaterThanEqual = greater_equal,
+  kLessThanOrEqual = less_equal,      // Alternative naming
+  kGreaterThanOrEqual = greater_equal, // Alternative naming
   kUnsignedLessThan = below,
   kUnsignedGreaterThan = above,
   kUnsignedLessThanEqual = below_equal,
   kUnsignedGreaterThanEqual = above_equal,
+  kUnsignedLessThanOrEqual = below_equal,      // Alternative naming
+  kUnsignedGreaterThanOrEqual = above_equal,   // Alternative naming
   kOverflow = overflow,
   kNoOverflow = no_overflow,
-  kZero = equal,
-  kNotZero = not_equal
+  kZero = zero_cond,      // Use unique value to avoid duplicate case
+  kNotZero = not_zero_cond   // Use unique value to avoid duplicate case
 };
 
 // Returns the equivalent of !cc
 inline Condition NegateCondition(Condition cc) {
+  // For most conditions, XOR with 1 works (pairs differ by 1)
+  // For zero_cond/not_zero_cond, we need special handling
+  if (cc == zero_cond) return not_zero_cond;
+  if (cc == not_zero_cond) return zero_cond;
   return static_cast<Condition>(cc ^ 1);
 }
 #endif  // V8_CONDITION_ENUM_DEFINED

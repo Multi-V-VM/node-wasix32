@@ -124,9 +124,6 @@ V8_EXPORT_PRIVATE ::v8::PageAllocator* GetPlatformPageAllocator();
 
 // Returns platfrom virtual memory space instance. Guaranteed to be a valid
 // pointer.
-#ifdef __wasi__
-class VirtualAddressSpace;
-#endif
 V8_EXPORT_PRIVATE VirtualAddressSpace* GetPlatformVirtualAddressSpace();
 
 #ifdef V8_ENABLE_SANDBOX

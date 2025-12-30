@@ -85,5 +85,16 @@ inline void SetPrintStackTrace(StackTracePrinter printer) {
 #define DCHECK_IMPLIES(a, b) ((void)0)
 #endif
 
+#ifndef DCHECK_WITH_MSG_AND_LOC
+// DCHECK_WITH_MSG_AND_LOC - no-op in release builds
+// Used for type cast checks with source location tracking
+#define DCHECK_WITH_MSG_AND_LOC(condition, message, loc) ((void)0)
+#endif
+
+#ifndef DCHECK_WITH_MSG
+// DCHECK_WITH_MSG - no-op in release builds
+#define DCHECK_WITH_MSG(condition, message) ((void)0)
+#endif
+
 
 #endif  // defined(__wasi__) || defined(V8_USING_WASI_SHIMS)

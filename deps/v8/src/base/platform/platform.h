@@ -520,6 +520,10 @@ class V8_BASE_EXPORT AddressSpaceReservation {
 // thread. The Thread object should not be deallocated before the thread has
 // terminated.
 
+// Guard to prevent redefinition if platform-thread.h was included first
+#ifndef V8_BASE_THREAD_DEFINED
+#define V8_BASE_THREAD_DEFINED
+
 class V8_BASE_EXPORT Thread {
  public:
   // Opaque data type for thread-local storage keys.
@@ -625,6 +629,8 @@ class V8_BASE_EXPORT Thread {
   Priority priority_;
   Semaphore* start_semaphore_;
 };
+
+#endif  // V8_BASE_THREAD_DEFINED
 
 // TODO(v8:10354): Make use of the stack utilities here in V8.
 class V8_BASE_EXPORT Stack {

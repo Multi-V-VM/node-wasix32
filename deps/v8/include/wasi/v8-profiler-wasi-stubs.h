@@ -5,6 +5,10 @@
 
 // WASI stubs for V8 profiler types that are not fully implemented
 // These provide minimal definitions to allow compilation
+// IMPORTANT: Skip these stubs if the real profile-generator.h has been included
+
+// Check if the real profiler types are already defined
+#ifndef V8_PROFILER_PROFILE_GENERATOR_H_
 
 #include <cstdint>
 #include <memory>
@@ -17,6 +21,9 @@ namespace v8 {
 class Isolate;
 class CpuProfiler;
 class HeapProfiler;
+
+// Only define these if not already defined by v8-profiler.h
+#ifndef V8_V8_PROFILER_H_
 
 // CPU Profiler naming modes (in v8 namespace for public API)
 enum class CpuProfilingNamingMode {
@@ -46,6 +53,8 @@ struct CpuProfilingResult {
   const CpuProfilingStatus status;
 };
 
+#endif  // V8_V8_PROFILER_H_
+
 namespace internal {
 
 // Forward declarations
@@ -59,7 +68,7 @@ using ProfilerId = v8::ProfilerId;
 class DiscardedSamplesDelegate {
  public:
   virtual ~DiscardedSamplesDelegate() = default;
-  virtual void NotifyDiscardedSamples(int count) = 0;
+  virtual void Notify(int count) = 0;
 };
 
 // Code entry - represents a single code entry in the profiler
@@ -70,6 +79,12 @@ class CodeEntry {
 
   CodeEntry(const CodeEntry&) = delete;
   CodeEntry& operator=(const CodeEntry&) = delete;
+
+  // Stub methods that are referenced in the codebase
+  int line_number() const { return 0; }
+  bool IsSameFunctionAs(const CodeEntry*) const { return false; }
+  size_t GetHash() const { return 0; }
+  static CodeEntry* gc_entry() { return nullptr; }
 };
 
 // Code entry storage - manages lifetime of profiler code entries
@@ -121,6 +136,8 @@ constexpr CpuProfilingNamingMode kStandardNaming = CpuProfilingNamingMode::kStan
 }  // namespace internal
 
 }  // namespace v8
+
+#endif  // V8_PROFILER_PROFILE_GENERATOR_H_
 
 #endif  // __wasi__
 

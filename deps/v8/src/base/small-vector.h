@@ -197,8 +197,26 @@ class SmallVector {
     end_ = begin_ + new_size;
   }
 
+  // Standard resize - for compatibility with std::vector-like interface
+  void resize(size_t new_size) {
+    ASSERT_TRIVIALLY_COPYABLE(T);
+    size_t old_size = size();
+    if (new_size > capacity()) Grow(new_size);
+    end_ = begin_ + new_size;
+    // Zero-initialize new elements if growing
+    if (new_size > old_size) {
+      memset(begin_ + old_size, 0, sizeof(T) * (new_size - old_size));
+    }
+  }
+
   void reserve_no_init(size_t new_capacity) {
     // Resizing without initialization is safe if T is trivially copyable.
+    ASSERT_TRIVIALLY_COPYABLE(T);
+    if (new_capacity > capacity()) Grow(new_capacity);
+  }
+
+  // Standard reserve - for compatibility with std::vector-like interface
+  void reserve(size_t new_capacity) {
     ASSERT_TRIVIALLY_COPYABLE(T);
     if (new_capacity > capacity()) Grow(new_capacity);
   }

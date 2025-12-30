@@ -11,6 +11,12 @@
 #include "src/base/emulated-virtual-address-subspace.h"
 #include "src/common/assert-scope.h"
 #include "src/utils/allocation.h"
+// Include VirtualAddressSpace definition for method calls
+#ifdef __wasi__
+#include "include/v8-platform-full.h"
+#else
+#include "src/base/virtual-address-space.h"
+#endif
 
 namespace v8 {
 namespace internal {

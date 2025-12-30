@@ -9,6 +9,11 @@ namespace base {
 
 class Semaphore;  // fwd-decl to avoid heavy include
 
+// Check if Thread was already defined in platform.h
+// If so, skip this definition to avoid redefinition errors
+#ifndef V8_BASE_THREAD_DEFINED
+#define V8_BASE_THREAD_DEFINED
+
 // Minimal public declaration of base::Thread used across platform backends.
 class Thread {
  public:
@@ -94,6 +99,8 @@ class Thread {
   Priority priority_ = Priority::kDefault;
   Semaphore* start_semaphore_ = nullptr;
 };
+
+#endif  // V8_BASE_THREAD_DEFINED
 
 }  // namespace base
 }  // namespace v8

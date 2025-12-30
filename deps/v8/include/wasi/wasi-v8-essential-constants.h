@@ -16,12 +16,14 @@
 #include "src/base/lazy-instance.h"
 #include "src/base/memory.h"
 #include "src/base/vlq-base64.h"
+#include "src/base/vlq.h"
 
 // Include missing types implementation
 #include "wasi-v8-missing-types.h"
 #include "v8-profiler-wasi-stubs.h"
 #include "v8-api-constants-wasi.h"
-#include "cppgc-wasi-compat.h"
+// NOTE: cppgc-wasi-compat.h removed - causes conflicts with cppgc/heap.h
+// The real cppgc headers should be used instead.
 
 namespace v8 {
 namespace internal {
@@ -137,8 +139,8 @@ using ::v8::base::make_iterator_range;
 using ::v8::base::LazyDynamicInstance;
 using ::v8::base::OnceType;
 
-// Thread utilities
-using ::v8::base::Thread;
+// Thread utilities - Thread is in v8::base, accessed via full qualification
+// Don't import to avoid potential redefinition conflicts
 
 // Time utilities - Time is defined in time.h, don't re-import
 // using ::v8::base::Time;
@@ -152,6 +154,7 @@ using ::v8::base::StrNCpy;
 using ::v8::base::StaticOneByteVector;
 // using ::v8::base::OwnedCopyOf;  // May not exist in v8::base
 using ::v8::base::VLQBase64Decode;
+using ::v8::base::VLQEncodeUnsigned;
 
 // Memory utilities
 using ::v8::base::Memory;
@@ -167,7 +170,8 @@ using ::v8::base::Realloc;
 // using ::v8::base::ScopedZoneVector;  // Use ScopedVector instead
 using ::v8::base::DerefPtrIterator;
 // In modern V8, these types are exposed in the public ::v8 namespace
-using ::v8::VirtualAddressSpace;
+// Note: VirtualAddressSpace is imported in globals.h, not here to avoid conflicts
+// with v8::base::VirtualAddressSpace
 using ::v8::PageAllocator;
 using ::v8::base::Address;
 
@@ -211,8 +215,13 @@ inline constexpr uint32_t RoundDownToPowerOfTwo32(uint32_t value) {
 }
 using ::v8::base::bits::RotateRight32;
 using ::v8::base::bits::RotateRight64;
-// Note: Signed*Overflow* functions don't exist - use templates instead
-// Note: Unsigned*Overflow* functions don't exist - use templates instead
+// Signed overflow functions
+using ::v8::base::bits::SignedAddOverflow32;
+using ::v8::base::bits::SignedSubOverflow32;
+using ::v8::base::bits::SignedMulOverflow32;
+using ::v8::base::bits::SignedAddOverflow64;
+using ::v8::base::bits::SignedSubOverflow64;
+using ::v8::base::bits::SignedMulOverflow64;
 }  // namespace bits
 
 // ieee754 namespace for math functions - defined in globals.h as namespace alias
@@ -225,34 +234,10 @@ namespace tmp = ::v8::base::tmp;
 
 }  // namespace base
 
-// Condition enum for WASI (platform-independent comparison conditions)
-// Only define if not already defined by v8-api-constants-wasi.h
-#ifndef V8_CONDITION_ENUM_DEFINED
-#define V8_CONDITION_ENUM_DEFINED
-enum Condition : int {
-  kNoCondition = -1,
-
-  // Basic conditions
-  kEqual = 0,
-  kNotEqual = 1,
-  kLessThan = 2,
-  kLessThanOrEqual = 3,
-  kGreaterThan = 4,
-  kGreaterThanOrEqual = 5,
-
-  // Unsigned conditions
-  kUnsignedLessThan = 6,
-  kUnsignedLessThanOrEqual = 7,
-  kUnsignedGreaterThan = 8,
-  kUnsignedGreaterThanOrEqual = 9,
-
-  // Additional conditions
-  kOverflow = 10,
-  kNoOverflow = 11,
-  kZero = kEqual,
-  kNotZero = kNotEqual,
-};
-#endif  // V8_CONDITION_ENUM_DEFINED
+// Condition enum for WASI - defined in v8-api-constants-wasi.h
+// This section is kept for reference but should not redefine the enum
+// The actual Condition enum is defined with unique values for kZero/kNotZero
+// to avoid duplicate case errors in switch statements
 
 }  // namespace internal
 }  // namespace v8

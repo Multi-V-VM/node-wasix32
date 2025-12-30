@@ -100,7 +100,7 @@ class ConstantExpression {
   static_assert(kV8MaxWasmModuleSize <= LengthField::kMax + 1);
   static_assert(kV8MaxWasmModuleSize <= OffsetField::kMax + 1);
   // Make sure kind fits in kKindBits.
-  static_assert(static_cast<uint64_t>(Kind::kLastKind) <= KindField::kMax + 1);
+  static_assert(static_cast<uint64_t>(Kind::kLastKind) <= static_cast<uint64_t>(KindField::kMax) + 1);
 
   explicit constexpr ConstantExpression(uint64_t bit_field)
       : bit_field_(bit_field) {}

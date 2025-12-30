@@ -253,7 +253,7 @@ class V8_EXPORT_PRIVATE IsolateGroup final {
   bool FindAnotherIsolateLocked(Isolate* isolate, Callback callback) {
     // Holding this mutex while invoking the callback avoids the isolate tearing
     // down in the mean time.
-    ::v8::base::MutexGuard group_guard(mutex_);
+    ::v8::base::MutexGuard group_guard(&mutex_);
     Isolate* target_isolate = nullptr;
     DCHECK_NOT_NULL(main_isolate_);
 

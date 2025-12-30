@@ -13,11 +13,40 @@ namespace cppgc {
 class Platform;
 class Heap;
 
+// NOTE: CollectionType, MarkingType, SweepingType enums are defined in
+// cppgc/heap.h. Only define stubs here if that header hasn't been included yet.
+#ifndef INCLUDE_CPPGC_HEAP_H_
+
 // GC collection type (in main cppgc namespace)
+#ifndef CPPGC_WASI_COLLECTIONTYPE_DEFINED
+#define CPPGC_WASI_COLLECTIONTYPE_DEFINED
 enum class CollectionType {
   kMinor,
   kMajor
 };
+#endif
+
+// Marking type (in main cppgc namespace)
+#ifndef CPPGC_WASI_MARKINGTYPE_DEFINED
+#define CPPGC_WASI_MARKINGTYPE_DEFINED
+enum class MarkingType {
+  kIncremental,
+  kIncrementalAndConcurrent,
+  kAtomic
+};
+#endif
+
+// Sweeping type (in main cppgc namespace)
+#ifndef CPPGC_WASI_SWEEPINGTYPE_DEFINED
+#define CPPGC_WASI_SWEEPINGTYPE_DEFINED
+enum class SweepingType {
+  kIncremental,
+  kIncrementalAndConcurrent,
+  kAtomic
+};
+#endif
+
+#endif  // INCLUDE_CPPGC_HEAP_H_
 
 // Stack state for GC (in main cppgc namespace)
 #ifndef CPPGC_STACKSTATE_DEFINED
@@ -27,20 +56,6 @@ enum class StackState : uint8_t {
   kMayContainHeapPointers
 };
 #endif
-
-// Marking type (in main cppgc namespace)
-enum class MarkingType {
-  kIncremental,
-  kIncrementalAndConcurrent,
-  kAtomic
-};
-
-// Sweeping type (in main cppgc namespace)
-enum class SweepingType {
-  kIncremental,
-  kIncrementalAndConcurrent,
-  kAtomic
-};
 
 namespace internal {
 
