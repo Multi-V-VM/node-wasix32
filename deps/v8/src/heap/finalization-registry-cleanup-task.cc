@@ -84,8 +84,10 @@ void FinalizationRegistryCleanupTask::RunInternal() {
   // and should be requeued.
   //
   // TODO(syg): Implement better scheduling for finalizers.
+#if !V8_TARGET_ARCH_WASM32
   InvokeFinalizationRegistryCleanupFromTask(native_context,
                                             finalization_registry);
+#endif
   if (finalization_registry->NeedsCleanup() &&
       !finalization_registry->scheduled_for_cleanup()) {
     auto nop = [](Tagged<HeapObject>, ObjectSlot, Tagged<Object>) {};

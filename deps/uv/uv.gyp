@@ -323,6 +323,11 @@
                     'OS=="linux" or OS=="openharmony"',
                     {
                         "defines": ["_GNU_SOURCE"],
+                    },
+                ],
+                [
+                    '(OS=="linux" or OS=="openharmony") and (target_arch!="wasm32" or _toolset=="host")',
+                    {
                         "sources": [
                             "<@(uv_sources_linux)",
                         ],

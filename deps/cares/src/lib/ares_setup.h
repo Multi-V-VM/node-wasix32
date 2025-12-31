@@ -39,6 +39,10 @@
  * configuration file for platforms which lack config tool.
  */
 
+#ifdef HAVE_CONFIG_H
+#  include "ares_config.h"
+#endif
+
 /*
  * c-ares external interface definitions are also used internally,
  * and might also include required system header files to define them.

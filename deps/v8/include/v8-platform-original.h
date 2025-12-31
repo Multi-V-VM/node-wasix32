@@ -509,6 +509,13 @@ class PageAllocator {
   virtual bool DecommitPages(void* address, size_t size) = 0;
 
   /**
+   * Seal pages to prevent further modifications. This is used to protect
+   * memory pages from being altered after initialization.
+   * Returns true on success, false otherwise.
+   */
+  virtual bool SealPages(void* address, size_t size) { return false; }
+
+  /**
    * INTERNAL ONLY: This interface has not been stabilised and may change
    * without notice from one release to another without being deprecated first.
    */
@@ -995,6 +1002,9 @@ class HighAllocationThroughputObserver {
   virtual void LeaveSection() {}
 };
 
+// StackTracePrinter function type at namespace scope
+using StackTracePrinter = void (*)();
+
 /**
  * V8 Platform abstraction layer.
  *
@@ -1003,6 +1013,9 @@ class HighAllocationThroughputObserver {
  */
 class Platform {
  public:
+  // BlockingType indicates the likelihood that a blocking call will actually block
+  enum class BlockingType { kMayBlock, kWillBlock };
+
   virtual ~Platform() = default;
 
   /**
@@ -1109,6 +1122,16 @@ class Platform {
     // Embedders may optionally override this to process these tasks in a low
     // priority pool.
     PostTaskOnWorkerThreadImpl(TaskPriority::kBestEffort, std::move(task),
+                               SourceLocation::Current());
+  }
+
+  /**
+   * Schedules a task to be invoked on a worker thread with the given priority.
+   * Embedders may override this method or PostTaskOnWorkerThreadImpl().
+   */
+  virtual void PostTaskOnWorkerThread(TaskPriority priority,
+                                      std::unique_ptr<Task> task) {
+    PostTaskOnWorkerThreadImpl(priority, std::move(task),
                                SourceLocation::Current());
   }
 

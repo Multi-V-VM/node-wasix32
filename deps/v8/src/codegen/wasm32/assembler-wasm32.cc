@@ -131,6 +131,9 @@ uint32_t RelocInfo::wasm_call_tag() const {
   return 0;
 }
 
+// kApplyMask - modes affected by apply. For WASM32 interpreter target, no patching needed.
+const int RelocInfo::kApplyMask = 0;
+
 }  // namespace internal
 }  // namespace v8
 

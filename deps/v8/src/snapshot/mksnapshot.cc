@@ -639,160 +639,10 @@ void BasePage::ChangeOwner(BaseSpace&) {}
 void BasePage::ResetSlotSet() {}
 #endif
 
-// FatalOutOfMemoryHandler stubs
-FatalOutOfMemoryHandler& GetGlobalOOMHandler() {
-  static FatalOutOfMemoryHandler handler;
-  return handler;
-}
-
-void FatalOutOfMemoryHandler::SetCustomHandler(Callback*) {}
-[[noreturn]] void FatalOutOfMemoryHandler::operator()(
-    const std::string&, const SourceLocation&) const {
-  abort();  // Must not return
-}
-
-// StatsCollector stubs
-void StatsCollector::RecordHistogramSample(ScopeId, v8::base::TimeDelta) {}
-
-// HeapBase stubs - complex class, provide minimal stubs
-HeapBase::~HeapBase() = default;
-void HeapBase::Terminate() {}
-bool HeapBase::IsGCForbidden() const { return false; }
-bool HeapBase::CurrentThreadIsHeapThread() const { return true; }
-bool HeapBase::IsGCAllowed() const { return true; }
-size_t HeapBase::ObjectPayloadSize() const { return 0; }
-size_t HeapBase::ExecutePreFinalizers() { return 0; }
-HeapStatistics HeapBase::CollectStatistics(HeapStatistics::DetailLevel) { return {}; }
-void HeapBase::CallMoveListeners(Address, Address, size_t) {}
-void HeapBase::RegisterMoveListener(MoveListener*) {}
-void HeapBase::UnregisterMoveListener(MoveListener*) {}
-PageAllocator* HeapBase::page_allocator() const { return nullptr; }
-
-#if defined(CPPGC_YOUNG_GENERATION)
-void HeapBase::EnableGenerationalGC() {}
-void HeapBase::ResetRememberedSet() {}
-#endif
-
-// ClassNameAsHeapObjectNameScope stubs
-ClassNameAsHeapObjectNameScope::ClassNameAsHeapObjectNameScope(HeapBase& heap)
-    : heap_(heap), saved_heap_object_name_value_(heap.name_of_unnamed_object()) {}
-ClassNameAsHeapObjectNameScope::~ClassNameAsHeapObjectNameScope() {}
-
-// MarkerBase stubs
-MarkerBase::~MarkerBase() = default;
-MarkerBase::MarkerBase(HeapBase& heap, cppgc::Platform*, MarkingConfig config)
-    : heap_(heap), config_(config), platform_(nullptr),
-      incremental_marking_allocation_observer_(*this),
-      mutator_marking_state_(heap, marking_worklists_, nullptr) {}
-void MarkerBase::StartMarking() {}
-void MarkerBase::EnterAtomicPause(StackState) {}
-void MarkerBase::EnterProcessGlobalAtomicPause() {}
-void MarkerBase::LeaveAtomicPause() {}
-void MarkerBase::FinishMarking(StackState) {}
-bool MarkerBase::AdvanceMarkingWithLimits(v8::base::TimeDelta, size_t) { return true; }
-void MarkerBase::ProcessCrossThreadWeaknessIfNeeded() {}
-void MarkerBase::ProcessWeakness() {}
-bool MarkerBase::JoinConcurrentMarkingIfNeeded() { return true; }
-void MarkerBase::NotifyConcurrentMarkingOfWorkIfNeeded(cppgc::TaskPriority) {}
-void MarkerBase::ReEnableConcurrentMarking() {}
-void MarkerBase::SetMainThreadMarkingDisabledForTesting(bool) {}
-void MarkerBase::WaitForConcurrentMarkingForTesting() {}
-void MarkerBase::ClearAllWorklistsForTesting() {}
-bool MarkerBase::IncrementalMarkingStepForTesting(StackState) { return true; }
-bool MarkerBase::ProcessWorklistsWithDeadline(size_t, v8::base::TimeTicks) { return true; }
-void MarkerBase::AdvanceMarkingWithLimitsEpilogue() {}
-void MarkerBase::VisitLocalRoots(StackState) {}
-void MarkerBase::VisitCrossThreadRoots() {}
-void MarkerBase::MarkNotFullyConstructedObjects() {}
-void MarkerBase::ScheduleIncrementalMarkingTask() {}
-bool MarkerBase::IncrementalMarkingStep(StackState) { return true; }
-void MarkerBase::AdvanceMarkingOnAllocation() {}
-void MarkerBase::AdvanceMarkingOnAllocationImpl() {}
-void MarkerBase::HandleNotFullyConstructedObjects() {}
-void MarkerBase::MarkStrongCrossThreadRoots() {}
-
-MarkerBase::IncrementalMarkingAllocationObserver::IncrementalMarkingAllocationObserver(MarkerBase& marker)
-    : marker_(marker) {}
-void MarkerBase::IncrementalMarkingAllocationObserver::AllocatedObjectSizeIncreased(size_t) {}
-
-MarkerBase::PauseConcurrentMarkingScope::PauseConcurrentMarkingScope(MarkerBase& marker)
-    : marker_(marker), resume_on_exit_(false) {}
-MarkerBase::PauseConcurrentMarkingScope::~PauseConcurrentMarkingScope() = default;
-
-// ConcurrentMarkerBase stubs
-ConcurrentMarkerBase::ConcurrentMarkerBase(HeapBase& heap, MarkingWorklists& worklists,
-    heap::base::IncrementalMarkingSchedule& schedule, cppgc::Platform* platform)
-    : heap_(heap), marking_worklists_(worklists), incremental_marking_schedule_(schedule),
-      platform_(platform) {}
-ConcurrentMarkerBase::~ConcurrentMarkerBase() = default;
-void ConcurrentMarkerBase::Start() {}
-bool ConcurrentMarkerBase::Join() { return true; }
-bool ConcurrentMarkerBase::Cancel() { return true; }
-void ConcurrentMarkerBase::NotifyIncrementalMutatorStepCompleted() {}
-void ConcurrentMarkerBase::NotifyOfWorkIfNeeded(cppgc::TaskPriority) {}
-bool ConcurrentMarkerBase::IsActive() const { return false; }
-void ConcurrentMarkerBase::AddConcurrentlyMarkedBytes(size_t) {}
-void ConcurrentMarkerBase::IncreaseMarkingPriorityIfNeeded() {}
-
-// ConservativeMarkingVisitor stubs
-// Note: Can't define constructor due to reference member initialization issues
-// The symbol is provided by marking-visitor.cc when not WASI, so we skip for now
-
-// Compactor stubs
-Compactor::Compactor(RawHeap& heap) : heap_(heap) {}
-void Compactor::InitializeIfShouldCompact(GCConfig::MarkingType, StackState) {}
-void Compactor::CancelIfShouldNotCompact(GCConfig::MarkingType, StackState) {}
-Compactor::CompactableSpaceHandling Compactor::CompactSpacesIfEnabled() { return CompactableSpaceHandling::kIgnore; }
-void Compactor::EnableForNextGCForTesting() {}
-bool Compactor::ShouldCompact(GCConfig::MarkingType, StackState) const { return false; }
-
-// Additional stubs are defined in the cppgc source files
-// Only provide essential stubs that are missing
-
-// Note: Most cppgc stubs removed - they should come from compiled cppgc sources
-// Only minimal stubs are provided here for linking
-
-// ProcessGlobalLock stub
-v8::base::LazyMutex ProcessGlobalLock::process_mutex_ = LAZY_MUTEX_INITIALIZER;
-
-// HeapRegistry stubs
-void HeapRegistry::RegisterHeap(HeapBase&) {}
-void HeapRegistry::UnregisterHeap(HeapBase&) {}
-HeapBase* HeapRegistry::TryFromManagedPointer(const void*) { return nullptr; }
-const HeapRegistry::Storage& HeapRegistry::GetRegisteredHeapsForTesting() {
-  static Storage s;
-  return s;
-}
-
-// PageAllocator stub
-PageAllocator& GetGlobalPageAllocator() {
-  static v8::base::PageAllocator allocator;
-  return allocator;
-}
+// Most cppgc stubs are now in cppgc-stubs.cc which is compiled for WASM32
+// Only keep mksnapshot-specific stubs here
 
 }  // namespace internal
-
-namespace subtle {
-// DisallowGarbageCollectionScope stubs
-bool DisallowGarbageCollectionScope::IsGarbageCollectionAllowed(HeapHandle&) { return true; }
-void DisallowGarbageCollectionScope::Enter(HeapHandle&) {}
-void DisallowGarbageCollectionScope::Leave(HeapHandle&) {}
-DisallowGarbageCollectionScope::DisallowGarbageCollectionScope(HeapHandle& heap_handle)
-    : heap_handle_(heap_handle) {}
-DisallowGarbageCollectionScope::~DisallowGarbageCollectionScope() = default;
-
-// NoGarbageCollectionScope stubs
-void NoGarbageCollectionScope::Enter(HeapHandle&) {}
-void NoGarbageCollectionScope::Leave(HeapHandle&) {}
-NoGarbageCollectionScope::NoGarbageCollectionScope(HeapHandle& heap_handle)
-    : heap_handle_(heap_handle) {}
-NoGarbageCollectionScope::~NoGarbageCollectionScope() = default;
-}  // namespace subtle
-
-// ProcessHeapStatistics stubs (in cppgc namespace, not cppgc::internal)
-std::atomic_size_t ProcessHeapStatistics::total_allocated_space_{0};
-std::atomic_size_t ProcessHeapStatistics::total_allocated_object_size_{0};
-
 }  // namespace cppgc
 
 namespace v8 {
@@ -825,15 +675,8 @@ JSDispatchHandle RelocInfo::js_dispatch_handle() { return JSDispatchHandle(); }
 // Deoptimizer stub
 void Deoptimizer::PatchToJump(Address, Address) {}
 
-// Heap stubs
-void Heap::DumpJSONHeapStatistics(std::stringstream&) {}
-
-// FinalizationRegistry stub
-void InvokeFinalizationRegistryCleanupFromTask(
-    DirectHandle<NativeContext>, DirectHandle<JSFinalizationRegistry>) {}
-
-// HandleScopeImplementer stubs
-void HandleScopeImplementer::Iterate(RootVisitor*) {}
+// Heap::DumpJSONHeapStatistics, InvokeFinalizationRegistryCleanupFromTask, and
+// HandleScopeImplementer::Iterate are now in cppgc-stubs.cc
 
 }  // namespace internal
 
@@ -871,15 +714,8 @@ namespace base {
 void OS::AdjustSchedulingParams() {}
 }  // namespace base
 
-namespace internal {
-// HandleScopeImplementer stubs
-char* HandleScopeImplementer::Iterate(RootVisitor* v, char* storage) {
-  return storage;
-}
-int HandleScopeImplementer::ArchiveSpacePerThread() {
-  return 0;
-}
-}  // namespace internal
+// HandleScopeImplementer stubs are now in cppgc-stubs.cc
+
 }  // namespace v8
 
 #endif  // __wasi__

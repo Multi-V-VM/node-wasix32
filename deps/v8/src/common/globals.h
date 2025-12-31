@@ -1018,11 +1018,6 @@ constexpr int kSmiTagSize = 1;     // 1 bit for tag
 #endif
 #endif
 
-// Missing JS dispatch handle constants (if not already defined)
-#if !(defined(__wasi__) || defined(V8_USING_WASI_SHIMS))
-constexpr int kJSDispatchHandleShift = 0;
-#endif
-
 // Smi value check functions
 // Note: For WASI builds, these are defined in wasi/nuclear-fix.h
 #if !defined(__wasi__) && !defined(V8_USING_WASI_SHIMS)
@@ -1038,8 +1033,12 @@ static_assert((kTaggedSize == 8) == TAGGED_SIZE_8_BYTES);
 #endif
 
 using AsAtomicTagged = ::v8::base::AsAtomicPointerImpl<AtomicTagged_t>;
+// Note: These assertions are only valid when compiling with matching target compiler
+// For cross-compilation (native compiler with wasm32 target), skip these checks
+#if !defined(V8_TARGET_ARCH_WASM32) || defined(__wasi__)
 static_assert(sizeof(Tagged_t) == kTaggedSize);
 static_assert(sizeof(AtomicTagged_t) == kTaggedSize);
+#endif
 
 static_assert(kTaggedSize == kApiTaggedSize);
 

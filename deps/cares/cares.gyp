@@ -252,6 +252,10 @@
         [ 'OS=="openharmony"', {
           'include_dirs': [ 'config/openharmony' ],
           'sources': [ 'config/openharmony/ares_config.h' ],
+        }],
+        [ 'target_arch=="wasm32"', {
+          'include_dirs': [ 'config/wasi' ],
+          'sources': [ 'config/wasi/ares_config.h' ],
         }]
       ]
     }

@@ -1363,11 +1363,13 @@ void Heap::CollectAllAvailableGarbage(GarbageCollectionReason gc_reason) {
     js_roots += isolate()->global_handles()->handles_count();
     js_roots += isolate()->eternal_handles()->handles_count();
     size_t cpp_roots = 0;
+#if !V8_TARGET_ARCH_WASM32
     if (auto* cpp_heap = CppHeap::From(cpp_heap_)) {
       cpp_roots += cpp_heap->GetStrongPersistentRegion().NodesInUse();
       cpp_roots +=
           cpp_heap->GetStrongCrossThreadPersistentRegion().NodesInUse();
     }
+#endif
     return js_roots + cpp_roots;
   };
 
@@ -1695,11 +1697,13 @@ void Heap::CollectGarbage(AllocationSpace space,
           collector == GarbageCollector::SCAVENGER) {
         tracer()->RecordGCPhasesHistograms(record_gc_phases_info.mode());
       }
+#if !V8_TARGET_ARCH_WASM32
       if ((collector == GarbageCollector::MARK_COMPACTOR ||
            collector == GarbageCollector::MINOR_MARK_SWEEPER) &&
           cpp_heap()) {
         CppHeap::From(cpp_heap())->FinishAtomicSweepingIfRunning();
       }
+#endif
     }
 
     GarbageCollectionEpilogue(collector);
@@ -1991,8 +1995,10 @@ void Heap::CompleteSweepingFull() {
   EnsureSweepingCompleted(SweepingForcedFinalizationMode::kUnifiedHeap);
 
   DCHECK(!sweeping_in_progress());
+#if !V8_TARGET_ARCH_WASM32
   DCHECK_IMPLIES(cpp_heap(),
                  !CppHeap::From(cpp_heap())->sweeper().IsSweepingInProgress());
+#endif
   DCHECK(!tracer()->IsSweepingInProgress());
 }
 
@@ -2304,6 +2310,7 @@ void Heap::PerformGarbageCollection(GarbageCollector collector,
   // nested GCs.
   isolate_->global_handles()->InvokeFirstPassWeakCallbacks();
 
+#if !V8_TARGET_ARCH_WASM32
   if (cpp_heap() && (collector == GarbageCollector::MARK_COMPACTOR ||
                      collector == GarbageCollector::MINOR_MARK_SWEEPER)) {
     // TraceEpilogue may trigger operations that invalidate global handles. It
@@ -2314,6 +2321,7 @@ void Heap::PerformGarbageCollection(GarbageCollector collector,
     TRACE_GC(tracer(), GCTracer::Scope::HEAP_EMBEDDER_TRACING_EPILOGUE);
     CppHeap::From(cpp_heap())->CompactAndSweep();
   }
+#endif
 
   if (collector == GarbageCollector::MARK_COMPACTOR) {
     ClearStubCaches(isolate());
@@ -5112,10 +5120,12 @@ void Heap::ConfigureHeap(const v8::ResourceConstraints& constraints,
   code_range_size_ = constraints.code_range_size_in_bytes();
 
   heap_profiler_ = std::make_unique<HeapProfiler>(this);
+#if !V8_TARGET_ARCH_WASM32
   if (cpp_heap) {
     AttachCppHeap(cpp_heap);
     owning_cpp_heap_.reset(CppHeap::From(cpp_heap));
   }
+#endif
 
   configured_ = true;
 }
@@ -5242,7 +5252,11 @@ size_t Heap::YoungGenerationConsumedBytes() const {
 }
 
 size_t Heap::EmbedderSizeOfObjects() const {
+#if V8_TARGET_ARCH_WASM32
+  return 0;
+#else
   return cpp_heap_ ? CppHeap::From(cpp_heap_)->used_size() : 0;
+#endif
 }
 
 size_t Heap::GlobalSizeOfObjects() const {
@@ -6061,12 +6075,17 @@ EmbedderRootsHandler* Heap::GetEmbedderRootsHandler() const {
 }
 
 void Heap::AttachCppHeap(v8::CppHeap* cpp_heap) {
+#if V8_TARGET_ARCH_WASM32
+  // CppHeap not supported on WASM32
+  UNREACHABLE();
+#else
   // Only a single CppHeap can be attached at a time.
   CHECK(!owning_cpp_heap_);
 
   CHECK_IMPLIES(incremental_marking(), !incremental_marking()->IsMarking());
   CppHeap::From(cpp_heap)->AttachIsolate(isolate());
   cpp_heap_ = cpp_heap;
+#endif
 }
 
 std::optional<StackState> Heap::overridden_stack_state() const {
@@ -6092,11 +6111,13 @@ const ::heap::base::Stack& Heap::stack() const {
 }
 
 void Heap::StartTearDown() {
+#if !V8_TARGET_ARCH_WASM32
   if (cpp_heap_) {
     // This may invoke a GC in case marking is running to get us into a
     // well-defined state for tear down.
     CppHeap::From(cpp_heap_)->StartDetachingIsolate();
   }
+#endif
 
   // Stressing incremental marking should make it likely to force a GC here with
   // a CppHeap present. Stress compaction serves as a more deterministic way to
@@ -6169,11 +6190,13 @@ void Heap::TearDown() {
     }
   }
 
+#if !V8_TARGET_ARCH_WASM32
   if (cpp_heap_) {
     CppHeap::From(cpp_heap_)->DetachIsolate();
     cpp_heap_ = nullptr;
     isolate_->RunReleaseCppHeapCallback(std::move(owning_cpp_heap_));
   }
+#endif
 
   minor_gc_job_.reset();
 
@@ -7103,7 +7126,11 @@ bool Heap::AllowedToBeMigrated(Tagged<Map> map, Tagged<HeapObject> object,
 }
 
 size_t Heap::EmbedderAllocationCounter() const {
+#if V8_TARGET_ARCH_WASM32
+  return 0;
+#else
   return cpp_heap_ ? CppHeap::From(cpp_heap_)->allocated_size() : 0;
+#endif
 }
 
 void Heap::CreateObjectStats() {
@@ -7296,11 +7323,13 @@ void Heap::FinishSweepingIfOutOfWork() {
                    !sweeper()->HasUnsweptPagesForMajorSweeping());
     EnsureSweepingCompleted(SweepingForcedFinalizationMode::kV8Only);
   }
+#if !V8_TARGET_ARCH_WASM32
   if (cpp_heap()) {
     // Ensure that sweeping is also completed for the C++ managed heap, if one
     // exists and it's out of work.
     CppHeap::From(cpp_heap())->FinishSweepingIfOutOfWork();
   }
+#endif
 }
 
 void Heap::EnsureSweepingCompleted(SweepingForcedFinalizationMode mode) {
@@ -7356,12 +7385,14 @@ void Heap::EnsureSweepingCompleted(SweepingForcedFinalizationMode mode) {
 #endif
   }
 
+#if !V8_TARGET_ARCH_WASM32
   if (mode == SweepingForcedFinalizationMode::kUnifiedHeap && cpp_heap()) {
     // Ensure that sweeping is also completed for the C++ managed heap, if one
     // exists.
     CppHeap::From(cpp_heap())->FinishSweepingIfRunning();
     DCHECK(!CppHeap::From(cpp_heap())->sweeper().IsSweepingInProgress());
   }
+#endif
 
   DCHECK_IMPLIES(
       mode == SweepingForcedFinalizationMode::kUnifiedHeap || !cpp_heap(),
@@ -7486,8 +7517,14 @@ EmbedderStackStateScope::~EmbedderStackStateScope() {
 
 CppClassNamesAsHeapObjectNameScope::CppClassNamesAsHeapObjectNameScope(
     v8::CppHeap* heap)
+#if V8_TARGET_ARCH_WASM32
+    {
+  // No scope_ member for WASM32
+}
+#else
     : scope_(std::make_unique<cppgc::internal::ClassNameAsHeapObjectNameScope>(
           *CppHeap::From(heap))) {}
+#endif
 
 CppClassNamesAsHeapObjectNameScope::~CppClassNamesAsHeapObjectNameScope() =
     default;

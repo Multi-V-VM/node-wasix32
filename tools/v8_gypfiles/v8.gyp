@@ -130,7 +130,8 @@
             '<@(torque_files)',
           ],
           'conditions': [
-            ['v8_target_arch=="ia32" or v8_target_arch=="wasm32" or target_arch=="ia32" or target_arch=="wasm32"', {
+            ['target_arch=="wasm32"', {
+              # For wasm32, run torque through wasmer
               'action': [
                 '<(PRODUCT_DIR)/<(EXECUTABLE_PREFIX)torque<(EXECUTABLE_SUFFIX)',
                 '-m32',
@@ -139,11 +140,23 @@
                 '<@(torque_files_without_v8_root)',
               ],
             }, {
-              'action': [
-                '<(PRODUCT_DIR)/<(EXECUTABLE_PREFIX)torque<(EXECUTABLE_SUFFIX)',
-                '-o', '<(SHARED_INTERMEDIATE_DIR)/torque-generated',
-                '-v8-root', '<(V8_ROOT)',
-                '<@(torque_files_without_v8_root)',
+              'conditions': [
+                ['v8_target_arch=="ia32" or target_arch=="ia32"', {
+                  'action': [
+                    '<(PRODUCT_DIR)/<(EXECUTABLE_PREFIX)torque<(EXECUTABLE_SUFFIX)',
+                    '-m32',
+                    '-o', '<(SHARED_INTERMEDIATE_DIR)/torque-generated',
+                    '-v8-root', '<(V8_ROOT)',
+                    '<@(torque_files_without_v8_root)',
+                  ],
+                }, {
+                  'action': [
+                    '<(PRODUCT_DIR)/<(EXECUTABLE_PREFIX)torque<(EXECUTABLE_SUFFIX)',
+                    '-o', '<(SHARED_INTERMEDIATE_DIR)/torque-generated',
+                    '-v8-root', '<(V8_ROOT)',
+                    '<@(torque_files_without_v8_root)',
+                  ],
+                }],
               ],
             }],
           ],
@@ -1962,25 +1975,32 @@
     },  # torque-language-server
     {
       'target_name': 'gen-regexp-special-case',
-      'type': 'executable',
-      'dependencies': [
-        'v8_libbase',
-        # "build/win:default_exe_manifest",
-        'v8_maybe_icu',
-        'abseil.gyp:abseil',
-      ],
       'conditions': [
-        ['want_separate_host_toolset', {
-          'toolsets': ['host'],
+        ['target_arch=="wasm32"', {
+          # Skip building this tool for wasm32 - use pre-generated file
+          'type': 'none',
+        }, {
+          'type': 'executable',
+          'dependencies': [
+            'v8_libbase',
+            # "build/win:default_exe_manifest",
+            'v8_maybe_icu',
+            'abseil.gyp:abseil',
+          ],
+          'sources': [
+            "<(V8_ROOT)/src/regexp/gen-regexp-special-case.cc",
+            "<(V8_ROOT)/src/regexp/special-case.h",
+          ],
+          'conditions': [
+            ['want_separate_host_toolset', {
+              'toolsets': ['host'],
+            }],
+            # Avoid excessive LTO
+            ['enable_lto=="true"', {
+              'ldflags': [ '-fno-lto' ],
+            }],
+          ],
         }],
-        # Avoid excessive LTO
-        ['enable_lto=="true"', {
-          'ldflags': [ '-fno-lto' ],
-        }],
-      ],
-      'sources': [
-        "<(V8_ROOT)/src/regexp/gen-regexp-special-case.cc",
-        "<(V8_ROOT)/src/regexp/special-case.h",
       ],
     },  # gen-regexp-special-case
     {
@@ -1988,32 +2008,56 @@
       'type': 'none',
       'toolsets': ['host', 'target'],
       'conditions': [
-        ['want_separate_host_toolset', {
-          'dependencies': ['gen-regexp-special-case#host'],
+        ['target_arch=="wasm32"', {
+          # For wasm32, use pre-generated special-case.cc
+          'actions': [
+            {
+              'action_name': 'copy_special-case_action',
+              'inputs': [
+                '<(V8_ROOT)/src/regexp/special-case-wasm32.cc',
+              ],
+              'outputs': [
+                '<(SHARED_INTERMEDIATE_DIR)/src/regexp/special-case.cc',
+              ],
+              'action': [
+                '<(python)',
+                '-c',
+                'import shutil,sys; shutil.copy(sys.argv[1], sys.argv[2])',
+                '<@(_inputs)',
+                '<@(_outputs)',
+              ],
+            },
+          ],
         }, {
-          'dependencies': ['gen-regexp-special-case#target'],
+          'conditions': [
+            ['want_separate_host_toolset', {
+              'dependencies': ['gen-regexp-special-case#host'],
+            }, {
+              'dependencies': ['gen-regexp-special-case#target'],
+            }],
+            # Avoid excessive LTO
+            ['enable_lto=="true"', {
+              'ldflags': [ '-fno-lto' ],
+            }],
+          ],
+          'actions': [
+            {
+              'action_name': 'run_gen-regexp-special-case_action',
+              'inputs': [
+                '<(PRODUCT_DIR)/<(EXECUTABLE_PREFIX)gen-regexp-special-case<(EXECUTABLE_SUFFIX)',
+              ],
+              'outputs': [
+                '<(SHARED_INTERMEDIATE_DIR)/src/regexp/special-case.cc',
+              ],
+              'action': [
+                '<(python)',
+                '<(V8_ROOT)/tools/run.py',
+                '<@(_inputs)',
+                '<@(_outputs)',
+              ],
+            },
+          ],
         }],
-        # Avoid excessive LTO
-        ['enable_lto=="true"', {
-          'ldflags': [ '-fno-lto' ],
-        }],
-      ],
-      'actions': [
-        {
-          'action_name': 'run_gen-regexp-special-case_action',
-          'inputs': [
-            '<(PRODUCT_DIR)/<(EXECUTABLE_PREFIX)gen-regexp-special-case<(EXECUTABLE_SUFFIX)',
-          ],
-          'outputs': [
-            '<(SHARED_INTERMEDIATE_DIR)/src/regexp/special-case.cc',
-          ],
-          'action': [
-            '<(python)',
-            '<(V8_ROOT)/tools/run.py',
-            '<@(_inputs)',
-            '<@(_outputs)',
-          ],
-        },
       ],
     },  # run_gen-regexp-special-case
     {

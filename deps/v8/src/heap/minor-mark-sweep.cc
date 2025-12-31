@@ -290,12 +290,14 @@ MinorMarkSweepCollector::MinorMarkSweepCollector(Heap* heap)
       sweeper_(heap_->sweeper()) {}
 
 void MinorMarkSweepCollector::PerformWrapperTracing() {
+#if !V8_TARGET_ARCH_WASM32
   auto* cpp_heap = CppHeap::From(heap_->cpp_heap_);
   if (!cpp_heap) return;
 
   TRACE_GC(heap_->tracer(), GCTracer::Scope::MINOR_MS_MARK_EMBEDDER_TRACING);
   local_marking_worklists()->PublishCppHeapObjects();
   cpp_heap->AdvanceMarking(v8::base::TimeDelta::Max(), SIZE_MAX);
+#endif
 }
 
 MinorMarkSweepCollector::~MinorMarkSweepCollector() = default;
@@ -323,9 +325,11 @@ void MinorMarkSweepCollector::FinishConcurrentMarking() {
   CHECK(heap_->concurrent_marking()->IsStopped());
   heap_->tracer()->SampleConcurrencyEsimate(
       heap_->concurrent_marking()->FetchAndResetConcurrencyEstimate());
+#if !V8_TARGET_ARCH_WASM32
   if (auto* cpp_heap = CppHeap::From(heap_->cpp_heap_)) {
     cpp_heap->FinishConcurrentMarkingIfNeeded();
   }
+#endif
 }
 
 #ifdef DEBUG
@@ -361,6 +365,7 @@ void MinorMarkSweepCollector::StartMarking(bool force_use_background_threads) {
   use_background_threads_in_cycle_ =
       force_use_background_threads || heap_->ShouldUseBackgroundThreads();
 
+#if !V8_TARGET_ARCH_WASM32
   auto* cpp_heap = CppHeap::From(heap_->cpp_heap_);
   // CppHeap's marker must be initialized before the V8 marker to allow
   // exchanging of worklists.
@@ -368,6 +373,7 @@ void MinorMarkSweepCollector::StartMarking(bool force_use_background_threads) {
     TRACE_GC(heap_->tracer(), GCTracer::Scope::MINOR_MS_MARK_EMBEDDER_PROLOGUE);
     cpp_heap->InitializeMarking(CppHeap::CollectionType::kMinor);
   }
+#endif
   DCHECK_NULL(ephemeron_table_list_);
   ephemeron_table_list_ = std::make_unique<EphemeronRememberedSet::TableList>();
   DCHECK_NULL(marking_worklists_);
@@ -388,12 +394,14 @@ void MinorMarkSweepCollector::StartMarking(bool force_use_background_threads) {
   DCHECK_NULL(remembered_sets_marking_handler_);
   remembered_sets_marking_handler_ =
       std::make_unique<YoungGenerationRememberedSetsMarkingWorklist>(heap_);
+#if !V8_TARGET_ARCH_WASM32
   if (cpp_heap && cpp_heap->generational_gc_supported()) {
     TRACE_GC(heap_->tracer(), GCTracer::Scope::MINOR_MS_MARK_EMBEDDER_PROLOGUE);
     // StartTracing immediately starts marking which requires V8 worklists to
     // be set up.
     cpp_heap->StartMarking();
   }
+#endif
 }
 
 void MinorMarkSweepCollector::Finish() {
@@ -427,9 +435,11 @@ void MinorMarkSweepCollector::CollectGarbage() {
   is_in_atomic_pause_.store(true, std::memory_order_relaxed);
 
   MarkLiveObjects();
+#if !V8_TARGET_ARCH_WASM32
   if (auto* cpp_heap = CppHeap::From(heap_->cpp_heap_)) {
     cpp_heap->ProcessCrossThreadWeakness();
   }
+#endif
   ClearNonLiveReferences();
 #ifdef VERIFY_HEAP
   if (v8_flags.verify_heap) {
@@ -439,9 +449,11 @@ void MinorMarkSweepCollector::CollectGarbage() {
   }
 #endif  // VERIFY_HEAP
 
+#if !V8_TARGET_ARCH_WASM32
   if (auto* cpp_heap = CppHeap::From(heap_->cpp_heap_)) {
     cpp_heap->FinishMarkingAndProcessWeakness();
   }
+#endif
 
   Sweep();
   Finish();
@@ -534,11 +546,14 @@ void MinorMarkSweepCollector::ClearNonLiveReferences() {
              GCTracer::Scope::MINOR_MS_CLEAR_WEAK_GLOBAL_HANDLES);
     isolate->global_handles()->ProcessWeakYoungObjects(
         nullptr, &IsUnmarkedObjectInYoungGeneration);
+#if !V8_TARGET_ARCH_WASM32
     if (auto* cpp_heap = CppHeap::From(heap_->cpp_heap_);
         cpp_heap && cpp_heap->generational_gc_supported()) {
       isolate->traced_handles()->ResetYoungDeadNodes(
           &IsUnmarkedObjectInYoungGeneration);
-    } else {
+    } else
+#endif
+    {
       isolate->traced_handles()->ProcessWeakYoungObjects(
           nullptr, &IsUnmarkedObjectInYoungGeneration);
     }
@@ -622,6 +637,7 @@ void VisitObjectWithCppHeapPointerField(
 void MinorMarkSweepCollector::MarkRootsFromTracedHandles(
     YoungGenerationRootMarkingVisitor& root_visitor) {
   TRACE_GC(heap_->tracer(), GCTracer::Scope::MINOR_MS_MARK_TRACED_HANDLES);
+#if !V8_TARGET_ARCH_WASM32
   if (auto* cpp_heap = CppHeap::From(heap_->cpp_heap_);
       cpp_heap && cpp_heap->generational_gc_supported()) {
     // Visit the Oilpan-to-V8 remembered set.
@@ -633,7 +649,9 @@ void MinorMarkSweepCollector::MarkRootsFromTracedHandles(
           VisitObjectWithCppHeapPointerField(heap_->isolate(), obj,
                                              *local_marking_worklists());
         });
-  } else {
+  } else
+#endif
+  {
     // Otherwise, visit all young roots.
     heap_->isolate()->traced_handles()->IterateYoungRoots(&root_visitor);
   }
@@ -725,9 +743,11 @@ void MinorMarkSweepCollector::MarkLiveObjects() {
   MarkRoots(root_visitor, was_marked_incrementally);
 
   // CppGC starts parallel marking tasks that will trace TracedReferences.
+#if !V8_TARGET_ARCH_WASM32
   if (auto* cpp_heap = CppHeap::From(heap_->cpp_heap())) {
     cpp_heap->EnterFinalPause(heap_->embedder_stack_state_);
   }
+#endif
 
   {
     // Mark the transitive closure in parallel.
@@ -750,9 +770,11 @@ void MinorMarkSweepCollector::MarkLiveObjects() {
 
   {
     TRACE_GC(heap_->tracer(), GCTracer::Scope::MINOR_MS_MARK_CLOSURE);
+#if !V8_TARGET_ARCH_WASM32
     if (auto* cpp_heap = CppHeap::From(heap_->cpp_heap())) {
       cpp_heap->EnterProcessGlobalAtomicPause();
     }
+#endif
     DrainMarkingWorklist();
   }
   CHECK(local_marking_worklists()->IsEmpty());

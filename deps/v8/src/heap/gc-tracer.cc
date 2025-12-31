@@ -402,6 +402,7 @@ void GCTracer::StopObservablePause(GarbageCollector collector,
     heap_->PrintShortHeapStatistics();
   }
 
+#if !V8_TARGET_ARCH_WASM32
   if (V8_UNLIKELY(TracingFlags::gc.load(std::memory_order_relaxed) &
                   v8::tracing::TracingCategoryObserver::ENABLED_BY_TRACING)) {
     TRACE_GC_NOTE("V8.GC_HEAP_DUMP_STATISTICS");
@@ -412,6 +413,7 @@ void GCTracer::StopObservablePause(GarbageCollector collector,
                          TRACE_EVENT_SCOPE_THREAD, "stats",
                          TRACE_STR_COPY(heap_stats.str().c_str()));
   }
+#endif
 }
 
 void GCTracer::UpdateMemoryBalancerGCSpeed() {
@@ -597,6 +599,11 @@ void GCTracer::NotifyYoungSweepingCompletedAndStopCycleIfFinished() {
 }
 
 void GCTracer::NotifyFullCppGCCompleted() {
+#if V8_TARGET_ARCH_WASM32
+  // CppGC not supported on WASM32
+  notified_full_cppgc_completed_ = true;
+  StopFullCycleIfFinished();
+#else
   // Stop a full GC cycle only when both v8 and cppgc (if available) GCs have
   // finished sweeping. This method is invoked by cppgc.
   DCHECK(heap_->cpp_heap());
@@ -614,9 +621,15 @@ void GCTracer::NotifyFullCppGCCompleted() {
     return;
   }
   StopFullCycleIfFinished();
+#endif
 }
 
 void GCTracer::NotifyYoungCppGCCompleted() {
+#if V8_TARGET_ARCH_WASM32
+  // CppGC not supported on WASM32
+  notified_young_cppgc_completed_ = true;
+  StopYoungCycleIfFinished();
+#else
   // Stop a young GC cycle only when both v8 and cppgc (if available) GCs have
   // finished sweeping. This method is invoked by cppgc.
   DCHECK(heap_->cpp_heap());
@@ -628,6 +641,7 @@ void GCTracer::NotifyYoungCppGCCompleted() {
   DCHECK(!notified_young_cppgc_completed_);
   notified_young_cppgc_completed_ = true;
   StopYoungCycleIfFinished();
+#endif
 }
 
 void GCTracer::NotifyYoungCppGCRunning() {
@@ -1611,18 +1625,24 @@ void FlushBatchedEvents(
 void GCTracer::ReportFullCycleToRecorder() {
   DCHECK(!Event::IsYoungGenerationEvent(current_.type));
   DCHECK_EQ(Event::State::NOT_RUNNING, current_.state);
+#if V8_TARGET_ARCH_WASM32
+  auto* cpp_heap = static_cast<v8::internal::CppHeap*>(nullptr);
+#else
   auto* cpp_heap = v8::internal::CppHeap::From(heap_->cpp_heap());
   DCHECK_IMPLIES(cpp_heap,
                  cpp_heap->GetMetricRecorder()->FullGCMetricsReportPending());
+#endif
   const std::shared_ptr<metrics::Recorder>& recorder =
       heap_->isolate()->metrics_recorder();
   DCHECK_NOT_NULL(recorder);
   if (!recorder->HasEmbedderRecorder()) {
     incremental_mark_batched_events_ = {};
     incremental_sweep_batched_events_ = {};
+#if !V8_TARGET_ARCH_WASM32
     if (cpp_heap) {
       cpp_heap->GetMetricRecorder()->ClearCachedEvents();
     }
+#endif
     return;
   }
   if (!incremental_mark_batched_events_.events.empty()) {
@@ -1812,13 +1832,18 @@ void GCTracer::ReportFullCycleToRecorder() {
 
 void GCTracer::ReportIncrementalMarkingStepToRecorder(double v8_duration) {
   DCHECK_EQ(Event::Type::INCREMENTAL_MARK_COMPACTOR, current_.type);
+#if V8_TARGET_ARCH_WASM32
+  static constexpr int kMaxBatchedEvents = 16;
+#else
   static constexpr int kMaxBatchedEvents =
       CppHeap::MetricRecorderAdapter::kMaxBatchedEvents;
+#endif
   const std::shared_ptr<metrics::Recorder>& recorder =
       heap_->isolate()->metrics_recorder();
   DCHECK_NOT_NULL(recorder);
   if (!recorder->HasEmbedderRecorder()) return;
   incremental_mark_batched_events_.events.emplace_back();
+#if !V8_TARGET_ARCH_WASM32
   if (heap_->cpp_heap()) {
     const std::optional<
         cppgc::internal::MetricRecorder::MainThreadIncrementalMark>
@@ -1831,6 +1856,7 @@ void GCTracer::ReportIncrementalMarkingStepToRecorder(double v8_duration) {
           .cpp_wall_clock_duration_in_us = cppgc_event.value().duration_us;
     }
   }
+#endif
   incremental_mark_batched_events_.events.back().wall_clock_duration_in_us =
       static_cast<int64_t>(v8_duration *
                            base::Time::kMicrosecondsPerMillisecond);
@@ -1840,8 +1866,12 @@ void GCTracer::ReportIncrementalMarkingStepToRecorder(double v8_duration) {
 }
 
 void GCTracer::ReportIncrementalSweepingStepToRecorder(double v8_duration) {
+#if V8_TARGET_ARCH_WASM32
+  static constexpr int kMaxBatchedEvents = 16;
+#else
   static constexpr int kMaxBatchedEvents =
       CppHeap::MetricRecorderAdapter::kMaxBatchedEvents;
+#endif
   const std::shared_ptr<metrics::Recorder>& recorder =
       heap_->isolate()->metrics_recorder();
   DCHECK_NOT_NULL(recorder);

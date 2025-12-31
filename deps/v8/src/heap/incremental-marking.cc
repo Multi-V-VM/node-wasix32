@@ -299,12 +299,14 @@ void IncrementalMarking::StartMarkingMajor() {
     isolate()->PrintWithTimestamp("[IncrementalMarking] Running\n");
   }
 
+#if !V8_TARGET_ARCH_WASM32
   if (heap()->cpp_heap()) {
     // `StartMarking()` may call back into V8 in corner cases, requiring that
     // marking (including write barriers) is fully set up.
     TRACE_GC(heap()->tracer(), GCTracer::Scope::MC_MARK_EMBEDDER_PROLOGUE);
     CppHeap::From(heap()->cpp_heap())->StartMarking();
   }
+#endif
 
   heap_->InvokeIncrementalMarkingEpilogueCallbacks();
 
@@ -472,6 +474,9 @@ void IncrementalMarking::StopPointerTableBlackAllocation() {
 std::pair<v8::base::TimeDelta, size_t> IncrementalMarking::CppHeapStep(
     v8::base::TimeDelta max_duration, size_t marked_bytes_limit) {
   DCHECK(IsMarking());
+#if V8_TARGET_ARCH_WASM32
+  return {};
+#else
   auto* cpp_heap = CppHeap::From(heap_->cpp_heap());
   if (!cpp_heap || !cpp_heap->incremental_marking_supported()) {
     return {};
@@ -481,6 +486,7 @@ std::pair<v8::base::TimeDelta, size_t> IncrementalMarking::CppHeapStep(
   const auto start = ::v8::base::TimeTicks::Now();
   cpp_heap->AdvanceMarking(max_duration, marked_bytes_limit);
   return {v8::base::TimeTicks::Now() - start, cpp_heap->last_bytes_marked()};
+#endif
 }
 
 bool IncrementalMarking::Stop() {
@@ -648,11 +654,13 @@ size_t IncrementalMarking::GetScheduledBytes(StepOrigin step_origin) {
   // TODO(v8:14140): Consider the size including young generation here as well
   // as the full marker marks both the young and old generations.
   size_t estimated_live_bytes = OldGenerationSizeOfObjects();
+#if !V8_TARGET_ARCH_WASM32
   if (v8_flags.incremental_marking_unified_schedule) {
     if (auto* cpp_heap = CppHeap::From(heap_->cpp_heap())) {
       estimated_live_bytes += cpp_heap->used_size();
     }
   }
+#endif
   const size_t marked_bytes_limit =
       schedule_->GetNextIncrementalStepDuration(estimated_live_bytes);
   if (V8_UNLIKELY(v8_flags.trace_incremental_marking)) {
@@ -721,12 +729,19 @@ void IncrementalMarking::AdvanceOnAllocation() {
 bool IncrementalMarking::ShouldFinalize() const {
   DCHECK(IsMarking());
 
+#if V8_TARGET_ARCH_WASM32
+  return heap()
+             ->mark_compact_collector()
+             ->local_marking_worklists()
+             ->IsEmpty();
+#else
   const auto* cpp_heap = CppHeap::From(heap_->cpp_heap());
   return heap()
              ->mark_compact_collector()
              ->local_marking_worklists()
              ->IsEmpty() &&
          (!cpp_heap || cpp_heap->ShouldFinalizeIncrementalMarking());
+#endif
 }
 
 void IncrementalMarking::FetchBytesMarkedConcurrently() {

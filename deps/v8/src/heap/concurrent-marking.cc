@@ -353,11 +353,16 @@ void ConcurrentMarking::RunMajor(JobDelegate* delegate,
   int kObjectsUntilInterruptCheck = 1000;
   uint8_t task_id = delegate->GetTaskId() + 1;
   TaskState* task_state = task_state_[task_id].get();
+#if V8_TARGET_ARCH_WASM32
+  MarkingWorklists::Local local_marking_worklists(
+      marking_worklists_, MarkingWorklists::Local::kNoCppMarkingState);
+#else
   auto* cpp_heap = CppHeap::From(heap_->cpp_heap());
   MarkingWorklists::Local local_marking_worklists(
       marking_worklists_, cpp_heap
                               ? cpp_heap->CreateCppMarkingState()
                               : MarkingWorklists::Local::kNoCppMarkingState);
+#endif
   WeakObjects::Local local_weak_objects(weak_objects_);
   ConcurrentMarkingVisitor visitor(
       &local_marking_worklists, &local_weak_objects, heap_, mark_compact_epoch,

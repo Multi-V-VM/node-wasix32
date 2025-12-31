@@ -1497,6 +1497,10 @@ void LiftoffAssembler::emit_i64x2_alltrue(LiftoffRegister dst,
   BAILOUT("emit_i64x2_alltrue");
 }
 
+void LiftoffStackSlots::Construct(int param_slots) {
+  // WASM32 does not support Liftoff compilation - nothing to construct
+}
+
 #undef BAILOUT
 #undef BAILOUT_RETURN
 

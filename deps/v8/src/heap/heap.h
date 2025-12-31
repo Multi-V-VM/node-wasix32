@@ -2307,7 +2307,9 @@ class Heap final {
 
   // V8 configuration where V8 owns the heap which is either created or passed
   // in during Isolate initialization.
+#if !V8_TARGET_ARCH_WASM32
   std::unique_ptr<CppHeap> owning_cpp_heap_;
+#endif
   // Deprecated API where the heap is owned by the embedder. This field is
   // always set, independent of which CppHeap configuration (owned, unowned) is
   // used. As soon as Isolate::AttachCppHeap() is removed, this field should
@@ -2759,7 +2761,9 @@ class V8_NODISCARD CppClassNamesAsHeapObjectNameScope final {
   ~CppClassNamesAsHeapObjectNameScope();
 
  private:
+#if !V8_TARGET_ARCH_WASM32
   std::unique_ptr<cppgc::internal::ClassNameAsHeapObjectNameScope> scope_;
+#endif
 };
 
 // We cannot avoid stale handles to left-trimmed objects, but can only make

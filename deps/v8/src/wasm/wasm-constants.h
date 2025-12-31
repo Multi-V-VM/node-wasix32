@@ -190,8 +190,10 @@ constexpr int kAnonymousFuncIndex = -1;
 // This needs to survive round-tripping through a Smi without changing
 // its value.
 constexpr uint32_t kInvalidCanonicalIndex = static_cast<uint32_t>(-1);
-// SMI conversion functions for WASI compatibility
-#ifdef __wasi__
+// SMI conversion functions for WASI/WASM32 compatibility
+// When building for WASM32 target or on WASI, we need to use local versions
+// since Internals::SmiValue/IntToSmi may not be available
+#if defined(__wasi__) || defined(V8_TARGET_ARCH_WASM32)
 inline constexpr int IntToSmi(int value) { return (value << 1) | 1; }
 inline constexpr int SmiValue(int smi) { return smi >> 1; }
 static_assert(static_cast<uint32_t>(SmiValue(IntToSmi(

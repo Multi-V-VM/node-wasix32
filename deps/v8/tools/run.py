@@ -58,8 +58,8 @@ if cmd and cmd[0].endswith('.wasm'):
     if os.path.exists(wrapper_path):
         cmd = [wrapper_path] + cmd
     else:
-        # Try wasmtime directly
-        cmd = ['wasmtime'] + cmd
+        # Try wasmer directly
+        cmd = ['wasmer','run','--'] + cmd
 
 process = subprocess.Popen(cmd, **kwargs)
 stdout, _ = process.communicate()
