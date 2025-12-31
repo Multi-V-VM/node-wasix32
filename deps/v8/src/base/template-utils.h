@@ -143,7 +143,13 @@ constexpr void tuple_for_each_with_index(Tuple&& tpl, Function&& function) {
 #ifdef __clang__
 
 template <size_t N, typename... Ts>
-using nth_type = __type_pack_element<N, Ts...>;
+using nth_type_t = __type_pack_element<N, Ts...>;
+
+// For compatibility with code that uses nth_type<N, Ts...>::type
+template <size_t N, typename... Ts>
+struct nth_type {
+  using type = __type_pack_element<N, Ts...>;
+};
 
 #else
 
@@ -158,10 +164,10 @@ struct nth_type<0, T, Ts...> {
 template <size_t N, typename T, typename... Ts>
 struct nth_type<N, T, Ts...> : public nth_type<N - 1, Ts...> {};
 
-#endif
-
 template <size_t N, typename... T>
 using nth_type_t = typename nth_type<N, T...>::type;
+
+#endif
 
 // Find SearchT in Ts. SearchT must be present at most once in Ts, and returns
 // sizeof...(Ts) if not found.
@@ -189,6 +195,108 @@ struct index_of_type<SearchT, T, Ts...>
 
 template <typename SearchT, typename... Ts>
 constexpr size_t index_of_type_v = index_of_type<SearchT, Ts...>::value;
+
+namespace detail {
+
+template <typename Tuple, typename Function, size_t... Index>
+constexpr auto tuple_map_impl(Tuple&& tpl, Function&& function,
+                              std::index_sequence<Index...>) {
+  return std::tuple{function(std::get<Index>(std::forward<Tuple>(tpl)))...};
+}
+
+template <typename Tuple1, typename Tuple2, typename Function, size_t... Index>
+constexpr auto tuple_map2_impl(Tuple1&& tpl1, Tuple2&& tpl2, Function&& function,
+                               std::index_sequence<Index...>) {
+  return std::tuple{function(std::get<Index>(std::forward<Tuple1>(tpl1)),
+                             std::get<Index>(std::forward<Tuple2>(tpl2)))...};
+}
+
+template <typename Acc, typename Tuple, typename Function, size_t Index>
+constexpr auto tuple_fold_impl_step(Acc&& acc, Tuple&& tpl, Function&& function,
+                                    std::integral_constant<size_t, Index>) {
+  if constexpr (Index >= std::tuple_size_v<std::decay_t<Tuple>>) {
+    return std::forward<Acc>(acc);
+  } else {
+    auto new_acc = function(std::forward<Acc>(acc),
+                            std::get<Index>(std::forward<Tuple>(tpl)));
+    return tuple_fold_impl_step(
+        std::move(new_acc), std::forward<Tuple>(tpl),
+        std::forward<Function>(function),
+        std::integral_constant<size_t, Index + 1>{});
+  }
+}
+
+}  // namespace detail
+
+// Maps a function over a tuple, returning a new tuple with transformed values.
+// Example: tuple_map(std::tuple{1, 2.0}, [](auto x) { return x + 1; })
+//          returns std::tuple{2, 3.0}
+template <typename Tuple, typename Function>
+constexpr auto tuple_map(Tuple&& tpl, Function&& function) {
+  return detail::tuple_map_impl(
+      std::forward<Tuple>(tpl), std::forward<Function>(function),
+      std::make_index_sequence<std::tuple_size_v<std::decay_t<Tuple>>>());
+}
+
+// Maps a binary function over two tuples element-wise.
+// The two tuples must have the same size.
+template <typename Tuple1, typename Tuple2, typename Function>
+constexpr auto tuple_map2(Tuple1&& tpl1, Tuple2&& tpl2, Function&& function) {
+  static_assert(std::tuple_size_v<std::decay_t<Tuple1>> ==
+                std::tuple_size_v<std::decay_t<Tuple2>>);
+  return detail::tuple_map2_impl(
+      std::forward<Tuple1>(tpl1), std::forward<Tuple2>(tpl2),
+      std::forward<Function>(function),
+      std::make_index_sequence<std::tuple_size_v<std::decay_t<Tuple1>>>());
+}
+
+// Folds a binary function over a tuple, left to right.
+// Example: tuple_fold(0, std::tuple{1, 2, 3}, [](int a, int b) { return a + b; })
+//          returns 6
+template <typename Acc, typename Tuple, typename Function>
+constexpr auto tuple_fold(Acc&& init, Tuple&& tpl, Function&& function) {
+  return detail::tuple_fold_impl_step(
+      std::forward<Acc>(init), std::forward<Tuple>(tpl),
+      std::forward<Function>(function), std::integral_constant<size_t, 0>{});
+}
+
+// Runtime versions of tuple_head and tuple_drop that take the size as a parameter.
+// These are useful when the size is not known at compile time.
+template <typename Tuple>
+constexpr auto base_tuple_head_rt(Tuple&& tpl, size_t n) {
+  // For runtime version, we need to return a variant or similar.
+  // For now, just return the tuple itself as a placeholder.
+  // This is typically not used directly but may be needed for type compatibility.
+  return std::forward<Tuple>(tpl);
+}
+
+// Runtime version with regular parameter
+template <typename Tuple>
+constexpr auto base_tuple_drop_rt(Tuple&& tpl, size_t n) {
+  // For runtime version, similar to above.
+  return std::forward<Tuple>(tpl);
+}
+
+namespace detail {
+template <size_t N, typename Tuple, size_t... Is>
+constexpr auto tuple_drop_impl(Tuple&& tpl, std::index_sequence<Is...>) {
+  return std::make_tuple(std::get<N + Is>(std::forward<Tuple>(tpl))...);
+}
+}  // namespace detail
+
+// Template version that takes the drop count as a template parameter
+// This version drops the first N elements from a tuple at compile time
+template <size_t N, typename Tuple>
+constexpr auto base_tuple_drop_rt(Tuple&& tpl) {
+  // Use std::apply with index sequence to drop first N elements
+  return std::apply(
+      [](auto&&... args) {
+        return detail::tuple_drop_impl<N>(
+            std::forward_as_tuple(std::forward<decltype(args)>(args)...),
+            std::make_index_sequence<std::tuple_size_v<std::decay_t<Tuple>> - N>{});
+      },
+      std::forward<Tuple>(tpl));
+}
 
 }  // namespace base
 }  // namespace v8

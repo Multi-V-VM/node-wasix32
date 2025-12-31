@@ -233,9 +233,58 @@ V8_INLINE size_t hash_value(T v) {
   return hash_value(static_cast<std::underlying_type_t<T>>(v));
 }
 
+namespace hash_impl {
+// Bring v8::base functions into this namespace for two-phase lookup visibility.
+using ::v8::base::hash_value;
+using ::v8::base::hash_combine;
+using ::v8::base::hash_range;
+
+// Detect if T has begin() and end() (container-like)
+template <typename T, typename = void>
+struct is_container : std::false_type {};
+template <typename T>
+struct is_container<T, std::void_t<decltype(std::declval<T>().begin()),
+                                   decltype(std::declval<T>().end())>>
+    : std::true_type {};
+
+// Fallback for container-like types (has begin/end) - hash the elements.
+template <typename T>
+V8_INLINE auto hash_value(T const& v)
+    -> std::enable_if_t<is_container<T>::value &&
+                        !std::is_same_v<T, std::string>, size_t> {
+  return hash_range(v.begin(), v.end());
+}
+
+// Fallback for trivially copyable types without explicit hash_value.
+// Hashes the raw bytes of the object.
+template <typename T>
+V8_INLINE auto hash_value(T const& v)
+    -> std::enable_if_t<std::is_trivially_copyable_v<T> &&
+                        !std::is_pointer_v<T> &&
+                        !std::is_arithmetic_v<T> &&
+                        !std::is_enum_v<T> &&
+                        !is_container<T>::value, size_t> {
+  const unsigned char* bytes = reinterpret_cast<const unsigned char*>(&v);
+  size_t result = 0;
+  for (size_t i = 0; i < sizeof(T); ++i) {
+    result = hash_combine(result, static_cast<size_t>(bytes[i]));
+  }
+  return result;
+}
+
+// Helper to call hash_value - finds ADL overloads + using-declared names.
+template <typename T>
+V8_INLINE size_t call(T const& v) {
+  return hash_value(v);
+}
+}  // namespace hash_impl
+
+// Primary hash template.
 template <typename T>
 struct hash {
-  V8_INLINE size_t operator()(T const& v) const { return hash_value(v); }
+  V8_INLINE size_t operator()(T const& v) const {
+    return hash_impl::call(v);
+  }
 };
 
 #define V8_BASE_HASH_SPECIALIZE(type)                 \
@@ -315,6 +364,21 @@ V8_BASE_BIT_SPECIALIZE_TRIVIAL(unsigned long long)  // NOLINT(runtime/int)
 V8_BASE_BIT_SPECIALIZE_BIT_CAST(float, uint32_t)
 V8_BASE_BIT_SPECIALIZE_BIT_CAST(double, uint64_t)
 #undef V8_BASE_BIT_SPECIALIZE_BIT_CAST
+
+// Overloaded helper for std::visit with multiple lambdas.
+// Usage:
+//   std::visit(base::overloaded{
+//       [](int i) { ... },
+//       [](double d) { ... },
+//       [](const std::string& s) { ... }
+//   }, some_variant);
+template <class... Ts>
+struct overloaded : Ts... {
+  using Ts::operator()...;
+};
+// C++17 deduction guide
+template <class... Ts>
+overloaded(Ts...) -> overloaded<Ts...>;
 
 }  // namespace base
 }  // namespace v8

@@ -456,6 +456,11 @@ inline std::ostream& operator<<(std::ostream& os, Opcode opcode) {
   return os << OpcodeToString(opcode);
 }
 
+// Explicit hash_value for Opcode to avoid ADL ambiguity with base::hash_value
+inline size_t hash_value(Opcode opcode) {
+  return static_cast<size_t>(opcode);
+}
+
 #define V(Name) Opcode::k##Name,
 static constexpr Opcode kFirstValueNodeOpcode =
     std::min({VALUE_NODE_LIST(V) kLastOpcode});

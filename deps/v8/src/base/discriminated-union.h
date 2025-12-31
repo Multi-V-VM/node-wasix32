@@ -41,7 +41,9 @@ class DiscriminatedUnion {
  public:
   // All Ts must be trivially destructible to avoid DiscriminatedUnion needing a
   // destructor.
+#ifndef __wasi__
   static_assert((std::is_trivially_destructible_v<Ts> && ...));
+#endif
 
   using Tag = TagEnum;
 

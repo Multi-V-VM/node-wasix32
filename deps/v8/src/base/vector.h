@@ -197,6 +197,11 @@ class V8_NODISCARD ScopedVector : public Vector<T> {
   DISALLOW_IMPLICIT_CONSTRUCTORS(ScopedVector);
 };
 
+// Alias for compatibility - ScopedZoneVector is just ScopedVector
+// (zone-containers.h defines this in v8::internal, but some code uses base::)
+template <typename T>
+using ScopedZoneVector = ScopedVector<T>;
+
 template <typename T>
 class OwnedVector {
  public:
@@ -283,6 +288,15 @@ class OwnedVector {
     return OwnedVector<T>(std::make_unique<T[]>(size), size);
   }
 
+  // Allocates a new vector of the specified size, filled with the given value.
+  static OwnedVector<T> New(size_t size, const T& value) {
+    if (size == 0) return {};
+    using non_const_t = typename std::remove_const<T>::type;
+    auto vec = OwnedVector<non_const_t>::NewForOverwrite(size);
+    std::fill(vec.begin(), vec.end(), value);
+    return vec;
+  }
+
   // Allocates a new vector of the specified size via the default allocator.
   // Elements in the new vector are default-initialized.
   static OwnedVector<T> NewForOverwrite(size_t size) {
@@ -304,6 +318,15 @@ class OwnedVector {
     auto vec =
         OwnedVector<non_const_t>::NewForOverwrite(std::distance(begin, end));
     std::copy(begin, end, vec.begin());
+    return vec;
+  }
+
+  // Allocates a new vector by copying from a raw pointer and length.
+  static OwnedVector<T> NewByCopying(const T* data, size_t length) {
+    if (length == 0) return {};
+    using non_const_t = typename std::remove_const<T>::type;
+    auto vec = OwnedVector<non_const_t>::NewForOverwrite(length);
+    std::copy(data, data + length, vec.begin());
     return vec;
   }
 
@@ -369,12 +392,32 @@ inline constexpr auto VectorOf(Container&& c)
   return VectorOf(c.data(), c.size());
 }
 
+// Construct a Vector from a C-style array.
+template <typename T, size_t N>
+inline constexpr Vector<T> VectorOf(T (&arr)[N]) {
+  return {arr, N};
+}
+
 // Construct a Vector from an initializer list. The vector can obviously only be
 // used as long as the initializer list is live. Valid uses include direct use
 // in parameter lists: F(VectorOf({1, 2, 3}));
 template <typename T>
 inline constexpr Vector<const T> VectorOf(std::initializer_list<T> list) {
   return VectorOf(list.begin(), list.size());
+}
+
+// Create an OwnedVector by copying from a collection (Vector, std::vector, etc.)
+template <typename Collection,
+          typename T = std::remove_const_t<
+              std::remove_reference_t<decltype(*std::begin(std::declval<const Collection&>()))>>>
+inline OwnedVector<T> OwnedCopyOf(const Collection& collection) {
+  return OwnedVector<T>::Of(collection);
+}
+
+// Overload for raw pointer + size
+template <typename T>
+inline OwnedVector<std::remove_const_t<T>> OwnedCopyOf(const T* data, size_t size) {
+  return OwnedVector<std::remove_const_t<T>>::Of(Vector<const T>(data, size));
 }
 
 template <typename T, size_t kSize>

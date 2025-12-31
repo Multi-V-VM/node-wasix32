@@ -25,57 +25,13 @@
 
 namespace v8 {
 
-#ifdef __wasi__
-// WASI: Type aliases for profiler types that are inside CpuProfiler class
-using CpuProfilingNamingMode = CpuProfiler::CpuProfilingNamingMode;
-using CpuProfilingLoggingMode = CpuProfiler::CpuProfilingLoggingMode;
-constexpr auto kDebugNaming = CpuProfiler::kDebugNaming;
-constexpr auto kLazyLogging = CpuProfiler::kLazyLogging;
-
-// WASI: ProfilerId type
-using ProfilerId = uint32_t;
-
-// CpuProfilingStatus enum
-enum class CpuProfilingStatus {
-  kStarted,
-  kAlreadyStarted,
-  kErrorTooManyProfilers
-};
-
-// CpuProfilingResult struct
-struct CpuProfilingResult {
-  const ProfilerId id;
-  const CpuProfilingStatus status;
-};
-#endif  // __wasi__
+// WASI: All profiler types are defined in v8-profiler-wasi-stubs.h
+// which is included via v8-profiler.h above. No additional definitions needed here.
 
 namespace internal {
 
-#ifdef __wasi__
-// WASI: Import ProfilerId from v8 namespace
-using ProfilerId = v8::ProfilerId;
-
-// WASI: Stub DiscardedSamplesDelegate
-class DiscardedSamplesDelegate {
- public:
-  virtual ~DiscardedSamplesDelegate() = default;
-  virtual void Notify() = 0;
-  void SetId(unsigned id) { id_ = id; }
-  unsigned GetId() const { return id_; }
- private:
-  unsigned id_ = 0;
-};
-
-// WASI: Also define these types in internal namespace for code that uses them unqualified
-using CpuProfilingNamingMode = v8::CpuProfilingNamingMode;
-using CpuProfilingLoggingMode = v8::CpuProfilingLoggingMode;
-using CpuProfilingStatus = v8::CpuProfilingStatus;
-using CpuProfilingResult = v8::CpuProfilingResult;
-constexpr auto kDebugNaming = v8::CpuProfilingNamingMode::kDebugNaming;
-constexpr auto kStandardNaming = v8::CpuProfilingNamingMode::kStandardNaming;
-constexpr auto kLazyLogging = v8::CpuProfilingLoggingMode::kLazyLogging;
-constexpr auto kLeafNodeLineNumbers = v8::CpuProfiler::kLeafNodeLineNumbers;
-#endif  // __wasi__
+// WASI: Types are imported from v8-profiler-wasi-stubs.h (included via v8-profiler.h)
+// No additional definitions needed here as they would cause redefinition errors.
 
 struct TickSample;
 

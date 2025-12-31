@@ -168,14 +168,13 @@ using ::v8::base::CStrVector;
 using ::v8::base::ArrayVector;
 using ::v8::base::Reversed;
 using ::v8::base::make_iterator_range;
-// IterateWithoutFirst doesn't exist in v8::base, use IterateWithoutLast instead
-// using ::v8::base::IterateWithoutFirst;
+// IterateWithoutFirst was added to v8::base::iterator.h for WASI
+using ::v8::base::IterateWithoutFirst;
 template <typename It>
 using iterator_range = ::v8::base::iterator_range<It>;
 template <typename T>
 using OwnedVector = ::v8::base::OwnedVector<T>;
-// OwnedCopyOf doesn't exist in v8::base for WASI builds
-// using ::v8::base::OwnedCopyOf;
+using ::v8::base::OwnedCopyOf;
 template <typename T>
 using OwnedZoneVector = ::v8::base::OwnedVector<T>;
 // Common containers/utilities are provided via WASI shims in
@@ -336,10 +335,13 @@ using Flags = ::v8::base::Flags<T, U, V>;
 
 template <typename T, size_t N, typename Allocator = ::std::allocator<T>>
 using SmallVector = ::v8::base::SmallVector<T, N, Allocator>;
-// Note: prepend_tuple_type, base_tuple_head_rt, base_tuple_drop_rt don't exist in v8::base
-// using ::v8::base::prepend_tuple_type;
-// using ::v8::base::base_tuple_head_rt;
-// using ::v8::base::base_tuple_drop_rt;
+// Tuple utilities
+using ::v8::base::prepend_tuple_type;
+using ::v8::base::base_tuple_head_rt;
+using ::v8::base::base_tuple_drop_rt;
+using ::v8::base::tuple_map;
+using ::v8::base::tuple_map2;
+using ::v8::base::tuple_fold;
 #if !defined(__wasi__) && !defined(V8_USING_WASI_SHIMS)
 using ::v8::base::RecursiveMutexGuard;
 #endif

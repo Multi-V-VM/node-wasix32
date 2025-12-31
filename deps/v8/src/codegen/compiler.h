@@ -593,7 +593,7 @@ class V8_EXPORT_PRIVATE BackgroundCompileTask {
                         v8::ScriptType type,
                         ScriptCompiler::CompileOptions options,
                         ScriptCompiler::CompilationDetails* compilation_details,
-                        CompileHintCallback compile_hint_callback = nullptr,
+                        v8::CompileHintCallback compile_hint_callback = nullptr,
                         void* compile_hint_callback_data = nullptr);
   BackgroundCompileTask(const BackgroundCompileTask&) = delete;
   BackgroundCompileTask& operator=(const BackgroundCompileTask&) = delete;
@@ -658,7 +658,7 @@ class V8_EXPORT_PRIVATE BackgroundCompileTask {
   int end_position_;
   int function_literal_id_;
 
-  CompileHintCallback compile_hint_callback_ = nullptr;
+  v8::CompileHintCallback compile_hint_callback_ = nullptr;
   void* compile_hint_callback_data_ = nullptr;
 };
 

@@ -100,6 +100,15 @@ V8_BASE_EXPORT double sinh(double x);
 // Returns the hyperbolic tangent of |x|, where |x| is given radians.
 V8_BASE_EXPORT double tanh(double x);
 
+// Legacy namespace for ECMAScript-compatible math functions
+// The pow function here preserves historical ECMAScript behavior
+namespace legacy {
+// Legacy pow implementation for ECMAScript compatibility
+inline double pow(double x, double y) {
+  return ::v8::base::ieee754::pow(x, y);
+}
+}  // namespace legacy
+
 }  // namespace ieee754
 }  // namespace base
 }  // namespace v8

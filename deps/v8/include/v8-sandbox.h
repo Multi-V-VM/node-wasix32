@@ -58,6 +58,13 @@ inline const internal::CppHeapPointerTagRange kAnyCppHeapPointer(
     static_cast<int>(CppHeapPointerTag::kFirstTag),
     static_cast<int>(CppHeapPointerTag::kLastTag));
 
+namespace internal {
+// Bridge kAnyCppHeapPointer to internal namespace for internal code
+inline const CppHeapPointerTagRange kAnyCppHeapPointer(
+    static_cast<int>(v8::CppHeapPointerTag::kFirstTag),
+    static_cast<int>(v8::CppHeapPointerTag::kLastTag));
+}  // namespace internal
+
 }  // namespace v8
 
 #endif  // INCLUDE_V8_SANDBOX_H_

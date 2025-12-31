@@ -353,9 +353,31 @@ int main(int argc, char** argv) {
 // Include additional headers needed for stubs
 #include "cppgc/allocation.h"
 #include "cppgc/internal/gc-info.h"
+#include "cppgc/internal/persistent-node.h"
+#include "cppgc/heap-consistency.h"
 #include "src/codegen/assembler.h"
 #include "src/codegen/reloc-info.h"
 #include "src/deoptimizer/deoptimizer.h"
+#include "src/heap/cppgc/compactor.h"
+#include "src/heap/cppgc/concurrent-marker.h"
+#include "src/heap/cppgc/garbage-collector.h"
+#include "src/heap/cppgc/gc-info-table.h"
+#include "src/heap/cppgc/heap-base.h"
+#include "src/heap/cppgc/heap-page.h"
+#include "src/heap/cppgc/marker.h"
+#include "src/heap/cppgc/marking-state.h"
+#include "src/heap/cppgc/marking-visitor.h"
+#include "src/heap/cppgc/marking-worklists.h"
+#include "src/heap/cppgc/object-allocator.h"
+#include "src/heap/cppgc/page-memory.h"
+#include "src/heap/cppgc/platform.h"
+#include "src/heap/cppgc/prefinalizer-handler.h"
+#include "src/heap/cppgc/process-heap.h"
+#include "cppgc/process-heap-statistics.h"
+#include "src/heap/cppgc/raw-heap.h"
+#include "src/heap/cppgc/stats-collector.h"
+#include "src/heap/cppgc/sweeper.h"
+#include "src/heap/cppgc/visitor.h"
 
 // simdutf function stubs - types are already defined in simdutf.h via headers
 namespace simdutf {
@@ -415,14 +437,365 @@ void* MakeGarbageCollectedTraitInternal::Allocate(
     cppgc::AllocationHandle&, size_t, AlignVal, GCInfoIndex, cppgc::CustomSpaceIndex) {
   return nullptr;
 }
+
+// HeapObjectHeader stubs
+HeapObjectName HeapObjectHeader::GetName() const {
+  return {"unknown", false};
+}
+
+HeapObjectName HeapObjectHeader::GetName(HeapObjectNameForUnnamedObject) const {
+  return {"unknown", false};
+}
+
+void HeapObjectHeader::MarkAsFullyConstructed() {}
+void HeapObjectHeader::Finalize() {}
+void HeapObjectHeader::CheckApiConstants() {}
+
+// GlobalGCInfoTable stubs
+GCInfoTable* GlobalGCInfoTable::global_table_ = nullptr;
+
+void GlobalGCInfoTable::Initialize(PageAllocator&) {}
+
+// Define SweeperImpl stub to satisfy unique_ptr requirements
+class Sweeper::SweeperImpl {
+ public:
+  SweeperImpl() = default;
+  ~SweeperImpl() = default;
+};
+
+// Sweeper stubs
+Sweeper::Sweeper(HeapBase& heap) : heap_(heap), impl_(nullptr) {}
+Sweeper::~Sweeper() = default;
+void Sweeper::Start(SweepingConfig) {}
+bool Sweeper::FinishIfRunning() { return true; }
+void Sweeper::FinishIfOutOfWork() {}
+bool Sweeper::SweepForAllocationIfRunning(BaseSpace*, size_t, v8::base::TimeDelta) { return false; }
+bool Sweeper::IsSweepingOnMutatorThread() const { return false; }
+bool Sweeper::IsSweepingInProgress() const { return false; }
+bool Sweeper::PerformSweepOnMutatorThread(v8::base::TimeDelta, StatsCollector::ScopeId) { return true; }
+void Sweeper::WaitForConcurrentSweepingForTesting() {}
+
+Sweeper::SweepingOnMutatorThreadObserver::SweepingOnMutatorThreadObserver(Sweeper& sweeper) : sweeper_(sweeper) {}
+Sweeper::SweepingOnMutatorThreadObserver::~SweepingOnMutatorThreadObserver() = default;
+
+// PersistentRegionBase stubs
+PersistentRegionBase::PersistentRegionBase(const FatalOutOfMemoryHandler& oom_handler) : oom_handler_(oom_handler) {}
+PersistentRegionBase::~PersistentRegionBase() = default;
+void PersistentRegionBase::Iterate(RootVisitor&) {}
+size_t PersistentRegionBase::NodesInUse() const { return 0; }
+void PersistentRegionBase::ClearAllUsedNodes() {}
+PersistentNode* PersistentRegionBase::RefillFreeListAndAllocateNode(void*, TraceRootCallback) { return nullptr; }
+void PersistentRegionBase::RefillFreeList() {}
+
+// PersistentRegion stubs
+bool PersistentRegion::IsCreationThread() { return true; }
+
+// PersistentRegionLock stubs
+PersistentRegionLock::PersistentRegionLock() {}
+PersistentRegionLock::~PersistentRegionLock() = default;
+void PersistentRegionLock::AssertLocked() {}
+
+// CrossThreadPersistentRegion stubs
+CrossThreadPersistentRegion::CrossThreadPersistentRegion(const FatalOutOfMemoryHandler& oom_handler)
+    : PersistentRegionBase(oom_handler) {}
+CrossThreadPersistentRegion::~CrossThreadPersistentRegion() = default;
+void CrossThreadPersistentRegion::Iterate(RootVisitor&) {}
+size_t CrossThreadPersistentRegion::NodesInUse() const { return 0; }
+void CrossThreadPersistentRegion::ClearAllUsedNodes() {}
+
+// ConservativeTracingVisitor stubs
+ConservativeTracingVisitor::ConservativeTracingVisitor(HeapBase& heap, PageBackend& page_backend,
+                                                       cppgc::Visitor& visitor)
+    : heap_(heap), page_backend_(page_backend), visitor_(visitor) {}
+
+void ConservativeTracingVisitor::TraceConservatively(const HeapObjectHeader&) {}
+void ConservativeTracingVisitor::TryTracePointerConservatively(const void*) {}
+void ConservativeTracingVisitor::TraceConservativelyIfNeeded(const void*) {}
+void ConservativeTracingVisitor::TraceConservativelyIfNeeded(HeapObjectHeader&) {}
+void ConservativeTracingVisitor::VisitFullyConstructedConservatively(HeapObjectHeader&) {}
+void ConservativeTracingVisitor::VisitInConstructionConservatively(HeapObjectHeader&, TraceConservativelyCallback) {}
+
+// NormalPage stubs
+NormalPage::NormalPage(HeapBase& heap, BaseSpace& space)
+    : BasePage(heap, space, PageType::kNormal) {}
+
+NormalPage* NormalPage::TryCreate(PageBackend&, NormalPageSpace&) { return nullptr; }
+void NormalPage::Destroy(NormalPage*) {}
+
+NormalPage::iterator NormalPage::begin() {
+  return iterator(reinterpret_cast<HeapObjectHeader*>(PayloadStart()));
+}
+
+NormalPage::const_iterator NormalPage::begin() const {
+  return const_iterator(reinterpret_cast<const HeapObjectHeader*>(PayloadStart()));
+}
+
+Address NormalPage::PayloadStart() {
+  return reinterpret_cast<Address>(this) + RoundUp(sizeof(NormalPage), kAllocationGranularity);
+}
+
+ConstAddress NormalPage::PayloadStart() const {
+  return reinterpret_cast<ConstAddress>(this) + RoundUp(sizeof(NormalPage), kAllocationGranularity);
+}
+
+Address NormalPage::PayloadEnd() {
+  return reinterpret_cast<Address>(this) + kPageSize;
+}
+
+ConstAddress NormalPage::PayloadEnd() const {
+  return reinterpret_cast<ConstAddress>(this) + kPageSize;
+}
+
+// LargePage stubs
+LargePage::LargePage(HeapBase& heap, BaseSpace& space, size_t size)
+    : BasePage(heap, space, PageType::kLarge), payload_size_(size) {}
+
+size_t LargePage::AllocationSize(size_t size) {
+  return PageHeaderSize() + size;
+}
+
+LargePage* LargePage::TryCreate(PageBackend&, LargePageSpace&, size_t) { return nullptr; }
+void LargePage::Destroy(LargePage*) {}
+
+HeapObjectHeader* LargePage::ObjectHeader() {
+  return reinterpret_cast<HeapObjectHeader*>(PayloadStart());
+}
+
+const HeapObjectHeader* LargePage::ObjectHeader() const {
+  return reinterpret_cast<const HeapObjectHeader*>(PayloadStart());
+}
+
+Address LargePage::PayloadStart() {
+  return reinterpret_cast<Address>(this) + PageHeaderSize();
+}
+
+ConstAddress LargePage::PayloadStart() const {
+  return reinterpret_cast<ConstAddress>(this) + PageHeaderSize();
+}
+
+Address LargePage::PayloadEnd() {
+  return PayloadStart() + payload_size_;
+}
+
+ConstAddress LargePage::PayloadEnd() const {
+  return PayloadStart() + payload_size_;
+}
+
+// BasePage stubs
+// Need a dummy HeapHandle for BasePageHandle constructor
+// Since HeapHandle's default constructor is protected, we need to create a derived class
+namespace {
+class DummyHeapHandle : public cppgc::HeapHandle {
+ public:
+  DummyHeapHandle() = default;
+};
+static DummyHeapHandle g_dummy_heap_handle;
+}  // namespace
+
+BasePage::BasePage(HeapBase&, BaseSpace& space, PageType type)
+    : BasePageHandle(g_dummy_heap_handle), space_(&space), type_(type) {}
+
+void BasePage::Destroy(BasePage*) {}
+BasePage* BasePage::FromInnerAddress(const HeapBase*, void*) { return nullptr; }
+const BasePage* BasePage::FromInnerAddress(const HeapBase*, const void*) { return nullptr; }
+
+HeapBase& BasePage::heap() const {
+  // Stub - this should never be called; return reference to static storage
+  static char dummy_heap[sizeof(HeapBase)];
+  return *reinterpret_cast<HeapBase*>(dummy_heap);
+}
+
+Address BasePage::PayloadStart() {
+  if (is_large()) return LargePage::From(this)->PayloadStart();
+  return NormalPage::From(this)->PayloadStart();
+}
+
+ConstAddress BasePage::PayloadStart() const {
+  if (is_large()) return LargePage::From(this)->PayloadStart();
+  return NormalPage::From(this)->PayloadStart();
+}
+
+Address BasePage::PayloadEnd() {
+  if (is_large()) return LargePage::From(this)->PayloadEnd();
+  return NormalPage::From(this)->PayloadEnd();
+}
+
+ConstAddress BasePage::PayloadEnd() const {
+  if (is_large()) return LargePage::From(this)->PayloadEnd();
+  return NormalPage::From(this)->PayloadEnd();
+}
+
+size_t BasePage::AllocatedSize() const { return 0; }
+size_t BasePage::AllocatedBytesAtLastGC() const { return 0; }
+
+HeapObjectHeader* BasePage::TryObjectHeaderFromInnerAddress(void*) const { return nullptr; }
+const HeapObjectHeader* BasePage::TryObjectHeaderFromInnerAddress(const void*) const { return nullptr; }
+
+void BasePage::SlotSetDeleter::operator()(SlotSet*) const {}
+void BasePage::AllocateSlotSet() {}
+void BasePage::ChangeOwner(BaseSpace&) {}
+
+#if defined(CPPGC_YOUNG_GENERATION)
+void BasePage::ResetSlotSet() {}
+#endif
+
+// FatalOutOfMemoryHandler stubs
+FatalOutOfMemoryHandler& GetGlobalOOMHandler() {
+  static FatalOutOfMemoryHandler handler;
+  return handler;
+}
+
+void FatalOutOfMemoryHandler::SetCustomHandler(Callback*) {}
+[[noreturn]] void FatalOutOfMemoryHandler::operator()(
+    const std::string&, const SourceLocation&) const {
+  abort();  // Must not return
+}
+
+// StatsCollector stubs
+void StatsCollector::RecordHistogramSample(ScopeId, v8::base::TimeDelta) {}
+
+// HeapBase stubs - complex class, provide minimal stubs
+HeapBase::~HeapBase() = default;
+void HeapBase::Terminate() {}
+bool HeapBase::IsGCForbidden() const { return false; }
+bool HeapBase::CurrentThreadIsHeapThread() const { return true; }
+bool HeapBase::IsGCAllowed() const { return true; }
+size_t HeapBase::ObjectPayloadSize() const { return 0; }
+size_t HeapBase::ExecutePreFinalizers() { return 0; }
+HeapStatistics HeapBase::CollectStatistics(HeapStatistics::DetailLevel) { return {}; }
+void HeapBase::CallMoveListeners(Address, Address, size_t) {}
+void HeapBase::RegisterMoveListener(MoveListener*) {}
+void HeapBase::UnregisterMoveListener(MoveListener*) {}
+PageAllocator* HeapBase::page_allocator() const { return nullptr; }
+
+#if defined(CPPGC_YOUNG_GENERATION)
+void HeapBase::EnableGenerationalGC() {}
+void HeapBase::ResetRememberedSet() {}
+#endif
+
+// ClassNameAsHeapObjectNameScope stubs
+ClassNameAsHeapObjectNameScope::ClassNameAsHeapObjectNameScope(HeapBase& heap)
+    : heap_(heap), saved_heap_object_name_value_(heap.name_of_unnamed_object()) {}
+ClassNameAsHeapObjectNameScope::~ClassNameAsHeapObjectNameScope() {}
+
+// MarkerBase stubs
+MarkerBase::~MarkerBase() = default;
+MarkerBase::MarkerBase(HeapBase& heap, cppgc::Platform*, MarkingConfig config)
+    : heap_(heap), config_(config), platform_(nullptr),
+      incremental_marking_allocation_observer_(*this),
+      mutator_marking_state_(heap, marking_worklists_, nullptr) {}
+void MarkerBase::StartMarking() {}
+void MarkerBase::EnterAtomicPause(StackState) {}
+void MarkerBase::EnterProcessGlobalAtomicPause() {}
+void MarkerBase::LeaveAtomicPause() {}
+void MarkerBase::FinishMarking(StackState) {}
+bool MarkerBase::AdvanceMarkingWithLimits(v8::base::TimeDelta, size_t) { return true; }
+void MarkerBase::ProcessCrossThreadWeaknessIfNeeded() {}
+void MarkerBase::ProcessWeakness() {}
+bool MarkerBase::JoinConcurrentMarkingIfNeeded() { return true; }
+void MarkerBase::NotifyConcurrentMarkingOfWorkIfNeeded(cppgc::TaskPriority) {}
+void MarkerBase::ReEnableConcurrentMarking() {}
+void MarkerBase::SetMainThreadMarkingDisabledForTesting(bool) {}
+void MarkerBase::WaitForConcurrentMarkingForTesting() {}
+void MarkerBase::ClearAllWorklistsForTesting() {}
+bool MarkerBase::IncrementalMarkingStepForTesting(StackState) { return true; }
+bool MarkerBase::ProcessWorklistsWithDeadline(size_t, v8::base::TimeTicks) { return true; }
+void MarkerBase::AdvanceMarkingWithLimitsEpilogue() {}
+void MarkerBase::VisitLocalRoots(StackState) {}
+void MarkerBase::VisitCrossThreadRoots() {}
+void MarkerBase::MarkNotFullyConstructedObjects() {}
+void MarkerBase::ScheduleIncrementalMarkingTask() {}
+bool MarkerBase::IncrementalMarkingStep(StackState) { return true; }
+void MarkerBase::AdvanceMarkingOnAllocation() {}
+void MarkerBase::AdvanceMarkingOnAllocationImpl() {}
+void MarkerBase::HandleNotFullyConstructedObjects() {}
+void MarkerBase::MarkStrongCrossThreadRoots() {}
+
+MarkerBase::IncrementalMarkingAllocationObserver::IncrementalMarkingAllocationObserver(MarkerBase& marker)
+    : marker_(marker) {}
+void MarkerBase::IncrementalMarkingAllocationObserver::AllocatedObjectSizeIncreased(size_t) {}
+
+MarkerBase::PauseConcurrentMarkingScope::PauseConcurrentMarkingScope(MarkerBase& marker)
+    : marker_(marker), resume_on_exit_(false) {}
+MarkerBase::PauseConcurrentMarkingScope::~PauseConcurrentMarkingScope() = default;
+
+// ConcurrentMarkerBase stubs
+ConcurrentMarkerBase::ConcurrentMarkerBase(HeapBase& heap, MarkingWorklists& worklists,
+    heap::base::IncrementalMarkingSchedule& schedule, cppgc::Platform* platform)
+    : heap_(heap), marking_worklists_(worklists), incremental_marking_schedule_(schedule),
+      platform_(platform) {}
+ConcurrentMarkerBase::~ConcurrentMarkerBase() = default;
+void ConcurrentMarkerBase::Start() {}
+bool ConcurrentMarkerBase::Join() { return true; }
+bool ConcurrentMarkerBase::Cancel() { return true; }
+void ConcurrentMarkerBase::NotifyIncrementalMutatorStepCompleted() {}
+void ConcurrentMarkerBase::NotifyOfWorkIfNeeded(cppgc::TaskPriority) {}
+bool ConcurrentMarkerBase::IsActive() const { return false; }
+void ConcurrentMarkerBase::AddConcurrentlyMarkedBytes(size_t) {}
+void ConcurrentMarkerBase::IncreaseMarkingPriorityIfNeeded() {}
+
+// ConservativeMarkingVisitor stubs
+// Note: Can't define constructor due to reference member initialization issues
+// The symbol is provided by marking-visitor.cc when not WASI, so we skip for now
+
+// Compactor stubs
+Compactor::Compactor(RawHeap& heap) : heap_(heap) {}
+void Compactor::InitializeIfShouldCompact(GCConfig::MarkingType, StackState) {}
+void Compactor::CancelIfShouldNotCompact(GCConfig::MarkingType, StackState) {}
+Compactor::CompactableSpaceHandling Compactor::CompactSpacesIfEnabled() { return CompactableSpaceHandling::kIgnore; }
+void Compactor::EnableForNextGCForTesting() {}
+bool Compactor::ShouldCompact(GCConfig::MarkingType, StackState) const { return false; }
+
+// Additional stubs are defined in the cppgc source files
+// Only provide essential stubs that are missing
+
+// Note: Most cppgc stubs removed - they should come from compiled cppgc sources
+// Only minimal stubs are provided here for linking
+
+// ProcessGlobalLock stub
+v8::base::LazyMutex ProcessGlobalLock::process_mutex_ = LAZY_MUTEX_INITIALIZER;
+
+// HeapRegistry stubs
+void HeapRegistry::RegisterHeap(HeapBase&) {}
+void HeapRegistry::UnregisterHeap(HeapBase&) {}
+HeapBase* HeapRegistry::TryFromManagedPointer(const void*) { return nullptr; }
+const HeapRegistry::Storage& HeapRegistry::GetRegisteredHeapsForTesting() {
+  static Storage s;
+  return s;
+}
+
+// PageAllocator stub
+PageAllocator& GetGlobalPageAllocator() {
+  static v8::base::PageAllocator allocator;
+  return allocator;
+}
+
 }  // namespace internal
+
+namespace subtle {
+// DisallowGarbageCollectionScope stubs
+bool DisallowGarbageCollectionScope::IsGarbageCollectionAllowed(HeapHandle&) { return true; }
+void DisallowGarbageCollectionScope::Enter(HeapHandle&) {}
+void DisallowGarbageCollectionScope::Leave(HeapHandle&) {}
+DisallowGarbageCollectionScope::DisallowGarbageCollectionScope(HeapHandle& heap_handle)
+    : heap_handle_(heap_handle) {}
+DisallowGarbageCollectionScope::~DisallowGarbageCollectionScope() = default;
+
+// NoGarbageCollectionScope stubs
+void NoGarbageCollectionScope::Enter(HeapHandle&) {}
+void NoGarbageCollectionScope::Leave(HeapHandle&) {}
+NoGarbageCollectionScope::NoGarbageCollectionScope(HeapHandle& heap_handle)
+    : heap_handle_(heap_handle) {}
+NoGarbageCollectionScope::~NoGarbageCollectionScope() = default;
+}  // namespace subtle
+
+// ProcessHeapStatistics stubs (in cppgc namespace, not cppgc::internal)
+std::atomic_size_t ProcessHeapStatistics::total_allocated_space_{0};
+std::atomic_size_t ProcessHeapStatistics::total_allocated_object_size_{0};
+
 }  // namespace cppgc
 
 namespace v8 {
-namespace base {
-// Semaphore stub
-Semaphore::~Semaphore() {}
-}  // namespace base
 
 namespace internal {
 // CpuFeatures::ProbeImpl is defined in cpu-wasm32.cc for WASM32 target
@@ -451,6 +824,16 @@ JSDispatchHandle RelocInfo::js_dispatch_handle() { return JSDispatchHandle(); }
 
 // Deoptimizer stub
 void Deoptimizer::PatchToJump(Address, Address) {}
+
+// Heap stubs
+void Heap::DumpJSONHeapStatistics(std::stringstream&) {}
+
+// FinalizationRegistry stub
+void InvokeFinalizationRegistryCleanupFromTask(
+    DirectHandle<NativeContext>, DirectHandle<JSFinalizationRegistry>) {}
+
+// HandleScopeImplementer stubs
+void HandleScopeImplementer::Iterate(RootVisitor*) {}
 
 }  // namespace internal
 

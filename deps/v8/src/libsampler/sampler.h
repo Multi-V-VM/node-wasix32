@@ -13,7 +13,7 @@
 #include "src/base/lazy-instance.h"
 #include "src/base/macros.h"
 
-#if V8_OS_POSIX && !V8_OS_CYGWIN && !V8_OS_FUCHSIA
+#if V8_OS_POSIX && !V8_OS_CYGWIN && !V8_OS_FUCHSIA && !V8_OS_WASI
 #define USE_SIGNALS
 #endif
 
@@ -159,11 +159,5 @@ class V8_EXPORT_PRIVATE SamplerManager {
 
 }  // namespace sampler
 }  // namespace v8
-
-#ifdef __wasi__
-// Provide a trivial definition of PlatformData for WASI so that unique_ptr has
-// a complete type and any default construction compiles.
-namespace v8 { namespace sampler { class Sampler::PlatformData {}; } }
-#endif
 
 #endif  // V8_LIBSAMPLER_SAMPLER_H_

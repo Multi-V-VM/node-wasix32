@@ -38,6 +38,9 @@ class EnumSet {
   constexpr bool contains_any(EnumSet set) const {
     return (bits_ & set.bits_) != 0;
   }
+  constexpr bool contains_all(EnumSet set) const {
+    return (bits_ & set.bits_) == set.bits_;
+  }
   constexpr bool contains_only(E element) const {
     return bits_ == Mask(element);
   }
@@ -82,6 +85,9 @@ class EnumSet {
   EnumSet& operator|=(E element) { return *this = *this | element; }
   EnumSet& operator&=(E element) { return *this = *this & element; }
   EnumSet& operator-=(E element) { return *this = *this - element; }
+
+  // Bitwise NOT - inverts all bits in the underlying storage
+  constexpr EnumSet operator~() const { return EnumSet(~bits_); }
 
   static constexpr EnumSet FromIntegral(T bits) { return EnumSet{bits}; }
 

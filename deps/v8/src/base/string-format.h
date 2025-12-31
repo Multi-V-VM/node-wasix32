@@ -68,6 +68,15 @@ struct FormattedStringPart<size_t> {
   size_t value;
 };
 
+template <>
+struct FormattedStringPart<unsigned int> {
+  // Unsigned int range: [0, 4294967295]. Representable in 10 characters.
+  static constexpr int kMaxLen = 10;
+  static constexpr std::string_view kFormatPart = "%u";
+
+  unsigned int value;
+};
+
 template <size_t N>
 struct FormattedStringPart<char[N]> {
   static_assert(N >= 1, "Do not print (static) empty strings");

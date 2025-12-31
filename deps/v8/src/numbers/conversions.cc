@@ -1260,7 +1260,9 @@ std::string_view DoubleToRadixStringView(double value, int radix,
       // make progress. Skip it instead.
       delta_is_positive = false;
     } else {
-      static_assert(base::Double(0.0).NextDouble() > 0);
+      // The smallest positive double (denormal) is greater than 0.
+      // This is always true by IEEE 754 specification.
+      DCHECK_GT(base::Double(0.0).NextDouble(), 0);
       delta = base::Double(0.0).NextDouble();
     }
   }

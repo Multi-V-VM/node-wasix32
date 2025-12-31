@@ -31,7 +31,8 @@
 #include <mach/mach.h>
 // OpenBSD doesn't have <ucontext.h>. ucontext_t lives in <signal.h>
 // and is a typedef for struct sigcontext. There is no uc_mcontext.
-#elif !V8_OS_OPENBSD
+// WASI doesn't have <ucontext.h> either - no signal handling.
+#elif !V8_OS_OPENBSD && !V8_OS_WASI
 #include <ucontext.h>
 #endif
 
@@ -320,6 +321,15 @@ class Sampler::PlatformData {
 
  private:
   zx_handle_t profiled_thread_ = ZX_HANDLE_INVALID;
+};
+
+#elif V8_OS_WASI
+
+// WASI has no signals or thread suspension, so sampling is not supported.
+// Provide a minimal PlatformData to satisfy the Sampler class.
+class Sampler::PlatformData {
+ public:
+  PlatformData() = default;
 };
 
 #endif  // USE_SIGNALS
@@ -686,6 +696,13 @@ void Sampler::DoSample() {
 #if defined(ZX_THREAD_STATE_REGSET0)
 #undef ZX_THREAD_STATE_GENERAL_REGS
 #endif
+
+#elif V8_OS_WASI
+
+// WASI has no signals or thread suspension, so sampling is a no-op.
+void Sampler::DoSample() {
+  // No sampling support on WASI
+}
 
 #endif  // USE_SIGNALS
 

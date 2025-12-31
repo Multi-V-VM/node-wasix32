@@ -126,12 +126,7 @@ enum class BuiltinTier {
   kTurbofan
 };
 
-// Memory pressure level
-enum class MemoryPressureLevel {
-  kNone,
-  kModerate,
-  kCritical
-};
+// Memory pressure level - defined in v8:: namespace (see bottom of file)
 
 // RAILMode for performance optimization hints
 enum class RAILMode {
@@ -142,13 +137,7 @@ enum class RAILMode {
   kLoad
 };
 
-// Promise hook types
-enum class PromiseHookType {
-  kInit,
-  kResolve,
-  kBefore,
-  kAfter
-};
+// Promise hook types - defined in v8:: namespace (see bottom of file)
 
 // Import attributes (formerly import assertions)
 enum class ImportAttributesType {
@@ -198,43 +187,25 @@ enum class SharedArrayBufferConstructionEnabledCallback {
   kDisabled
 };
 
-// V8 GC callback flags
-enum GCCallbackFlags {
-  kNoGCCallbackFlags = 0,
-  kGCCallbackFlagCompacted = 1 << 0,
-  kGCCallbackFlagConstructRetainedObjectInfos = 1 << 1,
-  kGCCallbackFlagForced = 1 << 2,
-  kGCCallbackFlagSynchronousPhantomCallbackProcessing = 1 << 3,
-  kGCCallbackFlagCollectAllAvailableGarbage = 1 << 4,
-  kGCCallbackFlagCollectAllExternalMemory = 1 << 5,
-  kGCCallbackScheduleIdleGarbageCollection = 1 << 6
-};
+// V8 GC callback flags and GC type - defined in v8:: namespace (see bottom of file)
 
-// V8 GC type - use regular enum (not enum class) to allow bitwise operations
-enum GCType {
-  kGCTypeScavenge = 1 << 0,
-  kGCTypeMinorMarkSweep = 1 << 1,
-  kGCTypeMarkSweepCompact = 1 << 2,
-  kGCTypeIncrementalMarking = 1 << 3,
-  kGCTypeProcessWeakCallbacks = 1 << 4,
-  kGCTypeAll = kGCTypeScavenge | kGCTypeMinorMarkSweep |
-               kGCTypeMarkSweepCompact | kGCTypeIncrementalMarking |
-               kGCTypeProcessWeakCallbacks
-};
-
-// Interceptor result types
+// Interceptor result types - only define if not already defined by v8-template.h
+#ifndef INCLUDE_V8_TEMPLATE_H_
 enum class Intercepted {
   kNo,
   kYes
 };
+#endif  // INCLUDE_V8_TEMPLATE_H_
 
-// Property attribute
+// Property attribute - only define if not already defined by v8-object.h
+#ifndef INCLUDE_V8_OBJECT_H_
 enum PropertyAttribute {
   None = 0,
   ReadOnly = 1 << 0,
   DontEnum = 1 << 1,
   DontDelete = 1 << 2
 };
+#endif  // INCLUDE_V8_OBJECT_H_
 
 // Access control
 enum AccessControl {
@@ -244,18 +215,22 @@ enum AccessControl {
   PROHIBITS_OVERWRITING = 1 << 2
 };
 
-// Side effects type for API functions
+// Side effects type for API functions - only define if not already defined by v8-object.h
+#ifndef INCLUDE_V8_OBJECT_H_
 enum class SideEffectType {
   kHasSideEffect,
   kHasNoSideEffect,
   kHasSideEffectToReceiver
 };
+#endif  // INCLUDE_V8_OBJECT_H_
 
-// Constructor behavior
+// Constructor behavior - only define if not already defined by v8-template.h
+#ifndef INCLUDE_V8_TEMPLATE_H_
 enum class ConstructorBehavior {
   kThrow,
   kAllow
 };
+#endif  // INCLUDE_V8_TEMPLATE_H_
 
 // String resource types
 enum class StringResourceType {
@@ -387,6 +362,82 @@ inline Condition NegateCondition(Condition cc) {
 // Cpp heap pointer constants - defined in nuclear-fix.h
 // Isolate class - defined in v8-isolate-wasi-stub.h
 
+// Import v8:: namespace types into v8::internal:: namespace
+// These are defined below in v8:: namespace and need to be visible here
+}  // namespace internal
+
+// Types that belong in v8:: namespace (not v8::internal::)
+// These match the definitions in v8-callbacks.h, v8-promise.h, v8-isolate.h
+
+// Memory pressure level - only define if not already defined by v8-isolate.h
+#ifndef V8_V8_ISOLATE_H_
+enum class MemoryPressureLevel {
+  kNone,
+  kModerate,
+  kCritical
+};
+#endif  // V8_V8_ISOLATE_H_
+
+// Promise hook types - define if v8-promise.h hasn't been included yet
+// Also define guard so v8-promise.h knows not to redefine
+#ifndef INCLUDE_V8_PROMISE_H_
+#define V8_WASI_PROMISE_HOOK_TYPE_DEFINED
+enum class PromiseHookType { kInit, kResolve, kBefore, kAfter };
+#endif  // INCLUDE_V8_PROMISE_H_
+
+// V8 GC callback flags - only define if not already defined by v8-callbacks.h
+// The include guard is INCLUDE_V8_ISOLATE_CALLBACKS_H_ (not V8_CALLBACKS_H_)
+#ifndef INCLUDE_V8_ISOLATE_CALLBACKS_H_
+enum GCCallbackFlags {
+  kNoGCCallbackFlags = 0,
+  kGCCallbackFlagCompacted = 1 << 0,
+  kGCCallbackFlagConstructRetainedObjectInfos = 1 << 1,
+  kGCCallbackFlagForced = 1 << 2,
+  kGCCallbackFlagSynchronousPhantomCallbackProcessing = 1 << 3,
+  kGCCallbackFlagCollectAllAvailableGarbage = 1 << 4,
+  kGCCallbackFlagCollectAllExternalMemory = 1 << 5,
+  kGCCallbackScheduleIdleGarbageCollection = 1 << 6
+};
+
+// V8 GC type - use regular enum (not enum class) to allow bitwise operations
+enum GCType {
+  kGCTypeScavenge = 1 << 0,
+  kGCTypeMinorMarkSweep = 1 << 1,
+  kGCTypeMarkSweepCompact = 1 << 2,
+  kGCTypeIncrementalMarking = 1 << 3,
+  kGCTypeProcessWeakCallbacks = 1 << 4,
+  kGCTypeAll = kGCTypeScavenge | kGCTypeMinorMarkSweep |
+               kGCTypeMarkSweepCompact | kGCTypeIncrementalMarking |
+               kGCTypeProcessWeakCallbacks
+};
+#endif  // INCLUDE_V8_ISOLATE_CALLBACKS_H_
+
+// Now import these v8:: types into v8::internal:: for internal code
+namespace internal {
+#ifndef V8_V8_ISOLATE_H_
+using v8::MemoryPressureLevel;
+#endif
+#ifndef INCLUDE_V8_PROMISE_H_
+using v8::PromiseHookType;
+#endif
+#ifndef INCLUDE_V8_ISOLATE_CALLBACKS_H_
+using v8::GCCallbackFlags;
+using v8::GCType;
+using v8::kNoGCCallbackFlags;
+using v8::kGCCallbackFlagCompacted;
+using v8::kGCCallbackFlagConstructRetainedObjectInfos;
+using v8::kGCCallbackFlagForced;
+using v8::kGCCallbackFlagSynchronousPhantomCallbackProcessing;
+using v8::kGCCallbackFlagCollectAllAvailableGarbage;
+using v8::kGCCallbackFlagCollectAllExternalMemory;
+using v8::kGCCallbackScheduleIdleGarbageCollection;
+using v8::kGCTypeScavenge;
+using v8::kGCTypeMinorMarkSweep;
+using v8::kGCTypeMarkSweepCompact;
+using v8::kGCTypeIncrementalMarking;
+using v8::kGCTypeProcessWeakCallbacks;
+using v8::kGCTypeAll;
+#endif
 }  // namespace internal
 
 }  // namespace v8

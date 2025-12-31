@@ -5,6 +5,9 @@
 // For WASI builds, include the script API and profiler stubs
 #include "v8-script.h"
 #include "wasi/embedder-graph-stub.h"
+// Include v8-profiler-wasi-stubs.h first for top-level v8:: types
+#include "wasi/v8-profiler-wasi-stubs.h"
+// Then include v8-profiler-stubs.h for API classes
 #include "wasi/v8-profiler-stubs.h"
 #else
 // Include the real V8 profiler header for non-WASI builds

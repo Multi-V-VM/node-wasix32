@@ -39,6 +39,22 @@ VLQEncodeUnsigned(Function&& process_byte, uint32_t value) {
   } while (value > kDataMask);
 }
 
+// Overload for void-returning callbacks. This version pre-calculates the
+// continuation bits and writes them directly.
+template <typename Function>
+inline typename std::enable_if<
+    std::is_same<decltype(std::declval<Function>()(0)), void>::value,
+    void>::type
+VLQEncodeUnsigned(Function&& process_byte, uint32_t value) {
+  // Write bytes with continuation bits already set
+  while (value > kDataMask) {
+    process_byte(static_cast<uint8_t>((value & kDataMask) | kContinueBit));
+    value >>= kContinueShift;
+  }
+  // Write the last byte without continuation bit
+  process_byte(static_cast<uint8_t>(value));
+}
+
 inline uint32_t VLQConvertToUnsigned(int32_t value) {
   // This wouldn't handle kMinInt correctly if it ever encountered it.
   DCHECK_NE(value, std::numeric_limits<int32_t>::min());
@@ -54,6 +70,16 @@ inline uint32_t VLQConvertToUnsigned(int32_t value) {
 template <typename Function>
 inline typename std::enable_if<
     std::is_same<decltype(std::declval<Function>()(0)), uint8_t*>::value,
+    void>::type
+VLQEncode(Function&& process_byte, int32_t value) {
+  uint32_t bits = VLQConvertToUnsigned(value);
+  VLQEncodeUnsigned(std::forward<Function>(process_byte), bits);
+}
+
+// Overload for void-returning callbacks.
+template <typename Function>
+inline typename std::enable_if<
+    std::is_same<decltype(std::declval<Function>()(0)), void>::value,
     void>::type
 VLQEncode(Function&& process_byte, int32_t value) {
   uint32_t bits = VLQConvertToUnsigned(value);
@@ -110,9 +136,22 @@ inline uint32_t VLQDecodeUnsigned(uint8_t* data_start, int* index) {
   return VLQDecodeUnsigned([&] { return data_start[(*index)++]; });
 }
 
+// Const overload for read-only buffers.
+inline uint32_t VLQDecodeUnsigned(const uint8_t* data_start, int* index) {
+  return VLQDecodeUnsigned([&] { return data_start[(*index)++]; });
+}
+
 // Decodes a variable-length encoded value stored in contiguous memory starting
 // at data_start + index, updating index to where the next encoded value starts.
 inline int32_t VLQDecode(uint8_t* data_start, int* index) {
+  uint32_t bits = VLQDecodeUnsigned(data_start, index);
+  bool is_negative = (bits & 1) == 1;
+  int32_t result = bits >> 1;
+  return is_negative ? -result : result;
+}
+
+// Const overload for read-only buffers.
+inline int32_t VLQDecode(const uint8_t* data_start, int* index) {
   uint32_t bits = VLQDecodeUnsigned(data_start, index);
   bool is_negative = (bits & 1) == 1;
   int32_t result = bits >> 1;

@@ -8,6 +8,7 @@
 #include <stdint.h>
 
 #include <algorithm>
+#include <type_traits>
 
 #include "src/base/macros.h"
 
@@ -43,19 +44,31 @@ class BitField final {
   static constexpr U kNumValues = U{1} << kSize;
 
   // Value for the field with all bits set.
-  // If clang complains
-  // "constexpr variable 'kMax' must be initialized by a constant expression"
-  // on this line, then you're creating a BitField for an enum with more bits
-  // than needed for the enum values. Either reduce the BitField size,
-  // or give the enum an explicit underlying type.
-  static constexpr T kMax = static_cast<T>(kNumValues - 1);
+  // kMaxNumeric is the raw numeric value, useful for comparisons
+  static constexpr U kMaxNumeric = kNumValues - 1;
+  // For enum types, we need to handle the case where kNumValues - 1 exceeds
+  // the enum's implicitly defined value range.
+ private:
+  template <typename V, typename = void>
+  struct MaxHelper {
+    static constexpr V value = static_cast<V>(kMaxNumeric);
+  };
+  // For enum types, cast through the underlying type to avoid constexpr issues
+  template <typename V>
+  struct MaxHelper<V, std::enable_if_t<std::is_enum_v<V>>> {
+    using UnderlyingT = std::underlying_type_t<V>;
+    static constexpr V value = static_cast<V>(
+        static_cast<UnderlyingT>(kMaxNumeric));
+  };
+ public:
+  static constexpr T kMax = MaxHelper<T>::value;
 
   template <class T2, int size2>
   using Next = BitField<T2, kShift + kSize, size2, U>;
 
   // Tells whether the provided value fits into the bit field.
   static constexpr bool is_valid(T value) {
-    return (static_cast<U>(value) & ~static_cast<U>(kMax)) == 0;
+    return (static_cast<U>(value) & ~kMaxNumeric) == 0;
   }
 
   // Returns a type U with the bit field value encoded.

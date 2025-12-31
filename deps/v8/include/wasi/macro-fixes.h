@@ -37,6 +37,24 @@
 #define DISABLE_CFI_ICALL
 #endif
 
+// Sanitizer disable macros - no-op for WASI
+#ifndef DISABLE_ASAN
+#define DISABLE_ASAN
+#endif
+
+#ifndef DISABLE_HWASAN
+#define DISABLE_HWASAN
+#endif
+
+#ifndef DISABLE_TSAN
+#define DISABLE_TSAN
+#endif
+
+// Permission macros for memory protection - no-op for WASI
+#ifndef PERMISSION_MUTABLE_SECTION
+#define PERMISSION_MUTABLE_SECTION
+#endif
+
 // V8 Platform specific macro overrides for WASI
 #ifndef V8_OS_WASI
 #define V8_OS_WASI 1

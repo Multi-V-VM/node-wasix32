@@ -1082,8 +1082,9 @@ class DirectHandleSmallVector {
  public:
   static constexpr size_t kInlineSize = kSize;
   using value_type = DirectHandle<T>;
-  using reference = value_type&;
-  using const_reference = const value_type&;
+  // Use element_type for references since that's what backing_ stores
+  using reference = element_type&;
+  using const_reference = const element_type&;
   using size_type = size_t;
   using difference_type = ptrdiff_t;
   using iterator = internal::WrappedIterator<element_type*, value_type>;
@@ -1159,11 +1160,11 @@ class DirectHandleSmallVector {
   reference back() { return backing_.back(); }
   const_reference back() const { return backing_.back(); }
 
-  reference at(size_t n) { return backing_.at(n); }
+  reference at(size_t n) { return backing_[n]; }
   const_reference at(size_t n) const { return backing_.at(n); }
 
-  reference& operator[](size_t n) { return backing_[n]; }
-  const_reference& operator[](size_t n) const { return backing_[n]; }
+  reference operator[](size_t n) { return backing_[n]; }
+  const_reference operator[](size_t n) const { return backing_.at(n); }
 
   template <typename... Args>
   void emplace_back(Args&&... args) {

@@ -190,6 +190,27 @@ class SmallVector {
     return pos;
   }
 
+  // Erase a single element at pos
+  T* erase(T* pos) {
+    DCHECK_GE(pos, begin_);
+    DCHECK_LT(pos, end_);
+    std::move(pos + 1, end_, pos);
+    --end_;
+    return pos;
+  }
+
+  // Erase elements in range [first, last)
+  T* erase(T* first, T* last) {
+    DCHECK_GE(first, begin_);
+    DCHECK_LE(last, end_);
+    DCHECK_LE(first, last);
+    if (first != last) {
+      std::move(last, end_, first);
+      end_ -= (last - first);
+    }
+    return first;
+  }
+
   void resize_no_init(size_t new_size) {
     // Resizing without initialization is safe if T is trivially copyable.
     ASSERT_TRIVIALLY_COPYABLE(T);
@@ -206,6 +227,18 @@ class SmallVector {
     // Zero-initialize new elements if growing
     if (new_size > old_size) {
       memset(begin_ + old_size, 0, sizeof(T) * (new_size - old_size));
+    }
+  }
+
+  // Resize with value - for compatibility with std::vector-like interface
+  void resize(size_t new_size, const T& value) {
+    ASSERT_TRIVIALLY_COPYABLE(T);
+    size_t old_size = size();
+    if (new_size > capacity()) Grow(new_size);
+    end_ = begin_ + new_size;
+    // Fill new elements with value if growing
+    if (new_size > old_size) {
+      std::fill(begin_ + old_size, end_, value);
     }
   }
 

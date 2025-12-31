@@ -1066,7 +1066,7 @@ class MaglevGraphBuilder {
 
     uint32_t value_number;
     {
-      size_t tmp_value_number = base::hash_value(op);
+      size_t tmp_value_number = gvn_hash_value(op);
       (
           [&] {
             tmp_value_number =
@@ -3319,7 +3319,8 @@ class MaglevGraphBuilder {
 
   template <typename T>
   static size_t gvn_hash_value(const T& in) {
-    return base::hash_value(in);
+    // Use base::hash<T> directly to avoid ADL ambiguity issues
+    return base::hash<T>{}(in);
   }
 
   static size_t gvn_hash_value(const compiler::MapRef& map) {
@@ -3327,11 +3328,17 @@ class MaglevGraphBuilder {
   }
 
   static size_t gvn_hash_value(const interpreter::Register& reg) {
-    return base::hash_value(reg.index());
+    return base::hash<int>{}(reg.index());
   }
 
   static size_t gvn_hash_value(const Representation& rep) {
-    return base::hash_value(rep.kind());
+    // Use static_cast to underlying type to avoid enum hash ambiguity
+    return static_cast<size_t>(rep.kind());
+  }
+
+  // Explicit overload for Opcode to avoid ADL ambiguity with base::hash_value
+  static size_t gvn_hash_value(Opcode op) {
+    return static_cast<size_t>(op);
   }
 
   static size_t gvn_hash_value(const ExternalReference& ref) {

@@ -6,6 +6,7 @@
 #define V8_BASE_ITERATOR_H_
 
 #include <iterator>
+#include <utility>
 
 namespace v8 {
 namespace base {
@@ -128,6 +129,100 @@ template <typename T>
 auto IterateWithoutLast(const iterator_range<T>& t) {
   iterator_range<T> range_copy = {t.begin(), t.end()};
   return IterateWithoutLast(range_copy);
+}
+
+// {IterateWithoutFirst} returns a container adapter usable in a range-based
+// "for" statement for iterating all elements except the first.
+//
+// Example:
+//
+//   std::vector<int> v = ...;
+//   for (int i : base::IterateWithoutFirst(v)) {
+//     // iterates through v from ++front to back
+//   }
+//
+// The signature avoids binding to temporaries, see the remark in {Reversed}.
+template <typename T>
+auto IterateWithoutFirst(T& t) {
+  DCHECK_NE(std::begin(t), std::end(t));
+  auto new_begin = std::begin(t);
+  return make_iterator_range(++new_begin, std::end(t));
+}
+
+template <typename T>
+auto IterateWithoutFirst(const iterator_range<T>& t) {
+  iterator_range<T> range_copy = {t.begin(), t.end()};
+  return IterateWithoutFirst(range_copy);
+}
+
+// zip - iterate over two containers in parallel, yielding pairs of elements.
+//
+// Example:
+//   std::vector<int> a = {1, 2, 3};
+//   std::vector<char> b = {'a', 'b', 'c'};
+//   for (auto&& [x, y] : base::zip(a, b)) {
+//     // x = 1, y = 'a', then x = 2, y = 'b', etc.
+//   }
+template <typename Iter1, typename Iter2>
+class ZipIterator {
+ public:
+  using value_type = std::pair<typename std::iterator_traits<Iter1>::reference,
+                               typename std::iterator_traits<Iter2>::reference>;
+  using difference_type = std::ptrdiff_t;
+  using pointer = void;
+  using reference = value_type;
+  using iterator_category = std::forward_iterator_tag;
+
+  ZipIterator(Iter1 it1, Iter2 it2) : it1_(it1), it2_(it2) {}
+
+  value_type operator*() const { return {*it1_, *it2_}; }
+
+  ZipIterator& operator++() {
+    ++it1_;
+    ++it2_;
+    return *this;
+  }
+
+  ZipIterator operator++(int) {
+    ZipIterator tmp = *this;
+    ++(*this);
+    return tmp;
+  }
+
+  bool operator==(const ZipIterator& other) const { return it1_ == other.it1_; }
+  bool operator!=(const ZipIterator& other) const { return !(*this == other); }
+
+ private:
+  Iter1 it1_;
+  Iter2 it2_;
+};
+
+template <typename Container1, typename Container2>
+class ZipRange {
+ public:
+  using iterator = ZipIterator<decltype(std::begin(std::declval<Container1&>())),
+                               decltype(std::begin(std::declval<Container2&>()))>;
+
+  ZipRange(Container1& c1, Container2& c2)
+      : begin_(std::begin(c1), std::begin(c2)),
+        end_(std::end(c1), std::end(c2)) {}
+
+  iterator begin() const { return begin_; }
+  iterator end() const { return end_; }
+
+ private:
+  iterator begin_;
+  iterator end_;
+};
+
+template <typename Container1, typename Container2>
+auto zip(Container1& c1, Container2& c2) {
+  return ZipRange<Container1, Container2>(c1, c2);
+}
+
+template <typename Container1, typename Container2>
+auto zip(const Container1& c1, const Container2& c2) {
+  return ZipRange<const Container1, const Container2>(c1, c2);
 }
 
 }  // namespace base

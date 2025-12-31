@@ -442,6 +442,7 @@ enum class OOMType {
 #define DCHECK_NOT_NULL(val) DCHECK((val) != nullptr)
 #define DCHECK_IMPLIES(lhs, rhs) \
   DCHECK_WITH_MSG(!(lhs) || (rhs), #lhs " implies " #rhs)
+#define DCHECK_BOUNDS(index, limit) DCHECK_LT(index, limit)
 #else
 #define DCHECK(condition)      ((void) 0)
 #define DCHECK_EQ(v1, v2)      ((void) 0)
@@ -453,6 +454,7 @@ enum class OOMType {
 #define DCHECK_NULL(val)       ((void) 0)
 #define DCHECK_NOT_NULL(val)   ((void) 0)
 #define DCHECK_IMPLIES(v1, v2) ((void) 0)
+#define DCHECK_BOUNDS(index, limit) ((void) 0)
 #endif
 
 #endif  // V8_BASE_LOGGING_H_

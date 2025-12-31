@@ -321,6 +321,8 @@ class V8_NODISCARD LockGuard final {
                    mutex_ != nullptr);
     if (has_mutex()) mutex_->Lock();
   }
+  // Overload for reference to Mutex (convenience constructor)
+  explicit LockGuard(Mutex& mutex) : LockGuard(&mutex) {}
   LockGuard(const LockGuard&) = delete;
   LockGuard& operator=(const LockGuard&) = delete;
   LockGuard(LockGuard&& other) V8_NOEXCEPT : mutex_(other.mutex_) {

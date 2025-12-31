@@ -3260,7 +3260,7 @@ WASM_JS_EXTERNAL_REFERENCE_LIST(DEF_WASM_JS_EXTERNAL_REFERENCE)
 // internal guts are too ugly to replicate here.
 static i::DirectHandle<i::FunctionTemplateInfo> NewFunctionTemplate(
     i::Isolate* i_isolate, FunctionCallback func, bool has_prototype,
-    SideEffectType side_effect_type = SideEffectType::kHasSideEffect) {
+    v8::SideEffectType side_effect_type = v8::SideEffectType::kHasSideEffect) {
   Isolate* isolate = reinterpret_cast<Isolate*>(i_isolate);
   ConstructorBehavior behavior =
       has_prototype ? ConstructorBehavior::kAllow : ConstructorBehavior::kThrow;
@@ -3283,7 +3283,7 @@ namespace {
 DirectHandle<JSFunction> CreateFunc(
     Isolate* isolate, DirectHandle<String> name, FunctionCallback func,
     bool has_prototype,
-    SideEffectType side_effect_type = SideEffectType::kHasSideEffect,
+    v8::SideEffectType side_effect_type = v8::SideEffectType::kHasSideEffect,
     DirectHandle<FunctionTemplateInfo> parent = {}) {
   DirectHandle<FunctionTemplateInfo> temp =
       NewFunctionTemplate(isolate, func, has_prototype, side_effect_type);
@@ -3303,7 +3303,7 @@ DirectHandle<JSFunction> InstallFunc(
     Isolate* isolate, DirectHandle<JSObject> object, DirectHandle<String> name,
     FunctionCallback func, int length, bool has_prototype = false,
     PropertyAttributes attributes = NONE,
-    SideEffectType side_effect_type = SideEffectType::kHasSideEffect) {
+    v8::SideEffectType side_effect_type = v8::SideEffectType::kHasSideEffect) {
   DirectHandle<JSFunction> function =
       CreateFunc(isolate, name, func, has_prototype, side_effect_type);
   function->shared()->set_length(length);
@@ -3317,7 +3317,7 @@ DirectHandle<JSFunction> InstallFunc(
     Isolate* isolate, DirectHandle<JSObject> object, const char* str,
     FunctionCallback func, int length, bool has_prototype = false,
     PropertyAttributes attributes = NONE,
-    SideEffectType side_effect_type = SideEffectType::kHasSideEffect) {
+    v8::SideEffectType side_effect_type = v8::SideEffectType::kHasSideEffect) {
   DirectHandle<String> name = v8_str(isolate, str);
   return InstallFunc(isolate, object, name, func, length, has_prototype,
                      attributes, side_effect_type);
@@ -3328,7 +3328,7 @@ DirectHandle<JSFunction> InstallConstructorFunc(Isolate* isolate,
                                                 const char* str,
                                                 FunctionCallback func) {
   return InstallFunc(isolate, object, str, func, 1, true, DONT_ENUM,
-                     SideEffectType::kHasNoSideEffect);
+                     v8::SideEffectType::kHasNoSideEffect);
 }
 
 DirectHandle<String> GetterName(Isolate* isolate, DirectHandle<String> name) {
@@ -3341,7 +3341,7 @@ void InstallGetter(Isolate* isolate, DirectHandle<JSObject> object,
   DirectHandle<String> name = v8_str(isolate, str);
   DirectHandle<JSFunction> function =
       CreateFunc(isolate, GetterName(isolate, name), func, false,
-                 SideEffectType::kHasNoSideEffect);
+                 v8::SideEffectType::kHasNoSideEffect);
 
   Utils::ToLocal(object)->SetAccessorProperty(Utils::ToLocal(name),
                                               Utils::ToLocal(function),
@@ -3359,7 +3359,7 @@ void InstallGetterSetter(Isolate* isolate, DirectHandle<JSObject> object,
   DirectHandle<String> name = v8_str(isolate, str);
   DirectHandle<JSFunction> getter_func =
       CreateFunc(isolate, GetterName(isolate, name), getter, false,
-                 SideEffectType::kHasNoSideEffect);
+                 v8::SideEffectType::kHasNoSideEffect);
   DirectHandle<JSFunction> setter_func =
       CreateFunc(isolate, SetterName(isolate, name), setter, false);
   setter_func->shared()->set_length(1);
@@ -3480,7 +3480,7 @@ void WasmJs::PrepareForSnapshot(Isolate* isolate) {
     InstallFunc(isolate, table_proto, "grow", wasm::WebAssemblyTableGrow, 1);
     InstallFunc(isolate, table_proto, "set", wasm::WebAssemblyTableSet, 1);
     InstallFunc(isolate, table_proto, "get", wasm::WebAssemblyTableGet, 1,
-                false, NONE, SideEffectType::kHasNoSideEffect);
+                false, NONE, v8::SideEffectType::kHasNoSideEffect);
   }
 
   // Create the Memory object.
@@ -3506,7 +3506,7 @@ void WasmJs::PrepareForSnapshot(Isolate* isolate) {
     native_context->set_wasm_global_constructor(*global_constructor);
     InstallFunc(isolate, global_proto, "valueOf",
                 wasm::WebAssemblyGlobalValueOf, 0, false, NONE,
-                SideEffectType::kHasNoSideEffect);
+                v8::SideEffectType::kHasNoSideEffect);
     InstallGetterSetter(isolate, global_proto, "value",
                         wasm::WebAssemblyGlobalGetValue,
                         wasm::WebAssemblyGlobalSetValue);
@@ -3607,7 +3607,7 @@ void WasmJs::InstallModule(Isolate* isolate,
     // Reinstall the Module object with AbstractModuleSource as prototype.
     module_constructor =
         CreateFunc(isolate, name, wasm::WebAssemblyModule, true,
-                   SideEffectType::kHasNoSideEffect,
+                   v8::SideEffectType::kHasNoSideEffect,
                    intrinsic_abstract_module_source_interface_template);
     // WebAssembly.Module is a subclass of %AbstractModuleSource%, hence
     // Object.GetPrototypeOf(WebAssembly.Module) === %AbstractModuleSource%.
@@ -3629,13 +3629,13 @@ void WasmJs::InstallModule(Isolate* isolate,
 
   InstallFunc(isolate, module_constructor, "imports",
               wasm::WebAssemblyModuleImports, 1, false, NONE,
-              SideEffectType::kHasNoSideEffect);
+              v8::SideEffectType::kHasNoSideEffect);
   InstallFunc(isolate, module_constructor, "exports",
               wasm::WebAssemblyModuleExports, 1, false, NONE,
-              SideEffectType::kHasNoSideEffect);
+              v8::SideEffectType::kHasNoSideEffect);
   InstallFunc(isolate, module_constructor, "customSections",
               wasm::WebAssemblyModuleCustomSections, 2, false, NONE,
-              SideEffectType::kHasNoSideEffect);
+              v8::SideEffectType::kHasNoSideEffect);
 }
 
 // static
@@ -3890,13 +3890,13 @@ bool WasmJs::InstallTypeReflection(Isolate* isolate,
 
   // Checks are done, start installing the new fields.
   InstallFunc(isolate, table_proto, type_string, WebAssemblyTableType, 0, false,
-              NONE, SideEffectType::kHasNoSideEffect);
+              NONE, v8::SideEffectType::kHasNoSideEffect);
   InstallFunc(isolate, memory_proto, type_string, WebAssemblyMemoryType, 0,
-              false, NONE, SideEffectType::kHasNoSideEffect);
+              false, NONE, v8::SideEffectType::kHasNoSideEffect);
   InstallFunc(isolate, global_proto, type_string, WebAssemblyGlobalType, 0,
-              false, NONE, SideEffectType::kHasNoSideEffect);
+              false, NONE, v8::SideEffectType::kHasNoSideEffect);
   InstallFunc(isolate, tag_proto, type_string, WebAssemblyTagType, 0, false,
-              NONE, SideEffectType::kHasNoSideEffect);
+              NONE, v8::SideEffectType::kHasNoSideEffect);
 
   // Create the Function object.
   DirectHandle<JSFunction> function_constructor = InstallConstructorFunc(

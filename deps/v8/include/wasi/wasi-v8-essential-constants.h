@@ -44,8 +44,7 @@ inline constexpr intptr_t kHeapObjectTagMask = 3;
 inline constexpr int kWeakHeapObjectTag = 3;
 #endif
 
-// CppHeap pointer tag for embedder objects
-inline constexpr int kAnyCppHeapPointer = 0;
+// CppHeap pointer tag moved to v8-sandbox.h where CppHeapPointerTagRange is defined
 
 }  // namespace internal
 }  // namespace v8
@@ -152,7 +151,7 @@ using ::v8::base::SNPrintF;
 using ::v8::base::ArrayVector;
 using ::v8::base::StrNCpy;
 using ::v8::base::StaticOneByteVector;
-// using ::v8::base::OwnedCopyOf;  // May not exist in v8::base
+using ::v8::base::OwnedCopyOf;
 using ::v8::base::VLQBase64Decode;
 using ::v8::base::VLQEncodeUnsigned;
 

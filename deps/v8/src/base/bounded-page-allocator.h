@@ -21,6 +21,10 @@ enum class PageInitializationMode {
   // data. This is slightly faster as comitted pages are not decommitted
   // during FreePages and ReleasePages, but only made inaccessible.
   kAllocatedPagesCanBeUninitialized,
+  // Pages only need to be recommitted (used with kNoAccessWillJitLater
+  // permission). This mode is used when the page allocator will handle
+  // permissions separately.
+  kRecommitOnly,
 };
 
 // Defines how BoundedPageAllocator frees pages when FreePages or ReleasePages
@@ -106,6 +110,11 @@ class V8_BASE_EXPORT BoundedPageAllocator : public v8::PageAllocator {
   bool DiscardSystemPages(void* address, size_t size) override;
 
   bool DecommitPages(void* address, size_t size) override;
+
+  bool SealPages(void* address, size_t size) override {
+    // Forward to underlying page allocator if available
+    return page_allocator_->SealPages(address, size);
+  }
 
  private:
   v8::base::Mutex mutex_;

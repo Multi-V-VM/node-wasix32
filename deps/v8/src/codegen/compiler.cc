@@ -1690,14 +1690,16 @@ DeferredFinalizationJobData::DeferredFinalizationJobData(
       job_(std::move(job)) {}
 
 BackgroundCompileTask::BackgroundCompileTask(
-    ScriptStreamingData* streamed_data, Isolate* isolate, ScriptType type,
+    ScriptStreamingData* streamed_data, Isolate* isolate, v8::ScriptType type,
     ScriptCompiler::CompileOptions options,
     ScriptCompiler::CompilationDetails* compilation_details,
-    CompileHintCallback compile_hint_callback, void* compile_hint_callback_data)
+    v8::CompileHintCallback compile_hint_callback, void* compile_hint_callback_data)
     : isolate_for_local_isolate_(isolate),
       flags_(UnoptimizedCompileFlags::ForToplevelCompile(
           isolate, true, construct_language_mode(v8_flags.use_strict),
-          REPLMode::kNo, type,
+          REPLMode::kNo,
+          type == v8::ScriptType::kModule ? ScriptType::kModule
+                                          : ScriptType::kClassic,
           (options & ScriptCompiler::CompileOptions::kEagerCompile) == 0 &&
               v8_flags.lazy_streaming)),
       character_stream_(ScannerStream::For(streamed_data->source_stream.get(),
@@ -3736,7 +3738,7 @@ MaybeDirectHandle<SharedFunctionInfo> CompileScriptOnMainThread(
     const ScriptDetails& script_details, NativesFlag natives,
     v8::Extension* extension, Isolate* isolate,
     MaybeHandle<Script> maybe_script, IsCompiledScope* is_compiled_scope,
-    CompileHintCallback compile_hint_callback = nullptr,
+    v8::CompileHintCallback compile_hint_callback = nullptr,
     void* compile_hint_callback_data = nullptr) {
   UnoptimizedCompileState compile_state;
   ReusableUnoptimizedCompileState reusable_state(isolate);
@@ -3764,9 +3766,9 @@ class StressBackgroundCompileThread : public ParkingThread {
         source_(source),
         streamed_source_(std::make_unique<SourceStream>(source, isolate),
                          v8::ScriptCompiler::StreamedSource::TWO_BYTE) {
-    ScriptType type = script_details.origin_options.IsModule()
-                          ? ScriptType::kModule
-                          : ScriptType::kClassic;
+    v8::ScriptType type = script_details.origin_options.IsModule()
+                              ? v8::ScriptType::kModule
+                              : v8::ScriptType::kClassic;
     data()->task = std::make_unique<i::BackgroundCompileTask>(
         data(), isolate, type,
         ScriptCompiler::CompileOptions::kNoCompileOptions,

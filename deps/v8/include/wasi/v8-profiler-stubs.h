@@ -86,20 +86,18 @@ class CpuProfile {
 // CpuProfiler stub
 class CpuProfiler {
  public:
-  enum CpuProfilingMode {
-    kLeafNodeLineNumbers,
-    kCallerLineNumbers
-  };
+  // Use the v8:: namespace enum classes for type compatibility
+  using CpuProfilingMode = v8::CpuProfilingMode;
+  using CpuProfilingNamingMode = v8::CpuProfilingNamingMode;
+  using CpuProfilingLoggingMode = v8::CpuProfilingLoggingMode;
 
-  enum CpuProfilingNamingMode {
-    kStandardNaming,
-    kDebugNaming
-  };
-
-  enum CpuProfilingLoggingMode {
-    kLazyLogging,
-    kEagerLogging
-  };
+  // Re-export the enum values for compatibility with code using CpuProfiler::kXxx syntax
+  static constexpr CpuProfilingMode kLeafNodeLineNumbers = CpuProfilingMode::kLeafNodeLineNumbers;
+  static constexpr CpuProfilingMode kCallerLineNumbers = CpuProfilingMode::kCallerLineNumbers;
+  static constexpr CpuProfilingNamingMode kStandardNaming = CpuProfilingNamingMode::kStandardNaming;
+  static constexpr CpuProfilingNamingMode kDebugNaming = CpuProfilingNamingMode::kDebugNaming;
+  static constexpr CpuProfilingLoggingMode kLazyLogging = CpuProfilingLoggingMode::kLazyLogging;
+  static constexpr CpuProfilingLoggingMode kEagerLogging = CpuProfilingLoggingMode::kEagerLogging;
 
   struct CpuProfilingOptions {
     CpuProfilingMode mode_;
@@ -136,8 +134,10 @@ class CpuProfiler {
 };
 
 // Provide a top-level alias for compatibility with src callers that expect
-// v8::CpuProfilingMode.
+// v8::CpuProfilingMode. Only define if not already defined by v8-profiler-wasi-stubs.h
+#ifndef V8_WASI_PROFILER_STUBS_H_
 using CpuProfilingMode = CpuProfiler::CpuProfilingMode;
+#endif
 
 // DiscardedSamplesDelegate stub
 class DiscardedSamplesDelegate {

@@ -38,6 +38,7 @@
 
 #include "src/base/platform/platform-posix.h"
 
+#include "src/base/abort-mode.h"
 #include "src/base/lazy-instance.h"
 #include "src/base/macros.h"
 #include "src/base/platform/platform.h"
@@ -311,14 +312,16 @@ bool OS::ArmUsingHardFloat() {
 #endif  // def __arm__
 #endif
 
-void PosixInitializeCommon(bool hard_abort, const char* const gc_fake_mmap) {
-  g_hard_abort = hard_abort;
+void PosixInitializeCommon(AbortMode abort_mode, const char* const gc_fake_mmap) {
+  g_abort_mode = abort_mode;
+  // Keep g_hard_abort for backwards compatibility
+  g_hard_abort = (abort_mode == AbortMode::kImmediateCrash);
   g_gc_fake_mmap = gc_fake_mmap;
 }
 
 #if !V8_OS_FUCHSIA
-void OS::Initialize(bool hard_abort, const char* const gc_fake_mmap) {
-  PosixInitializeCommon(hard_abort, gc_fake_mmap);
+void OS::Initialize(AbortMode abort_mode, const char* const gc_fake_mmap) {
+  PosixInitializeCommon(abort_mode, gc_fake_mmap);
 }
 #endif  // !V8_OS_FUCHSIA
 

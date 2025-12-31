@@ -53,4 +53,11 @@
 
 #endif  // !V8_USE_ADDRESS_SANITIZER
 
+// Hardware ASAN (HWASAN) support
+#ifdef V8_USE_HWADDRESS_SANITIZER
+#define DISABLE_HWASAN __attribute__((no_sanitize("hwaddress")))
+#else
+#define DISABLE_HWASAN
+#endif
+
 #endif  // V8_BASE_SANITIZER_ASAN_H_

@@ -27,6 +27,7 @@
 #include <vector>
 
 #include "include/v8-platform.h"
+#include "src/base/abort-mode.h"
 #include "src/base/base-export.h"
 #include "src/base/build_config.h"
 #include "src/base/compiler-specific.h"
@@ -147,9 +148,9 @@ class VirtualAddressSubspace;
 class V8_BASE_EXPORT OS {
  public:
   // Initialize the OS class.
-  // - hard_abort: If true, OS::Abort() will crash instead of aborting.
+  // - abort_mode: Controls how aborts are handled (see abort-mode.h).
   // - gc_fake_mmap: Name of the file for fake gc mmap used in ll_prof.
-  static void Initialize(bool hard_abort, const char* const gc_fake_mmap);
+  static void Initialize(AbortMode abort_mode, const char* const gc_fake_mmap);
 
 #if V8_OS_WIN
   // On Windows, ensure the newer memory API is loaded if available.  This
@@ -687,9 +688,11 @@ class V8_BASE_EXPORT Stack {
     return slot;
   }
 
- private:
   // Return the current thread stack start pointer.
+  // Made public for heap::base::stack.cc access.
   static StackSlot GetStackStartUnchecked();
+
+ private:
   static Stack::StackSlot ObtainCurrentThreadStackStart();
 
   friend v8::internal::HandleHelper;

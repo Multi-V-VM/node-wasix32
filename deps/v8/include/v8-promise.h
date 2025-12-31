@@ -149,7 +149,10 @@ class V8_EXPORT Promise : public Object {
  * PromiseHook with type kAfter is called right at the end of the
  * PromiseReactionJob.
  */
+// Guard for WASI where this may be defined earlier
+#ifndef V8_WASI_PROMISE_HOOK_TYPE_DEFINED
 enum class PromiseHookType { kInit, kResolve, kBefore, kAfter };
+#endif
 
 using PromiseHook = void (*)(PromiseHookType type, Local<Promise> promise,
                              Local<Value> parent);

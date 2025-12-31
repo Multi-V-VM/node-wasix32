@@ -198,7 +198,11 @@ class V8_EXPORT SnapshotCreator {
    *               - `params.existing_blob` is an optional snapshot blob from
    *                 which can be used to initialize the new blob.
    */
-  #if !defined(__wasi__) && defined(V8_ISOLATE_FULLY_DEFINED)
+  #if defined(__wasi__)
+  // Stub declaration for WASI - snapshot creation is not fully supported
+  SnapshotCreator(v8::Isolate* isolate,
+                  const v8::Isolate::CreateParams& params);
+  #elif defined(V8_ISOLATE_FULLY_DEFINED)
   SnapshotCreator(v8::Isolate* isolate,
                   const v8::Isolate::CreateParams& params);
   #endif
