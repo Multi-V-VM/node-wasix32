@@ -84,6 +84,16 @@ Address RelocInfo::target_off_heap_target() {
   return Assembler::target_address_at(pc_, constant_pool_);
 }
 
+WasmCodePointer RelocInfo::wasm_code_pointer_table_entry() const {
+  // WASM32 stub - return empty value
+  return WasmCodePointer{0};
+}
+
+void WritableRelocInfo::set_wasm_code_pointer_table_entry(
+    WasmCodePointer target, ICacheFlushMode icache_flush_mode) {
+  // No-op for WASM32
+}
+
 }  // namespace internal
 }  // namespace v8
 

@@ -398,23 +398,12 @@
       'type': '<(library)',
       'toolsets': [ 'host' ],
       'dependencies': [ 'icu_implementation', 'icu_uconfig' ],
+      # Always build full ICU for host toolset (icutools is host-only)
       'sources': [
         '<@(icu_src_stubdata)',
-      ],
-      'conditions': [
-        ['target_arch!="wasm32"', {
-          # For non-WASI platforms, add full sources
-          'sources': [
-            '<@(icu_src_tools)',
-            '<@(icu_src_common)',
-            '<@(icu_src_i18n)',
-          ],
-        }, {
-          # For WASI, add minimal stub to ensure archive is not empty
-          'sources': [
-            'icu_wasi_stub.cpp',
-          ],
-        }],
+        '<@(icu_src_tools)',
+        '<@(icu_src_common)',
+        '<@(icu_src_i18n)',
       ],
       'sources!': [
         '<(icu_path)/source/tools/toolutil/udbgutil.cpp',
@@ -427,23 +416,12 @@
         '<(icu_path)/source/i18n',
         '<(icu_path)/source/tools/toolutil',
       ],
-      'conditions': [
-        ['target_arch=="wasm32"', {
-          'defines': [
-            'U_COMMON_IMPLEMENTATION=1',
-            'U_IO_IMPLEMENTATION=1',
-            'U_TOOLUTIL_IMPLEMENTATION=1',
-            #'DEBUG=0', # http://bugs.icu-project.org/trac/ticket/10977
-          ],
-        }, {
-          'defines': [
-            'U_COMMON_IMPLEMENTATION=1',
-            'U_I18N_IMPLEMENTATION=1',
-            'U_IO_IMPLEMENTATION=1',
-            'U_TOOLUTIL_IMPLEMENTATION=1',
-            #'DEBUG=0', # http://bugs.icu-project.org/trac/ticket/10977
-          ],
-        }],
+      # Always use full defines for host toolset
+      'defines': [
+        'U_COMMON_IMPLEMENTATION=1',
+        'U_I18N_IMPLEMENTATION=1',
+        'U_IO_IMPLEMENTATION=1',
+        'U_TOOLUTIL_IMPLEMENTATION=1',
       ],
       'cflags_c': ['-std=c99'],
       'conditions': [
@@ -452,19 +430,10 @@
         }]
       ],
       'direct_dependent_settings': {
-        'conditions': [
-          ['target_arch=="wasm32"', {
-            'include_dirs': [
-              '<(icu_path)/source/common',
-              '<(icu_path)/source/tools/toolutil',
-            ],
-          }, {
-            'include_dirs': [
-              '<(icu_path)/source/common',
-              '<(icu_path)/source/i18n',
-              '<(icu_path)/source/tools/toolutil',
-            ],
-          }],
+        'include_dirs': [
+          '<(icu_path)/source/common',
+          '<(icu_path)/source/i18n',
+          '<(icu_path)/source/tools/toolutil',
         ],
         'conditions': [
           [ 'OS=="win"', {

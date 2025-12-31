@@ -1388,6 +1388,7 @@
         ['v8_target_arch=="wasm32"', {
           'sources': [
             '<(V8_ROOT)/src/heap/cppgc-js/cppgc-stubs.cc',
+            '<(V8_ROOT)/src/compiler/code-assembler-stubs-wasm32.cc',
           ],
           'sources!': [
             # Exclude all cppgc sources for wasm32 - they require platform-specific functionality

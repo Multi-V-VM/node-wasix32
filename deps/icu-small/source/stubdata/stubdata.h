@@ -36,12 +36,12 @@ typedef struct alignas(16) {
     UDataInfo info;
     char padding[8];
     uint32_t count, reserved;
-    /*
+    
     const struct {
     const char *const name;
     const void *const data;
     } toc[1];
-    */
+    
    uint64_t fakeNameAndData[2];    /* TODO:  Change this header type from */
                                    /*        pointerTOC to OffsetTOC.     */
 } ICU_Data_Header;

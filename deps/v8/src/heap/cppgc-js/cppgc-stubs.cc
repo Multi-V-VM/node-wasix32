@@ -16,6 +16,25 @@
 #include "include/v8-microtask-queue.h"
 #include "include/v8-unwinder.h"
 #include "include/v8-unwinder-state.h"
+#include "include/v8-context.h"
+#include "include/v8-snapshot.h"
+#include "include/v8-template.h"
+#include "src/compiler/linkage.h"
+#include "src/compiler/wasm-compiler-definitions.h"
+#include "src/snapshot/snapshot.h"
+#include "src/wasm/value-type.h"
+#include "src/wasm/canonical-types.h"
+#include "src/wasm/wasm-code-manager.h"
+#include "src/wasm/compilation-environment.h"
+#include "src/wasm/wasm-result.h"
+#include "src/wasm/module-instantiate.h"
+#include "src/compiler/access-builder.h"
+#include "src/compiler/wasm-call-descriptors.h"
+#include "src/compiler/wasm-compiler.h"
+#include "src/codegen/cpu-features.h"
+#include "src/codegen/optimized-compilation-info.h"
+#include "src/heap/heap.h"
+#include "include/v8-fast-api-calls.h"
 
 namespace cppgc {
 namespace internal {
@@ -101,6 +120,158 @@ RegisterState::~RegisterState() = default;
 // MicrotasksScope stubs
 void MicrotasksScope::PerformCheckpoint(Isolate* v8_isolate) {
   // No-op for WASM32
+}
+
+// Context::New stub (WASI version uses Local instead of MaybeLocal)
+Local<Context> Context::New(
+    Isolate* external_isolate, ExtensionConfiguration* extensions,
+    Local<ObjectTemplate> global_template,
+    Local<Value> global_object,
+    DeserializeInternalFieldsCallback internal_fields_deserializer,
+    MicrotaskQueue* microtask_queue,
+    DeserializeContextDataCallback context_callback_deserializer,
+    DeserializeAPIWrapperCallback api_wrapper_deserializer) {
+  // WASM32 does not support context creation
+  return Local<Context>();
+}
+
+namespace api_internal {
+// GetFunctionTemplateData stub
+V8_EXPORT Local<Value> GetFunctionTemplateData(
+    Isolate* isolate, Local<Data> raw_target) {
+  // WASM32 does not support function template data
+  return Local<Value>();
+}
+}  // namespace api_internal
+
+namespace internal {
+
+// Snapshot creation stubs
+v8::StartupData CreateSnapshotDataBlobInternal(
+    v8::SnapshotCreator::FunctionCodeHandling function_code_handling,
+    const char* embedded_source,
+    Snapshot::SerializerFlags serializer_flags) {
+  // WASM32 does not support snapshot creation
+  return v8::StartupData{nullptr, 0};
+}
+
+v8::StartupData CreateSnapshotDataBlobInternalForInspectorTest(
+    v8::SnapshotCreator::FunctionCodeHandling function_code_handling,
+    const char* embedded_source) {
+  // WASM32 does not support snapshot creation
+  return v8::StartupData{nullptr, 0};
+}
+
+namespace compiler {
+
+// CallDescriptor stubs
+int CallDescriptor::GetOffsetToReturns() const {
+  // WASM32 does not support JIT compilation
+  return 0;
+}
+
+int CallDescriptor::GetStackParameterDelta(
+    const CallDescriptor* tail_caller) const {
+  // WASM32 does not support JIT compilation
+  return 0;
+}
+
+// GetWasmCallDescriptor template stubs for WASM32
+// These must be here since wasm-compiler-definitions.cc is not linked
+template <typename T>
+CallDescriptor* GetWasmCallDescriptor(Zone* zone, const Signature<T>* signature,
+                                      WasmCallKind kind, bool need_frame_state) {
+  return nullptr;
+}
+
+// Explicit template instantiations
+template CallDescriptor* GetWasmCallDescriptor<wasm::ValueType>(
+    Zone*, const Signature<wasm::ValueType>*, WasmCallKind, bool);
+template CallDescriptor* GetWasmCallDescriptor<wasm::CanonicalValueType>(
+    Zone*, const Signature<wasm::CanonicalValueType>*, WasmCallKind, bool);
+
+// GetI32WasmCallDescriptor stub
+CallDescriptor* GetI32WasmCallDescriptor(
+    Zone* zone, const CallDescriptor* call_descriptor) {
+  // WASM32 does not support 32-bit lowering
+  return nullptr;
+}
+
+// Linkage::GetStubCallDescriptor stub
+CallDescriptor* Linkage::GetStubCallDescriptor(
+    Zone* zone, const CallInterfaceDescriptor& descriptor,
+    int stack_parameter_count, CallDescriptor::Flags flags,
+    Operator::Properties properties, StubCallMode stub_mode) {
+  // WASM32 does not support stub calls
+  return nullptr;
+}
+
+// AccessBuilder stubs
+FieldAccess AccessBuilder::ForStringLength() {
+  // WASM32 stub - return empty FieldAccess
+  return FieldAccess();
+}
+
+// WasmCallDescriptors stub
+WasmCallDescriptors::WasmCallDescriptors(AccountingAllocator* allocator) {}
+
+// Compiler function stubs
+std::unique_ptr<OptimizedCompilationJob> NewJSToWasmCompilationJob(
+    Isolate* isolate, const wasm::CanonicalSig* sig) {
+  return nullptr;
+}
+
+bool IsFastCallSupportedSignature(const v8::CFunctionInfo* sig) {
+  return false;
+}
+
+wasm::WasmCompilationResult CompileWasmCapiCallWrapper(
+    const wasm::CanonicalSig* sig) {
+  return wasm::WasmCompilationResult{};
+}
+
+wasm::WasmCompilationResult CompileWasmJSFastCallWrapper(
+    const wasm::CanonicalSig* sig,
+    DirectHandle<JSReceiver> callable) {
+  return wasm::WasmCompilationResult{};
+}
+
+wasm::WasmCompilationResult CompileWasmImportCallWrapper(
+    wasm::ImportCallKind kind, const wasm::CanonicalSig* sig,
+    bool source_positions, int expected_arity, wasm::Suspend suspend) {
+  return wasm::WasmCompilationResult{};
+}
+
+namespace turboshaft {
+wasm::WasmCompilationResult ExecuteTurboshaftWasmCompilation(
+    wasm::CompilationEnv* env, WasmCompilationData& data,
+    wasm::WasmDetectedFeatures* detected, Counters* counters) {
+  return wasm::WasmCompilationResult{};
+}
+}  // namespace turboshaft
+
+}  // namespace compiler
+
+// CodeAssembler stubs are now in src/compiler/code-assembler-stubs-wasm32.cc
+
+// CpuFeatures stub (non-inline version for linkage)
+bool CpuFeatures::SupportsWasmSimd128() {
+  return false;
+}
+
+// Heap stubs
+void Heap::AddGCEpilogueCallback(v8::Isolate::GCCallbackWithData callback,
+                                 GCType gc_type, void* data) {
+  // No-op for WASM32
+}
+
+}  // namespace internal
+
+// CFunctionInfo stubs - static CTypeInfo to return reference to
+static CTypeInfo kDummyCTypeInfo = CTypeInfo(CTypeInfo::Type::kVoid);
+
+const CTypeInfo& CFunctionInfo::ArgumentInfo(unsigned int index) const {
+  return kDummyCTypeInfo;
 }
 
 }  // namespace v8

@@ -643,7 +643,7 @@ U_NAMESPACE_END
  *----------------------------------------------------------------------*/
 #if !defined(ICU_DATA_DIR_WINDOWS)
 // When using the Windows system data, we expect only a single data file.
-extern "C" const DataHeader U_DATA_API U_ICUDATA_ENTRY_POINT;
+extern "C" const DataHeader U_DATA_API U_ICUDATA_ENTRY_POINT = {};
 #endif
 
 /*
