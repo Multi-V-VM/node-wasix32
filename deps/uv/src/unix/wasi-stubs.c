@@ -25,12 +25,18 @@
 #include "internal.h"
 #include <stdint.h>
 #include <time.h>
+#include <string.h>
 
 // Stub implementations for WASI - Only implement missing functions
 
 
 unsigned int if_nametoindex(const char *ifname) {
   return 0;
+}
+
+char* if_indextoname(unsigned int ifindex, char *ifname) {
+  // WASI doesn't support network interfaces
+  return NULL;
 }
 
 uint64_t uv__hrtime(uv_clocktype_t type) {
@@ -179,6 +185,44 @@ void freeifaddrs(struct ifaddrs *ifa) {
 char** uv_setup_args(int argc, char** argv) {
   // Return argv as-is for WASI
   return argv;
+}
+
+// Process title cleanup - internal function
+void uv__process_title_cleanup(void) {
+  // No-op for WASI
+}
+
+// Memory info stubs
+uint64_t uv_get_constrained_memory(void) {
+  // WASI doesn't support memory constraints
+  return 0;
+}
+
+uint64_t uv_get_total_memory(void) {
+  // Return a default value for WASI (256 MB)
+  return 256 * 1024 * 1024;
+}
+
+uint64_t uv_get_available_memory(void) {
+  // Return a default value for WASI
+  return 256 * 1024 * 1024;
+}
+
+// Executable path stub
+int uv_exepath(char* buffer, size_t* size) {
+  if (buffer == NULL || size == NULL || *size == 0)
+    return UV_EINVAL;
+  // Return a placeholder path for WASI
+  const char* path = "/wasi/node";
+  size_t len = strlen(path);
+  if (*size <= len) {
+    *size = len + 1;
+    return UV_ENOBUFS;
+  }
+  memcpy(buffer, path, len);
+  buffer[len] = '\0';
+  *size = len;
+  return 0;
 }
 
 #endif /* __wasi__ */

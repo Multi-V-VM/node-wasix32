@@ -8,8 +8,11 @@
 // JustVoid is now provided by v8-maybe-specialization.h
 // No additional fix needed here
 
-// Forward declarations
-struct Environment;
+// Forward declarations in node namespace
+namespace node {
+class Environment;
+class Realm;
+}  // namespace node
 
 
 // V8 Persistent handle fixes

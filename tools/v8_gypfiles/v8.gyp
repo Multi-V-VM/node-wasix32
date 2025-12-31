@@ -506,6 +506,12 @@
                  'mksnapshot_flags': ['--no-native-code-counters'],
                },
              }],
+            ['v8_target_arch=="wasm32"', {
+              # For WASM32, don't include embedded.S in outputs - we use embedded-empty.cc instead
+              'outputs!': [
+                '<(INTERMEDIATE_DIR)/embedded.S',
+              ],
+            }],
           ],
           'action': [
             '>@(_inputs)',
@@ -562,6 +568,16 @@
                 '<(INTERMEDIATE_DIR)/embedded.cc',
               ],
             },
+          ],
+        }],
+        ['v8_target_arch=="wasm32"', {
+          # For WASM32, don't use generated embedded.S (it contains native assembly)
+          # Instead use embedded-empty.cc which provides stub symbols
+          'sources!': [
+            '<(INTERMEDIATE_DIR)/embedded.S',
+          ],
+          'sources': [
+            '<(V8_ROOT)/src/snapshot/embedded/embedded-empty.cc',
           ],
         }],
       ],

@@ -14,7 +14,11 @@
 #include <memory>
 #include <cstdlib>
 
-// Include the actual V8 base headers
+// Only include V8 internal headers when compiling V8 source code itself
+// (detected by V8_BASE_EXPORT being defined from v8config.h internal usage)
+// External code including v8.h won't have these internal headers available
+#ifdef V8_EXPORT_PRIVATE
+// Include the actual V8 base headers (these paths work when V8 include paths are set up)
 #include "src/base/hashmap.h"
 #include "src/base/pointer-with-payload.h"
 #include "src/base/threaded-list.h"
@@ -33,6 +37,12 @@
 #include "src/base/template-utils.h"
 #include "src/base/platform/memory.h"
 #include "src/base/platform/wrappers.h"
+#endif  // V8_EXPORT_PRIVATE
+
+// The following type aliases and namespace bridging are only needed when
+// compiling V8 internal code where V8_EXPORT_PRIVATE is defined.
+// External code (like Node.js tests) that includes v8.h doesn't need these.
+#ifdef V8_EXPORT_PRIVATE
 
 // On some include paths these headers may be parsed while already inside a
 // `namespace v8 {}` block. In that case, qualified declarations inside the
@@ -238,6 +248,8 @@ using ::v8::base::Atomic64;
 }  // namespace base
 }  // namespace internal
 }  // namespace v8
+
+#endif  // V8_EXPORT_PRIVATE
 
 // Note: Local<> implementation has been moved to v8-data.h
 // Note: Global Address alias has been moved to v8-data.h

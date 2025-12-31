@@ -35,8 +35,22 @@
 #include "src/codegen/optimized-compilation-info.h"
 #include "src/heap/heap.h"
 #include "include/v8-fast-api-calls.h"
+#include "include/v8-exception.h"
+#include "include/cppgc/heap.h"
+#include "include/cppgc/platform.h"
+#include "include/v8-external-memory-accounter.h"
 
 namespace cppgc {
+
+// cppgc::InitializeProcess stub
+void InitializeProcess(PageAllocator* page_allocator, size_t desired_heap_size) {
+  // No-op for WASM32
+}
+
+// cppgc::ShutdownProcess stub
+void ShutdownProcess() {
+  // No-op for WASM32
+}
 namespace internal {
 
 // ProcessGlobalLock mutex - required by process-heap.h
@@ -272,6 +286,89 @@ static CTypeInfo kDummyCTypeInfo = CTypeInfo(CTypeInfo::Type::kVoid);
 
 const CTypeInfo& CFunctionInfo::ArgumentInfo(unsigned int index) const {
   return kDummyCTypeInfo;
+}
+
+// CppHeap stubs
+std::unique_ptr<CppHeap> CppHeap::Create(Platform* platform, const cppgc::HeapOptions& options) {
+  return nullptr;
+}
+
+// Context::FromSnapshot stub
+MaybeLocal<Context> Context::FromSnapshot(
+    Isolate* isolate, size_t context_snapshot_index,
+    DeserializeInternalFieldsCallback embedder_fields_deserializer,
+    ExtensionConfiguration* extensions,
+    Local<Value> global_object,
+    MicrotaskQueue* microtask_queue,
+    DeserializeContextDataCallback context_data_deserializer,
+    DeserializeAPIWrapperCallback api_wrapper_deserializer) {
+  return MaybeLocal<Context>();
+}
+
+// Exception::Error stub
+Local<Value> Exception::Error(Local<String> message, Local<Value> options) {
+  return Local<Value>();
+}
+
+// Exception::TypeError stub
+Local<Value> Exception::TypeError(Local<String> message, Local<Value> options) {
+  return Local<Value>();
+}
+
+// EscapableHandleScopeBase stubs
+EscapableHandleScopeBase::EscapableHandleScopeBase(Isolate* isolate)
+    : HandleScope(isolate) {
+  // No-op for WASM32
+}
+
+internal::Address* EscapableHandleScopeBase::EscapeSlot(internal::Address* escape_value) {
+  // WASM32 stub - just return the input
+  return escape_value;
+}
+
+// EscapableHandleScope stubs
+EscapableHandleScope::EscapableHandleScope(Isolate* isolate)
+    : EscapableHandleScopeBase(isolate) {
+  // No-op for WASM32
+}
+
+EscapableHandleScope::~EscapableHandleScope() {
+  // No-op for WASM32
+}
+
+// SealHandleScope stubs
+SealHandleScope::SealHandleScope(Isolate* isolate)
+    : i_isolate_(nullptr), prev_limit_(nullptr), prev_sealed_level_(0) {
+  // No-op for WASM32
+}
+
+SealHandleScope::~SealHandleScope() {
+  // No-op for WASM32
+}
+
+// ExternalMemoryAccounter stubs
+ExternalMemoryAccounter::~ExternalMemoryAccounter() {
+  // No-op for WASM32
+}
+
+ExternalMemoryAccounter::ExternalMemoryAccounter(ExternalMemoryAccounter&&) = default;
+ExternalMemoryAccounter& ExternalMemoryAccounter::operator=(ExternalMemoryAccounter&&) = default;
+
+void ExternalMemoryAccounter::Increase(Isolate* isolate, size_t size) {
+  // No-op for WASM32
+}
+
+void ExternalMemoryAccounter::Update(Isolate* isolate, int64_t delta) {
+  // No-op for WASM32
+}
+
+void ExternalMemoryAccounter::Decrease(Isolate* isolate, size_t size) {
+  // No-op for WASM32
+}
+
+int64_t ExternalMemoryAccounter::GetTotalAmountOfExternalAllocatedMemoryForTesting(
+    const Isolate* isolate) {
+  return 0;
 }
 
 }  // namespace v8

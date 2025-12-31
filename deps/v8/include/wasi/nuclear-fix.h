@@ -11,9 +11,10 @@
 #include <cstring>
 
 #ifdef __wasi__
-// Only include heavy base/standard headers when enabled at TU global scope by
-// the WASI prelude to avoid pulling standard headers inside a nested v8:: scope.
-#ifdef V8_WASI_STD_POLYFILLS_GLOBAL_SCOPE
+// Only include heavy base/standard headers when:
+// 1. Enabled at TU global scope by the WASI prelude
+// 2. V8's internal include paths are available (V8_EXPORT_PRIVATE is defined)
+#if defined(V8_WASI_STD_POLYFILLS_GLOBAL_SCOPE) && defined(V8_EXPORT_PRIVATE)
 // Ensure v8::base atomic types are available when this header is pulled in
 // from public headers before base headers.
 #include "src/base/atomicops.h"
@@ -23,7 +24,7 @@
 #include "src/base/platform/time.h"     // v8::base::TimeTicks/TimeDelta
 #include "src/base/vector.h"            // v8::base::Vector/EmbeddedVector
 #include "src/base/lazy-instance.h"     // v8::base::Lazy* traits
-#endif  // V8_WASI_STD_POLYFILLS_GLOBAL_SCOPE
+#endif  // V8_WASI_STD_POLYFILLS_GLOBAL_SCOPE && V8_EXPORT_PRIVATE
 
 // Provide an early, minimal definition of v8::PageAllocator so nested
 // types like ::v8::PageAllocator::Permission and the alias ::v8::PagePermissions
