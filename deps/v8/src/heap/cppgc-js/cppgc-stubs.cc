@@ -36,21 +36,32 @@
 #include "src/heap/heap.h"
 #include "include/v8-fast-api-calls.h"
 #include "include/v8-exception.h"
+#include "include/v8-message.h"
 #include "include/cppgc/heap.h"
 #include "include/cppgc/platform.h"
 #include "include/v8-external-memory-accounter.h"
+#include "include/cppgc/allocation.h"
+#include "include/cppgc/internal/gc-info.h"
+#include "src/deoptimizer/deoptimizer.h"
+#include "src/execution/v8threads.h"
+#include "src/handles/handles.h"
+#include <cstdlib>
+#include <atomic>
 
 namespace cppgc {
 
-// cppgc::InitializeProcess stub
+// cppgc::InitializeProcess stub - use weak linkage for mksnapshot compatibility
+__attribute__((weak))
 void InitializeProcess(PageAllocator* page_allocator, size_t desired_heap_size) {
   // No-op for WASM32
 }
 
 // cppgc::ShutdownProcess stub
+__attribute__((weak))
 void ShutdownProcess() {
   // No-op for WASM32
 }
+
 namespace internal {
 
 // ProcessGlobalLock mutex - required by process-heap.h
@@ -315,38 +326,39 @@ Local<Value> Exception::TypeError(Local<String> message, Local<Value> options) {
   return Local<Value>();
 }
 
-// EscapableHandleScopeBase stubs
-EscapableHandleScopeBase::EscapableHandleScopeBase(Isolate* isolate)
-    : HandleScope(isolate) {
-  // No-op for WASM32
+// Exception::RangeError stub
+Local<Value> Exception::RangeError(Local<String> message, Local<Value> options) {
+  return Local<Value>();
 }
 
-internal::Address* EscapableHandleScopeBase::EscapeSlot(internal::Address* escape_value) {
-  // WASM32 stub - just return the input
-  return escape_value;
+// Exception::CreateMessage stub
+Local<Message> Exception::CreateMessage(Isolate* isolate, Local<Value> exception) {
+  return Local<Message>();
 }
 
-// EscapableHandleScope stubs
-EscapableHandleScope::EscapableHandleScope(Isolate* isolate)
-    : EscapableHandleScopeBase(isolate) {
-  // No-op for WASM32
+// CFunctionInfo stub
+CFunctionInfo::CFunctionInfo(const CTypeInfo& return_info,
+                             unsigned int arg_count,
+                             const CTypeInfo* arg_info,
+                             Int64Representation repr)
+    : return_info_(return_info), repr_(repr), arg_count_(arg_count),
+      arg_info_(arg_info) {}
+
+// CFunction stub
+CFunction::CFunction(const void* address, const CFunctionInfo* type_info)
+    : address_(address), type_info_(type_info) {}
+
+// Object::PreviewEntries stub
+MaybeLocal<Array> Object::PreviewEntries(bool* is_key_value) {
+  if (is_key_value) *is_key_value = false;
+  return MaybeLocal<Array>();
 }
 
-EscapableHandleScope::~EscapableHandleScope() {
-  // No-op for WASM32
-}
+// Note: EscapableHandleScope, EscapableHandleScopeBase, and SealHandleScope
+// are provided by wasi/v8-handlescope-fix.h for WASI builds
 
-// SealHandleScope stubs
-SealHandleScope::SealHandleScope(Isolate* isolate)
-    : i_isolate_(nullptr), prev_limit_(nullptr), prev_sealed_level_(0) {
-  // No-op for WASM32
-}
-
-SealHandleScope::~SealHandleScope() {
-  // No-op for WASM32
-}
-
-// ExternalMemoryAccounter stubs
+// ExternalMemoryAccounter stubs - use weak linkage for mksnapshot compatibility
+__attribute__((weak))
 ExternalMemoryAccounter::~ExternalMemoryAccounter() {
   // No-op for WASM32
 }
@@ -354,15 +366,17 @@ ExternalMemoryAccounter::~ExternalMemoryAccounter() {
 ExternalMemoryAccounter::ExternalMemoryAccounter(ExternalMemoryAccounter&&) = default;
 ExternalMemoryAccounter& ExternalMemoryAccounter::operator=(ExternalMemoryAccounter&&) = default;
 
+__attribute__((weak))
 void ExternalMemoryAccounter::Increase(Isolate* isolate, size_t size) {
   // No-op for WASM32
 }
 
-void ExternalMemoryAccounter::Update(Isolate* isolate, int64_t delta) {
+__attribute__((weak))
+void ExternalMemoryAccounter::Decrease(Isolate* isolate, size_t size) {
   // No-op for WASM32
 }
 
-void ExternalMemoryAccounter::Decrease(Isolate* isolate, size_t size) {
+void ExternalMemoryAccounter::Update(Isolate* isolate, int64_t delta) {
   // No-op for WASM32
 }
 
@@ -371,6 +385,159 @@ int64_t ExternalMemoryAccounter::GetTotalAmountOfExternalAllocatedMemoryForTesti
   return 0;
 }
 
+// MicrotasksScope stubs with full signature - use weak linkage
+__attribute__((weak))
+MicrotasksScope::MicrotasksScope(Isolate* isolate, MicrotaskQueue* queue, Type type)
+    : i_isolate_(reinterpret_cast<internal::Isolate*>(isolate)),
+      microtask_queue_(reinterpret_cast<internal::MicrotaskQueue*>(queue)),
+      run_(type == kRunMicrotasks) {
+}
+
+__attribute__((weak))
+MicrotasksScope::~MicrotasksScope() {
+  // No-op for WASM32
+}
+
+namespace internal {
+
+// StrongRootAllocatorBase stubs - use weak linkage
+__attribute__((weak))
+Address* StrongRootAllocatorBase::allocate_impl(size_t n) {
+  // Return a valid pointer for WASM32 - use malloc
+  return static_cast<Address*>(malloc(n * sizeof(Address)));
+}
+
+__attribute__((weak))
+void StrongRootAllocatorBase::deallocate_impl(Address* p, size_t n) noexcept {
+  // Free the allocated memory
+  free(p);
+}
+
+// Function callback stubs - use weak linkage
+__attribute__((weak))
+void InvokeFunctionCallbackGeneric(const FunctionCallbackInfo<Value>& info) {
+  // No-op for WASM32
+}
+
+__attribute__((weak))
+void InvokeFunctionCallbackOptimized(const FunctionCallbackInfo<Value>& info) {
+  // No-op for WASM32
+}
+
+__attribute__((weak))
+void InvokeAccessorGetterCallback(v8::Local<v8::Name> property,
+                                   const v8::PropertyCallbackInfo<v8::Value>& info) {
+  // No-op for WASM32
+}
+
+// Deoptimizer stub - use weak linkage
+__attribute__((weak))
+void Deoptimizer::PatchToJump(Address pc, Address target) {
+  // No-op for WASM32 - no JIT
+}
+
+// HandleScopeImplementer stub - use weak linkage
+__attribute__((weak))
+char* HandleScopeImplementer::ArchiveThread(char* storage) {
+  return storage + ArchiveSpacePerThread();
+}
+
+__attribute__((weak))
+char* HandleScopeImplementer::RestoreThread(char* storage) {
+  return storage + ArchiveSpacePerThread();
+}
+
+__attribute__((weak))
+void HandleScopeImplementer::FreeThreadResources() {
+  // No-op for WASM32
+}
+
+}  // namespace internal
+
+namespace base {
+
+// OS::AdjustSchedulingParams stub - use weak linkage
+__attribute__((weak))
+void OS::AdjustSchedulingParams() {
+  // No-op for WASM32
+}
+
+}  // namespace base
+
 }  // namespace v8
+
+// cppgc stubs
+namespace cppgc {
+
+__attribute__((weak))
+bool IsInitialized() {
+  return false;
+}
+
+namespace internal {
+
+// EnsureGCInfoIndexTrait stub - use weak linkage
+__attribute__((weak))
+unsigned short EnsureGCInfoIndexTrait::EnsureGCInfoIndex(
+    std::atomic<unsigned short>& registered_index,
+    void (*trace)(Visitor*, const void*)) {
+  return 0;
+}
+
+// MakeGarbageCollectedTraitInternal stub - use weak linkage
+__attribute__((weak))
+void* MakeGarbageCollectedTraitInternal::Allocate(
+    AllocationHandle& handle,
+    size_t size,
+    unsigned short gc_info_index,
+    size_t alignment) {
+  // Return nullptr - GC not supported in WASM32
+  return nullptr;
+}
+
+}  // namespace internal
+}  // namespace cppgc
+
+// GlobalGCInfoTable static member stub - needed by concurrent-marking.o and mark-compact.o
+// Include the header that declares the class and just define the static member
+#include "src/heap/cppgc/gc-info-table.h"
+
+namespace cppgc {
+namespace internal {
+__attribute__((weak))
+GCInfoTable* GlobalGCInfoTable::global_table_ = nullptr;
+}  // namespace internal
+}  // namespace cppgc
+
+// CppHeap WriteBarrier stub
+namespace v8 {
+namespace internal {
+
+__attribute__((weak))
+void CppHeap::WriteBarrier(void* object) {
+  // No-op for WASM32
+}
+
+}  // namespace internal
+}  // namespace v8
+
+// EscapableHandleScope stubs - these are needed for V8 inspector code
+// For V8 source builds with V8_EXPORT_PRIVATE, we need explicit implementations
+// Include the handlescope-fix header to get class declarations
+#include "include/wasi/v8-handlescope-fix.h"
+
+// EscapableHandleScopeBase constructor implementation
+__attribute__((weak))
+v8::EscapableHandleScopeBase::EscapableHandleScopeBase(v8::Isolate* isolate) {
+  Initialize(isolate);
+  escape_slot_ = nullptr;
+}
+
+// EscapableHandleScope constructor implementation
+__attribute__((weak))
+v8::EscapableHandleScope::EscapableHandleScope(v8::Isolate* isolate)
+    : EscapableHandleScopeBase(isolate) {
+  // No-op for WASM32
+}
 
 #endif  // V8_TARGET_ARCH_WASM32

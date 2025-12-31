@@ -13,9 +13,9 @@ TEST(Base64Test, Encode) {
     const size_t slen = strlen(string);
     char* const buffer = new char[len + 1];
     buffer[len] = 0;
-    CHECK(len >= simdutf::base64_length_from_binary(slen) &&
+    CHECK(len >= simdutf::base64_length_from_binary(slen, simdutf::base64_default) &&
           "not enough space provided for base64 encode");
-    simdutf::binary_to_base64(string, slen, buffer);
+    simdutf::binary_to_base64(string, slen, buffer, simdutf::base64_default);
     EXPECT_STREQ(base64_string, buffer);
     delete[] buffer;
   };

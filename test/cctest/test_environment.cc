@@ -593,6 +593,7 @@ TEST_F(EnvironmentTest, ExitHandlerTest) {
   EXPECT_EQ(callback_calls, 1);
 }
 
+#ifndef __wasi__  // WASI doesn't support EnqueueMicrotask
 TEST_F(EnvironmentTest, SetImmediateMicrotasks) {
   int called = 0;
 
@@ -618,6 +619,7 @@ TEST_F(EnvironmentTest, SetImmediateMicrotasks) {
 
   EXPECT_EQ(called, 1);
 }
+#endif  // __wasi__
 
 #ifndef _WIN32  // No SIGINT on Windows.
 TEST_F(NodeZeroIsolateTestFixture, CtrlCWithOnlySafeTerminationTest) {
@@ -681,6 +683,7 @@ TEST_F(NodeZeroIsolateTestFixture, CtrlCWithOnlySafeTerminationTest) {
 }
 #endif  // _WIN32
 
+#ifndef __wasi__  // WASI doesn't support PerformMicrotaskCheckpoint
 TEST_F(EnvironmentTest, NestedMicrotaskQueue) {
   const v8::HandleScope handle_scope(isolate_);
   const Argv argv;
@@ -754,6 +757,7 @@ TEST_F(EnvironmentTest, NestedMicrotaskQueue) {
 
   node::FreeEnvironment(env);
 }
+#endif  // __wasi__
 
 static bool interrupted = false;
 static void OnInterrupt(void* arg) {

@@ -225,4 +225,26 @@ int uv_exepath(char* buffer, size_t* size) {
   return 0;
 }
 
+// Free memory stub
+uint64_t uv_get_free_memory(void) {
+  // Return a reasonable default for WASI
+  return 128 * 1024 * 1024;  // 128 MB
+}
+
+// Resident set memory stub
+int uv_resident_set_memory(size_t* rss) {
+  if (rss != NULL) {
+    *rss = 64 * 1024 * 1024;  // 64 MB default
+  }
+  return 0;
+}
+
+// Process title stubs
+int uv_get_process_title(char* buffer, size_t size) {
+  if (buffer == NULL || size == 0)
+    return UV_EINVAL;
+  buffer[0] = '\0';
+  return 0;
+}
+
 #endif /* __wasi__ */
