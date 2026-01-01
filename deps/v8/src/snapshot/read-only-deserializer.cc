@@ -129,6 +129,11 @@ class ReadOnlyHeapImageDeserializer final {
 
   void DeserializeReadOnlyRootsTable() {
     ReadOnlyRoots roots(isolate_);
+#ifdef __wasi__
+    fprintf(stderr, "DeserializeReadOnlyRootsTable: read_only_roots_=%p, kEntriesCount=%zu\n",
+            (void*)roots.read_only_roots_, ReadOnlyRoots::kEntriesCount);
+    fflush(stderr);
+#endif
     if (V8_STATIC_ROOTS_BOOL) {
       roots.InitFromStaticRootsTable(isolate_->cage_base());
     } else {
@@ -136,8 +141,19 @@ class ReadOnlyHeapImageDeserializer final {
         uint32_t encoded_as_int = source_->GetUint32();
         Address rudolf = Decode(ro::EncodedTagged::FromUint32(encoded_as_int));
         roots.read_only_roots_[i] = rudolf + kHeapObjectTag;
+#ifdef __wasi__
+        if (i < 5 || i == 246) {  // HashSeed is at index 246 in roots list
+          fprintf(stderr, "  root[%zu] = 0x%lx (encoded=0x%x, decoded=0x%lx)\n",
+                  i, (unsigned long)roots.read_only_roots_[i],
+                  encoded_as_int, (unsigned long)rudolf);
+        }
+#endif
       }
     }
+#ifdef __wasi__
+    fprintf(stderr, "DeserializeReadOnlyRootsTable: Done\n");
+    fflush(stderr);
+#endif
   }
 
   ReadOnlySpace* ro_space() const {

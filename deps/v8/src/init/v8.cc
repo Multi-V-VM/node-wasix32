@@ -180,7 +180,9 @@ void V8::Initialize() {
 
   if (v8_flags.random_seed) {
     GetPlatformPageAllocator()->SetRandomMmapSeed(v8_flags.random_seed);
+#ifndef __wasi__
     GetPlatformVirtualAddressSpace()->SetRandomSeed(v8_flags.random_seed);
+#endif
   }
 
   if (v8_flags.print_flag_values) FlagList::PrintValues();

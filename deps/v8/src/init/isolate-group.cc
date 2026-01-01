@@ -149,9 +149,9 @@ void IsolateGroup::Initialize(bool process_wide, Sandbox* sandbox) {
       std::make_unique<OptimizingCompileTaskExecutor>();
   page_pool_ = std::make_unique<PagePool>();
 
-#ifdef V8_ENABLE_LEAPTIERING
+#if defined(V8_ENABLE_LEAPTIERING) && !defined(__wasi__)
   js_dispatch_table()->Initialize();
-#endif  // V8_ENABLE_LEAPTIERING
+#endif  // V8_ENABLE_LEAPTIERING && !__wasi__
 }
 #elif defined(V8_COMPRESS_POINTERS)
 void IsolateGroup::Initialize(bool process_wide) {
@@ -170,9 +170,9 @@ void IsolateGroup::Initialize(bool process_wide) {
   optimizing_compile_task_executor_ =
       std::make_unique<OptimizingCompileTaskExecutor>();
   page_pool_ = std::make_unique<PagePool>();
-#ifdef V8_ENABLE_LEAPTIERING
+#if defined(V8_ENABLE_LEAPTIERING) && !defined(__wasi__)
   js_dispatch_table()->Initialize();
-#endif  // V8_ENABLE_LEAPTIERING
+#endif  // V8_ENABLE_LEAPTIERING && !__wasi__
 }
 #else   // !V8_COMPRESS_POINTERS
 void IsolateGroup::Initialize(bool process_wide) {
@@ -181,9 +181,9 @@ void IsolateGroup::Initialize(bool process_wide) {
   optimizing_compile_task_executor_ =
       std::make_unique<OptimizingCompileTaskExecutor>();
   page_pool_ = std::make_unique<PagePool>();
-#ifdef V8_ENABLE_LEAPTIERING
+#if defined(V8_ENABLE_LEAPTIERING) && !defined(__wasi__)
   js_dispatch_table()->Initialize();
-#endif  // V8_ENABLE_LEAPTIERING
+#endif  // V8_ENABLE_LEAPTIERING && !__wasi__
 }
 #endif  // V8_ENABLE_SANDBOX
 

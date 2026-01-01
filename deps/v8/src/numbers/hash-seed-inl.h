@@ -44,7 +44,17 @@ inline uint64_t HashSeed(LocalIsolate* isolate) {
 
 inline uint64_t HashSeed(ReadOnlyRoots roots) {
   uint64_t seed;
+#ifdef __wasi__
+  // Debug output for WASI
+  Tagged<ByteArray> hash_seed_array = roots.hash_seed();
+  fprintf(stderr, "HashSeed: hash_seed_array ptr=%p\n", (void*)hash_seed_array.ptr());
+  uint8_t* begin_ptr = hash_seed_array->begin();
+  fprintf(stderr, "HashSeed: begin_ptr=%p\n", (void*)begin_ptr);
+  fflush(stderr);
+  MemCopy(&seed, begin_ptr, sizeof(seed));
+#else
   MemCopy(&seed, roots.hash_seed()->begin(), sizeof(seed));
+#endif
   return seed;
 }
 

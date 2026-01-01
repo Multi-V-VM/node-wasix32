@@ -114,7 +114,16 @@ __attribute__((weak)) int EVP_DigestInit_ex(void* ctx, void* type, void* impl) {
 __attribute__((weak)) int EVP_DigestUpdate(void* ctx, const void* d, size_t cnt) { return 0; }
 __attribute__((weak)) int EVP_DigestFinal_ex(void* ctx, unsigned char* md, unsigned int* s) { return 0; }
 
-__attribute__((weak)) void* RAND_bytes(unsigned char* buf, int num) { return nullptr; }
+__attribute__((weak)) int RAND_bytes(unsigned char* buf, int num) {
+  // Fill with pseudo-random bytes using a simple PRNG for WASI
+  // This is NOT cryptographically secure, just for basic functionality
+  static unsigned int seed = 12345;
+  for (int i = 0; i < num; i++) {
+    seed = seed * 1103515245 + 12345;
+    buf[i] = (unsigned char)(seed >> 16);
+  }
+  return 1;  // Success
+}
 __attribute__((weak)) void RAND_seed(const void* buf, int num) {}
 
 __attribute__((weak)) void OPENSSL_cleanse(void* ptr, size_t len) { if (ptr) memset(ptr, 0, len); }
@@ -424,7 +433,15 @@ __attribute__((weak)) int BN_lshift(void* r, void* a, int n) { return 0; }
 
 // RAND stubs
 __attribute__((weak)) int RAND_status(void) { return 1; }
-__attribute__((weak)) int RAND_bytes_ex(void* ctx, unsigned char* buf, size_t num, unsigned int strength) { return 0; }
+__attribute__((weak)) int RAND_bytes_ex(void* ctx, unsigned char* buf, size_t num, unsigned int strength) {
+  // Fill with pseudo-random bytes for WASI
+  static unsigned int seed = 67890;
+  for (size_t i = 0; i < num; i++) {
+    seed = seed * 1103515245 + 12345;
+    buf[i] = (unsigned char)(seed >> 16);
+  }
+  return 1;  // Success
+}
 __attribute__((weak)) int RAND_poll(void) { return 1; }
 
 // NETSCAPE_SPKI stubs
@@ -1104,7 +1121,15 @@ __attribute__((weak)) int PEM_write_bio_PKCS8PrivateKey(void* bp, void* x, void*
 __attribute__((weak)) int PEM_write_bio_RSAPublicKey(void* bp, void* rsa) { return 0; }
 
 // RAND additional stubs
-__attribute__((weak)) int RAND_priv_bytes_ex(void* ctx, unsigned char* buf, size_t num, unsigned int strength) { return 0; }
+__attribute__((weak)) int RAND_priv_bytes_ex(void* ctx, unsigned char* buf, size_t num, unsigned int strength) {
+  // Fill with pseudo-random bytes for WASI
+  static unsigned int seed = 54321;
+  for (size_t i = 0; i < num; i++) {
+    seed = seed * 1103515245 + 12345;
+    buf[i] = (unsigned char)(seed >> 16);
+  }
+  return 1;  // Success
+}
 
 // RSA additional stubs
 __attribute__((weak)) void RSA_get0_crt_params(void* r, const void** dmp1, const void** dmq1, const void** iqmp) {}

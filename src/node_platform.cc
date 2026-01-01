@@ -1,6 +1,7 @@
 #ifdef __wasi__
 #include "../wasi-node-compat.h"
 #include "../wasi-v8-api-additions.h"
+#include <cstdlib>  // aligned_alloc, free
 #endif
 #include "node_internals.h"
 #include "node_platform.h"
@@ -10,6 +11,83 @@
 #include <memory>     // unique_ptr(), shared_ptr(), make_shared()
 #include "debug_utils-inl.h"
 #include "env-inl.h"
+
+#ifdef __wasi__
+// WASI-specific page allocator implementation
+class WasiPageAllocator : public v8::PageAllocator {
+ public:
+  WasiPageAllocator() = default;
+  ~WasiPageAllocator() override = default;
+
+  size_t AllocatePageSize() override { return 4096; }
+  size_t CommitPageSize() override { return 4096; }
+
+  void SetRandomMmapSeed(int64_t seed) override {
+    // No-op for WASI
+  }
+
+  void* GetRandomMmapAddr() override {
+    return nullptr;
+  }
+
+  void* AllocatePages(void* address, size_t length, size_t alignment,
+                      Permission access) override {
+    // WASI uses aligned_alloc for memory allocation
+    // C11 requires size to be a multiple of alignment for aligned_alloc
+    size_t aligned_length = (length + alignment - 1) & ~(alignment - 1);
+    void* result = std::aligned_alloc(alignment, aligned_length);
+    if (result) {
+      memset(result, 0, aligned_length);
+    }
+    return result;
+  }
+
+  bool FreePages(void* address, size_t length) override {
+    if (address) {
+      std::free(address);
+      return true;
+    }
+    return false;
+  }
+
+  bool ReleasePages(void* address, size_t length, size_t new_length) override {
+    // No-op for WASI - we can't partially release memory
+    return true;
+  }
+
+  bool SetPermissions(void* address, size_t length,
+                      Permission access) override {
+    // No-op for WASI - permissions not supported
+    return true;
+  }
+
+  bool RecommitPages(void* address, size_t length,
+                     Permission access) override {
+    // No-op for WASI
+    return true;
+  }
+
+  bool DecommitPages(void* address, size_t length) override {
+    // No-op for WASI
+    return true;
+  }
+
+  bool DiscardSystemPages(void* address, size_t size) override {
+    // No-op for WASI
+    return true;
+  }
+
+  bool SealPages(void* address, size_t size) override {
+    // No-op for WASI
+    return true;
+  }
+};
+
+static WasiPageAllocator* GetWasiPageAllocator() {
+  static WasiPageAllocator allocator;
+  return &allocator;
+}
+#endif  // __wasi__
 
 namespace node {
 
@@ -858,6 +936,12 @@ std::unique_ptr<v8::JobHandle> NodePlatform::PostJob(
 }
 
 v8::PageAllocator* NodePlatform::GetPageAllocator() {
+#ifdef __wasi__
+  // For WASI, always use our custom page allocator
+  if (page_allocator_ == nullptr) {
+    return GetWasiPageAllocator();
+  }
+#endif
   return page_allocator_;
 }
 

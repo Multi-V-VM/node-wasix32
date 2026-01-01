@@ -19,6 +19,306 @@
  * IN THE SOFTWARE.
  */
 
+/* WASI threading causes indirect call type mismatches due to function pointer
+ * signature differences. Use stubs from wasi-stubs.c instead. */
+#ifdef __wasi__
+
+#include "uv.h"
+#include "internal.h"
+#include <pthread.h>
+#include <stdlib.h>
+#include <stdint.h>
+#include <errno.h>
+#include <time.h>
+
+/* WASI thread wrapper to fix function pointer signature mismatch.
+ * libuv uses void (*)(void*) but pthread expects void* (*)(void*).
+ * In WASM, function signatures must match exactly or we get
+ * "indirect call type mismatch" errors.
+ */
+struct uv__wasi_thread_data {
+  void (*entry)(void*);
+  void* arg;
+};
+
+static void* uv__wasi_thread_wrapper(void* data) {
+  struct uv__wasi_thread_data* wrapper = (struct uv__wasi_thread_data*)data;
+  void (*entry)(void*) = wrapper->entry;
+  void* arg = wrapper->arg;
+  free(wrapper);
+  entry(arg);
+  return NULL;
+}
+
+int uv_thread_create(uv_thread_t *tid, void (*entry)(void *arg), void *arg) {
+  uv_thread_options_t params;
+  params.flags = UV_THREAD_NO_FLAGS;
+  return uv_thread_create_ex(tid, &params, entry, arg);
+}
+
+int uv_thread_create_ex(uv_thread_t* tid,
+                        const uv_thread_options_t* params,
+                        void (*entry)(void *arg),
+                        void *arg) {
+  struct uv__wasi_thread_data* wrapper;
+  pthread_attr_t attr;
+  pthread_attr_t* pattr;
+  size_t stack_size;
+  int err;
+
+  wrapper = (struct uv__wasi_thread_data*)malloc(sizeof(*wrapper));
+  if (wrapper == NULL)
+    return UV_ENOMEM;
+
+  wrapper->entry = entry;
+  wrapper->arg = arg;
+
+  pattr = NULL;
+  stack_size = params->flags & UV_THREAD_HAS_STACK_SIZE ? params->stack_size : 0;
+
+  if (stack_size > 0) {
+    pattr = &attr;
+    if (pthread_attr_init(&attr)) {
+      free(wrapper);
+      return UV_ENOMEM;
+    }
+    if (pthread_attr_setstacksize(&attr, stack_size)) {
+      pthread_attr_destroy(&attr);
+      free(wrapper);
+      return UV_EINVAL;
+    }
+  }
+
+  /* Use the wrapper function which has correct pthread signature */
+  err = pthread_create(tid, pattr, uv__wasi_thread_wrapper, wrapper);
+
+  if (pattr != NULL)
+    pthread_attr_destroy(&attr);
+
+  if (err != 0) {
+    free(wrapper);
+    return UV__ERR(err);
+  }
+
+  return 0;
+}
+
+int uv_thread_detach(uv_thread_t *tid) {
+  return UV__ERR(pthread_detach(*tid));
+}
+
+int uv_thread_join(uv_thread_t *tid) {
+  return UV__ERR(pthread_join(*tid, NULL));
+}
+
+int uv_thread_equal(const uv_thread_t* t1, const uv_thread_t* t2) {
+  return pthread_equal(*t1, *t2);
+}
+
+uv_thread_t uv_thread_self(void) {
+  return pthread_self();
+}
+
+size_t uv__thread_stack_size(void) {
+  return 0;
+}
+
+int uv_thread_setname(const char* name) {
+  return 0;  /* pthread_setname_np not available in WASI */
+}
+
+int uv__thread_setname(const char* name) {
+  return 0;
+}
+
+/* Mutex - use real pthread mutex */
+int uv_mutex_init(uv_mutex_t* mutex) {
+  return UV__ERR(pthread_mutex_init(mutex, NULL));
+}
+
+int uv_mutex_init_recursive(uv_mutex_t* mutex) {
+  pthread_mutexattr_t attr;
+  int err;
+
+  if (pthread_mutexattr_init(&attr))
+    return UV_ENOMEM;
+
+  if (pthread_mutexattr_settype(&attr, PTHREAD_MUTEX_RECURSIVE)) {
+    pthread_mutexattr_destroy(&attr);
+    return UV_EINVAL;
+  }
+
+  err = pthread_mutex_init(mutex, &attr);
+  pthread_mutexattr_destroy(&attr);
+  return UV__ERR(err);
+}
+
+void uv_mutex_destroy(uv_mutex_t* mutex) {
+  pthread_mutex_destroy(mutex);
+}
+
+void uv_mutex_lock(uv_mutex_t* mutex) {
+  pthread_mutex_lock(mutex);
+}
+
+int uv_mutex_trylock(uv_mutex_t* mutex) {
+  int err = pthread_mutex_trylock(mutex);
+  if (err) {
+    if (err == EBUSY || err == EAGAIN)
+      return UV_EBUSY;
+    return UV__ERR(err);
+  }
+  return 0;
+}
+
+void uv_mutex_unlock(uv_mutex_t* mutex) {
+  pthread_mutex_unlock(mutex);
+}
+
+/* Read-write lock - use real pthread rwlock */
+int uv_rwlock_init(uv_rwlock_t* rwlock) {
+  return UV__ERR(pthread_rwlock_init(rwlock, NULL));
+}
+
+void uv_rwlock_destroy(uv_rwlock_t* rwlock) {
+  pthread_rwlock_destroy(rwlock);
+}
+
+void uv_rwlock_rdlock(uv_rwlock_t* rwlock) {
+  pthread_rwlock_rdlock(rwlock);
+}
+
+int uv_rwlock_tryrdlock(uv_rwlock_t* rwlock) {
+  int err = pthread_rwlock_tryrdlock(rwlock);
+  if (err) {
+    if (err == EBUSY || err == EAGAIN)
+      return UV_EBUSY;
+    return UV__ERR(err);
+  }
+  return 0;
+}
+
+void uv_rwlock_rdunlock(uv_rwlock_t* rwlock) {
+  pthread_rwlock_unlock(rwlock);
+}
+
+void uv_rwlock_wrlock(uv_rwlock_t* rwlock) {
+  pthread_rwlock_wrlock(rwlock);
+}
+
+int uv_rwlock_trywrlock(uv_rwlock_t* rwlock) {
+  int err = pthread_rwlock_trywrlock(rwlock);
+  if (err) {
+    if (err == EBUSY || err == EAGAIN)
+      return UV_EBUSY;
+    return UV__ERR(err);
+  }
+  return 0;
+}
+
+void uv_rwlock_wrunlock(uv_rwlock_t* rwlock) {
+  pthread_rwlock_unlock(rwlock);
+}
+
+/* Semaphore - WASI SDK has native sem_t support */
+#include <semaphore.h>
+
+int uv_sem_init(uv_sem_t* sem, unsigned int value) {
+  if (sem_init(sem, 0, value))
+    return UV__ERR(errno);
+  return 0;
+}
+
+void uv_sem_destroy(uv_sem_t* sem) {
+  sem_destroy(sem);
+}
+
+void uv_sem_post(uv_sem_t* sem) {
+  sem_post(sem);
+}
+
+void uv_sem_wait(uv_sem_t* sem) {
+  int r;
+  do
+    r = sem_wait(sem);
+  while (r == -1 && errno == EINTR);
+}
+
+int uv_sem_trywait(uv_sem_t* sem) {
+  int r;
+  do
+    r = sem_trywait(sem);
+  while (r == -1 && errno == EINTR);
+
+  if (r) {
+    if (errno == EAGAIN)
+      return UV_EAGAIN;
+    return UV__ERR(errno);
+  }
+  return 0;
+}
+
+/* Condition variable - use real pthread cond */
+int uv_cond_init(uv_cond_t* cond) {
+  return UV__ERR(pthread_cond_init(cond, NULL));
+}
+
+void uv_cond_destroy(uv_cond_t* cond) {
+  pthread_cond_destroy(cond);
+}
+
+void uv_cond_signal(uv_cond_t* cond) {
+  pthread_cond_signal(cond);
+}
+
+void uv_cond_broadcast(uv_cond_t* cond) {
+  pthread_cond_broadcast(cond);
+}
+
+void uv_cond_wait(uv_cond_t* cond, uv_mutex_t* mutex) {
+  pthread_cond_wait(cond, mutex);
+}
+
+int uv_cond_timedwait(uv_cond_t* cond, uv_mutex_t* mutex, uint64_t timeout) {
+  struct timespec ts;
+  int err;
+
+  timeout += uv__hrtime(UV_CLOCK_PRECISE);
+  ts.tv_sec = timeout / 1000000000;
+  ts.tv_nsec = timeout % 1000000000;
+
+  err = pthread_cond_timedwait(cond, mutex, &ts);
+  if (err == 0)
+    return 0;
+  if (err == ETIMEDOUT)
+    return UV_ETIMEDOUT;
+  return UV__ERR(err);
+}
+
+/* Once - use pthread_once */
+void uv_once(uv_once_t* guard, void (*callback)(void)) {
+  pthread_once(guard, callback);
+}
+
+/* Key (TLS) - use pthread key */
+int uv_key_create(uv_key_t* key) {
+  return UV__ERR(pthread_key_create(key, NULL));
+}
+
+void uv_key_delete(uv_key_t* key) {
+  pthread_key_delete(*key);
+}
+
+void* uv_key_get(uv_key_t* key) {
+  return pthread_getspecific(*key);
+}
+
+void uv_key_set(uv_key_t* key, void* value) {
+  pthread_setspecific(*key, value);
+}
+
+#else  /* !__wasi__ */
+
 #include "uv.h"
 #include "internal.h"
 
@@ -986,3 +1286,5 @@ int uv__thread_getname(uv_thread_t* tid, char* name, size_t size) {
   return 0;
 }
 #endif
+
+#endif  /* \!__wasi__ */

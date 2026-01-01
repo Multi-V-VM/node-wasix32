@@ -2116,7 +2116,9 @@ void WasmEngine::InitializeOncePerProcess() {
   }
 #endif  // V8_ENABLE_DRUMBRAKE
 
+#ifndef __wasi__
   GetProcessWideWasmCodePointerTable()->Initialize();
+#endif  // !__wasi__
 }
 
 // static
@@ -2133,7 +2135,9 @@ void WasmEngine::GlobalTearDown() {
   delete global_wasm_state;
   global_wasm_state = nullptr;
 
+#ifndef __wasi__
   GetProcessWideWasmCodePointerTable()->TearDown();
+#endif  // !__wasi__
 }
 
 WasmEngine* GetWasmEngine() {

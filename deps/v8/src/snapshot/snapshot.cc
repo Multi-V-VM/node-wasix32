@@ -174,8 +174,16 @@ bool Snapshot::VersionIsValid(const v8::StartupData* data) {
 }
 
 bool Snapshot::Initialize(Isolate* isolate) {
+#ifdef __wasi__
+  fprintf(stderr, "Snapshot::Initialize: snapshot_available=%d\n", isolate->snapshot_available());
+  fflush(stderr);
+#endif
   if (!isolate->snapshot_available()) return false;
 
+#ifdef __wasi__
+  fprintf(stderr, "Snapshot::Initialize: Loading snapshot\n");
+  fflush(stderr);
+#endif
   const v8::StartupData* blob = isolate->snapshot_blob();
   SnapshotImpl::CheckVersion(blob);
   if (Snapshot::ShouldVerifyChecksum(blob)) {

@@ -10093,8 +10093,20 @@ void Isolate::Initialize(Isolate* v8_isolate,
   }
   if (params.snapshot_blob != nullptr) {
     i_isolate->set_snapshot_blob(params.snapshot_blob);
+#ifdef __wasi__
+    fprintf(stderr, "api.cc: Using provided snapshot_blob data=%p size=%d\n",
+            (void*)params.snapshot_blob->data, params.snapshot_blob->raw_size);
+    fflush(stderr);
+#endif
   } else {
-    i_isolate->set_snapshot_blob(i::Snapshot::DefaultSnapshotBlob());
+    auto default_blob = i::Snapshot::DefaultSnapshotBlob();
+#ifdef __wasi__
+    fprintf(stderr, "api.cc: DefaultSnapshotBlob() returned data=%p size=%d\n",
+            default_blob ? (void*)default_blob->data : nullptr,
+            default_blob ? default_blob->raw_size : 0);
+    fflush(stderr);
+#endif
+    i_isolate->set_snapshot_blob(default_blob);
   }
 
   if (params.fatal_error_callback) {
