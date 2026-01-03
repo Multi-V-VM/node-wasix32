@@ -1,7 +1,7 @@
 #ifndef SRC_MEMORY_TRACKER_H_
 #define SRC_MEMORY_TRACKER_H_
 
-#ifdef __wasi__
+#if defined(__wasi__) || defined(V8_TARGET_ARCH_WASM32) || defined(V8_USING_WASI_SHIMS)
 // WASI stub for memory_tracker.h
 #include <cstddef>
 #include "v8-forward.h"  // For LocalVector
@@ -69,7 +69,7 @@ public:
 
 }  // namespace node
 
-#else  // __wasi__
+#else  // WASI/WASM32 stubs
 
 #include "v8-profiler.h"
 

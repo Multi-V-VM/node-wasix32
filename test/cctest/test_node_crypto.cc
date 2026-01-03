@@ -3,6 +3,8 @@
 #define NODE_OPENSSL_SYSTEM_CERT_PATH "/missing/ca.pem"
 
 #include "crypto/crypto_context.h"
+#include "env-inl.h"
+#include "base_object-inl.h"
 #include "node_options.h"
 #include "openssl/err.h"
 #include "gtest/gtest.h"

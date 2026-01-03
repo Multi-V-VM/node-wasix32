@@ -1007,8 +1007,8 @@ using IndirectPointerHandle = uint32_t;
 #if !(defined(__wasi__) || defined(V8_USING_WASI_SHIMS))
 #if V8_TARGET_ARCH_64_BIT
 // On 64-bit systems with 8-byte tagged values
-constexpr int kSmiValueSize = 31;  // 31-bit values for proper Smi tagging
-constexpr int kSmiShiftSize = 32;  // Shift to upper 32 bits
+constexpr int kSmiValueSize = 32;  // 32-bit Smi values on 64-bit
+constexpr int kSmiShiftSize = 31;  // Shift amount: 64 - 32 - 1 = 31
 constexpr int kSmiTagSize = 1;     // 1 bit for tag
 #else
 // On 32-bit systems with 4-byte tagged values (including WASM32)

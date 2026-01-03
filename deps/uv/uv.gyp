@@ -337,6 +337,14 @@
                     },
                 ],
                 [
+                    '(OS=="linux" or OS=="openharmony") and target_arch=="wasm32" and _toolset!="host"',
+                    {
+                        "defines": [
+                            "UV_WASI_STUBS",
+                        ],
+                    },
+                ],
+                [
                     'OS=="android"',
                     {
                         "defines": [

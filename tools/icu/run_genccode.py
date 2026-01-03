@@ -93,7 +93,11 @@ def _derive_output_path(args: Iterable[str]) -> Path:
         candidate = Path(inputs[-1]).name
         output_base = Path(candidate).stem + '_dat'
 
-    output = destdir / f"{output_base}.S"
+    # Determine extension based on whether -a option is present
+    # If no -a option, genccode produces .c output; with -a it produces .S
+    has_asm_option = any(arg in ('-a', '--assembly') for arg in args)
+    ext = '.S' if has_asm_option else '.c'
+    output = destdir / f"{output_base}{ext}"
     return output
 
 
@@ -116,7 +120,9 @@ def main(argv: list[str]) -> int:
     if result.returncode != 0:
         return result.returncode
 
-    _reflow_long_lines(output_path)
+    # Only reflow assembly files - C files don't need it
+    if output_path.suffix == '.S':
+        _reflow_long_lines(output_path)
     return 0
 
 

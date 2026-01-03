@@ -9,6 +9,7 @@
 
 #include <algorithm>  // For min
 #include <cmath>      // For isnan.
+#include <cstdio>     // For fprintf
 #include <limits>
 #include <optional>
 #include <sstream>
@@ -10056,6 +10057,15 @@ bool Isolate::IsCurrent() const {
   return reinterpret_cast<const i::Isolate*>(this)->IsCurrent();
 }
 
+#ifdef __wasi__
+// WASI: Use internal IsolateGroup API directly, bypassing public v8::IsolateGroup
+// static
+Isolate* Isolate::Allocate() {
+  // Use the internal IsolateGroup::AcquireDefault() directly
+  i::IsolateGroup* isolate_group = i::IsolateGroup::AcquireDefault();
+  return reinterpret_cast<Isolate*>(i::Isolate::New(isolate_group));
+}
+#else
 // static
 Isolate* Isolate::Allocate() {
   return Isolate::Allocate(IsolateGroup::GetDefault());
@@ -10071,6 +10081,7 @@ IsolateGroup Isolate::GetGroup() const {
   const i::Isolate* i_isolate = reinterpret_cast<const i::Isolate*>(this);
   return IsolateGroup(i_isolate->isolate_group()->Acquire());
 }
+#endif  // __wasi__
 
 Isolate::CreateParams::CreateParams() = default;
 
@@ -10080,6 +10091,9 @@ Isolate::CreateParams::~CreateParams() = default;
 // This is separate so that tests can provide a different |isolate|.
 void Isolate::Initialize(Isolate* v8_isolate,
                          const v8::Isolate::CreateParams& params) {
+  // Unconditional debug for WASI troubleshooting
+  fprintf(stderr, "api.cc: Isolate::Initialize() called\n");
+  fflush(stderr);
   i::Isolate* i_isolate = reinterpret_cast<i::Isolate*>(v8_isolate);
   TRACE_EVENT_CALL_STATS_SCOPED(i_isolate, "v8", "V8.IsolateInitialize");
   if (auto allocator = params.array_buffer_allocator_shared) {
@@ -10100,12 +10114,6 @@ void Isolate::Initialize(Isolate* v8_isolate,
 #endif
   } else {
     auto default_blob = i::Snapshot::DefaultSnapshotBlob();
-#ifdef __wasi__
-    fprintf(stderr, "api.cc: DefaultSnapshotBlob() returned data=%p size=%d\n",
-            default_blob ? (void*)default_blob->data : nullptr,
-            default_blob ? default_blob->raw_size : 0);
-    fflush(stderr);
-#endif
     i_isolate->set_snapshot_blob(default_blob);
   }
 
@@ -10157,6 +10165,14 @@ void Isolate::Initialize(Isolate* v8_isolate,
 
   // TODO(v8:2487): Once we got rid of Isolate::Current(), we can remove this.
   Isolate::Scope isolate_scope(v8_isolate);
+  // Always use no-snapshot mode for WASI/WASM32 builds
+  // Snapshots are architecture-specific (x86-64 vs WASM32)
+  fprintf(stderr, "api.cc: no-snapshot mode - calling InitWithoutSnapshot\n");
+  fflush(stderr);
+  if (!i_isolate->InitWithoutSnapshot()) {
+    FATAL("Failed to initialize V8 isolate without snapshot");
+  }
+#if 0  // Disable snapshot mode for WASI
   if (i_isolate->snapshot_blob() == nullptr) {
     FATAL(
         "V8 snapshot blob was not set during initialization. This can mean "
@@ -10169,6 +10185,7 @@ void Isolate::Initialize(Isolate* v8_isolate,
         "Failed to deserialize the V8 snapshot blob. This can mean that the "
         "snapshot blob file is corrupted or missing.");
   }
+#endif
 
   {
     // Set up code event handlers. Needs to be after i::Snapshot::Initialize
@@ -10194,6 +10211,14 @@ void Isolate::Initialize(Isolate* v8_isolate,
   }
 }
 
+#ifdef __wasi__
+// WASI: Use Allocate() which already handles IsolateGroup internally
+Isolate* Isolate::New(const Isolate::CreateParams& params) {
+  Isolate* v8_isolate = Allocate();
+  Initialize(v8_isolate, params);
+  return v8_isolate;
+}
+#else
 Isolate* Isolate::New(const Isolate::CreateParams& params) {
   return Isolate::New(IsolateGroup::GetDefault(), params);
 }
@@ -10204,6 +10229,7 @@ Isolate* Isolate::New(const IsolateGroup& group,
   Initialize(v8_isolate, params);
   return v8_isolate;
 }
+#endif  // __wasi__
 
 void Isolate::Dispose() {
   i::Isolate* i_isolate = reinterpret_cast<i::Isolate*>(this);

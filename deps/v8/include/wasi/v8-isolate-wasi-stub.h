@@ -529,6 +529,7 @@ class V8_EXPORT Isolate {
   // CreateParams stub with Node.js required fields
   struct CreateParams {
     CreateParams() = default;
+    ~CreateParams() = default;
 
     // Node.js required fields
     ResourceConstraints constraints;
@@ -543,11 +544,21 @@ class V8_EXPORT Isolate {
     CppHeap* cpp_heap = nullptr;
     ArrayBuffer::Allocator* array_buffer_allocator = nullptr;
     std::shared_ptr<ArrayBuffer::Allocator> array_buffer_allocator_shared;
+
+    // Callback fields used by api.cc Initialize
+    FatalErrorCallback fatal_error_callback = nullptr;
+    OOMErrorCallback oom_error_callback = nullptr;
+    CounterLookupCallback counter_lookup_callback = nullptr;
+    CreateHistogramCallback create_histogram_callback = nullptr;
+    AddHistogramSampleCallback add_histogram_sample_callback = nullptr;
+    JitCodeEventHandler code_event_handler = nullptr;
+    bool allow_atomics_wait = true;
   };
   
   static Isolate* GetCurrent() { return nullptr; }
   static Isolate* TryGetCurrent() { return nullptr; }
-  static Isolate* New(const CreateParams& params) { return new Isolate(); }
+  // Declaration only - implementation in api.cc
+  static Isolate* New(const CreateParams& params);
   
   void Enter() {}
   void Exit() {}
@@ -750,9 +761,8 @@ class V8_EXPORT Isolate {
     // WASI stub - no-op
   }
   
-  static Isolate* Allocate() {
-    return new Isolate();
-  }
+  // Declaration only - implementation in api.cc
+  static Isolate* Allocate();
   
   // Interrupt handling
   using InterruptCallback = void (*)(Isolate* isolate, void* data);
@@ -826,9 +836,8 @@ class V8_EXPORT Isolate {
   }
   
   // Additional methods for Node.js
-  static void Initialize(Isolate* isolate, const CreateParams& params) {
-    // WASI stub - no-op
-  }
+  // Declaration only - implementation in api.cc
+  static void Initialize(Isolate* isolate, const CreateParams& params);
   
   void DumpAndResetStats() {
     // WASI stub - no-op

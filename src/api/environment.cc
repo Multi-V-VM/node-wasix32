@@ -346,7 +346,16 @@ Isolate* NewIsolate(Isolate::CreateParams* params,
   }
 
   SetIsolateCreateParamsForNode(params);
+#ifdef __wasi__
+  fprintf(stderr, "environment.cc: Before Isolate::Initialize, snapshot_blob=%p\n",
+          (void*)params->snapshot_blob);
+  fflush(stderr);
+#endif
   Isolate::Initialize(isolate, *params);
+#ifdef __wasi__
+  fprintf(stderr, "environment.cc: After Isolate::Initialize, isolate=%p\n", (void*)isolate);
+  fflush(stderr);
+#endif
 
   Isolate::Scope isolate_scope(isolate);
 

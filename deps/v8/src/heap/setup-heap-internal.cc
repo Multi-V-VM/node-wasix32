@@ -2,6 +2,8 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
+#include <cstdio>
+
 #include "src/api/api-natives.h"
 #include "src/api/api.h"
 #include "src/builtins/accessors.h"
@@ -178,11 +180,18 @@ constexpr std::initializer_list<StructInit> kStructTable{
 }  // namespace
 
 bool SetupIsolateDelegate::SetupHeapInternal(Isolate* isolate) {
+  // Unconditional debug for WASI troubleshooting
+  fprintf(stderr, "SetupHeapInternal: ENTER\n");
+  fflush(stderr);
   auto heap = isolate->heap();
   if (!isolate->read_only_heap()->roots_init_complete()) {
+    fprintf(stderr, "SetupHeapInternal: calling CreateReadOnlyHeapObjects\n");
+    fflush(stderr);
     if (!heap->CreateReadOnlyHeapObjects()) return false;
     isolate->VerifyStaticRoots();
     isolate->read_only_heap()->OnCreateRootsComplete(isolate);
+    fprintf(stderr, "SetupHeapInternal: OnCreateRootsComplete done\n");
+    fflush(stderr);
   }
   // We prefer to fit all of read-only space in one page.
   CHECK_EQ(heap->read_only_space()->pages().size(), 1);
@@ -909,9 +918,27 @@ bool Heap::CreateImportantReadOnlyObjects() {
   HandleScope initial_objects_handle_scope(isolate());
 
   // Hash seed for strings
+  // Unconditional debug for WASI troubleshooting
+  fprintf(stderr, "CreateImportantReadOnlyObjects: creating hash_seed\n");
+  fprintf(stderr, "CreateImportantReadOnlyObjects: roots_table ptr = %p\n",
+          (void*)&roots_table()[RootIndex::kFreeSpaceMap]);
+  fflush(stderr);
 
   Factory* factory = isolate()->factory();
-  set_hash_seed(*factory->NewByteArray(kInt64Size, AllocationType::kReadOnly));
+  Handle<ByteArray> hash_seed_array = factory->NewByteArray(kInt64Size, AllocationType::kReadOnly);
+
+  fprintf(stderr, "CreateImportantReadOnlyObjects: hash_seed_array created at %p\n",
+          (void*)hash_seed_array->ptr());
+  fflush(stderr);
+
+  set_hash_seed(*hash_seed_array);
+
+  // Verify it was set correctly
+  Address stored_hash_seed = roots_table()[RootIndex::kHashSeed];
+  fprintf(stderr, "CreateImportantReadOnlyObjects: stored hash_seed addr = 0x%lx\n",
+          (unsigned long)stored_hash_seed);
+  fflush(stderr);
+
   InitializeHashSeed();
 
   // Important strings and symbols

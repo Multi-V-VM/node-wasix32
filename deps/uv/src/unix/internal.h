@@ -185,7 +185,7 @@ struct uv__stream_queued_fds_s {
   int fds[1];
 };
 
-#ifdef __linux__
+#if defined(__linux__) || defined(UV_WASI_STUBS) || defined(__wasi__)
 struct uv__statx_timestamp {
   int64_t tv_sec;
   uint32_t tv_nsec;
@@ -215,7 +215,7 @@ struct uv__statx {
   uint32_t stx_dev_minor;
   uint64_t unused1[14];
 };
-#endif /* __linux__ */
+#endif /* __linux__ || UV_WASI_STUBS || __wasi__ */
 
 #if defined(_AIX) || \
     defined(__APPLE__) || \
@@ -351,7 +351,7 @@ int uv__random_readpath(const char* path, void* buf, size_t buflen);
 int uv__random_sysctl(void* buf, size_t buflen);
 
 /* io_uring */
-#ifdef __linux__
+#if defined(__linux__) || defined(UV_WASI_STUBS) || defined(__wasi__)
 int uv__iou_fs_close(uv_loop_t* loop, uv_fs_t* req);
 int uv__iou_fs_ftruncate(uv_loop_t* loop, uv_fs_t* req);
 int uv__iou_fs_fsync_or_fdatasync(uv_loop_t* loop,
@@ -447,7 +447,7 @@ UV_UNUSED(static int uv__stat(const char* path, struct stat* s)) {
   return rc;
 }
 
-#if defined(__linux__)
+#if defined(__linux__) || defined(UV_WASI_STUBS) || defined(__wasi__)
 void uv__fs_post(uv_loop_t* loop, uv_fs_t* req);
 ssize_t
 uv__fs_copy_file_range(int fd_in,
@@ -495,7 +495,7 @@ uv__fs_copy_file_range(int fd_in,
 #define UV__CPU_AFFINITY_SUPPORTED 0
 #endif
 
-#ifdef __linux__
+#if defined(__linux__) || defined(UV_WASI_STUBS) || defined(__wasi__)
 int uv__get_constrained_cpu(long long* quota);
 #endif
 

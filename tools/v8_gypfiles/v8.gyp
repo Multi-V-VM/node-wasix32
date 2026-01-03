@@ -432,6 +432,23 @@
       'sources': [
         '<(V8_ROOT)/src/init/setup-isolate-deserialize.cc',
       ],
+      'conditions': [
+        ['v8_target_arch=="wasm32"', {
+          # For WASM32, use setup-isolate-full.cc which can create heap objects from scratch
+          # since we don't have a compatible 32-bit snapshot.
+          # Also use empty embedded blob and snapshot since x86-64 builtins won't work on WASM32.
+          # Skip the mksnapshot action entirely.
+          'sources!': [
+            '<(V8_ROOT)/src/init/setup-isolate-deserialize.cc',
+          ],
+          'sources': [
+            '<(V8_ROOT)/src/init/setup-isolate-full.cc',
+            '<(V8_ROOT)/src/snapshot/embedded/embedded-empty.cc',
+            '<(V8_ROOT)/src/snapshot/snapshot-empty.cc',
+          ],
+          'actions': [],
+        }],
+      ],
       'xcode_settings': {
         # V8 7.4 over macOS10.11 compatibility
         # Refs: https://github.com/nodejs/node/pull/26685
@@ -506,12 +523,6 @@
                  'mksnapshot_flags': ['--no-native-code-counters'],
                },
              }],
-            ['v8_target_arch=="wasm32"', {
-              # For WASM32, don't include embedded.S in outputs - we use embedded-empty.cc instead
-              'outputs!': [
-                '<(INTERMEDIATE_DIR)/embedded.S',
-              ],
-            }],
           ],
           'action': [
             '>@(_inputs)',

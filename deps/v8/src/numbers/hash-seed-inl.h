@@ -46,8 +46,22 @@ inline uint64_t HashSeed(ReadOnlyRoots roots) {
   uint64_t seed;
 #ifdef __wasi__
   // Debug output for WASI
+  size_t hash_seed_index = static_cast<size_t>(RootIndex::kHashSeed);
+  fprintf(stderr, "HashSeed: hash_seed_index=%zu\n", hash_seed_index);
+
+  // Use public accessor to check if hash_seed is initialized
+  bool is_init = roots.is_initialized(RootIndex::kHashSeed);
+  fprintf(stderr, "HashSeed: is_initialized=%d\n", is_init);
+
   Tagged<ByteArray> hash_seed_array = roots.hash_seed();
   fprintf(stderr, "HashSeed: hash_seed_array ptr=%p\n", (void*)hash_seed_array.ptr());
+
+  if (hash_seed_array.ptr() == 0) {
+    fprintf(stderr, "HashSeed: ERROR - hash_seed is null! Returning 0\n");
+    fflush(stderr);
+    return 0;
+  }
+
   uint8_t* begin_ptr = hash_seed_array->begin();
   fprintf(stderr, "HashSeed: begin_ptr=%p\n", (void*)begin_ptr);
   fflush(stderr);

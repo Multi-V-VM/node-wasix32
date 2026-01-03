@@ -19,13 +19,16 @@
  * IN THE SOFTWARE.
  */
 
-#ifdef __wasi__
+/* Enable stubs for WASI or when UV_WASI_STUBS is defined (for wasm32 builds) */
+#if defined(__wasi__) || defined(UV_WASI_STUBS)
 
 #include "uv.h"
 #include "internal.h"
 #include <stdint.h>
 #include <time.h>
 #include <string.h>
+#include <errno.h>
+#include <sys/types.h>
 
 // Stub implementations for WASI - Only implement missing functions
 
@@ -46,7 +49,20 @@ uint64_t uv__hrtime(uv_clocktype_t type) {
 }
 
 void uv__fs_event_close(uv_fs_event_t* handle) {
-  // No-op for WASI
+  // No-op for WASI - fs events not supported
+}
+
+int uv_fs_event_init(uv_loop_t* loop, uv_fs_event_t* handle) {
+  return UV_ENOSYS;
+}
+
+int uv_fs_event_start(uv_fs_event_t* handle, uv_fs_event_cb cb,
+                      const char* filename, unsigned int flags) {
+  return UV_ENOSYS;
+}
+
+int uv_fs_event_stop(uv_fs_event_t* handle) {
+  return UV_ENOSYS;
 }
 
 void uv__io_poll(uv_loop_t* loop, int timeout) {
@@ -181,15 +197,17 @@ void freeifaddrs(struct ifaddrs *ifa) {
   // No-op since we don't allocate anything
 }
 
-// Node.js specific stubs
+// Process title stubs
 char** uv_setup_args(int argc, char** argv) {
-  // Return argv as-is for WASI
   return argv;
 }
 
-// Process title cleanup - internal function
 void uv__process_title_cleanup(void) {
   // No-op for WASI
+}
+
+int uv_set_process_title(const char* title) {
+  return 0;
 }
 
 // Memory info stubs
@@ -239,7 +257,6 @@ int uv_resident_set_memory(size_t* rss) {
   return 0;
 }
 
-// Process title stubs
 int uv_get_process_title(char* buffer, size_t size) {
   if (buffer == NULL || size == 0)
     return UV_EINVAL;
@@ -247,4 +264,96 @@ int uv_get_process_title(char* buffer, size_t size) {
   return 0;
 }
 
-#endif /* __wasi__ */
+// io_uring stubs - these are Linux-specific and not available on WASI
+int uv__iou_fs_close(uv_loop_t* loop, uv_fs_t* req) {
+  return 0;  // Return 0 to indicate io_uring not used, fallback to regular path
+}
+
+int uv__iou_fs_ftruncate(uv_loop_t* loop, uv_fs_t* req) {
+  return 0;
+}
+
+int uv__iou_fs_fsync_or_fdatasync(uv_loop_t* loop, uv_fs_t* req, uint32_t fsync_flags) {
+  return 0;
+}
+
+int uv__iou_fs_link(uv_loop_t* loop, uv_fs_t* req) {
+  return 0;
+}
+
+int uv__iou_fs_mkdir(uv_loop_t* loop, uv_fs_t* req) {
+  return 0;
+}
+
+int uv__iou_fs_open(uv_loop_t* loop, uv_fs_t* req) {
+  return 0;
+}
+
+int uv__iou_fs_read_or_write(uv_loop_t* loop, uv_fs_t* req, int is_read) {
+  return 0;
+}
+
+int uv__iou_fs_rename(uv_loop_t* loop, uv_fs_t* req) {
+  return 0;
+}
+
+int uv__iou_fs_statx(uv_loop_t* loop, uv_fs_t* req, int is_fstat, int is_lstat) {
+  return 0;
+}
+
+int uv__iou_fs_symlink(uv_loop_t* loop, uv_fs_t* req) {
+  return 0;
+}
+
+int uv__iou_fs_unlink(uv_loop_t* loop, uv_fs_t* req) {
+  return 0;
+}
+
+// Linux-specific statx stubs
+int uv__statx(int dirfd,
+              const char* path,
+              int flags,
+              unsigned int mask,
+              struct uv__statx* statxbuf) {
+  return UV_ENOSYS;  // Not supported on WASI
+}
+
+void uv__statx_to_stat(const struct uv__statx* statxbuf, uv_stat_t* buf) {
+  // No-op - should not be called since uv__statx returns error
+  memset(buf, 0, sizeof(*buf));
+}
+
+// Linux-specific kernel version stub
+unsigned uv__kernel_version(void) {
+  return 0;  // Return 0 to indicate unknown/minimal kernel
+}
+
+// Linux-specific copy_file_range stub
+ssize_t uv__fs_copy_file_range(int fd_in,
+                                off_t* off_in,
+                                int fd_out,
+                                off_t* off_out,
+                                size_t len,
+                                unsigned int flags) {
+  errno = ENOSYS;
+  return -1;  // Not supported on WASI
+}
+
+// Process title stub
+void uv__set_process_title(const char* title) {
+  // No-op for WASI
+}
+
+// CPU constraint stub (for cgroups on Linux)
+int uv__get_constrained_cpu(long long* quota) {
+  (void) quota;
+  return UV_ENOENT;  // No CPU constraints on WASI
+}
+
+// getrandom stub
+ssize_t uv__getrandom(void* buf, size_t buflen, unsigned flags) {
+  errno = ENOSYS;
+  return -1;  // Not supported on WASI via syscall
+}
+
+#endif /* __wasi__ || UV_WASI_STUBS */
