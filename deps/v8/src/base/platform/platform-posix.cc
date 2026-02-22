@@ -222,6 +222,12 @@ void* Allocate(void* hint, size_t size, OS::MemoryPermission access,
   void* result = mmap(hint, size, prot, flags, kMmapFd, kMmapFdOffset);
   if (result == MAP_FAILED) return nullptr;
 
+#ifdef __wasi__
+  // WASI mmap emulation may not zero-initialize memory unlike real mmap with
+  // MAP_ANONYMOUS. V8 relies on zero-initialized pages for heap objects.
+  memset(result, 0, size);
+#endif
+
 #if V8_OS_LINUX && V8_ENABLE_PRIVATE_MAPPING_FORK_OPTIMIZATION
   // This is advisory, so we ignore errors.
   madvise(result, size, MADV_DONTFORK);

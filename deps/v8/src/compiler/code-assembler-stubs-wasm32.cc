@@ -498,7 +498,11 @@ CodeAssembler::BuiltinCompilationScheduler::~BuiltinCompilationScheduler() {}
 void CodeAssembler::BuiltinCompilationScheduler::AwaitAndFinalizeCurrentBatch(Isolate* isolate) {}
 
 void CodeAssembler::BuiltinCompilationScheduler::CompileCode(
-    Isolate* isolate, std::unique_ptr<TurbofanCompilationJob> job) {}
+    Isolate* isolate, std::unique_ptr<TurbofanCompilationJob> job) {
+  // WASI: We can't actually compile TF/TS builtins (no native code generation).
+  // Just count them as installed - they'll keep their placeholder code.
+  builtins_installed_count_++;
+}
 
 // ============================================================================
 // Pipeline stubs

@@ -88,6 +88,103 @@ volatile const std::atomic<T>* to_std_atomic_const(volatile const T* ptr) {
 }
 }  // namespace helper
 
+#ifdef __wasi__
+// ===========================================================================
+// WASI/wasm32: Single-threaded — use plain loads/stores instead of atomics.
+// WebAssembly atomic instructions require strict alignment that V8's heap
+// objects don't always satisfy.
+// ===========================================================================
+
+inline void SeqCst_MemoryFence() {}
+
+// CompareAndSwap — deduce T from pointer, accept compatible value types
+template <typename T, typename V1, typename V2>
+inline T Relaxed_CompareAndSwap(volatile T* ptr, V1 old_value, V2 new_value) {
+  T prev = *ptr;
+  if (prev == static_cast<T>(old_value)) *ptr = static_cast<T>(new_value);
+  return prev;
+}
+template <typename T, typename V1, typename V2>
+inline T Acquire_CompareAndSwap(volatile T* ptr, V1 old_value, V2 new_value) {
+  return Relaxed_CompareAndSwap(ptr, old_value, new_value);
+}
+template <typename T, typename V1, typename V2>
+inline T Release_CompareAndSwap(volatile T* ptr, V1 old_value, V2 new_value) {
+  return Relaxed_CompareAndSwap(ptr, old_value, new_value);
+}
+template <typename T, typename V1, typename V2>
+inline T AcquireRelease_CompareAndSwap(volatile T* ptr, V1 old_value,
+                                        V2 new_value) {
+  return Relaxed_CompareAndSwap(ptr, old_value, new_value);
+}
+template <typename T, typename V1, typename V2>
+inline T SeqCst_CompareAndSwap(volatile T* ptr, V1 old_value, V2 new_value) {
+  return Relaxed_CompareAndSwap(ptr, old_value, new_value);
+}
+
+// AtomicExchange
+template <typename T, typename V>
+inline T Relaxed_AtomicExchange(volatile T* ptr, V new_value) {
+  T old = *ptr;
+  *ptr = static_cast<T>(new_value);
+  return old;
+}
+template <typename T, typename V>
+inline T SeqCst_AtomicExchange(volatile T* ptr, V new_value) {
+  return Relaxed_AtomicExchange(ptr, new_value);
+}
+
+// AtomicIncrement
+template <typename T, typename V>
+inline T Relaxed_AtomicIncrement(volatile T* ptr, V increment) {
+  *ptr += static_cast<T>(increment);
+  return *ptr;
+}
+
+// Store — use two params to allow implicit conversions (e.g. int32_t* + ulong)
+template <typename T, typename V>
+inline void Relaxed_Store(volatile T* ptr, V value) {
+  *ptr = static_cast<T>(value);
+}
+template <typename T, typename V>
+inline void Release_Store(volatile T* ptr, V value) {
+  *ptr = static_cast<T>(value);
+}
+template <typename T, typename V>
+inline void SeqCst_Store(volatile T* ptr, V value) {
+  *ptr = static_cast<T>(value);
+}
+
+// Load
+template <typename T>
+inline T Relaxed_Load(volatile const T* ptr) { return *ptr; }
+template <typename T>
+inline T Acquire_Load(volatile const T* ptr) { return *ptr; }
+template <typename T>
+inline T SeqCst_Load(volatile const T* ptr) { return *ptr; }
+
+// AtomicAdd / AtomicAnd / AtomicOr
+template <typename T, typename V>
+inline T SeqCst_AtomicAdd(volatile T* ptr, V value) {
+  T old = *ptr;
+  *ptr += static_cast<T>(value);
+  return old;
+}
+template <typename T, typename V>
+inline T SeqCst_AtomicAnd(volatile T* ptr, V value) {
+  T old = *ptr;
+  *ptr &= static_cast<T>(value);
+  return old;
+}
+template <typename T, typename V>
+inline T SeqCst_AtomicOr(volatile T* ptr, V value) {
+  T old = *ptr;
+  *ptr |= static_cast<T>(value);
+  return old;
+}
+
+#else  // !__wasi__
+
 inline void SeqCst_MemoryFence() {
   std::atomic_thread_fence(std::memory_order_seq_cst);
 }
@@ -439,6 +536,8 @@ inline Atomic64 SeqCst_Load(volatile const Atomic64* ptr) {
 }
 
 #endif  // defined(V8_HOST_ARCH_64_BIT)
+
+#endif  // !__wasi__
 
 inline void Relaxed_Memcpy(volatile Atomic8* dst, volatile const Atomic8* src,
                            size_t bytes) {

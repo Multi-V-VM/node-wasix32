@@ -17,6 +17,13 @@ namespace v8::internal {
 
 // TODO(396607238): Replace all callers with `Isolate::Current()->heap()`.
 V8_INLINE Heap* GetHeapFromWritableObject(Tagged<HeapObject> object) {
+#ifdef __wasi__
+  // WASI: MemoryChunk metadata is unreliable because mmap emulation doesn't
+  // properly set up page headers. Use the thread-local isolate's heap instead.
+  Isolate* isolate = Isolate::TryGetCurrent();
+  CHECK_NOT_NULL(isolate);
+  return isolate->heap();
+#else
   MemoryChunk* chunk = MemoryChunk::FromHeapObject(object);
   // Do not use this method on shared objects. This method would always return
   // the shared space isolate for shared objects. However, on worker isolates
@@ -29,6 +36,7 @@ V8_INLINE Heap* GetHeapFromWritableObject(Tagged<HeapObject> object) {
   // See the TODO above: The heap/isolate returned here must match TLS.
   CHECK_EQ(heap->isolate(), Isolate::TryGetCurrent());
   return heap;
+#endif
 }
 
 // TODO(396607238): Replace all callers with `Isolate::Current()`.
@@ -47,6 +55,16 @@ V8_INLINE Isolate* GetIsolateFromWritableObject(
 
 V8_INLINE bool GetIsolateFromHeapObject(Tagged<HeapObject> object,
                                         Isolate** isolate) {
+#ifdef __wasi__
+  // WASI: MemoryChunk metadata is unreliable. Use thread-local isolate.
+  Isolate* current = Isolate::TryGetCurrent();
+  if (current != nullptr) {
+    *isolate = current;
+    return true;
+  }
+  *isolate = nullptr;
+  return false;
+#else
   MemoryChunk* chunk = MemoryChunk::FromHeapObject(object);
   if (chunk->InReadOnlySpace()) {
     *isolate = nullptr;
@@ -54,6 +72,7 @@ V8_INLINE bool GetIsolateFromHeapObject(Tagged<HeapObject> object,
   }
   *isolate = Isolate::FromHeap(chunk->GetHeap());
   return true;
+#endif
 }
 
 }  // namespace v8::internal

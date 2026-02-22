@@ -619,10 +619,15 @@ static void PlatformInit(ProcessInitializationFlags::Flags flags) {
       if (uv_guess_handle(fd) != UV_TTY) continue;
       s.isatty = true;
 
+#ifdef __wasi__
+      // WASI stub - tcgetattr not supported
+      memset(&s.termios, 0, sizeof(s.termios));
+#else
       do {
         err = tcgetattr(fd, &s.termios);
       } while (err == -1 && errno == EINTR);  // NOLINT
       CHECK_EQ(err, 0);
+#endif
     }
   }
 
@@ -709,6 +714,9 @@ void ResetStdio() {
     }
 
     if (s.isatty) {
+#ifdef __wasi__
+      // WASI stub - tcsetattr/pthread_sigmask not supported
+#else
       sigset_t sa;
       int err;
 
@@ -727,6 +735,7 @@ void ResetStdio() {
       // - if macOS App Sandbox is enabled, tcsetattr fails with EPERM
       // - if the process group is orphaned, e.g. because the user logged out,
       //   tcsetattr fails with EIO
+#endif
     }
   }
 #endif  // __POSIX__
@@ -874,6 +883,11 @@ static ExitCode InitializeNodeWithArgsInternal(
   // Specify this explicitly to avoid being affected by V8 changes to the
   // default value.
   V8::SetFlagsFromString("--rehash-snapshot");
+
+#ifdef __wasi__
+  // WASI is single-threaded; disable V8 background tasks and concurrent GC.
+  V8::SetFlagsFromString("--single-threaded");
+#endif
 
   HandleEnvOptions(per_process::cli_options->per_isolate->per_env);
 

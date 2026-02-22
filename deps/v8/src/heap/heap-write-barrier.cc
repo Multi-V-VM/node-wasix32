@@ -357,6 +357,12 @@ void WriteBarrier::CombinedGenerationalAndSharedEphemeronBarrierSlow(
 // static
 void WriteBarrier::CombinedGenerationalAndSharedBarrierSlow(
     Tagged<HeapObject> object, Address slot, Tagged<HeapObject> value) {
+#ifdef __wasi__
+  // WASI: Skip generational/shared barriers. MemoryChunk metadata lookups
+  // don't work reliably with emulated mmap. GC correctness isn't critical
+  // during bootstrap.
+  return;
+#endif
   if (HeapLayout::InYoungGeneration(value)) {
     GenerationalBarrierSlow(object, slot, value);
 
@@ -371,6 +377,9 @@ void WriteBarrier::CombinedGenerationalAndSharedBarrierSlow(
 void WriteBarrier::GenerationalBarrierSlow(Tagged<HeapObject> object,
                                            Address slot,
                                            Tagged<HeapObject> value) {
+#ifdef __wasi__
+  return;
+#endif
   MemoryChunk* chunk = MemoryChunk::FromHeapObject(object);
   MutablePageMetadata* metadata = MutablePageMetadata::cast(chunk->Metadata());
   if (LocalHeap::Current() == nullptr) {

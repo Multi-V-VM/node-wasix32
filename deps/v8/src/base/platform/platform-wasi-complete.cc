@@ -43,7 +43,11 @@ class Thread::PlatformData {
 
 Thread::Thread(const Options& options) : data_(new PlatformData()) {}
 Thread::~Thread() { delete data_; }
-void Thread::Start() {}
+bool Thread::Start() {
+  // In WASI single-threaded mode, run the thread body synchronously.
+  NotifyStartedAndRun();
+  return true;
+}
 void Thread::Join() {}
 Thread::LocalStorageKey Thread::CreateThreadLocalKey() { return 0; }
 void Thread::DeleteThreadLocalKey(LocalStorageKey) {}
@@ -74,11 +78,14 @@ Semaphore::Semaphore(int count) : data_(new PlatformData()) {
 }
 Semaphore::~Semaphore() { delete data_; }
 void Semaphore::Signal() { data_->count_++; }
-void Semaphore::Wait() { 
-  while (data_->count_ <= 0) {} 
-  data_->count_--;
+void Semaphore::Wait() {
+  // In single-threaded WASI, if count is 0, nothing can ever signal it.
+  // Decrement if available, otherwise just return to avoid deadlock.
+  if (data_->count_ > 0) {
+    data_->count_--;
+  }
 }
-bool Semaphore::WaitFor(const TimeDelta&) { 
+bool Semaphore::WaitFor(const TimeDelta&) {
   if (data_->count_ > 0) {
     data_->count_--;
     return true;

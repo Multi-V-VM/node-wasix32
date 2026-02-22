@@ -1532,6 +1532,12 @@ DirectHandle<AccessorInfo> Factory::NewAccessorInfo() {
 
   info->clear_padding();
 
+#ifdef __wasi__
+  fprintf(stderr, "NewAccessorInfo: info ptr=0x%x, map=0x%x\n",
+          (unsigned)info.ptr(), (unsigned)info->map().ptr());
+  fflush(stderr);
+#endif
+
   return direct_handle(info, isolate());
 }
 

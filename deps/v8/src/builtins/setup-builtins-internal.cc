@@ -496,11 +496,23 @@ void SetupIsolateDelegate::SetupBuiltinsInternal(Isolate* isolate) {
   // Add the generated builtins to the isolate.
   for (Builtin builtin = Builtins::kFirst; builtin <= Builtins::kLast;
        ++builtin) {
+#ifdef __wasi__
+    // WASI: Only install builtins that were actually generated (the
+    // "without job" ones). Scheduler-based builtins were never compiled
+    // (no native code gen on WASI) so their handles are empty - keep
+    // placeholders.
+    if (generated_builtins[Builtins::ToInt(builtin)].is_null()) continue;
+#endif
     AddBuiltin(builtins, builtin,
                *generated_builtins[Builtins::ToInt(builtin)]);
   }
 
+#ifndef __wasi__
+  // WASI: Skip ReplacePlaceholders - placeholder builtins don't have valid
+  // instruction streams for JIT page lookup, and there are no real builtin
+  // references to update anyway.
   ReplacePlaceholders(isolate);
+#endif
 
   builtins->MarkInitialized();
 }

@@ -599,9 +599,11 @@ NodePlatform::NodePlatform(int thread_pool_size,
   SetTracingController(tracing_controller_);
   DCHECK_EQ(GetTracingController(), tracing_controller_);
 
+#ifndef __wasi__
   thread_pool_size = GetActualThreadPoolSize(thread_pool_size);
   worker_thread_task_runner_ = std::make_shared<WorkerThreadsTaskRunner>(
       thread_pool_size, debug_log_level_);
+#endif
 }
 
 NodePlatform::~NodePlatform() {
@@ -654,7 +656,7 @@ void NodePlatform::AddIsolateFinishedCallback(Isolate* isolate,
 void NodePlatform::Shutdown() {
   if (has_shut_down_) return;
   has_shut_down_ = true;
-  worker_thread_task_runner_->Shutdown();
+  if (worker_thread_task_runner_) worker_thread_task_runner_->Shutdown();
 
   {
     Mutex::ScopedLock lock(per_isolate_mutex_);
@@ -663,7 +665,7 @@ void NodePlatform::Shutdown() {
 }
 
 int NodePlatform::NumberOfWorkerThreads() {
-  return worker_thread_task_runner_->NumberOfWorkerThreads();
+  return worker_thread_task_runner_ ? worker_thread_task_runner_->NumberOfWorkerThreads() : 0;
 }
 
 void PerIsolatePlatformData::RunForegroundTask(std::unique_ptr<Task> task) {
@@ -729,7 +731,7 @@ void NodePlatform::DrainTasks(Isolate* isolate) {
     // documentation suggets. As a compromise, we currently only block on
     // user-blocking tasks to reduce the chance of deadlocks while making sure
     // that criticl user-blocking tasks are not lost.
-    worker_thread_task_runner_->BlockingDrain();
+    if (worker_thread_task_runner_) worker_thread_task_runner_->BlockingDrain();
   } while (per_isolate->FlushForegroundTasksInternal());
 }
 
@@ -809,7 +811,12 @@ void NodePlatform::PostTaskOnWorkerThreadImpl(
     }
     fflush(stderr);
   }
-  worker_thread_task_runner_->PostTask(priority, std::move(task), location);
+  if (worker_thread_task_runner_) {
+    worker_thread_task_runner_->PostTask(priority, std::move(task), location);
+  } else {
+    // WASI: no worker threads, execute synchronously
+    task->Run();
+  }
 }
 
 void NodePlatform::PostDelayedTaskOnWorkerThreadImpl(
@@ -829,8 +836,13 @@ void NodePlatform::PostDelayedTaskOnWorkerThreadImpl(
     }
     fflush(stderr);
   }
-  worker_thread_task_runner_->PostDelayedTask(
-      priority, std::move(task), location, delay_in_seconds);
+  if (worker_thread_task_runner_) {
+    worker_thread_task_runner_->PostDelayedTask(
+        priority, std::move(task), location, delay_in_seconds);
+  } else {
+    // WASI: no worker threads, execute synchronously (ignoring delay)
+    task->Run();
+  }
 }
 
 void NodePlatform::CallDelayedOnWorkerThread(std::unique_ptr<v8::Task> task,

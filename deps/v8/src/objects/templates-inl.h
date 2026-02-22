@@ -291,6 +291,17 @@ bool FunctionTemplateInfo::IsTemplateFor(Tagged<JSObject> object) const {
 }
 
 bool TemplateInfo::TryGetIsolate(Isolate** isolate) const {
+#ifdef __wasi__
+  // WASI: MemoryChunk-based isolate lookup is broken because mmap emulation
+  // doesn't properly set up page metadata. Use the thread-local isolate instead
+  // (WASI is single-threaded, so there's only ever one isolate).
+  Isolate* isolate_value = Isolate::TryGetCurrent();
+  if (isolate_value != nullptr) {
+    *isolate = isolate_value;
+    return true;
+  }
+  return false;
+#else
   if (GetIsolateFromHeapObject(*this, isolate)) return true;
   Isolate* isolate_value = Isolate::TryGetCurrent();
   if (isolate_value != nullptr) {
@@ -298,6 +309,7 @@ bool TemplateInfo::TryGetIsolate(Isolate** isolate) const {
     return true;
   }
   return false;
+#endif
 }
 
 Isolate* TemplateInfo::GetIsolateChecked() const {

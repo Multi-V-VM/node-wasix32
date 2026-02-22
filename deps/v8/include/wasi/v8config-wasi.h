@@ -7,7 +7,8 @@
 
 #define V8_TARGET_ARCH_WASM 1
 #define V8_TARGET_ARCH_32_BIT 1
-#define V8_ATOMIC_OBJECT_FIELD_WRITES 1
+// Disabled: WASM doesn't support unaligned atomic access
+// #define V8_ATOMIC_OBJECT_FIELD_WRITES 1
 /* Remove architecture detection errors */
 #undef V8_HOST_ARCH_ARM
 #undef V8_HOST_ARCH_ARM64

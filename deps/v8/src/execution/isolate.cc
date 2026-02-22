@@ -5818,7 +5818,11 @@ bool Isolate::Init(SnapshotData* startup_snapshot_data,
                                              can_rehash);
     startup_deserializer.DeserializeIntoIsolate();
   }
+#ifndef __wasi__
+  // WASI: Skip JSDispatchTable initialization - the ExternalEntityTable
+  // infrastructure uses virtual memory reservations that don't work on WASI.
   InitializeBuiltinJSDispatchTable();
+#endif
   if (DEBUG_BOOL) VerifyStaticRoots();
   load_stub_cache_->Initialize();
   store_stub_cache_->Initialize();

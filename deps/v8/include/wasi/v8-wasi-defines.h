@@ -14,8 +14,9 @@
 #define V8_LITE_MODE 1
 #define V8_ENABLE_LITE_MODE 1
 
-// Simplify threading for WASI
-#define V8_ATOMIC_OBJECT_FIELD_WRITES 1
+// Single-threaded WASI: no need for atomic field writes (causes unaligned
+// atomic traps in WebAssembly).
+// #define V8_ATOMIC_OBJECT_FIELD_WRITES 1
 #define V8_CONCURRENT_MARKING 0
 
 #endif  // __wasi__

@@ -669,6 +669,11 @@ bool SnapshotData::FromBlob(SnapshotData* out, std::string_view in) {
 }
 
 bool SnapshotData::Check() const {
+#ifdef __wasi__
+  // WASI builds cannot use snapshots from other architectures.
+  // Skip all snapshot validation and return false to force no-snapshot mode.
+  return false;
+#else
   if (metadata.node_version != per_process::metadata.versions.node) {
     fprintf(stderr,
             "Failed to load the startup snapshot because it was built with"
@@ -698,6 +703,7 @@ bool SnapshotData::Check() const {
 
   // TODO(joyeecheung): check incompatible Node.js flags.
   return true;
+#endif  // __wasi__
 }
 
 SnapshotData::~SnapshotData() {

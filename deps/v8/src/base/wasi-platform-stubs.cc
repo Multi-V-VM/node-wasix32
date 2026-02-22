@@ -2,6 +2,7 @@
 
 #include "src/base/page-allocator.h"
 #include <cstdlib>
+#include <cstring>
 
 namespace v8 {
 namespace base {
@@ -17,7 +18,13 @@ void* PageAllocator::GetRandomMmapAddr() {
 
 void* PageAllocator::AllocatePages(void* address, size_t size, size_t alignment,
                                    ::v8::PageAllocator::Permission access) {
-  return std::aligned_alloc(alignment, size);
+  void* result = std::aligned_alloc(alignment, size);
+  if (result) {
+    // aligned_alloc does not zero-initialize memory. V8 relies on zero-initialized
+    // pages for heap objects (e.g., bitfields like FunctionTemplate::published()).
+    std::memset(result, 0, size);
+  }
+  return result;
 }
 
 bool PageAllocator::CanAllocateSharedPages() {
