@@ -1,0 +1,191 @@
+#!/usr/bin/env python3
+# Copyright 2024 the V8 project authors. All rights reserved.
+# Use of this source code is governed by a BSD-style license that can be
+# found in the LICENSE file.
+
+"""
+Wrapper script to invoke the host-compiled torque executable when
+cross-compiling V8 for WASI/wasm32 targets.
+
+This script is invoked by the GYP build system when v8_target_arch=="wasm32".
+It locates and executes the host torque binary, which must be built before
+this script runs (ensured by the 'torque#host' dependency in v8.gyp).
+
+Usage:
+    python3 torque_host_wrapper.py -o <output_dir> -v8-root <root> <files...>
+
+Environment variables:
+    TORQUE_HOST_PATH    - Override path to host torque executable
+    TORQUE_WRAPPER_DEBUG - Enable debug output when set to any value
+"""
+
+import os
+import subprocess
+import sys
+from pathlib import Path
+
+
+def find_host_torque():
+    """
+    Locate the host-compiled torque executable.
+
+    Search order:
+    1. TORQUE_HOST_PATH environment variable (if set)
+    2. out/Release/torque (standard location for release builds)
+    3. out/Debug/torque (fallback for debug builds)
+
+    Returns:
+        Path to torque executable, or None if not found.
+    """
+    script_dir = Path(__file__).resolve().parent
+    # Navigate from deps/v8/tools/v8_gypfiles to repo root
+    repo_root = script_dir.parents[3]
+
+    # Check environment override first
+    env_path = os.environ.get('TORQUE_HOST_PATH')
+    if env_path:
+        torque_path = Path(env_path)
+        if torque_path.exists() and os.access(torque_path, os.X_OK):
+            return torque_path
+        print(f"Warning: TORQUE_HOST_PATH={env_path} not found or not executable",
+              file=sys.stderr)
+
+    # Standard search locations
+    search_paths = [
+        repo_root / 'out' / 'Release' / 'torque',
+        repo_root / 'out' / 'Debug' / 'torque',
+    ]
+
+    for path in search_paths:
+        if path.exists() and os.access(path, os.X_OK):
+            return path
+
+    return None
+
+
+def apply_patches():
+    """Apply patch_host_makefiles.py if it exists and hasn't been applied."""
+    script_dir = Path(__file__).resolve().parent
+    repo_root = script_dir.parents[3]
+    patch_script = repo_root / 'patch_host_makefiles.py'
+
+    if not patch_script.exists():
+        return True  # No patch script, assume already patched or not needed
+
+    if os.environ.get('TORQUE_WRAPPER_DEBUG'):
+        print(f"torque_host_wrapper: Applying host makefile patches...", file=sys.stderr)
+
+    try:
+        result = subprocess.run(
+            ['python3', str(patch_script)],
+            cwd=str(repo_root),
+            capture_output=True,
+            timeout=30,
+            check=False
+        )
+
+        if result.returncode == 0:
+            if os.environ.get('TORQUE_WRAPPER_DEBUG'):
+                print(f"torque_host_wrapper: Successfully applied patches", file=sys.stderr)
+            return True
+        else:
+            if os.environ.get('TORQUE_WRAPPER_DEBUG'):
+                print(f"torque_host_wrapper: patch script failed with code {result.returncode}", file=sys.stderr)
+                print(f"stderr: {result.stderr.decode('utf-8', errors='ignore')}", file=sys.stderr)
+            return False
+    except Exception as e:
+        if os.environ.get('TORQUE_WRAPPER_DEBUG'):
+            print(f"torque_host_wrapper: Error applying patches: {e}", file=sys.stderr)
+        return False
+
+
+def build_host_torque():
+    """Build the host torque executable if it doesn't exist."""
+    script_dir = Path(__file__).resolve().parent
+    repo_root = script_dir.parents[3]
+    out_dir = repo_root / 'out'
+
+    if not out_dir.exists():
+        return False
+
+    # First ensure patches are applied
+    if not apply_patches():
+        if os.environ.get('TORQUE_WRAPPER_DEBUG'):
+            print(f"torque_host_wrapper: Warning: Failed to apply patches, continuing anyway", file=sys.stderr)
+
+    if os.environ.get('TORQUE_WRAPPER_DEBUG'):
+        print(f"torque_host_wrapper: Building host torque...", file=sys.stderr)
+
+    # Try to build torque for the host
+    try:
+        result = subprocess.run(
+            ['make', '-C', str(out_dir), 'BUILDTYPE=Release', 'torque'],
+            timeout=600,  # 10 minute timeout
+            check=False
+        )
+
+        if result.returncode == 0:
+            if os.environ.get('TORQUE_WRAPPER_DEBUG'):
+                print(f"torque_host_wrapper: Successfully built host torque", file=sys.stderr)
+            return True
+        else:
+            if os.environ.get('TORQUE_WRAPPER_DEBUG'):
+                print(f"torque_host_wrapper: make failed with code {result.returncode}", file=sys.stderr)
+            return False
+    except Exception as e:
+        if os.environ.get('TORQUE_WRAPPER_DEBUG'):
+            print(f"torque_host_wrapper: Error building torque: {e}", file=sys.stderr)
+        return False
+
+
+def main():
+    torque_path = find_host_torque()
+
+    # If torque not found, try to build it
+    if not torque_path:
+        if os.environ.get('TORQUE_WRAPPER_DEBUG'):
+            print(f"torque_host_wrapper: Host torque not found, attempting to build...", file=sys.stderr)
+
+        if build_host_torque():
+            # Try to find it again after building
+            torque_path = find_host_torque()
+
+    if not torque_path:
+        print("Error: Host torque executable not found and could not be built.", file=sys.stderr)
+        print("", file=sys.stderr)
+        print("Expected locations:", file=sys.stderr)
+        print("  - out/Release/torque", file=sys.stderr)
+        print("  - out/Debug/torque", file=sys.stderr)
+        print("", file=sys.stderr)
+        print("The host torque must be built before running this wrapper.", file=sys.stderr)
+        print("This is normally handled by the 'torque#host' GYP dependency.", file=sys.stderr)
+        print("", file=sys.stderr)
+        print("If building manually, first build torque for the host:", file=sys.stderr)
+        print("  make -C out BUILDTYPE=Release torque", file=sys.stderr)
+        print("", file=sys.stderr)
+        print("Or set TORQUE_HOST_PATH to point to a pre-built torque:", file=sys.stderr)
+        print("  export TORQUE_HOST_PATH=/path/to/torque", file=sys.stderr)
+        sys.exit(1)
+
+    # Build command: torque + all arguments passed to this script
+    cmd = [str(torque_path)] + sys.argv[1:]
+
+    # Log the command for debugging
+    if os.environ.get('TORQUE_WRAPPER_DEBUG'):
+        print(f"torque_host_wrapper: executing {' '.join(cmd)}", file=sys.stderr)
+        print(f"torque_host_wrapper: torque path = {torque_path}", file=sys.stderr)
+
+    # Execute torque and propagate exit code
+    try:
+        result = subprocess.run(cmd, check=False)
+        sys.exit(result.returncode)
+    except FileNotFoundError as e:
+        print(f"Error: Failed to execute torque: {e}", file=sys.stderr)
+        sys.exit(1)
+    except Exception as e:
+        print(f"Error: Unexpected error running torque: {e}", file=sys.stderr)
+        sys.exit(1)
+
+
+if __name__ == '__main__':
+    main()

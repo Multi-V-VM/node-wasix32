@@ -284,6 +284,22 @@ class VirtualAddressSpace {
 
   virtual ~VirtualAddressSpace() = default;
 
+ protected:
+  // Default constructor
+  VirtualAddressSpace() = default;
+
+  // Constructor for derived classes
+  VirtualAddressSpace(size_t page_size, size_t allocation_granularity,
+                      Address base, size_t size,
+                      PagePermissions max_page_permissions)
+      : page_size_(page_size),
+        allocation_granularity_(allocation_granularity),
+        base_(base),
+        size_(size),
+        max_page_permissions_(max_page_permissions) {}
+
+ public:
+
   virtual void SetRandomSeed(int64_t) {}
   virtual Address RandomPageAddress() { return 0; }
 
@@ -295,6 +311,12 @@ class VirtualAddressSpace {
                                   PagePermissions /*perms*/) { return true; }
   virtual bool AllocateGuardRegion(Address /*address*/, size_t /*size*/) { return false; }
   virtual void FreeGuardRegion(Address /*address*/, size_t /*size*/) {}
+
+  virtual Address AllocateSharedPages(Address /*hint*/, size_t /*size*/,
+                                      PagePermissions /*permissions*/,
+                                      PlatformSharedMemoryHandle /*handle*/,
+                                      uint64_t /*offset*/) { return 0; }
+  virtual void FreeSharedPages(Address /*address*/, size_t /*size*/) {}
 
   virtual bool CanAllocateSubspaces() { return false; }
   virtual std::unique_ptr<VirtualAddressSpace> AllocateSubspace(

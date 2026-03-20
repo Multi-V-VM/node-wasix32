@@ -9,4 +9,6 @@
 #include "wasi-v8-essential-constants.h"
 #endif  // __wasi__ && V8_EXPORT_PRIVATE
 
+#endif  // #if 0
+
 #endif  // WASI_V8_FLAGS_FIX_H_

@@ -1,20 +1,17 @@
-#ifdef __wasi__
-#include "wasi/concepts-fix.h"
-#endif
 // Copyright 2021 the V8 project authors. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
 #ifdef __wasi__
+#include "wasi/concepts-fix.h"
+#include "wasi/nuclear-fix.h"
 #include "wasi/v8-persistent-handle-fixes.h"
+#include "v8-internal.h"            // NOLINT(build/include_directory)
 #endif
 
 #ifndef INCLUDE_V8_PERSISTENT_HANDLE_H_
 #define INCLUDE_V8_PERSISTENT_HANDLE_H_
 
-#ifndef __wasi__
-#include "v8-internal.h"            // NOLINT(build/include_directory)
-#endif
 #include "v8-handle-base.h"         // NOLINT(build/include_directory)
 #include "v8-local-handle.h"        // NOLINT(build/include_directory)
 #include "v8-weak-callback-info.h"  // NOLINT(build/include_directory)
@@ -217,35 +214,25 @@ class PersistentBase : public api_internal::IndirectHandleBase {
    */
   V8_INLINE uint16_t WrapperClassId() const;
 
-#ifdef __wasi__
-  /**
-   * WASI stub: Check if the persistent handle is empty
-   */
   V8_INLINE bool IsEmpty() const {
+#ifdef __wasi__
     return slot() == nullptr || *slot() == ::v8::internal::kNullAddress;
+#else
+    return slot() == nullptr || *slot() == ::v8::internal::Internals::kNullAddress;
+#endif
   }
-  
-  /**
-   * WASI stub: Clear the persistent handle  
-   */
+
   V8_INLINE void Clear() {
     Reset();
   }
-  
-  /**
-   * WASI stub: operator-> for accessing the stored pointer
-   */
+
   V8_INLINE T* operator->() const {
     return value<T>();
   }
-  
-  /**
-   * WASI stub: operator* for dereferencing
-   */
+
   V8_INLINE T& operator*() const {
     return *value<T>();
   }
-#endif
 
   PersistentBase(const PersistentBase& other) = delete;
   void operator=(const PersistentBase&) = delete;

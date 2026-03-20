@@ -270,7 +270,6 @@ TimeDelta TimeDelta::FromMachTimespec(struct mach_timespec ts) {
                    ts.tv_nsec / Time::kNanosecondsPerMicrosecond);
 }
 
-
 struct mach_timespec TimeDelta::ToMachTimespec() const {
   struct mach_timespec ts;
   DCHECK_GE(delta_, 0);
@@ -291,7 +290,6 @@ TimeDelta TimeDelta::FromTimespec(struct timespec ts) {
   return TimeDelta(ts.tv_sec * Time::kMicrosecondsPerSecond +
                    ts.tv_nsec / Time::kNanosecondsPerMicrosecond);
 }
-
 
 struct timespec TimeDelta::ToTimespec() const {
   struct timespec ts;
@@ -412,11 +410,7 @@ Time Time::Now() {
   return FromTimeval(tv);
 }
 
-
-Time Time::NowFromSystemTime() {
-  return Now();
-}
-
+Time Time::NowFromSystemTime() { return Now(); }
 
 Time Time::FromTimespec(struct timespec ts) {
   DCHECK_GE(ts.tv_nsec, 0);
@@ -431,7 +425,6 @@ Time Time::FromTimespec(struct timespec ts) {
   return Time(ts.tv_sec * kMicrosecondsPerSecond +
               ts.tv_nsec / kNanosecondsPerMicrosecond);
 }
-
 
 struct timespec Time::ToTimespec() const {
   struct timespec ts;
@@ -450,7 +443,6 @@ struct timespec Time::ToTimespec() const {
   return ts;
 }
 
-
 Time Time::FromTimeval(struct timeval tv) {
   DCHECK_GE(tv.tv_usec, 0);
   DCHECK(tv.tv_usec < static_cast<suseconds_t>(kMicrosecondsPerSecond));
@@ -463,7 +455,6 @@ Time Time::FromTimeval(struct timeval tv) {
   }
   return Time(tv.tv_sec * kMicrosecondsPerSecond + tv.tv_usec);
 }
-
 
 struct timeval Time::ToTimeval() const {
   struct timeval tv;

@@ -15,6 +15,13 @@
 #define V8_WEAK
 #endif
 
+#if defined(__GLIBC__) && defined(__GLIBC_MINOR__)
+# define V8_GLIBC_PREREQ(maj, min) \
+  ((__GLIBC__ << 16) + __GLIBC_MINOR__ >= ((maj) << 16) + (min))
+#else
+# define V8_GLIBC_PREREQ(maj, min) 0
+#endif
+
 // Annotation to silence compiler warnings about unused
 // types/functions/variables. Use like:
 //

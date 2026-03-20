@@ -72,6 +72,11 @@ struct uv__queue {
 # include "uv/unix.h"
 #endif
 
+#ifdef __wasi__
+#include <termios.h>
+#include <sys/socket.h>
+#endif
+
 /* Expand this list if necessary. */
 #define UV_ERRNO_MAP(XX)                                                      \
   XX(E2BIG, "argument list too long")                                         \

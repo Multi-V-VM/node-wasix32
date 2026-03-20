@@ -1,6 +1,23 @@
 #ifndef V8_INCLUDE_WASI_NUCLEAR_FIX_H_
 #define V8_INCLUDE_WASI_NUCLEAR_FIX_H_
 
+// Provide SmiTagging template and kApiInt32Size at global scope before WASI-specific block
+// This is needed by torque code that builds for both host and wasm32 targets
+#ifndef kApiInt32Size
+constexpr int kApiInt32Size = sizeof(int32_t);
+#endif
+
+#ifndef SmiTagging
+template <int Size>
+struct SmiTagging {
+  // WASI uses 31-bit Smis for 32-bit pointer size configurations.
+  static constexpr int kSmiTagSize = 1;
+  static constexpr int kSmiShiftSize = 0;
+  static constexpr int32_t kSmiMaxValue = 0x3fffffff;  // 2^30 - 1
+  static constexpr int32_t kSmiMinValue = -0x40000000; // -2^30
+};
+#endif
+
 #if defined(__wasi__) || defined(V8_USING_WASI_SHIMS)
 
 #include <cstdint>
@@ -136,20 +153,6 @@ using PagePermissions = PageAllocator::PagePermissions;
 // Note: Core numeric constants (kBitsPerByte, kMaxUInt8, kMaxUInt32,
 // kDoubleSize, etc.) are provided by src/common/globals.h. Do not duplicate
 // here to avoid ODR/redefinition issues.
-
-// Provide global SmiTagging template and API size fallback expected by Torque
-#ifndef kApiInt32Size
-constexpr int kApiInt32Size = sizeof(int32_t);
-#endif
-
-template <int Size>
-struct SmiTagging {
-  // WASI uses 31-bit Smis for 32-bit pointer size configurations.
-  static constexpr int kSmiTagSize = 1;
-  static constexpr int kSmiShiftSize = 0;
-  static constexpr int32_t kSmiMaxValue = 0x3fffffff;  // 2^30 - 1
-  static constexpr int32_t kSmiMinValue = -0x40000000; // -2^30
-};
 
 // Mark that nuclear-fix provides SMI helpers so project stubs can avoid redefs
 #ifndef V8_WASI_NUCLEAR_PROVIDES_SMI
