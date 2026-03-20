@@ -14,7 +14,7 @@
 #endif
 #endif
 
-#if V8_OS_BSD
+#if V8_OS_BSD || V8_OS_DARWIN
 #include <sys/sysctl.h>
 #endif
 

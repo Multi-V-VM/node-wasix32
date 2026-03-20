@@ -24,6 +24,24 @@ PWD = $(CURDIR)
 BUILD_WITH ?= make
 FIND ?= find
 
+# Compiler variables for wasixcc
+CC=/usr/local/bin/wasixcc
+CXX=/usr/local/bin/wasixcc++
+AR=/usr/local/bin/wasixar
+LD=/usr/local/bin/wasixld
+WASIX_SYSROOT_PATH=$(shell /usr/local/bin/wasixcc --print-sysroot)
+WASIXCC_COMPILER_FLAGS_CXX=-std=c++20
+
+export CC CXX AR LD WASIX_SYSROOT_PATH WASIXCC_COMPILER_FLAGS_CXX
+
+# Add fatal-errors flag during compilation to stop on first error
+CFLAGS += -Wfatal-errors -ferror-limit=1
+CXXFLAGS += -Wfatal-errors -ferror-limit=1
+
+# WASI SDK configuration for WebAssembly builds
+WASI_SDK_PATH ?= $(HOME)/.local/share/mise/installs/wasi-sdk/28/wasi-sdk
+# WASIX_SYSROOT_PATH ?= $(PWD)/wasix-sysroot
+
 ifdef JOBS
 	PARALLEL_ARGS = -j $(JOBS)
 else
@@ -527,6 +545,61 @@ build-sqlite-tests: | $(NODE_EXE) test/sqlite/.buildstamp ## Build SQLite tests.
 else
 build-sqlite-tests:
 endif
+
+.PHONY: node.wasm
+node.wasm: node.wasm-configure ## Build Node.js for WebAssembly using WASI.
+	@echo "🔍 Checking prerequisites for WASI build..."
+	@if [ ! -d "$(WASIX_SYSROOT_PATH)" ]; then \
+		echo "❌ Error: wasix-sysroot not found at $(WASIX_SYSROOT_PATH)"; \
+		echo "   Please ensure wasix-sysroot is available or set WASIX_SYSROOT_PATH."; \
+		echo "   Example: make node.wasm WASIX_SYSROOT_PATH=/path/to/wasix-sysroot"; \
+		exit 1; \
+	fi
+	@echo "✅ Prerequisites check passed"
+	@echo "🔧 Setting up WASI environment and building..."
+	sh -c ' \
+		echo "🧹 Cleaning previous build..." && \
+		rm -rf out && \
+		echo "⚙️  Configuring Node.js for wasm32 cross-compilation..." && \
+		CC=$(CC) CXX=$(CXX) AR=$(AR) LD=$(LD) \
+		CC_host=/opt/homebrew/opt/llvm/bin/clang CXX_host=/opt/homebrew/opt/llvm/bin/clang++ \
+		AR_host=/opt/homebrew/opt/llvm/bin/llvm-ar LD_host=/opt/homebrew/opt/llvm/bin/ld.lld \
+		LDFLAGS_host="-framework CoreFoundation" \
+		./configure --dest-cpu=wasm32 --cross-compiling --without-inspector --without-intl --without-ssl && \
+		echo "🔧 Patching host makefiles for native architecture..." && \
+		python3 patch_host_makefiles.py && \
+		echo "🔨 Building Node.js as WebAssembly (host torque builds as dependency)..." && \
+		CC="$(CC) --sysroot=$(WASIX_SYSROOT_PATH) -D_WASI_EMULATED_SIGNAL -matomics -mbulk-memory" \
+		CXX="$(CXX) --sysroot=$(WASIX_SYSROOT_PATH) -D_WASI_EMULATED_SIGNAL -matomics -mbulk-memory" \
+		LDFLAGS="-L$(WASIX_SYSROOT_PATH)/lib -lwasi-emulated-signal --shared-memory" \
+		CFLAGS="-I$(WASIX_SYSROOT_PATH)/include -I../ -I../src -Wfatal-errors -ferror-limit=1 $${CFLAGS}" \
+		CPPFLAGS="-I$(WASIX_SYSROOT_PATH)/include -I../ -I../src $${CXXFLAGS}" \
+		$(MAKE) -C out BUILDTYPE=Release node && \
+		echo "📦 Renaming output to node.wasm..." && \
+		mv out/Release/node node.wasm && \
+		echo "🎉 WASI build completed successfully!" && \
+		echo "📍 WebAssembly executable: node.wasm" && \
+		echo "📋 File info:" && \
+		file node.wasm \
+	'
+
+.PHONY: node.wasm-configure
+node.wasm-configure: ## Build Node.js for WebAssembly using WASI.
+	@echo "🔍 Checking prerequisites for WASI build..."
+	@if [ ! -d "$(WASIX_SYSROOT_PATH)" ]; then \
+		echo "❌ Error: wasix-sysroot not found at $(WASIX_SYSROOT_PATH)"; \
+		echo "   Please ensure wasix-sysroot is available or set WASIX_SYSROOT_PATH."; \
+		echo "   Example: make node.wasm WASIX_SYSROOT_PATH=/path/to/wasix-sysroot"; \
+		exit 1; \
+	fi
+	@echo "✅ Prerequisites check passed"
+	@echo "🔧 Setting up WASI environment and building..."
+	sh -c ' \
+		echo "🧹 Cleaning previous build..." && \
+		rm -rf out && \
+		echo "⚙️  Configuring Node.js for wasm32 cross-compilation..." && \
+		CC=$(CC) CXX=$(CXX) AR=$(AR) LD=$(LD) ./configure --dest-cpu=wasm32 --cross-compiling --without-inspector --without-intl --without-ssl \
+	'
 
 .PHONY: clear-stalled
 clear-stalled: ## Clear any stalled processes.

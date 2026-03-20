@@ -1,0 +1,14 @@
+#ifndef _CSTDDEF
+#define _CSTDDEF
+
+#include <stddef.h>
+
+#ifdef __cplusplus
+namespace std {
+    using ::size_t;
+    using ::ptrdiff_t;
+    using ::nullptr_t;
+}
+#endif
+
+#endif // _CSTDDEF

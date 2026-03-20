@@ -63,6 +63,7 @@ class SharedMemoryMapping : public ::v8::PageAllocator::SharedMemoryMapping {
       : page_allocator_(page_allocator), ptr_(ptr), size_(size) {}
   ~SharedMemoryMapping() override { page_allocator_->FreePages(ptr_, size_); }
   void* GetMemory() const override { return ptr_; }
+  void Remap(void* new_address) override { ptr_ = new_address; }
 
  private:
   PageAllocator* page_allocator_;

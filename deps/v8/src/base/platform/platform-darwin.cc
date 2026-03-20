@@ -78,6 +78,22 @@ kern_return_t mach_vm_map_wrapper(mach_vm_address_t* address,
                      FALSE, current_prot, maximum_prot, VM_INHERIT_NONE);
 }
 
+// Convert between mach_port_t and PlatformSharedMemoryHandle
+// PlatformSharedMemoryHandle is an opaque type defined in public headers
+inline PlatformSharedMemoryHandle SharedMemoryHandleFromMachMemoryEntry(
+    mach_port_t port) {
+  return reinterpret_cast<PlatformSharedMemoryHandle>(
+      static_cast<uintptr_t>(port));
+}
+
+inline mach_port_t MachMemoryEntryFromSharedMemoryHandle(
+    PlatformSharedMemoryHandle handle) {
+  return static_cast<mach_port_t>(reinterpret_cast<uintptr_t>(handle));
+}
+
+// Invalid handle constant
+#define kInvalidSharedMemoryHandle ((::v8::PlatformSharedMemoryHandle)(0))
+
 }  // namespace
 
 std::vector<OS::SharedLibraryAddress> OS::GetSharedLibraryAddresses() {

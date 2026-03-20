@@ -6,7 +6,7 @@
     'visibility%': 'hidden',          # V8's visibility setting
     'target_arch%': 'wasm32',         # set v8's target architecture for WASI
     'host_arch%': 'x64',              # build host tools for x64
-    'want_separate_host_toolset%': 1, # use separate host toolset when cross-compiling
+    'want_separate_host_toolset%': 0,
     'library%': 'static_library',     # allow override to 'shared_library' for DLL/.so builds
     'component%': 'static_library',   # NB. these names match with what V8 expects
     'msvs_multi_core_compile': '0',   # we do enable multicore compiles, but not using the V8 way
@@ -272,7 +272,7 @@
         },
       }
     },
-
+    'cflags_cc+': [ '-std=c++20' ],
     # Defines these mostly for node-gyp to pickup.
     'defines': [
       '_GLIBCXX_USE_CXX11_ABI=1',
@@ -286,13 +286,6 @@
     # libraries in deps/ are not under our control.
     'conditions': [
       ['target_arch=="wasm32"', {
-        'cflags': [
-          '-include', '<(DEPTH)/wasi-all-fixes.h',
-        ],
-        'cflags_cc': [
-          '-include', '<(DEPTH)/wasi-all-fixes.h',
-        ],
-        'defines': ['V8_USING_WASI_SHIMS=1'],
       }],
       [ 'error_on_warn=="false"', {
         'cflags!': ['-Werror'],
@@ -300,6 +293,20 @@
           '_target_name!="<(node_core_target_name)")', {
         'cflags!': ['-Werror'],
       }],
+    ],
+    'target_conditions': [
+      ['_toolset=="target"', {
+        'defines': ['V8_USING_WASI_SHIMS=1'],
+        'cflags_cc': [
+          '-include', '<(DEPTH)/wasi-all-fixes.h',
+        ],
+      }],
+      # Host builds should not include WASI fixes
+      # ['_toolset=="host"', {
+      #   'cflags_cc': [
+      #     '-include', '<(DEPTH)/wasi-all-fixes.h',
+      #   ],
+      # }],
     ],
     'msvs_settings': {
       'VCCLCompilerTool': {
@@ -756,5 +763,16 @@
         'include_dirs':  ['<(zoslib_include_dir)'],
       }],
     ],
-  }
+  },
+
+  'make_global_settings': [
+    ['CC.host', '/usr/bin/clang'],
+    ['CXX.host', '/usr/bin/clang++'],
+    ['AR.host', '/usr/bin/ar'],
+    ['LD.host', '/usr/bin/clang++'],
+    ['CC', '/usr/local/bin/wasixcc'],
+    ['CXX', '/usr/local/bin/wasixcc++'],
+    ['AR', '/usr/local/bin/wasixar'],
+    ['LD', '/usr/local/bin/wasixld'],
+  ],
 }

@@ -9,6 +9,13 @@ namespace v8 {
 namespace internal {
 
 // ============================================================================
+// Forward Declarations for Additional Fixes
+// ============================================================================
+
+template<typename T>
+class ZoneVector;
+
+// ============================================================================
 // Zone Method Additions
 // ============================================================================
 
@@ -32,16 +39,21 @@ public:
 
 namespace base {
 
-// Hash specialization for double
-template<>
-struct hash<double> {
-  size_t operator()(double value) const {
-    // Use the bit pattern of the double for hashing
-    uint64_t bits;
-    memcpy(&bits, &value, sizeof(double));
-    return static_cast<size_t>(bits ^ (bits >> 32));
-  }
-};
+// Hash specialization for double (only if not already defined in std)
+// Avoid redefinition errors by checking if hash<double> already exists in std
+namespace internal {
+  template<typename T>
+  struct HashHelper {};
+
+  template<>
+  struct HashHelper<double> {
+    size_t operator()(double value) const {
+      uint64_t bits;
+      memcpy(&bits, &value, sizeof(double));
+      return static_cast<size_t>(bits ^ (bits >> 32));
+    }
+  };
+}
 
 // CountLeadingSignBits - alias to CountLeadingZeros for compatibility
 namespace bits {
@@ -54,6 +66,28 @@ namespace bits {
 } // namespace base
 
 // ============================================================================
+// Register Stub Definitions
+// ============================================================================
+
+class DoubleRegister {
+public:
+  explicit DoubleRegister(int code) : code_(code) {}
+  static DoubleRegister from_code(int code) { return DoubleRegister(code); }
+  int code() const { return code_; }
+private:
+  int code_;
+};
+
+class Simd128Register {
+public:
+  explicit Simd128Register(int code) : code_(code) {}
+  static Simd128Register from_code(int code) { return Simd128Register(code); }
+  int code() const { return code_; }
+private:
+  int code_;
+};
+
+// ============================================================================
 // Assembler/MacroAssembler Additions
 // ============================================================================
 
@@ -62,38 +96,45 @@ public:
   void RecordComment(const char* comment) {}
 };
 
-class MacroAssembler : public Assembler {
-public:
-  // Root register initialization
-  void InitializeRootRegister() {}
-
-  // Exception handler
-  void ExceptionHandler() {}
-
-  // RecordComment with single argument
-  void RecordComment(const char* comment) {}
-};
+// MacroAssembler already defined in arch-specific code, extend via namespace if needed
 
 // ============================================================================
 // Register Conversion Helpers
 // ============================================================================
 
-// Allow implicit conversion from DoubleRegister/Simd128Register to Register for stub purposes
-inline Register ToRegister(DoubleRegister reg) {
-  return Register::from_code(reg.code());
-}
-
-inline Register ToRegister(Simd128Register reg) {
-  return Register::from_code(reg.code());
-}
+// Register conversion functions moved inside v8::internal namespace
+// These functions are optional and can be commented out if Register type is not available
+// namespace v8 {
+// namespace internal {
+//
+// // Allow implicit conversion from DoubleRegister/Simd128Register to Register for stub purposes
+// inline Register ToRegister(DoubleRegister reg) {
+//   return Register::from_code(reg.code());
+// }
+//
+// inline Register ToRegister(Simd128Register reg) {
+//   return Register::from_code(reg.code());
+// }
+//
+// }  // namespace internal
+// }  // namespace v8
 
 // ============================================================================
 // ToCData Template Fix
 // ============================================================================
 
-// Foreign address tags (additional)
-constexpr uint64_t kCFunctionTag = 3;
-constexpr uint64_t kCFunctionInfoTag = 4;
+// Define missing SMI constants if not already defined
+// Skip - these are already defined in nuclear-fix.h
+// #ifndef kSmiTagSize
+// constexpr int kSmiTagSize = 1;
+// #endif
+// #ifndef kSmiShiftSize
+// constexpr int kSmiShiftSize = 31;
+// #endif
+
+// Foreign address tags are already defined in V8, skip redefinition
+// constexpr uint64_t kCFunctionTag = 3;
+// constexpr uint64_t kCFunctionInfoTag = 4;
 
 // ToCData implementation
 template<typename T>
@@ -101,78 +142,20 @@ inline T ToCData(Address foreign) {
   return reinterpret_cast<T>(foreign);
 }
 
-// IntToSmi in internal namespace
-inline Address IntToSmi(int value) {
-  return static_cast<Address>(value) << (kSmiTagSize + kSmiShiftSize);
-}
+// IntToSmi is already defined in V8 headers with different overloads
+// Skip defining it here to avoid conflicts
+// inline Address IntToSmi(int value) {
+//   return static_cast<Address>(value) << (kSmiTagSize + kSmiShiftSize);
+// }
 
 // ============================================================================
 // DeoptimizeReason and AssertCondition Enum Fixes
 // ============================================================================
 
-// DeoptimizeReason enum (complete)
-enum class DeoptimizeReason {
-  kUnknown = 0,
-  kHole = 1,
-  kSmi = 2,
-  kWrongMap = 3,
-  kInsufficientTypeFeedbackForGenericKeyedAccess = 4,
-  kInsufficientTypeFeedbackForGenericNamedAccess = 5,
-  kMaybeInHole = 6,
-  kNotAHeapNumber = 7,
-  kNotAString = 8,
-  kNotASmi = 9,
-  kOutOfBounds = 10,
-  kOverflow = 11,
-  kNegativeValue = 12,
-  kLostPrecision = 13,
-  kLostPrecisionOrNaN = 14,
-  kNotInt32 = 15,
-  kDivisionByZero = 16,
-  kMinusZero = 17,
-  kNaN = 18,
-  kNotABigInt = 19,
-  kNotABigInt64 = 20,
-  kNotANumber = 21,
-  kNotANumberOrOddball = 22,
-  kWrongName = 23,
-  kWrongValue = 24,
-  kWrongInstanceType = 25,
-  kNoInitialElement = 26,
-  kNotAJavaScriptObject = 27,
-  kCowArrayElementsChanged = 28,
-  kArrayLengthChanged = 29,
-  kArrayBufferWasDetached = 30,
-};
-
-// Convert int to DeoptimizeReason
-inline DeoptimizeReason IntToDeoptimizeReason(int value) {
-  return static_cast<DeoptimizeReason>(value);
-}
-
-// AssertCondition enum (complete)
-enum class AssertCondition {
-  kEqual = 0,
-  kNotEqual = 1,
-  kLessThan = 2,
-  kLessThanOrEqual = 3,
-  kGreaterThan = 4,
-  kGreaterThanOrEqual = 5,
-  kUnsignedLessThan = 6,
-  kUnsignedLessThanOrEqual = 7,
-  kUnsignedGreaterThan = 8,
-  kUnsignedGreaterThanOrEqual = 9,
-};
-
-// Convert Condition to AssertCondition
-inline AssertCondition ConditionToAssertCondition(Condition cond) {
-  return static_cast<AssertCondition>(cond);
-}
-
-// Convert int to AssertCondition
-inline AssertCondition IntToAssertCondition(int value) {
-  return static_cast<AssertCondition>(value);
-}
+// DeoptimizeReason and AssertCondition are already defined elsewhere
+// Skip redefinitions here to avoid conflicts
+// enum class DeoptimizeReason { ... };
+// enum class AssertCondition { ... };
 
 // ============================================================================
 // SmallVector Constructor Fixes
@@ -277,6 +260,24 @@ private:
 // Helper to check if a type represents 64-bit operations
 namespace compiler {
 
+// MachineRepresentation enum
+enum class MachineRepresentation {
+  kWord32,
+  kWord64,
+  kFloat32,
+  kFloat64,
+  kSimd128,
+  kSimd256,
+  kTagged,
+  kCompressed
+};
+
+// MachineType stub
+class MachineType {
+public:
+  MachineRepresentation representation() const { return MachineRepresentation::kWord64; }
+};
+
 template<typename T>
 inline bool Is64Bit(const T& value) {
   return sizeof(typename T::value_type) == 8;
@@ -353,10 +354,12 @@ constexpr uintptr_t kWaiterQueueMaskValue = ~((1ULL << kWaiterQueueNodeTagBits) 
 // External Pointer Tag Range Fix
 // ============================================================================
 
-struct ExternalPointerTagRange {
-  uint32_t first() const { return 0; }
-  uint32_t last() const { return 0; }
-};
+// ExternalPointerTagRange is already defined in nuclear-fix.h
+// Skip redefinition here
+// struct ExternalPointerTagRange {
+//   uint32_t first() const { return 0; }
+//   uint32_t last() const { return 0; }
+// };
 
 // ============================================================================
 // DidntThrowOp Constructor Fix
@@ -433,6 +436,21 @@ public:
 } // namespace compiler
 
 // ============================================================================
+// OpIndex Stub Definition
+// ============================================================================
+
+namespace compiler {
+namespace turboshaft {
+
+// OpIndex stub type
+struct OpIndex {
+  int index = 0;
+};
+
+}
+}
+
+// ============================================================================
 // UseMap Return Type Fix
 // ============================================================================
 
@@ -441,8 +459,8 @@ namespace turboshaft {
 
 class UseMap {
 public:
-  Vector<const OpIndex> uses(OpIndex index) const {
-    return Vector<const OpIndex>(nullptr, 0);
+  std::vector<OpIndex> uses(OpIndex index) const {
+    return std::vector<OpIndex>();
   }
 };
 
@@ -516,16 +534,14 @@ public:
 // ============================================================================
 // Standard Library Hash Fix for StrongAlias
 // ============================================================================
-
-namespace std {
-
-template<typename Tag, typename T>
-struct hash<v8::base::StrongAlias<Tag, T>> {
-  size_t operator()(const v8::base::StrongAlias<Tag, T>& value) const {
-    return hash<T>()(value.value());
-  }
-};
-
-} // namespace std
+// StrongAlias not available in v8::base for this build, skip specialization
+// namespace std {
+// template<typename Tag, typename T>
+// struct hash<v8::base::StrongAlias<Tag, T>> {
+//   size_t operator()(const v8::base::StrongAlias<Tag, T>& value) const {
+//     return hash<T>()(value.value());
+//   }
+// };
+// } // namespace std
 
 #endif  // WASI_ADDITIONAL_FIXES_H_

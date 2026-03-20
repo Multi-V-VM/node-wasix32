@@ -178,3 +178,11 @@ tmp*
 test*
 qemu*
 *.md
+
+wasix-sysroot/
+!.github/workflows/build-wasix.yml
+
+
+# Added by cargo
+
+/target

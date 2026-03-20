@@ -346,7 +346,7 @@ void uv_key_set(uv_key_t* key, void* value) {
 #include <gnu/libc-version.h>  /* gnu_get_libc_version() */
 #endif
 
-#if defined(__linux__)
+#if defined(__linux__) && !defined(__wasi__)
 # include <sched.h>
 # define uv__cpu_set_t cpu_set_t
 #elif defined(__FreeBSD__)

@@ -834,11 +834,10 @@
       'include_dirs': [
         'src',
         'deps/postject',
-        'deps/v8',
+        'deps/v8/include',
         '<(SHARED_INTERMEDIATE_DIR)' # for node_natives.h
       ],
       'dependencies': [
-        'deps/googletest/googletest.gyp:gtest_prod',
         'deps/histogram/histogram.gyp:histogram',
         'deps/nbytes/nbytes.gyp:nbytes',
         'tools/v8_gypfiles/abseil.gyp:abseil',
@@ -1129,7 +1128,6 @@
       'type': 'executable',
       'dependencies': [
         '<(node_lib_target_name)',
-        'deps/googletest/googletest.gyp:gtest_prod',
         'deps/histogram/histogram.gyp:histogram',
         'deps/uvwasi/uvwasi.gyp:uvwasi',
         'deps/nbytes/nbytes.gyp:nbytes',
@@ -1339,9 +1337,11 @@
       'target_name': 'node_js2c',
       'type': 'executable',
       'toolsets': ['host'],
+      'defines': ['__wasi__=1'],
       'include_dirs': [
         'tools',
         'src',
+        'deps/v8/third_party/simdutf',
       ],
       'sources': [
         'tools/js2c.cc',

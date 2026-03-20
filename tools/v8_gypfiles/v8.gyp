@@ -1549,6 +1549,11 @@
         '<!@pymod_do_main(GN-scraper "<(V8_ROOT)/BUILD.gn"  "\\"v8_libbase.*?sources = ")',
       ],
 
+      'cflags_cc': [
+        '-std=c++2b',
+        '-fconcepts',
+      ],
+
       'dependencies': [
         'v8_headers',
         'abseil.gyp:abseil',

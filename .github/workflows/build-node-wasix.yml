@@ -1,0 +1,108 @@
+# GitHub Actions workflow to build Node.js -> Wasix/WASM
+# Triggers on push and pull requests to main/master. Adjust branches as needed.
+name: Build Node.js (wasm32-wasi / wasix)
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: Build Node.js -> wasm32-wasi
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+
+    env:
+      # Set the wasi-sdk version to use. Adjust as needed.
+      WASI_SDK_VERSION: "28.0"
+      # Where artifacts will be collected.
+      ARTIFACT_DIR: out
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - name: Install system packages (cmake, ninja, python, git, etc.)
+        run: |
+          sudo apt-get update -y
+          sudo apt-get install -y --no-install-recommends \
+            build-essential cmake ninja-build python3 python3-pip  git wget ca-certificates jq
+
+      - name: Install Node.js for build tooling (optional)
+        uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+
+      - name: Download and install Wasix sysroot
+        run: |
+          set -euxo pipefail
+          version="v2025-11-06.1"
+          tarball="sysroot-eh.tar.gz"
+          url="https://github.com/wasix-org/wasix-libc/releases/download/${version}/${tarball}"
+          wget -q "$url"
+          mkdir -p wasix-sysroot
+          tar xzf "$tarball" -C wasix-sysroot
+          echo "WASIX_SYSROOT=$PWD/wasix-sysroot" >> $GITHUB_ENV
+          ls -la wasix-sysroot
+
+      - name: Install WASI SDK for compiler toolchain
+        run: |
+          set -euxo pipefail
+          ver="28"
+          tarball="wasi-sdk-${ver}.0-x86_64-linux.tar.gz"
+          url="https://github.com/WebAssembly/wasi-sdk/releases/download/wasi-sdk-${ver}/${tarball}"
+          wget -q "$url"
+          tar xzf "$tarball"
+          sdk_dir_name=$(find . -maxdepth 1 -type d -name "wasi-sdk*" | sed 's|./||')
+          echo "$sdk_dir_name/bin" >> $GITHUB_PATH
+          echo "WASI_SDK_PATH=$PWD/$sdk_dir_name" >> $GITHUB_ENV
+          ls -la "$sdk_dir_name"
+
+      - name: Show environment and toolchain versions
+        run: |
+          set -euxo pipefail
+          echo "WASI_SDK_PATH=${WASI_SDK_PATH:-<not-set>}"
+          echo "WASIX_SYSROOT=${WASIX_SYSROOT:-<not-set>}"
+          wasm32-wasi-clang --version || clang --version || true
+          wasm32-wasi-clang++ --version || clang++ --version || true
+          cmake --version
+          ninja --version
+          python3 --version
+          node --version || true
+
+      - name: Make scripts executable
+        run: |
+          chmod +x ./.github/scripts/build-node-wasix.sh || true
+
+      - name: Run wasm build script
+        env:
+          # Expose compilers that point to the wasi toolchain with wasix sysroot.
+          CC: "${{ env.WASI_SDK_PATH }}/bin/clang --target=wasm32-wasi --sysroot=${{ env.WASIX_SYSROOT }}"
+          CXX: "${{ env.WASI_SDK_PATH }}/bin/clang++ --target=wasm32-wasi --sysroot=${{ env.WASIX_SYSROOT }} -isystem ${{ env.WASIX_SYSROOT }}/include/c++/v1"
+          AR: "${{ env.WASI_SDK_PATH }}/bin/llvm-ar"
+          RANLIB: "${{ env.WASI_SDK_PATH }}/bin/llvm-ranlib"
+          WASI_SDK_PATH: ${{ env.WASI_SDK_PATH }}
+          WASIX_SYSROOT: ${{ env.WASIX_SYSROOT }}
+        run: |
+          set -euxo pipefail
+          ./.github/scripts/build-node-wasix.sh
+
+      - name: Upload wasm build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: node-wasix-artifacts
+          path: |
+            out/**
+            build/**
+
+      - name: Print artifact tree
+        if: always()
+        run: |
+          echo "Artifact directory listing:"
+          ls -la out || true
+          find out -maxdepth 3 -type f -print || true
