@@ -698,7 +698,7 @@ void Worker::New(const FunctionCallbackInfo<Value>& args) {
 #ifdef __wasi__
   // For WASI, cast to ArrayBufferView to call CopyContents
   limit_info.As<v8::ArrayBufferView>()->CopyContents(worker->resource_limits_,
-                                                       sizeof(worker->resource_limits_));
+                                                       sizeof(worker->resource_limits_));  // NOLINT(whitespace/line_length)
 #else
   limit_info->CopyContents(worker->resource_limits_,
                            sizeof(worker->resource_limits_));

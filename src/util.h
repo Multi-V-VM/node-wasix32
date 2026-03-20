@@ -27,7 +27,6 @@
 #include "uv.h"
 #include "v8-inspector.h"
 #include "v8.h"
-#include <bit>
 #include "node.h"
 #ifdef __wasi__
 // wasi-v8-complete-missing.h removed - causes redefinitions when included after V8 headers
@@ -306,12 +305,12 @@ class ListHead {
  public:
   class Iterator {
    public:
-    Iterator(ListNode<T>* node) {}
+    explicit Iterator(ListNode<T>* node) {}
     T* operator*() const { return nullptr; }
     const Iterator& operator++() { return *this; }
     bool operator!=(const Iterator& that) const { return false; }
   };
-  
+
   ListHead() = default;
   bool IsEmpty() const { return true; }
   void PushBack(T* element) {}

@@ -3,9 +3,7 @@
 Convert V8's embedded.S (assembly format) to embedded.cc (C format) for WASM compilation.
 """
 
-import re
 import sys
-from pathlib import Path
 
 
 def parse_octa_value(octa_str):
@@ -30,10 +28,7 @@ def parse_octa_value(octa_str):
 def parse_embedded_s(input_file):
     """Parse embedded.S and extract data sections."""
 
-    data_section = []
-    code_section = []
     current_section = None
-    current_symbol = None
     symbols = {}  # name -> (section, offset)
 
     data_bytes = []

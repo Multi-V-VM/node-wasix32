@@ -22,7 +22,7 @@
 #ifdef __wasi__
 #endif
 
-#include "spawn_sync.h"
+#include "spawn_sync.h"  // NOLINT(build/include_inline)
 #include "spawn_sync-inl.h"
 #include "debug_utils-inl.h"
 #include "env-inl.h"

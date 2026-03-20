@@ -78,7 +78,7 @@ template <typename Arg, typename... Args>
 std::string COLD_NOINLINE SPrintFImpl(  // NOLINT(runtime/string)
     const char* format, Arg&& arg, Args&&... args) {
   const char* percent = strchr(format, '%');
-  CHECK_NOT_NULL(percent);  // If you hit this, you passed in too many arguments.
+  CHECK_NOT_NULL(percent);  // If you hit this, you passed in too many arguments.  // NOLINT(whitespace/line_length)
   std::string ret(format, percent);
 
   // Parse printf-style modifiers to find the conversion specifier.

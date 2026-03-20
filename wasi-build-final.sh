@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 
 echo "======================================"
 echo "WASI Build Status Report"
@@ -47,7 +47,12 @@ echo "- Use container2wasm to run Node.js in WebAssembly containers"
 echo ""
 
 echo "Files Created During This Process:"
-ls -la *.sh 2>/dev/null | grep -E "fix-|build-|wasi-" | awk '{print "- " $9}'
+for f in *.sh; do
+    case "$f" in
+        fix-*|build-*|wasi-*) echo "- $f" ;;
+        *) ;;
+    esac
+done
 echo ""
 
 echo "======================================"

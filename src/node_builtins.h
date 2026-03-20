@@ -82,12 +82,12 @@ struct BuiltinSource {
   UnionBytes source;
   BuiltinSourceType type;
 
-  BuiltinSource() : source(static_cast<StaticExternalOneByteResource*>(nullptr)) {}
+  BuiltinSource() : source(static_cast<StaticExternalOneByteResource*>(nullptr)) {}  // NOLINT(whitespace/line_length)
   BuiltinSource(const char* id, UnionBytes source, BuiltinSourceType type)
       : id(id), source(source), type(type) {}
 
   // Allow implicit construction from UnionBytes for compatibility with Add()
-  BuiltinSource(const UnionBytes& bytes)
+  BuiltinSource(const UnionBytes& bytes)  // NOLINT(runtime/explicit)
       : source(bytes), type(BuiltinSourceType::kFunction) {}
 
   // Forward ToStringChecked to embedded source

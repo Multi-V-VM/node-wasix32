@@ -472,7 +472,7 @@ void DLOpen(const FunctionCallbackInfo<Value>& args) {
   int32_t flags = DLib::kDefaultFlags;
   if (args.Length() > 2) {
     if (!args[2]->IsInt32()) {
-      return THROW_ERR_INVALID_ARG_TYPE(env, "flag argument must be an integer.");
+      return THROW_ERR_INVALID_ARG_TYPE(env, "flag argument must be an integer.");  // NOLINT(whitespace/line_length)
     }
     flags = args[2].As<v8::Int32>()->Value();
   }

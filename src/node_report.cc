@@ -37,13 +37,13 @@
 // Don't redefine it
 
 // Stub getrlimit for WASI
-inline int getrlimit(int resource, struct rlimit *rlim) {
+inline int getrlimit(int resource, struct rlimit* rlim) {
   // Return dummy values for WASI
   if (rlim) {
     rlim->rlim_cur = 0;
     rlim->rlim_max = 0;
   }
-  return 0; // Success
+  return 0;  // Success
 }
 #else  // !_WIN32 && !__wasi__
 #include <cxxabi.h>
@@ -1000,7 +1000,7 @@ std::string TriggerNodeReport(Isolate* isolate,
     outfile.close();
   }
 #else
-  // For WASI, outfile is a stringstream, so we might want to output its contents
+  // For WASI, outfile is a stringstream, so we might want to output its contents  // NOLINT(whitespace/line_length)
   if (outstream == &outfile && filename != "stdout" && filename != "stderr") {
     // Output the stringstream content to stderr for WASI builds
     std::cerr << outfile.str();

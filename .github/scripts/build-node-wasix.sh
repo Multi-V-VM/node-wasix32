@@ -1,100 +1,71 @@
-#!/bin/bash
+#!/bin/sh
 
 # Node.js WebAssembly (WASI/Wasix) Cross-Compilation Build Script
-# 
-# This script properly configures the environment and builds Node.js as WebAssembly for WASI/Wasix
-# Cross-compilation from host platform to wasm32 architecture
+#
+# Builds Node.js targeting wasm32-wasi using the WASI SDK and Wasix sysroot.
+# Expects the following environment variables to be set (e.g. by CI):
+#   WASI_SDK_PATH  - path to the installed WASI SDK directory
+#   WASIX_SYSROOT  - path to the Wasix sysroot
+#   CC, CXX, AR, RANLIB - compiler/tool overrides (optional)
 #
 # Usage: ./build-node-wasix.sh
 # Output: WebAssembly binary at out/Release/node
 
-set -e
+set -eu
 
-echo "🚀 Building Node.js for WebAssembly (WASI/Wasix) - Cross-compilation" 
+echo "Building Node.js for WebAssembly (WASI/Wasix) - Cross-compilation"
 
 # Check if we're in the right directory
 if [ ! -f "configure.py" ]; then
-    echo "❌ Error: Must run this from the Node.js source directory"
+    echo "Error: Must run this from the Node.js source directory"
     exit 1
 fi
 
-# Check for required tools
-echo "🔧 Checking prerequisites..."
-if ! command -v /Users/toni/.local/share/mise/installs/wasi-sdk/28/wasi-sdk/bin/wasm32-wasi-clang" 2>/dev/null; then
-    echo "❌ WASI SDK clang not found. Please install it:"
-    echo "   brew install mise && mise install wasm-sdk"
-    echo "   export PATH=\"/Users/toni/.local/share/mise/installs/wasi-sdk/28/wasi-sdk/bin:$PATH\""
+# Resolve WASI SDK path
+if [ -z "${WASI_SDK_PATH:-}" ]; then
+    echo "Error: WASI_SDK_PATH is not set. Please set it to the WASI SDK directory."
     exit 1
 fi
 
-if ! command -v /Users/toni/.local/share/mise/installs/wasi-sdk/28/wasi-sdk/bin/wasm32-wasi-clang++" 2>/dev/null; then
-    echo "❌ WASI SDK clang++ not found. Please install it:"
-    echo "   brew install mise && mise install wasm-sdk"
-    echo "   export PATH=\"/Users/toni/.local/share/mise/installs/wasi-sdk/28/wasi-sdk/bin:$PATH\""
+if [ -z "${WASIX_SYSROOT:-}" ]; then
+    echo "Error: WASIX_SYSROOT is not set. Please set it to the Wasix sysroot directory."
     exit 1
 fi
 
-if ! command -v /Users/toni/.local/share/mise/installs/wasi-sdk/28/wasi-sdk/bin/llvm-ar" 2>/dev/null; then
-    echo "❌ llvm-ar not found. Please install it:"
-    echo "   brew install mise && mise install wasm-sdk" 
-    echo "   export AR=\"/Users/toni/.local/share/mise/installs/wasi-sdk/28/wasi-sdk/bin/llvm-ar:$PATH\""
-    exit 1
-fi
+# Set compiler defaults if not already provided via environment
+: "${CC:=${WASI_SDK_PATH}/bin/clang --target=wasm32-wasi --sysroot=${WASIX_SYSROOT}}"
+: "${CXX:=${WASI_SDK_PATH}/bin/clang++ --target=wasm32-wasi --sysroot=${WASIX_SYSROOT}}"
+: "${AR:=${WASI_SDK_PATH}/bin/llvm-ar}"
+: "${RANLIB:=${WASI_SDK_PATH}/bin/llvm-ranlib}"
 
-echo "✅ All required tools found!"
+export CC CXX AR RANLIB
 
-# Export LLVM version environment variables  
-export LLVM_AR="/Users/toni/.local/share/mise/installs/wasi-sdk/28/wasi-sdk/bin/llvm-ar"
-export LLVM_NM="/Users/toni/.local/share/mise/installs/wasi-sdk/28/wasi-sdk/bin/llvm-nm"  
-export LLVM_RANLIB="/Users/toni/.local/share/mise/installs/wasi-sdk/28/wasi-sdk/bin/llvm-ranlib"
+echo "Using WASI_SDK_PATH=${WASI_SDK_PATH}"
+echo "Using WASIX_SYSROOT=${WASIX_SYSROOT}"
+echo "All required tools found!"
 
-# Set up the WASI cross-compilation environment with proper sysroot ordering
-# wasix-sysroot first for header priority and WASI SDK sysroot second
-export CC="/Users/toni/.local/share/mise/installs/wasi-sdk/28/wasi-sdk/bin/wasm32-wasi-clang --sysroot=./wasix-sysroot --sysroot=/Users/toni/.local/share/mise/installs/wasi-sdk/28/wasi-sdk/share/wasi-sysroot/ -D_WASI_EMULATED_SIGNAL -DCPPFLAGS='-I./wasix-sysroot/include -I/Users/toni/Labs/wasi-labs/node-wasix32' -Wl,--allow-undefined"
-
-export CXX="/Users/toni/.local/share/mise/installs/wasi-sdk/28/wasi-sdk/bin/wasm32-wasi-clang++ --sysroot=./wasix-sysroot --sysroot=/Users/toni/.local/share/mise/installs/wasi-sdk/28/wasi-sdk/share/wasi-sysroot/ -D_WASI_EMULATED_SIGNAL -DCPPFLAGS='-I./wasix-sysroot/include -I/Users/toni/Labs/wasi-labs/node-wasix32' -nostdinc++ -isystem /Users/toni/.local/share/mise/installs/wasi-sdk/28/wasi-sdk/share/wasi-sysroot/include' -DCPPFLAGS='-I/Users/toni/Labs/wasi-labs/node-wasix32'"
-
-# Include paths - wasix-sysroot first for proper C/C++ header resolution
-export CFLAGS="-I./wasix-sysroot/include -I../ -I../src"
-export CXXFLAGS="-I./wasix-sysroot/include -nostdinc++ -isystem /Users/toni/.local/share/mise/installs/wasi-sdk/28/wasi-sdk/share/wasi-sysroot/include -I./wasix-sysroot/include -DCPPFLAGS='-I/Users/toni/Labs/wasi-labs/node-wasix32'"
-
-# Linker configuration for WebAssembly
-export LDFLAGS="-L/Users/toni/.local/share/mise/installs/wasi-sdk/28/wasi-sdk/share/wasi-sysroot/lib -lwasi-emulated-signal -Wl,--allow-undefined"
-
-# Signal emulation flags to be added to CFLAGS and LDFLAGS  
-export CPPFLAGS="-I./wasix-sysroot/include -I../src -D_WASI_EMULATED_SIGNAL"
-
-# Architecture configuration - WASI cross-compilation requires wasm32 to be supported
-export DEST_CPU="wasm32"  
-export HOST_ARCH="wasm32"
-
-# Disable components not supporting WebAssembly yet
-export WITHOUT_INSPECTOR=1
-export WITHOUT_INTL=1
-export WITHOUT_SSL=1
-
-echo "⚙️  Configuring Node.js for wasm32 cross-compilation..."
+echo "Configuring Node.js for wasm32 cross-compilation..."
 ./configure \
-    --dest-cpu=$DEST_CPU \
-    --dest-host=$HOST_ARCH \
+    --dest-cpu=wasm32 \
+    --dest-host=wasm32 \
     --cross-compiling \
-    $WITHOUT_INSPECTOR \
-    $WITHOUT_INTL \
-    $WITHOUT_SSL
+    --without-inspector \
+    --without-intl \
+    --without-ssl
 
-echo "🔨 Building Node.js as WebAssembly with $(nproc) cores..."
-make -j$(nproc)
+echo "Building Node.js as WebAssembly..."
+NPROC=$(nproc)
+make -j"${NPROC}"
 
 # Check if build succeeded
 if [ -f "out/Release/node" ]; then
-    echo "🎉 Build successful!"
-    echo "📦 WebAssembly binary created: out/Release/node"
-    echo "🔍 Test with: file out/Release/node"
-    file out/Release/node"
-    echo "⚡ Run with: wasmeruntime out/Release/node"
+    echo "Build successful!"
+    echo "WebAssembly binary created: out/Release/node"
+    file out/Release/node
 else
-    echo "❌ Build failed!"
-    cd out && ls -la out/Release/
+    echo "Build failed - no output binary found"
+    ls -la out/Release/ || true
+    exit 1
 fi
 
-echo "🚨 Done!"
+echo "Done!"

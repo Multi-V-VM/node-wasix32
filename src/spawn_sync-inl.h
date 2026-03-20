@@ -26,6 +26,6 @@ inline void SyncProcessOutputBuffer::set_next(SyncProcessOutputBuffer* next) {
   next_ = next;
 }
 
-} // namespace node
+}  // namespace node
 
-#endif // SRC_SPAWN_SYNC_INL_H_
+#endif  // SRC_SPAWN_SYNC_INL_H_

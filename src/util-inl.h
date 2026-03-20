@@ -473,11 +473,11 @@ inline ::v8::MaybeLocal<::v8::Value> ToV8Value(::v8::Local<::v8::Context> contex
     // Convert const void* to string representation
     char buffer[32];
     snprintf(buffer, sizeof(buffer), "%p", item.first);
-    ::v8::Local<::v8::Value> first = 
+    ::v8::Local<::v8::Value> first =
         ::v8::String::NewFromUtf8(isolate, buffer, ::v8::NewStringType::kNormal)
             .ToLocalChecked();
     ::v8::Local<::v8::Value> second = ::v8::Number::New(isolate, static_cast<double>(item.second));
-    
+
     if (ret->Set(context, first, second).IsEmpty()) {
       return ::v8::MaybeLocal<::v8::Value>();
     }

@@ -698,7 +698,7 @@ void ResetStdio() {
     if (!is_same_file) continue;  // Program reopened file descriptor.
 
     int flags;
-    do flags = fcntl(fd, F_GETFL);
+    do flags = fcntl(fd, F_GETFL);  // NOLINT(whitespace/newline)
     while (flags == -1 && errno == EINTR);  // NOLINT
     CHECK_NE(flags, -1);
 
@@ -708,7 +708,7 @@ void ResetStdio() {
       flags |= s.flags & O_NONBLOCK;
 
       int err;
-      do err = fcntl(fd, F_SETFL, flags);
+      do err = fcntl(fd, F_SETFL, flags);  // NOLINT(whitespace/newline)
       while (err == -1 && errno == EINTR);  // NOLINT
       CHECK_NE(err, -1);
     }
@@ -726,7 +726,7 @@ void ResetStdio() {
       sigaddset(&sa, SIGTTOU);
 
       CHECK_EQ(0, pthread_sigmask(SIG_BLOCK, &sa, nullptr));
-      do err = tcsetattr(fd, TCSANOW, &s.termios);
+      do err = tcsetattr(fd, TCSANOW, &s.termios);  // NOLINT(whitespace/newline, whitespace/line_length)
       while (err == -1 && errno == EINTR);  // NOLINT
       CHECK_EQ(0, pthread_sigmask(SIG_UNBLOCK, &sa, nullptr));
 

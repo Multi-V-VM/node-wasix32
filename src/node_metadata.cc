@@ -189,6 +189,6 @@ Metadata::Release::Release() : name(NODE_RELEASE) {
 #define STRINGIFY(x) #x
 #define TOSTRING(x) STRINGIFY(x)
 
-Metadata::Metadata() : arch(TOSTRING(NODE_ARCH)), platform(TOSTRING(NODE_PLATFORM)) {}
+Metadata::Metadata() : arch(TOSTRING(NODE_ARCH)), platform(TOSTRING(NODE_PLATFORM)) {}  // NOLINT(whitespace/line_length)
 
 }  // namespace node

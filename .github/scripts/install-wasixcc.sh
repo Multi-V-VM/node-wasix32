@@ -1,5 +1,5 @@
-#!/bin/bash
-set -euo pipefail
+#!/bin/sh
+set -eu
 
 # Install wasixcc to /tmp/wasixcc and then install executables to /usr/local/bin
 
@@ -107,5 +107,6 @@ $WASIXCC_BIN --download-all
 # Install executables to /usr/local/bin
 sudo $WASIXCC_BIN --install-executables /usr/local/bin
 
-echo "wasixcc version: $(wasixcc --version)"
 echo "wasixcc executables installed to /usr/local/bin"
+wasixcc_ver=$(wasixcc --version) || true
+echo "wasixcc version: ${wasixcc_ver}"

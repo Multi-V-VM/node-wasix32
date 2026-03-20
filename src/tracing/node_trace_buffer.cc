@@ -81,7 +81,7 @@ void InternalTraceBuffer::Flush(bool blocking) {
 uint64_t InternalTraceBuffer::MakeHandle(
     size_t chunk_index, uint32_t chunk_seq, size_t event_index) const {
   return ((static_cast<uint64_t>(chunk_seq) * Capacity() +
-          chunk_index * TraceBufferChunk::kTraceBufferChunkSize + event_index) << 1) + id_;
+          chunk_index * TraceBufferChunk::kTraceBufferChunkSize + event_index) << 1) + id_;  // NOLINT(whitespace/line_length)
 }
 
 void InternalTraceBuffer::ExtractHandle(

@@ -14,16 +14,16 @@ const EVP_CIPHER* EVP_get_cipherbyname(const char* name) { return nullptr; }
 
 // OpenSSL 3.0 provider stubs
 int OSSL_PROVIDER_available(void* libctx, const char* name) { return 0; }
-OSSL_PROVIDER* OSSL_PROVIDER_load(void* libctx, const char* name) { return nullptr; }
+OSSL_PROVIDER* OSSL_PROVIDER_load(void* libctx, const char* name) { return nullptr; }  // NOLINT(whitespace/line_length)
 int OSSL_PROVIDER_self_test(OSSL_PROVIDER* prov) { return 0; }
 int OSSL_PROVIDER_unload(OSSL_PROVIDER* prov) { return 1; }
 
 // X509 stubs
 int X509_check_ca(X509* x) { return 0; }
 int X509_check_issued(X509* issuer, X509* subject) { return -1; }
-int X509_check_host(X509* x, const char* name, size_t namelen, unsigned int flags, char** peername) { return -1; }
-int X509_check_email(X509* x, const char* address, size_t addresslen, unsigned int flags) { return -1; }
-int X509_check_ip_asc(X509* x, const char* address, unsigned int flags) { return -1; }
+int X509_check_host(X509* x, const char* name, size_t namelen, unsigned int flags, char** peername) { return -1; }  // NOLINT(whitespace/line_length)
+int X509_check_email(X509* x, const char* address, size_t addresslen, unsigned int flags) { return -1; }  // NOLINT(whitespace/line_length)
+int X509_check_ip_asc(X509* x, const char* address, unsigned int flags) { return -1; }  // NOLINT(whitespace/line_length)
 }
 // Skip OpenSSL includes for WASI
 #else
@@ -42,7 +42,7 @@ int X509_check_ip_asc(X509* x, const char* address, unsigned int flags) { return
 #include <openssl/provider.h>
 #endif
 
-#endif // __wasi__
+#endif  // __wasi__
 
 // EVP_PKEY_CTX_set_dsa_paramgen_q_bits was added in OpenSSL 1.1.1e.
 #if OPENSSL_VERSION_NUMBER < 0x1010105fL
@@ -390,7 +390,7 @@ size_t BignumPointer::EncodePaddedInto(const BIGNUM* bn,
   return BN_bn2binpad(bn, out, size);
 }
 
-int BignumPointer::operator_spaceship(const BignumPointer& other) const noexcept {
+int BignumPointer::operator_spaceship(const BignumPointer& other) const noexcept {  // NOLINT(whitespace/line_length)
   if (bn_ == nullptr && other.bn_ != nullptr) return -1;
   if (bn_ != nullptr && other.bn_ == nullptr) return 1;
   if (bn_ == nullptr && other.bn_ == nullptr) return 0;
@@ -961,7 +961,7 @@ bool SafeX509InfoAccessPrint(const BIOPointer& out, X509_EXTENSION* ext) {
 
   return ok;
 }
-#endif // __wasi__
+#endif  // __wasi__
 
 // ============================================================================
 // X509Pointer

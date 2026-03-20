@@ -14,8 +14,8 @@
 #include <filesystem>
 #include <cerrno>
 #include <cstring>
-#include <sys/stat.h>
-#include <unistd.h>
+#include <sys/stat.h>  // NOLINT(build/include_order)
+#include <unistd.h>  // NOLINT(build/include_order)
 #include "embedded_data.h"
 #include "executable_wrapper.h"
 #ifndef __wasi__
@@ -746,7 +746,7 @@ Fragment GetDefinitionImpl(const std::vector<char>& code,
     // Simple UTF-8 to UTF-16 conversion for WASI
     size_t utf16_count = 0;
     for (size_t i = 0; i < code.size(); i++) {
-      utf16_codepoints[utf16_count++] = static_cast<uint16_t>(static_cast<unsigned char>(code[i]));
+      utf16_codepoints[utf16_count++] = static_cast<uint16_t>(static_cast<unsigned char>(code[i]));  // NOLINT(whitespace/line_length)
     }
 #else
     size_t utf16_count = simdutf::convert_utf8_to_utf16(

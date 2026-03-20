@@ -86,7 +86,7 @@ def patch_root_makefile():
 def patch_torque_makefile():
     """Patch torque.host.mk specifically to add necessary libraries and frameworks."""
     torque_mk = 'out/tools/v8_gypfiles/torque.host.mk'
-    
+
     if not os.path.exists(torque_mk):
         return False
 
@@ -112,7 +112,7 @@ def patch_torque_makefile():
             content,
             flags=re.MULTILINE
         )
-    
+
     # Also add CoreFoundation to Debug builds if they exist
     if 'LDFLAGS_Debug :=' in content and '-framework CoreFoundation' not in content:
         content = re.sub(
@@ -125,19 +125,19 @@ def patch_torque_makefile():
     # Add system libraries for proper symbol resolution
     if 'LIBS := -lc++' in content and '-framework CoreFoundation' not in content:
         content = content.replace('LIBS := -lc++', 'LIBS := -lc++ -framework CoreFoundation')
-    
+
     # Add system libraries for V8 and C++ standard library symbols
     if 'LIBS := -lc++ -framework CoreFoundation' in content:
         # Add system libraries that V8 and C++ standard library might need
         if '-framework SystemConfiguration' not in content:
-            content = content.replace('LIBS := -lc++ -framework CoreFoundation', 
+            content = content.replace('LIBS := -lc++ -framework CoreFoundation',
                                     'LIBS := -lc++ -framework CoreFoundation -framework SystemConfiguration')
-        
+
         # Add essential system libraries for threading and memory management
         if '-lpthread' not in content and '-lSystem' not in content:
             content = content.replace('LIBS := -lc++ -framework CoreFoundation -framework SystemConfiguration',
                                     'LIBS := -lc++ -framework CoreFoundation -framework SystemConfiguration -lpthread -lSystem')
-    
+
     # Add system libraries to LDFLAGS as well
     if 'LDFLAGS_Release :=' in content:
         # Add SystemConfiguration framework for networking and system calls
@@ -148,7 +148,7 @@ def patch_torque_makefile():
                 content,
                 flags=re.MULTILINE
             )
-    
+
     if 'LDFLAGS_Debug :=' in content:
         if '-framework SystemConfiguration' not in content:
             content = re.sub(
@@ -184,11 +184,11 @@ def main():
 
     # Also patch the root Makefile for alink command
     if patch_root_makefile():
-        print(f"✅ Patched root Makefile alink command")
+        print("✅ Patched root Makefile alink command")
 
     # Patch torque.host.mk specifically to add C++ library and CoreFoundation
     if patch_torque_makefile():
-        print(f"✅ Configured torque.host.mk with C++ library and CoreFoundation")
+        print("✅ Configured torque.host.mk with C++ library and CoreFoundation")
 
 if __name__ == '__main__':
     main()

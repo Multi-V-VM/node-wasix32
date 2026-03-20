@@ -408,7 +408,7 @@ class ThreadSafeFunction : public node::AsyncResource {
 
     if (popped_value) {
       v8::HandleScope scope(env->isolate);
-      node::AsyncResource::CallbackScope cb_scope(static_cast<node::AsyncResource*>(this));
+      node::AsyncResource::CallbackScope cb_scope(static_cast<node::AsyncResource*>(this));  // NOLINT(whitespace/line_length)
       napi_value js_callback = nullptr;
       if (!ref.IsEmpty()) {
         v8::Local<v8::Function> js_cb =
@@ -425,7 +425,7 @@ class ThreadSafeFunction : public node::AsyncResource {
   void Finalize() {
     v8::HandleScope scope(env->isolate);
     if (finalize_cb) {
-      node::AsyncResource::CallbackScope cb_scope(static_cast<node::AsyncResource*>(this));
+      node::AsyncResource::CallbackScope cb_scope(static_cast<node::AsyncResource*>(this));  // NOLINT(whitespace/line_length)
       env->CallFinalizer<false>(finalize_cb, finalize_data, context);
     }
     EmptyQueueAndDelete();

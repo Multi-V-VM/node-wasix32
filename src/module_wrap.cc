@@ -1229,7 +1229,7 @@ MaybeLocal<Module> LinkRequireFacadeWithOriginal(
   Environment* env = Environment::GetCurrent(context);
   Isolate* isolate = context->GetIsolate();
 #ifdef __wasi__
-  CHECK(v8::StringEquals(context, specifier, env->original_string()).ToChecked());
+  CHECK(v8::StringEquals(context, specifier, env->original_string()).ToChecked());  // NOLINT(whitespace/line_length)
 #else
   CHECK(specifier->Equals(context, env->original_string()).ToChecked());
 #endif

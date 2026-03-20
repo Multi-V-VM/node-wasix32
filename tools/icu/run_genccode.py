@@ -10,8 +10,6 @@ each `.long` directive contains a smaller, safer number of values per line.
 
 from __future__ import annotations
 
-import argparse
-import os
 import subprocess
 import sys
 from pathlib import Path

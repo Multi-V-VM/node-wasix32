@@ -176,7 +176,7 @@ void BaseObjectList::MemoryInfo(node::MemoryTracker* tracker) const {
   // Use explicit iterator instead of range-based for loop
   for (auto it = begin(); it != end(); ++it) {
     BaseObject* bo = *it;
-    if (bo->IsDoneInitializing()) tracker->Track(static_cast<const MemoryRetainer*>(bo));
+    if (bo->IsDoneInitializing()) tracker->Track(static_cast<const MemoryRetainer*>(bo));  // NOLINT(whitespace/line_length)
   }
 }
 

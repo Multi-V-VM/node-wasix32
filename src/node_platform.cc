@@ -558,7 +558,7 @@ NodePlatform::NodePlatform(int thread_pool_size,
         static uint8_t enabled = 0;
         return &enabled;
       }
-      
+
       uint64_t AddTraceEvent(
           char phase, const uint8_t* category_enabled_flag, const char* name,
           const char* scope, uint64_t id, uint64_t bind_id, int32_t num_args,
@@ -568,7 +568,7 @@ NodePlatform::NodePlatform(int thread_pool_size,
           unsigned int flags) override {
         return 0;
       }
-      
+
       uint64_t AddTraceEventWithTimestamp(
           char phase, const uint8_t* category_enabled_flag, const char* name,
           const char* scope, uint64_t id, uint64_t bind_id, int32_t num_args,
@@ -578,11 +578,11 @@ NodePlatform::NodePlatform(int thread_pool_size,
           unsigned int flags, int64_t timestamp) override {
         return 0;
       }
-      
+
       void UpdateTraceEventDuration(
-          const uint8_t* category_enabled_flag, const char* name, uint64_t handle) override {
+          const uint8_t* category_enabled_flag, const char* name, uint64_t handle) override {  // NOLINT(whitespace/line_length)
       }
-      
+
       void AddTraceStateObserver(TraceStateObserver* observer) override {}
       void RemoveTraceStateObserver(TraceStateObserver* observer) override {}
     };
@@ -665,7 +665,7 @@ void NodePlatform::Shutdown() {
 }
 
 int NodePlatform::NumberOfWorkerThreads() {
-  return worker_thread_task_runner_ ? worker_thread_task_runner_->NumberOfWorkerThreads() : 0;
+  return worker_thread_task_runner_ ? worker_thread_task_runner_->NumberOfWorkerThreads() : 0;  // NOLINT(whitespace/line_length)
 }
 
 void PerIsolatePlatformData::RunForegroundTask(std::unique_ptr<Task> task) {

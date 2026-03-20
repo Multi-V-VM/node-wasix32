@@ -11,7 +11,7 @@ jobs:
     timeout-minutes: 120
 
     env:
-      WASI_SDK_VERSION: "28"
+      WASI_SDK_VERSION: '28'
       ARTIFACT_DIR: out
       DOCKER_IMAGE_NAME: node-wasix-build
 

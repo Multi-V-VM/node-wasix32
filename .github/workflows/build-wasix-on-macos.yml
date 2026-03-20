@@ -29,7 +29,7 @@ jobs:
           else
             OPENSSL_PREFIX="/usr"
           fi
-          
+
           echo "PKG_CONFIG_PATH=${OPENSSL_PREFIX}/lib/pkgconfig:/usr/lib/pkgconfig" >> $GITHUB_ENV
           echo "OPENSSL_DIR=${OPENSSL_PREFIX}" >> $GITHUB_ENV
           echo "OPENSSL_LIB_DIR=${OPENSSL_PREFIX}/lib" >> $GITHUB_ENV
@@ -50,14 +50,14 @@ jobs:
         shell: bash
         run: |
           set -euxo pipefail
-          
+
           if [ ! -d "/tmp/wasixcc" ]; then
             mkdir -p /tmp/wasixcc
             git clone https://github.com/wasix-org/wasixcc /tmp/wasixcc
             cd /tmp/wasixcc
             cargo build -r -F bin --bin wasixcc
           fi
-          
+
           # Install all executables to PATH
           /tmp/wasixcc/target/release/wasixcc --install-executables /usr/local/bin
           echo "PATH=/usr/local/bin:$PATH" >> $GITHUB_ENV

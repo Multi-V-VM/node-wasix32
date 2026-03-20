@@ -42,14 +42,14 @@ jobs:
         shell: bash
         run: |
           set -euxo pipefail
-          
+
           if [ ! -d "/tmp/wasixcc" ]; then
             mkdir -p /tmp/wasixcc
             git clone https://github.com/wasix-org/wasixcc /tmp/wasixcc
             cd /tmp/wasixcc
             cargo build -r -F bin --bin wasixcc
           fi
-          
+
           # Install all executables to PATH
           /tmp/wasixcc/target/release/wasixcc --install-executables /usr/local/bin
           echo "PATH=/usr/local/bin:$PATH" >> $GITHUB_ENV

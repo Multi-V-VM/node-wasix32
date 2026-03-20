@@ -34,7 +34,7 @@
 
 #include "env-inl.h"
 #ifdef __wasi__
-#include "../wasi-simdutf-stubs.h"
+// Note: wasi-simdutf-stubs.h already included above
 #else
 #include "simdutf.h"
 #endif

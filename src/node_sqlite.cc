@@ -1962,7 +1962,7 @@ MaybeLocal<Name> StatementSync::ColumnNameToName(const int column) {
     return MaybeLocal<Name>();
   }
 
-  return String::NewFromUtf8(env()->isolate(), col_name).ToLocalChecked().As<Name>();
+  return String::NewFromUtf8(env()->isolate(), col_name).ToLocalChecked().As<Name>();  // NOLINT(whitespace/line_length)
 }
 
 void StatementSync::MemoryInfo(MemoryTracker* tracker) const {}
@@ -2467,7 +2467,7 @@ void StatementSyncIterator::Next(const FunctionCallbackInfo<Value>& args) {
   THROW_AND_RETURN_ON_BAD_STATE(
       env, iter->stmt_->IsFinalized(), "statement has been finalized");
   Isolate* isolate = env->isolate();
-  LocalVector<Name> keys = MakeLocalVector<Name>(isolate, {env->done_string(), env->value_string()});
+  LocalVector<Name> keys = MakeLocalVector<Name>(isolate, {env->done_string(), env->value_string()});  // NOLINT(whitespace/line_length)
 
   if (iter->done_) {
     LocalVector<Value> values = MakeLocalVector<Value>(isolate,
@@ -2524,7 +2524,7 @@ void StatementSyncIterator::Next(const FunctionCallbackInfo<Value>& args) {
         isolate, Null(isolate), row_keys, row_values, num_cols);
   }
 
-  LocalVector<Value> values = MakeLocalVector<Value>(isolate, {Boolean::New(isolate, false), row_value});
+  LocalVector<Value> values = MakeLocalVector<Value>(isolate, {Boolean::New(isolate, false), row_value});  // NOLINT(whitespace/line_length)
   DCHECK_EQ(keys.size(), values.size());
   Local<Object> result = Object::New(
       isolate, Null(isolate), keys, values, keys.size());
@@ -2541,7 +2541,7 @@ void StatementSyncIterator::Return(const FunctionCallbackInfo<Value>& args) {
 
   sqlite3_reset(iter->stmt_->statement_);
   iter->done_ = true;
-  LocalVector<Name> keys = MakeLocalVector<Name>(isolate, {env->done_string(), env->value_string()});
+  LocalVector<Name> keys = MakeLocalVector<Name>(isolate, {env->done_string(), env->value_string()});  // NOLINT(whitespace/line_length)
   LocalVector<Value> values = MakeLocalVector<Value>(isolate,
                             {Boolean::New(isolate, true), Null(isolate)});
 

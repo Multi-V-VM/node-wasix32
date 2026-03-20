@@ -17,7 +17,7 @@ jobs:
 
     env:
       # Set the wasi-sdk version to use. Adjust as needed.
-      WASI_SDK_VERSION: "28.0"
+      WASI_SDK_VERSION: '28.0'
       # Where artifacts will be collected.
       ARTIFACT_DIR: out
 
@@ -36,7 +36,7 @@ jobs:
       - name: Install Node.js for build tooling (optional)
         uses: actions/setup-node@v4
         with:
-          node-version: "24"
+          node-version: '24'
 
       - name: Download and install Wasix sysroot
         run: |
@@ -82,10 +82,10 @@ jobs:
       - name: Run wasm build script
         env:
           # Expose compilers that point to the wasi toolchain with wasix sysroot.
-          CC: "${{ env.WASI_SDK_PATH }}/bin/clang --target=wasm32-wasi --sysroot=${{ env.WASIX_SYSROOT }}"
-          CXX: "${{ env.WASI_SDK_PATH }}/bin/clang++ --target=wasm32-wasi --sysroot=${{ env.WASIX_SYSROOT }} -isystem ${{ env.WASIX_SYSROOT }}/include/c++/v1"
-          AR: "${{ env.WASI_SDK_PATH }}/bin/llvm-ar"
-          RANLIB: "${{ env.WASI_SDK_PATH }}/bin/llvm-ranlib"
+          CC: ${{ env.WASI_SDK_PATH }}/bin/clang --target=wasm32-wasi --sysroot=${{ env.WASIX_SYSROOT }}
+          CXX: ${{ env.WASI_SDK_PATH }}/bin/clang++ --target=wasm32-wasi --sysroot=${{ env.WASIX_SYSROOT }} -isystem ${{ env.WASIX_SYSROOT }}/include/c++/v1
+          AR: ${{ env.WASI_SDK_PATH }}/bin/llvm-ar
+          RANLIB: ${{ env.WASI_SDK_PATH }}/bin/llvm-ranlib
           WASI_SDK_PATH: ${{ env.WASI_SDK_PATH }}
           WASIX_SYSROOT: ${{ env.WASIX_SYSROOT }}
         run: |

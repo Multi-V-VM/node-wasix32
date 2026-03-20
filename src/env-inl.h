@@ -925,7 +925,7 @@ inline bool Environment::report_exclude_env() const {
 inline void Environment::AddHeapSnapshotNearHeapLimitCallback() {
   DCHECK(!heapsnapshot_near_heap_limit_callback_added_);
   heapsnapshot_near_heap_limit_callback_added_ = true;
-  
+
 #ifndef __wasi__
   isolate_->AddNearHeapLimitCallback(Environment::NearHeapLimitCallback, this);
 #endif
@@ -935,7 +935,7 @@ inline void Environment::RemoveHeapSnapshotNearHeapLimitCallback(
     size_t heap_limit) {
   DCHECK(heapsnapshot_near_heap_limit_callback_added_);
   heapsnapshot_near_heap_limit_callback_added_ = false;
-  
+
 #ifndef __wasi__
   isolate_->RemoveNearHeapLimitCallback(Environment::NearHeapLimitCallback,
                                         heap_limit);

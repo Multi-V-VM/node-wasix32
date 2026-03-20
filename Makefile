@@ -24,23 +24,7 @@ PWD = $(CURDIR)
 BUILD_WITH ?= make
 FIND ?= find
 
-# Compiler variables for wasixcc
-CC=/usr/local/bin/wasixcc
-CXX=/usr/local/bin/wasixcc++
-AR=/usr/local/bin/wasixar
-LD=/usr/local/bin/wasixld
-WASIX_SYSROOT_PATH=$(shell /usr/local/bin/wasixcc --print-sysroot)
-WASIXCC_COMPILER_FLAGS_CXX=-std=c++20
 
-export CC CXX AR LD WASIX_SYSROOT_PATH WASIXCC_COMPILER_FLAGS_CXX
-
-# Add fatal-errors flag during compilation to stop on first error
-CFLAGS += -Wfatal-errors -ferror-limit=1
-CXXFLAGS += -Wfatal-errors -ferror-limit=1
-
-# WASI SDK configuration for WebAssembly builds
-WASI_SDK_PATH ?= $(HOME)/.local/share/mise/installs/wasi-sdk/28/wasi-sdk
-# WASIX_SYSROOT_PATH ?= $(PWD)/wasix-sysroot
 
 ifdef JOBS
 	PARALLEL_ARGS = -j $(JOBS)
@@ -1521,6 +1505,16 @@ LINT_CPP_EXCLUDE += src/node_root_certs.h
 LINT_CPP_EXCLUDE += $(LINT_CPP_ADDON_DOC_FILES)
 # These files were copied more or less verbatim from V8.
 LINT_CPP_EXCLUDE += src/tracing/trace_event.h src/tracing/trace_event_common.h
+# WASI/Wasix-specific files that do not follow the standard style rules.
+LINT_CPP_EXCLUDE += src/wasi_runtime_stubs.cc
+LINT_CPP_EXCLUDE += src/wasi/node_wasi_fs.cc
+LINT_CPP_EXCLUDE += src/node-wasi-fixes.h
+LINT_CPP_EXCLUDE += src/node_wasi_fixes.h
+LINT_CPP_EXCLUDE += src/v8-wasi-fixes.h
+LINT_CPP_EXCLUDE += src/inspector/inspector-namespace-fix.h
+LINT_CPP_EXCLUDE += $(wildcard src/wasi-*.h)
+# Files heavily modified with WASI compatibility stubs that do not follow style rules.
+LINT_CPP_EXCLUDE += src/util.h src/util-inl.h src/heap_utils.cc src/memory_tracker.h
 
 # deps/ncrypto is included in this list, as it is maintained in
 # this repository, and should be linted. Eventually it should move

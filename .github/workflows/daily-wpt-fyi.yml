@@ -7,10 +7,10 @@ name: Daily WPT report
 on:
   workflow_dispatch:
   # schedule:
-    # This is 20 minutes after `epochs/daily` branch is triggered to be created
-    # in WPT repo.
-    # https://github.com/web-platform-tests/wpt/blob/master/.github/workflows/epochs.yml
-    # - cron: 30 0 * * *
+  # This is 20 minutes after `epochs/daily` branch is triggered to be created
+  # in WPT repo.
+  # https://github.com/web-platform-tests/wpt/blob/master/.github/workflows/epochs.yml
+  # - cron: 30 0 * * *
 
 env:
   PYTHON_VERSION: '3.12'

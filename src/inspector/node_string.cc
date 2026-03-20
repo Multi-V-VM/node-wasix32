@@ -113,19 +113,19 @@ size_t StringUtil::CharacterCount(const std::string_view s) {
 
 String Binary::toBase64() const {
   MaybeStackBuffer<char> buffer;
-  
+
 #ifdef __wasi__
   // WASI fallback: use basic base64 calculation (4/3 ratio + padding)
   size_t str_len = ((bytes_->size() + 2) / 3) * 4;
   buffer.SetLength(str_len);
-  
+
   // WASI fallback: basic base64 encoding stub
-  const char* base64_chars = 
+  const char* base64_chars =
       "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
   size_t len = 0;
   const uint8_t* input = bytes_->data();
   char* output = buffer.out();
-  
+
   for (size_t i = 0; i < bytes_->size(); i += 3) {
     uint32_t tmp = 0;
     for (int j = 0; j < 3; j++) {
@@ -134,10 +134,10 @@ String Binary::toBase64() const {
         tmp |= input[i + j];
       }
     }
-    
+
     for (int j = 3; j >= 0; j--) {
       if (len < str_len) {
-        output[len++] = (i + (3 - j) / 8 * 3 <= bytes_->size()) ? 
+        output[len++] = (i + (3 - j) / 8 * 3 <= bytes_->size()) ?
                         base64_chars[(tmp >> (j * 6)) & 0x3F] : '=';
       }
     }
@@ -151,7 +151,7 @@ String Binary::toBase64() const {
                                 bytes_->size(),
                                 buffer.out());
 #endif
-  
+
   CHECK_LE(len, str_len);
   return buffer.ToString();
 }
@@ -174,18 +174,18 @@ Binary Binary::concat(const std::vector<Binary>& binaries) {
 // static
 Binary Binary::fromBase64(const String& base64, bool* success) {
   Binary binary{};
-  
+
 #ifdef __wasi__
   // WASI fallback: basic base64 decoding
   size_t base64_len = (base64.length() * 3) / 4;  // Rough estimate
   binary.bytes_->resize(base64_len);
-  
+
   // Simple stub implementation for WASI
   if (success) *success = true;  // Assume success for now
-  
-  // Fill with dummy data for WASI build (inspector typically not used in production WASI)
+
+  // Fill with dummy data for WASI build (inspector typically not used in production WASI)  // NOLINT(whitespace/line_length)
   std::fill(binary.bytes_->begin(), binary.bytes_->end(), 0);
-  
+
   // Truncate to actual size (in real implementation, would decode properly)
   binary.bytes_->resize(base64_len / 2);  // Shrink to realistic size
 #else

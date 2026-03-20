@@ -2155,7 +2155,7 @@ size_t Environment::NearHeapLimitCallback(void* data,
   Debug(env, DebugCategory::DIAGNOSTICS, "Start generating %s...\n", *name);
 
   HeapProfiler::HeapSnapshotOptions options;
-  options.numerics_mode = HeapProfiler::HeapSnapshotOptions::NumericsMode::kExposeNumericValues;
+  options.numerics_mode = HeapProfiler::HeapSnapshotOptions::NumericsMode::kExposeNumericValues;  // NOLINT(whitespace/line_length)
   options.snapshot_mode = HeapProfiler::HeapSnapshotMode::kExposeInternals;
   heap::WriteSnapshot(env, filename.c_str(), options);
   env->heap_limit_snapshot_taken_ += 1;

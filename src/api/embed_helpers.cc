@@ -122,7 +122,7 @@ CommonEnvironmentSetup::CommonEnvironmentSetup(
   const std::vector<intptr_t>& external_references =
       SnapshotBuilder::CollectExternalReferences();
   Isolate::CreateParams params;
-  
+
 #ifndef __wasi__
   params.array_buffer_allocator = impl_->allocator.get();
   params.external_references = external_references.data();
@@ -138,7 +138,7 @@ CommonEnvironmentSetup::CommonEnvironmentSetup(
   if (flags & Flags::kIsForSnapshotting) {
     // The isolate must be registered before the SnapshotCreator initializes the
     // isolate, so that the memory reducer can be initialized.
-    
+
 #ifdef __wasi__
     isolate = impl_->isolate = Isolate::New(Isolate::CreateParams());
 #else
@@ -148,7 +148,7 @@ CommonEnvironmentSetup::CommonEnvironmentSetup(
 
 #ifdef __wasi__
     // For WASI, use the constructor that takes Isolate* and external_references
-    impl_->snapshot_creator.emplace(isolate, params.external_references, nullptr, true);
+    impl_->snapshot_creator.emplace(isolate, params.external_references, nullptr, true);  // NOLINT(whitespace/line_length)
 #else
     impl_->snapshot_creator.emplace(isolate, params);
 #endif

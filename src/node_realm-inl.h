@@ -118,7 +118,7 @@ template <typename T>
 void Realm::ForEachBaseObject(T&& iterator) const {
 #ifdef __wasi__
   // WASI: BaseObjectList is a stub, cannot iterate
-  // TODO: Implement proper iteration for WASI
+  // TODO(wasix): Implement proper iteration for WASI
 #else
   for (auto bo : base_object_list_) {
     iterator(bo);

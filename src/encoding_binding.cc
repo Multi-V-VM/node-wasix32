@@ -25,8 +25,8 @@ namespace encoding_binding {
 
 #ifdef __wasi__
 // WASI: simdutf functions are in global simdutf namespace
-using simdutf::validate_utf8_with_errors;
 using simdutf::convert_latin1_to_utf8;
+using simdutf::validate_utf8_with_errors;
 #endif
 
 using v8::ArrayBuffer;

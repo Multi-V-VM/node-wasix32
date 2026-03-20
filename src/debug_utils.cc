@@ -1,5 +1,5 @@
 #ifdef __wasi__
-#include "../wasi-node-compat.h"
+#include "../wasi-node-compat.h"  // NOLINT(build/include)
 #endif
 #include "debug_utils-inl.h"  // NOLINT(build/include)
 #include "env-inl.h"

@@ -116,7 +116,7 @@
 #ifdef __clang__
 #define NODE_CLANG_AT_LEAST(major, minor, patch)                               \
   (NODE_MAKE_VERSION(major, minor, patch) <=                                   \
-   NODE_MAKE_VERSION(__clang_major__, __clang_minor__, __clang_patchlevel__))
+   NODE_MAKE_VERSION(__clang_major__, __clang_minor__, __clang_patchlevel__))  // NOLINT(whitespace/indent, whitespace/line_length)
 #else
 #define NODE_CLANG_AT_LEAST(major, minor, patch) (0)
 #endif
@@ -124,7 +124,7 @@
 #ifdef __GNUC__
 #define NODE_GNUC_AT_LEAST(major, minor, patch)                                \
   (NODE_MAKE_VERSION(major, minor, patch) <=                                   \
-   NODE_MAKE_VERSION(__GNUC__, __GNUC_MINOR__, __GNUC_PATCHLEVEL__))
+   NODE_MAKE_VERSION(__GNUC__, __GNUC_MINOR__, __GNUC_PATCHLEVEL__))  // NOLINT(whitespace/indent, whitespace/line_length)
 #else
 #define NODE_GNUC_AT_LEAST(major, minor, patch) (0)
 #endif
@@ -1262,9 +1262,8 @@ extern "C" NODE_EXTERN void node_module_register(void* mod);
 // It is used the same way addon bindings are used, except that linked bindings
 // can be accessed through `process._linkedBinding(modname)`.
 #define NODE_MODULE_LINKED(modname, regfunc)                                   \
-  /* NOLINTNEXTLINE (readability/null_usage) */                                \
   NODE_MODULE_CONTEXT_AWARE_X(                                                 \
-      modname, regfunc, NULL, node::ModuleFlags::kLinked)
+      modname, regfunc, NULL, node::ModuleFlags::kLinked)  // NOLINT(readability/null_usage, whitespace/line_length)
 
 /*
  * For backward compatibility in add-on modules.

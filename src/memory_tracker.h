@@ -25,8 +25,8 @@ class MemoryRetainer {
   virtual bool IsRootNode() const { return false; }
   virtual bool IsCppgcWrapper() const { return false; }
   virtual ::v8::Local<::v8::Object> WrappedObject() const { return ::v8::Local<::v8::Object>(); }
-  virtual ::v8::EmbedderGraph::Node::Detachedness GetDetachedness() const { 
-    return ::v8::EmbedderGraph::Node::Detachedness::kUnknown; 
+  virtual ::v8::EmbedderGraph::Node::Detachedness GetDetachedness() const {
+    return ::v8::EmbedderGraph::Node::Detachedness::kUnknown;
   }
 };
 
@@ -39,22 +39,22 @@ public:
   template<typename T> void TrackFieldWithSize(const char* name, const T& value, size_t size = 0) {}
   void TrackFieldWithSize(const char* edge_name, size_t size, const char* node_name = nullptr) {}
   void TrackInlineFieldWithSize(const char* edge_name, size_t size, const char* node_name = nullptr) {}
-  
+
   // Add Track method for base_object.cc
   void Track(const MemoryRetainer* retainer) {}
-  
+
   // Add overloaded TrackField for env.cc
   template<typename T, typename U>
   void TrackField(const char* name, const T& value, const U& arg) {}
-  
+
   // Add TrackInlineField for node_watchdog.h
   template<typename T>
   void TrackInlineField(const char* name, const T& value) {}
-  
+
   // Add TraitTrackInline for node_url_pattern.cc
   template<typename T>
   void TraitTrackInline(const T& value, const char* edge_name) {}
-  
+
   ::v8::Isolate* isolate() const { return nullptr; }
   ::v8::EmbedderGraph* graph() const { return nullptr; }
 };
