@@ -715,12 +715,6 @@ i::Address* Eternalize(Isolate* v8_isolate, Value* value) {
   }
 #endif
   auto result = i_isolate->eternal_handles()->Get(index).location();
-#ifdef __wasi__
-  fprintf(stderr, "Eternalize: value=%p, object=0x%x, index=%d, location=%p, *location=0x%x\n",
-          (void*)value, (unsigned)object.ptr(), index,
-          (void*)result, result ? (unsigned)*result : 0);
-  fflush(stderr);
-#endif
   return result;
 }
 
