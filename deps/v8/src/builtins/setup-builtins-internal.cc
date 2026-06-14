@@ -1,6 +1,9 @@
 #ifdef __wasi__
 #define V8_TARGET_ARCH_WASM32 1
 #endif
+#ifdef __wasi__
+#include "src/builtins/wasm32/builtins-wasm32-abi.h"
+#endif
 // Copyright 2017 the V8 project authors. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
@@ -512,6 +515,22 @@ void SetupIsolateDelegate::SetupBuiltinsInternal(Isolate* isolate) {
   // instruction streams for JIT page lookup, and there are no real builtin
   // references to update anyway.
   ReplacePlaceholders(isolate);
+#endif
+
+#ifdef __wasi__
+  // Override instruction_start for builtins backed by a hand-written/generated
+  // wasm function so GeneratedCode::Call's call_indirect dispatches to it.
+  for (Builtin builtin = Builtins::kFirst; builtin <= Builtins::kLast;
+       ++builtin) {
+    void* fnptr = WasmBuiltinFuncref(builtin);
+    if (fnptr == nullptr) continue;
+    Tagged<Code> code = builtins->code(builtin);
+    code->SetInstructionStartForOffHeapBuiltin(
+        isolate, reinterpret_cast<Address>(fnptr));
+    fprintf(stderr, "wasm builtin %d instruction_start=%p\n",
+            Builtins::ToInt(builtin), (void*)code->instruction_start());
+    fflush(stderr);
+  }
 #endif
 
   builtins->MarkInitialized();
