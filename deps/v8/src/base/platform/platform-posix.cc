@@ -128,6 +128,14 @@ extern int madvise(caddr_t, size_t, int);
 extern "C" void* __libc_stack_end;
 #endif
 
+#if defined(__wasi__)
+// wasm-ld synthesizes __stack_high (highest stack address). Declared at global
+// scope with C linkage so ObtainCurrentThreadStackStart resolves the real
+// linker symbol rather than a mangled v8::base:: name.
+extern "C" char __stack_high;
+#define __wasi_stack_high __stack_high
+#endif
+
 namespace v8 {
 namespace base {
 
@@ -480,16 +488,30 @@ void* OS::Allocate(void* hint, size_t size, size_t alignment,
   DCHECK_EQ(0, size % page_size);
   DCHECK_EQ(0, alignment % page_size);
   hint = AlignedAddress(hint, alignment);
+#ifdef __wasi__
+  // WASI: the mmap emulation neither returns page-aligned memory nor supports
+  // partial munmap (wasm linear memory is never released). Over-allocate a
+  // full extra `alignment` so the aligned region is guaranteed to fit inside
+  // the mapping, return the aligned base, and leak the padding.
+  size_t request_size = RoundUp(size + alignment, OS::AllocatePageSize());
+  void* result = base::Allocate(hint, request_size, access, PageType::kPrivate);
+  if (result == nullptr) return nullptr;
+  uint8_t* base = static_cast<uint8_t*>(result);
+  uint8_t* aligned_base = reinterpret_cast<uint8_t*>(
+      RoundUp(reinterpret_cast<uintptr_t>(base), alignment));
+  DCHECK_LE(aligned_base + size, base + request_size);
+  return static_cast<void*>(aligned_base);
+#else
   // Add the maximum misalignment so we are guaranteed an aligned base address.
   size_t request_size = size + (alignment - page_size);
   request_size = RoundUp(request_size, OS::AllocatePageSize());
   void* result = base::Allocate(hint, request_size, access, PageType::kPrivate);
   if (result == nullptr) return nullptr;
 
-  // Unmap memory allocated before the aligned base address.
   uint8_t* base = static_cast<uint8_t*>(result);
   uint8_t* aligned_base = reinterpret_cast<uint8_t*>(
       RoundUp(reinterpret_cast<uintptr_t>(base), alignment));
+  // Unmap memory allocated before the aligned base address.
   if (aligned_base != base) {
     DCHECK_LT(base, aligned_base);
     size_t prefix_size = static_cast<size_t>(aligned_base - base);
@@ -506,6 +528,7 @@ void* OS::Allocate(void* hint, size_t size, size_t alignment,
 
   DCHECK_EQ(size, request_size);
   return static_cast<void*>(aligned_base);
+#endif  // __wasi__
 }
 
 // static
@@ -518,7 +541,13 @@ void* OS::AllocateShared(size_t size, MemoryPermission access) {
 void OS::Free(void* address, size_t size) {
   DCHECK_EQ(0, reinterpret_cast<uintptr_t>(address) % AllocatePageSize());
   DCHECK_EQ(0, size % AllocatePageSize());
+#ifdef __wasi__
+  // Best-effort: the WASI mmap emulation cannot release wasm linear memory,
+  // so munmap may legitimately fail here.
+  munmap(address, size);
+#else
   CHECK_EQ(0, munmap(address, size));
+#endif
 }
 
 // Darwin specific implementation in platform-darwin.cc.
@@ -1376,6 +1405,19 @@ bool MainThreadIsCurrentThread() {
 
 // static
 Stack::StackSlot Stack::ObtainCurrentThreadStackStart() {
+#ifdef __wasi__
+  // WASI: pthread_getattr_np is unreliable here (it errors or returns a zero
+  // stack), and the !GLIBC fallback below returns nullptr. A null stack start
+  // makes V8 compute climit = 0 - stack_size, which underflows to a huge
+  // address so every stack check reports overflow (seen as a spurious
+  // StackOverflow during the first JS compile). Use the linker-provided stack
+  // top instead. wasm-ld synthesizes __stack_high as the highest stack address
+  // (the stack grows downward from it). The wasm stack must be reserved larger
+  // than v8_flags.stack_size (see -z stack-size in the link) so V8's guard
+  // trips before a real wasm stack trap. Declared extern "C" so it resolves to
+  // the linker symbol, not a mangled v8::base:: one.
+  return reinterpret_cast<void*>(&__wasi_stack_high);
+#else
   pthread_attr_t attr;
   int error = pthread_getattr_np(pthread_self(), &attr);
   if (error) {
@@ -1405,6 +1447,7 @@ Stack::StackSlot Stack::ObtainCurrentThreadStackStart() {
   }
 #endif  // !defined(V8_LIBC_GLIBC)
   return stack_start;
+#endif  // __wasi__
 }
 
 #endif  // !defined(V8_OS_FREEBSD) && !defined(V8_OS_DARWIN) &&

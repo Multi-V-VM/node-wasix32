@@ -149,9 +149,12 @@ void IsolateGroup::Initialize(bool process_wide, Sandbox* sandbox) {
       std::make_unique<OptimizingCompileTaskExecutor>();
   page_pool_ = std::make_unique<PagePool>();
 
-#if defined(V8_ENABLE_LEAPTIERING) && !defined(__wasi__)
+#if defined(V8_ENABLE_LEAPTIERING)
+  // WASI: re-enabled now that GetPlatformVirtualAddressSpace() returns a real
+  // VirtualAddressSpace (was nullptr during early bring-up, which made this
+  // crash and led to it being disabled).
   js_dispatch_table()->Initialize();
-#endif  // V8_ENABLE_LEAPTIERING && !__wasi__
+#endif  // V8_ENABLE_LEAPTIERING
 }
 #elif defined(V8_COMPRESS_POINTERS)
 void IsolateGroup::Initialize(bool process_wide) {
@@ -170,9 +173,12 @@ void IsolateGroup::Initialize(bool process_wide) {
   optimizing_compile_task_executor_ =
       std::make_unique<OptimizingCompileTaskExecutor>();
   page_pool_ = std::make_unique<PagePool>();
-#if defined(V8_ENABLE_LEAPTIERING) && !defined(__wasi__)
+#if defined(V8_ENABLE_LEAPTIERING)
+  // WASI: re-enabled now that GetPlatformVirtualAddressSpace() returns a real
+  // VirtualAddressSpace (was nullptr during early bring-up, which made this
+  // crash and led to it being disabled).
   js_dispatch_table()->Initialize();
-#endif  // V8_ENABLE_LEAPTIERING && !__wasi__
+#endif  // V8_ENABLE_LEAPTIERING
 }
 #else   // !V8_COMPRESS_POINTERS
 void IsolateGroup::Initialize(bool process_wide) {
@@ -181,9 +187,12 @@ void IsolateGroup::Initialize(bool process_wide) {
   optimizing_compile_task_executor_ =
       std::make_unique<OptimizingCompileTaskExecutor>();
   page_pool_ = std::make_unique<PagePool>();
-#if defined(V8_ENABLE_LEAPTIERING) && !defined(__wasi__)
+#if defined(V8_ENABLE_LEAPTIERING)
+  // WASI: re-enabled now that GetPlatformVirtualAddressSpace() returns a real
+  // VirtualAddressSpace (was nullptr during early bring-up, which made this
+  // crash and led to it being disabled).
   js_dispatch_table()->Initialize();
-#endif  // V8_ENABLE_LEAPTIERING && !__wasi__
+#endif  // V8_ENABLE_LEAPTIERING
 }
 #endif  // V8_ENABLE_SANDBOX
 

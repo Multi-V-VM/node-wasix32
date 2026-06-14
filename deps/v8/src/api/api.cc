@@ -692,10 +692,36 @@ void DisposeGlobal(i::Address* location) {
 
 i::Address* Eternalize(Isolate* v8_isolate, Value* value) {
   i::Isolate* i_isolate = reinterpret_cast<i::Isolate*>(v8_isolate);
+#ifdef __wasi__
+  // On WASI, value IS the tagged pointer (stored directly in Local<T>::val_).
+  // Construct Tagged<Object> directly instead of going through OpenDirectHandle
+  // which would need a HandleScope allocation.
+  i::Tagged<i::Object> object(reinterpret_cast<i::Address>(value));
+#else
   i::Tagged<i::Object> object = *Utils::OpenDirectHandle(value);
+#endif
   int index = -1;
   i_isolate->eternal_handles()->Create(i_isolate, object, &index);
-  return i_isolate->eternal_handles()->Get(index).location();
+#ifdef __wasi__
+  if (index < 0) {
+    // EternalHandles::Create silently no-ops on a null object, leaving
+    // index == -1; Get(-1) would return a garbage location that crashes much
+    // later at first use. Fail loudly here instead.
+    fprintf(stderr,
+            "Eternalize: FAILED - null object (value=%p), returning nullptr\n",
+            (void*)value);
+    fflush(stderr);
+    return nullptr;
+  }
+#endif
+  auto result = i_isolate->eternal_handles()->Get(index).location();
+#ifdef __wasi__
+  fprintf(stderr, "Eternalize: value=%p, object=0x%x, index=%d, location=%p, *location=0x%x\n",
+          (void*)value, (unsigned)object.ptr(), index,
+          (void*)result, result ? (unsigned)*result : 0);
+  fflush(stderr);
+#endif
+  return result;
 }
 
 void FromJustIsNothing() {
@@ -713,6 +739,30 @@ void InternalFieldOutOfBounds(int index) {
 }
 
 }  // namespace api_internal
+
+#ifdef __wasi__
+namespace internal {
+
+// Real root-slot access for the WASI public-header shims (declared in
+// include/wasi/nuclear-fix.h). Backs v8::Null()/Undefined()/True()/False().
+Address* WasiGetRootSlot(v8::Isolate* isolate, int index) {
+  if (isolate == nullptr) return nullptr;
+  i::Isolate* i_isolate = reinterpret_cast<i::Isolate*>(isolate);
+  return i_isolate->roots_table()
+      .slot(static_cast<i::RootIndex>(index))
+      .location();
+}
+
+// The public-header root indices must match the internal RootIndex enum.
+static_assert(static_cast<int>(i::RootIndex::kUndefinedValue) == 4);
+static_assert(static_cast<int>(i::RootIndex::kTheHoleValue) == 5);
+static_assert(static_cast<int>(i::RootIndex::kNullValue) == 6);
+static_assert(static_cast<int>(i::RootIndex::kTrueValue) == 7);
+static_assert(static_cast<int>(i::RootIndex::kFalseValue) == 8);
+static_assert(static_cast<int>(i::RootIndex::kempty_string) == 9);
+
+}  // namespace internal
+#endif  // __wasi__
 
 // --- H a n d l e s ---
 
@@ -6959,6 +7009,30 @@ MaybeLocal<Object> v8::Context::NewRemoteContext(
   }
   return Utils::ToLocal(scope.CloseAndEscape(global_proxy));
 }
+#else   // __wasi__
+// WASI: the public Context::New signature takes plain Locals (v8-context.h).
+// Wrap them in MaybeLocals and delegate to the real NewContext machinery.
+// The previous always-empty stub in cppgc-stubs.cc made Node die with
+// "Assertion failed: !context.IsEmpty()" in CreateMainEnvironment.
+Local<Context> v8::Context::New(
+    v8::Isolate* external_isolate, v8::ExtensionConfiguration* extensions,
+    v8::Local<ObjectTemplate> global_template, v8::Local<Value> global_object,
+    v8::DeserializeInternalFieldsCallback internal_fields_deserializer,
+    v8::MicrotaskQueue* microtask_queue,
+    v8::DeserializeContextDataCallback context_callback_deserializer,
+    v8::DeserializeAPIWrapperCallback api_wrapper_deserializer) {
+  v8::MaybeLocal<ObjectTemplate> maybe_global_template;
+  if (!global_template.IsEmpty()) maybe_global_template = global_template;
+  v8::MaybeLocal<Value> maybe_global_object;
+  if (!global_object.IsEmpty()) maybe_global_object = global_object;
+  return NewContext(
+      external_isolate, extensions, maybe_global_template, maybe_global_object,
+      0,
+      i::DeserializeEmbedderFieldsCallback(internal_fields_deserializer,
+                                           context_callback_deserializer,
+                                           api_wrapper_deserializer),
+      microtask_queue);
+}
 #endif  // !defined(__wasi__)
 
 void v8::Context::SetSecurityToken(Local<Value> token) {
@@ -10619,13 +10693,18 @@ bool Isolate::MeasureMemory(std::unique_ptr<MeasureMemoryDelegate> delegate,
   return i_isolate->heap()->MeasureMemory(std::move(delegate), execution);
 }
 
+#endif  // !defined(__wasi__)
+// WASI: needed by node_contextify (vm.measureMemory); carved out of the big
+// !__wasi__ exclusion. The public WASI declaration takes Local<Object> for the
+// resolver (v8-statistics.h), so convert to the internal Promise::Resolver.
 std::unique_ptr<MeasureMemoryDelegate> MeasureMemoryDelegate::Default(
     Isolate* v8_isolate, Local<Context> context,
-    Local<Promise::Resolver> promise_resolver, MeasureMemoryMode mode) {
+    Local<Object> promise_resolver, MeasureMemoryMode mode) {
   i::Isolate* i_isolate = reinterpret_cast<i::Isolate*>(v8_isolate);
   return i_isolate->heap()->CreateDefaultMeasureMemoryDelegate(
-      context, promise_resolver, mode);
+      context, promise_resolver.As<Promise::Resolver>(), mode);
 }
+#if !defined(__wasi__)  // resume the big WASI exclusion
 
 void Isolate::GetStackSample(const RegisterState& state, void** frames,
                              size_t frames_limit, SampleInfo* sample_info) {
@@ -11329,6 +11408,11 @@ void String::ValueView::CheckOneByte(bool is_one_byte) const {
   }
 }
 
+#endif  // !defined(__wasi__)
+// WASI: the Exception API below is needed at runtime (napi_throw_*_error,
+// node_contextify, inspector) and compiles with standard internals, so it is
+// carved out of the big !__wasi__ exclusion above.
+
 #define DEFINE_ERROR(NAME, name)                                              \
   Local<Value> Exception::NAME(v8::Local<v8::String> raw_message,             \
                                v8::Local<v8::Value> raw_options) {            \
@@ -11401,6 +11485,8 @@ Maybe<bool> Exception::CaptureStackTrace(Local<Context> context,
   RETURN_ON_FAILED_EXECUTION_PRIMITIVE(bool);
   return Just(true);
 }
+
+#if !defined(__wasi__)  // resume the big WASI exclusion
 
 v8::MaybeLocal<v8::Array> v8::Object::PreviewEntries(bool* is_key_value) {
   auto object = Utils::OpenDirectHandle(this);

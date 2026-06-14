@@ -130,15 +130,28 @@ enum GCCallbackFlags { kNoGCCallbackFlags = 0 };
 #ifndef INCLUDE_V8_ISOLATE_CALLBACKS_H_
   // Minimal MaybeLocal fallback when v8-maybe-local.h hasn't been included.
   #ifndef INCLUDE_V8_MAYBE_LOCAL_H_
+  // Must match the layout and semantics of the real MaybeLocal in
+  // v8-maybe-local.h (value-carrying, Local<T> val_ member) — an always-empty
+  // stub here silently nulls out values in TUs that pick up this definition.
   template <class T>
   class MaybeLocal {
    public:
     MaybeLocal() = default;
     template <class S>
-    MaybeLocal(Local<S>) {}
-    bool IsEmpty() const { return true; }
-    Local<T> ToLocalChecked() const { return Local<T>(); }
-    bool ToLocal(Local<T>*) const { return false; }
+    MaybeLocal(Local<S> that) : val_(reinterpret_cast<T*>(*that)) {}
+    bool IsEmpty() const { return val_.IsEmpty(); }
+    Local<T> ToLocalChecked() const { return val_; }
+    bool ToLocal(Local<T>* out) const {
+      if (val_.IsEmpty()) return false;
+      *out = val_;
+      return true;
+    }
+    Local<T> FromMaybe(Local<T> default_value) const {
+      return val_.IsEmpty() ? default_value : val_;
+    }
+
+   private:
+    Local<T> val_;
   };
   #endif  // INCLUDE_V8_MAYBE_LOCAL_H_
 

@@ -916,8 +916,18 @@ class PersistentToLocal {
   static inline ::v8::Local<TypeName> Strong(
       const ::v8::PersistentBase<TypeName>& persistent) {
     DCHECK(!persistent.IsWeak());
+#ifdef __wasi__
+    // WASI: Local<T> stores the tagged pointer directly, while PersistentBase
+    // stores a storage-slot (location) pointer. The reinterpret_cast trick
+    // below would hand the location to code expecting a tagged value, causing
+    // OOB reads (e.g. Context::Global() in Realm::CreateProperties).
+    // Local::New dereferences the slot (and is a friend of PersistentBase);
+    // the isolate argument is unused on WASI.
+    return ::v8::Local<TypeName>::New(nullptr, persistent);
+#else
     return *reinterpret_cast<::v8::Local<TypeName>*>(
         const_cast<::v8::PersistentBase<TypeName>*>(&persistent));
+#endif
   }
 
   template <class TypeName>

@@ -12,6 +12,7 @@
 #include "src/common/assert-scope.h"
 #include "src/execution/microtask-queue.h"
 #include "src/flags/flags.h"
+#include "src/execution/isolate-inl.h"
 #include "src/handles/handles-inl.h"
 #include "src/heap/heap-inl.h"
 #include "src/objects/foreign-inl.h"
@@ -61,6 +62,12 @@ inline Local<To> Utils::Convert(v8::internal::DirectHandle<From> obj) {
 #ifdef V8_ENABLE_DIRECT_HANDLE
   if (obj.is_null()) return Local<To>();
   return Local<To>::FromAddress(obj.address());
+#elif defined(__wasi__)
+  // WASI: Local<T> stores tagged pointers directly as T*. Dereference the
+  // DirectHandle (which wraps an IndirectHandle) to get the Tagged value,
+  // then extract its tagged pointer address.
+  if (obj.is_null()) return Local<To>();
+  return Local<To>::FromAddress((*obj).ptr());
 #else
   // This simply uses the location of the indirect handle wrapped inside a
   // "fake" direct handle.
@@ -136,6 +143,34 @@ TYPED_ARRAYS(MAKE_TO_LOCAL_TYPED_ARRAY)
 
 #else  // !V8_ENABLE_DIRECT_HANDLE
 
+#ifdef __wasi__
+// WASI: The WASI stub Local<T> stores tagged pointers directly as T* (not as
+// Address* pointing to a handle slot like real V8).  ValueAsAddress() gives us
+// the tagged pointer.  We allocate a proper handle slot in the current
+// HandleScope so the rest of V8 can dereference it normally.
+#define MAKE_OPEN_HANDLE(From, To)                                           \
+  v8::internal::Handle<v8::internal::To> Utils::OpenHandle(                  \
+      const v8::From* that, bool allow_empty_handle) {                       \
+    DCHECK(allow_empty_handle || !v8::internal::ValueHelper::IsEmpty(that)); \
+    if (v8::internal::ValueHelper::IsEmpty(that)) {                          \
+      return v8::internal::Handle<v8::internal::To>::null();                 \
+    }                                                                        \
+    return v8::internal::Handle<v8::internal::To>(                           \
+        v8::internal::HandleScope::CreateHandle(                             \
+            v8::internal::Isolate::Current(),                                \
+            v8::internal::ValueHelper::ValueAsAddress(that)));               \
+  }                                                                          \
+                                                                             \
+  v8::internal::DirectHandle<v8::internal::To> Utils::OpenDirectHandle(      \
+      const v8::From* that, bool allow_empty_handle) {                       \
+    return Utils::OpenHandle(that, allow_empty_handle);                      \
+  }                                                                          \
+                                                                             \
+  v8::internal::IndirectHandle<v8::internal::To> Utils::OpenIndirectHandle(  \
+      const v8::From* that, bool allow_empty_handle) {                       \
+    return Utils::OpenHandle(that, allow_empty_handle);                      \
+  }
+#else  // !__wasi__
 #define MAKE_OPEN_HANDLE(From, To)                                           \
   v8::internal::Handle<v8::internal::To> Utils::OpenHandle(                  \
       const v8::From* that, bool allow_empty_handle) {                       \
@@ -157,6 +192,7 @@ TYPED_ARRAYS(MAKE_TO_LOCAL_TYPED_ARRAY)
       const v8::From* that, bool allow_empty_handle) {                       \
     return Utils::OpenHandle(that, allow_empty_handle);                      \
   }
+#endif  // __wasi__
 
 #endif  // V8_ENABLE_DIRECT_HANDLE
 

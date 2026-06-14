@@ -19,6 +19,11 @@
 // #define V8_ATOMIC_OBJECT_FIELD_WRITES 1
 #define V8_CONCURRENT_MARKING 0
 
+// Note: V8_ENABLE_DIRECT_HANDLE is NOT defined here because this header is not
+// included from V8 internal sources.  Instead, the WASI-specific
+// MAKE_OPEN_HANDLE in api-inl.h uses HandleScope::CreateHandle to allocate
+// proper handle slots from the tagged pointers stored in WASI's Local<T>.
+
 #endif  // __wasi__
 
 #endif  // V8_INCLUDE_WASI_V8_WASI_DEFINES_H_

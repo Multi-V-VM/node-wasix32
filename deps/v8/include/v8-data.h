@@ -95,12 +95,15 @@ class Local {
     return Local<T>(reinterpret_cast<T*>(value));
   }
 
-  // Overload for PersistentBase and other handle types (accepts by value)
+  // Overload for PersistentBase-style handle types (Persistent/Global).
+  // Dereferences the handle's storage slot to recover the tagged pointer that
+  // WASI Local<T> stores directly. An earlier stub returned a null Local
+  // unconditionally, which silently broke every persistent->local conversion
+  // (including PersistentBase::Get, which delegates here).
   template <class S>
   static Local<T> New(Isolate* isolate, const S& that) {
-    // For persistent handles, we need to dereference to get the raw pointer
-    // This is a stub - in real V8 this would involve more complex handle management
-    return Local<T>(reinterpret_cast<T*>(static_cast<internal::Address>(0)));
+    if (that.IsEmpty()) return Local<T>();
+    return Local<T>(that.template value<T>());
   }
 
   static Local<T> FromSlot(internal::Address* slot) {

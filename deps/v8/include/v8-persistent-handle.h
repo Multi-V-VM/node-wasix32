@@ -226,11 +226,13 @@ class PersistentBase : public api_internal::IndirectHandleBase {
   }
   
   /**
-   * WASI stub: Clear the persistent handle  
+   * WASI: Clear must drop the slot WITHOUT disposing the storage cell —
+   * real V8 semantics. It is called by the Global move ctor/assignment after
+   * the slot has been stolen, and by Reset() after disposing. The previous
+   * "stub" called Reset() here, which disposed the just-moved handle and then
+   * re-entered Reset() for a double-dispose ("Check failed: node->IsInUse()").
    */
-  V8_INLINE void Clear() {
-    Reset();
-  }
+  V8_INLINE void Clear() { this->slot() = nullptr; }
   
   /**
    * WASI stub: operator-> for accessing the stored pointer

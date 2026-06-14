@@ -45,6 +45,7 @@
 #include "src/deoptimizer/deoptimizer.h"
 #include "src/execution/v8threads.h"
 #include "src/handles/handles.h"
+#include "src/base/virtual-address-space.h"
 #include <cstdlib>
 #include <atomic>
 
@@ -103,14 +104,19 @@ int HandleScopeImplementer::ArchiveSpacePerThread() {
   return sizeof(HandleScopeImplementer);
 }
 
-// CppHeap stubs
+// CppHeap stub: cpp-heap.cc is excluded for wasm32 (see v8.gyp sources!) so
+// this stub is the only definition.
 void CppHeap::InitializeOncePerProcess() {
   // No-op for WASM32
 }
 
-// GetPlatformVirtualAddressSpace stub
+// Real platform virtual address space, backed by the WASI mmap emulation in
+// platform-posix.cc. The old stub returned nullptr, which made
+// ExternalEntityTable (JS dispatch table / leaptiering) trap with
+// "uninitialized element" on the first virtual call during Genesis.
 VirtualAddressSpace* GetPlatformVirtualAddressSpace() {
-  return nullptr;
+  static ::v8::base::VirtualAddressSpace vas;
+  return &vas;
 }
 
 }  // namespace internal
@@ -148,17 +154,10 @@ void MicrotasksScope::PerformCheckpoint(Isolate* v8_isolate) {
 }
 
 // Context::New stub (WASI version uses Local instead of MaybeLocal)
-Local<Context> Context::New(
-    Isolate* external_isolate, ExtensionConfiguration* extensions,
-    Local<ObjectTemplate> global_template,
-    Local<Value> global_object,
-    DeserializeInternalFieldsCallback internal_fields_deserializer,
-    MicrotaskQueue* microtask_queue,
-    DeserializeContextDataCallback context_callback_deserializer,
-    DeserializeAPIWrapperCallback api_wrapper_deserializer) {
-  // WASM32 does not support context creation
-  return Local<Context>();
-}
+// Context::New is provided by the real implementation in api.cc (WASI branch
+// after NewRemoteContext), which delegates to the full NewContext machinery.
+// The old always-empty stub here made Node fail CreateMainEnvironment with
+// "Assertion failed: !context.IsEmpty()".
 
 namespace api_internal {
 // GetFunctionTemplateData stub
@@ -299,7 +298,8 @@ const CTypeInfo& CFunctionInfo::ArgumentInfo(unsigned int index) const {
   return kDummyCTypeInfo;
 }
 
-// CppHeap stubs
+// CppHeap stub: cpp-heap.cc is excluded for wasm32 (see v8.gyp sources!) so
+// this stub is the only definition.
 std::unique_ptr<CppHeap> CppHeap::Create(Platform* platform, const cppgc::HeapOptions& options) {
   return nullptr;
 }
@@ -316,25 +316,10 @@ MaybeLocal<Context> Context::FromSnapshot(
   return MaybeLocal<Context>();
 }
 
-// Exception::Error stub
-Local<Value> Exception::Error(Local<String> message, Local<Value> options) {
-  return Local<Value>();
-}
-
-// Exception::TypeError stub
-Local<Value> Exception::TypeError(Local<String> message, Local<Value> options) {
-  return Local<Value>();
-}
-
-// Exception::RangeError stub
-Local<Value> Exception::RangeError(Local<String> message, Local<Value> options) {
-  return Local<Value>();
-}
-
-// Exception::CreateMessage stub
-Local<Message> Exception::CreateMessage(Isolate* isolate, Local<Value> exception) {
-  return Local<Message>();
-}
+// Exception::Error/TypeError/RangeError/CreateMessage are now provided by the
+// real implementations in api.cc (carved out of the !__wasi__ exclusion).
+// The old always-empty stubs here were silent-null landmines: every thrown
+// error became an empty Local that crashed far from the throw site.
 
 // CFunctionInfo stub
 CFunctionInfo::CFunctionInfo(const CTypeInfo& return_info,

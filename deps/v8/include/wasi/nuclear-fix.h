@@ -452,6 +452,12 @@ inline void InternalWriteSlot(Address object, int offset, Address value) {}
 inline Address InternalReadSlot(Address object, int offset) { return 0; }
 
 // ---------------------------------------------------------------------------
+// Real root-slot access, implemented in src/api/api.cc against the isolate's
+// roots table. Public-header stubs previously fabricated root slots (static
+// dummy / nullptr), which made v8::Null()/Undefined()/True()/False() return
+// garbage Locals that crashed deep inside V8 (e.g. Map::SetPrototype).
+Address* WasiGetRootSlot(::v8::Isolate* isolate, int index);
+
 // Minimal Internals stub for WASI to satisfy public headers usage
 // Only define if not already provided elsewhere.
 #ifndef V8_INTERNALS_CLASS_DEFINED
@@ -512,11 +518,11 @@ class Internals {
   template <typename T>
   static void CheckInitialized(T*) {}
 
-  // Root slot access — return address of a static dummy
+  // Root slot access — real slot in the isolate's roots table.
   template <typename S = Address>
-  static S* GetRootSlot(void*, int) {
-    static Address dummy = 0;
-    return reinterpret_cast<S*>(&dummy);
+  static S* GetRootSlot(void* isolate, int index) {
+    return reinterpret_cast<S*>(
+        WasiGetRootSlot(reinterpret_cast<::v8::Isolate*>(isolate), index));
   }
 
   // Minimal helpers referenced from v8-primitive.h
@@ -586,17 +592,12 @@ class Internals {
     return static_cast<int32_t>(static_cast<intptr_t>(value)) >> kSmiTagSize;
   }
 
-  // Root retrieval for basic values
-  static Address GetRoot(::v8::Isolate*, int index) {
-    switch (index) {
-      case kUndefinedValueRootIndex: return 0x1000;
-      case kNullValueRootIndex: return 0x1004;
-      case kTrueValueRootIndex: return 0x1008;
-      case kFalseValueRootIndex: return 0x100C;
-      case kTheHoleValueRootIndex: return 0x1014;
-      case kEmptyStringRootIndex: return 0x1010;
-      default: return 0;
-    }
+  // Root retrieval for basic values — read the real tagged value from the
+  // isolate's roots table (the old fake constants 0x1000... were garbage
+  // pointers that crashed when dereferenced).
+  static Address GetRoot(::v8::Isolate* isolate, int index) {
+    Address* slot = WasiGetRootSlot(isolate, index);
+    return slot ? *slot : 0;
   }
 
   // Throw mode constants
