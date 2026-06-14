@@ -930,7 +930,11 @@
           }],
           ['v8_target_arch=="wasm32"', {
             'sources': [
-              # WASM32 compiler sources would go here when implemented
+              '<(V8_ROOT)/src/compiler/backend/wasm32/code-generator-wasm32.cc',
+              '<(V8_ROOT)/src/compiler/backend/wasm32/instruction-scheduler-wasm32.cc',
+              '<(V8_ROOT)/src/compiler/backend/wasm32/instruction-selector-wasm32.cc',
+              '<(V8_ROOT)/src/codegen/wasm32/wasm32-builtin-module.cc',
+              '<(V8_ROOT)/src/codegen/wasm32/wasm32-encoder.cc',
             ],
           }],
           ['v8_target_arch=="x64"', {
