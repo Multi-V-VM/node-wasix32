@@ -1,8 +1,6 @@
 #include "node_realm.h"
 #include "env-inl.h"
 
-#include <cstdio>
-
 #include "memory_tracker-inl.h"
 #include "node_builtins.h"
 #include "node_process.h"
@@ -68,23 +66,40 @@ void Realm::CreateProperties() {
   // Store primordials setup by the per-context script in the environment.
   Local<Object> per_context_bindings =
       GetPerContextExports(ctx, env_->isolate_data()).ToLocalChecked();
+#ifdef __wasi__
+  Local<Object> primordials =
+      GetPerContextPrimordialsForWasi(ctx).ToLocalChecked();
+#else
   Local<Value> primordials =
       per_context_bindings->Get(ctx, env_->primordials_string())
           .ToLocalChecked();
-#ifdef __wasi__
-  fprintf(stderr,
-          "Realm::CreateProperties: primordials=%p object=%d undefined=%d "
-          "null=%d\n",
-          reinterpret_cast<void*>(*primordials), primordials->IsObject(),
-          primordials->IsUndefined(), primordials->IsNull());
-  fflush(stderr);
-#endif
   CHECK(primordials->IsObject());
+#endif
   set_primordials(primordials.As<Object>());
 
   Local<String> prototype_string =
       FIXED_ONE_BYTE_STRING(isolate(), "prototype");
 
+#ifdef __wasi__
+#define V(EnvPropertyName, ConstructorName)                                    \
+  {                                                                            \
+    Local<Value> ctor =                                                        \
+        ctx->Global()                                                          \
+            ->Get(ctx, FIXED_ONE_BYTE_STRING(isolate(), ConstructorName))      \
+            .ToLocalChecked();                                                 \
+    CHECK(ctor->IsObject());                                                   \
+    Local<Value> prototype =                                                   \
+        ctor.As<Object>()->Get(ctx, prototype_string).ToLocalChecked();        \
+    CHECK(prototype->IsObject());                                              \
+    set_##EnvPropertyName(prototype.As<Object>());                             \
+  }
+
+  V(primordials_safe_map_prototype_object, "Map");
+  V(primordials_safe_set_prototype_object, "Set");
+  V(primordials_safe_weak_map_prototype_object, "WeakMap");
+  V(primordials_safe_weak_set_prototype_object, "WeakSet");
+#undef V
+#else
 #define V(EnvPropertyName, PrimordialsPropertyName)                            \
   {                                                                            \
     Local<Value> ctor =                                                        \
@@ -104,6 +119,7 @@ void Realm::CreateProperties() {
   V(primordials_safe_weak_map_prototype_object, "SafeWeakMap");
   V(primordials_safe_weak_set_prototype_object, "SafeWeakSet");
 #undef V
+#endif
 
   // TODO(legendecas): some methods probably doesn't need to be created with
   // process. Distinguish them and create process object only in the principal

@@ -4465,41 +4465,11 @@ Maybe<bool> v8::Object::Set(v8::Local<v8::Context> context,
   auto self = Utils::OpenDirectHandle(this);
   auto key_obj = Utils::OpenDirectHandle(*key);
   auto value_obj = Utils::OpenDirectHandle(*value);
-#ifdef __wasi__
-  fprintf(stderr,
-          "v8::Object::Set: self=%p key=%p value=%p self_jsobj=%d "
-          "self_global_proxy=%d self_global_object=%d value_jsobj=%d\n",
-          reinterpret_cast<void*>((*self).ptr()),
-          reinterpret_cast<void*>((*key_obj).ptr()),
-          reinterpret_cast<void*>((*value_obj).ptr()), i::IsJSObject(*self),
-          i::IsJSGlobalProxy(*self), i::IsJSGlobalObject(*self),
-          i::IsJSObject(*value_obj));
-  fflush(stderr);
-#endif
-  i::MaybeDirectHandle<i::Object> result =
+  has_exception =
       i::Runtime::SetObjectProperty(i_isolate, self, key_obj, value_obj,
                                     i::StoreOrigin::kMaybeKeyed,
-                                    Just(i::ShouldThrow::kDontThrow));
-  has_exception = result.is_null();
-#ifdef __wasi__
-  {
-    i::DirectHandle<i::Object> stored;
-    bool have_stored = false;
-    if (!has_exception && i::IsJSReceiver(*self) && i::IsName(*key_obj)) {
-      stored = i::JSReceiver::GetDataProperty(
-          i_isolate, i::Cast<i::JSReceiver>(self), i::Cast<i::Name>(key_obj));
-      have_stored = true;
-    }
-    fprintf(stderr,
-            "v8::Object::Set: result_null=%d stored=%p stored_hole=%d "
-            "stored_obj=%d\n",
-            has_exception, have_stored ? reinterpret_cast<void*>((*stored).ptr())
-                                       : nullptr,
-            have_stored ? i::IsTheHole(*stored, i_isolate) : -1,
-            have_stored ? i::IsJSObject(*stored) : -1);
-    fflush(stderr);
-  }
-#endif
+                                    Just(i::ShouldThrow::kDontThrow))
+          .is_null();
   RETURN_ON_FAILED_EXECUTION_PRIMITIVE(bool);
   return Just(true);
 }
@@ -4778,18 +4748,6 @@ MaybeLocal<Value> v8::Object::Get(Local<v8::Context> context,
   i::DirectHandle<i::Object> result;
   has_exception = !i::Runtime::GetObjectProperty(i_isolate, self, key_obj)
                        .ToHandle(&result);
-#ifdef __wasi__
-  fprintf(stderr,
-          "v8::Object::Get: self=%p key=%p self_jsobj=%d "
-          "self_global_proxy=%d result=%p result_obj=%d result_hole=%d\n",
-          reinterpret_cast<void*>((*self).ptr()),
-          reinterpret_cast<void*>((*key_obj).ptr()), i::IsJSObject(*self),
-          i::IsJSGlobalProxy(*self),
-          has_exception ? nullptr : reinterpret_cast<void*>((*result).ptr()),
-          has_exception ? -1 : i::IsJSObject(*result),
-          has_exception ? -1 : i::IsTheHole(*result, i_isolate));
-  fflush(stderr);
-#endif
   RETURN_ON_FAILED_EXECUTION(Value);
   RETURN_ESCAPED(Utils::ToLocal(result));
 }
@@ -4823,18 +4781,7 @@ MaybeLocal<Value> v8::Object::Get(Local<Context> context, uint32_t index) {
 
 MaybeLocal<Value> v8::Object::GetPrivate(Local<Context> context,
                                          Local<Private> key) {
-#ifdef __wasi__
-  auto i_isolate = reinterpret_cast<i::Isolate*>(context->GetIsolate());
-  ENTER_V8_NO_SCRIPT_NO_EXCEPTION(i_isolate);
-  auto self = Utils::OpenDirectHandle(this);
-  auto key_obj = Utils::OpenDirectHandle(reinterpret_cast<Name*>(*key));
-  if (!i::IsJSReceiver(*self)) return MaybeLocal<Value>();
-  i::DirectHandle<i::Object> result = i::JSReceiver::GetDataProperty(
-      i_isolate, i::Cast<i::JSReceiver>(self), key_obj);
-  return Utils::ToLocal(result);
-#else
   return Get(context, key.UnsafeAs<Value>());
-#endif
 }
 
 Maybe<PropertyAttribute> v8::Object::GetPropertyAttributes(

@@ -6,7 +6,6 @@
 
 #include <algorithm>
 #include <cmath>
-#include <cstdio>
 #include <memory>
 #include <optional>
 #include <sstream>
@@ -2704,23 +2703,7 @@ Maybe<bool> Object::AddDataProperty(LookupIterator* it,
 
   // If the receiver is a JSGlobalProxy, store on the prototype (JSGlobalObject)
   // instead. If the prototype is Null, the proxy is detached.
-#ifdef __wasi__
-  fprintf(stderr,
-          "AddDataProperty: receiver=%p name=%p value=%p state=%d "
-          "global_proxy=%d js_object=%d\n",
-          reinterpret_cast<void*>((*receiver).ptr()),
-          reinterpret_cast<void*>((*(it->GetName())).ptr()),
-          reinterpret_cast<void*>((*value).ptr()), it->state(),
-          IsJSGlobalProxy(*receiver), IsJSObject(*receiver));
-  fflush(stderr);
-#endif
-  if (IsJSGlobalProxy(*receiver)) {
-#ifdef __wasi__
-    fprintf(stderr, "AddDataProperty: JSGlobalProxy no-op\n");
-    fflush(stderr);
-#endif
-    return Just(true);
-  }
+  if (IsJSGlobalProxy(*receiver)) return Just(true);
 
   Isolate* isolate = it->isolate();
 
@@ -2771,15 +2754,6 @@ Maybe<bool> Object::TransitionAndWriteDataProperty(
     PropertyAttributes attributes, Maybe<ShouldThrow> should_throw,
     StoreOrigin store_origin) {
   DirectHandle<JSReceiver> receiver = it->GetStoreTarget<JSReceiver>();
-#ifdef __wasi__
-  fprintf(stderr,
-          "TransitionAndWriteDataProperty: before receiver=%p name=%p "
-          "value=%p state=%d\n",
-          reinterpret_cast<void*>((*receiver).ptr()),
-          reinterpret_cast<void*>((*(it->GetName())).ptr()),
-          reinterpret_cast<void*>((*value).ptr()), it->state());
-  fflush(stderr);
-#endif
   it->UpdateProtector();
   // Migrate to the most up-to-date map that will be able to store |value|
   // under it->name() with |attributes|.
@@ -2790,20 +2764,6 @@ Maybe<bool> Object::TransitionAndWriteDataProperty(
 
   // Write the property value.
   it->WriteDataValue(value, true);
-#ifdef __wasi__
-  {
-    DirectHandle<Object> stored = it->GetDataValue();
-    fprintf(stderr,
-            "TransitionAndWriteDataProperty: after receiver=%p name=%p "
-            "value=%p stored=%p stored_obj=%d stored_hole=%d state=%d\n",
-            reinterpret_cast<void*>((*receiver).ptr()),
-            reinterpret_cast<void*>((*(it->GetName())).ptr()),
-            reinterpret_cast<void*>((*value).ptr()),
-            reinterpret_cast<void*>((*stored).ptr()), IsJSObject(*stored),
-            IsTheHole(*stored, it->isolate()), it->state());
-    fflush(stderr);
-  }
-#endif
 
 #if VERIFY_HEAP
   if (v8_flags.verify_heap) {

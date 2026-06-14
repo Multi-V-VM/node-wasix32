@@ -1,5 +1,8 @@
 #include <cstdlib>
-#include <cstdio>
+#ifdef __wasi__
+#include <cstdint>
+#include <unordered_map>
+#endif
 #include "env_properties.h"
 #include "node.h"
 #include "node_builtins.h"
@@ -37,6 +40,7 @@ using v8::CppHeapCreateParams;
 using v8::EscapableHandleScope;
 using v8::Function;
 using v8::FunctionCallbackInfo;
+using v8::Global;
 using v8::HandleScope;
 using v8::Isolate;
 using v8::Just;
@@ -53,6 +57,35 @@ using v8::PropertyDescriptor;
 using v8::SealHandleScope;
 using v8::String;
 using v8::Value;
+
+namespace {
+
+#ifdef __wasi__
+using PerContextExportsStore =
+    std::unordered_map<std::uintptr_t, Global<Object>>;
+using PerContextPrimordialsStore =
+    std::unordered_map<std::uintptr_t, Global<Object>>;
+
+std::uintptr_t PerContextExportsKey(Local<Context> context) {
+  return reinterpret_cast<std::uintptr_t>(*context);
+}
+
+PerContextExportsStore& PerContextExportsForWasi() {
+  static PerContextExportsStore store;
+  return store;
+}
+
+PerContextPrimordialsStore& PerContextPrimordialsForWasi() {
+  static PerContextPrimordialsStore store;
+  return store;
+}
+#endif
+
+Maybe<void> InitializePrimordialsWithExports(Local<Context> context,
+                                             IsolateData* isolate_data,
+                                             Local<Object> exports);
+
+}  // namespace
 
 bool AllowWasmCodeGenerationCallback(Local<Context> context, Local<String>) {
   Local<Value> wasm_code_gen =
@@ -616,6 +649,35 @@ MaybeLocal<Object> GetPerContextExports(Local<Context> context,
   Isolate* isolate = context->GetIsolate();
   EscapableHandleScope handle_scope(isolate);
 
+#ifdef __wasi__
+  auto& exports_store = PerContextExportsForWasi();
+  auto exports_key = PerContextExportsKey(context);
+  auto exports_it = exports_store.find(exports_key);
+  if (exports_it != exports_store.end()) {
+    Local<Object> exports = exports_it->second.Get(isolate);
+    if (!exports.IsEmpty()) return handle_scope.Escape(exports);
+  }
+
+  // To initialize the per-context binding exports, a non-nullptr isolate_data
+  // is needed.
+  CHECK(isolate_data);
+  Local<Object> exports = Object::New(isolate);
+  exports_store[exports_key].Reset(isolate, exports);
+
+  Local<Private> key = Private::ForApi(
+      isolate,
+      FIXED_ONE_BYTE_STRING(isolate, "node:per_context_binding_exports"));
+  if (context->Global()->SetPrivate(context, key, exports).IsNothing() ||
+      InitializePrimordialsWithExports(context, isolate_data, exports)
+          .IsNothing()) {
+    exports_store.erase(exports_key);
+#ifdef __wasi__
+    PerContextPrimordialsForWasi().erase(exports_key);
+#endif
+    return MaybeLocal<Object>();
+  }
+  return handle_scope.Escape(exports);
+#else
   Local<Object> global = context->Global();
   Local<Private> key = Private::ForApi(
       isolate,
@@ -636,7 +698,23 @@ MaybeLocal<Object> GetPerContextExports(Local<Context> context,
     return MaybeLocal<Object>();
   }
   return handle_scope.Escape(exports);
+#endif
 }
+
+#ifdef __wasi__
+MaybeLocal<Object> GetPerContextPrimordialsForWasi(Local<Context> context) {
+  Isolate* isolate = context->GetIsolate();
+  EscapableHandleScope handle_scope(isolate);
+  auto primordials_it =
+      PerContextPrimordialsForWasi().find(PerContextExportsKey(context));
+  if (primordials_it == PerContextPrimordialsForWasi().end()) {
+    return MaybeLocal<Object>();
+  }
+  Local<Object> primordials = primordials_it->second.Get(isolate);
+  if (primordials.IsEmpty()) return MaybeLocal<Object>();
+  return handle_scope.Escape(primordials);
+}
+#endif
 
 // Any initialization logic should be performed in
 // InitializeContext, because embedders don't necessarily
@@ -821,16 +899,14 @@ MaybeLocal<Object> InitializePerIsolateSymbols(Local<Context> context,
   return scope.Escape(per_isolate_symbols_object);
 }
 
-Maybe<void> InitializePrimordials(Local<Context> context,
-                                  IsolateData* isolate_data) {
+namespace {
+
+Maybe<void> InitializePrimordialsWithExports(Local<Context> context,
+                                             IsolateData* isolate_data,
+                                             Local<Object> exports) {
   // Run per-context JS files.
   Isolate* isolate = context->GetIsolate();
   Context::Scope context_scope(context);
-  Local<Object> exports;
-
-  if (!GetPerContextExports(context).ToLocal(&exports)) {
-    return Nothing<void>();
-  }
   Local<String> primordials_string =
       FIXED_ONE_BYTE_STRING(isolate, "primordials");
   // Ensure that `InitializePrimordials` is called exactly once on a given
@@ -840,33 +916,17 @@ Maybe<void> InitializePrimordials(Local<Context> context,
   Local<Object> primordials =
       Object::New(isolate, Null(isolate), nullptr, nullptr, 0);
 #ifdef __wasi__
-  fprintf(stderr,
-          "InitializePrimordials: Object::New primordials=%p object=%d "
-          "undefined=%d null=%d\n",
-          reinterpret_cast<void*>(*primordials), primordials->IsObject(),
-          primordials->IsUndefined(), primordials->IsNull());
-  fflush(stderr);
+  PerContextPrimordialsForWasi()[PerContextExportsKey(context)].Reset(
+      isolate, primordials);
 #endif
   // Create primordials and make it available to per-context scripts.
-  if (exports->Set(context, primordials_string, primordials).IsNothing()) {
+  PropertyDescriptor primordials_desc(primordials, true);
+  primordials_desc.set_enumerable(true);
+  primordials_desc.set_configurable(true);
+  if (exports->DefineProperty(context, primordials_string, primordials_desc)
+          .IsNothing()) {
     return Nothing<void>();
   }
-#ifdef __wasi__
-  {
-    Local<Value> check;
-    if (exports->Get(context, primordials_string).ToLocal(&check)) {
-      fprintf(stderr,
-              "InitializePrimordials: after Set primordials=%p object=%d "
-              "undefined=%d null=%d\n",
-              reinterpret_cast<void*>(*check), check->IsObject(),
-              check->IsUndefined(), check->IsNull());
-      fflush(stderr);
-    } else {
-      fprintf(stderr, "InitializePrimordials: after Set Get failed\n");
-      fflush(stderr);
-    }
-  }
-#endif
 
   Local<Object> private_symbols;
   if (!InitializePrivateSymbols(context, isolate_data)
@@ -905,26 +965,20 @@ Maybe<void> InitializePrimordials(Local<Context> context,
       // Execution failed during context creation.
       return Nothing<void>();
     }
-#ifdef __wasi__
-    {
-      Local<Value> check;
-      if (exports->Get(context, primordials_string).ToLocal(&check)) {
-        fprintf(stderr,
-                "InitializePrimordials: after %s primordials=%p object=%d "
-                "undefined=%d null=%d\n",
-                *module, reinterpret_cast<void*>(*check), check->IsObject(),
-                check->IsUndefined(), check->IsNull());
-        fflush(stderr);
-      } else {
-        fprintf(stderr, "InitializePrimordials: after %s Get failed\n",
-                *module);
-        fflush(stderr);
-      }
-    }
-#endif
   }
 
   return JustVoid();
+}
+
+}  // namespace
+
+Maybe<void> InitializePrimordials(Local<Context> context,
+                                  IsolateData* isolate_data) {
+  Local<Object> exports;
+  if (!GetPerContextExports(context).ToLocal(&exports)) {
+    return Nothing<void>();
+  }
+  return InitializePrimordialsWithExports(context, isolate_data, exports);
 }
 
 // This initializes the main context (i.e. vm contexts are not included).
