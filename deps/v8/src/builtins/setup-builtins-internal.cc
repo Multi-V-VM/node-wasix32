@@ -382,6 +382,9 @@ void SetupIsolateDelegate::ReplacePlaceholders(Isolate* isolate) {
 // static
 void SetupIsolateDelegate::SetupBuiltinsInternal(Isolate* isolate) {
   Builtins* builtins = isolate->builtins();
+#ifdef __wasi__
+  RegisterAllWasmBuiltins();
+#endif
   DCHECK(!builtins->initialized_);
 
   if (v8_flags.dump_builtins_hashes_to_file) {

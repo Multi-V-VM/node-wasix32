@@ -8,6 +8,7 @@
 #if V8_TARGET_ARCH_WASM32
 
 #include "src/builtins/builtins.h"
+#include "src/builtins/wasm32/builtins-wasm32-abi.h"
 #include "src/codegen/macro-assembler.h"
 #include "src/execution/frame-constants.h"
 
@@ -274,6 +275,17 @@ void Builtins::Generate_DirectCEntry(MacroAssembler* masm) {
 
 void Builtins::Generate_RestartFrameTrampoline(MacroAssembler* masm) {
   // Stub - no native code generation for WASM32
+}
+
+// Probe builtin: a trap-free no-op used to validate the dispatch spine.
+// Signature is irrelevant here — it is never actually called from generated
+// code in this milestone, only its funcref/instruction_start wiring is checked.
+extern "C" void WasmProbeBuiltin() { /* no-op */ }
+
+// Registers all hand-written wasm builtins. Called once during builtin setup.
+void RegisterAllWasmBuiltins() {
+  RegisterWasmBuiltin(Builtin::kIllegal,
+                      reinterpret_cast<void*>(&WasmProbeBuiltin));
 }
 
 }  // namespace internal
