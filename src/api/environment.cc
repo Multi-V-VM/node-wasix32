@@ -1,4 +1,5 @@
 #include <cstdlib>
+#include <cstdio>
 #include "env_properties.h"
 #include "node.h"
 #include "node_builtins.h"
@@ -838,10 +839,34 @@ Maybe<void> InitializePrimordials(Local<Context> context,
 
   Local<Object> primordials =
       Object::New(isolate, Null(isolate), nullptr, nullptr, 0);
+#ifdef __wasi__
+  fprintf(stderr,
+          "InitializePrimordials: Object::New primordials=%p object=%d "
+          "undefined=%d null=%d\n",
+          reinterpret_cast<void*>(*primordials), primordials->IsObject(),
+          primordials->IsUndefined(), primordials->IsNull());
+  fflush(stderr);
+#endif
   // Create primordials and make it available to per-context scripts.
   if (exports->Set(context, primordials_string, primordials).IsNothing()) {
     return Nothing<void>();
   }
+#ifdef __wasi__
+  {
+    Local<Value> check;
+    if (exports->Get(context, primordials_string).ToLocal(&check)) {
+      fprintf(stderr,
+              "InitializePrimordials: after Set primordials=%p object=%d "
+              "undefined=%d null=%d\n",
+              reinterpret_cast<void*>(*check), check->IsObject(),
+              check->IsUndefined(), check->IsNull());
+      fflush(stderr);
+    } else {
+      fprintf(stderr, "InitializePrimordials: after Set Get failed\n");
+      fflush(stderr);
+    }
+  }
+#endif
 
   Local<Object> private_symbols;
   if (!InitializePrivateSymbols(context, isolate_data)
@@ -880,6 +905,23 @@ Maybe<void> InitializePrimordials(Local<Context> context,
       // Execution failed during context creation.
       return Nothing<void>();
     }
+#ifdef __wasi__
+    {
+      Local<Value> check;
+      if (exports->Get(context, primordials_string).ToLocal(&check)) {
+        fprintf(stderr,
+                "InitializePrimordials: after %s primordials=%p object=%d "
+                "undefined=%d null=%d\n",
+                *module, reinterpret_cast<void*>(*check), check->IsObject(),
+                check->IsUndefined(), check->IsNull());
+        fflush(stderr);
+      } else {
+        fprintf(stderr, "InitializePrimordials: after %s Get failed\n",
+                *module);
+        fflush(stderr);
+      }
+    }
+#endif
   }
 
   return JustVoid();

@@ -11,6 +11,7 @@
 #include "src/builtins/wasm32/builtins-wasm32-abi.h"
 #include "src/codegen/macro-assembler.h"
 #include "src/execution/frame-constants.h"
+#include "src/objects/smi.h"
 
 namespace v8 {
 namespace internal {
@@ -282,10 +283,27 @@ void Builtins::Generate_RestartFrameTrampoline(MacroAssembler* masm) {
 // code in this milestone, only its funcref/instruction_start wiring is checked.
 extern "C" void WasmProbeBuiltin() { /* no-op */ }
 
+// Hand-written JSEntry. Signature mirrors execution.cc's JSEntryFunction.
+// Milestone scope: prove dispatch succeeds. Calling into the target's code is
+// the next plan; here we return Smi::zero() so the trap, if any, moves to the
+// caller's handling of the result rather than the JSEntry call_indirect.
+extern "C" Address WasmJSEntry(Address root, Address new_target, Address target,
+                               Address receiver, intptr_t argc,
+                               Address** argv) {
+  USE(new_target);
+  USE(target);
+  USE(receiver);
+  USE(argc);
+  USE(argv);
+  g_wasm_regs[kWasmRegRoot] = root;
+  return Smi::zero().ptr();
+}
+
 // Registers all hand-written wasm builtins. Called once during builtin setup.
 void RegisterAllWasmBuiltins() {
   RegisterWasmBuiltin(Builtin::kIllegal,
                       reinterpret_cast<void*>(&WasmProbeBuiltin));
+  RegisterWasmBuiltin(Builtin::kJSEntry, reinterpret_cast<void*>(&WasmJSEntry));
 }
 
 }  // namespace internal

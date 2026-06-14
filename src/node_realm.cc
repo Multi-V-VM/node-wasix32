@@ -1,6 +1,8 @@
 #include "node_realm.h"
 #include "env-inl.h"
 
+#include <cstdio>
+
 #include "memory_tracker-inl.h"
 #include "node_builtins.h"
 #include "node_process.h"
@@ -69,6 +71,14 @@ void Realm::CreateProperties() {
   Local<Value> primordials =
       per_context_bindings->Get(ctx, env_->primordials_string())
           .ToLocalChecked();
+#ifdef __wasi__
+  fprintf(stderr,
+          "Realm::CreateProperties: primordials=%p object=%d undefined=%d "
+          "null=%d\n",
+          reinterpret_cast<void*>(*primordials), primordials->IsObject(),
+          primordials->IsUndefined(), primordials->IsNull());
+  fflush(stderr);
+#endif
   CHECK(primordials->IsObject());
   set_primordials(primordials.As<Object>());
 

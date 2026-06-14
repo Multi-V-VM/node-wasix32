@@ -38,6 +38,9 @@ using WasmBuiltinFn = void (*)();
 void RegisterWasmBuiltin(Builtin builtin, void* fnptr);
 // Returns nullptr if no wasm implementation is registered for `builtin`.
 void* WasmBuiltinFuncref(Builtin builtin);
+// Returns the registered wasm funcref bits for `builtin`, or `fallback_entry`
+// when the builtin still uses the embedded blob entry.
+Address WasmBuiltinEntryOr(Builtin builtin, Address fallback_entry);
 
 // Registers all hand-written wasm builtins. Called once during builtin setup.
 void RegisterAllWasmBuiltins();

@@ -17,6 +17,13 @@ std::array<void*, Builtins::kBuiltinCount>& Table() {
   static std::array<void*, Builtins::kBuiltinCount> table = {};
   return table;
 }
+
+void EnsureRegistered() {
+  static bool registered = false;
+  if (registered) return;
+  registered = true;
+  RegisterAllWasmBuiltins();
+}
 }  // namespace
 
 void RegisterWasmBuiltin(Builtin builtin, void* fnptr) {
@@ -24,7 +31,14 @@ void RegisterWasmBuiltin(Builtin builtin, void* fnptr) {
 }
 
 void* WasmBuiltinFuncref(Builtin builtin) {
+  EnsureRegistered();
   return Table()[Builtins::ToInt(builtin)];
+}
+
+Address WasmBuiltinEntryOr(Builtin builtin, Address fallback_entry) {
+  void* fnptr = WasmBuiltinFuncref(builtin);
+  if (fnptr == nullptr) return fallback_entry;
+  return reinterpret_cast<Address>(fnptr);
 }
 
 }  // namespace internal

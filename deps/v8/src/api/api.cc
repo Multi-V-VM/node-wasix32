@@ -4781,7 +4781,18 @@ MaybeLocal<Value> v8::Object::Get(Local<Context> context, uint32_t index) {
 
 MaybeLocal<Value> v8::Object::GetPrivate(Local<Context> context,
                                          Local<Private> key) {
+#ifdef __wasi__
+  auto i_isolate = reinterpret_cast<i::Isolate*>(context->GetIsolate());
+  ENTER_V8_NO_SCRIPT_NO_EXCEPTION(i_isolate);
+  auto self = Utils::OpenDirectHandle(this);
+  auto key_obj = Utils::OpenDirectHandle(reinterpret_cast<Name*>(*key));
+  if (!i::IsJSReceiver(*self)) return MaybeLocal<Value>();
+  i::DirectHandle<i::Object> result = i::JSReceiver::GetDataProperty(
+      i_isolate, i::Cast<i::JSReceiver>(self), key_obj);
+  return Utils::ToLocal(result);
+#else
   return Get(context, key.UnsafeAs<Value>());
+#endif
 }
 
 Maybe<PropertyAttribute> v8::Object::GetPropertyAttributes(

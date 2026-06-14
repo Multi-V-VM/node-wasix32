@@ -379,3 +379,47 @@ git commit -m "wasm32: record dispatch-spine outcome for Plan 2 handoff"
 - **Out of scope (correctly deferred):** the code-generator (§3), build pipeline (§4), remaining bootstrap builtins (CEntry/InterpreterEntryTrampoline), and the `g_regs` call marshalling — each is a later plan.
 - **Known verification points (flagged inline, not placeholders):** Task 3 `has_instruction_stream()` interaction; Task 5 exact `JSEntryFunction` signature. Both have explicit confirmation steps with observable expected output.
 - **Type consistency:** `RegisterWasmBuiltin`/`WasmBuiltinFuncref`/`RegisterAllWasmBuiltins`/`g_wasm_regs`/`kWasmReg*` are used consistently across the ABI header, registry, builtins file, and setup hook.
+
+## Outcome
+
+Implemented through Task 5 plus the extra lifecycle fix needed by the runtime:
+registered wasm funcrefs now survive all off-heap builtin entry resets, including
+setup, embedded-builtin finalization, startup deserialization, read-only
+deserialization, and `Builtins::InitializeIsolateDataTables`.
+
+Confirmed `JSEntryFunction` signature:
+
+```cpp
+GeneratedCode<Address(Address root_register_value, Address new_target,
+                      Address target, Address receiver, intptr_t argc,
+                      Address** argv)>
+```
+
+`has_instruction_stream()` did not require clearing for the registered off-heap
+entry builtins. The failure was that later V8 lifecycle code rewrote
+`Code::instruction_start()` and the isolate builtin entry table from
+`EmbeddedData::InstructionStartOf(...)`, losing the setup-time funcref override.
+
+Verification command:
+
+```bash
+wasmer run node.wasm -- -e "1" 2>&1 | grep -vE '^HashSeed|^Eternalize|^MakeAccessorInfo|^NewAccessorInfo' | tail -40
+```
+
+New failure signature after the fix:
+
+```text
+wasm builtin 66 instruction_start=0x4179
+wasm builtin 195 instruction_start=0x4178
+environment.cc: After Isolate::Initialize, isolate=0x10035000
+
+  #  [1]: void node::Realm::CreateProperties() at ../src/node_realm.cc:72
+  #  Assertion failed: primordials->IsObject()
+
+Program recieved fatal signal: Aborted
+```
+
+The previous `undefined element: out of bounds table access` at
+`v8::internal::Invoke` is gone. Plan 2 starts at the placeholder `WasmJSEntry`
+return value: it must set up the JS entry frame and dispatch into the target code
+via the `g_regs` builtin-to-builtin ABI instead of returning `Smi::zero()`.

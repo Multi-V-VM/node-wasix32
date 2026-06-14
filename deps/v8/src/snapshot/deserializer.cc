@@ -7,6 +7,9 @@
 #include <inttypes.h>
 
 #include "src/base/logging.h"
+#ifdef __wasi__
+#include "src/builtins/wasm32/builtins-wasm32-abi.h"
+#endif
 #include "src/codegen/assembler-inl.h"
 #include "src/codegen/reloc-info-inl.h"
 #include "src/common/assert-scope.h"
@@ -655,9 +658,17 @@ void Deserializer<IsolateT>::PostProcessNewObject(DirectHandle<Map> map,
   } else if (InstanceTypeChecker::IsCode(instance_type)) {
     Tagged<Code> code = Cast<Code>(raw_obj);
     if (!code->has_instruction_stream()) {
+#ifdef __wasi__
+      Builtin builtin = code->builtin_id();
+      Address entry = WasmBuiltinEntryOr(
+          builtin, EmbeddedData::FromBlob(main_thread_isolate())
+                       .InstructionStartOf(builtin));
+      code->SetInstructionStartForOffHeapBuiltin(main_thread_isolate(), entry);
+#else
       code->SetInstructionStartForOffHeapBuiltin(
           main_thread_isolate(), EmbeddedData::FromBlob(main_thread_isolate())
                                      .InstructionStartOf(code->builtin_id()));
+#endif
     } else {
       code->UpdateInstructionStart(main_thread_isolate(),
                                    code->instruction_stream());
