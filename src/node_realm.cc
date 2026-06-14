@@ -64,12 +64,13 @@ void Realm::CreateProperties() {
   Local<Context> ctx = context();
 
   // Store primordials setup by the per-context script in the environment.
-  Local<Object> per_context_bindings =
-      GetPerContextExports(ctx, env_->isolate_data()).ToLocalChecked();
 #ifdef __wasi__
+  GetPerContextExports(ctx, env_->isolate_data()).ToLocalChecked();
   Local<Object> primordials =
       GetPerContextPrimordialsForWasi(ctx).ToLocalChecked();
 #else
+  Local<Object> per_context_bindings =
+      GetPerContextExports(ctx, env_->isolate_data()).ToLocalChecked();
   Local<Value> primordials =
       per_context_bindings->Get(ctx, env_->primordials_string())
           .ToLocalChecked();
@@ -77,29 +78,19 @@ void Realm::CreateProperties() {
 #endif
   set_primordials(primordials.As<Object>());
 
+#ifdef __wasi__
+#define V(EnvPropertyName)                                                     \
+  set_##EnvPropertyName(Object::New(isolate()))
+
+  V(primordials_safe_map_prototype_object);
+  V(primordials_safe_set_prototype_object);
+  V(primordials_safe_weak_map_prototype_object);
+  V(primordials_safe_weak_set_prototype_object);
+#undef V
+#else
   Local<String> prototype_string =
       FIXED_ONE_BYTE_STRING(isolate(), "prototype");
 
-#ifdef __wasi__
-#define V(EnvPropertyName, ConstructorName)                                    \
-  {                                                                            \
-    Local<Value> ctor =                                                        \
-        ctx->Global()                                                          \
-            ->Get(ctx, FIXED_ONE_BYTE_STRING(isolate(), ConstructorName))      \
-            .ToLocalChecked();                                                 \
-    CHECK(ctor->IsObject());                                                   \
-    Local<Value> prototype =                                                   \
-        ctor.As<Object>()->Get(ctx, prototype_string).ToLocalChecked();        \
-    CHECK(prototype->IsObject());                                              \
-    set_##EnvPropertyName(prototype.As<Object>());                             \
-  }
-
-  V(primordials_safe_map_prototype_object, "Map");
-  V(primordials_safe_set_prototype_object, "Set");
-  V(primordials_safe_weak_map_prototype_object, "WeakMap");
-  V(primordials_safe_weak_set_prototype_object, "WeakSet");
-#undef V
-#else
 #define V(EnvPropertyName, PrimordialsPropertyName)                            \
   {                                                                            \
     Local<Value> ctor =                                                        \
@@ -224,6 +215,10 @@ MaybeLocal<Value> Realm::RunBootstrapping() {
 
   CHECK(!has_run_bootstrapping_code());
 
+#ifdef __wasi__
+  DoneBootstrapping();
+  return scope.Escape(v8::Undefined(isolate_));
+#else
   Local<Value> result;
   if (!ExecuteBootstrapper("internal/bootstrap/realm").ToLocal(&result) ||
       !BootstrapRealm().ToLocal(&result)) {
@@ -233,6 +228,7 @@ MaybeLocal<Value> Realm::RunBootstrapping() {
   DoneBootstrapping();
 
   return scope.Escape(result);
+#endif
 }
 
 void Realm::DoneBootstrapping() {
