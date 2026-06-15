@@ -483,7 +483,8 @@ base::OwnedZoneVector<uint8_t> CodeGenerator::GetSourcePositionTable() {
 base::OwnedZoneVector<uint8_t> CodeGenerator::GetProtectedInstructionsData() {
 #if V8_ENABLE_WEBASSEMBLY
   return base::OwnedCopyOf(
-      ZoneVector<uint8_t>::cast(base::VectorOf(protected_instructions_)));
+      base::Vector<const uint8_t>::cast(
+          base::VectorOf(protected_instructions_)));
 #else
   return {};
 #endif  // V8_ENABLE_WEBASSEMBLY
