@@ -81,6 +81,10 @@ void Assembler::RecordComment(const char* comment) {
   // Stub - comments are ignored for WASM32
 }
 
+void Assembler::RecordComment(const char* comment, const SourceLocation& loc) {
+  RecordComment(comment);
+}
+
 int32_t Assembler::branch_offset(Label* L) {
   return L ? L->pos() - pc_offset() : 0;
 }

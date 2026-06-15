@@ -49,6 +49,7 @@ class V8_EXPORT_PRIVATE Assembler : public AssemblerBase {
   // Code patching
   static void PatchBranchOffset(uint8_t* pc, int32_t offset);
   void RecordComment(const char* comment);
+  void RecordComment(const char* comment, const SourceLocation& loc);
   void RecordDeoptReason(DeoptimizeReason reason, uint32_t node_id,
                          SourcePosition position, int id);
 

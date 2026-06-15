@@ -66,7 +66,9 @@ class V8_EXPORT_PRIVATE MacroAssembler : public MacroAssemblerBase {
 
   // Required for MacroAssemblerBase
   void RecordComment(const char*) {}
+  void RecordComment(const char*, const SourceLocation&) {}
   void RequireCodeRange() {}
+  void InitializeRootRegister() {}
 
   static constexpr int kFramePointerRegister = 0;
 

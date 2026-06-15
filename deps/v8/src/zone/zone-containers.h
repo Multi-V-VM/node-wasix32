@@ -399,43 +399,25 @@ class ZoneVector {
   static ZoneVector<T> cast(const ZoneVector<S>& input) {
     static_assert(std::is_trivial_v<S> && std::is_standard_layout_v<S>);
     static_assert(std::is_trivial_v<T> && std::is_standard_layout_v<T>);
-    ZoneVector<T> result(input.zone());
-    result.resize(input.size());
-    if (input.size() > 0) {
-      if constexpr (sizeof(S) == sizeof(T)) {
-        ::memcpy(const_cast<void*>(static_cast<const void*>(result.data())),
-                 static_cast<const void*>(input.data()),
-                 input.size() * sizeof(S));
-      } else {
-        for (size_t i = 0; i < input.size(); ++i) {
-          result[i] = static_cast<T>(input[i]);
-        }
-      }
-    }
-    return result;
+    static_assert(!std::is_const_v<S> || std::is_const_v<T>);
+    DCHECK_EQ(0, (input.size() * sizeof(S)) % sizeof(T));
+    DCHECK_EQ(0, reinterpret_cast<uintptr_t>(input.data()) % alignof(T));
+    return ZoneVector<T>(
+        reinterpret_cast<T*>(const_cast<std::remove_const_t<S>*>(input.data())),
+        input.size() * sizeof(S) / sizeof(T));
   }
 
   // Overload for casting from base::Vector to ZoneVector (without zone)
   template <typename S>
-  static ZoneVector<T> cast(const ::v8::base::Vector<S>& input) {
+  static ZoneVector<T> cast(::v8::base::Vector<S> input) {
     static_assert(std::is_trivial_v<S> && std::is_standard_layout_v<S>);
     static_assert(std::is_trivial_v<T> && std::is_standard_layout_v<T>);
-    // Note: This creates a ZoneVector with nullptr zone - caller must handle
-    ZoneVector<T> result;
-    result.reserve(input.size());
-    if constexpr (sizeof(S) == sizeof(T)) {
-      result.resize(input.size());
-      if (input.size() > 0) {
-        ::memcpy(const_cast<void*>(static_cast<const void*>(result.data())),
-                 static_cast<const void*>(input.data()),
-                 input.size() * sizeof(S));
-      }
-    } else {
-      for (size_t i = 0; i < input.size(); ++i) {
-        result.push_back(static_cast<T>(input[i]));
-      }
-    }
-    return result;
+    static_assert(!std::is_const_v<S> || std::is_const_v<T>);
+    DCHECK_EQ(0, (input.size() * sizeof(S)) % sizeof(T));
+    DCHECK_EQ(0, reinterpret_cast<uintptr_t>(input.begin()) % alignof(T));
+    return ZoneVector<T>(
+        reinterpret_cast<T*>(const_cast<std::remove_const_t<S>*>(input.begin())),
+        input.size() * sizeof(S) / sizeof(T));
   }
 
   T& at(size_t pos) {
