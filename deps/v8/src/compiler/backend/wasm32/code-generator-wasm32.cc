@@ -45,59 +45,104 @@ CodeGenerator::CodeGenResult CodeGenerator::AssembleArchInstruction(
     Instruction* instr) {
   switch (instr->arch_opcode()) {
     case kArchNop:
+    case kWasm32Nop:
+      return kSuccess;
+    case kWasm32I32Const:
+      FATAL("wasm32 i32.const emission is not implemented yet");
+    case kWasm32LoadRoot:
+      FATAL("wasm32 root load emission is not implemented yet");
+    case kWasm32LoadSlot:
+      FATAL("wasm32 slot load emission is not implemented yet");
+    case kWasm32StoreSlot:
+      FATAL("wasm32 slot store emission is not implemented yet");
+    case kWasm32LoadMem8S:
+      FATAL("wasm32 i32.load8_s emission is not implemented yet");
+    case kWasm32LoadMem8U:
+      FATAL("wasm32 i32.load8_u emission is not implemented yet");
+    case kWasm32LoadMem16S:
+      FATAL("wasm32 i32.load16_s emission is not implemented yet");
+    case kWasm32LoadMem16U:
+      FATAL("wasm32 i32.load16_u emission is not implemented yet");
+    case kWasm32LoadMem32:
+      FATAL("wasm32 i32.load emission is not implemented yet");
+    case kLoadI32:
+      FATAL("wasm32 i32 load emission is not implemented yet");
+    case kLoadF64:
+      FATAL("wasm32 f64 load emission is not implemented yet");
+    case kWasm32StoreMem8:
+      FATAL("wasm32 i32.store8 emission is not implemented yet");
+    case kWasm32StoreMem16:
+      FATAL("wasm32 i32.store16 emission is not implemented yet");
+    case kWasm32StoreMem32:
+      FATAL("wasm32 i32.store emission is not implemented yet");
+    case kStoreI32:
+      FATAL("wasm32 i32 store emission is not implemented yet");
+    case kStoreF64:
+      FATAL("wasm32 f64 store emission is not implemented yet");
+    case kWasm32Add:
+      FATAL("wasm32 add emission is not implemented yet");
+    case kWasm32Sub:
+      FATAL("wasm32 sub emission is not implemented yet");
+    case kWasm32Mul:
+      FATAL("wasm32 mul emission is not implemented yet");
+    case kInt32DivS:
+      FATAL("wasm32 signed div emission is not implemented yet");
+    case kInt32DivU:
+      FATAL("wasm32 unsigned div emission is not implemented yet");
+    case kInt32ModS:
+      FATAL("wasm32 signed mod emission is not implemented yet");
+    case kInt32ModU:
+      FATAL("wasm32 unsigned mod emission is not implemented yet");
+    case kWasm32And:
+      FATAL("wasm32 and emission is not implemented yet");
+    case kWasm32Or:
+      FATAL("wasm32 or emission is not implemented yet");
+    case kWasm32Xor:
+      FATAL("wasm32 xor emission is not implemented yet");
+    case kWasm32Shl:
+      FATAL("wasm32 shl emission is not implemented yet");
+    case kWasm32ShrU:
+      FATAL("wasm32 shr_u emission is not implemented yet");
+    case kWasm32ShrS:
+      FATAL("wasm32 shr_s emission is not implemented yet");
+    case kWasm32Eq:
+      FATAL("wasm32 eq emission is not implemented yet");
+    case kWasm32Ne:
+      FATAL("wasm32 ne emission is not implemented yet");
+    case kWasm32LtS:
+      FATAL("wasm32 lt_s emission is not implemented yet");
+    case kWasm32LtU:
+      FATAL("wasm32 lt_u emission is not implemented yet");
+    case kWasm32LeS:
+      FATAL("wasm32 le_s emission is not implemented yet");
+    case kWasm32LeU:
+      FATAL("wasm32 le_u emission is not implemented yet");
+    case kWasm32GtS:
+      FATAL("wasm32 gt_s emission is not implemented yet");
+    case kWasm32GtU:
+      FATAL("wasm32 gt_u emission is not implemented yet");
+    case kWasm32GeS:
+      FATAL("wasm32 ge_s emission is not implemented yet");
+    case kWasm32GeU:
+      FATAL("wasm32 ge_u emission is not implemented yet");
+    case kS128Zero:
+      FATAL("wasm32 s128.zero emission is not implemented yet");
+    case kWasm32CallBuiltin:
+      FATAL("wasm32 builtin call emission is not implemented yet");
+    case kWasm32CallRuntime:
+      FATAL("wasm32 runtime call emission is not implemented yet");
+    case kWasm32Return:
+      FATAL("wasm32 return emission is not implemented yet");
+    case kArchRet:
+      FATAL("wasm32 arch return emission is not implemented yet");
     case kArchPrepareCallCFunction:
+      FATAL("wasm32 C function call preparation is not implemented yet");
     case kArchStackPointerGreaterThan:
+      FATAL("wasm32 stack-pointer check lowering is not implemented yet");
 #if V8_ENABLE_WEBASSEMBLY
     case kArchSetStackPointer:
+      FATAL("wasm32 set-stack-pointer lowering is not implemented yet");
 #endif  // V8_ENABLE_WEBASSEMBLY
-    case kWasm32Nop:
-    case kWasm32I32Const:
-    case kWasm32LoadRoot:
-    case kWasm32LoadSlot:
-    case kWasm32StoreSlot:
-    case kWasm32LoadMem8S:
-    case kWasm32LoadMem8U:
-    case kWasm32LoadMem16S:
-    case kWasm32LoadMem16U:
-    case kWasm32LoadMem32:
-    case kLoadI32:
-    case kLoadF64:
-    case kWasm32StoreMem8:
-    case kWasm32StoreMem16:
-    case kWasm32StoreMem32:
-    case kStoreI32:
-    case kStoreF64:
-    case kWasm32Add:
-    case kWasm32Sub:
-    case kWasm32Mul:
-    case kInt32DivS:
-    case kInt32DivU:
-    case kInt32ModS:
-    case kInt32ModU:
-    case kWasm32And:
-    case kWasm32Or:
-    case kWasm32Xor:
-    case kWasm32Shl:
-    case kWasm32ShrU:
-    case kWasm32ShrS:
-    case kWasm32Eq:
-    case kWasm32Ne:
-    case kWasm32LtS:
-    case kWasm32LtU:
-    case kWasm32LeS:
-    case kWasm32LeU:
-    case kWasm32GtS:
-    case kWasm32GtU:
-    case kWasm32GeS:
-    case kWasm32GeU:
-    case kS128Zero:
-    case kWasm32CallBuiltin:
-    case kWasm32CallRuntime:
-    case kWasm32Return:
-      return kSuccess;
-    case kArchRet:
-      AssembleReturn(instr->InputAt(0));
-      return kSuccess;
     default:
       FATAL("wasm32 codegen unsupported arch opcode %d",
             static_cast<int>(instr->arch_opcode()));
@@ -167,6 +212,11 @@ void CodeGenerator::AssembleArchTableSwitch(Instruction* instr) {
   FATAL("wasm32 table switch requires dispatch-loop lowering");
 }
 
+void CodeGenerator::AssembleJumpTable(ZoneVector<Label*> targets) {
+  USE(targets);
+  FATAL("wasm32 jump table emission requires dispatch-loop lowering");
+}
+
 void CodeGenerator::AssembleCodeStartRegisterCheck() {}
 
 #ifdef V8_ENABLE_LEAPTIERING
@@ -219,6 +269,7 @@ void CodeGenerator::AssembleMove(InstructionOperand* source,
   if (source->Equals(*destination)) return;
   USE(source);
   USE(destination);
+  FATAL("wasm32 non-redundant move lowering is not implemented yet");
 }
 
 void CodeGenerator::AssembleSwap(InstructionOperand* source,
