@@ -17,10 +17,20 @@ bool InstructionScheduler::SchedulerSupported() { return false; }
 int InstructionScheduler::GetTargetInstructionFlags(
     const Instruction* instr) const {
   switch (instr->arch_opcode()) {
+    case kWasm32LoadMem8S:
+    case kWasm32LoadMem8U:
+    case kWasm32LoadMem16S:
+    case kWasm32LoadMem16U:
+    case kWasm32LoadMem32:
+    case kLoadI32:
+    case kLoadF64:
+      return kIsLoadOperation;
     case kWasm32StoreSlot:
     case kWasm32StoreMem8:
     case kWasm32StoreMem16:
     case kWasm32StoreMem32:
+    case kStoreI32:
+    case kStoreF64:
     case kWasm32CallBuiltin:
     case kWasm32CallRuntime:
     case kWasm32Return:
