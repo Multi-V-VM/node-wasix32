@@ -22,6 +22,7 @@ int InstructionScheduler::GetTargetInstructionFlags(
     case kWasm32LoadMem16S:
     case kWasm32LoadMem16U:
     case kWasm32LoadMem32:
+    case kWasm32LoadSlot:
     case kLoadI32:
     case kLoadF64:
       return kIsLoadOperation;
