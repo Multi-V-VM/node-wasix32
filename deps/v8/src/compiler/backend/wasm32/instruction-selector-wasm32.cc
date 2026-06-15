@@ -109,6 +109,21 @@ ArchOpcode SelectStoreOpcode(StoreRepresentation store_rep) {
   }
 }
 
+AddressingMode SelectMemoryAddressingMode(uint8_t element_size_log2) {
+  switch (element_size_log2) {
+    case 0:
+      return kMode_MR1I;
+    case 1:
+      return kMode_MR2I;
+    case 2:
+      return kMode_MR4I;
+    case 3:
+      return kMode_MR8I;
+    default:
+      UNIMPLEMENTED();
+  }
+}
+
 void EmitLoad(InstructionSelectorT* selector, OpIndex node,
               InstructionCode opcode) {
   Wasm32OperandGeneratorT g(selector);
@@ -118,7 +133,7 @@ void EmitLoad(InstructionSelectorT* selector, OpIndex node,
   int32_t displacement = load.displacement();
   InstructionOperand output = g.DefineAsRegister(node);
 
-  if (selector->is_load_root_register(base)) {
+  if (selector->is_load_root_register(base) && !index.valid()) {
     opcode |= AddressingModeField::encode(kMode_Root);
     InstructionOperand inputs[] = {g.TempImmediate(displacement)};
     selector->Emit(opcode, 1, &output, arraysize(inputs), inputs);
@@ -128,8 +143,10 @@ void EmitLoad(InstructionSelectorT* selector, OpIndex node,
   if (index.valid()) {
     InstructionOperand inputs[] = {g.UseRegister(base), g.UseRegister(index),
                                    g.TempImmediate(displacement)};
-    selector->Emit(opcode | AddressingModeField::encode(kMode_MR1I), 1,
-                   &output, arraysize(inputs), inputs);
+    selector->Emit(opcode | AddressingModeField::encode(
+                                SelectMemoryAddressingMode(
+                                    load.element_size_log2())),
+                   1, &output, arraysize(inputs), inputs);
   } else {
     InstructionOperand inputs[] = {g.UseRegister(base),
                                    g.TempImmediate(displacement)};
@@ -147,7 +164,7 @@ void EmitStore(InstructionSelectorT* selector, OpIndex node,
   OpIndex value = store.value();
   int32_t displacement = store.displacement();
 
-  if (selector->is_load_root_register(base)) {
+  if (selector->is_load_root_register(base) && !index.has_value()) {
     InstructionOperand inputs[] = {g.UseRegisterOrImmediateZero(value),
                                    g.TempImmediate(displacement)};
     selector->Emit(opcode | AddressingModeField::encode(kMode_Root), 0,
@@ -160,8 +177,10 @@ void EmitStore(InstructionSelectorT* selector, OpIndex node,
                                    g.UseRegister(base),
                                    g.UseRegister(selector->value(index)),
                                    g.TempImmediate(displacement)};
-    selector->Emit(opcode | AddressingModeField::encode(kMode_MR1I), 0,
-                   nullptr, arraysize(inputs), inputs);
+    selector->Emit(opcode | AddressingModeField::encode(
+                                SelectMemoryAddressingMode(
+                                    store.element_size_log2())),
+                   0, nullptr, arraysize(inputs), inputs);
   } else {
     InstructionOperand inputs[] = {g.UseRegisterOrImmediateZero(value),
                                    g.UseRegister(base),
@@ -352,15 +371,23 @@ void InstructionSelectorT::EmitPrepareResults(
     ZoneVector<PushParameter>* results, const CallDescriptor* call_descriptor,
     OpIndex node) {
   Wasm32OperandGeneratorT g(this);
-  USE(call_descriptor);
   USE(node);
+  DCHECK(!call_descriptor->IsCFunctionCall());
 
   for (PushParameter output : *results) {
     if (!output.location.IsCallerFrameSlot()) continue;
     if (!output.node.valid()) continue;
+    if (output.location.GetType() == MachineType::Float32()) {
+      MarkAsFloat32(output.node);
+    } else if (output.location.GetType() == MachineType::Float64()) {
+      MarkAsFloat64(output.node);
+    } else if (output.location.GetType() == MachineType::Simd128()) {
+      MarkAsSimd128(output.node);
+    }
+    int offset = call_descriptor->GetOffsetToReturns();
+    int reverse_slot = -output.location.GetLocation() - offset;
     Emit(kWasm32LoadSlot, g.DefineAsRegister(output.node),
-         g.TempImmediate(output.location.GetLocation()
-                         << kSystemPointerSizeLog2));
+         g.TempImmediate(reverse_slot << kSystemPointerSizeLog2));
   }
 }
 
