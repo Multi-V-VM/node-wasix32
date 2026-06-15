@@ -109,10 +109,8 @@ void NodeMainInstance::Run(ExitCode* exit_code, Environment* env) {
       LoadEnvironment(env, StartExecutionCallback{});
     }
 
-#ifndef __wasi__
     *exit_code =
         SpinEventLoopInternal(env).FromMaybe(ExitCode::kGenericUserError);
-#endif
   }
 
 #if defined(LEAK_SANITIZER)

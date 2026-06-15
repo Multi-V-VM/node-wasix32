@@ -196,6 +196,9 @@ void SignalExit(int signo, siginfo_t* info, void* ucontext) {
 #if HAVE_INSPECTOR
 void Environment::InitializeInspector(
     std::unique_ptr<inspector::ParentInspectorHandle> parent_handle) {
+#ifdef __wasi__
+  return;
+#endif
   std::string inspector_path;
   bool is_main = !parent_handle;
   if (parent_handle) {
@@ -1489,6 +1492,9 @@ bool LoadSnapshotData(const SnapshotData** snapshot_data_ptr) {
   }
 
   if (per_process::cli_options->node_snapshot) {
+#ifdef __wasi__
+    return true;
+#endif
     // If --snapshot-blob is not specified or if the SEA contains no snapshot,
     // we are reading the embedded snapshot, but we will skip it if
     // --no-node-snapshot is specified.

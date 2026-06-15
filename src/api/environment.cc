@@ -589,11 +589,7 @@ MaybeLocal<Value> LoadEnvironment(Environment* env,
   }
   env->InitializeCompileCache();
 
-#ifdef __wasi__
-  return Undefined(env->isolate());
-#else
   return StartExecution(env, cb);
-#endif
 }
 
 MaybeLocal<Value> LoadEnvironment(Environment* env,

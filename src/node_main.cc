@@ -20,6 +20,7 @@
 // USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 #include "node.h"
+#include <cstdlib>
 #include <cstdio>
 
 #ifdef _WIN32
@@ -94,6 +95,10 @@ int wmain(int argc, wchar_t* wargv[]) {
 // UNIX
 
 int main(int argc, char* argv[]) {
+#ifdef __wasi__
+  std::_Exit(node::Start(argc, argv));
+#else
   return node::Start(argc, argv);
+#endif
 }
 #endif

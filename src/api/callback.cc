@@ -77,9 +77,11 @@ InternalCallbackScope::InternalCallbackScope(Environment* env,
   // We first check `env->context() != current_context` because the contexts
   // likely *are* the same, in which case we can skip the slightly more
   // expensive Environment::GetCurrent() call.
+#ifndef __wasi__
   if (env->context() != current_context) [[unlikely]] {
     CHECK_EQ(Environment::GetCurrent(isolate), env);
   }
+#endif
 
   isolate->SetIdle(false);
 
