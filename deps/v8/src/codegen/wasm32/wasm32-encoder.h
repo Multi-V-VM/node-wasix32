@@ -72,6 +72,8 @@ enum class WasmOpcode : uint8_t {
   kI32Mul = 0x6c,
   kI32DivS = 0x6d,
   kI32DivU = 0x6e,
+  kI32RemS = 0x6f,
+  kI32RemU = 0x70,
   kI32And = 0x71,
   kI32Or = 0x72,
   kI32Xor = 0x73,

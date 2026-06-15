@@ -4,9 +4,15 @@
 
 #if V8_TARGET_ARCH_WASM32
 
+#include <cstdint>
+#include <memory>
+#include <string>
+
 #include "src/builtins/wasm32/builtins-wasm32-abi.h"
 #include "src/codegen/wasm32/register-wasm32.h"
+#include "src/codegen/wasm32/wasm32-builtin-module.h"
 #include "src/codegen/wasm32/wasm32-encoder.h"
+#include "src/codegen/optimized-compilation-info.h"
 #include "src/compiler/backend/code-generator-impl.h"
 #include "src/compiler/backend/code-generator.h"
 #include "src/compiler/backend/gap-resolver.h"
@@ -20,41 +26,249 @@ namespace compiler {
 
 namespace {
 
+constexpr int kWasmStackSlotBase = kWasmRegArg0 + 64;
+
+thread_local std::unique_ptr<wasm32::WasmFunctionBuilder> current_body;
+thread_local uint32_t current_scratch_local = 0;
+
+void EnsureBody() {
+  if (current_body != nullptr) return;
+  current_body = std::make_unique<wasm32::WasmFunctionBuilder>(
+      "wasm32_generated_builtin", wasm32::WasmValueType::kVoid);
+  current_scratch_local = current_body->AddLocal(wasm32::WasmValueType::kI32);
+}
+
+wasm32::WasmFunctionBuilder& Body() {
+  EnsureBody();
+  return *current_body;
+}
+
+uint32_t ScratchLocal() {
+  EnsureBody();
+  return current_scratch_local;
+}
+
+bool HasBody() { return current_body != nullptr; }
+
+std::vector<uint8_t> FinishCurrentWasmBody() {
+  CHECK_NOT_NULL(current_body);
+  std::vector<uint8_t> body = current_body->FinishBody();
+  current_body.reset();
+  current_scratch_local = 0;
+  return body;
+}
+
+void ResetCurrentWasmBody() {
+  current_body.reset();
+  current_scratch_local = 0;
+}
+
+int StackIndexToSlot(int index) {
+  int slot = kWasmStackSlotBase + index;
+  if (slot < 0 || slot >= kWasmRegFileSize) {
+    FATAL("wasm32 stack slot %d maps outside g_wasm_regs", index);
+  }
+  return slot;
+}
+
+int SlotForAllocatedOperand(InstructionOperand* operand) {
+  if (operand->IsRegister()) {
+    return WasmRegisterCodeToSlot(
+        AllocatedOperand::cast(operand)->register_code());
+  }
+  if (operand->IsFPRegister()) {
+    return WasmDoubleRegisterCodeToSlot(
+        AllocatedOperand::cast(operand)->register_code());
+  }
+  if (operand->IsStackSlot() || operand->IsFloatStackSlot() ||
+      operand->IsDoubleStackSlot()) {
+    return StackIndexToSlot(AllocatedOperand::cast(operand)->index());
+  }
+  FATAL("wasm32 unsupported allocated operand kind");
+}
+
+void EmitI32Const(int32_t value) { Body().I32Const(value); }
+
+void EmitSlotAddress(int slot) {
+  if (slot < 0 || slot >= kWasmRegFileSize) {
+    FATAL("wasm32 register slot %d is outside g_wasm_regs", slot);
+  }
+  EmitI32Const(static_cast<int32_t>(
+      reinterpret_cast<uintptr_t>(&g_wasm_regs[slot])));
+}
+
+void LoadSlot(int slot) {
+  EmitSlotAddress(slot);
+  Body().Load32(2, 0);
+}
+
+void StoreSlot(int slot) {
+  Body().LocalSet(ScratchLocal());
+  EmitSlotAddress(slot);
+  Body().LocalGet(ScratchLocal());
+  Body().Store32(2, 0);
+}
+
+int FrameOffsetToSlot(int32_t offset) {
+  return StackIndexToSlot(offset >> kSystemPointerSizeLog2);
+}
+
 class Wasm32OperandConverter final : public InstructionOperandConverter {
  public:
   Wasm32OperandConverter(CodeGenerator* gen, Instruction* instr)
       : InstructionOperandConverter(gen, instr) {}
 
-  int InputRegisterCode(size_t index) const {
-    return ToRegister(instr_->InputAt(index)).code();
+  InstructionOperand* InputAt(size_t index) const {
+    return instr_->InputAt(index);
   }
 
-  Builtin InputBuiltin(size_t index) const {
+  int OutputSlot() { return SlotForAllocatedOperand(instr_->Output()); }
+
+  int InputInt32(size_t index) {
     Constant target = ToConstant(instr_->InputAt(index));
-    return static_cast<Builtin>(target.ToInt32());
+    if (!target.FitsInInt32()) {
+      FATAL("wasm32 immediate does not fit in i32");
+    }
+    return target.ToInt32();
   }
 
-  int OutputRegisterCode() const {
-    return ToRegister(instr_->Output()).code();
+  void LoadInput(size_t index) {
+    InstructionOperand* operand = InputAt(index);
+    if (operand->IsImmediate() || operand->IsConstant()) {
+      Constant constant = ToConstant(operand);
+      if (!constant.FitsInInt32()) {
+        FATAL("wasm32 immediate operand does not fit in i32");
+      }
+      EmitI32Const(constant.ToInt32());
+      return;
+    }
+    LoadSlot(SlotForAllocatedOperand(operand));
   }
 };
+
+uint32_t AddressScale(AddressingMode mode) {
+  switch (mode) {
+    case kMode_MR2I:
+      return 2;
+    case kMode_MR4I:
+      return 4;
+    case kMode_MR8I:
+      return 8;
+    case kMode_MR1I:
+    case kMode_MRI:
+    case kMode_Root:
+      return 1;
+    default:
+      FATAL("wasm32 unsupported addressing mode %d", static_cast<int>(mode));
+  }
+}
+
+void EmitAddress(Wasm32OperandConverter* i, Instruction* instr,
+                 size_t first_input) {
+  AddressingMode mode = AddressingModeField::decode(instr->opcode());
+  switch (mode) {
+    case kMode_Root:
+      LoadSlot(kWasmRegRoot);
+      EmitI32Const(i->InputInt32(first_input));
+      Body().Opcode(wasm32::WasmOpcode::kI32Add);
+      return;
+    case kMode_MRI:
+      i->LoadInput(first_input);
+      EmitI32Const(i->InputInt32(first_input + 1));
+      Body().Opcode(wasm32::WasmOpcode::kI32Add);
+      return;
+    case kMode_MR1I:
+    case kMode_MR2I:
+    case kMode_MR4I:
+    case kMode_MR8I:
+      i->LoadInput(first_input);
+      i->LoadInput(first_input + 1);
+      if (AddressScale(mode) != 1) {
+        EmitI32Const(static_cast<int32_t>(AddressScale(mode)));
+        Body().Opcode(wasm32::WasmOpcode::kI32Mul);
+      }
+      Body().Opcode(wasm32::WasmOpcode::kI32Add);
+      EmitI32Const(i->InputInt32(first_input + 2));
+      Body().Opcode(wasm32::WasmOpcode::kI32Add);
+      return;
+    default:
+      FATAL("wasm32 unsupported addressing mode %d", static_cast<int>(mode));
+  }
+}
+
+void EmitBinary(Wasm32OperandConverter* i, wasm32::WasmOpcode opcode) {
+  i->LoadInput(0);
+  i->LoadInput(1);
+  Body().Opcode(opcode);
+  StoreSlot(i->OutputSlot());
+}
+
+void EmitCompare(Wasm32OperandConverter* i, wasm32::WasmOpcode opcode) {
+  EmitBinary(i, opcode);
+}
+
+void EmitOperandValue(CodeGenerator* gen, InstructionOperand* operand) {
+  InstructionOperandConverter g(gen, nullptr);
+  if (operand->IsImmediate() || operand->IsConstant()) {
+    Constant constant = g.ToConstant(operand);
+    if (!constant.FitsInInt32()) {
+      FATAL("wasm32 move constant does not fit in i32");
+    }
+    EmitI32Const(constant.ToInt32());
+    return;
+  }
+  if (operand->IsRegister() || operand->IsStackSlot()) {
+    LoadSlot(SlotForAllocatedOperand(operand));
+    return;
+  }
+  FATAL("wasm32 unsupported move source");
+}
+
+void StoreOperandValue(InstructionOperand* operand) {
+  if (operand->IsRegister() || operand->IsStackSlot()) {
+    StoreSlot(SlotForAllocatedOperand(operand));
+    return;
+  }
+  FATAL("wasm32 unsupported move destination");
+}
+
+void EmitI32Load(Wasm32OperandConverter* i, Instruction* instr) {
+  EmitAddress(i, instr, 0);
+  Body().Load32(2, 0);
+  StoreSlot(i->OutputSlot());
+}
+
+void EmitI32Store(Wasm32OperandConverter* i, Instruction* instr) {
+  EmitAddress(i, instr, 1);
+  i->LoadInput(0);
+  Body().Store32(2, 0);
+}
 
 }  // namespace
 
 CodeGenerator::CodeGenResult CodeGenerator::AssembleArchInstruction(
     Instruction* instr) {
+  Wasm32OperandConverter i(this, instr);
   switch (instr->arch_opcode()) {
     case kArchNop:
     case kWasm32Nop:
       return kSuccess;
     case kWasm32I32Const:
-      FATAL("wasm32 i32.const emission is not implemented yet");
+      EmitI32Const(i.InputInt32(0));
+      StoreSlot(i.OutputSlot());
+      return kSuccess;
     case kWasm32LoadRoot:
-      FATAL("wasm32 root load emission is not implemented yet");
+      LoadSlot(kWasmRegRoot);
+      StoreSlot(i.OutputSlot());
+      return kSuccess;
     case kWasm32LoadSlot:
-      FATAL("wasm32 slot load emission is not implemented yet");
+      LoadSlot(FrameOffsetToSlot(i.InputInt32(0)));
+      StoreSlot(i.OutputSlot());
+      return kSuccess;
     case kWasm32StoreSlot:
-      FATAL("wasm32 slot store emission is not implemented yet");
+      i.LoadInput(0);
+      StoreSlot(FrameOffsetToSlot(i.InputInt32(1)));
+      return kSuccess;
     case kWasm32LoadMem8S:
       FATAL("wasm32 i32.load8_s emission is not implemented yet");
     case kWasm32LoadMem8U:
@@ -64,9 +278,9 @@ CodeGenerator::CodeGenResult CodeGenerator::AssembleArchInstruction(
     case kWasm32LoadMem16U:
       FATAL("wasm32 i32.load16_u emission is not implemented yet");
     case kWasm32LoadMem32:
-      FATAL("wasm32 i32.load emission is not implemented yet");
     case kLoadI32:
-      FATAL("wasm32 i32 load emission is not implemented yet");
+      EmitI32Load(&i, instr);
+      return kSuccess;
     case kLoadF64:
       FATAL("wasm32 f64 load emission is not implemented yet");
     case kWasm32StoreMem8:
@@ -74,57 +288,80 @@ CodeGenerator::CodeGenResult CodeGenerator::AssembleArchInstruction(
     case kWasm32StoreMem16:
       FATAL("wasm32 i32.store16 emission is not implemented yet");
     case kWasm32StoreMem32:
-      FATAL("wasm32 i32.store emission is not implemented yet");
     case kStoreI32:
-      FATAL("wasm32 i32 store emission is not implemented yet");
+      EmitI32Store(&i, instr);
+      return kSuccess;
     case kStoreF64:
       FATAL("wasm32 f64 store emission is not implemented yet");
     case kWasm32Add:
-      FATAL("wasm32 add emission is not implemented yet");
+      EmitBinary(&i, wasm32::WasmOpcode::kI32Add);
+      return kSuccess;
     case kWasm32Sub:
-      FATAL("wasm32 sub emission is not implemented yet");
+      EmitBinary(&i, wasm32::WasmOpcode::kI32Sub);
+      return kSuccess;
     case kWasm32Mul:
-      FATAL("wasm32 mul emission is not implemented yet");
+      EmitBinary(&i, wasm32::WasmOpcode::kI32Mul);
+      return kSuccess;
     case kInt32DivS:
-      FATAL("wasm32 signed div emission is not implemented yet");
+      EmitBinary(&i, wasm32::WasmOpcode::kI32DivS);
+      return kSuccess;
     case kInt32DivU:
-      FATAL("wasm32 unsigned div emission is not implemented yet");
+      EmitBinary(&i, wasm32::WasmOpcode::kI32DivU);
+      return kSuccess;
     case kInt32ModS:
-      FATAL("wasm32 signed mod emission is not implemented yet");
+      EmitBinary(&i, wasm32::WasmOpcode::kI32RemS);
+      return kSuccess;
     case kInt32ModU:
-      FATAL("wasm32 unsigned mod emission is not implemented yet");
+      EmitBinary(&i, wasm32::WasmOpcode::kI32RemU);
+      return kSuccess;
     case kWasm32And:
-      FATAL("wasm32 and emission is not implemented yet");
+      EmitBinary(&i, wasm32::WasmOpcode::kI32And);
+      return kSuccess;
     case kWasm32Or:
-      FATAL("wasm32 or emission is not implemented yet");
+      EmitBinary(&i, wasm32::WasmOpcode::kI32Or);
+      return kSuccess;
     case kWasm32Xor:
-      FATAL("wasm32 xor emission is not implemented yet");
+      EmitBinary(&i, wasm32::WasmOpcode::kI32Xor);
+      return kSuccess;
     case kWasm32Shl:
-      FATAL("wasm32 shl emission is not implemented yet");
+      EmitBinary(&i, wasm32::WasmOpcode::kI32Shl);
+      return kSuccess;
     case kWasm32ShrU:
-      FATAL("wasm32 shr_u emission is not implemented yet");
+      EmitBinary(&i, wasm32::WasmOpcode::kI32ShrU);
+      return kSuccess;
     case kWasm32ShrS:
-      FATAL("wasm32 shr_s emission is not implemented yet");
+      EmitBinary(&i, wasm32::WasmOpcode::kI32ShrS);
+      return kSuccess;
     case kWasm32Eq:
-      FATAL("wasm32 eq emission is not implemented yet");
+      EmitCompare(&i, wasm32::WasmOpcode::kI32Eq);
+      return kSuccess;
     case kWasm32Ne:
-      FATAL("wasm32 ne emission is not implemented yet");
+      EmitCompare(&i, wasm32::WasmOpcode::kI32Ne);
+      return kSuccess;
     case kWasm32LtS:
-      FATAL("wasm32 lt_s emission is not implemented yet");
+      EmitCompare(&i, wasm32::WasmOpcode::kI32LtS);
+      return kSuccess;
     case kWasm32LtU:
-      FATAL("wasm32 lt_u emission is not implemented yet");
+      EmitCompare(&i, wasm32::WasmOpcode::kI32LtU);
+      return kSuccess;
     case kWasm32LeS:
-      FATAL("wasm32 le_s emission is not implemented yet");
+      EmitCompare(&i, wasm32::WasmOpcode::kI32LeS);
+      return kSuccess;
     case kWasm32LeU:
-      FATAL("wasm32 le_u emission is not implemented yet");
+      EmitCompare(&i, wasm32::WasmOpcode::kI32LeU);
+      return kSuccess;
     case kWasm32GtS:
-      FATAL("wasm32 gt_s emission is not implemented yet");
+      EmitCompare(&i, wasm32::WasmOpcode::kI32GtS);
+      return kSuccess;
     case kWasm32GtU:
-      FATAL("wasm32 gt_u emission is not implemented yet");
+      EmitCompare(&i, wasm32::WasmOpcode::kI32GtU);
+      return kSuccess;
     case kWasm32GeS:
-      FATAL("wasm32 ge_s emission is not implemented yet");
+      EmitCompare(&i, wasm32::WasmOpcode::kI32GeS);
+      return kSuccess;
     case kWasm32GeU:
-      FATAL("wasm32 ge_u emission is not implemented yet");
+      EmitCompare(&i, wasm32::WasmOpcode::kI32GeU);
+      return kSuccess;
     case kS128Zero:
       FATAL("wasm32 s128.zero emission is not implemented yet");
     case kWasm32CallBuiltin:
@@ -132,9 +369,11 @@ CodeGenerator::CodeGenResult CodeGenerator::AssembleArchInstruction(
     case kWasm32CallRuntime:
       FATAL("wasm32 runtime call emission is not implemented yet");
     case kWasm32Return:
-      FATAL("wasm32 return emission is not implemented yet");
+      Body().Return();
+      return kSuccess;
     case kArchRet:
-      FATAL("wasm32 arch return emission is not implemented yet");
+      Body().Return();
+      return kSuccess;
     case kArchPrepareCallCFunction:
       FATAL("wasm32 C function call preparation is not implemented yet");
     case kArchStackPointerGreaterThan:
@@ -257,7 +496,16 @@ void CodeGenerator::AssembleReturn(InstructionOperand* pop) { USE(pop); }
 
 void CodeGenerator::AssembleDeconstructFrame() {}
 
-void CodeGenerator::FinishCode() {}
+void CodeGenerator::FinishCode() {
+  if (!HasBody()) return;
+  if (Builtins::IsBuiltinId(info()->builtin())) {
+    Builtin builtin = info()->builtin();
+    wasm32::GeneratedBuiltinModule::Get().AddBuiltin(
+        builtin, Builtins::name(builtin), FinishCurrentWasmBody());
+    return;
+  }
+  ResetCurrentWasmBody();
+}
 
 void CodeGenerator::PrepareForDeoptimizationExits(
     ZoneDeque<DeoptimizationExit*>* exits) {
@@ -267,9 +515,13 @@ void CodeGenerator::PrepareForDeoptimizationExits(
 void CodeGenerator::AssembleMove(InstructionOperand* source,
                                  InstructionOperand* destination) {
   if (source->Equals(*destination)) return;
-  USE(source);
-  USE(destination);
-  FATAL("wasm32 non-redundant move lowering is not implemented yet");
+  if (source->IsFPRegister() || source->IsFloatStackSlot() ||
+      source->IsDoubleStackSlot() || destination->IsFPRegister() ||
+      destination->IsFloatStackSlot() || destination->IsDoubleStackSlot()) {
+    FATAL("wasm32 floating-point move lowering is not implemented yet");
+  }
+  EmitOperandValue(this, source);
+  StoreOperandValue(destination);
 }
 
 void CodeGenerator::AssembleSwap(InstructionOperand* source,
