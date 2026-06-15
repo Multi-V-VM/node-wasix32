@@ -29,9 +29,6 @@ class GeneratedBuiltinModule {
                   std::vector<uint8_t> body);
   bool WriteObjectAndManifest(const char* object_path,
                               const char* manifest_path) const;
-  const std::vector<GeneratedBuiltinBody>& builtins() const {
-    return builtins_;
-  }
 
  private:
   std::vector<GeneratedBuiltinBody> builtins_;

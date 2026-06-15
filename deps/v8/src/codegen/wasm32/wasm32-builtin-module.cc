@@ -22,10 +22,13 @@ std::mutex& ModuleMutex() {
 
 constexpr uint8_t kWasmFunctionType = 0x60;
 constexpr uint8_t kWasmExportFunction = 0x00;
+constexpr uint8_t kWasmLimitsMinOnly = 0x00;
+constexpr uint32_t kWasmMinMemoryPages = 1;
 
 enum class WasmSection : uint8_t {
   kType = 1,
   kFunction = 3,
+  kMemory = 5,
   kExport = 7,
   kCode = 10,
 };
@@ -62,6 +65,12 @@ std::vector<uint8_t> BuildRawModule(
     function_section.U32Leb(0);
   }
   AppendSection(&module, WasmSection::kFunction, function_section);
+
+  WasmByteWriter memory_section;
+  memory_section.U32Leb(1);
+  memory_section.U8(kWasmLimitsMinOnly);
+  memory_section.U32Leb(kWasmMinMemoryPages);
+  AppendSection(&module, WasmSection::kMemory, memory_section);
 
   WasmByteWriter export_section;
   export_section.U32Leb(static_cast<uint32_t>(builtins.size()));

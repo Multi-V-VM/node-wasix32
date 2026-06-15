@@ -1398,24 +1398,3 @@ inline size_t hash_value(v8::internal::ZoneVector<T> const& v) {
 }
 
 #endif  // V8_ZONE_ZONE_CONTAINERS_H_
-
-// Provide compatibility aliases for code expecting v8::internal::base types.
-// Map them to the existing ::v8::base implementations.
-// Include platform headers for Thread
-#include "src/base/platform/platform.h"
-
-namespace v8 {
-namespace internal {
-namespace base {
-template <typename T>
-using OwnedZoneVector = ::v8::base::OwnedVector<T>;
-template <typename T>
-using ScopedZoneVector = ::v8::base::ScopedVector<T>;
-using Thread = ::v8::base::Thread;
-template <typename T>
-using LockGuard = ::v8::base::LockGuard<T>;
-using Mutex = ::v8::base::Mutex;
-using FlushDenormalsScope = ::v8::base::FlushDenormalsScope;
-}  // namespace base
-}  // namespace internal
-}  // namespace v8

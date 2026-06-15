@@ -341,6 +341,9 @@ class OwnedVector {
   size_t length_ = 0;
 };
 
+template <typename T>
+using OwnedZoneVector = OwnedVector<T>;
+
 // The vectors returned by {StaticCharVector}, {CStrVector}, or {OneByteVector}
 // do not contain a null-termination byte. If you want the null byte, use
 // {ArrayVector}.

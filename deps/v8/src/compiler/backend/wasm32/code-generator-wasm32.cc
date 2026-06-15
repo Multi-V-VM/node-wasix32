@@ -64,6 +64,9 @@ void ResetCurrentWasmBody() {
 }
 
 int StackIndexToSlot(int index) {
+  if (index < 0) {
+    FATAL("wasm32 negative stack slot %d would alias ABI slots", index);
+  }
   int slot = kWasmStackSlotBase + index;
   if (slot < 0 || slot >= kWasmRegFileSize) {
     FATAL("wasm32 stack slot %d maps outside g_wasm_regs", index);
@@ -121,6 +124,8 @@ class Wasm32OperandConverter final : public InstructionOperandConverter {
   InstructionOperand* InputAt(size_t index) const {
     return instr_->InputAt(index);
   }
+
+  InstructionCode opcode() const { return instr_->opcode(); }
 
   int OutputSlot() { return SlotForAllocatedOperand(instr_->Output()); }
 
@@ -204,6 +209,11 @@ void EmitBinary(Wasm32OperandConverter* i, wasm32::WasmOpcode opcode) {
 }
 
 void EmitCompare(Wasm32OperandConverter* i, wasm32::WasmOpcode opcode) {
+  FlagsMode mode = FlagsModeField::decode(i->opcode());
+  if (mode != kFlags_none) {
+    FATAL("wasm32 compare flags continuation mode %d is not implemented yet",
+          static_cast<int>(mode));
+  }
   EmitBinary(i, opcode);
 }
 
