@@ -3274,7 +3274,8 @@ void InstructionSelectorT::VisitNode(OpIndex node) {
         case multi(Kind::kEqual, Rep::Float64()):
           return VisitFloat64Equal(node);
         case multi(Kind::kEqual, Rep::Tagged()):
-          if constexpr (Is64() && !COMPRESS_POINTERS_BOOL) {
+          if constexpr (::v8::internal::compiler::Is64() &&
+                        !COMPRESS_POINTERS_BOOL) {
             return VisitWord64Equal(node);
           }
           return VisitWord32Equal(node);

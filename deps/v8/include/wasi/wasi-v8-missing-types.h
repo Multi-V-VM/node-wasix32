@@ -3,8 +3,9 @@
 
 #ifdef __wasi__
 
-// This header imports types from v8::base into v8::internal::base namespace
-// for WASI builds where they are otherwise missing
+// This header includes canonical v8::base definitions needed by WASI builds.
+// It must not create v8::internal::base, because that shadows ::v8::base for
+// V8 code compiled inside namespace v8::internal.
 
 #include <cstdint>
 #include <cstdio>

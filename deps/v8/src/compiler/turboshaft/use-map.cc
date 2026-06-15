@@ -66,7 +66,7 @@ UseMap::UseMap(const Graph& graph, Zone* zone, FunctionType filter)
   }
 }
 
-Vector<const OpIndex> UseMap::uses(OpIndex index) const {
+ZoneVector<const OpIndex> UseMap::uses(OpIndex index) const {
   DCHECK(index.valid());
   int32_t offset = table_[index].offset;
   uint32_t count = table_[index].count;

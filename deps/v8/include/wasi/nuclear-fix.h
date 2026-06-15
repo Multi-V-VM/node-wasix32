@@ -764,28 +764,27 @@ constexpr size_t GB = MB * static_cast<size_t>(1024);
 
 // External pointer tag range used by external-pointer-table APIs
 struct ExternalPointerTagRange {
-  ExternalPointerTag start;
-  ExternalPointerTag end;
+  ExternalPointerTag first;
+  ExternalPointerTag last;
   constexpr ExternalPointerTagRange(ExternalPointerTag s, ExternalPointerTag e)
-      : start(s), end(e) {}
+      : first(s), last(e) {}
   // Single-tag constructor used by callers passing a tag directly
   // Make this constructor explicit to avoid ambiguous template resolution
   // when choosing between <ExternalPointerTagRange> and <ExternalPointerTag>
   explicit constexpr ExternalPointerTagRange(ExternalPointerTag tag)
-      : start(tag), end(tag) {}
+      : first(tag), last(tag) {}
   // For WASI stubs, treat all tags as acceptable
   constexpr bool Contains(ExternalPointerTag) const { return true; }
   // Default constructor and helpers used by slots.h
   constexpr ExternalPointerTagRange()
-      : start(kExternalPointerNullTag), end(kExternalPointerNullTag) {}
-  constexpr int Size() const { return (start == end) ? 1 : 2; }
-  constexpr ExternalPointerTag first() const { return start; }
+      : first(kExternalPointerNullTag), last(kExternalPointerNullTag) {}
+  constexpr int Size() const { return (first == last) ? 1 : 2; }
 };
 
 // Equality helpers used by slots and table utilities
 constexpr bool operator==(const ExternalPointerTagRange& range,
                           ExternalPointerTag tag) {
-  return range.start == tag && range.end == tag;
+  return range.first == tag && range.last == tag;
 }
 constexpr bool operator==(ExternalPointerTag tag,
                           const ExternalPointerTagRange& range) {
@@ -794,7 +793,7 @@ constexpr bool operator==(ExternalPointerTag tag,
 // Compare two ExternalPointerTagRange objects
 constexpr bool operator==(const ExternalPointerTagRange& lhs,
                           const ExternalPointerTagRange& rhs) {
-  return lhs.start == rhs.start && lhs.end == rhs.end;
+  return lhs.first == rhs.first && lhs.last == rhs.last;
 }
 constexpr bool operator!=(const ExternalPointerTagRange& lhs,
                           const ExternalPointerTagRange& rhs) {

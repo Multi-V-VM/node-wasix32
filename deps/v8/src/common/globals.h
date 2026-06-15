@@ -44,6 +44,7 @@
 #include "src/base/hashmap-entry.h"
 #include "src/base/hashmap.h"
 #include "src/base/bounds.h"
+#include "src/base/container-utils.h"
 #include "src/base/numerics/safe_conversions.h"
 #include "src/base/platform/elapsed-timer.h"
 #include "src/base/platform/platform.h"
@@ -104,6 +105,17 @@ class ConditionVariable;
 #endif  // !defined(__wasi__) && !defined(V8_USING_WASI_SHIMS)
 
 namespace internal {
+
+// Some legacy/WASI headers forward-declare v8::internal::base. Keep that
+// namespace as a pure forwarding bridge so internal code using base:: still
+// resolves to canonical ::v8::base declarations.
+namespace base {
+using namespace ::v8::base;
+namespace bits {
+using namespace ::v8::base::bits;
+}  // namespace bits
+namespace tmp = ::v8::base::tmp;
+}  // namespace base
 
 // (WASI) Avoid heavy symbol bridging here; select aliases are provided where
 // needed by individual headers to minimize include-order issues.

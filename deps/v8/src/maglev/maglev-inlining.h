@@ -105,8 +105,13 @@ class MaglevInliner {
 
     // Truncate the basic block and remove the generic call node.
     ExceptionHandlerInfo::List rem_handlers_in_call_block;
-    call_block->exception_handlers().TruncateAt(
-        &rem_handlers_in_call_block, call_node->exception_handler_info());
+    auto& exception_handlers = call_block->exception_handlers();
+    auto handler_it = exception_handlers.begin();
+    for (; handler_it != exception_handlers.end(); ++handler_it) {
+      if (*handler_it == call_node->exception_handler_info()) break;
+    }
+    DCHECK_NE(handler_it, exception_handlers.end());
+    rem_handlers_in_call_block.MoveTail(&exception_handlers, handler_it);
     ZoneVector<Node*> rem_nodes_in_call_block =
         call_block->Split(call_node, zone());
 

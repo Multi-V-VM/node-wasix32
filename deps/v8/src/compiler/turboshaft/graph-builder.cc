@@ -2285,7 +2285,7 @@ OpIndex GraphBuilder::Process(
 
       // Allocate the out_reps vector in the zone, so that it lives through the
       // whole compilation.
-      const ZoneVector<RegisterRepresentation> out_reps =
+      ZoneVector<RegisterRepresentation> out_reps =
           graph_zone->AllocateZoneVector<RegisterRepresentation>(return_count);
       out_reps[0] = RegisterRepresentation::Word32();
       out_reps[1] = RegisterRepresentation::FromCTypeInfo(

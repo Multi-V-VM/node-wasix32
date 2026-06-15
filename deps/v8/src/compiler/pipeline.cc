@@ -454,7 +454,8 @@ TurbofanPipelineStatistics* CreatePipelineStatistics(
     std::vector<uint32_t> source_positions;
     ZoneVector<const uint8_t> function_bytes{compilation_data.func_body.start,
                                                compilation_data.body_size()};
-    ZoneVector<const uint8_t> module_bytes{nullptr, 0};
+    ZoneVector<const uint8_t> module_bytes{
+        static_cast<const uint8_t*>(nullptr), 0};
     std::optional<wasm::ModuleWireBytes> maybe_wire_bytes =
         compilation_data.wire_bytes_storage->GetModuleBytes();
     if (maybe_wire_bytes) module_bytes = maybe_wire_bytes->module_bytes();

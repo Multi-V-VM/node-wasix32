@@ -18,6 +18,7 @@
 #include <utility>
 
 #include "include/v8-source-location.h"
+#include "src/base/container-utils.h"
 #include "src/base/logging.h"
 #include "src/base/macros.h"
 #include "src/base/small-vector.h"
@@ -4134,9 +4135,11 @@ class TurboshaftAssemblerOpInterface
       return OpIndex::Invalid();
     }
     // Downcast from typed `V<T>` wrapper to `OpIndex`.
-    OpIndex* inputs_begin = inputs.data();
     static_assert(sizeof(OpIndex) == sizeof(V<T>));
-    return Phi(base::VectorOf(inputs_begin, inputs.length()), V<T>::rep);
+    const OpIndex* inputs_begin =
+        reinterpret_cast<const OpIndex*>(inputs.data());
+    return Phi(ZoneVector<const OpIndex>(inputs_begin, inputs.length()),
+               V<T>::rep);
   }
   OpIndex PendingLoopPhi(OpIndex first, RegisterRepresentation rep) {
     return ReduceIfReachablePendingLoopPhi(first, rep);

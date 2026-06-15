@@ -17,6 +17,7 @@
 #include "src/compiler/backend/spill-placer.h"
 #include "src/compiler/linkage.h"
 #include "src/strings/string-stream.h"
+#include "src/zone/zone-containers.h"
 
 namespace v8 {
 namespace internal {
@@ -3225,7 +3226,7 @@ RpoNumber LinearScanAllocator::ChooseOneOfTwoPredecessorStates(
     // +1 if used in the left predecessor, -1 if used in the right predecessor.
     int use_count_delta;
   };
-  SmallVector<RangeUseCount, 16> unique_range_use_counts(allocation_zone());
+  SmallZoneVector<RangeUseCount, 16> unique_range_use_counts(allocation_zone());
   for (LiveRange* range : right) {
     TopLevelLiveRange* parent = range->TopLevel();
     auto left_it = left_set.find(parent);

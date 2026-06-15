@@ -293,12 +293,7 @@ OBJS := \
 	$(obj).target/$(TARGET)/deps/v8/src/heap/collection-barrier.o \
 	$(obj).target/$(TARGET)/deps/v8/src/heap/combined-heap.o \
 	$(obj).target/$(TARGET)/deps/v8/src/heap/concurrent-marking.o \
-	$(obj).target/$(TARGET)/deps/v8/src/heap/cppgc-js/cpp-heap.o \
-	$(obj).target/$(TARGET)/deps/v8/src/heap/cppgc-js/cpp-snapshot.o \
-	$(obj).target/$(TARGET)/deps/v8/src/heap/cppgc-js/cross-heap-remembered-set.o \
-	$(obj).target/$(TARGET)/deps/v8/src/heap/cppgc-js/unified-heap-marking-state.o \
-	$(obj).target/$(TARGET)/deps/v8/src/heap/cppgc-js/unified-heap-marking-verifier.o \
-	$(obj).target/$(TARGET)/deps/v8/src/heap/cppgc-js/unified-heap-marking-visitor.o \
+	$(obj).target/$(TARGET)/deps/v8/src/heap/cppgc-js/cppgc-stubs.o \
 	$(obj).target/$(TARGET)/deps/v8/src/heap/ephemeron-remembered-set.o \
 	$(obj).target/$(TARGET)/deps/v8/src/heap/evacuation-allocator.o \
 	$(obj).target/$(TARGET)/deps/v8/src/heap/evacuation-verifier.o \
@@ -616,6 +611,7 @@ OBJS := \
 	$(obj).target/$(TARGET)/deps/v8/src/zone/zone-segment.o \
 	$(obj).target/$(TARGET)/deps/v8/src/zone/zone.o \
 	$(obj).target/$(TARGET)/deps/v8/third_party/siphash/halfsiphash.o \
+	$(obj).target/$(TARGET)/deps/v8/src/builtins/wasm32/builtins-wasm32-registry.o \
 	$(obj).target/$(TARGET)/deps/v8/src/codegen/wasm32/assembler-wasm32.o \
 	$(obj).target/$(TARGET)/deps/v8/src/codegen/wasm32/cpu-wasm32.o \
 	$(obj).target/$(TARGET)/deps/v8/src/codegen/wasm32/macro-assembler-wasm32.o \
@@ -1064,4 +1060,3 @@ v8_base_without_compiler: $(obj).target/tools/v8_gypfiles/libv8_base_without_com
 # Add target alias to "all" target.
 .PHONY: all
 all: v8_base_without_compiler
-
