@@ -359,9 +359,7 @@ void InstructionSelectorT::EmitPrepareArguments(
   for (size_t n = 0; n < arguments->size(); ++n) {
     PushParameter input = (*arguments)[n];
     if (!input.node.valid()) continue;
-    int slot = input.location.IsCallerFrameSlot()
-                   ? input.location.GetLocation()
-                   : static_cast<int>(n);
+    int slot = static_cast<int>(n);
     Emit(kWasm32StoreSlot, g.NoOutput(), g.UseRegister(input.node),
          g.TempImmediate(slot << kSystemPointerSizeLog2));
   }
