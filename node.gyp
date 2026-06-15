@@ -7,6 +7,7 @@
     'node_no_browser_globals%': 'false',
     'node_snapshot_main%': '',
     'node_use_node_snapshot%': 'false',
+    'node_wasm32_generated_builtins%': 'false',
     'node_use_v8_platform%': 'true',
     'node_use_bundled_v8%': 'true',
     'node_shared%': 'false',
@@ -698,14 +699,34 @@
                     '<(node_mksnapshot_exec)',
                     '<(node_snapshot_main)',
                   ],
-                  'outputs': [
-                    '<(SHARED_INTERMEDIATE_DIR)/node_snapshot.cc',
-                  ],
-                  'action': [
-                    '<(node_mksnapshot_exec)',
-                    '--build-snapshot',
-                    '<(node_snapshot_main)',
-                    '<@(_outputs)',
+                  'conditions': [
+                    ['node_wasm32_generated_builtins=="true"', {
+                      'outputs': [
+                        '<(SHARED_INTERMEDIATE_DIR)/node_snapshot.cc',
+                        '<(SHARED_INTERMEDIATE_DIR)/wasm32_generated_builtins.o',
+                        '<(SHARED_INTERMEDIATE_DIR)/wasm32_generated_builtins.manifest',
+                        '<(SHARED_INTERMEDIATE_DIR)/wasm32_generated_builtins_registry.cc',
+                      ],
+                      'action': [
+                        '<(node_mksnapshot_exec)',
+                        '--build-snapshot',
+                        '<(node_snapshot_main)',
+                        '<(SHARED_INTERMEDIATE_DIR)/node_snapshot.cc',
+                        '<(SHARED_INTERMEDIATE_DIR)/wasm32_generated_builtins.o',
+                        '<(SHARED_INTERMEDIATE_DIR)/wasm32_generated_builtins.manifest',
+                        '<(SHARED_INTERMEDIATE_DIR)/wasm32_generated_builtins_registry.cc',
+                      ],
+                    }, {
+                      'outputs': [
+                        '<(SHARED_INTERMEDIATE_DIR)/node_snapshot.cc',
+                      ],
+                      'action': [
+                        '<(node_mksnapshot_exec)',
+                        '--build-snapshot',
+                        '<(node_snapshot_main)',
+                        '<@(_outputs)',
+                      ],
+                    }],
                   ],
                 },
               ],
@@ -717,12 +738,30 @@
                   'inputs': [
                     '<(node_mksnapshot_exec)',
                   ],
-                  'outputs': [
-                    '<(SHARED_INTERMEDIATE_DIR)/node_snapshot.cc',
-                  ],
-                  'action': [
-                    '<@(_inputs)',
-                    '<@(_outputs)',
+                  'conditions': [
+                    ['node_wasm32_generated_builtins=="true"', {
+                      'outputs': [
+                        '<(SHARED_INTERMEDIATE_DIR)/node_snapshot.cc',
+                        '<(SHARED_INTERMEDIATE_DIR)/wasm32_generated_builtins.o',
+                        '<(SHARED_INTERMEDIATE_DIR)/wasm32_generated_builtins.manifest',
+                        '<(SHARED_INTERMEDIATE_DIR)/wasm32_generated_builtins_registry.cc',
+                      ],
+                      'action': [
+                        '<(node_mksnapshot_exec)',
+                        '<(SHARED_INTERMEDIATE_DIR)/node_snapshot.cc',
+                        '<(SHARED_INTERMEDIATE_DIR)/wasm32_generated_builtins.o',
+                        '<(SHARED_INTERMEDIATE_DIR)/wasm32_generated_builtins.manifest',
+                        '<(SHARED_INTERMEDIATE_DIR)/wasm32_generated_builtins_registry.cc',
+                      ],
+                    }, {
+                      'outputs': [
+                        '<(SHARED_INTERMEDIATE_DIR)/node_snapshot.cc',
+                      ],
+                      'action': [
+                        '<@(_inputs)',
+                        '<@(_outputs)',
+                      ],
+                    }],
                   ],
                 },
               ],
@@ -739,6 +778,11 @@
           'ldflags+': [
             '<(obj_dir)/<(node_text_start_object_path)'
           ]
+        }],
+        ['node_wasm32_generated_builtins=="true"', {
+          'ldflags+': [
+            '<(SHARED_INTERMEDIATE_DIR)/wasm32_generated_builtins.o',
+          ],
         }],
 
         ['node_fipsinstall=="true"', {
@@ -1053,6 +1097,7 @@
         'src',
         'tools/msvs/genfiles',
         'deps/v8/include',
+        'deps/v8',
         'deps/cares/include',
         'deps/uv/include',
         'test/cctest',
@@ -1389,6 +1434,7 @@
         'src',
         'tools/msvs/genfiles',
         'deps/v8/include',
+        'deps/v8',
         'deps/cares/include',
         'deps/uv/include',
       ],

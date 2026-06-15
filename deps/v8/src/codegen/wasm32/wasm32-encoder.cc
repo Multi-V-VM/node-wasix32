@@ -61,6 +61,16 @@ void WasmByteWriter::I32Leb(int32_t value) {
   }
 }
 
+void WasmByteWriter::I32LebFixed5(int32_t value) {
+  uint32_t remaining = static_cast<uint32_t>(value);
+  for (int i = 0; i < 5; ++i) {
+    uint8_t byte = remaining & 0x7f;
+    remaining >>= 7;
+    if (i != 4) byte |= 0x80;
+    U8(byte);
+  }
+}
+
 void WasmByteWriter::Bytes(const std::vector<uint8_t>& bytes) {
   data_.insert(data_.end(), bytes.begin(), bytes.end());
 }
@@ -88,6 +98,48 @@ void WasmFunctionBuilder::I32Const(int32_t value) {
   body_.I32Leb(value);
 }
 
+void WasmFunctionBuilder::Block(WasmValueType type) {
+  Opcode(WasmOpcode::kBlock);
+  body_.U8(static_cast<uint8_t>(type));
+}
+
+void WasmFunctionBuilder::Loop(WasmValueType type) {
+  Opcode(WasmOpcode::kLoop);
+  body_.U8(static_cast<uint8_t>(type));
+}
+
+void WasmFunctionBuilder::If(WasmValueType type) {
+  Opcode(WasmOpcode::kIf);
+  body_.U8(static_cast<uint8_t>(type));
+}
+
+void WasmFunctionBuilder::Else() { Opcode(WasmOpcode::kElse); }
+
+void WasmFunctionBuilder::End() { Opcode(WasmOpcode::kEnd); }
+
+void WasmFunctionBuilder::Br(uint32_t depth) {
+  Opcode(WasmOpcode::kBr);
+  body_.U32Leb(depth);
+}
+
+void WasmFunctionBuilder::BrIf(uint32_t depth) {
+  Opcode(WasmOpcode::kBrIf);
+  body_.U32Leb(depth);
+}
+
+void WasmFunctionBuilder::BrTable(const std::vector<uint32_t>& targets,
+                                  uint32_t default_target) {
+  Opcode(WasmOpcode::kBrTable);
+  body_.U32Leb(static_cast<uint32_t>(targets.size()));
+  for (uint32_t target : targets) body_.U32Leb(target);
+  body_.U32Leb(default_target);
+}
+
+void WasmFunctionBuilder::BrTable(std::initializer_list<uint32_t> targets,
+                                  uint32_t default_target) {
+  BrTable(std::vector<uint32_t>(targets), default_target);
+}
+
 void WasmFunctionBuilder::LocalGet(uint32_t index) {
   Opcode(WasmOpcode::kLocalGet);
   body_.U32Leb(index);
@@ -96,6 +148,15 @@ void WasmFunctionBuilder::LocalGet(uint32_t index) {
 void WasmFunctionBuilder::LocalSet(uint32_t index) {
   Opcode(WasmOpcode::kLocalSet);
   body_.U32Leb(index);
+}
+
+void WasmFunctionBuilder::I32ConstMemoryAddress(
+    const std::string& symbol_name, int32_t addend) {
+  Opcode(WasmOpcode::kI32Const);
+  relocations_.push_back(
+      {WasmRelocationKind::kMemoryAddressSleb, symbol_name,
+       static_cast<uint32_t>(body_.size()), addend});
+  body_.I32LebFixed5(0);
 }
 
 void WasmFunctionBuilder::Load(WasmOpcode opcode, uint32_t align_log2,
@@ -125,6 +186,14 @@ void WasmFunctionBuilder::Call(uint32_t function_index) {
   body_.U32Leb(function_index);
 }
 
+void WasmFunctionBuilder::CallSymbol(const std::string& symbol_name) {
+  Opcode(WasmOpcode::kCall);
+  relocations_.push_back(
+      {WasmRelocationKind::kFunctionIndexLeb, symbol_name,
+       static_cast<uint32_t>(body_.size()), 0});
+  body_.I32LebFixed5(0);
+}
+
 void WasmFunctionBuilder::CallIndirect(uint32_t type_index) {
   Opcode(WasmOpcode::kCallIndirect);
   body_.U32Leb(type_index);
@@ -149,6 +218,30 @@ std::vector<uint8_t> WasmFunctionBuilder::FinishBody() const {
   sized_body.U32Leb(static_cast<uint32_t>(body.data().size()));
   sized_body.Bytes(body.data());
   return sized_body.Release();
+}
+
+std::vector<WasmRelocation> WasmFunctionBuilder::FinishBodyRelocations() const {
+  WasmByteWriter locals;
+  locals.U32Leb(static_cast<uint32_t>(locals_.size()));
+  for (WasmValueType local : locals_) {
+    locals.U32Leb(1);
+    EmitValueType(&locals, local);
+  }
+
+  const size_t body_payload_size = locals.data().size() + body_.data().size() + 1;
+  WasmByteWriter body_size;
+  body_size.U32Leb(static_cast<uint32_t>(body_payload_size));
+
+  std::vector<WasmRelocation> relocations;
+  relocations.reserve(relocations_.size());
+  const uint32_t prefix_size =
+      static_cast<uint32_t>(body_size.data().size() + locals.data().size());
+  for (const WasmRelocation& relocation : relocations_) {
+    relocations.push_back({relocation.kind, relocation.symbol_name,
+                           prefix_size + relocation.offset,
+                           relocation.addend});
+  }
+  return relocations;
 }
 
 WasmFunctionBuilder& WasmModuleBuilder::AddFunction(const std::string& name,

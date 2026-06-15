@@ -9,6 +9,9 @@
 #include "node_snapshot_builder.h"
 #include "util-inl.h"
 #include "v8.h"
+#ifdef __wasi__
+#include "src/codegen/wasm32/wasm32-builtin-module-writer.h"
+#endif
 
 int BuildSnapshot(int argc, char* argv[]);
 
@@ -70,12 +73,44 @@ int BuildSnapshot(int argc, char* argv[]) {
   CHECK_EQ(result->exit_code(), 0);
 
   std::string out_path;
+#ifdef __wasi__
+  std::string wasm32_builtins_path;
+  std::string wasm32_builtins_manifest_path;
+  std::string wasm32_builtins_registry_source_path;
+#endif
   std::optional<std::string_view> builder_script_path = std::nullopt;
   if (node::per_process::cli_options->per_isolate->build_snapshot) {
     builder_script_path = result->args()[1];
     out_path = result->args()[2];
+#ifdef __wasi__
+    if (result->args().size() == 6) {
+      wasm32_builtins_path = result->args()[3];
+      wasm32_builtins_manifest_path = result->args()[4];
+      wasm32_builtins_registry_source_path = result->args()[5];
+    } else if (result->args().size() > 3) {
+      std::cerr << "Usage: " << argv[0] << " --build-snapshot "
+                << "<path/to/script.js> <path/to/output.cc> "
+                << "<path/to/wasm32-builtins.o> "
+                << "<path/to/wasm32-builtins.manifest> "
+                << "<path/to/wasm32-builtins-registry.cc>\n";
+      return 1;
+    }
+#endif
   } else {
     out_path = result->args()[1];
+#ifdef __wasi__
+    if (result->args().size() == 5) {
+      wasm32_builtins_path = result->args()[2];
+      wasm32_builtins_manifest_path = result->args()[3];
+      wasm32_builtins_registry_source_path = result->args()[4];
+    } else if (result->args().size() > 2) {
+      std::cerr << "Usage: " << argv[0] << " <path/to/output.cc> "
+                << "<path/to/wasm32-builtins.o> "
+                << "<path/to/wasm32-builtins.manifest> "
+                << "<path/to/wasm32-builtins-registry.cc>\n";
+      return 1;
+    }
+#endif
   }
 
 #ifdef NODE_MKSNAPSHOT_USE_ARRAY_LITERALS
@@ -99,6 +134,22 @@ int BuildSnapshot(int argc, char* argv[]) {
                                               result->exec_args(),
                                               snapshot_config,
                                               use_array_literals);
+
+#ifdef __wasi__
+  if (exit_code == node::ExitCode::kNoFailure &&
+      !wasm32_builtins_path.empty()) {
+    bool wrote_builtins =
+        v8::internal::wasm32::WriteGeneratedBuiltinModule(
+            wasm32_builtins_path.c_str(),
+            wasm32_builtins_manifest_path.c_str(),
+            wasm32_builtins_registry_source_path.c_str());
+    if (!wrote_builtins) {
+      std::cerr << "Failed to write wasm32 generated builtins to "
+                << wasm32_builtins_path << "\n";
+      exit_code = node::ExitCode::kGenericUserError;
+    }
+  }
+#endif
 
   node::TearDownOncePerProcess();
   return static_cast<int>(exit_code);

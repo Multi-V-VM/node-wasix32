@@ -1470,6 +1470,7 @@ def configure_node(o):
     target_arch = 'x64'
   o['variables']['host_arch'] = host_arch
   o['variables']['target_arch'] = target_arch
+  o['variables']['node_wasm32_generated_builtins'] = b(target_arch == 'wasm32')
   o['variables']['node_byteorder'] = sys.byteorder
 
   # Allow overriding the compiler - needed by embedders.

@@ -39,6 +39,8 @@ struct BranchInfo {
   FlagsCondition condition;
   Label* true_label;
   Label* false_label;
+  RpoNumber true_rpo;
+  RpoNumber false_rpo;
   // Whether there a hint that this branch is unlikely to change direction,
   // such as a WebAssembly hinted branch or a trap.
   bool hinted;
@@ -218,6 +220,11 @@ class V8_EXPORT_PRIVATE CodeGenerator final : public GapResolver::Assembler {
   void AssembleArchJumpRegardlessOfAssemblyOrder(RpoNumber target);
   void AssembleArchBranch(Instruction* instr, BranchInfo* branch);
   void AssembleArchConditionalBranch(Instruction* instr, BranchInfo* branch);
+#if V8_TARGET_ARCH_WASM32
+  void AssembleArchWasm32BeginBlock(const InstructionBlock* block);
+  void AssembleArchWasm32EndBlock(const InstructionBlock* block);
+  void AssembleArchWasm32FinishBlocks();
+#endif
 
   // Generates special branch for deoptimization condition.
   void AssembleArchDeoptBranch(Instruction* instr, BranchInfo* branch);

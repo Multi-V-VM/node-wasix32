@@ -7,10 +7,16 @@
 
 #if V8_TARGET_ARCH_WASM32
 
+#include "src/base/logging.h"
 #include "src/builtins/builtins.h"
 #include "src/builtins/wasm32/builtins-wasm32-abi.h"
 #include "src/codegen/macro-assembler.h"
+#include "src/codegen/wasm32/register-wasm32.h"
 #include "src/execution/frame-constants.h"
+#include "src/execution/isolate-inl.h"
+#include "src/objects/code-inl.h"
+#include "src/objects/js-function-inl.h"
+#include "src/objects/objects-inl.h"
 #include "src/objects/smi.h"
 
 namespace v8 {
@@ -288,27 +294,89 @@ void Builtins::Generate_RestartFrameTrampoline(MacroAssembler* masm) {
 // code in this milestone, only its funcref/instruction_start wiring is checked.
 extern "C" void WasmProbeBuiltin() { /* no-op */ }
 
+namespace {
+
+constexpr int SlotFor(Register reg) {
+  return WasmRegisterCodeToSlot(reg.code());
+}
+
+void ClearEntrypointStackWindow() {
+  for (int i = kWasmStackSlotBase; i < kWasmRegFileSize; ++i) {
+    g_wasm_regs[i] = 0;
+  }
+}
+
+}  // namespace
+
 // Hand-written JSEntry. Signature mirrors execution.cc's JSEntryFunction.
-// Milestone scope: prove dispatch succeeds. Calling into the target's code is
-// the next plan; here we return Smi::zero() so the trap, if any, moves to the
-// caller's handling of the result rather than the JSEntry call_indirect.
+// This is the narrow C++ -> generated-wasm bridge: seed the emulated wasm32
+// register/stack slots, then call the JSFunction's current code entry.
 extern "C" Address WasmJSEntry(Address root, Address new_target, Address target,
                                Address receiver, intptr_t argc,
                                Address** argv) {
-  USE(new_target);
-  USE(target);
-  USE(receiver);
-  USE(argc);
-  USE(argv);
+  Isolate* isolate = Isolate::FromRootAddress(root);
   g_wasm_regs[kWasmRegRoot] = root;
-  return Smi::zero().ptr();
+  PrintF("WasmJSEntry: enter root=0x%x new_target=0x%x target=0x%x "
+         "receiver=0x%x argc=%d\n",
+         static_cast<unsigned>(root), static_cast<unsigned>(new_target),
+         static_cast<unsigned>(target), static_cast<unsigned>(receiver),
+         static_cast<int>(argc));
+
+  Tagged<Object> target_object(target);
+  if (!IsJSFunction(target_object)) {
+    PrintF("WasmJSEntry: target is not JSFunction\n");
+    return Smi::zero().ptr();
+  }
+
+  Tagged<JSFunction> function = Cast<JSFunction>(target_object);
+  Tagged<Code> code = function->code(isolate);
+  Address entry = code->instruction_start();
+  PrintF("WasmJSEntry: code builtin=%d is_builtin=%d entry=0x%x\n",
+         static_cast<int>(code->builtin_id()), code->is_builtin(),
+         static_cast<unsigned>(entry));
+  if (entry == kNullAddress) {
+    PrintF("WasmJSEntry: null code entry\n");
+    return Smi::zero().ptr();
+  }
+
+  g_wasm_regs[SlotFor(kRootRegister)] = root;
+  g_wasm_regs[SlotFor(kContextRegister)] = function->context().ptr();
+  g_wasm_regs[SlotFor(kJavaScriptCallTargetRegister)] = target;
+  g_wasm_regs[SlotFor(kJavaScriptCallNewTargetRegister)] = new_target;
+  g_wasm_regs[SlotFor(kJavaScriptCallArgCountRegister)] =
+      static_cast<Address>(argc);
+  g_wasm_regs[SlotFor(kJavaScriptCallCodeStartRegister)] = entry;
+  g_wasm_regs[SlotFor(kJavaScriptCallDispatchHandleRegister)] = 0;
+
+  int actual_argc = static_cast<int>(argc) - kJSArgcReceiverSlots;
+  if (actual_argc < 0) actual_argc = 0;
+  if (kWasmStackSlotBase + actual_argc >= kWasmRegFileSize) {
+    return Smi::zero().ptr();
+  }
+
+  ClearEntrypointStackWindow();
+  g_wasm_regs[kWasmStackSlotBase] = receiver;
+  for (int i = 0; i < actual_argc; ++i) {
+    g_wasm_regs[kWasmStackSlotBase + 1 + i] = *argv[i];
+  }
+
+  using WasmRegFileFn = void (*)();
+  reinterpret_cast<WasmRegFileFn>(entry)();
+  PrintF("WasmJSEntry: return=0x%x\n",
+         static_cast<unsigned>(g_wasm_regs[SlotFor(kReturnRegister0)]));
+  return g_wasm_regs[SlotFor(kReturnRegister0)];
 }
+
+void RegisterGeneratedWasmBuiltins() __attribute__((weak));
 
 // Registers all hand-written wasm builtins. Called once during builtin setup.
 void RegisterAllWasmBuiltins() {
   RegisterWasmBuiltin(Builtin::kIllegal,
                       reinterpret_cast<void*>(&WasmProbeBuiltin));
   RegisterWasmBuiltin(Builtin::kJSEntry, reinterpret_cast<void*>(&WasmJSEntry));
+  if (RegisterGeneratedWasmBuiltins != nullptr) {
+    RegisterGeneratedWasmBuiltins();
+  }
 }
 
 }  // namespace internal

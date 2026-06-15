@@ -307,7 +307,11 @@ void CodeGenerator::AssembleCode() {
 
     frame_access_state()->MarkHasFrame(block->needs_frame());
 
+#if V8_TARGET_ARCH_WASM32
+    AssembleArchWasm32BeginBlock(block);
+#else
     masm()->bind(GetLabel(current_block_));
+#endif
 
 #ifdef V8_ENABLE_CONTROL_FLOW_INTEGRITY
     if (block->IsTableSwitchTarget()) {
@@ -340,8 +344,14 @@ void CodeGenerator::AssembleCode() {
       result_ = AssembleBlock(block);
     }
     if (result_ != kSuccess) return;
+#if V8_TARGET_ARCH_WASM32
+    AssembleArchWasm32EndBlock(block);
+#endif
     unwinding_info_writer_.EndInstructionBlock(block);
   }
+#if V8_TARGET_ARCH_WASM32
+  AssembleArchWasm32FinishBlocks();
+#endif
 
   // Assemble all out-of-line code.
   offsets_info_.out_of_line_code = masm()->pc_offset();
@@ -751,6 +761,8 @@ RpoNumber CodeGenerator::ComputeBranchInfo(BranchInfo* branch,
   branch->condition = condition;
   branch->true_label = GetLabel(true_rpo);
   branch->false_label = GetLabel(false_rpo);
+  branch->true_rpo = true_rpo;
+  branch->false_rpo = false_rpo;
   branch->hinted = static_cast<bool>(BranchHintField::decode(instr->opcode()));
   branch->fallthru = IsNextInAssemblyOrder(false_rpo);
   return RpoNumber::Invalid();

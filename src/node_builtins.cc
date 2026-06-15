@@ -1,6 +1,8 @@
 #ifdef __wasi__
 #include "../wasi-node-compat.h"
 #endif
+#include <stdio.h>
+
 #include "node_builtins.h"
 #include "debug_utils-inl.h"
 #include "env-inl.h"
@@ -522,6 +524,8 @@ MaybeLocal<Value> BuiltinLoader::CompileAndCall(Local<Context> context,
   if (!maybe_fn.ToLocal(&fn)) {
     return MaybeLocal<Value>();
   }
+  fprintf(stderr, "BuiltinLoader::CompileAndCall id=%s argc=%d fn=%p\n", id,
+          argc, *fn);
   Local<Value> undefined = Undefined(context->GetIsolate());
   return fn->Call(context, undefined, argc, argv);
 }

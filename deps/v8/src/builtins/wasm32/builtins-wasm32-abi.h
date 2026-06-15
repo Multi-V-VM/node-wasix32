@@ -19,7 +19,7 @@ namespace internal {
 // typed C++ signatures and do NOT read g_regs in this milestone.
 // Sized generously; tighten later against interface-descriptors-wasm32.
 constexpr int kWasmRegFileSize = 512;
-extern Address g_wasm_regs[kWasmRegFileSize];
+extern "C" Address g_wasm_regs[kWasmRegFileSize];
 
 // Well-known slot indices (must agree with interface-descriptors-wasm32-inl.h
 // when generated builtins arrive).
@@ -29,6 +29,9 @@ enum WasmRegSlot : int {
   kWasmRegReturn = 2,    // return value slot
   kWasmRegArg0 = 8,      // first argument slot; args are kWasmRegArg0 + i
 };
+
+constexpr int kWasmFixedFrameSlotBase = kWasmRegArg0 + 64;
+constexpr int kWasmStackSlotBase = kWasmRegArg0 + 128;
 
 // Builtin -> wasm function pointer registry. A registered function pointer's
 // integer value is its __indirect_function_table index; instruction_start for

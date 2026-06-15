@@ -54,8 +54,6 @@ DEFS_Debug := \
 CFLAGS_Debug := \
 	-pthread \
 	-Wno-unused-parameter \
-	-pthread \
-	-Wno-unused-parameter \
 	-Wno-strict-overflow \
 	-Wno-return-type \
 	-Wno-int-in-bool-context \
@@ -68,8 +66,6 @@ CFLAGS_Debug := \
 	-Wno-dangling-pointer \
 	-flax-vector-conversions \
 	-m64 \
-	-m64 \
-	-g \
 	-g \
 	-fdata-sections \
 	-ffunction-sections \
@@ -80,10 +76,6 @@ CFLAGS_C_Debug :=
 
 # Flags passed to only C++ files.
 CFLAGS_CC_Debug := \
-	-fno-rtti \
-	-fno-exceptions \
-	-fno-strict-aliasing \
-	-std=gnu++20 \
 	-fno-rtti \
 	-fno-exceptions \
 	-fno-strict-aliasing \
@@ -155,8 +147,6 @@ DEFS_Release := \
 CFLAGS_Release := \
 	-pthread \
 	-Wno-unused-parameter \
-	-pthread \
-	-Wno-unused-parameter \
 	-Wno-strict-overflow \
 	-Wno-return-type \
 	-Wno-int-in-bool-context \
@@ -169,10 +159,7 @@ CFLAGS_Release := \
 	-Wno-dangling-pointer \
 	-flax-vector-conversions \
 	-m64 \
-	-m64 \
 	-O3 \
-	-O3 \
-	-fno-omit-frame-pointer \
 	-fno-omit-frame-pointer \
 	-fdata-sections \
 	-ffunction-sections \
@@ -183,10 +170,6 @@ CFLAGS_C_Release :=
 
 # Flags passed to only C++ files.
 CFLAGS_CC_Release := \
-	-fno-rtti \
-	-fno-exceptions \
-	-fno-strict-aliasing \
-	-std=gnu++20 \
 	-fno-rtti \
 	-fno-exceptions \
 	-fno-strict-aliasing \
@@ -1116,17 +1099,11 @@ $(obj).$(TOOLSET)/$(TARGET)/%.o: $(obj)/%.cc FORCE_DO_CMD
 LDFLAGS_Debug := \
 	-pthread \
 	-rdynamic \
-	-pthread \
-	-rdynamic \
-	-m64 \
 	-m64
 
 LDFLAGS_Release := \
 	-pthread \
 	-rdynamic \
-	-pthread \
-	-rdynamic \
-	-m64 \
 	-m64
 
 LIBS :=

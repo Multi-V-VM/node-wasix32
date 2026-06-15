@@ -7,7 +7,9 @@
 #include <cstdint>
 #include <memory>
 #include <string>
+#include <utility>
 
+#include "src/builtins/builtins.h"
 #include "src/builtins/wasm32/builtins-wasm32-abi.h"
 #include "src/codegen/wasm32/register-wasm32.h"
 #include "src/codegen/wasm32/wasm32-builtin-module.h"
@@ -18,6 +20,7 @@
 #include "src/compiler/backend/gap-resolver.h"
 #include "src/compiler/backend/instruction-codes.h"
 #include "src/compiler/backend/instruction.h"
+#include "src/objects/code-inl.h"
 #include "src/objects/smi.h"
 
 namespace v8 {
@@ -26,18 +29,25 @@ namespace compiler {
 
 namespace {
 
-constexpr int kWasmFixedFrameSlotBase = kWasmRegArg0 + 64;
-constexpr int kWasmStackSlotBase = kWasmRegArg0 + 128;
 constexpr int kWasmGapTempSlot = kWasmStackSlotBase - 1;
 
 thread_local std::unique_ptr<wasm32::WasmFunctionBuilder> current_body;
 thread_local uint32_t current_scratch_local = 0;
+thread_local uint32_t current_dispatch_target_local = 0;
+thread_local uint32_t current_condition_local = 0;
+thread_local bool current_dispatch_started = false;
+
+constexpr const char* kWasmRegsSymbol = "g_wasm_regs";
 
 void EnsureBody() {
   if (current_body != nullptr) return;
   current_body = std::make_unique<wasm32::WasmFunctionBuilder>(
       "wasm32_generated_builtin", wasm32::WasmValueType::kVoid);
   current_scratch_local = current_body->AddLocal(wasm32::WasmValueType::kI32);
+  current_dispatch_target_local =
+      current_body->AddLocal(wasm32::WasmValueType::kI32);
+  current_condition_local =
+      current_body->AddLocal(wasm32::WasmValueType::kI32);
 }
 
 wasm32::WasmFunctionBuilder& Body() {
@@ -50,19 +60,44 @@ uint32_t ScratchLocal() {
   return current_scratch_local;
 }
 
+uint32_t DispatchTargetLocal() {
+  EnsureBody();
+  return current_dispatch_target_local;
+}
+
+uint32_t ConditionLocal() {
+  EnsureBody();
+  return current_condition_local;
+}
+
 bool HasBody() { return current_body != nullptr; }
+
+bool HasImmediateInput(Instruction* instr, size_t index) {
+  return instr->InputAt(index)->IsImmediate();
+}
 
 std::vector<uint8_t> FinishCurrentWasmBody() {
   CHECK_NOT_NULL(current_body);
   std::vector<uint8_t> body = current_body->FinishBody();
   current_body.reset();
   current_scratch_local = 0;
+  current_dispatch_target_local = 0;
+  current_condition_local = 0;
+  current_dispatch_started = false;
   return body;
+}
+
+std::vector<wasm32::WasmRelocation> FinishCurrentWasmRelocations() {
+  CHECK_NOT_NULL(current_body);
+  return current_body->FinishBodyRelocations();
 }
 
 void ResetCurrentWasmBody() {
   current_body.reset();
   current_scratch_local = 0;
+  current_dispatch_target_local = 0;
+  current_condition_local = 0;
+  current_dispatch_started = false;
 }
 
 int StackIndexToSlot(int index) {
@@ -102,8 +137,8 @@ void EmitSlotAddress(int slot) {
   if (slot < 0 || slot >= kWasmRegFileSize) {
     FATAL("wasm32 register slot %d is outside g_wasm_regs", slot);
   }
-  EmitI32Const(static_cast<int32_t>(
-      reinterpret_cast<uintptr_t>(&g_wasm_regs[slot])));
+  Body().I32ConstMemoryAddress(
+      kWasmRegsSymbol, static_cast<int32_t>(slot * sizeof(Address)));
 }
 
 void LoadSlot(int slot) {
@@ -140,6 +175,27 @@ int FrameOffsetToSlot(int32_t offset) {
   return StackIndexToSlot(offset >> kSystemPointerSizeLog2);
 }
 
+bool IsGeneratedWasmBuiltinTarget(Builtin builtin) {
+  switch (Builtins::KindOf(builtin)) {
+    case Builtins::TSJ:
+    case Builtins::TFJ:
+    case Builtins::TSC:
+    case Builtins::TFC:
+    case Builtins::TFS:
+    case Builtins::TFH:
+    case Builtins::BCH:
+      return true;
+    case Builtins::CPP:
+    case Builtins::ASM:
+      return false;
+  }
+  UNREACHABLE();
+}
+
+void EmitGeneratedBuiltinCall(Builtin builtin) {
+  Body().CallSymbol(Builtins::name(builtin));
+}
+
 class Wasm32OperandConverter final : public InstructionOperandConverter {
  public:
   Wasm32OperandConverter(CodeGenerator* gen, Instruction* instr)
@@ -158,6 +214,10 @@ class Wasm32OperandConverter final : public InstructionOperandConverter {
     return BridgeConstantToI32(target);
   }
 
+  RpoNumber InputRpo(size_t index) {
+    return ToConstant(instr_->InputAt(index)).ToRpoNumber();
+  }
+
   void LoadInput(size_t index) {
     InstructionOperand* operand = InputAt(index);
     if (operand->IsImmediate() || operand->IsConstant()) {
@@ -168,6 +228,29 @@ class Wasm32OperandConverter final : public InstructionOperandConverter {
     LoadSlot(SlotForAllocatedOperand(operand));
   }
 };
+
+bool TryEmitCodeObjectBuiltinCall(Wasm32OperandConverter* i,
+                                  Instruction* instr) {
+  if (!HasImmediateInput(instr, 0)) return false;
+  Handle<Code> code = i->InputCode(0);
+  if (!code->is_builtin()) return false;
+  Builtin builtin = code->builtin_id();
+  if (!IsGeneratedWasmBuiltinTarget(builtin)) return false;
+  EmitGeneratedBuiltinCall(builtin);
+  return true;
+}
+
+bool TryEmitWasmStubBuiltinCall(Wasm32OperandConverter* i, Instruction* instr) {
+  if (!HasImmediateInput(instr, 0)) return false;
+  Constant target = i->ToConstant(instr->InputAt(0));
+  if (target.rmode() != RelocInfo::WASM_STUB_CALL) return false;
+  int builtin_id = static_cast<int>(target.ToInt64());
+  if (!Builtins::IsBuiltinId(builtin_id)) return false;
+  Builtin builtin = Builtins::FromInt(builtin_id);
+  if (!IsGeneratedWasmBuiltinTarget(builtin)) return false;
+  EmitGeneratedBuiltinCall(builtin);
+  return true;
+}
 
 uint32_t AddressScale(AddressingMode mode) {
   switch (mode) {
@@ -241,12 +324,10 @@ void EmitCompare(Wasm32OperandConverter* i, Instruction* instr,
       return;
     case kFlags_branch:
     case kFlags_conditional_branch:
-      // TODO(wasm32): Replace this mksnapshot-generation bridge with the
-      // dispatch-loop CFG lowering described in the wasm32 backend design.
       i->LoadInput(0);
       i->LoadInput(1);
       Body().Opcode(opcode);
-      Body().Opcode(wasm32::WasmOpcode::kDrop);
+      Body().LocalSet(ConditionLocal());
       return;
     default:
       FATAL("wasm32 compare flags continuation mode %d is not implemented yet",
@@ -299,6 +380,49 @@ void EmitI32Store(Wasm32OperandConverter* i, Instruction* instr,
   EmitAddress(i, instr, 1);
   i->LoadInput(0);
   Body().Store(opcode, align_log2, 0);
+}
+
+void EmitDispatchTo(RpoNumber target, uint32_t branch_depth_to_loop) {
+  DCHECK(target.IsValid());
+  EmitI32Const(target.ToInt());
+  Body().LocalSet(DispatchTargetLocal());
+  Body().Br(branch_depth_to_loop);
+}
+
+void EmitConditionalDispatch(Wasm32OperandConverter* i, size_t input_index,
+                             int32_t value, RpoNumber target) {
+  i->LoadInput(input_index);
+  EmitI32Const(value);
+  Body().Opcode(wasm32::WasmOpcode::kI32Eq);
+  Body().If(wasm32::WasmValueType::kVoid);
+  EmitDispatchTo(target, 2);
+  Body().End();
+}
+
+bool DispatchTerminatedBy(Instruction* instr) {
+  FlagsMode mode = FlagsModeField::decode(instr->opcode());
+  if (mode == kFlags_branch || mode == kFlags_conditional_branch ||
+      mode == kFlags_deoptimize || mode == kFlags_trap) {
+    return true;
+  }
+  switch (instr->arch_opcode()) {
+    case kArchJmp:
+    case kArchRet:
+    case kWasm32Return:
+    case kArchBinarySearchSwitch:
+    case kArchTableSwitch:
+    case kArchThrowTerminator:
+    case kArchDeoptimize:
+    case kArchTailCallCodeObject:
+    case kArchTailCallAddress:
+#if V8_ENABLE_WEBASSEMBLY
+    case kArchTailCallWasm:
+    case kArchTailCallWasmIndirect:
+#endif
+      return true;
+    default:
+      return false;
+  }
 }
 
 }  // namespace
@@ -440,9 +564,15 @@ CodeGenerator::CodeGenResult CodeGenerator::AssembleArchInstruction(
     case kS128Zero:
       FATAL("wasm32 s128.zero emission is not implemented yet");
     case kArchCallCodeObject:
+      if (TryEmitCodeObjectBuiltinCall(&i, instr)) return kSuccess;
+      EmitZeroOutputs(instr);
+      return kSuccess;
     case kArchCallJSFunction:
 #if V8_ENABLE_WEBASSEMBLY
     case kArchCallWasmFunction:
+      if (TryEmitWasmStubBuiltinCall(&i, instr)) return kSuccess;
+      EmitZeroOutputs(instr);
+      return kSuccess;
     case kArchCallWasmFunctionIndirect:
 #endif  // V8_ENABLE_WEBASSEMBLY
     case kArchCallBuiltinPointer:
@@ -472,11 +602,13 @@ CodeGenerator::CodeGenResult CodeGenerator::AssembleArchInstruction(
       StoreSlot(i.OutputSlot());
       return kSuccess;
     case kArchJmp:
-      // TODO(wasm32): Lower through the dispatch-loop CFG spine.
+      EmitDispatchTo(i.InputRpo(0), 1);
       return kSuccess;
     case kArchBinarySearchSwitch:
+      AssembleArchBinarySearchSwitch(instr);
+      return kSuccess;
     case kArchTableSwitch:
-      // TODO(wasm32): Lower through the dispatch-loop CFG spine.
+      AssembleArchTableSwitch(instr);
       return kSuccess;
     case kArchPrepareTailCall:
       return kSuccess;
@@ -519,17 +651,28 @@ CodeGenerator::CodeGenResult CodeGenerator::AssembleArchInstruction(
 
 void CodeGenerator::AssembleArchJumpRegardlessOfAssemblyOrder(
     RpoNumber target) {
-  USE(target);
-  // TODO(wasm32): Lower through the dispatch-loop CFG spine.
+  EmitDispatchTo(target, 1);
 }
 
 void CodeGenerator::AssembleArchBranch(Instruction* instr,
                                        BranchInfo* branch) {
-  USE(instr);
-  USE(branch);
-  // TODO(wasm32): Lower this through the dispatch-loop CFG spine. Branch
-  // continuations are currently consumed by EmitCompare so mksnapshot can
-  // finish builtin generation without executing generated builtin wasm.
+  FlagsCondition original_condition = FlagsConditionField::decode(instr->opcode());
+  if (FlagsModeField::decode(instr->opcode()) == kFlags_conditional_branch) {
+    Wasm32OperandConverter i(this, instr);
+    original_condition = static_cast<FlagsCondition>(
+        i.ToConstant(instr->InputAt(instr->InputCount() -
+                                    kConditionalBranchEndOffsetOfCondition))
+            .ToInt64());
+  }
+  Body().LocalGet(ConditionLocal());
+  if (branch->condition != original_condition) {
+    Body().Opcode(wasm32::WasmOpcode::kI32Eqz);
+  }
+  Body().If(wasm32::WasmValueType::kVoid);
+  EmitDispatchTo(branch->true_rpo, 2);
+  Body().Else();
+  EmitDispatchTo(branch->false_rpo, 2);
+  Body().End();
 }
 
 void CodeGenerator::AssembleArchConditionalBranch(Instruction* instr,
@@ -573,13 +716,62 @@ void CodeGenerator::AssembleArchTrap(Instruction* instr,
 #endif  // V8_ENABLE_WEBASSEMBLY
 
 void CodeGenerator::AssembleArchBinarySearchSwitch(Instruction* instr) {
-  USE(instr);
-  // TODO(wasm32): Lower through the dispatch-loop CFG spine.
+  Wasm32OperandConverter i(this, instr);
+  for (size_t index = 2; index < instr->InputCount(); index += 2) {
+    EmitConditionalDispatch(&i, 0, i.InputInt32(index), i.InputRpo(index + 1));
+  }
+  EmitDispatchTo(i.InputRpo(1), 1);
 }
 
 void CodeGenerator::AssembleArchTableSwitch(Instruction* instr) {
-  USE(instr);
-  // TODO(wasm32): Lower through the dispatch-loop CFG spine.
+  Wasm32OperandConverter i(this, instr);
+  size_t const case_count = instr->InputCount() - 2;
+  for (size_t index = 0; index < case_count; ++index) {
+    EmitConditionalDispatch(&i, 0, static_cast<int32_t>(index),
+                            i.InputRpo(index + 2));
+  }
+  EmitDispatchTo(i.InputRpo(1), 1);
+}
+
+void CodeGenerator::AssembleArchWasm32BeginBlock(
+    const InstructionBlock* block) {
+  EnsureBody();
+  if (!current_dispatch_started) {
+    EmitI32Const(block->rpo_number().ToInt());
+    Body().LocalSet(DispatchTargetLocal());
+    Body().Loop(wasm32::WasmValueType::kVoid);
+    current_dispatch_started = true;
+  }
+
+  Body().LocalGet(DispatchTargetLocal());
+  EmitI32Const(block->rpo_number().ToInt());
+  Body().Opcode(wasm32::WasmOpcode::kI32Eq);
+  Body().If(wasm32::WasmValueType::kVoid);
+}
+
+void CodeGenerator::AssembleArchWasm32EndBlock(const InstructionBlock* block) {
+  bool terminated = false;
+  if (block->code_start() < block->code_end()) {
+    Instruction* last =
+        instructions()->InstructionAt(block->last_instruction_index());
+    terminated = DispatchTerminatedBy(last);
+  }
+
+  if (!terminated) {
+    if (block->successors().size() == 1) {
+      EmitDispatchTo(block->successors()[0], 1);
+    } else if (block->successors().empty()) {
+      Body().Return();
+    }
+  }
+  Body().End();
+}
+
+void CodeGenerator::AssembleArchWasm32FinishBlocks() {
+  if (!current_dispatch_started) return;
+  Body().Opcode(wasm32::WasmOpcode::kUnreachable);
+  Body().End();
+  current_dispatch_started = false;
 }
 
 void CodeGenerator::AssembleJumpTable(ZoneVector<Label*> targets) {
@@ -627,8 +819,11 @@ void CodeGenerator::FinishCode() {
   if (!HasBody()) return;
   if (Builtins::IsBuiltinId(info()->builtin())) {
     Builtin builtin = info()->builtin();
+    std::vector<wasm32::WasmRelocation> relocations =
+        FinishCurrentWasmRelocations();
     wasm32::GeneratedBuiltinModule::Get().AddBuiltin(
-        builtin, Builtins::name(builtin), FinishCurrentWasmBody());
+        builtin, Builtins::name(builtin), FinishCurrentWasmBody(),
+        std::move(relocations));
     return;
   }
   ResetCurrentWasmBody();

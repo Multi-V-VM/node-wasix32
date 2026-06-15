@@ -3,6 +3,7 @@
 
 #include <cstdint>
 #include <deque>
+#include <initializer_list>
 #include <string>
 #include <vector>
 
@@ -87,13 +88,27 @@ class WasmByteWriter {
   void U8(uint8_t value);
   void U32Leb(uint32_t value);
   void I32Leb(int32_t value);
+  void I32LebFixed5(int32_t value);
   void Bytes(const std::vector<uint8_t>& bytes);
   void String(const std::string& value);
+  size_t size() const { return data_.size(); }
   const std::vector<uint8_t>& data() const { return data_; }
   std::vector<uint8_t> Release() { return std::move(data_); }
 
  private:
   std::vector<uint8_t> data_;
+};
+
+enum class WasmRelocationKind {
+  kFunctionIndexLeb,
+  kMemoryAddressSleb,
+};
+
+struct WasmRelocation {
+  WasmRelocationKind kind;
+  std::string symbol_name;
+  uint32_t offset;
+  int32_t addend;
 };
 
 class WasmFunctionBuilder {
@@ -102,8 +117,19 @@ class WasmFunctionBuilder {
   uint32_t AddLocal(WasmValueType type);
   void Opcode(WasmOpcode opcode);
   void I32Const(int32_t value);
+  void Block(WasmValueType type);
+  void Loop(WasmValueType type);
+  void If(WasmValueType type);
+  void Else();
+  void End();
+  void Br(uint32_t depth);
+  void BrIf(uint32_t depth);
+  void BrTable(const std::vector<uint32_t>& targets, uint32_t default_target);
+  void BrTable(std::initializer_list<uint32_t> targets,
+               uint32_t default_target);
   void LocalGet(uint32_t index);
   void LocalSet(uint32_t index);
+  void I32ConstMemoryAddress(const std::string& symbol_name, int32_t addend);
   // Raw body emitters. Standalone modules using memory/table operations need
   // WasmModuleBuilder support for the matching sections before they validate.
   void Load(WasmOpcode opcode, uint32_t align_log2, uint32_t offset);
@@ -111,9 +137,11 @@ class WasmFunctionBuilder {
   void Load32(uint32_t align_log2, uint32_t offset);
   void Store32(uint32_t align_log2, uint32_t offset);
   void Call(uint32_t function_index);
+  void CallSymbol(const std::string& symbol_name);
   void CallIndirect(uint32_t type_index);
   void Return();
   std::vector<uint8_t> FinishBody() const;
+  std::vector<WasmRelocation> FinishBodyRelocations() const;
   const std::string& name() const { return name_; }
   WasmValueType result() const { return result_; }
 
@@ -121,6 +149,7 @@ class WasmFunctionBuilder {
   std::string name_;
   WasmValueType result_;
   std::vector<WasmValueType> locals_;
+  std::vector<WasmRelocation> relocations_;
   WasmByteWriter body_;
 };
 
