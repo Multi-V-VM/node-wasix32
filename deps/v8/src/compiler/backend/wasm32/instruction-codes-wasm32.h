@@ -23,12 +23,20 @@ namespace compiler {
   V(Wasm32LoadMem16S)              \
   V(Wasm32LoadMem16U)              \
   V(Wasm32LoadMem32)               \
+  V(LoadI32)                       \
+  V(LoadF64)                       \
   V(Wasm32StoreMem8)               \
   V(Wasm32StoreMem16)              \
   V(Wasm32StoreMem32)              \
+  V(StoreI32)                      \
+  V(StoreF64)                      \
   V(Wasm32Add)                     \
   V(Wasm32Sub)                     \
   V(Wasm32Mul)                     \
+  V(Int32DivS)                     \
+  V(Int32DivU)                     \
+  V(Int32ModS)                     \
+  V(Int32ModU)                     \
   V(Wasm32And)                     \
   V(Wasm32Or)                      \
   V(Wasm32Xor)                     \
@@ -45,6 +53,7 @@ namespace compiler {
   V(Wasm32GtU)                     \
   V(Wasm32GeS)                     \
   V(Wasm32GeU)                     \
+  V(S128Zero)                      \
   V(Wasm32CallBuiltin)             \
   V(Wasm32CallRuntime)             \
   V(Wasm32Return)

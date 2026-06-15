@@ -9,6 +9,7 @@
 #define V8_WASM32_REGISTER_DEFINED
 #define V8_WASM32_DOUBLEREGISTER_DEFINED
 
+#include "src/builtins/wasm32/builtins-wasm32-abi.h"
 #include "src/codegen/register-base.h"
 #include "src/common/globals.h"
 
@@ -115,11 +116,11 @@ class Register : public RegisterBase<Register, kRegAfterLast> {
 };
 
 inline constexpr int WasmRegisterCodeToSlot(int code) {
-  return code;
+  return kWasmRegArg0 + code;
 }
 
 inline constexpr int WasmDoubleRegisterCodeToSlot(int code) {
-  return 32 + code;
+  return kWasmRegArg0 + 32 + code;
 }
 
 // Define floating point register codes
