@@ -899,7 +899,11 @@ SnapshotCreatorImpl::SnapshotCreatorImpl(
   isolate_->set_array_buffer_allocator(array_buffer_allocator_.get());
   isolate_->set_api_external_references(api_external_references);
 
+#if defined(__wasi__)
+  InitInternal(existing_blob);
+#else
   InitInternal(existing_blob ? existing_blob : Snapshot::DefaultSnapshotBlob());
+#endif
 }
 
 SnapshotCreatorImpl::SnapshotCreatorImpl(
@@ -917,8 +921,12 @@ SnapshotCreatorImpl::SnapshotCreatorImpl(
   isolate_->set_api_external_references(params.external_references);
   isolate_->heap()->ConfigureHeap(params.constraints, params.cpp_heap);
 
+#if defined(__wasi__)
+  InitInternal(params.snapshot_blob);
+#else
   InitInternal(params.snapshot_blob ? params.snapshot_blob
                                     : Snapshot::DefaultSnapshotBlob());
+#endif
 }
 
 SnapshotCreatorImpl::SnapshotCreatorImpl(
@@ -936,8 +944,12 @@ SnapshotCreatorImpl::SnapshotCreatorImpl(
   isolate_->set_api_external_references(params.external_references);
   isolate_->heap()->ConfigureHeap(params.constraints, params.cpp_heap);
 
+#if defined(__wasi__)
+  InitInternal(params.snapshot_blob);
+#else
   InitInternal(params.snapshot_blob ? params.snapshot_blob
                                     : Snapshot::DefaultSnapshotBlob());
+#endif
 }
 
 SnapshotCreatorImpl::~SnapshotCreatorImpl() {

@@ -106,6 +106,8 @@ class WasmFunctionBuilder {
   void LocalSet(uint32_t index);
   // Raw body emitters. Standalone modules using memory/table operations need
   // WasmModuleBuilder support for the matching sections before they validate.
+  void Load(WasmOpcode opcode, uint32_t align_log2, uint32_t offset);
+  void Store(WasmOpcode opcode, uint32_t align_log2, uint32_t offset);
   void Load32(uint32_t align_log2, uint32_t offset);
   void Store32(uint32_t align_log2, uint32_t offset);
   void Call(uint32_t function_index);

@@ -434,7 +434,7 @@
         '<(V8_ROOT)/src/init/setup-isolate-deserialize.cc',
       ],
       'conditions': [
-        ['v8_target_arch=="wasm32"', {
+        ['v8_target_arch=="wasm32" or (v8_target_arch=="ia32" and OS=="wasi")', {
           # For WASM32, use setup-isolate-full.cc which can create heap objects from scratch
           # since we don't have a compatible 32-bit snapshot.
           # Also use empty embedded blob and snapshot since x86-64 builtins won't work on WASM32.
@@ -929,7 +929,7 @@
               '<!@pymod_do_main(GN-scraper "<(V8_ROOT)/BUILD.gn"  "v8_compiler_sources =.*?v8_current_cpu == \\"x86\\".*?v8_compiler_sources \\+= ")',
             ],
           }],
-          ['v8_target_arch=="wasm32"', {
+          ['v8_target_arch=="wasm32" or (v8_target_arch=="ia32" and OS=="wasi")', {
             'sources': [
               '<(V8_ROOT)/src/compiler/backend/wasm32/code-generator-wasm32.cc',
               '<(V8_ROOT)/src/compiler/backend/wasm32/instruction-scheduler-wasm32.cc',
@@ -1225,6 +1225,7 @@
             '<(V8_ROOT)/src/codegen/wasm32/assembler-wasm32.cc',
             '<(V8_ROOT)/src/codegen/wasm32/cpu-wasm32.cc',
             '<(V8_ROOT)/src/codegen/wasm32/macro-assembler-wasm32.cc',
+            '<(V8_ROOT)/src/builtins/wasm32/builtins-wasm32.cc',
             '<(V8_ROOT)/src/builtins/wasm32/builtins-wasm32-registry.cc',
             '<(V8_ROOT)/src/deoptimizer/wasm32/deoptimizer-wasm32.cc',
             '<(V8_ROOT)/src/execution/wasm32/frame-constants-wasm32.cc',

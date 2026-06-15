@@ -9,12 +9,17 @@ DEFS_Debug := \
 	'-DICU_NO_USER_DATA_OVERRIDE' \
 	'-DV8_GYP_BUILD' \
 	'-DV8_TYPED_ARRAY_MAX_SIZE_IN_HEAP=64' \
+	'-D__STDC_FORMAT_MACROS' \
 	'-DOPENSSL_NO_PINSHARED' \
 	'-DOPENSSL_THREADS' \
-	'-DV8_TARGET_ARCH_WASM32' \
+	'-DV8_TARGET_ARCH_X64' \
+	'-DV8_HAVE_TARGET_OS' \
+	'-DV8_TARGET_OS_LINUX' \
 	'-DV8_EMBEDDER_STRING="-node.13"' \
 	'-DENABLE_DISASSEMBLER' \
 	'-DV8_PROMISE_INTERNAL_FIELD_COUNT=1' \
+	'-DV8_ENABLE_PRIVATE_MAPPING_FORK_OPTIMIZATION' \
+	'-DV8_SHORT_BUILTIN_CALLS' \
 	'-DOBJECT_PRINT' \
 	'-DV8_INTL_SUPPORT' \
 	'-DV8_ATOMIC_OBJECT_FIELD_WRITES' \
@@ -25,6 +30,7 @@ DEFS_Debug := \
 	'-DV8_ENABLE_REGEXP_INTERPRETER_THREADED_DISPATCH' \
 	'-DV8_USE_ZLIB' \
 	'-DV8_ENABLE_LEAPTIERING' \
+	'-DV8_ENABLE_MAGLEV' \
 	'-DV8_ENABLE_TURBOFAN' \
 	'-DV8_ENABLE_WEBASSEMBLY' \
 	'-DV8_ENABLE_JAVASCRIPT_PROMISE_HOOKS' \
@@ -32,13 +38,13 @@ DEFS_Debug := \
 	'-DV8_ALLOCATION_FOLDING' \
 	'-DV8_ALLOCATION_SITE_TRACKING' \
 	'-DV8_ADVANCED_BIGINT_ALGORITHMS' \
+	'-DV8_ENABLE_WASM_SIMD256_REVEC' \
 	'-DICU_UTIL_DATA_IMPL=ICU_UTIL_DATA_STATIC' \
 	'-DUCONFIG_NO_SERVICE=1' \
 	'-DU_ENABLE_DYLOAD=0' \
 	'-DU_STATIC_IMPLEMENTATION=1' \
 	'-DU_HAVE_STD_STRING=1' \
 	'-DUCONFIG_NO_BREAK_ITERATION=0' \
-	'-DHWY_BROKEN_TARGETS=(HWY_AVX2|HWY_AVX3)' \
 	'-DDEBUG' \
 	'-D_DEBUG' \
 	'-DENABLE_LOCAL_HANDLE_ZAPPING' \
@@ -46,14 +52,42 @@ DEFS_Debug := \
 
 # Flags passed to all source files.
 CFLAGS_Debug := \
+	-pthread \
+	-Wno-unused-parameter \
+	-pthread \
+	-Wno-unused-parameter \
+	-Wno-strict-overflow \
+	-Wno-return-type \
+	-Wno-int-in-bool-context \
+	-Wno-deprecated \
+	-Wno-stringop-overflow \
+	-Wno-stringop-overread \
+	-Wno-restrict \
+	-Wno-array-bounds \
+	-Wno-nonnull \
+	-Wno-dangling-pointer \
+	-flax-vector-conversions \
+	-m64 \
+	-m64 \
 	-g \
-	-O0
+	-g \
+	-fdata-sections \
+	-ffunction-sections \
+	-O3
 
 # Flags passed to only C files.
 CFLAGS_C_Debug :=
 
 # Flags passed to only C++ files.
 CFLAGS_CC_Debug := \
+	-fno-rtti \
+	-fno-exceptions \
+	-fno-strict-aliasing \
+	-std=gnu++20 \
+	-fno-rtti \
+	-fno-exceptions \
+	-fno-strict-aliasing \
+	-std=gnu++20 \
 	-Wno-invalid-offsetof
 
 INCS_Debug := \
@@ -80,12 +114,17 @@ DEFS_Release := \
 	'-DICU_NO_USER_DATA_OVERRIDE' \
 	'-DV8_GYP_BUILD' \
 	'-DV8_TYPED_ARRAY_MAX_SIZE_IN_HEAP=64' \
+	'-D__STDC_FORMAT_MACROS' \
 	'-DOPENSSL_NO_PINSHARED' \
 	'-DOPENSSL_THREADS' \
-	'-DV8_TARGET_ARCH_WASM32' \
+	'-DV8_TARGET_ARCH_X64' \
+	'-DV8_HAVE_TARGET_OS' \
+	'-DV8_TARGET_OS_LINUX' \
 	'-DV8_EMBEDDER_STRING="-node.13"' \
 	'-DENABLE_DISASSEMBLER' \
 	'-DV8_PROMISE_INTERNAL_FIELD_COUNT=1' \
+	'-DV8_ENABLE_PRIVATE_MAPPING_FORK_OPTIMIZATION' \
+	'-DV8_SHORT_BUILTIN_CALLS' \
 	'-DOBJECT_PRINT' \
 	'-DV8_INTL_SUPPORT' \
 	'-DV8_ATOMIC_OBJECT_FIELD_WRITES' \
@@ -96,6 +135,7 @@ DEFS_Release := \
 	'-DV8_ENABLE_REGEXP_INTERPRETER_THREADED_DISPATCH' \
 	'-DV8_USE_ZLIB' \
 	'-DV8_ENABLE_LEAPTIERING' \
+	'-DV8_ENABLE_MAGLEV' \
 	'-DV8_ENABLE_TURBOFAN' \
 	'-DV8_ENABLE_WEBASSEMBLY' \
 	'-DV8_ENABLE_JAVASCRIPT_PROMISE_HOOKS' \
@@ -103,24 +143,54 @@ DEFS_Release := \
 	'-DV8_ALLOCATION_FOLDING' \
 	'-DV8_ALLOCATION_SITE_TRACKING' \
 	'-DV8_ADVANCED_BIGINT_ALGORITHMS' \
+	'-DV8_ENABLE_WASM_SIMD256_REVEC' \
 	'-DICU_UTIL_DATA_IMPL=ICU_UTIL_DATA_STATIC' \
 	'-DUCONFIG_NO_SERVICE=1' \
 	'-DU_ENABLE_DYLOAD=0' \
 	'-DU_STATIC_IMPLEMENTATION=1' \
 	'-DU_HAVE_STD_STRING=1' \
-	'-DUCONFIG_NO_BREAK_ITERATION=0' \
-	'-DHWY_BROKEN_TARGETS=(HWY_AVX2|HWY_AVX3)'
+	'-DUCONFIG_NO_BREAK_ITERATION=0'
 
 # Flags passed to all source files.
 CFLAGS_Release := \
+	-pthread \
+	-Wno-unused-parameter \
+	-pthread \
+	-Wno-unused-parameter \
+	-Wno-strict-overflow \
+	-Wno-return-type \
+	-Wno-int-in-bool-context \
+	-Wno-deprecated \
+	-Wno-stringop-overflow \
+	-Wno-stringop-overread \
+	-Wno-restrict \
+	-Wno-array-bounds \
+	-Wno-nonnull \
+	-Wno-dangling-pointer \
+	-flax-vector-conversions \
+	-m64 \
+	-m64 \
 	-O3 \
-	-fno-omit-frame-pointer
+	-O3 \
+	-fno-omit-frame-pointer \
+	-fno-omit-frame-pointer \
+	-fdata-sections \
+	-ffunction-sections \
+	-O3
 
 # Flags passed to only C files.
 CFLAGS_C_Release :=
 
 # Flags passed to only C++ files.
 CFLAGS_CC_Release := \
+	-fno-rtti \
+	-fno-exceptions \
+	-fno-strict-aliasing \
+	-std=gnu++20 \
+	-fno-rtti \
+	-fno-exceptions \
+	-fno-strict-aliasing \
+	-std=gnu++20 \
 	-Wno-invalid-offsetof
 
 INCS_Release := \
@@ -293,7 +363,12 @@ OBJS := \
 	$(obj).target/$(TARGET)/deps/v8/src/heap/collection-barrier.o \
 	$(obj).target/$(TARGET)/deps/v8/src/heap/combined-heap.o \
 	$(obj).target/$(TARGET)/deps/v8/src/heap/concurrent-marking.o \
-	$(obj).target/$(TARGET)/deps/v8/src/heap/cppgc-js/cppgc-stubs.o \
+	$(obj).target/$(TARGET)/deps/v8/src/heap/cppgc-js/cpp-heap.o \
+	$(obj).target/$(TARGET)/deps/v8/src/heap/cppgc-js/cpp-snapshot.o \
+	$(obj).target/$(TARGET)/deps/v8/src/heap/cppgc-js/cross-heap-remembered-set.o \
+	$(obj).target/$(TARGET)/deps/v8/src/heap/cppgc-js/unified-heap-marking-state.o \
+	$(obj).target/$(TARGET)/deps/v8/src/heap/cppgc-js/unified-heap-marking-verifier.o \
+	$(obj).target/$(TARGET)/deps/v8/src/heap/cppgc-js/unified-heap-marking-visitor.o \
 	$(obj).target/$(TARGET)/deps/v8/src/heap/ephemeron-remembered-set.o \
 	$(obj).target/$(TARGET)/deps/v8/src/heap/evacuation-allocator.o \
 	$(obj).target/$(TARGET)/deps/v8/src/heap/evacuation-verifier.o \
@@ -611,7 +686,6 @@ OBJS := \
 	$(obj).target/$(TARGET)/deps/v8/src/zone/zone-segment.o \
 	$(obj).target/$(TARGET)/deps/v8/src/zone/zone.o \
 	$(obj).target/$(TARGET)/deps/v8/third_party/siphash/halfsiphash.o \
-	$(obj).target/$(TARGET)/deps/v8/src/builtins/wasm32/builtins-wasm32-registry.o \
 	$(obj).target/$(TARGET)/deps/v8/src/codegen/wasm32/assembler-wasm32.o \
 	$(obj).target/$(TARGET)/deps/v8/src/codegen/wasm32/cpu-wasm32.o \
 	$(obj).target/$(TARGET)/deps/v8/src/codegen/wasm32/macro-assembler-wasm32.o \
@@ -664,6 +738,9 @@ OBJS := \
 	$(obj).target/$(TARGET)/gen/inspector-generated-output-root/src/inspector/protocol/Profiler.o \
 	$(obj).target/$(TARGET)/gen/inspector-generated-output-root/src/inspector/protocol/Runtime.o \
 	$(obj).target/$(TARGET)/gen/inspector-generated-output-root/src/inspector/protocol/Schema.o \
+	$(obj).target/$(TARGET)/deps/v8/src/snapshot/snapshot-compression.o \
+	$(obj).target/$(TARGET)/deps/v8/src/maglev/x64/maglev-assembler-x64.o \
+	$(obj).target/$(TARGET)/deps/v8/src/maglev/x64/maglev-ir-x64.o \
 	$(obj).target/$(TARGET)/deps/v8/src/asmjs/asm-js.o \
 	$(obj).target/$(TARGET)/deps/v8/src/asmjs/asm-parser.o \
 	$(obj).target/$(TARGET)/deps/v8/src/asmjs/asm-scanner.o \
@@ -717,15 +794,18 @@ OBJS := \
 	$(obj).target/$(TARGET)/deps/v8/src/wasm/wasm-subtyping.o \
 	$(obj).target/$(TARGET)/deps/v8/src/wasm/well-known-imports.o \
 	$(obj).target/$(TARGET)/deps/v8/src/wasm/wrappers.o \
-	$(obj).target/$(TARGET)/deps/v8/src/codegen/ia32/assembler-ia32.o \
-	$(obj).target/$(TARGET)/deps/v8/src/codegen/ia32/cpu-ia32.o \
-	$(obj).target/$(TARGET)/deps/v8/src/codegen/ia32/macro-assembler-ia32.o \
 	$(obj).target/$(TARGET)/deps/v8/src/codegen/shared-ia32-x64/macro-assembler-shared-ia32-x64.o \
-	$(obj).target/$(TARGET)/deps/v8/src/deoptimizer/ia32/deoptimizer-ia32.o \
-	$(obj).target/$(TARGET)/deps/v8/src/diagnostics/ia32/disasm-ia32.o \
-	$(obj).target/$(TARGET)/deps/v8/src/diagnostics/ia32/unwinder-ia32.o \
-	$(obj).target/$(TARGET)/deps/v8/src/execution/ia32/frame-constants-ia32.o \
-	$(obj).target/$(TARGET)/deps/v8/src/regexp/ia32/regexp-macro-assembler-ia32.o \
+	$(obj).target/$(TARGET)/deps/v8/src/codegen/x64/assembler-x64.o \
+	$(obj).target/$(TARGET)/deps/v8/src/codegen/x64/cpu-x64.o \
+	$(obj).target/$(TARGET)/deps/v8/src/codegen/x64/macro-assembler-x64.o \
+	$(obj).target/$(TARGET)/deps/v8/src/deoptimizer/x64/deoptimizer-x64.o \
+	$(obj).target/$(TARGET)/deps/v8/src/diagnostics/x64/disasm-x64.o \
+	$(obj).target/$(TARGET)/deps/v8/src/diagnostics/x64/eh-frame-x64.o \
+	$(obj).target/$(TARGET)/deps/v8/src/diagnostics/x64/unwinder-x64.o \
+	$(obj).target/$(TARGET)/deps/v8/src/execution/x64/frame-constants-x64.o \
+	$(obj).target/$(TARGET)/deps/v8/src/regexp/x64/regexp-macro-assembler-x64.o \
+	$(obj).target/$(TARGET)/deps/v8/src/trap-handler/handler-inside-posix.o \
+	$(obj).target/$(TARGET)/deps/v8/src/trap-handler/handler-outside-posix.o \
 	$(obj).target/$(TARGET)/gen/src/regexp/special-case.o \
 	$(obj).target/$(TARGET)/gen/torque-generated/class-verifiers.o \
 	$(obj).target/$(TARGET)/gen/torque-generated/factory.o \
@@ -994,14 +1074,7 @@ OBJS := \
 	$(obj).target/$(TARGET)/deps/v8/src/heap/base/memory-tagging.o \
 	$(obj).target/$(TARGET)/deps/v8/src/heap/base/stack.o \
 	$(obj).target/$(TARGET)/deps/v8/src/heap/base/worklist.o \
-	$(obj).target/$(TARGET)/deps/v8/src/heap/base/asm/ia32/push_registers_asm.o \
-	$(obj).target/$(TARGET)/deps/v8/src/maglev/maglev-compilation-info.o \
-	$(obj).target/$(TARGET)/deps/v8/src/maglev/maglev-compilation-unit.o \
-	$(obj).target/$(TARGET)/deps/v8/src/maglev/maglev-graph-builder.o \
-	$(obj).target/$(TARGET)/deps/v8/src/maglev/maglev-graph-printer.o \
-	$(obj).target/$(TARGET)/deps/v8/src/maglev/maglev-interpreter-frame-state.o \
-	$(obj).target/$(TARGET)/deps/v8/src/maglev/maglev-ir.o \
-	$(obj).target/$(TARGET)/deps/v8/src/maglev/maglev-phi-representation-selector.o \
+	$(obj).target/$(TARGET)/deps/v8/src/heap/base/asm/x64/push_registers_asm.o \
 	$(obj).target/$(TARGET)/gen/debug-support.o
 
 # Add to the list of files we specially track dependencies for.
@@ -1018,41 +1091,52 @@ $(OBJS): GYP_CXXFLAGS := $(DEFS_$(BUILDTYPE)) $(INCS_$(BUILDTYPE))  $(CFLAGS_$(B
 
 # Suffix rules, putting all outputs into $(obj).
 
-$(obj).$(TOOLSET)/$(TARGET)/%.o: $(srcdir)/%.cc FORCE_DO_CMD
+$(obj).$(TOOLSET)/$(TARGET)/%.o: $(srcdir)/%.cpp FORCE_DO_CMD
 	@$(call do_cmd,cxx,1)
 
-$(obj).$(TOOLSET)/$(TARGET)/%.o: $(srcdir)/%.cpp FORCE_DO_CMD
+$(obj).$(TOOLSET)/$(TARGET)/%.o: $(srcdir)/%.cc FORCE_DO_CMD
 	@$(call do_cmd,cxx,1)
 
 # Try building from generated source, too.
 
-$(obj).$(TOOLSET)/$(TARGET)/%.o: $(obj).$(TOOLSET)/%.cc FORCE_DO_CMD
-	@$(call do_cmd,cxx,1)
-
 $(obj).$(TOOLSET)/$(TARGET)/%.o: $(obj).$(TOOLSET)/%.cpp FORCE_DO_CMD
 	@$(call do_cmd,cxx,1)
 
-$(obj).$(TOOLSET)/$(TARGET)/%.o: $(obj)/%.cc FORCE_DO_CMD
+$(obj).$(TOOLSET)/$(TARGET)/%.o: $(obj).$(TOOLSET)/%.cc FORCE_DO_CMD
 	@$(call do_cmd,cxx,1)
 
 $(obj).$(TOOLSET)/$(TARGET)/%.o: $(obj)/%.cpp FORCE_DO_CMD
 	@$(call do_cmd,cxx,1)
 
+$(obj).$(TOOLSET)/$(TARGET)/%.o: $(obj)/%.cc FORCE_DO_CMD
+	@$(call do_cmd,cxx,1)
+
 # End of this set of suffix rules
 ### Rules for final target.
-LDFLAGS_Debug :=
+LDFLAGS_Debug := \
+	-pthread \
+	-rdynamic \
+	-pthread \
+	-rdynamic \
+	-m64 \
+	-m64
 
-LDFLAGS_Release :=
+LDFLAGS_Release := \
+	-pthread \
+	-rdynamic \
+	-pthread \
+	-rdynamic \
+	-m64 \
+	-m64
 
 LIBS :=
 
 $(obj).target/tools/v8_gypfiles/libv8_base_without_compiler.a: GYP_LDFLAGS := $(LDFLAGS_$(BUILDTYPE))
 $(obj).target/tools/v8_gypfiles/libv8_base_without_compiler.a: LIBS := $(LIBS)
 $(obj).target/tools/v8_gypfiles/libv8_base_without_compiler.a: TOOLSET := $(TOOLSET)
-$(obj).target/tools/v8_gypfiles/libv8_base_without_compiler.a: $(OBJS) FORCE_DO_CMD
-	$(call do_cmd,alink_thin)
+$(obj).target/tools/v8_gypfiles/libv8_base_without_compiler.a: $(OBJS)
+	$(call create_thin_archive,$@,$^)
 
-all_deps += $(obj).target/tools/v8_gypfiles/libv8_base_without_compiler.a
 # Add target alias
 .PHONY: v8_base_without_compiler
 v8_base_without_compiler: $(obj).target/tools/v8_gypfiles/libv8_base_without_compiler.a
@@ -1060,3 +1144,4 @@ v8_base_without_compiler: $(obj).target/tools/v8_gypfiles/libv8_base_without_com
 # Add target alias to "all" target.
 .PHONY: all
 all: v8_base_without_compiler
+

@@ -1007,8 +1007,22 @@ ExitCode BuildSnapshotWithoutCodeCache(
     // example, a WeakRef may schedule an per-isolate platform task as a GC
     // root, and referencing an object in a context, causing an assertion in
     // the snapshot creator.
+#ifdef __wasi__
+    // The wasm32 generation bridge can serialize builtin bodies, but calling
+    // into JS from process beforeExit/exit still depends on runtime callback
+    // semantics that are not wired up for mksnapshot. Keep this scoped to
+    // snapshot generation and run the serialize callback directly.
+    ExitCode exit_code = ExitCode::kNoFailure;
+    {
+      HandleScope handle_scope(isolate);
+      if (env->RunSnapshotSerializeCallback().IsEmpty()) {
+        exit_code = ExitCode::kGenericUserError;
+      }
+    }
+#else
     ExitCode exit_code =
         SpinEventLoopInternal(env).FromMaybe(ExitCode::kGenericUserError);
+#endif
     if (exit_code != ExitCode::kNoFailure) {
       return exit_code;
     }

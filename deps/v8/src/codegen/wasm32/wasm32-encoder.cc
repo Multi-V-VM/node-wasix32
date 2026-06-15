@@ -98,16 +98,26 @@ void WasmFunctionBuilder::LocalSet(uint32_t index) {
   body_.U32Leb(index);
 }
 
-void WasmFunctionBuilder::Load32(uint32_t align_log2, uint32_t offset) {
-  Opcode(WasmOpcode::kI32Load);
+void WasmFunctionBuilder::Load(WasmOpcode opcode, uint32_t align_log2,
+                               uint32_t offset) {
+  Opcode(opcode);
   body_.U32Leb(align_log2);
   body_.U32Leb(offset);
 }
 
-void WasmFunctionBuilder::Store32(uint32_t align_log2, uint32_t offset) {
-  Opcode(WasmOpcode::kI32Store);
+void WasmFunctionBuilder::Store(WasmOpcode opcode, uint32_t align_log2,
+                                uint32_t offset) {
+  Opcode(opcode);
   body_.U32Leb(align_log2);
   body_.U32Leb(offset);
+}
+
+void WasmFunctionBuilder::Load32(uint32_t align_log2, uint32_t offset) {
+  Load(WasmOpcode::kI32Load, align_log2, offset);
+}
+
+void WasmFunctionBuilder::Store32(uint32_t align_log2, uint32_t offset) {
+  Store(WasmOpcode::kI32Store, align_log2, offset);
 }
 
 void WasmFunctionBuilder::Call(uint32_t function_index) {

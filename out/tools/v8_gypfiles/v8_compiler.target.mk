@@ -9,12 +9,17 @@ DEFS_Debug := \
 	'-DICU_NO_USER_DATA_OVERRIDE' \
 	'-DV8_GYP_BUILD' \
 	'-DV8_TYPED_ARRAY_MAX_SIZE_IN_HEAP=64' \
+	'-D__STDC_FORMAT_MACROS' \
 	'-DOPENSSL_NO_PINSHARED' \
 	'-DOPENSSL_THREADS' \
-	'-DV8_TARGET_ARCH_WASM32' \
+	'-DV8_TARGET_ARCH_X64' \
+	'-DV8_HAVE_TARGET_OS' \
+	'-DV8_TARGET_OS_LINUX' \
 	'-DV8_EMBEDDER_STRING="-node.13"' \
 	'-DENABLE_DISASSEMBLER' \
 	'-DV8_PROMISE_INTERNAL_FIELD_COUNT=1' \
+	'-DV8_ENABLE_PRIVATE_MAPPING_FORK_OPTIMIZATION' \
+	'-DV8_SHORT_BUILTIN_CALLS' \
 	'-DOBJECT_PRINT' \
 	'-DV8_INTL_SUPPORT' \
 	'-DV8_ATOMIC_OBJECT_FIELD_WRITES' \
@@ -25,6 +30,7 @@ DEFS_Debug := \
 	'-DV8_ENABLE_REGEXP_INTERPRETER_THREADED_DISPATCH' \
 	'-DV8_USE_ZLIB' \
 	'-DV8_ENABLE_LEAPTIERING' \
+	'-DV8_ENABLE_MAGLEV' \
 	'-DV8_ENABLE_TURBOFAN' \
 	'-DV8_ENABLE_WEBASSEMBLY' \
 	'-DV8_ENABLE_JAVASCRIPT_PROMISE_HOOKS' \
@@ -32,6 +38,7 @@ DEFS_Debug := \
 	'-DV8_ALLOCATION_FOLDING' \
 	'-DV8_ALLOCATION_SITE_TRACKING' \
 	'-DV8_ADVANCED_BIGINT_ALGORITHMS' \
+	'-DV8_ENABLE_WASM_SIMD256_REVEC' \
 	'-DUCONFIG_NO_SERVICE=1' \
 	'-DU_ENABLE_DYLOAD=0' \
 	'-DU_STATIC_IMPLEMENTATION=1' \
@@ -44,14 +51,42 @@ DEFS_Debug := \
 
 # Flags passed to all source files.
 CFLAGS_Debug := \
+	-pthread \
+	-Wno-unused-parameter \
+	-pthread \
+	-Wno-unused-parameter \
+	-Wno-strict-overflow \
+	-Wno-return-type \
+	-Wno-int-in-bool-context \
+	-Wno-deprecated \
+	-Wno-stringop-overflow \
+	-Wno-stringop-overread \
+	-Wno-restrict \
+	-Wno-array-bounds \
+	-Wno-nonnull \
+	-Wno-dangling-pointer \
+	-flax-vector-conversions \
+	-m64 \
+	-m64 \
 	-g \
-	-O0
+	-g \
+	-fdata-sections \
+	-ffunction-sections \
+	-O3
 
 # Flags passed to only C files.
 CFLAGS_C_Debug :=
 
 # Flags passed to only C++ files.
 CFLAGS_CC_Debug := \
+	-fno-rtti \
+	-fno-exceptions \
+	-fno-strict-aliasing \
+	-std=gnu++20 \
+	-fno-rtti \
+	-fno-exceptions \
+	-fno-strict-aliasing \
+	-std=gnu++20 \
 	-Wno-invalid-offsetof
 
 INCS_Debug := \
@@ -71,12 +106,17 @@ DEFS_Release := \
 	'-DICU_NO_USER_DATA_OVERRIDE' \
 	'-DV8_GYP_BUILD' \
 	'-DV8_TYPED_ARRAY_MAX_SIZE_IN_HEAP=64' \
+	'-D__STDC_FORMAT_MACROS' \
 	'-DOPENSSL_NO_PINSHARED' \
 	'-DOPENSSL_THREADS' \
-	'-DV8_TARGET_ARCH_WASM32' \
+	'-DV8_TARGET_ARCH_X64' \
+	'-DV8_HAVE_TARGET_OS' \
+	'-DV8_TARGET_OS_LINUX' \
 	'-DV8_EMBEDDER_STRING="-node.13"' \
 	'-DENABLE_DISASSEMBLER' \
 	'-DV8_PROMISE_INTERNAL_FIELD_COUNT=1' \
+	'-DV8_ENABLE_PRIVATE_MAPPING_FORK_OPTIMIZATION' \
+	'-DV8_SHORT_BUILTIN_CALLS' \
 	'-DOBJECT_PRINT' \
 	'-DV8_INTL_SUPPORT' \
 	'-DV8_ATOMIC_OBJECT_FIELD_WRITES' \
@@ -87,6 +127,7 @@ DEFS_Release := \
 	'-DV8_ENABLE_REGEXP_INTERPRETER_THREADED_DISPATCH' \
 	'-DV8_USE_ZLIB' \
 	'-DV8_ENABLE_LEAPTIERING' \
+	'-DV8_ENABLE_MAGLEV' \
 	'-DV8_ENABLE_TURBOFAN' \
 	'-DV8_ENABLE_WEBASSEMBLY' \
 	'-DV8_ENABLE_JAVASCRIPT_PROMISE_HOOKS' \
@@ -94,6 +135,7 @@ DEFS_Release := \
 	'-DV8_ALLOCATION_FOLDING' \
 	'-DV8_ALLOCATION_SITE_TRACKING' \
 	'-DV8_ADVANCED_BIGINT_ALGORITHMS' \
+	'-DV8_ENABLE_WASM_SIMD256_REVEC' \
 	'-DUCONFIG_NO_SERVICE=1' \
 	'-DU_ENABLE_DYLOAD=0' \
 	'-DU_STATIC_IMPLEMENTATION=1' \
@@ -102,14 +144,44 @@ DEFS_Release := \
 
 # Flags passed to all source files.
 CFLAGS_Release := \
+	-pthread \
+	-Wno-unused-parameter \
+	-pthread \
+	-Wno-unused-parameter \
+	-Wno-strict-overflow \
+	-Wno-return-type \
+	-Wno-int-in-bool-context \
+	-Wno-deprecated \
+	-Wno-stringop-overflow \
+	-Wno-stringop-overread \
+	-Wno-restrict \
+	-Wno-array-bounds \
+	-Wno-nonnull \
+	-Wno-dangling-pointer \
+	-flax-vector-conversions \
+	-m64 \
+	-m64 \
 	-O3 \
-	-fno-omit-frame-pointer
+	-O3 \
+	-fno-omit-frame-pointer \
+	-fno-omit-frame-pointer \
+	-fdata-sections \
+	-ffunction-sections \
+	-O3
 
 # Flags passed to only C files.
 CFLAGS_C_Release :=
 
 # Flags passed to only C++ files.
 CFLAGS_CC_Release := \
+	-fno-rtti \
+	-fno-exceptions \
+	-fno-strict-aliasing \
+	-std=gnu++20 \
+	-fno-rtti \
+	-fno-exceptions \
+	-fno-strict-aliasing \
+	-std=gnu++20 \
 	-Wno-invalid-offsetof
 
 INCS_Release := \
@@ -123,13 +195,6 @@ INCS_Release := \
 	-I$(srcdir)/deps/v8/third_party/abseil-cpp
 
 OBJS := \
-	$(obj).target/$(TARGET)/deps/v8/src/maglev/maglev-compilation-info.o \
-	$(obj).target/$(TARGET)/deps/v8/src/maglev/maglev-compilation-unit.o \
-	$(obj).target/$(TARGET)/deps/v8/src/maglev/maglev-graph-builder.o \
-	$(obj).target/$(TARGET)/deps/v8/src/maglev/maglev-graph-printer.o \
-	$(obj).target/$(TARGET)/deps/v8/src/maglev/maglev-interpreter-frame-state.o \
-	$(obj).target/$(TARGET)/deps/v8/src/maglev/maglev-ir.o \
-	$(obj).target/$(TARGET)/deps/v8/src/maglev/maglev-phi-representation-selector.o \
 	$(obj).target/$(TARGET)/deps/v8/src/compiler/access-builder.o \
 	$(obj).target/$(TARGET)/deps/v8/src/compiler/access-info.o \
 	$(obj).target/$(TARGET)/deps/v8/src/compiler/add-type-assertions-reducer.o \
@@ -280,9 +345,10 @@ OBJS := \
 	$(obj).target/$(TARGET)/deps/v8/src/compiler/value-numbering-reducer.o \
 	$(obj).target/$(TARGET)/deps/v8/src/compiler/verifier.o \
 	$(obj).target/$(TARGET)/deps/v8/src/compiler/zone-stats.o \
-	$(obj).target/$(TARGET)/deps/v8/src/compiler/backend/ia32/code-generator-ia32.o \
-	$(obj).target/$(TARGET)/deps/v8/src/compiler/backend/ia32/instruction-scheduler-ia32.o \
-	$(obj).target/$(TARGET)/deps/v8/src/compiler/backend/ia32/instruction-selector-ia32.o \
+	$(obj).target/$(TARGET)/deps/v8/src/compiler/backend/x64/code-generator-x64.o \
+	$(obj).target/$(TARGET)/deps/v8/src/compiler/backend/x64/instruction-scheduler-x64.o \
+	$(obj).target/$(TARGET)/deps/v8/src/compiler/backend/x64/instruction-selector-x64.o \
+	$(obj).target/$(TARGET)/deps/v8/src/compiler/backend/x64/unwinding-info-writer-x64.o \
 	$(obj).target/$(TARGET)/deps/v8/src/compiler/int64-lowering.o \
 	$(obj).target/$(TARGET)/deps/v8/src/compiler/turboshaft/int64-lowering-phase.o \
 	$(obj).target/$(TARGET)/deps/v8/src/compiler/turboshaft/wasm-debug-memory-lowering-phase.o \
@@ -304,7 +370,11 @@ OBJS := \
 	$(obj).target/$(TARGET)/deps/v8/src/compiler/wasm-graph-assembler.o \
 	$(obj).target/$(TARGET)/deps/v8/src/compiler/wasm-inlining-into-js.o \
 	$(obj).target/$(TARGET)/deps/v8/src/compiler/wasm-load-elimination.o \
-	$(obj).target/$(TARGET)/deps/v8/src/compiler/wasm-typer.o
+	$(obj).target/$(TARGET)/deps/v8/src/compiler/wasm-typer.o \
+	$(obj).target/$(TARGET)/deps/v8/src/compiler/linear-scheduler.o \
+	$(obj).target/$(TARGET)/deps/v8/src/compiler/revectorizer.o \
+	$(obj).target/$(TARGET)/deps/v8/src/compiler/turboshaft/wasm-revec-phase.o \
+	$(obj).target/$(TARGET)/deps/v8/src/compiler/turboshaft/wasm-revec-reducer.o
 
 # Add to the list of files we specially track dependencies for.
 all_deps += $(OBJS)
@@ -333,19 +403,30 @@ $(obj).$(TOOLSET)/$(TARGET)/%.o: $(obj)/%.cc FORCE_DO_CMD
 
 # End of this set of suffix rules
 ### Rules for final target.
-LDFLAGS_Debug :=
+LDFLAGS_Debug := \
+	-pthread \
+	-rdynamic \
+	-pthread \
+	-rdynamic \
+	-m64 \
+	-m64
 
-LDFLAGS_Release :=
+LDFLAGS_Release := \
+	-pthread \
+	-rdynamic \
+	-pthread \
+	-rdynamic \
+	-m64 \
+	-m64
 
 LIBS :=
 
 $(obj).target/tools/v8_gypfiles/libv8_compiler.a: GYP_LDFLAGS := $(LDFLAGS_$(BUILDTYPE))
 $(obj).target/tools/v8_gypfiles/libv8_compiler.a: LIBS := $(LIBS)
 $(obj).target/tools/v8_gypfiles/libv8_compiler.a: TOOLSET := $(TOOLSET)
-$(obj).target/tools/v8_gypfiles/libv8_compiler.a: $(OBJS) FORCE_DO_CMD
-	$(call do_cmd,alink_thin)
+$(obj).target/tools/v8_gypfiles/libv8_compiler.a: $(OBJS)
+	$(call create_thin_archive,$@,$^)
 
-all_deps += $(obj).target/tools/v8_gypfiles/libv8_compiler.a
 # Add target alias
 .PHONY: v8_compiler
 v8_compiler: $(obj).target/tools/v8_gypfiles/libv8_compiler.a

@@ -26,12 +26,18 @@ WasmCallDescriptors::WasmCallDescriptors(AccountingAllocator* allocator)
       compiler::GetBuiltinCallDescriptor(Builtin::kBigIntToI32Pair, zone_.get(),
                                          StubCallMode::kCallBuiltinPointer,
                                          true);
+#elif V8_TARGET_ARCH_32_BIT
+  bigint_to_i32pair_descriptor_ = nullptr;
+  bigint_to_i32pair_descriptor_with_framestate_ = nullptr;
 #endif  // V8_TARGET_ARCH_32_BIT && !__wasi__
 }
 
-#if V8_TARGET_ARCH_32_BIT && !defined(__wasi__)
+#if V8_TARGET_ARCH_32_BIT
 compiler::CallDescriptor* WasmCallDescriptors::GetLoweredCallDescriptor(
     const compiler::CallDescriptor* original) {
+#if defined(__wasi__)
+  return nullptr;
+#else
   if (original == bigint_to_i64_descriptor_) {
     return bigint_to_i32pair_descriptor_;
   }
@@ -39,7 +45,8 @@ compiler::CallDescriptor* WasmCallDescriptors::GetLoweredCallDescriptor(
     return bigint_to_i32pair_descriptor_with_framestate_;
   }
   return nullptr;
+#endif  // defined(__wasi__)
 }
-#endif  // V8_TARGET_ARCH_32_BIT && !__wasi__
+#endif  // V8_TARGET_ARCH_32_BIT
 
 }  // namespace v8::internal::compiler

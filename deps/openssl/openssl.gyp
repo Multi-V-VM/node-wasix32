@@ -51,6 +51,9 @@
             'MODULESDIR="<(modules_dir)"',
           ]
         }],
+        ['OS=="wasi"', {
+          'sources+': [ 'wasi_crypto_stubs.c' ],
+        }],
       ],
       'direct_dependent_settings': {
         'include_dirs': [ 'openssl/include', 'openssl/crypto/include']

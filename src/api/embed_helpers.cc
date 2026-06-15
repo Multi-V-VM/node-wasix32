@@ -122,10 +122,10 @@ CommonEnvironmentSetup::CommonEnvironmentSetup(
   const std::vector<intptr_t>& external_references =
       SnapshotBuilder::CollectExternalReferences();
   Isolate::CreateParams params;
-  
-#ifndef __wasi__
+
   params.array_buffer_allocator = impl_->allocator.get();
   params.external_references = external_references.data();
+#ifndef __wasi__
   params.cpp_heap =
       v8::CppHeap::Create(platform, v8::CppHeapCreateParams{{}}).release();
 #endif
@@ -140,7 +140,7 @@ CommonEnvironmentSetup::CommonEnvironmentSetup(
     // isolate, so that the memory reducer can be initialized.
     
 #ifdef __wasi__
-    isolate = impl_->isolate = Isolate::New(Isolate::CreateParams());
+    isolate = impl_->isolate = Isolate::Allocate();
 #else
     isolate = impl_->isolate = Isolate::Allocate();
 #endif

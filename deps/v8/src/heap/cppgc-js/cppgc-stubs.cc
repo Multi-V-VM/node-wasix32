@@ -92,6 +92,9 @@ bool Value::IsFalse() const { return false; }
 namespace internal {
 
 // HandleScopeImplementer stubs for WASM32
+__attribute__((weak)) const size_t
+    HandleScopeImplementer::kEnteredContextsOffset = 0;
+
 void HandleScopeImplementer::Iterate(RootVisitor* v) {
   // No-op for WASM32
 }
