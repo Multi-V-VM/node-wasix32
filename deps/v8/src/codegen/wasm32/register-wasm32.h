@@ -114,6 +114,14 @@ class Register : public RegisterBase<Register, kRegAfterLast> {
   }
 };
 
+inline constexpr int WasmRegisterCodeToSlot(int code) {
+  return code;
+}
+
+inline constexpr int WasmDoubleRegisterCodeToSlot(int code) {
+  return 32 + code;
+}
+
 // Define floating point register codes
 enum FloatRegisterCode {
 #define FLOAT_REGISTER_CODE(R) kFloatCode_##R,

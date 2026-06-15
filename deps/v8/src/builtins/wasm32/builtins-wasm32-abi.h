@@ -18,7 +18,7 @@ namespace internal {
 // take the uniform g_regs ABI; the entry builtins (JSEntry etc.) use direct
 // typed C++ signatures and do NOT read g_regs in this milestone.
 // Sized generously; tighten later against interface-descriptors-wasm32.
-constexpr int kWasmRegFileSize = 64;
+constexpr int kWasmRegFileSize = 128;
 extern Address g_wasm_regs[kWasmRegFileSize];
 
 // Well-known slot indices (must agree with interface-descriptors-wasm32-inl.h
