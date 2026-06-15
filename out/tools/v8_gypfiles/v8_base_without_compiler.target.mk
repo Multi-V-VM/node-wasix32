@@ -12,7 +12,6 @@ DEFS_Debug := \
 	'-DOPENSSL_NO_PINSHARED' \
 	'-DOPENSSL_THREADS' \
 	'-DV8_TARGET_ARCH_WASM32' \
-	'-DV8_ENABLE_TURBOFAN' \
 	'-DV8_EMBEDDER_STRING="-node.13"' \
 	'-DENABLE_DISASSEMBLER' \
 	'-DV8_PROMISE_INTERNAL_FIELD_COUNT=1' \
@@ -26,6 +25,7 @@ DEFS_Debug := \
 	'-DV8_ENABLE_REGEXP_INTERPRETER_THREADED_DISPATCH' \
 	'-DV8_USE_ZLIB' \
 	'-DV8_ENABLE_LEAPTIERING' \
+	'-DV8_ENABLE_TURBOFAN' \
 	'-DV8_ENABLE_WEBASSEMBLY' \
 	'-DV8_ENABLE_JAVASCRIPT_PROMISE_HOOKS' \
 	'-DV8_ENABLE_CONTINUATION_PRESERVED_EMBEDDER_DATA' \
@@ -83,7 +83,6 @@ DEFS_Release := \
 	'-DOPENSSL_NO_PINSHARED' \
 	'-DOPENSSL_THREADS' \
 	'-DV8_TARGET_ARCH_WASM32' \
-	'-DV8_ENABLE_TURBOFAN' \
 	'-DV8_EMBEDDER_STRING="-node.13"' \
 	'-DENABLE_DISASSEMBLER' \
 	'-DV8_PROMISE_INTERNAL_FIELD_COUNT=1' \
@@ -97,6 +96,7 @@ DEFS_Release := \
 	'-DV8_ENABLE_REGEXP_INTERPRETER_THREADED_DISPATCH' \
 	'-DV8_USE_ZLIB' \
 	'-DV8_ENABLE_LEAPTIERING' \
+	'-DV8_ENABLE_TURBOFAN' \
 	'-DV8_ENABLE_WEBASSEMBLY' \
 	'-DV8_ENABLE_JAVASCRIPT_PROMISE_HOOKS' \
 	'-DV8_ENABLE_CONTINUATION_PRESERVED_EMBEDDER_DATA' \
@@ -189,7 +189,6 @@ OBJS := \
 	$(obj).target/$(TARGET)/deps/v8/src/builtins/builtins-trace.o \
 	$(obj).target/$(TARGET)/deps/v8/src/builtins/builtins-typed-array.o \
 	$(obj).target/$(TARGET)/deps/v8/src/builtins/builtins-weak-refs.o \
-	$(obj).target/$(TARGET)/deps/v8/src/builtins/wasm32/builtins-wasm32-registry.o \
 	$(obj).target/$(TARGET)/deps/v8/src/builtins/builtins.o \
 	$(obj).target/$(TARGET)/deps/v8/src/builtins/constants-table-builder.o \
 	$(obj).target/$(TARGET)/deps/v8/src/codegen/aligned-slot-allocator.o \
@@ -294,8 +293,12 @@ OBJS := \
 	$(obj).target/$(TARGET)/deps/v8/src/heap/collection-barrier.o \
 	$(obj).target/$(TARGET)/deps/v8/src/heap/combined-heap.o \
 	$(obj).target/$(TARGET)/deps/v8/src/heap/concurrent-marking.o \
-	$(obj).target/$(TARGET)/deps/v8/src/heap/cppgc-js/cppgc-stubs.o \
-	$(obj).target/$(TARGET)/deps/v8/src/compiler/code-assembler-stubs-wasm32.o \
+	$(obj).target/$(TARGET)/deps/v8/src/heap/cppgc-js/cpp-heap.o \
+	$(obj).target/$(TARGET)/deps/v8/src/heap/cppgc-js/cpp-snapshot.o \
+	$(obj).target/$(TARGET)/deps/v8/src/heap/cppgc-js/cross-heap-remembered-set.o \
+	$(obj).target/$(TARGET)/deps/v8/src/heap/cppgc-js/unified-heap-marking-state.o \
+	$(obj).target/$(TARGET)/deps/v8/src/heap/cppgc-js/unified-heap-marking-verifier.o \
+	$(obj).target/$(TARGET)/deps/v8/src/heap/cppgc-js/unified-heap-marking-visitor.o \
 	$(obj).target/$(TARGET)/deps/v8/src/heap/ephemeron-remembered-set.o \
 	$(obj).target/$(TARGET)/deps/v8/src/heap/evacuation-allocator.o \
 	$(obj).target/$(TARGET)/deps/v8/src/heap/evacuation-verifier.o \
@@ -1019,24 +1022,24 @@ $(OBJS): GYP_CXXFLAGS := $(DEFS_$(BUILDTYPE)) $(INCS_$(BUILDTYPE))  $(CFLAGS_$(B
 
 # Suffix rules, putting all outputs into $(obj).
 
-$(obj).$(TOOLSET)/$(TARGET)/%.o: $(srcdir)/%.cpp FORCE_DO_CMD
+$(obj).$(TOOLSET)/$(TARGET)/%.o: $(srcdir)/%.cc FORCE_DO_CMD
 	@$(call do_cmd,cxx,1)
 
-$(obj).$(TOOLSET)/$(TARGET)/%.o: $(srcdir)/%.cc FORCE_DO_CMD
+$(obj).$(TOOLSET)/$(TARGET)/%.o: $(srcdir)/%.cpp FORCE_DO_CMD
 	@$(call do_cmd,cxx,1)
 
 # Try building from generated source, too.
 
-$(obj).$(TOOLSET)/$(TARGET)/%.o: $(obj).$(TOOLSET)/%.cpp FORCE_DO_CMD
-	@$(call do_cmd,cxx,1)
-
 $(obj).$(TOOLSET)/$(TARGET)/%.o: $(obj).$(TOOLSET)/%.cc FORCE_DO_CMD
 	@$(call do_cmd,cxx,1)
 
-$(obj).$(TOOLSET)/$(TARGET)/%.o: $(obj)/%.cpp FORCE_DO_CMD
+$(obj).$(TOOLSET)/$(TARGET)/%.o: $(obj).$(TOOLSET)/%.cpp FORCE_DO_CMD
 	@$(call do_cmd,cxx,1)
 
 $(obj).$(TOOLSET)/$(TARGET)/%.o: $(obj)/%.cc FORCE_DO_CMD
+	@$(call do_cmd,cxx,1)
+
+$(obj).$(TOOLSET)/$(TARGET)/%.o: $(obj)/%.cpp FORCE_DO_CMD
 	@$(call do_cmd,cxx,1)
 
 # End of this set of suffix rules
