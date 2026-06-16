@@ -217,6 +217,16 @@ void VisitZeroResult(InstructionSelectorT* selector, OpIndex node) {
   selector->Emit(kWasm32I32Const, g.DefineAsRegister(node), g.TempImmediate(0));
 }
 
+void VisitSignExtend(InstructionSelectorT* selector, OpIndex node, int shift) {
+  Wasm32OperandGeneratorT g(selector);
+  int temp_vreg = g.AllocateVirtualRegister();
+  selector->Emit(kWasm32Shl, g.DefineAsRegistertForVreg(temp_vreg),
+                 g.UseRegister(selector->input_at(node, 0)),
+                 g.TempImmediate(shift));
+  selector->Emit(kWasm32ShrS, g.DefineAsRegister(node),
+                 g.UseRegisterForVreg(temp_vreg), g.TempImmediate(shift));
+}
+
 void VisitInt32PairBinop(InstructionSelectorT* selector,
                          InstructionCode opcode, OpIndex node) {
   Wasm32OperandGeneratorT g(selector);
@@ -399,11 +409,11 @@ void InstructionSelectorT::VisitUint32LessThanOrEqual(OpIndex node) {
 }
 
 void InstructionSelectorT::VisitSignExtendWord8ToInt32(OpIndex node) {
-  VisitZeroResult(this, node);
+  VisitSignExtend(this, node, 24);
 }
 
 void InstructionSelectorT::VisitSignExtendWord16ToInt32(OpIndex node) {
-  VisitZeroResult(this, node);
+  VisitSignExtend(this, node, 16);
 }
 
 void InstructionSelectorT::VisitWord32Clz(OpIndex node) {
@@ -607,6 +617,7 @@ void InstructionSelectorT::EmitPrepareArguments(
   Wasm32OperandGeneratorT g(this);
   USE(node);
 
+  bool is_c_function_call = call_descriptor->IsCFunctionCall();
   if (call_descriptor->IsCFunctionCall()) {
     Emit(kArchPrepareCallCFunction | MiscField::encode(static_cast<int>(
                                          call_descriptor->ParameterCount())),
@@ -617,7 +628,9 @@ void InstructionSelectorT::EmitPrepareArguments(
     PushParameter input = (*arguments)[n];
     if (!input.node.valid()) continue;
     int slot = static_cast<int>(n);
-    Emit(kWasm32StoreSlot, g.NoOutput(), g.UseRegister(input.node),
+    InstructionCode opcode =
+        is_c_function_call ? kWasm32StoreOutgoingSlot : kWasm32StoreSlot;
+    Emit(opcode, g.NoOutput(), g.UseRegister(input.node),
          g.TempImmediate(slot << kSystemPointerSizeLog2));
   }
 }

@@ -18,6 +18,7 @@ namespace compiler {
   V(Wasm32LoadRoot)                \
   V(Wasm32LoadSlot)                \
   V(Wasm32StoreSlot)               \
+  V(Wasm32StoreOutgoingSlot)       \
   V(Wasm32LoadMem8S)               \
   V(Wasm32LoadMem8U)               \
   V(Wasm32LoadMem16S)              \

@@ -430,7 +430,15 @@ V8_WARN_UNUSED_RESULT MaybeHandle<Object> Invoke(Isolate* isolate,
              static_cast<unsigned>(orig_func), static_cast<unsigned>(func),
              static_cast<unsigned>(recv), argc, IsJSFunction(invoke_target),
              target_is_heap, target_instance_type);
-#ifdef V8_ENABLE_DIRECT_HANDLE
+#if V8_TARGET_ARCH_WASM32
+      std::vector<Address> wasm_args(argc);
+      std::vector<Address*> wasm_argv(argc);
+      for (int i = 0; i < argc; ++i) {
+        wasm_args[i] = (*params.args[i]).ptr();
+        wasm_argv[i] = &wasm_args[i];
+      }
+      Address** argv = wasm_argv.data();
+#elif defined(V8_ENABLE_DIRECT_HANDLE)
       // TODO(42203211): Store the arguments to indirect handles because
       // generated code still expects them in indirect handles. A fresh handle
       // scope is introduced for these handles, which is then sealed. When this

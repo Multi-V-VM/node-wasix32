@@ -95,7 +95,13 @@ class ArrayBufferSweeper::SweepingState final {
                 TreatAllYoungAsPromoted treat_all_young_as_promoted,
                 uint64_t trace_id);
 
-  ~SweepingState() { DCHECK(job_handle_ && !job_handle_->IsValid()); }
+  ~SweepingState() {
+#if V8_TARGET_ARCH_WASM32
+    DCHECK(!job_handle_);
+#else
+    DCHECK(job_handle_ && !job_handle_->IsValid());
+#endif
+  }
 
   void SetDone() { status_.store(Status::kDone, std::memory_order_relaxed); }
   bool IsDone() const {
@@ -127,14 +133,34 @@ class ArrayBufferSweeper::SweepingState final {
     sweeper->DecrementExternalMemoryCounters(freed_bytes_);
   }
 
-  void StartBackgroundSweeping() { job_handle_->NotifyConcurrencyIncrease(); }
+  void StartBackgroundSweeping() {
+#if V8_TARGET_ARCH_WASM32
+    DCHECK(IsDone());
+#else
+    job_handle_->NotifyConcurrencyIncrease();
+#endif
+  }
   void FinishSweeping() {
+#if V8_TARGET_ARCH_WASM32
+    DCHECK(IsDone());
+#else
     DCHECK(job_handle_ && job_handle_->IsValid());
     job_handle_->Join();
+#endif
   }
 
  private:
   class SweepingJob;
+#if V8_TARGET_ARCH_WASM32
+  void SweepSynchronously(ArrayBufferList young, ArrayBufferList old,
+                          SweepingType type,
+                          TreatAllYoungAsPromoted treat_all_young_as_promoted);
+  void SweepListFullSynchronously(ArrayBufferList& list,
+                                  ArrayBufferExtension::Age age);
+  void SweepYoungSynchronously(
+      ArrayBufferList& young,
+      TreatAllYoungAsPromoted treat_all_young_as_promoted);
+#endif
 
   std::atomic<Status> status_{Status::kInProgress};
   ArrayBufferList new_young_{ArrayBufferList::Age::kYoung};
@@ -241,12 +267,24 @@ ArrayBufferSweeper::SweepingState::SweepingState(
     ArrayBufferSweeper::TreatAllYoungAsPromoted treat_all_young_as_promoted,
     uint64_t trace_id)
     : initial_young_bytes_(young.bytes_),
-      initial_old_bytes_(old.bytes_),
+      initial_old_bytes_(old.bytes_)
+#if !V8_TARGET_ARCH_WASM32
+      ,
       job_handle_(V8::GetCurrentPlatform()->CreateJob(
           TaskPriority::kUserVisible,
           std::make_unique<SweepingJob>(
               heap, *this, std::move(young), std::move(old), type,
-              treat_all_young_as_promoted, trace_id))) {}
+              treat_all_young_as_promoted, trace_id)))
+#endif
+{
+#if V8_TARGET_ARCH_WASM32
+  USE(heap);
+  USE(trace_id);
+  SweepSynchronously(std::move(young), std::move(old), type,
+                     treat_all_young_as_promoted);
+  SetDone();
+#endif
+}
 
 ArrayBufferSweeper::ArrayBufferSweeper(Heap* heap) : heap_(heap) {}
 
@@ -296,6 +334,10 @@ void ArrayBufferSweeper::RequestSweep(
   TRACE_GC_WITH_FLOW(heap_->tracer(), scope_id, trace_id,
                      TRACE_EVENT_FLAG_FLOW_OUT);
   Prepare(type, treat_all_young_as_promoted, trace_id);
+#if V8_TARGET_ARCH_WASM32
+  Finish();
+  return;
+#endif
   DCHECK_IMPLIES(v8_flags.minor_ms && type == SweepingType::kYoung,
                  !heap_->ShouldReduceMemory());
   if (!heap_->IsTearingDown() && !heap_->ShouldReduceMemory() &&
@@ -561,6 +603,84 @@ bool ArrayBufferSweeper::SweepingState::SweepingJob::SweepYoung(
   young_.head_ = current;
   return !current;
 }
+
+#if V8_TARGET_ARCH_WASM32
+void ArrayBufferSweeper::SweepingState::SweepSynchronously(
+    ArrayBufferList young, ArrayBufferList old, SweepingType type,
+    TreatAllYoungAsPromoted treat_all_young_as_promoted) {
+  switch (type) {
+    case SweepingType::kYoung:
+      SweepYoungSynchronously(young, treat_all_young_as_promoted);
+      break;
+    case SweepingType::kFull:
+      SweepListFullSynchronously(young, ArrayBufferExtension::Age::kYoung);
+      SweepListFullSynchronously(old, ArrayBufferExtension::Age::kOld);
+      break;
+  }
+}
+
+void ArrayBufferSweeper::SweepingState::SweepListFullSynchronously(
+    ArrayBufferList& list, ArrayBufferExtension::Age age) {
+  ArrayBufferExtension* current = list.head_;
+  ArrayBufferList& new_old = new_old_;
+  size_t freed_bytes = 0;
+  size_t accounted_bytes = 0;
+
+  while (current) {
+    DCHECK_EQ(list.age_, current->age());
+    ArrayBufferExtension* next = current->next();
+    if (!current->IsMarked()) {
+      freed_bytes += current->accounting_length();
+      FinalizeAndDelete(current);
+    } else {
+      current->Unmark();
+      accounted_bytes += new_old.Append(current);
+    }
+    current = next;
+  }
+
+  freed_bytes_ += freed_bytes;
+  if (age == ArrayBufferExtension::Age::kYoung) {
+    young_bytes_accounted_ += freed_bytes + accounted_bytes;
+  } else {
+    old_bytes_accounted_ += freed_bytes + accounted_bytes;
+  }
+  list.head_ = nullptr;
+}
+
+void ArrayBufferSweeper::SweepingState::SweepYoungSynchronously(
+    ArrayBufferList& young,
+    TreatAllYoungAsPromoted treat_all_young_as_promoted) {
+  ArrayBufferExtension* current = young.head_;
+  ArrayBufferList& new_old = new_old_;
+  ArrayBufferList& new_young = new_young_;
+  size_t freed_bytes = 0;
+  size_t accounted_bytes = 0;
+
+  while (current) {
+    DCHECK_EQ(ArrayBufferExtension::Age::kYoung, current->age());
+    ArrayBufferExtension* next = current->next();
+    if (!current->IsYoungMarked()) {
+      const size_t bytes = current->accounting_length();
+      FinalizeAndDelete(current);
+      if (bytes) freed_bytes += bytes;
+    } else {
+      current->YoungUnmark();
+      if (treat_all_young_as_promoted == TreatAllYoungAsPromoted::kYes ||
+          current->IsYoungPromoted()) {
+        accounted_bytes += new_old.Append(current);
+      } else {
+        accounted_bytes += new_young.Append(current);
+      }
+    }
+    current = next;
+  }
+
+  freed_bytes_ += freed_bytes;
+  young_bytes_accounted_ += freed_bytes + accounted_bytes;
+  young.head_ = nullptr;
+}
+#endif
 
 uint64_t ArrayBufferSweeper::GetTraceIdForFlowEvent(
     GCTracer::Scope::ScopeId scope_id) const {

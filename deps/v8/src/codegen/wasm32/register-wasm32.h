@@ -381,7 +381,7 @@ constexpr Register kJavaScriptCallExtraArg1Register = Register::r6();
 constexpr Register kJavaScriptCallDispatchHandleRegister = Register::r9();
 
 // Runtime call convention helpers
-constexpr Register kRuntimeCallFunctionRegister = Register::r4();
+constexpr Register kRuntimeCallFunctionRegister = Register::r3();
 constexpr Register kRuntimeCallArgCountRegister = kArgumentRegister0;
 constexpr Register kRuntimeCallArgvRegister = Register::r7();
 

@@ -199,7 +199,11 @@ bool Stack::IsOnCurrentStack(const void* ptr) {
 
 void Stack::TrampolineCallbackHelper(void* argument,
                                      IterateStackCallback callback) {
+#if V8_TARGET_ARCH_WASM32
+  callback(this, argument, v8::base::Stack::GetCurrentStackPosition());
+#else
   PushAllRegistersAndIterateStack(this, argument, callback);
+#endif
   // TODO(chromium:1056170): Add support for SIMD and/or filtering.
 }
 

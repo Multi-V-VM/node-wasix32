@@ -11,6 +11,7 @@
 
 #include "src/builtins/builtins.h"
 #include "src/builtins/wasm32/builtins-wasm32-abi.h"
+#include "src/codegen/macro-assembler-base.h"
 #include "src/codegen/wasm32/register-wasm32.h"
 #include "src/codegen/wasm32/wasm32-builtin-module.h"
 #include "src/codegen/wasm32/wasm32-encoder.h"
@@ -22,6 +23,8 @@
 #include "src/compiler/backend/instruction.h"
 #include "src/objects/code-inl.h"
 #include "src/objects/smi.h"
+#include "src/roots/roots-inl.h"
+#include "src/runtime/runtime.h"
 
 namespace v8 {
 namespace internal {
@@ -38,6 +41,10 @@ thread_local uint32_t current_condition_local = 0;
 thread_local bool current_dispatch_started = false;
 
 constexpr const char* kWasmRegsSymbol = "g_wasm_regs";
+constexpr const char* kWasmCurrentFramePointerSymbol =
+    "g_wasm_current_frame_pointer";
+constexpr const char* kWasmRuntimeCallHelperSymbol =
+    "WasmRuntimeCallFromGenerated";
 
 void EnsureBody() {
   if (current_body != nullptr) return;
@@ -115,6 +122,10 @@ int StackIndexToSlot(int index) {
   return slot;
 }
 
+int SlotFor(Register reg) {
+  return WasmRegisterCodeToSlot(reg.code());
+}
+
 int SlotForAllocatedOperand(InstructionOperand* operand) {
   if (operand->IsRegister()) {
     return WasmRegisterCodeToSlot(
@@ -146,11 +157,38 @@ void LoadSlot(int slot) {
   Body().Load32(2, 0);
 }
 
+void LoadRootOffset(int32_t offset) {
+  LoadSlot(kWasmRegRoot);
+  EmitI32Const(offset);
+  Body().Opcode(wasm32::WasmOpcode::kI32Add);
+  Body().Load32(2, 0);
+}
+
+void EmitHeapObjectConstant(Isolate* isolate, IndirectHandle<HeapObject> object) {
+  RootIndex root_index;
+  if (isolate != nullptr &&
+      isolate->roots_table().IsRootHandle(object, &root_index)) {
+    LoadRootOffset(MacroAssemblerBase::RootRegisterOffsetForRootIndex(root_index));
+    return;
+  }
+  EmitI32Const(static_cast<int32_t>((*object).ptr()));
+}
+
+void LoadAddressSymbol(const char* symbol) {
+  Body().I32ConstMemoryAddress(symbol, 0);
+  Body().Load32(2, 0);
+}
+
 void StoreSlot(int slot) {
   Body().LocalSet(ScratchLocal());
   EmitSlotAddress(slot);
   Body().LocalGet(ScratchLocal());
   Body().Store32(2, 0);
+}
+
+void CopySlot(int from_slot, int to_slot) {
+  LoadSlot(from_slot);
+  StoreSlot(to_slot);
 }
 
 int32_t BridgeConstantToI32(Constant constant) {
@@ -163,7 +201,16 @@ int32_t BridgeConstantToI32(Constant constant) {
       return static_cast<int32_t>(constant.ToFloat32AsInt());
     case Constant::kFloat64:
       return static_cast<int32_t>(constant.ToFloat64().AsUint64());
-    case Constant::kExternalReference:
+    case Constant::kExternalReference: {
+      ExternalReference reference = constant.ToExternalReference();
+      if (reference.IsIsolateFieldId()) return 0;
+      const Runtime::Function* function =
+          Runtime::FunctionForEntry(reference.address());
+      if (function != nullptr) {
+        return -static_cast<int32_t>(function->function_id) - 1;
+      }
+      return static_cast<int32_t>(reference.address());
+    }
     case Constant::kCompressedHeapObject:
     case Constant::kHeapObject:
     case Constant::kRpoNumber:
@@ -173,6 +220,16 @@ int32_t BridgeConstantToI32(Constant constant) {
 
 int FrameOffsetToSlot(int32_t offset) {
   return StackIndexToSlot(offset >> kSystemPointerSizeLog2);
+}
+
+int OutgoingArgOffsetToSlot(int32_t offset) {
+  int index = offset >> kSystemPointerSizeLog2;
+  int slot = kWasmOutgoingArgSlotBase + index;
+  if (index < 0 || index >= kWasmMaxOutgoingArgSlots ||
+      slot >= kWasmRegFileSize) {
+    FATAL("wasm32 outgoing arg slot %d maps outside g_wasm_regs", index);
+  }
+  return slot;
 }
 
 bool IsGeneratedWasmBuiltinTarget(Builtin builtin) {
@@ -192,8 +249,31 @@ bool IsGeneratedWasmBuiltinTarget(Builtin builtin) {
   UNREACHABLE();
 }
 
+bool IsCEntryBuiltinTarget(Builtin builtin) {
+  switch (builtin) {
+    case Builtin::kCEntry_Return1_ArgvOnStack_NoBuiltinExit:
+    case Builtin::kCEntry_Return1_ArgvOnStack_BuiltinExit:
+    case Builtin::kCEntry_Return2_ArgvOnStack_NoBuiltinExit:
+    case Builtin::kCEntry_Return2_ArgvOnStack_BuiltinExit:
+    case Builtin::kWasmCEntry:
+      return true;
+    default:
+      return false;
+  }
+}
+
 void EmitGeneratedBuiltinCall(Builtin builtin) {
+  for (int i = 0; i < kWasmCallSaveSlotCount; ++i) {
+    CopySlot(i, kWasmCallSaveSlotBase + i);
+  }
   Body().CallSymbol(Builtins::name(builtin));
+  CopySlot(SlotFor(kReturnRegister0), kWasmCallReturnSlotBase);
+  CopySlot(SlotFor(kReturnRegister1), kWasmCallReturnSlotBase + 1);
+  for (int i = kWasmCallSaveSlotCount; i-- > 0;) {
+    CopySlot(kWasmCallSaveSlotBase + i, i);
+  }
+  CopySlot(kWasmCallReturnSlotBase, SlotFor(kReturnRegister0));
+  CopySlot(kWasmCallReturnSlotBase + 1, SlotFor(kReturnRegister1));
 }
 
 class Wasm32OperandConverter final : public InstructionOperandConverter {
@@ -222,6 +302,11 @@ class Wasm32OperandConverter final : public InstructionOperandConverter {
     InstructionOperand* operand = InputAt(index);
     if (operand->IsImmediate() || operand->IsConstant()) {
       Constant constant = ToConstant(operand);
+      if (constant.type() == Constant::kHeapObject ||
+          constant.type() == Constant::kCompressedHeapObject) {
+        EmitHeapObjectConstant(isolate(), constant.ToHeapObject());
+        return;
+      }
       EmitI32Const(BridgeConstantToI32(constant));
       return;
     }
@@ -249,6 +334,59 @@ bool TryEmitWasmStubBuiltinCall(Wasm32OperandConverter* i, Instruction* instr) {
   Builtin builtin = Builtins::FromInt(builtin_id);
   if (!IsGeneratedWasmBuiltinTarget(builtin)) return false;
   EmitGeneratedBuiltinCall(builtin);
+  return true;
+}
+
+bool TryEmitRuntimeCEntryCall(Wasm32OperandConverter* i, Instruction* instr) {
+  if (!HasImmediateInput(instr, 0)) return false;
+  Handle<Code> code = i->InputCode(0);
+  if (!code->is_builtin()) return false;
+  if (!IsCEntryBuiltinTarget(code->builtin_id())) return false;
+
+  size_t tag_index = instr->CodeEnrypointTagInputIndex();
+  size_t function_index = instr->InputCount();
+  size_t argc_index = instr->InputCount();
+  size_t context_index = instr->InputCount();
+  for (size_t index = tag_index; index-- > 1;) {
+    InstructionOperand* operand = i->InputAt(index);
+    if (!operand->IsRegister()) continue;
+    int reg_code = AllocatedOperand::cast(operand)->register_code();
+    if (function_index == instr->InputCount() &&
+        reg_code == kRuntimeCallFunctionRegister.code()) {
+      function_index = index;
+    } else if (argc_index == instr->InputCount() &&
+               reg_code == kRuntimeCallArgCountRegister.code()) {
+      argc_index = index;
+    } else if (context_index == instr->InputCount() &&
+               reg_code == kContextRegister.code()) {
+      context_index = index;
+    }
+  }
+  if (function_index == instr->InputCount() ||
+      argc_index == instr->InputCount() ||
+      context_index == instr->InputCount()) {
+    PrintF("wasm32 runtime CEntry call missing fixed inputs: tag=%d "
+           "func=%d argc=%d context=%d inputs=%d\n",
+           static_cast<int>(tag_index), static_cast<int>(function_index),
+           static_cast<int>(argc_index), static_cast<int>(context_index),
+           static_cast<int>(instr->InputCount()));
+    return false;
+  }
+  i->LoadInput(context_index);
+  StoreSlot(SlotFor(kContextRegister));
+
+  i->LoadInput(function_index);
+  i->LoadInput(argc_index);
+  Body().CallSymbol(kWasmRuntimeCallHelperSymbol);
+  if (instr->OutputCount() > 0) {
+    StoreSlot(SlotForAllocatedOperand(instr->OutputAt(0)));
+  } else {
+    Body().Opcode(wasm32::WasmOpcode::kDrop);
+  }
+  for (size_t index = 1; index < instr->OutputCount(); ++index) {
+    EmitI32Const(0);
+    StoreSlot(SlotForAllocatedOperand(instr->OutputAt(index)));
+  }
   return true;
 }
 
@@ -339,6 +477,11 @@ void EmitOperandValue(CodeGenerator* gen, InstructionOperand* operand) {
   InstructionOperandConverter g(gen, nullptr);
   if (operand->IsImmediate() || operand->IsConstant()) {
     Constant constant = g.ToConstant(operand);
+    if (constant.type() == Constant::kHeapObject ||
+        constant.type() == Constant::kCompressedHeapObject) {
+      EmitHeapObjectConstant(gen->isolate(), constant.ToHeapObject());
+      return;
+    }
     EmitI32Const(BridgeConstantToI32(constant));
     return;
   }
@@ -458,6 +601,10 @@ CodeGenerator::CodeGenResult CodeGenerator::AssembleArchInstruction(
       i.LoadInput(0);
       StoreSlot(FrameOffsetToSlot(i.InputInt32(1)));
       return kSuccess;
+    case kWasm32StoreOutgoingSlot:
+      i.LoadInput(0);
+      StoreSlot(OutgoingArgOffsetToSlot(i.InputInt32(1)));
+      return kSuccess;
     case kWasm32LoadMem8S:
       EmitI32Load(&i, instr, wasm32::WasmOpcode::kI32Load8S, 0);
       return kSuccess;
@@ -565,6 +712,7 @@ CodeGenerator::CodeGenResult CodeGenerator::AssembleArchInstruction(
       FATAL("wasm32 s128.zero emission is not implemented yet");
     case kArchCallCodeObject:
       if (TryEmitCodeObjectBuiltinCall(&i, instr)) return kSuccess;
+      if (TryEmitRuntimeCEntryCall(&i, instr)) return kSuccess;
       EmitZeroOutputs(instr);
       return kSuccess;
     case kArchCallJSFunction:
@@ -587,8 +735,11 @@ CodeGenerator::CodeGenResult CodeGenerator::AssembleArchInstruction(
     case kArchRet:
       Body().Return();
       return kSuccess;
-    case kArchFramePointer:
     case kArchParentFramePointer:
+    case kArchFramePointer:
+      LoadAddressSymbol(kWasmCurrentFramePointerSymbol);
+      StoreSlot(i.OutputSlot());
+      return kSuccess;
 #if V8_ENABLE_WEBASSEMBLY
     case kArchStackPointer:
 #endif  // V8_ENABLE_WEBASSEMBLY

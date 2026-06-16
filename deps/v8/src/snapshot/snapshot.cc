@@ -684,6 +684,10 @@ bool Snapshot::ExtractRehashability(const v8::StartupData* data) {
 // static
 uint32_t Snapshot::ExtractReadOnlySnapshotChecksum(
     const v8::StartupData* data) {
+  if (data == nullptr || data->data == nullptr ||
+      data->raw_size <= SnapshotImpl::kReadOnlySnapshotChecksumOffset) {
+    return 0;
+  }
   return SnapshotImpl::GetHeaderValue(
       data, SnapshotImpl::kReadOnlySnapshotChecksumOffset);
 }

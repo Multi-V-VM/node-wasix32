@@ -11,6 +11,9 @@ namespace v8 {
 namespace internal {
 
 extern "C" Address g_wasm_regs[kWasmRegFileSize] = {0};
+extern "C" Address g_wasm_interpreter_frame[kWasmInterpreterFrameSlots] = {0};
+extern "C" Address g_wasm_current_frame_pointer = 0;
+extern "C" int g_wasm_trace_memory = 0;
 
 namespace {
 std::array<void*, Builtins::kBuiltinCount>& Table() {
@@ -27,10 +30,13 @@ void EnsureRegistered() {
 }  // namespace
 
 void RegisterWasmBuiltin(Builtin builtin, void* fnptr) {
-  Table()[Builtins::ToInt(builtin)] = fnptr;
+  int id = Builtins::ToInt(builtin);
+  if (id < 0 || id >= Builtins::kBuiltinCount) return;
+  Table()[id] = fnptr;
 }
 
 extern "C" void RegisterWasmBuiltinById(int builtin_id, void* fnptr) {
+  if (builtin_id < 0 || builtin_id >= Builtins::kBuiltinCount) return;
   RegisterWasmBuiltin(Builtins::FromInt(builtin_id), fnptr);
 }
 

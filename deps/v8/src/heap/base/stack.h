@@ -66,15 +66,27 @@ class V8_EXPORT_PRIVATE Stack final {
   // current stack top and invoke the callback.
   template <typename Callback>
   V8_INLINE void SetMarkerAndCallback(Callback callback) {
+#if V8_TARGET_ARCH_WASM32
+    SetMarkerAndCallbackImpl<Callback>(
+        this, static_cast<void*>(&callback),
+        ::v8::base::Stack::GetCurrentStackPosition());
+#else
     TrampolineCallbackHelper(static_cast<void*>(&callback),
                              &SetMarkerAndCallbackImpl<Callback>);
+#endif
   }
 
   template <typename Callback>
   V8_INLINE void SetMarkerIfNeededAndCallback(Callback callback) {
     if (!IsMarkerSet()) {
+#if V8_TARGET_ARCH_WASM32
+      SetMarkerAndCallbackImpl<Callback>(
+          this, static_cast<void*>(&callback),
+          ::v8::base::Stack::GetCurrentStackPosition());
+#else
       TrampolineCallbackHelper(static_cast<void*>(&callback),
                                &SetMarkerAndCallbackImpl<Callback>);
+#endif
     } else {
       DCHECK(IsOnCurrentStack(current_segment_.top));
       callback();
@@ -87,9 +99,15 @@ class V8_EXPORT_PRIVATE Stack final {
   V8_INLINE void SetMarkerForBackgroundThreadAndCallback(ThreadId thread,
                                                          Callback callback) {
     std::pair<ThreadId, Callback*> info{thread, &callback};
+#if V8_TARGET_ARCH_WASM32
+    SetMarkerForBackgroundThreadAndCallbackImpl<Callback>(
+        this, static_cast<void*>(&info),
+        ::v8::base::Stack::GetCurrentStackPosition());
+#else
     TrampolineCallbackHelper(
         static_cast<void*>(&info),
         &SetMarkerForBackgroundThreadAndCallbackImpl<Callback>);
+#endif
   }
 
   using IterateStackCallback = void (*)(Stack*, void*, const void*);
