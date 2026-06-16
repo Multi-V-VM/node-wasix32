@@ -17,7 +17,7 @@ namespace internal {
 class LiteralBuffer final {
  public:
   LiteralBuffer() = default;
-  ~LiteralBuffer() = default;
+  ~LiteralBuffer() { backing_store_.Dispose(); }
 
   LiteralBuffer(const LiteralBuffer&) = delete;
   LiteralBuffer& operator=(const LiteralBuffer&) = delete;

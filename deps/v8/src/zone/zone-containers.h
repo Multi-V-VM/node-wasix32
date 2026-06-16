@@ -7,6 +7,7 @@
 
 #include <deque>
 #include <cstring>
+#include <stdio.h>
 #include <new>
 #include <forward_list>
 #include <initializer_list>
@@ -114,7 +115,31 @@ class ZoneVector {
   // returned ZoneVector is a non-owning view that should be paired with
   // DeleteArray(ptr) by the caller when finished.
   static ZoneVector<T> New(size_t length) {
+#if V8_TARGET_ARCH_WASM32
+    static int trace_count = 0;
+    if constexpr (sizeof(T) == 1) {
+      if (trace_count < 128) {
+        fprintf(stderr,
+                "ZoneVector::New enter len=%zu bytes=%zu mem_pages=%lu\n",
+                length, length * sizeof(T),
+                static_cast<unsigned long>(__builtin_wasm_memory_size(0)));
+        fflush(stderr);
+      }
+      ++trace_count;
+    }
+#endif
     T* buffer = NewArray<T>(length);
+#if V8_TARGET_ARCH_WASM32
+    if constexpr (sizeof(T) == 1) {
+      if (trace_count <= 128) {
+        fprintf(stderr,
+                "ZoneVector::New exit len=%zu buffer=%p mem_pages=%lu\n",
+                length, static_cast<void*>(buffer),
+                static_cast<unsigned long>(__builtin_wasm_memory_size(0)));
+        fflush(stderr);
+      }
+    }
+#endif
     return ZoneVector<T>(buffer, length);
   }
 

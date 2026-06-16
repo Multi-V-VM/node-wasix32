@@ -43,16 +43,28 @@ void LiteralBuffer::ExpandBuffer() {
   if (trace_count < 64 || position_ > min_capacity) {
     fprintf(stderr,
             "LiteralBuffer::ExpandBuffer this=%p pos=%d size=%zu "
-            "min=%d new=%d begin=%p one_byte=%d mem_pages=%u\n",
+            "min=%d new=%d begin=%p one_byte=%d mem_pages=%lu\n",
             static_cast<void*>(this), position_, backing_store_.size(),
             min_capacity, new_capacity,
             static_cast<void*>(backing_store_.begin()), is_one_byte_,
-            __builtin_wasm_memory_size(0));
+            static_cast<unsigned long>(__builtin_wasm_memory_size(0)));
     fflush(stderr);
   }
   ++trace_count;
 #endif
   ZoneVector<uint8_t> new_store = ZoneVector<uint8_t>::New(new_capacity);
+#if V8_TARGET_ARCH_WASM32
+  if (trace_count <= 64 || position_ > min_capacity) {
+    fprintf(stderr,
+            "LiteralBuffer::ExpandBuffer allocated this=%p new_begin=%p "
+            "new_size=%zu pos=%d old_begin=%p mem_pages=%lu\n",
+            static_cast<void*>(this), static_cast<void*>(new_store.begin()),
+            new_store.size(), position_,
+            static_cast<void*>(backing_store_.begin()),
+            static_cast<unsigned long>(__builtin_wasm_memory_size(0)));
+    fflush(stderr);
+  }
+#endif
   if (position_ > 0) {
 #if V8_TARGET_ARCH_WASM32
     if (position_ > new_capacity) {
@@ -68,7 +80,7 @@ void LiteralBuffer::ExpandBuffer() {
     MemCopy(new_store.begin(), backing_store_.begin(), position_);
   }
   backing_store_.Dispose();
-  backing_store_ = new_store;
+  backing_store_ = std::move(new_store);
 }
 
 void LiteralBuffer::ConvertToTwoByte() {
@@ -80,7 +92,8 @@ void LiteralBuffer::ConvertToTwoByte() {
     // as the code unit about to be stored.
     new_store = ZoneVector<uint8_t>::New(NewCapacity(new_content_size));
   } else {
-    new_store = backing_store_;
+    new_store = ZoneVector<uint8_t>(backing_store_.begin(),
+                                    backing_store_.size());
   }
   uint8_t* src = backing_store_.begin();
   uint16_t* dst = reinterpret_cast<uint16_t*>(new_store.begin());
@@ -89,7 +102,7 @@ void LiteralBuffer::ConvertToTwoByte() {
   }
   if (new_store.begin() != backing_store_.begin()) {
     backing_store_.Dispose();
-    backing_store_ = new_store;
+    backing_store_ = std::move(new_store);
   }
   position_ = new_content_size;
   is_one_byte_ = false;
