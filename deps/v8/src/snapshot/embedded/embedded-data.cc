@@ -7,6 +7,9 @@
 
 #include "src/snapshot/embedded/embedded-data.h"
 
+#if V8_TARGET_ARCH_WASM32
+#include "src/builtins/wasm32/builtins-wasm32-abi.h"
+#endif
 #include "src/codegen/assembler-inl.h"
 #include "src/codegen/callable.h"
 #include "src/codegen/flush-instruction-cache.h"
@@ -361,6 +364,11 @@ EmbeddedData EmbeddedData::NewFromIsolate(Isolate* isolate) {
     uint8_t* dst = raw_metadata_start + offset;
     DCHECK_LE(RawMetadataOffset() + offset + code->metadata_size(),
               blob_data_size);
+#if V8_TARGET_ARCH_WASM32
+    if (WasmBuiltinFuncref(builtin) != nullptr) {
+      continue;
+    }
+#endif
     std::memcpy(dst, reinterpret_cast<uint8_t*>(code->metadata_start()),
                 code->metadata_size());
   }
@@ -379,6 +387,11 @@ EmbeddedData EmbeddedData::NewFromIsolate(Isolate* isolate) {
     uint8_t* dst = raw_code_start + offset;
     DCHECK_LE(RawCodeOffset() + offset + code->instruction_size(),
               blob_code_size);
+#if V8_TARGET_ARCH_WASM32
+    if (WasmBuiltinFuncref(builtin) != nullptr) {
+      continue;
+    }
+#endif
     std::memcpy(dst, reinterpret_cast<uint8_t*>(code->instruction_start()),
                 code->instruction_size());
   }

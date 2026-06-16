@@ -7,6 +7,7 @@
 
 #include <limits>
 
+#include "src/base/container-utils.h"
 #include "src/base/logging.h"
 #include "src/base/vector.h"
 #include "src/compiler/turboshaft/operations.h"

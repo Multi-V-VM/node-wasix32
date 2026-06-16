@@ -345,6 +345,10 @@ v8::MaybeLocal<v8::Value> StartExecution(Environment* env,
                                          StartExecutionCallback cb = nullptr);
 v8::MaybeLocal<v8::Object> GetPerContextExports(
     v8::Local<v8::Context> context, IsolateData* isolate_data = nullptr);
+#ifdef __wasi__
+v8::MaybeLocal<v8::Object> GetPerContextPrimordialsForWasi(
+    v8::Local<v8::Context> context);
+#endif
 void MarkBootstrapComplete(const v8::FunctionCallbackInfo<v8::Value>& args);
 
 class InitializationResultImpl final : public InitializationResult {

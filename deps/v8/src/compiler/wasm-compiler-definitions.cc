@@ -14,10 +14,9 @@
 
 namespace v8::internal::compiler {
 
-Vector<const char> GetDebugName(Zone* zone,
-                                      const wasm::WasmModule* module,
-                                      const wasm::WireBytesStorage* wire_bytes,
-                                      int index) {
+ZoneVector<const char> GetDebugName(
+    Zone* zone, const wasm::WasmModule* module,
+    const wasm::WireBytesStorage* wire_bytes, int index) {
   std::optional<wasm::ModuleWireBytes> module_bytes =
       wire_bytes->GetModuleBytes();
   if (module_bytes.has_value() &&
@@ -33,7 +32,7 @@ Vector<const char> GetDebugName(Zone* zone,
       int name_len = name.length();
       char* index_name = zone->AllocateArray<char>(name_len);
       memcpy(index_name, module_bytes->start() + name.offset(), name_len);
-      return ::v8::base::Vector<const char>(index_name, name_len);
+      return ZoneVector<const char>(index_name, name_len);
     }
   }
 
@@ -45,7 +44,7 @@ Vector<const char> GetDebugName(Zone* zone,
 
   char* index_name = zone->AllocateArray<char>(name_len);
   memcpy(index_name, name_vector.begin(), name_len);
-  return ::v8::base::Vector<const char>(index_name, name_len);
+  return ZoneVector<const char>(index_name, name_len);
 }
 
 // General code uses the above configuration data.

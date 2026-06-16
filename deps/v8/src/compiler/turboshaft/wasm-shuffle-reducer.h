@@ -24,7 +24,7 @@ namespace v8::internal::compiler::turboshaft {
 
 #include "src/compiler/turboshaft/define-assembler-macros.inc"
 
-using SmallShuffleVector = SmallVector<const Simd128ShuffleOp*, 8>;
+using SmallShuffleVector = SmallZoneVector<const Simd128ShuffleOp*, 8>;
 
 // The aim of this reducer is to reduce the size of shuffles, by looking at
 // what elements are required and we do this by looking at their users:

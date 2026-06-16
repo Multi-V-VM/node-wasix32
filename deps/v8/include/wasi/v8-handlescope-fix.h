@@ -75,17 +75,12 @@ class EscapableHandleScope : public EscapableHandleScopeBase {
 
   template <class T>
   Local<T> Escape(Local<T> value) {
-    ::v8::internal::Address* slot = EscapeSlot(
-        reinterpret_cast<::v8::internal::Address*>(*value));
-    return Local<T>(reinterpret_cast<T*>(slot));
+    return value;
   }
 
   template <class T>
   MaybeLocal<T> EscapeMaybe(MaybeLocal<T> value) {
-    if (value.IsEmpty()) return MaybeLocal<T>();
-    Local<T> local;
-    if (value.ToLocal(&local)) return MaybeLocal<T>(Escape(local));
-    return MaybeLocal<T>();
+    return value;
   }
 };
 

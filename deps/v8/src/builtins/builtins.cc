@@ -8,6 +8,9 @@
 #include "src/builtins/builtins-descriptors.h"
 #include "src/builtins/builtins-inl.h"
 #include "src/builtins/data-view-ops.h"
+#ifdef __wasi__
+#include "src/builtins/wasm32/builtins-wasm32-abi.h"
+#endif
 #include "src/codegen/assembler-inl.h"
 #include "src/codegen/callable.h"
 #include "src/codegen/macro-assembler-inl.h"
@@ -384,8 +387,13 @@ void Builtins::InitializeIsolateDataTables(Isolate* isolate) {
   for (Builtin i = Builtins::kFirst; i <= Builtins::kLast; ++i) {
     DCHECK(Builtins::IsBuiltinId(isolate->builtins()->code(i)->builtin_id()));
     DCHECK(!isolate->builtins()->code(i)->has_instruction_stream());
+#ifdef __wasi__
+    isolate_data->builtin_entry_table()[ToInt(i)] =
+        WasmBuiltinEntryOr(i, embedded_data.InstructionStartOf(i));
+#else
     isolate_data->builtin_entry_table()[ToInt(i)] =
         embedded_data.InstructionStartOf(i);
+#endif
   }
 
   // T0 tables.

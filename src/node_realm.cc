@@ -64,14 +64,30 @@ void Realm::CreateProperties() {
   Local<Context> ctx = context();
 
   // Store primordials setup by the per-context script in the environment.
+#ifdef __wasi__
+  GetPerContextExports(ctx, env_->isolate_data()).ToLocalChecked();
+  Local<Object> primordials =
+      GetPerContextPrimordialsForWasi(ctx).ToLocalChecked();
+#else
   Local<Object> per_context_bindings =
       GetPerContextExports(ctx, env_->isolate_data()).ToLocalChecked();
   Local<Value> primordials =
       per_context_bindings->Get(ctx, env_->primordials_string())
           .ToLocalChecked();
   CHECK(primordials->IsObject());
+#endif
   set_primordials(primordials.As<Object>());
 
+#ifdef __wasi__
+#define V(EnvPropertyName)                                                     \
+  set_##EnvPropertyName(Object::New(isolate()))
+
+  V(primordials_safe_map_prototype_object);
+  V(primordials_safe_set_prototype_object);
+  V(primordials_safe_weak_map_prototype_object);
+  V(primordials_safe_weak_set_prototype_object);
+#undef V
+#else
   Local<String> prototype_string =
       FIXED_ONE_BYTE_STRING(isolate(), "prototype");
 
@@ -94,6 +110,7 @@ void Realm::CreateProperties() {
   V(primordials_safe_weak_map_prototype_object, "SafeWeakMap");
   V(primordials_safe_weak_set_prototype_object, "SafeWeakSet");
 #undef V
+#endif
 
   // TODO(legendecas): some methods probably doesn't need to be created with
   // process. Distinguish them and create process object only in the principal
@@ -198,6 +215,10 @@ MaybeLocal<Value> Realm::RunBootstrapping() {
 
   CHECK(!has_run_bootstrapping_code());
 
+#ifdef __wasi__
+  DoneBootstrapping();
+  return scope.Escape(v8::Undefined(isolate_));
+#else
   Local<Value> result;
   if (!ExecuteBootstrapper("internal/bootstrap/realm").ToLocal(&result) ||
       !BootstrapRealm().ToLocal(&result)) {
@@ -207,6 +228,7 @@ MaybeLocal<Value> Realm::RunBootstrapping() {
   DoneBootstrapping();
 
   return scope.Escape(result);
+#endif
 }
 
 void Realm::DoneBootstrapping() {

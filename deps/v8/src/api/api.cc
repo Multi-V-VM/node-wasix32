@@ -715,12 +715,6 @@ i::Address* Eternalize(Isolate* v8_isolate, Value* value) {
   }
 #endif
   auto result = i_isolate->eternal_handles()->Get(index).location();
-#ifdef __wasi__
-  fprintf(stderr, "Eternalize: value=%p, object=0x%x, index=%d, location=%p, *location=0x%x\n",
-          (void*)value, (unsigned)object.ptr(), index,
-          (void*)result, result ? (unsigned)*result : 0);
-  fflush(stderr);
-#endif
   return result;
 }
 
@@ -2665,11 +2659,18 @@ V8_WARN_UNUSED_RESULT MaybeLocal<Function> ScriptCompiler::CompileFunction(
            i_isolate, Utils::OpenHandle(*source->source_string), context,
            script_details, cached_data.get(), options, no_cache_reason)
            .ToHandle(&result);
+  if (!has_exception) {
+    i::Tagged<i::JSFunction> function = *result;
+    i::PrintF("ScriptCompiler::CompileFunction result=0x%x is_js=%d\n",
+              static_cast<unsigned>(function.ptr()), i::IsJSFunction(function));
+  }
   if (options & kConsumeCodeCache) {
     source->cached_data->rejected = cached_data->rejected();
   }
   RETURN_ON_FAILED_EXECUTION(Function);
-  return handle_scope.Escape(Utils::CallableToLocal(result));
+  Local<Function> api_result = Utils::CallableToLocal(result);
+  i::PrintF("ScriptCompiler::CompileFunction api_result=%p\n", *api_result);
+  return handle_scope.Escape(api_result);
 }
 
 void ScriptCompiler::ScriptStreamingTask::Run() { data_->task->Run(); }
@@ -5465,12 +5466,40 @@ bool v8::Object::IsUndetectable() const {
 }
 
 namespace {
-Vector<i::DirectHandle<i::Object>> PrepareArguments(int argc,
-                                                          Local<Value> argv[]) {
-  static_assert(sizeof(v8::Local<v8::Value>) ==
-                sizeof(i::DirectHandle<i::Object>));
-  return {reinterpret_cast<i::DirectHandle<i::Object>*>(argv),
-          static_cast<size_t>(argc)};
+class PreparedArguments {
+ public:
+  PreparedArguments(int argc, Local<Value> argv[]) {
+#if V8_TARGET_ARCH_WASM32
+    args_.reserve(argc);
+    for (int i = 0; i < argc; ++i) {
+      args_.push_back(Utils::OpenDirectHandle(*argv[i]));
+    }
+#else
+    static_assert(sizeof(v8::Local<v8::Value>) ==
+                  sizeof(i::DirectHandle<i::Object>));
+    args_ = {reinterpret_cast<i::DirectHandle<i::Object>*>(argv),
+             static_cast<size_t>(argc)};
+#endif
+  }
+
+  i::ZoneVector<const i::DirectHandle<i::Object>> as_vector() const {
+#if V8_TARGET_ARCH_WASM32
+    return {args_.data(), args_.size()};
+#else
+    return args_;
+#endif
+  }
+
+ private:
+#if V8_TARGET_ARCH_WASM32
+  std::vector<i::DirectHandle<i::Object>> args_;
+#else
+  Vector<i::DirectHandle<i::Object>> args_;
+#endif
+};
+
+PreparedArguments PrepareArguments(int argc, Local<Value> argv[]) {
+  return PreparedArguments(argc, argv);
 }
 }  // namespace
 
@@ -5488,7 +5517,7 @@ MaybeLocal<Value> Object::CallAsFunction(Local<Context> context,
   auto args = PrepareArguments(argc, argv);
   Local<Value> result;
   has_exception = !ToLocal<Value>(
-      i::Execution::Call(i_isolate, self, recv_obj, args), &result);
+      i::Execution::Call(i_isolate, self, recv_obj, args.as_vector()), &result);
   RETURN_ON_FAILED_EXECUTION(Value);
   RETURN_ESCAPED(result);
 }
@@ -5506,7 +5535,8 @@ MaybeLocal<Value> Object::CallAsConstructor(Local<Context> context, int argc,
   auto args = PrepareArguments(argc, argv);
   Local<Value> result;
   has_exception =
-      !ToLocal<Value>(i::Execution::New(i_isolate, self, self, args), &result);
+      !ToLocal<Value>(i::Execution::New(i_isolate, self, self, args.as_vector()),
+                      &result);
   RETURN_ON_FAILED_EXECUTION(Value);
   RETURN_ESCAPED(result);
 }
@@ -5558,7 +5588,8 @@ MaybeLocal<Object> Function::NewInstanceWithSideEffectType(
   auto args = PrepareArguments(argc, argv);
   Local<Object> result;
   has_exception =
-      !ToLocal<Object>(i::Execution::New(i_isolate, self, self, args), &result);
+      !ToLocal<Object>(i::Execution::New(i_isolate, self, self, args.as_vector()),
+                       &result);
   RETURN_ON_FAILED_EXECUTION(Object);
   RETURN_ESCAPED(result);
 }
@@ -5580,7 +5611,7 @@ MaybeLocal<v8::Value> Function::Call(v8::Isolate* isolate,
   auto args = PrepareArguments(argc, argv);
   Local<Value> result;
   has_exception = !ToLocal<Value>(
-      i::Execution::Call(i_isolate, self, recv_obj, args), &result);
+      i::Execution::Call(i_isolate, self, recv_obj, args.as_vector()), &result);
   RETURN_ON_FAILED_EXECUTION(Value);
   RETURN_ESCAPED(result);
 }

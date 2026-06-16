@@ -4,6 +4,7 @@
 
 #include "src/compiler/turboshaft/late-load-elimination-reducer.h"
 
+#include "src/base/container-utils.h"
 #include "src/compiler/backend/instruction.h"
 #include "src/compiler/js-heap-broker.h"
 #include "src/compiler/turboshaft/operation-matcher.h"

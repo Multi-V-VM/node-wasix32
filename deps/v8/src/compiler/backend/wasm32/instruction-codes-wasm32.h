@@ -13,21 +13,50 @@ namespace compiler {
 // WASM32 uses a minimal set since it compiles to WebAssembly, not native code.
 
 #define TARGET_ARCH_OPCODE_LIST(V) \
+  V(Wasm32Nop)                     \
+  V(Wasm32I32Const)                \
+  V(Wasm32LoadRoot)                \
+  V(Wasm32LoadSlot)                \
+  V(Wasm32StoreSlot)               \
+  V(Wasm32StoreOutgoingSlot)       \
+  V(Wasm32LoadMem8S)               \
+  V(Wasm32LoadMem8U)               \
+  V(Wasm32LoadMem16S)              \
+  V(Wasm32LoadMem16U)              \
+  V(Wasm32LoadMem32)               \
+  V(LoadI32)                       \
+  V(LoadF64)                       \
+  V(Wasm32StoreMem8)               \
+  V(Wasm32StoreMem16)              \
+  V(Wasm32StoreMem32)              \
+  V(StoreI32)                      \
+  V(StoreF64)                      \
   V(Wasm32Add)                     \
   V(Wasm32Sub)                     \
   V(Wasm32Mul)                     \
+  V(Int32DivS)                     \
+  V(Int32DivU)                     \
+  V(Int32ModS)                     \
+  V(Int32ModU)                     \
   V(Wasm32And)                     \
   V(Wasm32Or)                      \
   V(Wasm32Xor)                     \
   V(Wasm32Shl)                     \
-  V(Wasm32Shr)                     \
-  V(Wasm32Sar)                     \
-  V(Wasm32Cmp)                     \
-  V(Wasm32Test)                    \
-  V(Wasm32Mov)                     \
-  V(Wasm32Load)                    \
-  V(Wasm32Store)                   \
-  V(Wasm32Call)                    \
+  V(Wasm32ShrU)                    \
+  V(Wasm32ShrS)                    \
+  V(Wasm32Eq)                      \
+  V(Wasm32Ne)                      \
+  V(Wasm32LtS)                     \
+  V(Wasm32LtU)                     \
+  V(Wasm32LeS)                     \
+  V(Wasm32LeU)                     \
+  V(Wasm32GtS)                     \
+  V(Wasm32GtU)                     \
+  V(Wasm32GeS)                     \
+  V(Wasm32GeU)                     \
+  V(S128Zero)                      \
+  V(Wasm32CallBuiltin)             \
+  V(Wasm32CallRuntime)             \
   V(Wasm32Return)
 
 // Addressing modes

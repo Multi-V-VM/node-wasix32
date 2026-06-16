@@ -5190,6 +5190,14 @@ if (v8_current_cpu == "x86") {
     "src/compiler/backend/ia32/instruction-scheduler-ia32.cc",
     "src/compiler/backend/ia32/instruction-selector-ia32.cc",
   ]
+} else if (v8_current_cpu == "wasm32") {
+  v8_compiler_sources += [
+    "src/compiler/backend/wasm32/code-generator-wasm32.cc",
+    "src/compiler/backend/wasm32/instruction-scheduler-wasm32.cc",
+    "src/compiler/backend/wasm32/instruction-selector-wasm32.cc",
+    "src/codegen/wasm32/wasm32-builtin-module.cc",
+    "src/codegen/wasm32/wasm32-encoder.cc",
+  ]
 } else if (v8_current_cpu == "x64") {
   v8_compiler_sources += [
     ### gcmole(x64) ###

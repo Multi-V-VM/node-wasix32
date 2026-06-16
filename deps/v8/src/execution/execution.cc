@@ -5,6 +5,8 @@
 #include "src/execution/execution.h"
 
 #include "src/api/api-inl.h"
+#include "src/base/debug/stack_trace.h"
+#include "src/base/logging.h"
 #include "src/debug/debug.h"
 #include "src/execution/frames.h"
 #include "src/execution/isolate-inl.h"
@@ -416,7 +418,27 @@ V8_WARN_UNUSED_RESULT MaybeHandle<Object> Invoke(Isolate* isolate,
       Address recv = (*params.receiver).ptr();
 
       int argc = static_cast<int>(params.args.size());
-#ifdef V8_ENABLE_DIRECT_HANDLE
+      Tagged<Object> invoke_target = *params.target;
+      int target_is_heap = IsHeapObject(invoke_target);
+      int target_instance_type = -1;
+      if (target_is_heap) {
+        target_instance_type =
+            Cast<HeapObject>(invoke_target)->map()->instance_type();
+      }
+      PrintF("Invoke: new_target=0x%x target=0x%x receiver=0x%x argc=%d "
+             "target_is_js=%d target_is_heap=%d target_type=%d\n",
+             static_cast<unsigned>(orig_func), static_cast<unsigned>(func),
+             static_cast<unsigned>(recv), argc, IsJSFunction(invoke_target),
+             target_is_heap, target_instance_type);
+#if V8_TARGET_ARCH_WASM32
+      std::vector<Address> wasm_args(argc);
+      std::vector<Address*> wasm_argv(argc);
+      for (int i = 0; i < argc; ++i) {
+        wasm_args[i] = (*params.args[i]).ptr();
+        wasm_argv[i] = &wasm_args[i];
+      }
+      Address** argv = wasm_argv.data();
+#elif defined(V8_ENABLE_DIRECT_HANDLE)
       // TODO(42203211): Store the arguments to indirect handles because
       // generated code still expects them in indirect handles. A fresh handle
       // scope is introduced for these handles, which is then sealed. When this
@@ -527,6 +549,12 @@ MaybeHandle<Object> Execution::Call(
   // Use Execution::CallScript instead for scripts:
   DCHECK_IMPLIES(IsJSFunction(*callable),
                  !Cast<JSFunction>(*callable)->shared()->is_script());
+  if (!IsHeapObject(*callable)) {
+    PrintF("Execution::Call: non-heap callable=0x%x argc=%d\n",
+           static_cast<unsigned>((*callable).ptr()),
+           static_cast<int>(args.size()));
+    v8::base::debug::StackTrace().Print();
+  }
   return Invoke(isolate,
                 InvokeParams::SetUpForCall(isolate, callable, receiver, args));
 }

@@ -11,6 +11,7 @@
 
 #include "src/base/vector.h"
 #include "src/common/globals.h"
+#include "src/zone/zone-containers.h"
 
 namespace v8::internal {
 class Zone;

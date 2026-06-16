@@ -4,6 +4,9 @@
 
 #include "src/snapshot/read-only-deserializer.h"
 
+#ifdef __wasi__
+#include "src/builtins/wasm32/builtins-wasm32-abi.h"
+#endif
 #include "src/handles/handles-inl.h"
 #include "src/heap/heap-inl.h"
 #include "src/heap/read-only-heap.h"
@@ -355,9 +358,16 @@ class ObjectPostProcessor final {
     // attached InstructionStream.
     DCHECK(o->is_builtin());
     DCHECK(!o->has_instruction_stream());
+#ifdef __wasi__
+    Builtin builtin = o->builtin_id();
+    Address entry = WasmBuiltinEntryOr(
+        builtin, EmbeddedData::FromBlob(isolate_).InstructionStartOf(builtin));
+    o->SetInstructionStartForOffHeapBuiltin(isolate_, entry);
+#else
     o->SetInstructionStartForOffHeapBuiltin(
         isolate_,
         EmbeddedData::FromBlob(isolate_).InstructionStartOf(o->builtin_id()));
+#endif
   }
   void PostProcessSharedFunctionInfo(Tagged<SharedFunctionInfo> o) {
     // Reset the id to avoid collisions - it must be unique in this isolate.

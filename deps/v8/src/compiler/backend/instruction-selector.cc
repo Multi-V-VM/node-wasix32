@@ -1839,7 +1839,8 @@ VISIT_UNSUPPORTED_OP(Word32PairShr)
 VISIT_UNSUPPORTED_OP(Word32PairSar)
 #endif  // V8_TARGET_ARCH_64_BIT
 
-#if !V8_TARGET_ARCH_IA32 && !V8_TARGET_ARCH_ARM && !V8_TARGET_ARCH_RISCV32
+#if !V8_TARGET_ARCH_IA32 && !V8_TARGET_ARCH_ARM && !V8_TARGET_ARCH_RISCV32 && \
+    !V8_TARGET_ARCH_WASM32
 void InstructionSelectorT::VisitWord32AtomicPairLoad(OpIndex node) {
   UNIMPLEMENTED();
 }
@@ -1880,7 +1881,8 @@ void InstructionSelectorT::VisitWord32AtomicPairCompareExchange(OpIndex node) {
 
 #if !V8_TARGET_ARCH_X64 && !V8_TARGET_ARCH_ARM64 && !V8_TARGET_ARCH_MIPS64 && \
     !V8_TARGET_ARCH_S390X && !V8_TARGET_ARCH_PPC64 &&                         \
-    !V8_TARGET_ARCH_RISCV64 && !V8_TARGET_ARCH_LOONG64
+    !V8_TARGET_ARCH_RISCV64 && !V8_TARGET_ARCH_LOONG64 &&                      \
+    !V8_TARGET_ARCH_WASM32
 
 VISIT_UNSUPPORTED_OP(Word64AtomicLoad)
 VISIT_UNSUPPORTED_OP(Word64AtomicStore)
@@ -3274,7 +3276,8 @@ void InstructionSelectorT::VisitNode(OpIndex node) {
         case multi(Kind::kEqual, Rep::Float64()):
           return VisitFloat64Equal(node);
         case multi(Kind::kEqual, Rep::Tagged()):
-          if constexpr (Is64() && !COMPRESS_POINTERS_BOOL) {
+          if constexpr (::v8::internal::compiler::Is64() &&
+                        !COMPRESS_POINTERS_BOOL) {
             return VisitWord64Equal(node);
           }
           return VisitWord32Equal(node);

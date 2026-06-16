@@ -416,7 +416,7 @@ class ExternalPointerSlot
 
   ExternalPointerTag exact_tag() const {
     DCHECK(ExactTagIsKnown());
-    return tag_range_.first();
+    return tag_range_.first;
   }
 
   ExternalPointerTagRange tag_range() const { return tag_range_; }

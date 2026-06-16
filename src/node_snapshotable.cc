@@ -1007,8 +1007,22 @@ ExitCode BuildSnapshotWithoutCodeCache(
     // example, a WeakRef may schedule an per-isolate platform task as a GC
     // root, and referencing an object in a context, causing an assertion in
     // the snapshot creator.
+#ifdef __wasi__
+    // The wasm32 generation bridge can serialize builtin bodies, but calling
+    // into JS from process beforeExit/exit still depends on runtime callback
+    // semantics that are not wired up for mksnapshot. Keep this scoped to
+    // snapshot generation and run the serialize callback directly.
+    ExitCode exit_code = ExitCode::kNoFailure;
+    {
+      HandleScope handle_scope(isolate);
+      if (env->RunSnapshotSerializeCallback().IsEmpty()) {
+        exit_code = ExitCode::kGenericUserError;
+      }
+    }
+#else
     ExitCode exit_code =
         SpinEventLoopInternal(env).FromMaybe(ExitCode::kGenericUserError);
+#endif
     if (exit_code != ExitCode::kNoFailure) {
       return exit_code;
     }
@@ -1069,6 +1083,9 @@ ExitCode SnapshotBuilder::Generate(
   }
 
   if (!WithoutCodeCache(snapshot_config)) {
+#ifdef __wasi__
+    return ExitCode::kNoFailure;
+#endif
     per_process::Debug(
         DebugCategory::CODE_CACHE,
         "---\nGenerate code cache to complement snapshot\n---\n");
@@ -1145,6 +1162,27 @@ ExitCode SnapshotBuilder::CreateSnapshot(SnapshotData* out,
       ResetContextSettingsBeforeSnapshot(main_context);
     }
 
+#ifdef __wasi__
+    // The wasm32 backend is currently a generation bridge: it can get Node/V8
+    // through metadata serialization, but V8 heap blob serialization still
+    // walks API template/callback graphs that are not safe under WASI yet.
+    // Emit a non-empty placeholder so generated node_snapshot.cc is valid;
+    // WASI runtime ignores embedded snapshots and starts in no-snapshot mode.
+    auto unquote_metadata = [](std::string value) {
+      if (value.size() >= 2 && value.front() == '"' && value.back() == '"') {
+        return value.substr(1, value.size() - 2);
+      }
+      return value;
+    };
+    out->v8_snapshot_blob_data = {new char[1]{0}, 1};
+    out->metadata = SnapshotMetadata{snapshot_type,
+                                     per_process::metadata.versions.node,
+                                     unquote_metadata(per_process::metadata.arch),
+                                     unquote_metadata(per_process::metadata.platform),
+                                     config->flags};
+    return ExitCode::kNoFailure;
+#endif
+
     // Global handles to the contexts can't be disposed before the
     // blob is created. So initialize all the contexts before adding them.
     // TODO(joyeecheung): figure out how to remove this restriction.
@@ -1163,8 +1201,12 @@ ExitCode SnapshotBuilder::CreateSnapshot(SnapshotData* out,
 
   // Must be out of HandleScope
   SnapshotCreator::FunctionCodeHandling handling =
+#ifdef __wasi__
+      SnapshotCreator::FunctionCodeHandling::kClear;
+#else
       WithoutCodeCache(*config) ? SnapshotCreator::FunctionCodeHandling::kClear
                                 : SnapshotCreator::FunctionCodeHandling::kKeep;
+#endif
   out->v8_snapshot_blob_data = creator->CreateBlob(handling);
 
   // We must be able to rehash the blob when we restore it or otherwise

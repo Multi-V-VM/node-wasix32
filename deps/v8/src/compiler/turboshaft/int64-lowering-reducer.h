@@ -314,7 +314,7 @@ class Int64LoweringReducer : public Next {
       if (index.has_value()) {
         new_index = __ Word32Add(new_index.value(), add_offset);
       } else {
-        new_index = __ Word32Constant(sizeof(int32_t));
+        new_index = __ Word32Constant(static_cast<uint32_t>(sizeof(int32_t)));
       }
     }
     return {new_index, new_offset};

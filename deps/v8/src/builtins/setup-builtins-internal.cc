@@ -1,6 +1,9 @@
 #ifdef __wasi__
 #define V8_TARGET_ARCH_WASM32 1
 #endif
+#ifdef __wasi__
+#include "src/builtins/wasm32/builtins-wasm32-abi.h"
+#endif
 // Copyright 2017 the V8 project authors. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
@@ -232,6 +235,11 @@ void CompileJSLinkageCodeStubBuiltin(Isolate* isolate, Builtin builtin,
                                      CodeAssemblerInstaller installer, int argc,
                                      const char* name, int finalize_order,
                                      BuiltinCompilationScheduler& scheduler) {
+#ifdef __wasi__
+  fprintf(stderr, "wasm32 compiling JS builtin %s (%d)\n", name,
+          Builtins::ToInt(builtin));
+  fflush(stderr);
+#endif
   // TODO(nicohartmann): Remove this once `BuildWithTurboshaftAssemblerJS` has
   // an actual use.
   USE(&BuildWithTurboshaftAssemblerJS);
@@ -271,6 +279,11 @@ void CompileCSLinkageCodeStubBuiltin(Isolate* isolate, Builtin builtin,
                                      CallDescriptors::Key interface_descriptor,
                                      const char* name, int finalize_order,
                                      BuiltinCompilationScheduler& scheduler) {
+#ifdef __wasi__
+  fprintf(stderr, "wasm32 compiling CS builtin %s (%d)\n", name,
+          Builtins::ToInt(builtin));
+  fflush(stderr);
+#endif
   // TODO(nicohartmann): Remove this once `BuildWithTurboshaftAssemblerCS` has
   // an actual use.
   USE(&BuildWithTurboshaftAssemblerCS);
@@ -289,6 +302,11 @@ void CompileBytecodeHandler(
     BuiltinCompilationScheduler& scheduler) {
   DCHECK(interpreter::Bytecodes::BytecodeHasHandler(bytecode, operand_scale));
   const char* name = Builtins::name(builtin);
+#ifdef __wasi__
+  fprintf(stderr, "wasm32 compiling BCH builtin %s (%d)\n", name,
+          Builtins::ToInt(builtin));
+  fflush(stderr);
+#endif
   auto generator = [bytecode,
                     operand_scale](compiler::CodeAssemblerState* state) {
     interpreter::GenerateBytecodeHandler(state, bytecode, operand_scale);
@@ -379,6 +397,9 @@ void SetupIsolateDelegate::ReplacePlaceholders(Isolate* isolate) {
 // static
 void SetupIsolateDelegate::SetupBuiltinsInternal(Isolate* isolate) {
   Builtins* builtins = isolate->builtins();
+#ifdef __wasi__
+  RegisterAllWasmBuiltins();
+#endif
   DCHECK(!builtins->initialized_);
 
   if (v8_flags.dump_builtins_hashes_to_file) {
@@ -512,6 +533,22 @@ void SetupIsolateDelegate::SetupBuiltinsInternal(Isolate* isolate) {
   // instruction streams for JIT page lookup, and there are no real builtin
   // references to update anyway.
   ReplacePlaceholders(isolate);
+#endif
+
+#ifdef __wasi__
+  // Override instruction_start for builtins backed by a hand-written/generated
+  // wasm function so GeneratedCode::Call's call_indirect dispatches to it.
+  for (Builtin builtin = Builtins::kFirst; builtin <= Builtins::kLast;
+       ++builtin) {
+    void* fnptr = WasmBuiltinFuncref(builtin);
+    if (fnptr == nullptr) continue;
+    Tagged<Code> code = builtins->code(builtin);
+    code->SetInstructionStartForOffHeapBuiltin(
+        isolate, reinterpret_cast<Address>(fnptr));
+    fprintf(stderr, "wasm builtin %d instruction_start=%p\n",
+            Builtins::ToInt(builtin), (void*)code->instruction_start());
+    fflush(stderr);
+  }
 #endif
 
   builtins->MarkInitialized();

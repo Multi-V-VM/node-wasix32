@@ -9,6 +9,7 @@
 #define V8_WASM32_REGISTER_DEFINED
 #define V8_WASM32_DOUBLEREGISTER_DEFINED
 
+#include "src/builtins/wasm32/builtins-wasm32-abi.h"
 #include "src/codegen/register-base.h"
 #include "src/common/globals.h"
 
@@ -113,6 +114,14 @@ class Register : public RegisterBase<Register, kRegAfterLast> {
     return 0 <= code && code < kNumRegisters;
   }
 };
+
+inline constexpr int WasmRegisterCodeToSlot(int code) {
+  return kWasmRegArg0 + code;
+}
+
+inline constexpr int WasmDoubleRegisterCodeToSlot(int code) {
+  return kWasmRegArg0 + 32 + code;
+}
 
 // Define floating point register codes
 enum FloatRegisterCode {
@@ -372,7 +381,7 @@ constexpr Register kJavaScriptCallExtraArg1Register = Register::r6();
 constexpr Register kJavaScriptCallDispatchHandleRegister = Register::r9();
 
 // Runtime call convention helpers
-constexpr Register kRuntimeCallFunctionRegister = Register::r4();
+constexpr Register kRuntimeCallFunctionRegister = Register::r3();
 constexpr Register kRuntimeCallArgCountRegister = kArgumentRegister0;
 constexpr Register kRuntimeCallArgvRegister = Register::r7();
 

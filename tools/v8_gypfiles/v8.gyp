@@ -408,9 +408,10 @@
             '<(V8_ROOT)/src/builtins/s390/builtins-s390.cc',
           ],
         }],
-        ['v8_target_arch=="wasm32"', {
+        ['v8_target_arch=="wasm32" or (v8_target_arch=="ia32" and OS=="wasi")', {
           'sources': [
             '<(V8_ROOT)/src/builtins/wasm32/builtins-wasm32.cc',
+            '<(V8_ROOT)/src/builtins/wasm32/builtins-wasm32-registry.cc',
           ],
         }],
         ['v8_enable_i18n_support==1', {
@@ -433,7 +434,7 @@
         '<(V8_ROOT)/src/init/setup-isolate-deserialize.cc',
       ],
       'conditions': [
-        ['v8_target_arch=="wasm32"', {
+        ['v8_target_arch=="wasm32" or (v8_target_arch=="ia32" and OS=="wasi")', {
           # For WASM32, use setup-isolate-full.cc which can create heap objects from scratch
           # since we don't have a compatible 32-bit snapshot.
           # Also use empty embedded blob and snapshot since x86-64 builtins won't work on WASM32.
@@ -928,9 +929,13 @@
               '<!@pymod_do_main(GN-scraper "<(V8_ROOT)/BUILD.gn"  "v8_compiler_sources =.*?v8_current_cpu == \\"x86\\".*?v8_compiler_sources \\+= ")',
             ],
           }],
-          ['v8_target_arch=="wasm32"', {
+          ['v8_target_arch=="wasm32" or (v8_target_arch=="ia32" and OS=="wasi")', {
             'sources': [
-              # WASM32 compiler sources would go here when implemented
+              '<(V8_ROOT)/src/compiler/backend/wasm32/code-generator-wasm32.cc',
+              '<(V8_ROOT)/src/compiler/backend/wasm32/instruction-scheduler-wasm32.cc',
+              '<(V8_ROOT)/src/compiler/backend/wasm32/instruction-selector-wasm32.cc',
+              '<(V8_ROOT)/src/codegen/wasm32/wasm32-builtin-module.cc',
+              '<(V8_ROOT)/src/codegen/wasm32/wasm32-encoder.cc',
             ],
           }],
           ['v8_target_arch=="x64"', {
@@ -1215,11 +1220,13 @@
             '<!@pymod_do_main(GN-scraper "<(V8_ROOT)/BUILD.gn"  "\\"v8_base_without_compiler.*?v8_enable_wasm_gdb_remote_debugging.*?v8_current_cpu == \\"x86.*?sources \\+= ")',
           ],
         }],
-        ['v8_target_arch=="wasm32"', {
+        ['v8_target_arch=="wasm32" or (v8_target_arch=="ia32" and OS=="wasi")', {
           'sources': [
             '<(V8_ROOT)/src/codegen/wasm32/assembler-wasm32.cc',
             '<(V8_ROOT)/src/codegen/wasm32/cpu-wasm32.cc',
             '<(V8_ROOT)/src/codegen/wasm32/macro-assembler-wasm32.cc',
+            '<(V8_ROOT)/src/builtins/wasm32/builtins-wasm32.cc',
+            '<(V8_ROOT)/src/builtins/wasm32/builtins-wasm32-registry.cc',
             '<(V8_ROOT)/src/deoptimizer/wasm32/deoptimizer-wasm32.cc',
             '<(V8_ROOT)/src/execution/wasm32/frame-constants-wasm32.cc',
             '<(V8_ROOT)/src/diagnostics/wasm32/disasm-wasm32.cc',
@@ -1412,10 +1419,9 @@
             'libraries': ['-latomic', ],
           },
         }],
-        ['v8_target_arch=="wasm32"', {
+        ['v8_target_arch=="wasm32" or (v8_target_arch=="ia32" and OS=="wasi")', {
           'sources': [
             '<(V8_ROOT)/src/heap/cppgc-js/cppgc-stubs.cc',
-            '<(V8_ROOT)/src/compiler/code-assembler-stubs-wasm32.cc',
           ],
           'sources!': [
             # Exclude all cppgc sources for wasm32 - they require platform-specific functionality

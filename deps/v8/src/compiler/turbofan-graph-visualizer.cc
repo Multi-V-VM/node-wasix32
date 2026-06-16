@@ -274,7 +274,8 @@ void JsonPrintAllSourceWithPositionsWasm(
     const wasm::WasmFunction& fct = module->functions[function_id];
     os << '"' << i << "\": {\"sourceId\": " << i << ", \"functionName\": \""
        << fct.func_index << "\", \"sourceName\": \"\", \"sourceText\": \"";
-    ZoneVector<const uint8_t> module_bytes{nullptr, 0};
+    ZoneVector<const uint8_t> module_bytes{
+        static_cast<const uint8_t*>(nullptr), 0};
     std::optional<wasm::ModuleWireBytes> maybe_wire_bytes =
         wire_bytes->GetModuleBytes();
     if (maybe_wire_bytes) module_bytes = maybe_wire_bytes->module_bytes();

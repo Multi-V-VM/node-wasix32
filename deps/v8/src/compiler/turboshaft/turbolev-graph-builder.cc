@@ -838,7 +838,9 @@ class GraphBuildingNodeProcessor {
     // because this mechanisms expects the CatchBlockBegin to be the 1st
     // instruction of the predecessors, and it isn't the case since the
     // predecessors are now the blocks with the tagging).
-    catch_block_begin_ = __ Phi(base::VectorOf(catch_block_begins));
+    catch_block_begin_ = __ Phi(
+        ZoneVector<V<Object>>(catch_block_begins.data(),
+                              catch_block_begins.size()));
   }
   void TagExceptionPhiInputsForBlock(Block* old_block,
                                      maglev::BasicBlock* maglev_catch_handler,

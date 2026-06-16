@@ -196,6 +196,9 @@ void SignalExit(int signo, siginfo_t* info, void* ucontext) {
 #if HAVE_INSPECTOR
 void Environment::InitializeInspector(
     std::unique_ptr<inspector::ParentInspectorHandle> parent_handle) {
+#ifdef __wasi__
+  return;
+#endif
   std::string inspector_path;
   bool is_main = !parent_handle;
   if (parent_handle) {
@@ -1311,9 +1314,11 @@ void TearDownOncePerProcess() {
   }
 
   per_process::v8_initialized = false;
+#ifndef __wasi__
   if (!(flags & ProcessInitializationFlags::kNoInitializeV8)) {
     V8::Dispose();
   }
+#endif
 
 #if NODE_USE_V8_WASM_TRAP_HANDLER && defined(_WIN32)
   if (is_wasm_trap_handler_configured.load()) {
@@ -1321,6 +1326,7 @@ void TearDownOncePerProcess() {
   }
 #endif
 
+#ifndef __wasi__
   if (!(flags & ProcessInitializationFlags::kNoInitializeNodeV8Platform)) {
     V8::DisposePlatform();
     // uv_run cannot be called from the time before the beforeExit callback
@@ -1331,6 +1337,7 @@ void TearDownOncePerProcess() {
     // will never be fully cleaned up.
     per_process::v8_platform.Dispose();
   }
+#endif
 
 #if HAVE_OPENSSL
   crypto::CleanupCachedRootCertificates();
@@ -1485,6 +1492,9 @@ bool LoadSnapshotData(const SnapshotData** snapshot_data_ptr) {
   }
 
   if (per_process::cli_options->node_snapshot) {
+#ifdef __wasi__
+    return true;
+#endif
     // If --snapshot-blob is not specified or if the SEA contains no snapshot,
     // we are reading the embedded snapshot, but we will skip it if
     // --no-node-snapshot is specified.

@@ -26,6 +26,9 @@
 #include "src/api/api-inl.h"
 #include "src/ast/ast-value-factory.h"
 #include "src/ast/scopes.h"
+#ifdef __wasi__
+#include "src/builtins/wasm32/builtins-wasm32-abi.h"
+#endif
 #include "src/base/fpu.h"
 #include "src/base/hashmap.h"
 #include "src/base/logging.h"
@@ -5094,7 +5097,12 @@ void FinalizeBuiltinCodeObjects(Isolate* isolate) {
     // Note that `old_code.instruction_start` might point to `old_code`'s
     // InstructionStream which might be GCed once we replace the old code
     // with the new code.
-    Address instruction_start = d.InstructionStartOf(builtin);
+    Address instruction_start =
+#ifdef __wasi__
+        WasmBuiltinEntryOr(builtin, d.InstructionStartOf(builtin));
+#else
+        d.InstructionStartOf(builtin);
+#endif
     DirectHandle<Code> new_code =
         isolate->factory()->NewCodeObjectForEmbeddedBuiltin(old_code,
                                                             instruction_start);

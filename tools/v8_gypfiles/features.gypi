@@ -308,7 +308,7 @@
 
     # Enable the Turbofan compiler.
     # Sets -dV8_ENABLE_TURBOFAN
-    'v8_enable_turbofan%': 0,
+    'v8_enable_turbofan%': 1,
 
     # Enable the Maglev compiler.
     # Sets -dV8_ENABLE_MAGLEV
@@ -328,11 +328,10 @@
     # Enable 256-bit long vector re-vectorization pass in WASM compilation pipeline.
     'v8_enable_wasm_simd256_revec%' : 0,
     
-    # WASM32-specific overrides: disable JIT compilers when cross-compiling
-    # to WASI. This avoids compiling Turbofan/Maglev/Sparkplug backends and
-    # their architecture-specific code paths which are not applicable to WASI
-    # and cause numerous compile-time errors.
-        'v8_enable_turbofan%': 0,
+    # WASM32-specific overrides: keep JS JIT tiers that require native machine
+    # code disabled, but allow Turbofan so CSA/Torque builtins can be lowered by
+    # the wasm32 backend.
+        'v8_enable_turbofan%': 1,
         'v8_enable_maglev%': 0,
         'v8_enable_sparkplug%': 0,
     

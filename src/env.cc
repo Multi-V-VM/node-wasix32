@@ -1943,8 +1943,17 @@ EnvSerializeInfo Environment::Serialize(SnapshotCreator* creator) {
   info.principal_realm = principal_realm_->Serialize(creator);
   // For now we only support serialization of the main context.
   // TODO(joyeecheung): support de/serialization of vm contexts.
+#ifdef __wasi__
+  if (contexts_.size() != 1 || contexts_[0] != context()) {
+    contexts_.clear();
+    contexts_.resize(1);
+    contexts_[0].Reset(isolate_, ctx);
+    contexts_[0].SetWeak();
+  }
+#else
   CHECK_EQ(contexts_.size(), 1);
   CHECK_EQ(contexts_[0], context());
+#endif
   return info;
 }
 

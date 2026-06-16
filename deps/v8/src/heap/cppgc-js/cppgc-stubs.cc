@@ -92,6 +92,9 @@ bool Value::IsFalse() const { return false; }
 namespace internal {
 
 // HandleScopeImplementer stubs for WASM32
+__attribute__((weak)) const size_t
+    HandleScopeImplementer::kEnteredContextsOffset = 0;
+
 void HandleScopeImplementer::Iterate(RootVisitor* v) {
   // No-op for WASM32
 }
@@ -102,6 +105,11 @@ char* HandleScopeImplementer::Iterate(RootVisitor* v, char* storage) {
 
 int HandleScopeImplementer::ArchiveSpacePerThread() {
   return sizeof(HandleScopeImplementer);
+}
+
+std::unique_ptr<PersistentHandles> HandleScopeImplementer::DetachPersistent(
+    Address* first_block) {
+  return nullptr;
 }
 
 // CppHeap stub: cpp-heap.cc is excluded for wasm32 (see v8.gyp sources!) so
@@ -186,6 +194,7 @@ v8::StartupData CreateSnapshotDataBlobInternalForInspectorTest(
   return v8::StartupData{nullptr, 0};
 }
 
+#if !V8_ENABLE_TURBOFAN
 namespace compiler {
 
 // CallDescriptor stubs
@@ -275,8 +284,9 @@ wasm::WasmCompilationResult ExecuteTurboshaftWasmCompilation(
 }  // namespace turboshaft
 
 }  // namespace compiler
+#endif  // !V8_ENABLE_TURBOFAN
 
-// CodeAssembler stubs are now in src/compiler/code-assembler-stubs-wasm32.cc
+// Full compiler builds provide CodeAssembler and Turbofan/Turboshaft symbols.
 
 // CpuFeatures stub (non-inline version for linkage)
 bool CpuFeatures::SupportsWasmSimd128() {

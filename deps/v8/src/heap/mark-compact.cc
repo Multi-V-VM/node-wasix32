@@ -2929,9 +2929,16 @@ class MarkCompactCollector::FilterNonTrivialWeakRefJobItem final
 
 void MarkCompactCollector::ClearNonLiveReferences() {
   TRACE_GC(heap_->tracer(), GCTracer::Scope::MC_CLEAR);
+#if V8_TARGET_ARCH_WASM32
+#define WASM32_MC_CLEAR_TRACE(name) PrintF("wasm32 MC_CLEAR: %s\n", name)
+#else
+#define WASM32_MC_CLEAR_TRACE(name) ((void)0)
+#endif
+  WASM32_MC_CLEAR_TRACE("enter");
 
   Isolate* const isolate = heap_->isolate();
   if (isolate->OwnsStringTables()) {
+    WASM32_MC_CLEAR_TRACE("string forwarding table");
     TRACE_GC(heap_->tracer(),
              GCTracer::Scope::MC_CLEAR_STRING_FORWARDING_TABLE);
     // Clear string forwarding table. Live strings are transitioned to
@@ -2950,6 +2957,7 @@ void MarkCompactCollector::ClearNonLiveReferences() {
   }
 
   {
+    WASM32_MC_CLEAR_TRACE("topmost script context");
     // Clear Isolate::topmost_script_having_context slot if it's not alive.
     Tagged<Object> maybe_caller_context =
         isolate->topmost_script_having_context();
@@ -2960,8 +2968,28 @@ void MarkCompactCollector::ClearNonLiveReferences() {
     }
   }
 
+#if !V8_TARGET_ARCH_WASM32
   std::unique_ptr<JobHandle> clear_string_table_job_handle;
+#endif
   {
+    WASM32_MC_CLEAR_TRACE("create clear string table job");
+#if V8_TARGET_ARCH_WASM32
+    if (isolate->OwnsStringTables()) {
+      StringTable* string_table = isolate->string_table();
+      InternalizedStringTableCleaner internalized_visitor(isolate->heap());
+      string_table->DropOldData();
+      string_table->IterateElements(&internalized_visitor);
+      string_table->NotifyElementsRemoved(
+          internalized_visitor.PointersRemoved());
+    }
+    if (isolate->is_shared_space_isolate() &&
+        isolate->shared_struct_type_registry()) {
+      auto* registry = isolate->shared_struct_type_registry();
+      SharedStructTypeRegistryCleaner cleaner(isolate->heap());
+      registry->IterateElements(isolate, &cleaner);
+      registry->NotifyElementsRemoved(cleaner.ElementsRemoved());
+    }
+#else
     auto job = std::make_unique<ParallelClearingJob>(this);
     auto job_item = std::make_unique<ClearStringTableJobItem>(isolate);
     const uint64_t trace_id = job_item->trace_id();
@@ -2976,12 +3004,17 @@ void MarkCompactCollector::ClearNonLiveReferences() {
     }
     clear_string_table_job_handle = V8::GetCurrentPlatform()->CreateJob(
         TaskPriority::kUserBlocking, std::move(job));
+#endif
   }
+#if !V8_TARGET_ARCH_WASM32
   if (v8_flags.parallel_weak_ref_clearing && UseBackgroundThreadsInCycle()) {
+    WASM32_MC_CLEAR_TRACE("notify clear string table job");
     clear_string_table_job_handle->NotifyConcurrencyIncrease();
   }
+#endif
 
   {
+    WASM32_MC_CLEAR_TRACE("external string table");
     TRACE_GC(heap_->tracer(), GCTracer::Scope::MC_CLEAR_EXTERNAL_STRING_TABLE);
     ExternalStringTableCleanerVisitor<ExternalStringTableCleaningMode::kAll>
         external_visitor(heap_);
@@ -2990,6 +3023,7 @@ void MarkCompactCollector::ClearNonLiveReferences() {
   }
 
   {
+    WASM32_MC_CLEAR_TRACE("weak global handles");
     TRACE_GC(heap_->tracer(), GCTracer::Scope::MC_CLEAR_WEAK_GLOBAL_HANDLES);
     // We depend on `IterateWeakRootsForPhantomHandles()` being called before
     // `ProcessOldCodeCandidates()` in order to identify flushed bytecode in the
@@ -3008,6 +3042,7 @@ void MarkCompactCollector::ClearNonLiveReferences() {
   }
 
   {
+    WASM32_MC_CLEAR_TRACE("flushable bytecode");
     TRACE_GC(heap_->tracer(), GCTracer::Scope::MC_CLEAR_FLUSHABLE_BYTECODE);
     // `ProcessFlushedBaselineCandidates()` must be called after
     // `ProcessOldCodeCandidates()` so that we correctly set the code object on
@@ -3021,6 +3056,7 @@ void MarkCompactCollector::ClearNonLiveReferences() {
 
 #ifdef V8_ENABLE_LEAPTIERING
   {
+    WASM32_MC_CLEAR_TRACE("js dispatch table sweep");
     TRACE_GC(heap_->tracer(), GCTracer::Scope::MC_SWEEP_JS_DISPATCH_TABLE);
     JSDispatchTable* jdt = IsolateGroup::current()->js_dispatch_table();
     Tagged<Code> compile_lazy =
@@ -3056,11 +3092,13 @@ void MarkCompactCollector::ClearNonLiveReferences() {
   // TODO(olivf, 42204201): If we make the bytecode accessible from the dispatch
   // table this could also be implemented during JSDispatchTable::Sweep.
   {
+    WASM32_MC_CLEAR_TRACE("flushed js functions");
     TRACE_GC(heap_->tracer(), GCTracer::Scope::MC_CLEAR_FLUSHED_JS_FUNCTIONS);
     ClearFlushedJsFunctions();
   }
 
   {
+    WASM32_MC_CLEAR_TRACE("weak lists");
     TRACE_GC(heap_->tracer(), GCTracer::Scope::MC_CLEAR_WEAK_LISTS);
     // Process the weak references.
     MarkCompactWeakObjectRetainer mark_compact_object_retainer(heap_,
@@ -3069,6 +3107,7 @@ void MarkCompactCollector::ClearNonLiveReferences() {
   }
 
   {
+    WASM32_MC_CLEAR_TRACE("maps");
     TRACE_GC(heap_->tracer(), GCTracer::Scope::MC_CLEAR_MAPS);
     // ClearFullMapTransitions must be called before weak references are
     // cleared.
@@ -3093,8 +3132,15 @@ void MarkCompactCollector::ClearNonLiveReferences() {
   // before proceeding to the actual clearing of non-trivial weak references,
   // whereas the job for clearing trivial weak references can be joined at the
   // end of this method.
+#if !V8_TARGET_ARCH_WASM32
   std::unique_ptr<JobHandle> clear_trivial_weakrefs_job_handle;
+#endif
   {
+    WASM32_MC_CLEAR_TRACE("create clear trivial weakrefs job");
+#if V8_TARGET_ARCH_WASM32
+    ClearTrivialWeakReferences();
+    ClearTrustedWeakReferences();
+#else
     auto job = std::make_unique<ParallelClearingJob>(this);
     auto job_item = std::make_unique<ClearTrivialWeakRefJobItem>(this);
     const uint64_t trace_id = job_item->trace_id();
@@ -3103,9 +3149,16 @@ void MarkCompactCollector::ClearNonLiveReferences() {
                             TRACE_EVENT_FLAG_FLOW_OUT);
     clear_trivial_weakrefs_job_handle = V8::GetCurrentPlatform()->CreateJob(
         TaskPriority::kUserBlocking, std::move(job));
+#endif
   }
+#if !V8_TARGET_ARCH_WASM32
   std::unique_ptr<JobHandle> filter_non_trivial_weakrefs_job_handle;
+#endif
   {
+    WASM32_MC_CLEAR_TRACE("create filter non trivial weakrefs job");
+#if V8_TARGET_ARCH_WASM32
+    FilterNonTrivialWeakReferences();
+#else
     auto job = std::make_unique<ParallelClearingJob>(this);
     auto job_item = std::make_unique<FilterNonTrivialWeakRefJobItem>(this);
     const uint64_t trace_id = job_item->trace_id();
@@ -3115,14 +3168,19 @@ void MarkCompactCollector::ClearNonLiveReferences() {
     filter_non_trivial_weakrefs_job_handle =
         V8::GetCurrentPlatform()->CreateJob(TaskPriority::kUserBlocking,
                                             std::move(job));
+#endif
   }
+#if !V8_TARGET_ARCH_WASM32
   if (v8_flags.parallel_weak_ref_clearing && UseBackgroundThreadsInCycle()) {
+    WASM32_MC_CLEAR_TRACE("notify weakref jobs");
     clear_trivial_weakrefs_job_handle->NotifyConcurrencyIncrease();
     filter_non_trivial_weakrefs_job_handle->NotifyConcurrencyIncrease();
   }
+#endif
 
 #ifdef V8_COMPRESS_POINTERS
   {
+    WASM32_MC_CLEAR_TRACE("external pointer table sweep");
     TRACE_GC(heap_->tracer(), GCTracer::Scope::MC_SWEEP_EXTERNAL_POINTER_TABLE);
     // External pointer table sweeping needs to happen before evacuating live
     // objects as it may perform table compaction, which requires objects to
@@ -3146,6 +3204,7 @@ void MarkCompactCollector::ClearNonLiveReferences() {
 
 #ifdef V8_ENABLE_SANDBOX
   {
+    WASM32_MC_CLEAR_TRACE("trusted pointer table sweep");
     TRACE_GC(heap_->tracer(), GCTracer::Scope::MC_SWEEP_TRUSTED_POINTER_TABLE);
     isolate->trusted_pointer_table().Sweep(heap_->trusted_pointer_space(),
                                            isolate->counters());
@@ -3156,6 +3215,7 @@ void MarkCompactCollector::ClearNonLiveReferences() {
   }
 
   {
+    WASM32_MC_CLEAR_TRACE("code pointer table sweep");
     TRACE_GC(heap_->tracer(), GCTracer::Scope::MC_SWEEP_CODE_POINTER_TABLE);
     IsolateGroup::current()->code_pointer_table()->Sweep(
         heap_->code_pointer_space(), isolate->counters());
@@ -3164,6 +3224,7 @@ void MarkCompactCollector::ClearNonLiveReferences() {
 
 #ifdef V8_ENABLE_WEBASSEMBLY
   {
+    WASM32_MC_CLEAR_TRACE("wasm code pointer table sweep");
     TRACE_GC(heap_->tracer(),
              GCTracer::Scope::MC_SWEEP_WASM_CODE_POINTER_TABLE);
     wasm::GetProcessWideWasmCodePointerTable()->SweepSegments();
@@ -3171,12 +3232,16 @@ void MarkCompactCollector::ClearNonLiveReferences() {
 #endif  // V8_ENABLE_WEBASSEMBLY
 
   {
+    WASM32_MC_CLEAR_TRACE("join filter job");
     TRACE_GC(heap_->tracer(),
              GCTracer::Scope::MC_CLEAR_WEAK_REFERENCES_JOIN_FILTER_JOB);
+#if !V8_TARGET_ARCH_WASM32
     filter_non_trivial_weakrefs_job_handle->Join();
+#endif
   }
 
   {
+    WASM32_MC_CLEAR_TRACE("weakness handling");
     TRACE_GC(heap_->tracer(), GCTracer::Scope::MC_WEAKNESS_HANDLING);
     ClearNonTrivialWeakReferences();
     ClearWeakCollections();
@@ -3184,6 +3249,7 @@ void MarkCompactCollector::ClearNonLiveReferences() {
   }
 
   PROFILE(heap_->isolate(), WeakCodeClearEvent());
+  WASM32_MC_CLEAR_TRACE("mark dependent code");
 
   {
     // This method may be called from within a DisallowDeoptimizations scope.
@@ -3197,12 +3263,16 @@ void MarkCompactCollector::ClearNonLiveReferences() {
   }
 
   {
+    WASM32_MC_CLEAR_TRACE("join jobs");
     TRACE_GC(heap_->tracer(), GCTracer::Scope::MC_CLEAR_JOIN_JOB);
+#if !V8_TARGET_ARCH_WASM32
     clear_string_table_job_handle->Join();
     clear_trivial_weakrefs_job_handle->Join();
+#endif
   }
 
   if (v8_flags.sticky_mark_bits) {
+    WASM32_MC_CLEAR_TRACE("deactivate major gc flag");
     // TODO(333906585): Consider adjusting the dchecks that happen on clearing
     // and move this phase into MarkingBarrier::DeactivateAll.
     heap()->DeactivateMajorGCInProgressFlag();
@@ -3220,6 +3290,8 @@ void MarkCompactCollector::ClearNonLiveReferences() {
 #ifndef V8_ENABLE_LEAPTIERING
   DCHECK(weak_objects_.baseline_flushing_candidates.IsEmpty());
 #endif  // !V8_ENABLE_LEAPTIERING
+  WASM32_MC_CLEAR_TRACE("exit");
+#undef WASM32_MC_CLEAR_TRACE
 }
 
 void MarkCompactCollector::MarkDependentCodeForDeoptimization() {
@@ -4782,6 +4854,19 @@ size_t CreateAndExecuteEvacuationTasks(
   if (heap->isolate()->log_object_relocation()) {
     profiling_observer.emplace(heap);
   }
+#if V8_TARGET_ARCH_WASM32
+  Evacuator evacuator(heap);
+  if (profiling_observer) {
+    evacuator.AddObserver(&profiling_observer.value());
+  }
+  for (auto& work_item : evacuation_items) {
+    if (work_item.first.TryAcquire()) {
+      evacuator.EvacuatePage(work_item.second);
+    }
+  }
+  evacuator.Finalize();
+  return 1;
+#else
   std::vector<std::unique_ptr<v8::internal::Evacuator>> evacuators;
   const int wanted_num_tasks = NumberOfParallelCompactionTasks(heap);
   for (int i = 0; i < wanted_num_tasks; i++) {
@@ -4804,6 +4889,7 @@ size_t CreateAndExecuteEvacuationTasks(
     evacuator->Finalize();
   }
   return wanted_num_tasks;
+#endif
 }
 
 enum class MemoryReductionMode { kNone, kShouldReduceMemory };
@@ -5570,6 +5656,21 @@ void CollectRememberedSetUpdatingItems(
     }
   }
 }
+
+#if V8_TARGET_ARCH_WASM32
+template <typename IterateableSpace>
+void ProcessRememberedSetUpdatingItems(IterateableSpace* space) {
+  for (MutablePageMetadata* page : *space) {
+    // No need to update pointers on evacuation candidates. Evacuated pages will
+    // be released after this phase.
+    if (page->Chunk()->IsEvacuationCandidate()) continue;
+    if (page->ContainsAnySlots()) {
+      RememberedSetUpdatingItem item(space->heap(), page);
+      item.Process();
+    }
+  }
+}
+#endif
 }  // namespace
 
 class EphemeronTableUpdatingItem : public UpdatingItem {
@@ -5641,6 +5742,34 @@ void MarkCompactCollector::UpdatePointersAfterEvacuation() {
   {
     TRACE_GC(heap_->tracer(),
              GCTracer::Scope::MC_EVACUATE_UPDATE_POINTERS_SLOTS_MAIN);
+#if V8_TARGET_ARCH_WASM32
+    ProcessRememberedSetUpdatingItems(heap_->old_space());
+    ProcessRememberedSetUpdatingItems(heap_->code_space());
+    if (heap_->shared_space()) {
+      ProcessRememberedSetUpdatingItems(heap_->shared_space());
+    }
+    ProcessRememberedSetUpdatingItems(heap_->lo_space());
+    ProcessRememberedSetUpdatingItems(heap_->code_lo_space());
+    if (heap_->shared_lo_space()) {
+      ProcessRememberedSetUpdatingItems(heap_->shared_lo_space());
+    }
+    ProcessRememberedSetUpdatingItems(heap_->trusted_space());
+    ProcessRememberedSetUpdatingItems(heap_->trusted_lo_space());
+    if (heap_->shared_trusted_space()) {
+      ProcessRememberedSetUpdatingItems(heap_->shared_trusted_space());
+    }
+    if (heap_->shared_trusted_lo_space()) {
+      ProcessRememberedSetUpdatingItems(heap_->shared_trusted_lo_space());
+    }
+
+    // Iterating to space may require a valid body descriptor for e.g.
+    // WasmStruct which races with updating a slot in Map. Since to space is
+    // empty after a full GC, such races can't happen.
+    DCHECK_IMPLIES(heap_->new_space(), heap_->new_space()->Size() == 0);
+
+    EphemeronTableUpdatingItem ephemeron_item(heap_);
+    ephemeron_item.Process();
+#else
     std::vector<std::unique_ptr<UpdatingItem>> updating_items;
 
     CollectRememberedSetUpdatingItems(&updating_items, heap_->old_space());
@@ -5683,6 +5812,7 @@ void MarkCompactCollector::UpdatePointersAfterEvacuation() {
         ->CreateJob(v8::TaskPriority::kUserBlocking,
                     std::move(pointers_updating_job))
         ->Join();
+#endif
   }
 
   {
