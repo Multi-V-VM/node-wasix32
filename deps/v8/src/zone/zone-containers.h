@@ -99,7 +99,8 @@ class ZoneVector {
   using size_type = size_t;
 
   // Constructs an empty vector.
-  explicit ZoneVector(Zone* zone) : zone_(zone) {}
+  explicit ZoneVector(Zone* zone)
+      : zone_(zone), data_(nullptr), end_(nullptr), capacity_(nullptr) {}
 
   // Constructs a non-owning view over existing memory. The lifetime of the
   // underlying storage is managed externally. No deallocation is performed

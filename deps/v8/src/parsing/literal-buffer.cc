@@ -10,6 +10,8 @@
 #include "src/heap/factory.h"
 #include "src/utils/memcopy.h"
 
+#include <stdio.h>
+
 namespace v8 {
 namespace internal {
 
@@ -33,10 +35,36 @@ int LiteralBuffer::NewCapacity(int min_capacity) {
 }
 
 void LiteralBuffer::ExpandBuffer() {
-  int min_capacity = std::max({kInitialCapacity, static_cast<int>(backing_store_.size())});
-  ZoneVector<uint8_t> new_store =
-      ZoneVector<uint8_t>::New(NewCapacity(min_capacity));
+  int min_capacity =
+      std::max({kInitialCapacity, static_cast<int>(backing_store_.size())});
+  int new_capacity = NewCapacity(min_capacity);
+#if V8_TARGET_ARCH_WASM32
+  static int trace_count = 0;
+  if (trace_count < 64 || position_ > min_capacity) {
+    fprintf(stderr,
+            "LiteralBuffer::ExpandBuffer this=%p pos=%d size=%zu "
+            "min=%d new=%d begin=%p one_byte=%d mem_pages=%u\n",
+            static_cast<void*>(this), position_, backing_store_.size(),
+            min_capacity, new_capacity,
+            static_cast<void*>(backing_store_.begin()), is_one_byte_,
+            __builtin_wasm_memory_size(0));
+    fflush(stderr);
+  }
+  ++trace_count;
+#endif
+  ZoneVector<uint8_t> new_store = ZoneVector<uint8_t>::New(new_capacity);
   if (position_ > 0) {
+#if V8_TARGET_ARCH_WASM32
+    if (position_ > new_capacity) {
+      fprintf(stderr,
+              "LiteralBuffer::ExpandBuffer invalid copy pos=%d new=%d "
+              "old_size=%zu old_begin=%p new_begin=%p\n",
+              position_, new_capacity, backing_store_.size(),
+              static_cast<void*>(backing_store_.begin()),
+              static_cast<void*>(new_store.begin()));
+      fflush(stderr);
+    }
+#endif
     MemCopy(new_store.begin(), backing_store_.begin(), position_);
   }
   backing_store_.Dispose();

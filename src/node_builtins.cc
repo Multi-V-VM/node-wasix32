@@ -299,6 +299,10 @@ MaybeLocal<Function> BuiltinLoader::LookupAndCompileInternal(
   if (!LoadBuiltinSource(isolate, id).ToLocal(&source)) {
     return {};
   }
+  fprintf(stderr,
+          "BuiltinLoader::LookupAndCompileInternal id=%s source=%p "
+          "length=%d parameters=%zu\n",
+          id, *source, source->Length(), parameters->size());
 
   std::string filename_s = std::string("node:") + id;
   Local<String> filename = OneByteString(isolate, filename_s);
