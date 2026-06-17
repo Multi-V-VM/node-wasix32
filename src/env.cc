@@ -584,7 +584,12 @@ IsolateData::IsolateData(Isolate* isolate,
                                                 : node_allocator->GetImpl()),
       platform_(platform),
       snapshot_data_(snapshot_data),
-      options_(std::move(options)) {
+      options_(std::move(options)),
+      worker_context_(nullptr) {
+  fprintf(stderr,
+          "IsolateData::IsolateData worker_context=%p snapshot=%p\n",
+          static_cast<void*>(worker_context_),
+          static_cast<const void*>(snapshot_data_));
   uint16_t cppgc_id = kDefaultCppGCEmbedderID;
   // We do not care about overflow since we just want this to be different
   // from the cppgc id.
@@ -819,6 +824,10 @@ Environment::Environment(IsolateData* isolate_data,
       thread_id_(thread_id.id == static_cast<uint64_t>(-1)
                      ? AllocateEnvironmentThreadId().id
                      : thread_id.id) {
+  fprintf(stderr,
+          "Environment::Environment worker_context=%p flags=0x%llx\n",
+          static_cast<void*>(isolate_data->worker_context()),
+          static_cast<unsigned long long>(flags_));
   if (!is_main_thread()) {
     // If this is a Worker thread, we can always safely use the parent's
     // Isolate's code cache because of the shared read-only heap.

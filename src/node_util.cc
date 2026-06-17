@@ -459,6 +459,24 @@ void Initialize(Local<Object> target,
   Isolate* isolate = env->isolate();
 
   {
+#ifdef __wasi__
+    Local<Object> private_symbols = Object::New(isolate);
+#define V(PropertyName, _)                                                     \
+  private_symbols                                                              \
+      ->Set(context,                                                           \
+            FIXED_ONE_BYTE_STRING(env->isolate(), #PropertyName),              \
+            env->PropertyName())                                               \
+      .Check();
+
+    PER_ISOLATE_PRIVATE_SYMBOL_PROPERTIES(V)
+#undef V
+
+    target
+        ->Set(context,
+              FIXED_ONE_BYTE_STRING(isolate, "privateSymbols"),
+              private_symbols)
+        .Check();
+#else
     Local<ObjectTemplate> tmpl = ObjectTemplate::New(isolate);
 #define V(PropertyName, _)                                                     \
   tmpl->Set(FIXED_ONE_BYTE_STRING(env->isolate(), #PropertyName),              \
@@ -472,6 +490,7 @@ void Initialize(Local<Object> target,
               FIXED_ONE_BYTE_STRING(isolate, "privateSymbols"),
               tmpl->NewInstance(context).ToLocalChecked())
         .Check();
+#endif
   }
 
   {

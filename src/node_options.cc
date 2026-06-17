@@ -14,6 +14,7 @@
 #include <algorithm>
 #include <array>
 #include <charconv>
+#include <cstdio>
 #include <limits>
 #include <sstream>
 #include <string_view>
@@ -1597,6 +1598,18 @@ void GetCLIOptionsValues(const FunctionCallbackInfo<Value>& args) {
         UNREACHABLE();
     }
     CHECK(!value.IsEmpty());
+    if (item.first == "--eval" || item.first == "--print") {
+      fprintf(stderr,
+              "GetCLIOptionsValues: %s value=%p is_string=%d is_bool=%d "
+              "eval_string=\"%s\" print=%d has_eval=%d\n",
+              item.first.c_str(),
+              static_cast<void*>(*value),
+              value->IsString(),
+              value->IsBoolean(),
+              env->options()->eval_string.c_str(),
+              env->options()->print_eval,
+              env->options()->has_eval_string);
+    }
     Local<Value> name;
     if (!ToV8Value(context, item.first).ToLocal(&name)) {
       return;

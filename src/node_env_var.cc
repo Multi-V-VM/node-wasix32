@@ -5,6 +5,7 @@
 #include "node_i18n.h"
 #include "node_process-inl.h"
 
+#include <stdio.h>
 #include <time.h>  // tzset(), _tzset()
 #include <optional>
 
@@ -574,10 +575,20 @@ void CreateEnvProxyTemplate(IsolateData* isolate_data) {
   Isolate* isolate = isolate_data->isolate();
   HandleScope scope(isolate);
   if (!isolate_data->env_proxy_template().IsEmpty()) return;
+#ifdef __wasi__
+  Local<ObjectTemplate> env_proxy_template = ObjectTemplate::New(isolate);
+#else
   Local<FunctionTemplate> env_proxy_ctor_template =
       FunctionTemplate::New(isolate);
   Local<ObjectTemplate> env_proxy_template =
       ObjectTemplate::New(isolate, env_proxy_ctor_template);
+#endif
+#ifdef __wasi__
+  fprintf(stderr,
+          "CreateEnvProxyTemplate: new env_proxy_template=%p empty=%d\n",
+          static_cast<void*>(*env_proxy_template),
+          env_proxy_template.IsEmpty());
+#endif
   env_proxy_template->SetHandler(NamedPropertyHandlerConfiguration(
       EnvGetter,
       EnvSetter,
@@ -589,7 +600,17 @@ void CreateEnvProxyTemplate(IsolateData* isolate_data) {
       Local<Value>(),
       PropertyHandlerFlags::kHasNoSideEffect));
   isolate_data->set_env_proxy_template(env_proxy_template);
+#ifdef __wasi__
+  Local<ObjectTemplate> stored_env_proxy_template =
+      isolate_data->env_proxy_template();
+  fprintf(stderr,
+          "CreateEnvProxyTemplate: stored env_proxy_template=%p empty=%d\n",
+          static_cast<void*>(*stored_env_proxy_template),
+          stored_env_proxy_template.IsEmpty());
+#endif
+#ifndef __wasi__
   isolate_data->set_env_proxy_ctor_template(env_proxy_ctor_template);
+#endif
 }
 
 void RegisterEnvVarExternalReferences(ExternalReferenceRegistry* registry) {

@@ -923,6 +923,7 @@ class PersistentToLocal {
     // OOB reads (e.g. Context::Global() in Realm::CreateProperties).
     // Avoid Local::New() overload ambiguity in the WASI public handle shim:
     // PersistentBase::operator->() returns the tagged value from the slot.
+    if (persistent.IsEmpty()) return ::v8::Local<TypeName>();
     return ::v8::Local<TypeName>::FromAddress(
         reinterpret_cast<::v8::internal::Address>(persistent.operator->()));
 #else

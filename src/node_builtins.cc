@@ -794,12 +794,38 @@ void BuiltinLoader::HasCachedBuiltins(const FunctionCallbackInfo<Value>& args) {
 
 void SetInternalLoaders(const FunctionCallbackInfo<Value>& args) {
   Realm* realm = Realm::GetCurrent(args);
+#ifdef __wasi__
+  Local<Value> arg0 = args.Length() > 0 ? args[0] : Local<Value>();
+  Local<Value> arg1 = args.Length() > 1 ? args[1] : Local<Value>();
+  Local<Function> before_internal = realm->internal_binding_loader();
+  Local<Function> before_builtin = realm->builtin_module_require();
+  fprintf(stderr,
+          "SetInternalLoaders: len=%d arg0=%p is_function=%d "
+          "arg1=%p is_function=%d before_internal=%p before_builtin=%p\n",
+          args.Length(),
+          arg0.IsEmpty() ? nullptr : *arg0,
+          arg0.IsEmpty() ? 0 : arg0->IsFunction(),
+          arg1.IsEmpty() ? nullptr : *arg1,
+          arg1.IsEmpty() ? 0 : arg1->IsFunction(),
+          before_internal.IsEmpty() ? nullptr : *before_internal,
+          before_builtin.IsEmpty() ? nullptr : *before_builtin);
+  fflush(stderr);
+#endif
   CHECK(args[0]->IsFunction());
   CHECK(args[1]->IsFunction());
   DCHECK(realm->internal_binding_loader().IsEmpty());
   DCHECK(realm->builtin_module_require().IsEmpty());
   realm->set_internal_binding_loader(args[0].As<Function>());
   realm->set_builtin_module_require(args[1].As<Function>());
+#ifdef __wasi__
+  Local<Function> after_internal = realm->internal_binding_loader();
+  Local<Function> after_builtin = realm->builtin_module_require();
+  fprintf(stderr,
+          "SetInternalLoaders: after_internal=%p after_builtin=%p\n",
+          after_internal.IsEmpty() ? nullptr : *after_internal,
+          after_builtin.IsEmpty() ? nullptr : *after_builtin);
+  fflush(stderr);
+#endif
 }
 
 void BuiltinLoader::CopySourceAndCodeCacheReferenceFrom(

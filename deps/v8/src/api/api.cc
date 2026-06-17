@@ -1509,13 +1509,38 @@ void FunctionTemplate::RemovePrototype() {
 Local<ObjectTemplate> ObjectTemplate::New(
     Isolate* v8_isolate, v8::Local<FunctionTemplate> constructor) {
   auto i_isolate = reinterpret_cast<i::Isolate*>(v8_isolate);
+#ifdef __wasi__
+  fprintf(stderr,
+          "ObjectTemplate::New: enter constructor_empty=%d raw=%p\n",
+          constructor.IsEmpty(),
+          constructor.IsEmpty() ? nullptr : *constructor);
+  fflush(stderr);
+  constexpr bool do_not_cache = false;
+  i::DirectHandle<i::FunctionTemplateInfo> constructor_info;
+  if (!constructor.IsEmpty()) {
+    constructor_info = Utils::OpenDirectHandle(*constructor, true);
+  }
+  i::DirectHandle<i::ObjectTemplateInfo> obj =
+      i_isolate->factory()->NewObjectTemplateInfo(constructor_info,
+                                                  do_not_cache);
+  fprintf(stderr,
+          "ObjectTemplate::New: done obj=%p\n",
+          reinterpret_cast<void*>(obj.address()));
+  fflush(stderr);
+  return Utils::ToLocal(obj);
+#else
   API_RCS_SCOPE(i_isolate, ObjectTemplate, New);
   ENTER_V8_NO_SCRIPT_NO_EXCEPTION(i_isolate);
   constexpr bool do_not_cache = false;
+  i::DirectHandle<i::FunctionTemplateInfo> constructor_info;
+  if (!constructor.IsEmpty()) {
+    constructor_info = Utils::OpenDirectHandle(*constructor, true);
+  }
   i::DirectHandle<i::ObjectTemplateInfo> obj =
-      i_isolate->factory()->NewObjectTemplateInfo(
-          Utils::OpenDirectHandle(*constructor, true), do_not_cache);
+      i_isolate->factory()->NewObjectTemplateInfo(constructor_info,
+                                                  do_not_cache);
   return Utils::ToLocal(obj);
+#endif
 }
 
 namespace {

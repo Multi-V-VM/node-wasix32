@@ -107,6 +107,7 @@ class Local {
   }
 
   static Local<T> FromSlot(internal::Address* slot) {
+    if (slot == nullptr || *slot == 0) return Local<T>();
     return Local<T>(reinterpret_cast<T*>(*slot));
   }
 

@@ -269,7 +269,19 @@ static MaybeLocal<Value> StartExecution(Environment* env,
   CHECK_NOT_NULL(main_script_id);
   Realm* realm = env->principal_realm();
 
-  return scope.EscapeMaybe(realm->ExecuteBootstrapper(main_script_id));
+  fprintf(stderr, "StartExecution(id): id=%s\n", main_script_id);
+  Local<Value> result;
+  if (!realm->ExecuteBootstrapper(main_script_id).ToLocal(&result)) {
+    fprintf(stderr, "StartExecution(id): id=%s result=empty\n", main_script_id);
+    return MaybeLocal<Value>();
+  }
+  fprintf(stderr,
+          "StartExecution(id): id=%s result=%p is_function=%d is_object=%d\n",
+          main_script_id,
+          static_cast<void*>(*result),
+          result->IsFunction(),
+          result->IsObject());
+  return scope.Escape(result);
 }
 
 // Convert the result returned by an intermediate main script into
@@ -304,6 +316,14 @@ std::optional<StartExecutionCallbackInfo> CallbackInfoFromArray(
 }
 
 MaybeLocal<Value> StartExecution(Environment* env, StartExecutionCallback cb) {
+  fprintf(stderr,
+          "StartExecution(cb): cb=%d has_eval=%d force_repl=%d argv_size=%zu "
+          "snapshot_main_empty=%d\n",
+          cb != nullptr,
+          env->options()->has_eval_string,
+          env->options()->force_repl,
+          env->argv().size(),
+          env->snapshot_deserialize_main().IsEmpty());
   InternalCallbackScope callback_scope(env,
                                        Object::New(env->isolate()),
                                        {1, 0},
