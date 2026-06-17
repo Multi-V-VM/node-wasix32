@@ -321,6 +321,9 @@ MaybeLocal<Function> BuiltinLoader::LookupAndCompileInternal(
       cached_data = cache_it->second;
     }
   }
+#ifdef __wasi__
+  cached_data = BuiltinCodeCacheData{};
+#endif
 
   const bool has_cache = cached_data.data != nullptr;
   ScriptCompiler::CompileOptions options =
@@ -749,12 +752,37 @@ void BuiltinLoader::CompileFunction(const FunctionCallbackInfo<Value>& args) {
   CHECK(args[0]->IsString());
   node::Utf8Value id_v(realm->isolate(), args[0].As<String>());
   const char* id = *id_v;
+  if (!realm->env()->builtin_loader()->Exists(id)) {
+    return;
+  }
+#ifdef __wasi__
+  fprintf(stderr, "BuiltinLoader::CompileFunction id=%s exists=1\n", id);
+  fflush(stderr);
+#endif
   MaybeLocal<Function> maybe = realm->env()->builtin_loader()->LookupAndCompile(
       realm->context(), id, realm);
   Local<Function> fn;
   if (maybe.ToLocal(&fn)) {
     args.GetReturnValue().Set(fn);
   }
+}
+
+void BuiltinLoader::IsBuiltin(const FunctionCallbackInfo<Value>& args) {
+  Realm* realm = Realm::GetCurrent(args);
+  if (args.Length() < 1 || !args[0]->IsString()) {
+    args.GetReturnValue().Set(false);
+    return;
+  }
+
+  node::Utf8Value id_v(realm->isolate(), args[0].As<String>());
+#ifdef __wasi__
+  fprintf(stderr,
+          "BuiltinLoader::IsBuiltin id=%s exists=%d\n",
+          *id_v,
+          realm->env()->builtin_loader()->Exists(*id_v));
+  fflush(stderr);
+#endif
+  args.GetReturnValue().Set(realm->env()->builtin_loader()->Exists(*id_v));
 }
 
 void BuiltinLoader::HasCachedBuiltins(const FunctionCallbackInfo<Value>& args) {
@@ -814,6 +842,7 @@ void BuiltinLoader::CreatePerIsolateProperties(IsolateData* isolate_data,
                                 SideEffectType::kHasNoSideEffect);
 
   SetMethod(isolate, target, "getCacheUsage", BuiltinLoader::GetCacheUsage);
+  SetMethod(isolate, target, "isBuiltin", BuiltinLoader::IsBuiltin);
   SetMethod(isolate, target, "compileFunction", BuiltinLoader::CompileFunction);
   SetMethod(isolate, target, "hasCachedBuiltins", HasCachedBuiltins);
   SetMethod(isolate, target, "setInternalLoaders", SetInternalLoaders);
@@ -833,6 +862,7 @@ void BuiltinLoader::RegisterExternalReferences(
   registry->Register(BuiltinIdsGetter);
   registry->Register(GetBuiltinCategories);
   registry->Register(GetCacheUsage);
+  registry->Register(IsBuiltin);
   registry->Register(CompileFunction);
   registry->Register(HasCachedBuiltins);
   registry->Register(SetInternalLoaders);
