@@ -7,6 +7,9 @@
 #include "v8.h"
 
 #include <cstdint>
+#ifdef __wasi__
+#include <stdio.h>
+#endif
 
 namespace node {
 namespace timers {
@@ -162,6 +165,31 @@ void BindingData::CreatePerContextProperties(Local<Object> target,
                                              Local<Context> context,
                                              void* priv) {
   Realm* realm = Realm::GetCurrent(context);
+#ifdef __wasi__
+  uint32_t fields = context.IsEmpty()
+                        ? 0
+                        : context->GetNumberOfEmbedderDataFields();
+  void* slot_realm =
+      context.IsEmpty() || fields <= ContextEmbedderIndex::kRealm
+          ? nullptr
+          : context->GetAlignedPointerFromEmbedderData(
+                ContextEmbedderIndex::kRealm);
+  void* slot_tag =
+      context.IsEmpty() || fields <= ContextEmbedderIndex::kContextTag
+          ? nullptr
+          : context->GetAlignedPointerFromEmbedderData(
+                ContextEmbedderIndex::kContextTag);
+  fprintf(stderr,
+          "Timers::CreatePerContextProperties target=%p context=%p "
+          "fields=%u slot_realm=%p slot_tag=%p realm=%p\n",
+          *target,
+          *context,
+          fields,
+          slot_realm,
+          slot_tag,
+          static_cast<void*>(realm));
+  fflush(stderr);
+#endif
   Environment* env = realm->env();
   BindingData* const binding_data = realm->AddBindingData<BindingData>(target);
   if (binding_data == nullptr) return;

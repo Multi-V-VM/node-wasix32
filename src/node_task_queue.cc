@@ -9,6 +9,9 @@
 #include "v8.h"
 
 #include <atomic>
+#ifdef __wasi__
+#include <stdio.h>
+#endif
 
 namespace node {
 
@@ -162,25 +165,81 @@ static void Initialize(Local<Object> target,
                        void* priv) {
   Environment* env = Environment::GetCurrent(context);
   Isolate* isolate = env->isolate();
+#ifdef __wasi__
+  fprintf(stderr,
+          "TaskQueue::Initialize begin target=%p context=%p env=%p isolate=%p\n",
+          *target,
+          *context,
+          static_cast<void*>(env),
+          static_cast<void*>(isolate));
+  fflush(stderr);
+#endif
 
   SetMethod(context, target, "enqueueMicrotask", EnqueueMicrotask);
+#ifdef __wasi__
+  fprintf(stderr, "TaskQueue::Initialize after enqueueMicrotask\n");
+  fflush(stderr);
+#endif
   SetMethod(context, target, "setTickCallback", SetTickCallback);
+#ifdef __wasi__
+  fprintf(stderr, "TaskQueue::Initialize after setTickCallback\n");
+  fflush(stderr);
+#endif
   SetMethod(context, target, "runMicrotasks", RunMicrotasks);
+#ifdef __wasi__
+  fprintf(stderr,
+          "TaskQueue::Initialize before tickInfo tick_info=%p fields=%p\n",
+          static_cast<void*>(env->tick_info()),
+          static_cast<void*>(&env->tick_info()->fields()));
+  fflush(stderr);
+#endif
   target->Set(env->context(),
               FIXED_ONE_BYTE_STRING(isolate, "tickInfo"),
               env->tick_info()->fields().GetJSArray()).Check();
+#ifdef __wasi__
+  fprintf(stderr, "TaskQueue::Initialize after tickInfo\n");
+  fflush(stderr);
+#endif
 
   Local<Object> events = Object::New(isolate);
+#ifdef __wasi__
+  fprintf(stderr, "TaskQueue::Initialize after events object=%p\n", *events);
+  fflush(stderr);
+#endif
   NODE_DEFINE_CONSTANT(events, kPromiseRejectWithNoHandler);
+#ifdef __wasi__
+  fprintf(stderr, "TaskQueue::Initialize after kPromiseRejectWithNoHandler\n");
+  fflush(stderr);
+#endif
   NODE_DEFINE_CONSTANT(events, kPromiseHandlerAddedAfterReject);
+#ifdef __wasi__
+  fprintf(stderr, "TaskQueue::Initialize after kPromiseHandlerAddedAfterReject\n");
+  fflush(stderr);
+#endif
   NODE_DEFINE_CONSTANT(events, kPromiseResolveAfterResolved);
+#ifdef __wasi__
+  fprintf(stderr, "TaskQueue::Initialize after kPromiseResolveAfterResolved\n");
+  fflush(stderr);
+#endif
   NODE_DEFINE_CONSTANT(events, kPromiseRejectAfterResolved);
+#ifdef __wasi__
+  fprintf(stderr, "TaskQueue::Initialize after kPromiseRejectAfterResolved\n");
+  fflush(stderr);
+#endif
 
   target->Set(env->context(),
               FIXED_ONE_BYTE_STRING(isolate, "promiseRejectEvents"),
               events).Check();
+#ifdef __wasi__
+  fprintf(stderr, "TaskQueue::Initialize after promiseRejectEvents\n");
+  fflush(stderr);
+#endif
   SetMethod(
       context, target, "setPromiseRejectCallback", SetPromiseRejectCallback);
+#ifdef __wasi__
+  fprintf(stderr, "TaskQueue::Initialize done\n");
+  fflush(stderr);
+#endif
 }
 
 void RegisterExternalReferences(ExternalReferenceRegistry* registry) {

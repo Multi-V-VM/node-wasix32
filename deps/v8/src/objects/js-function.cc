@@ -5,6 +5,9 @@
 #include "src/objects/js-function.h"
 
 #include <optional>
+#ifdef __wasi__
+#include <stdio.h>
+#endif
 
 #include "src/baseline/baseline-batch-compiler.h"
 #include "src/codegen/compiler.h"
@@ -1167,6 +1170,26 @@ bool FastInitializeDerivedMap(Isolate* isolate,
 
   int pre_allocated = constructor_initial_map->GetInObjectProperties() -
                       constructor_initial_map->UnusedPropertyFields();
+#ifdef __wasi__
+  fprintf(stderr,
+          "FastInitializeDerivedMap new_target=%p constructor=%p "
+          "initial_map=%p type=%d is_js_object_map=%d expected=%d "
+          "embedder=%d instance_size=%d in_object=%d pre_allocated=%d "
+          "initial_in_object=%d initial_unused=%d\n",
+          reinterpret_cast<void*>(new_target->ptr()),
+          reinterpret_cast<void*>(constructor->ptr()),
+          reinterpret_cast<void*>(constructor_initial_map->ptr()),
+          static_cast<int>(instance_type),
+          IsJSObjectMap(*constructor_initial_map),
+          expected_nof_properties,
+          embedder_fields,
+          instance_size,
+          in_object_properties,
+          pre_allocated,
+          constructor_initial_map->GetInObjectProperties(),
+          constructor_initial_map->UnusedPropertyFields());
+  fflush(stderr);
+#endif
   CHECK_LE(constructor_initial_map->UsedInstanceSize(), instance_size);
   int unused_property_fields = in_object_properties - pre_allocated;
   DirectHandle<Map> map =

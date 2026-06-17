@@ -805,7 +805,53 @@ static void CreatePerContextProperties(Local<Object> target,
                                        Local<Value> unused,
                                        Local<Context> context,
                                        void* priv) {
+#ifdef __wasi__
+  Isolate* isolate = context->GetIsolate();
+  Local<Context> current = isolate->GetCurrentContext();
+  fprintf(stderr,
+          "process_methods::CreatePerContextProperties target=%p context=%p "
+          "current=%p fields=%d current_fields=%d\n",
+          reinterpret_cast<void*>(*target),
+          reinterpret_cast<void*>(*context),
+          reinterpret_cast<void*>(*current),
+          context->GetNumberOfEmbedderDataFields(),
+          current->GetNumberOfEmbedderDataFields());
+  if (context->GetNumberOfEmbedderDataFields() >
+      ContextEmbedderIndex::kContextTag) {
+    fprintf(stderr,
+            "process_methods::context slots env=%p realm=%p ctxify=%p tag=%p\n",
+            context->GetAlignedPointerFromEmbedderData(
+                ContextEmbedderIndex::kEnvironment),
+            context->GetAlignedPointerFromEmbedderData(
+                ContextEmbedderIndex::kRealm),
+            context->GetAlignedPointerFromEmbedderData(
+                ContextEmbedderIndex::kContextifyContext),
+            context->GetAlignedPointerFromEmbedderData(
+                ContextEmbedderIndex::kContextTag));
+  }
+  if (!current.IsEmpty() &&
+      current->GetNumberOfEmbedderDataFields() >
+          ContextEmbedderIndex::kContextTag) {
+    fprintf(stderr,
+            "process_methods::current slots env=%p realm=%p ctxify=%p tag=%p\n",
+            current->GetAlignedPointerFromEmbedderData(
+                ContextEmbedderIndex::kEnvironment),
+            current->GetAlignedPointerFromEmbedderData(
+                ContextEmbedderIndex::kRealm),
+            current->GetAlignedPointerFromEmbedderData(
+                ContextEmbedderIndex::kContextifyContext),
+            current->GetAlignedPointerFromEmbedderData(
+                ContextEmbedderIndex::kContextTag));
+  }
+  fflush(stderr);
+#endif
   Realm* realm = Realm::GetCurrent(context);
+#ifdef __wasi__
+  fprintf(stderr,
+          "process_methods::CreatePerContextProperties realm=%p\n",
+          static_cast<void*>(realm));
+  fflush(stderr);
+#endif
   realm->AddBindingData<BindingData>(target);
 }
 

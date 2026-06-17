@@ -387,7 +387,9 @@ void AsyncWrap::CreatePerContextProperties(Local<Object> target,
   Realm* realm = Realm::GetCurrent(context);
   Environment* env = realm->env();
   Isolate* isolate = realm->isolate();
+#ifndef __wasi__
   HandleScope scope(isolate);
+#endif
 
   PropertyAttribute ReadOnlyDontDelete =
       static_cast<PropertyAttribute>(ReadOnly | DontDelete);

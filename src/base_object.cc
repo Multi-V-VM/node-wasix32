@@ -4,6 +4,10 @@
 #include "node_messaging.h"
 #include "node_realm-inl.h"
 
+#ifdef __wasi__
+#include <stdio.h>
+#endif
+
 namespace node {
 
 using v8::Context;
@@ -20,11 +24,19 @@ using v8::ValueDeserializer;
 using v8::WeakCallbackInfo;
 using v8::WeakCallbackType;
 
-BaseObject::BaseObject(Realm* realm, Local<Object> object)
-    : persistent_handle_(realm->isolate(), object), realm_(realm) {
+BaseObject::BaseObject(Realm* realm, Local<Object> object) : realm_(realm) {
   CHECK_EQ(false, object.IsEmpty());
+#ifdef __wasi__
+  fprintf(stderr,
+          "BaseObject::BaseObject object=%p internal_fields=%d realm=%p\n",
+          reinterpret_cast<void*>(*object),
+          object->InternalFieldCount(),
+          static_cast<void*>(realm));
+  fflush(stderr);
+#endif
   CHECK_GE(object->InternalFieldCount(), BaseObject::kInternalFieldCount);
   SetInternalFields(realm->isolate_data(), object, static_cast<void*>(this));
+  persistent_handle_.Reset(realm->isolate(), object);
   realm->TrackBaseObject(this);
 }
 

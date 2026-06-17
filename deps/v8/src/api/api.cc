@@ -648,6 +648,14 @@ static_assert(Internals::StaticReadOnlyRoot::kNumberOfExportedStaticRoots ==
 namespace api_internal {
 
 i::Address* GlobalizeReference(i::Isolate* i_isolate, i::Address value) {
+#ifdef __wasi__
+  fprintf(stderr,
+          "GlobalizeReference: isolate=%p value=0x%lx mem_pages=%lu\n",
+          static_cast<void*>(i_isolate),
+          static_cast<unsigned long>(value),
+          static_cast<unsigned long>(__builtin_wasm_memory_size(0)));
+  fflush(stderr);
+#endif
   API_RCS_SCOPE(i_isolate, Persistent, New);
   i::IndirectHandle<i::Object> result =
       i_isolate->global_handles()->Create(value);
@@ -1012,6 +1020,18 @@ void* Context::SlowGetAlignedPointerFromEmbedderData(int index) {
   Utils::ApiCheck(
       i::EmbedderDataSlot(*data, index).ToAlignedPointer(i_isolate, &result),
       location, "Pointer is not aligned");
+#ifdef __wasi__
+  if (index >= 32 && index <= 39) {
+    fprintf(stderr,
+            "Context::GetAlignedPointer context=0x%lx index=%d result=%p "
+            "data=0x%lx\n",
+            static_cast<unsigned long>((*Utils::OpenDirectHandle(this)).ptr()),
+            index,
+            result,
+            static_cast<unsigned long>((*data).ptr()));
+    fflush(stderr);
+  }
+#endif
   return result;
 }
 
@@ -1020,6 +1040,18 @@ void Context::SetAlignedPointerInEmbedderData(int index, void* value) {
   i::Isolate* i_isolate = Utils::OpenDirectHandle(this)->GetIsolate();
   i::DirectHandle<i::EmbedderDataArray> data =
       EmbedderDataFor(this, index, true, location);
+#ifdef __wasi__
+  if (index >= 32 && index <= 39) {
+    fprintf(stderr,
+            "Context::SetAlignedPointer context=0x%lx index=%d value=%p "
+            "data=0x%lx\n",
+            static_cast<unsigned long>((*Utils::OpenDirectHandle(this)).ptr()),
+            index,
+            value,
+            static_cast<unsigned long>((*data).ptr()));
+    fflush(stderr);
+  }
+#endif
   bool ok = i::EmbedderDataSlot(*data, index)
                 .store_aligned_pointer(i_isolate, *data, value);
   Utils::ApiCheck(ok, location, "Pointer is not aligned");
@@ -11484,6 +11516,26 @@ void String::ValueView::CheckOneByte(bool is_one_byte) const {
 // WASI: the Exception API below is needed at runtime (napi_throw_*_error,
 // node_contextify, inspector) and compiles with standard internals, so it is
 // carved out of the big !__wasi__ exclusion above.
+
+#if defined(__wasi__)
+String::Value::Value(v8::Isolate* v8_isolate, v8::Local<v8::Value> obj)
+    : str_(nullptr), length_(0) {
+  if (obj.IsEmpty()) return;
+  i::Isolate* i_isolate = reinterpret_cast<i::Isolate*>(v8_isolate);
+  i::HandleScope scope(i_isolate);
+  Local<Context> context = v8_isolate->GetCurrentContext();
+  ENTER_V8_BASIC(i_isolate);
+  TryCatch try_catch(v8_isolate);
+  Local<String> str;
+  if (!obj->ToString(context).ToLocal(&str)) return;
+  length_ = str->Length();
+  str_ = i::NewArray<uint16_t>(length_ + 1);
+  str->WriteV2(v8_isolate, 0, length_, str_,
+               String::WriteFlags::kNullTerminate);
+}
+
+String::Value::~Value() { i::DeleteArray(str_); }
+#endif
 
 #define DEFINE_ERROR(NAME, name)                                              \
   Local<Value> Exception::NAME(v8::Local<v8::String> raw_message,             \

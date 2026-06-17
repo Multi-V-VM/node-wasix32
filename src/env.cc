@@ -678,6 +678,16 @@ void TrackingTraceStateObserver::UpdateTraceCategoryState() {
 void Environment::AssignToContext(Local<v8::Context> context,
                                   Realm* realm,
                                   const ContextInfo& info) {
+#ifdef __wasi__
+  fprintf(stderr,
+          "Environment::AssignToContext begin context=%p env=%p realm=%p "
+          "fields=%d\n",
+          reinterpret_cast<void*>(*context),
+          static_cast<void*>(this),
+          static_cast<void*>(realm),
+          context->GetNumberOfEmbedderDataFields());
+  fflush(stderr);
+#endif
   context->SetAlignedPointerInEmbedderData(ContextEmbedderIndex::kEnvironment,
                                            this);
   context->SetAlignedPointerInEmbedderData(ContextEmbedderIndex::kRealm, realm);
@@ -688,6 +698,22 @@ void Environment::AssignToContext(Local<v8::Context> context,
 
   // This must not be done before other context fields are initialized.
   ContextEmbedderTag::TagNodeContext(context);
+#ifdef __wasi__
+  fprintf(stderr,
+          "Environment::AssignToContext done context=%p env_slot=%p "
+          "realm_slot=%p ctxify_slot=%p tag_slot=%p fields=%d\n",
+          reinterpret_cast<void*>(*context),
+          context->GetAlignedPointerFromEmbedderData(
+              ContextEmbedderIndex::kEnvironment),
+          context->GetAlignedPointerFromEmbedderData(
+              ContextEmbedderIndex::kRealm),
+          context->GetAlignedPointerFromEmbedderData(
+              ContextEmbedderIndex::kContextifyContext),
+          context->GetAlignedPointerFromEmbedderData(
+              ContextEmbedderIndex::kContextTag),
+          context->GetNumberOfEmbedderDataFields());
+  fflush(stderr);
+#endif
 
 #if HAVE_INSPECTOR
   inspector_agent()->ContextCreated(context, info);

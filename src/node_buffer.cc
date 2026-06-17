@@ -51,6 +51,9 @@
 #include <stdint.h>
 #include <climits>
 #include <cstring>
+#ifdef __wasi__
+#include <stdio.h>
+#endif
 #include "nbytes.h"
 
 #define THROW_AND_RETURN_UNLESS_BUFFER(env, obj)                            \
@@ -1251,6 +1254,22 @@ void SetBufferPrototype(const FunctionCallbackInfo<Value>& args) {
   // TODO(legendecas): Remove this check once the binding supports sub-realms.
   CHECK_EQ(realm->kind(), Realm::Kind::kPrincipal);
 
+#ifdef __wasi__
+  fprintf(stderr,
+          "SetBufferPrototype: argc=%d arg0=%p is_object=%d is_undefined=%d "
+          "is_function=%d\n",
+          args.Length(),
+          reinterpret_cast<void*>(*args[0]),
+          args[0]->IsObject(),
+          args[0]->IsUndefined(),
+          args[0]->IsFunction());
+  fflush(stderr);
+  if (!args[0]->IsObject()) {
+    Local<Object> fallback = Object::New(args.GetIsolate());
+    realm->set_buffer_prototype_object(fallback);
+    return;
+  }
+#endif
   CHECK(args[0]->IsObject());
   Local<Object> proto = args[0].As<Object>();
   realm->set_buffer_prototype_object(proto);
@@ -1564,11 +1583,26 @@ void Initialize(Local<Object> target,
   Environment* env = Environment::GetCurrent(context);
   Isolate* isolate = env->isolate();
 
+#ifdef __wasi__
+#define BUFFER_INIT_TRACE(label)                                              \
+  do {                                                                        \
+    fprintf(stderr, "Buffer::Initialize: %s\n", label);                       \
+    fflush(stderr);                                                           \
+  } while (0)
+#else
+#define BUFFER_INIT_TRACE(label)                                              \
+  do {                                                                        \
+  } while (0)
+#endif
+
+  BUFFER_INIT_TRACE("begin");
   SetMethodNoSideEffect(context, target, "atob", Atob);
   SetMethodNoSideEffect(context, target, "btoa", Btoa);
 
+  BUFFER_INIT_TRACE("after atob/btoa");
   SetMethod(context, target, "setBufferPrototype", SetBufferPrototype);
 
+  BUFFER_INIT_TRACE("after setBufferPrototype");
   SetFastMethodNoSideEffect(context,
                             target,
                             "byteLengthUtf8",
@@ -1586,6 +1620,7 @@ void Initialize(Local<Object> target,
                             &fast_index_of_number);
   SetMethodNoSideEffect(context, target, "indexOfString", IndexOfString);
 
+  BUFFER_INIT_TRACE("after search/copy methods");
   SetMethod(context, target, "copyArrayBuffer", CopyArrayBuffer);
 
   SetMethod(context, target, "swap16", Swap16);
@@ -1595,18 +1630,26 @@ void Initialize(Local<Object> target,
   SetMethodNoSideEffect(context, target, "isUtf8", IsUtf8);
   SetMethodNoSideEffect(context, target, "isAscii", IsAscii);
 
+  BUFFER_INIT_TRACE("before kMaxLength key");
+  Local<String> k_max_length_key = FIXED_ONE_BYTE_STRING(isolate, "kMaxLength");
+  BUFFER_INIT_TRACE("after kMaxLength key");
   target
       ->Set(context,
-            FIXED_ONE_BYTE_STRING(isolate, "kMaxLength"),
+            k_max_length_key,
             Number::New(isolate, kMaxLength))
       .Check();
 
+  BUFFER_INIT_TRACE("after kMaxLength set");
+  Local<String> k_string_max_length_key =
+      FIXED_ONE_BYTE_STRING(isolate, "kStringMaxLength");
+  BUFFER_INIT_TRACE("after kStringMaxLength key");
   target
       ->Set(context,
-            FIXED_ONE_BYTE_STRING(isolate, "kStringMaxLength"),
+            k_string_max_length_key,
             Integer::New(isolate, String::kMaxLength))
       .Check();
 
+  BUFFER_INIT_TRACE("after constants");
   SetMethodNoSideEffect(context, target, "asciiSlice", StringSlice<ASCII>);
   SetMethodNoSideEffect(context, target, "base64Slice", StringSlice<BASE64>);
   SetMethodNoSideEffect(
@@ -1638,6 +1681,9 @@ void Initialize(Local<Object> target,
                 &fast_write_string_utf8);
 
   SetMethod(context, target, "getZeroFillToggle", GetZeroFillToggle);
+  BUFFER_INIT_TRACE("done");
+
+#undef BUFFER_INIT_TRACE
 }
 
 }  // anonymous namespace

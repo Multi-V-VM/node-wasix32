@@ -319,9 +319,10 @@ class ThreadPoolWork {
 
 // Functions defined in node.cc that are exposed via the bootstrapper object
 
-#if defined(__POSIX__) && !defined(__ANDROID__) && !defined(__CloudABI__)
+#if defined(__POSIX__) && !defined(__ANDROID__) && !defined(__CloudABI__) &&   \
+    !defined(__wasi__)
 #define NODE_IMPLEMENTS_POSIX_CREDENTIALS 1
-#endif  // defined(__POSIX__) && !defined(__ANDROID__) && !defined(__CloudABI__)
+#endif  // defined(__POSIX__) && !defined(__ANDROID__) && !defined(__CloudABI__) && !defined(__wasi__)
 
 namespace credentials {
 bool SafeGetenv(const char* key, std::string* text, Environment* env = nullptr);
