@@ -21,6 +21,7 @@
 #include "src/interpreter/bytecode-flags-and-tokens.h"
 #include "src/interpreter/bytecode-register.h"
 #include "src/interpreter/bytecodes.h"
+#include "src/interpreter/interpreter-intrinsics.h"
 #include "src/interpreter/interpreter.h"
 #include "src/objects/bytecode-array-inl.h"
 #include "src/objects/code-inl.h"
@@ -60,6 +61,13 @@ Address Runtime_Add(int args_length, Address* args_object, Isolate* isolate);
 Address Runtime_ThrowAccessedUninitializedVariable(int args_length,
                                                    Address* args_object,
                                                    Isolate* isolate);
+Address Runtime_ThrowNotSuperConstructor(int args_length, Address* args_object,
+                                         Isolate* isolate);
+Address Runtime_ThrowSuperAlreadyCalledError(int args_length,
+                                             Address* args_object,
+                                             Isolate* isolate);
+Address Runtime_ThrowSuperNotCalled(int args_length, Address* args_object,
+                                    Isolate* isolate);
 extern "C" Address WasmJSEntry(Address root, Address new_target,
                                Address target, Address receiver, intptr_t argc,
                                Address** argv);
@@ -500,6 +508,45 @@ void DumpRuntimeArg(const char* label, int index, Address value) {
   }
 }
 
+void DumpCurrentInterpreterBytecodeForTrace(const char* label) {
+  Address bytecode_array_address =
+      g_wasm_regs[SlotFor(kInterpreterBytecodeArrayRegister)];
+  Address bytecode_offset =
+      g_wasm_regs[SlotFor(kInterpreterBytecodeOffsetRegister)];
+  Address accumulator = g_wasm_regs[SlotFor(kInterpreterAccumulatorRegister)];
+  PrintF(" %s bytecode_array=0x%x offset=0x%x acc=0x%x",
+         label, static_cast<unsigned>(bytecode_array_address),
+         static_cast<unsigned>(bytecode_offset),
+         static_cast<unsigned>(accumulator));
+
+  Tagged<Object> object(bytecode_array_address);
+  if (!IsBytecodeArray(object)) {
+    PrintF(" (not-bytecode-array)\n");
+    return;
+  }
+
+  Tagged<BytecodeArray> bytecode = Cast<BytecodeArray>(object);
+  int bytecode_index =
+      static_cast<int>(bytecode_offset -
+                       (BytecodeArray::kHeaderSize - kHeapObjectTag));
+  if (bytecode_index < 0 || bytecode_index >= bytecode->length()) {
+    PrintF(" index=%d length=%d (out-of-range)\n", bytecode_index,
+           bytecode->length());
+    return;
+  }
+
+  uint8_t opcode = bytecode->get(bytecode_index);
+  if (opcode > interpreter::Bytecodes::ToByte(interpreter::Bytecode::kLast)) {
+    PrintF(" index=%d length=%d opcode=0x%x(invalid)\n", bytecode_index,
+           bytecode->length(), static_cast<unsigned>(opcode));
+    return;
+  }
+  interpreter::Bytecode bytecode_enum = interpreter::Bytecodes::FromByte(opcode);
+  PrintF(" index=%d length=%d opcode=0x%x(%s)\n", bytecode_index,
+         bytecode->length(), static_cast<unsigned>(opcode),
+         interpreter::Bytecodes::ToString(bytecode_enum));
+}
+
 void DumpNameForTrace(Tagged<Object> name_object) {
   if (IsString(name_object)) {
     PrintF("<string len=%d ptr=0x%x>", Cast<String>(name_object)->length(),
@@ -871,6 +918,150 @@ bool TryRunLdaContextSlotBytecode(
   return true;
 }
 
+bool TryRunStaContextSlotBytecode(
+    Isolate* isolate, Tagged<BytecodeArray> bytecode, int bytecode_index,
+    interpreter::Bytecode bytecode_enum,
+    interpreter::OperandScale operand_scale, Address* out_result) {
+  bool current_context = false;
+  bool no_cell = false;
+  int slot_operand_index = 0;
+  int depth_operand_index = -1;
+  Address context_address = kNullAddress;
+
+  switch (bytecode_enum) {
+    case interpreter::Bytecode::kStaContextSlotNoCell:
+      no_cell = true;
+      slot_operand_index = 1;
+      depth_operand_index = 2;
+      break;
+    case interpreter::Bytecode::kStaContextSlot:
+      slot_operand_index = 1;
+      depth_operand_index = 2;
+      break;
+    case interpreter::Bytecode::kStaCurrentContextSlotNoCell:
+      current_context = true;
+      no_cell = true;
+      break;
+    case interpreter::Bytecode::kStaCurrentContextSlot:
+      current_context = true;
+      break;
+    default:
+      return false;
+  }
+
+  if (current_context) {
+    context_address = CurrentInterpreterContext();
+  } else {
+    int32_t context_operand =
+        ReadBytecodeSignedOperand(bytecode, bytecode_index, bytecode_enum, 0,
+                                  operand_scale);
+    context_address = ReadInterpreterRegister(
+        interpreter::Register::FromOperand(context_operand));
+  }
+  ReadOnlyRoots roots(isolate);
+  if (!IsSafeTaggedHandleValue(context_address) ||
+      !IsContext(Tagged<Object>(context_address))) {
+    *out_result = roots.exception().ptr();
+    return true;
+  }
+
+  Tagged<Context> context = Cast<Context>(Tagged<Object>(context_address));
+  if (depth_operand_index >= 0) {
+    uint32_t depth =
+        ReadBytecodeUnsignedOperand(bytecode, bytecode_index, bytecode_enum,
+                                    depth_operand_index, operand_scale);
+    for (uint32_t i = 0; i < depth; ++i) {
+      context = context->previous();
+    }
+  }
+
+  uint32_t slot_index =
+      ReadBytecodeUnsignedOperand(bytecode, bytecode_index, bytecode_enum,
+                                  slot_operand_index, operand_scale);
+  if (slot_index >= static_cast<uint32_t>(context->length())) {
+    *out_result = roots.exception().ptr();
+    return true;
+  }
+
+  Tagged<Object> raw_value(g_wasm_regs[SlotFor(kInterpreterAccumulatorRegister)]);
+  Tagged<JSAny> value =
+      Is<JSAny>(raw_value) ? Cast<JSAny>(raw_value) : roots.undefined_value();
+  USE(no_cell);
+  context->SetNoCell(slot_index, value, UPDATE_WRITE_BARRIER);
+  *out_result = value.ptr();
+  return true;
+}
+
+interpreter::Register RegisterFromListOperand(int32_t first_operand, int index);
+Address SafeTaggedOrUndefined(Isolate* isolate, Address value);
+
+bool TryRunRuntimeCallBytecode(Isolate* isolate, Tagged<BytecodeArray> bytecode,
+                               int bytecode_index,
+                               interpreter::Bytecode bytecode_enum,
+                               interpreter::OperandScale operand_scale,
+                               Address* out_result) {
+  if (bytecode_enum != interpreter::Bytecode::kCallRuntime &&
+      bytecode_enum != interpreter::Bytecode::kInvokeIntrinsic) {
+    return false;
+  }
+
+  uint32_t raw_id =
+      ReadBytecodeUnsignedOperand(bytecode, bytecode_index, bytecode_enum, 0,
+                                  operand_scale);
+  Runtime::FunctionId function_id;
+  if (bytecode_enum == interpreter::Bytecode::kInvokeIntrinsic) {
+    auto intrinsic_id =
+        static_cast<interpreter::IntrinsicsHelper::IntrinsicId>(raw_id);
+    function_id = interpreter::IntrinsicsHelper::ToRuntimeId(intrinsic_id);
+  } else {
+    function_id = static_cast<Runtime::FunctionId>(raw_id);
+  }
+  const Runtime::Function* function = Runtime::FunctionForId(function_id);
+  ReadOnlyRoots roots(isolate);
+  if (function == nullptr || function->result_size != 1) {
+    *out_result = roots.undefined_value().ptr();
+    return true;
+  }
+
+  uint32_t reg_count =
+      ReadBytecodeUnsignedOperand(bytecode, bytecode_index, bytecode_enum, 2,
+                                  operand_scale);
+  constexpr int kMaxRuntimeFallbackArgs = 64;
+  if (reg_count > kMaxRuntimeFallbackArgs ||
+      (function->nargs >= 0 && function->nargs != static_cast<int>(reg_count))) {
+    *out_result = roots.undefined_value().ptr();
+    return true;
+  }
+
+  int32_t first_arg_operand =
+      ReadBytecodeSignedOperand(bytecode, bytecode_index, bytecode_enum, 1,
+                                operand_scale);
+  Address argv[kMaxRuntimeFallbackArgs == 0 ? 1 : kMaxRuntimeFallbackArgs];
+  for (uint32_t i = 0; i < reg_count; ++i) {
+    argv[reg_count - 1 - i] = SafeTaggedOrUndefined(
+        isolate, ReadInterpreterRegister(
+                     RegisterFromListOperand(first_arg_operand, i)));
+  }
+
+  Tagged<Context> saved_context = isolate->context();
+  Address context_address = CurrentInterpreterContext();
+  bool switched_context = false;
+  if (IsSafeTaggedHandleValue(context_address) &&
+      IsContext(Tagged<Object>(context_address))) {
+    isolate->set_context(Cast<Context>(Tagged<Object>(context_address)));
+    switched_context = true;
+  }
+
+  using RuntimeEntry = Address (*)(int, Address*, Isolate*);
+  Address* args_object = reg_count == 0 ? argv : &argv[reg_count - 1];
+  Address result =
+      reinterpret_cast<RuntimeEntry>(function->entry)(
+          static_cast<int>(reg_count), args_object, isolate);
+  if (switched_context) isolate->set_context(saved_context);
+  *out_result = result;
+  return true;
+}
+
 bool TryRunLdaGlobalBytecode(Isolate* isolate, Tagged<BytecodeArray> bytecode,
                              int bytecode_index,
                              interpreter::Bytecode bytecode_enum,
@@ -1162,6 +1353,41 @@ bool TryRunMovBytecode(Tagged<BytecodeArray> bytecode, int bytecode_index,
   return true;
 }
 
+void PublishCurrentInterpreterContext(Address context) {
+  StoreInterpreterRegister(interpreter::Register::current_context(), context);
+  StoreInterpreterFrameOffset(StandardFrameConstants::kContextOffset, context);
+  g_wasm_regs[SlotFor(kContextRegister)] = context;
+}
+
+bool TryRunContextStackBytecode(Tagged<BytecodeArray> bytecode,
+                                int bytecode_index,
+                                interpreter::Bytecode bytecode_enum,
+                                interpreter::OperandScale operand_scale,
+                                Address* out_result) {
+  if (bytecode_enum == interpreter::Bytecode::kPushContext) {
+    int32_t target_operand =
+        ReadBytecodeSignedOperand(bytecode, bytecode_index, bytecode_enum, 0,
+                                  operand_scale);
+    StoreInterpreterRegister(interpreter::Register::FromOperand(target_operand),
+                             CurrentInterpreterContext());
+    Address accumulator =
+        g_wasm_regs[SlotFor(kInterpreterAccumulatorRegister)];
+    PublishCurrentInterpreterContext(accumulator);
+    *out_result = accumulator;
+    return true;
+  }
+  if (bytecode_enum == interpreter::Bytecode::kPopContext) {
+    int32_t source_operand =
+        ReadBytecodeSignedOperand(bytecode, bytecode_index, bytecode_enum, 0,
+                                  operand_scale);
+    PublishCurrentInterpreterContext(ReadInterpreterRegister(
+        interpreter::Register::FromOperand(source_operand)));
+    *out_result = g_wasm_regs[SlotFor(kInterpreterAccumulatorRegister)];
+    return true;
+  }
+  return false;
+}
+
 bool TryRunLdarBytecode(Tagged<BytecodeArray> bytecode, int bytecode_index,
                         interpreter::Bytecode bytecode_enum,
                         interpreter::OperandScale operand_scale,
@@ -1246,6 +1472,37 @@ bool TryRunToStringBytecode(Isolate* isolate,
   return true;
 }
 
+bool TryRunToNumberOrNumericBytecode(Isolate* isolate,
+                                     interpreter::Bytecode bytecode_enum,
+                                     Address* out_result) {
+  bool to_number = bytecode_enum == interpreter::Bytecode::kToNumber;
+  bool to_numeric = bytecode_enum == interpreter::Bytecode::kToNumeric;
+  if (!to_number && !to_numeric) return false;
+
+  Address input_address = SafeTaggedOrUndefined(
+      isolate, g_wasm_regs[SlotFor(kInterpreterAccumulatorRegister)]);
+  HandleScope scope(isolate);
+  DirectHandle<Object> input =
+      direct_handle(Tagged<Object>(input_address), isolate);
+  if (to_number) {
+    DirectHandle<Number> result;
+    if (!Object::ToNumber(isolate, input).ToHandle(&result)) {
+      *out_result = ReadOnlyRoots(isolate).exception().ptr();
+      return true;
+    }
+    *out_result = (*result).ptr();
+    return true;
+  }
+
+  DirectHandle<Object> result;
+  if (!Object::ToNumeric(isolate, input).ToHandle(&result)) {
+    *out_result = ReadOnlyRoots(isolate).exception().ptr();
+    return true;
+  }
+  *out_result = (*result).ptr();
+  return true;
+}
+
 bool TryRunThrowReferenceErrorIfHoleBytecode(
     Isolate* isolate, Tagged<BytecodeArray> bytecode, int bytecode_index,
     interpreter::Bytecode bytecode_enum,
@@ -1276,6 +1533,99 @@ bool TryRunThrowReferenceErrorIfHoleBytecode(
   Tagged<Object> name_object = constant_pool->get(name_index);
   Address args[1] = {name_object.ptr()};
   *out_result = Runtime_ThrowAccessedUninitializedVariable(1, args, isolate);
+  return true;
+}
+
+bool TryRunThrowSuperBytecode(Isolate* isolate,
+                              interpreter::Bytecode bytecode_enum,
+                              Address* out_result) {
+  if (bytecode_enum != interpreter::Bytecode::kThrowSuperNotCalledIfHole &&
+      bytecode_enum !=
+          interpreter::Bytecode::kThrowSuperAlreadyCalledIfNotHole) {
+    return false;
+  }
+
+  ReadOnlyRoots roots(isolate);
+  Address accumulator =
+      g_wasm_regs[SlotFor(kInterpreterAccumulatorRegister)];
+  bool is_hole = IsSafeTaggedHandleValue(accumulator) &&
+                 IsTheHole(Tagged<Object>(accumulator), roots);
+  bool should_throw =
+      bytecode_enum == interpreter::Bytecode::kThrowSuperNotCalledIfHole
+          ? is_hole
+          : !is_hole;
+  if (!should_throw) {
+    *out_result = accumulator;
+    return true;
+  }
+
+  *out_result =
+      bytecode_enum == interpreter::Bytecode::kThrowSuperNotCalledIfHole
+          ? Runtime_ThrowSuperNotCalled(0, nullptr, isolate)
+          : Runtime_ThrowSuperAlreadyCalledError(0, nullptr, isolate);
+  return true;
+}
+
+bool TryRunThrowIfNotSuperConstructorBytecode(
+    Isolate* isolate, Tagged<BytecodeArray> bytecode, int bytecode_index,
+    interpreter::Bytecode bytecode_enum,
+    interpreter::OperandScale operand_scale, Address* out_result) {
+  if (bytecode_enum != interpreter::Bytecode::kThrowIfNotSuperConstructor) {
+    return false;
+  }
+
+  int32_t constructor_operand =
+      ReadBytecodeSignedOperand(bytecode, bytecode_index, bytecode_enum, 0,
+                                operand_scale);
+  Address constructor_address = SafeTaggedOrUndefined(
+      isolate, ReadInterpreterRegister(
+                   interpreter::Register::FromOperand(constructor_operand)));
+  if (IsConstructor(Tagged<Object>(constructor_address))) {
+    *out_result = g_wasm_regs[SlotFor(kInterpreterAccumulatorRegister)];
+    return true;
+  }
+
+  Address function_address =
+      g_wasm_interpreter_frame[InterpreterFrameSlotForOffset(
+          StandardFrameConstants::kFunctionOffset)];
+  function_address = SafeTaggedOrUndefined(isolate, function_address);
+  Address args[2] = {function_address, constructor_address};
+  *out_result = Runtime_ThrowNotSuperConstructor(2, &args[1], isolate);
+  return true;
+}
+
+bool TryRunReferenceTestBytecode(Isolate* isolate, Tagged<BytecodeArray> bytecode,
+                                 int bytecode_index,
+                                 interpreter::Bytecode bytecode_enum,
+                                 interpreter::OperandScale operand_scale,
+                                 Address* out_result) {
+  ReadOnlyRoots roots(isolate);
+  Address accumulator = SafeTaggedOrUndefined(
+      isolate, g_wasm_regs[SlotFor(kInterpreterAccumulatorRegister)]);
+  bool result = false;
+
+  switch (bytecode_enum) {
+    case interpreter::Bytecode::kTestReferenceEqual: {
+      int32_t operand =
+          ReadBytecodeSignedOperand(bytecode, bytecode_index, bytecode_enum, 0,
+                                    operand_scale);
+      Address lhs = SafeTaggedOrUndefined(
+          isolate, ReadInterpreterRegister(
+                       interpreter::Register::FromOperand(operand)));
+      result = lhs == accumulator;
+      break;
+    }
+    case interpreter::Bytecode::kTestNull:
+      result = accumulator == roots.null_value().ptr();
+      break;
+    case interpreter::Bytecode::kTestUndefined:
+      result = accumulator == roots.undefined_value().ptr();
+      break;
+    default:
+      return false;
+  }
+
+  *out_result = result ? roots.true_value().ptr() : roots.false_value().ptr();
   return true;
 }
 
@@ -1635,6 +1985,30 @@ bool TryCallJSFunctionDirect(Isolate* isolate, DirectHandle<Object> callable,
   *out_result = WasmJSEntry(isolate->isolate_data()->isolate_root(),
                             roots.undefined_value().ptr(), (*callable).ptr(),
                             (*receiver).ptr(),
+                            JSParameterCount(arg_count), argv);
+  return true;
+}
+
+bool TryConstructJSFunctionDirect(Isolate* isolate,
+                                  DirectHandle<Object> constructor,
+                                  DirectHandle<Object> new_target,
+                                  int arg_count, DirectHandle<Object>* args,
+                                  Address* out_result) {
+  if (!IsJSFunction(*constructor)) return false;
+  if (arg_count > kMaxWasmCallArgs) return false;
+
+  Address arg_values[64];
+  Address* argv[64];
+  for (int i = 0; i < arg_count; ++i) {
+    arg_values[i] = (*args[i]).ptr();
+    argv[i] = &arg_values[i];
+  }
+
+  ReadOnlyRoots roots(isolate);
+  SaveContext save(isolate);
+  *out_result = WasmJSEntry(isolate->isolate_data()->isolate_root(),
+                            (*new_target).ptr(), (*constructor).ptr(),
+                            roots.undefined_value().ptr(),
                             JSParameterCount(arg_count), argv);
   return true;
 }
@@ -2386,6 +2760,190 @@ bool TryRunCallBytecode(Isolate* isolate, Tagged<BytecodeArray> bytecode,
   state.Restore();
 
   *out_result = result_address;
+  return true;
+}
+
+bool TryRunConstructBytecode(Isolate* isolate, Tagged<BytecodeArray> bytecode,
+                             int bytecode_index,
+                             interpreter::Bytecode bytecode_enum,
+                             interpreter::OperandScale operand_scale,
+                             Address* out_result) {
+  if (bytecode_enum != interpreter::Bytecode::kConstruct) return false;
+
+  ReadOnlyRoots roots(isolate);
+  int32_t constructor_operand =
+      ReadBytecodeSignedOperand(bytecode, bytecode_index, bytecode_enum, 0,
+                                operand_scale);
+  Address constructor_address = SafeTaggedOrUndefined(
+      isolate, ReadInterpreterRegister(
+                   interpreter::Register::FromOperand(constructor_operand)));
+  Address new_target_address = SafeTaggedOrUndefined(
+      isolate, g_wasm_regs[SlotFor(kInterpreterAccumulatorRegister)]);
+  if (!IsConstructor(Tagged<Object>(constructor_address)) ||
+      !IsConstructor(Tagged<Object>(new_target_address))) {
+    *out_result = roots.exception().ptr();
+    return true;
+  }
+
+  DirectHandle<Object> args[kMaxWasmCallArgs];
+  int arg_count = 0;
+  int32_t first_arg_operand =
+      ReadBytecodeSignedOperand(bytecode, bytecode_index, bytecode_enum, 1,
+                                operand_scale);
+  uint32_t reg_count =
+      ReadBytecodeUnsignedOperand(bytecode, bytecode_index, bytecode_enum, 2,
+                                  operand_scale);
+  if (reg_count > kMaxWasmCallArgs) {
+    *out_result = roots.exception().ptr();
+    return true;
+  }
+  for (uint32_t i = 0; i < reg_count; ++i) {
+    if (!AddCallArgument(
+            isolate, args, &arg_count,
+            ReadInterpreterRegister(
+                RegisterFromListOperand(first_arg_operand, i)))) {
+      *out_result = roots.exception().ptr();
+      return true;
+    }
+  }
+
+  DirectHandle<Object> constructor =
+      direct_handle(Tagged<Object>(constructor_address), isolate);
+  DirectHandle<Object> new_target =
+      direct_handle(Tagged<Object>(new_target_address), isolate);
+  Tagged<Context> saved_context = isolate->context();
+  Address context_address = CurrentInterpreterContext();
+  bool switched_context = false;
+  if (IsSafeTaggedHandleValue(context_address) &&
+      IsContext(Tagged<Object>(context_address))) {
+    isolate->set_context(Cast<Context>(Tagged<Object>(context_address)));
+    switched_context = true;
+  }
+
+  WasmInterpreterStateSnapshot state(isolate);
+  Address result_address = roots.exception().ptr();
+  if (!TryConstructJSFunctionDirect(isolate, constructor, new_target, arg_count,
+                                    args, &result_address)) {
+    DirectHandle<JSReceiver> result;
+    MaybeDirectHandle<JSReceiver> maybe_result =
+        Execution::New(isolate, constructor, new_target,
+                       ZoneVector<const DirectHandle<Object>>(args, arg_count));
+    if (maybe_result.ToHandle(&result)) {
+      result_address = (*result).ptr();
+    }
+  }
+  if (switched_context) isolate->set_context(saved_context);
+  state.Restore();
+
+  *out_result = result_address;
+  return true;
+}
+
+bool TryRunFindNonDefaultConstructorOrConstructBytecode(
+    Isolate* isolate, Tagged<BytecodeArray> bytecode, int bytecode_index,
+    interpreter::Bytecode bytecode_enum, interpreter::OperandScale operand_scale,
+    Address* out_result) {
+  if (bytecode_enum !=
+      interpreter::Bytecode::kFindNonDefaultConstructorOrConstruct) {
+    return false;
+  }
+
+  ReadOnlyRoots roots(isolate);
+  int32_t this_function_operand =
+      ReadBytecodeSignedOperand(bytecode, bytecode_index, bytecode_enum, 0,
+                                operand_scale);
+  int32_t new_target_operand =
+      ReadBytecodeSignedOperand(bytecode, bytecode_index, bytecode_enum, 1,
+                                operand_scale);
+  int32_t output_operand =
+      ReadBytecodeSignedOperand(bytecode, bytecode_index, bytecode_enum, 2,
+                                operand_scale);
+  Address preserved_accumulator =
+      g_wasm_regs[SlotFor(kInterpreterAccumulatorRegister)];
+
+  Address this_function_address = SafeTaggedOrUndefined(
+      isolate, ReadInterpreterRegister(
+                   interpreter::Register::FromOperand(this_function_operand)));
+  Address new_target_address = SafeTaggedOrUndefined(
+      isolate, ReadInterpreterRegister(
+                   interpreter::Register::FromOperand(new_target_operand)));
+  if (!IsJSFunction(Tagged<Object>(this_function_address)) ||
+      !IsJSReceiver(Tagged<Object>(new_target_address))) {
+    StoreInterpreterRegister(interpreter::Register::FromOperand(output_operand),
+                             roots.false_value().ptr());
+    StoreInterpreterRegister(
+        interpreter::Register::FromOperand(output_operand - 1),
+        roots.undefined_value().ptr());
+    *out_result = preserved_accumulator;
+    return true;
+  }
+
+  Tagged<Object> constructor =
+      Cast<JSFunction>(Tagged<Object>(this_function_address))
+          ->map()
+          ->prototype();
+  HandleScope scope(isolate);
+  for (int depth = 0; depth < 32; ++depth) {
+    if (!IsJSFunction(constructor)) {
+      StoreInterpreterRegister(interpreter::Register::FromOperand(output_operand),
+                               roots.false_value().ptr());
+      StoreInterpreterRegister(
+          interpreter::Register::FromOperand(output_operand - 1),
+          SafeTaggedOrUndefined(isolate, constructor.ptr()));
+      *out_result = preserved_accumulator;
+      return true;
+    }
+
+    Tagged<JSFunction> constructor_function = Cast<JSFunction>(constructor);
+    Tagged<SharedFunctionInfo> shared = constructor_function->shared();
+    if (shared->requires_instance_members_initializer() ||
+        constructor_function->context()->scope_info()->ClassScopeHasPrivateBrand()) {
+      StoreInterpreterRegister(interpreter::Register::FromOperand(output_operand),
+                               roots.false_value().ptr());
+      StoreInterpreterRegister(
+          interpreter::Register::FromOperand(output_operand - 1),
+          constructor.ptr());
+      *out_result = preserved_accumulator;
+      return true;
+    }
+
+    FunctionKind kind = shared->kind();
+    if (kind == FunctionKind::kDefaultBaseConstructor) {
+      DirectHandle<JSFunction> ctor(constructor_function, isolate);
+      DirectHandle<JSReceiver> new_target(
+          Cast<JSReceiver>(Tagged<Object>(new_target_address)), isolate);
+      DirectHandle<JSObject> instance;
+      if (!JSObject::New(ctor, new_target, {}).ToHandle(&instance)) {
+        *out_result = roots.exception().ptr();
+        return true;
+      }
+      StoreInterpreterRegister(interpreter::Register::FromOperand(output_operand),
+                               roots.true_value().ptr());
+      StoreInterpreterRegister(
+          interpreter::Register::FromOperand(output_operand - 1),
+          (*instance).ptr());
+      *out_result = preserved_accumulator;
+      return true;
+    }
+
+    if (kind != FunctionKind::kDefaultDerivedConstructor) {
+      StoreInterpreterRegister(interpreter::Register::FromOperand(output_operand),
+                               roots.false_value().ptr());
+      StoreInterpreterRegister(
+          interpreter::Register::FromOperand(output_operand - 1),
+          constructor.ptr());
+      *out_result = preserved_accumulator;
+      return true;
+    }
+
+    constructor = constructor_function->map()->prototype();
+  }
+
+  StoreInterpreterRegister(interpreter::Register::FromOperand(output_operand),
+                           roots.false_value().ptr());
+  StoreInterpreterRegister(interpreter::Register::FromOperand(output_operand - 1),
+                           SafeTaggedOrUndefined(isolate, constructor.ptr()));
+  *out_result = preserved_accumulator;
   return true;
 }
 
@@ -3521,6 +4079,24 @@ extern "C" Address WasmRuntimeCallFromGenerated(Address runtime_entry,
     PrintF("\n");
   }
 
+  static uint32_t to_numeric_count = 0;
+  uint32_t to_numeric_sample = 0;
+  if (function->function_id == Runtime::kToNumeric) {
+    to_numeric_sample = ++to_numeric_count;
+    if (to_numeric_sample <= 16 || (to_numeric_sample % 10000) == 0) {
+      PrintF("WasmRuntimeCallFromGenerated: ToNumeric call count=%u argc=%d "
+             "context=0x%x arg0=0x%x\n",
+             to_numeric_sample, argc,
+             static_cast<unsigned>(g_wasm_regs[SlotFor(kContextRegister)]),
+             argc > 0 ? static_cast<unsigned>(argv[argc - 1]) : 0);
+      if (argc > 0) DumpRuntimeArg("ToNumeric.arg", 0, argv[argc - 1]);
+      DumpRuntimeArg("ToNumeric.acc", 0,
+                     g_wasm_regs[SlotFor(kInterpreterAccumulatorRegister)]);
+      PrintF("\n");
+      DumpCurrentInterpreterBytecodeForTrace("ToNumeric.pc");
+    }
+  }
+
   Tagged<Context> saved_context = isolate->context();
   Address context = g_wasm_regs[SlotFor(kContextRegister)];
   bool switched_context = false;
@@ -3534,18 +4110,22 @@ extern "C" Address WasmRuntimeCallFromGenerated(Address runtime_entry,
                         &fallback_result)) {
     if (switched_context) isolate->set_context(saved_context);
     g_wasm_regs[SlotFor(kReturnRegister0)] = fallback_result;
-    PrintF("WasmRuntimeCallFromGenerated: %s id=%d argc=%d fallback=0x%x\n",
-           function->name, static_cast<int>(function->function_id), argc,
-           static_cast<unsigned>(fallback_result));
+    if (kTraceWasmFallbackDetails) {
+      PrintF("WasmRuntimeCallFromGenerated: %s id=%d argc=%d fallback=0x%x\n",
+             function->name, static_cast<int>(function->function_id), argc,
+             static_cast<unsigned>(fallback_result));
+    }
     return fallback_result;
   }
   if (TryFallbackGeneratedRuntime(isolate, function->function_id, argv, argc,
                                   &fallback_result)) {
     if (switched_context) isolate->set_context(saved_context);
     g_wasm_regs[SlotFor(kReturnRegister0)] = fallback_result;
-    PrintF("WasmRuntimeCallFromGenerated: %s id=%d argc=%d fallback=0x%x\n",
-           function->name, static_cast<int>(function->function_id), argc,
-           static_cast<unsigned>(fallback_result));
+    if (kTraceWasmFallbackDetails) {
+      PrintF("WasmRuntimeCallFromGenerated: %s id=%d argc=%d fallback=0x%x\n",
+             function->name, static_cast<int>(function->function_id), argc,
+             static_cast<unsigned>(fallback_result));
+    }
     return fallback_result;
   }
 
@@ -3557,9 +4137,19 @@ extern "C" Address WasmRuntimeCallFromGenerated(Address runtime_entry,
   if (switched_context) isolate->set_context(saved_context);
 
   g_wasm_regs[SlotFor(kReturnRegister0)] = result;
-  PrintF("WasmRuntimeCallFromGenerated: %s id=%d argc=%d result=0x%x\n",
-         function->name, static_cast<int>(function->function_id), argc,
-         static_cast<unsigned>(result));
+  if (to_numeric_sample != 0 &&
+      (to_numeric_sample <= 16 || (to_numeric_sample % 10000) == 0)) {
+    PrintF("WasmRuntimeCallFromGenerated: ToNumeric return count=%u "
+           "result=0x%x\n",
+           to_numeric_sample, static_cast<unsigned>(result));
+    DumpRuntimeArg("ToNumeric.result", 0, result);
+    PrintF("\n");
+  }
+  if (kTraceWasmFallbackDetails) {
+    PrintF("WasmRuntimeCallFromGenerated: %s id=%d argc=%d result=0x%x\n",
+           function->name, static_cast<int>(function->function_id), argc,
+           static_cast<unsigned>(result));
+  }
   return result;
 }
 
@@ -3900,6 +4490,20 @@ extern "C" void WasmInterpreterEntryTrampoline() {
       operand_scale = interpreter::OperandScale::kSingle;
       continue;
     }
+    if (TryRunContextStackBytecode(bytecode, bytecode_index, bytecode_enum,
+                                   operand_scale, &fallback_result)) {
+      PublishWasmInterpreterFallbackResult(isolate, "bytecode fallback",
+                                           &fallback_result);
+      if (should_log_step) {
+        PrintF("  fallback %s result=0x%x\n",
+               interpreter::Bytecodes::ToString(bytecode_enum),
+               static_cast<unsigned>(fallback_result));
+      }
+      current_offset +=
+          interpreter::Bytecodes::Size(bytecode_enum, operand_scale);
+      operand_scale = interpreter::OperandScale::kSingle;
+      continue;
+    }
     if (TryRunLdarBytecode(bytecode, bytecode_index, bytecode_enum,
                            operand_scale, &fallback_result)) {
       PublishWasmInterpreterFallbackResult(isolate, "bytecode fallback",
@@ -3942,6 +4546,48 @@ extern "C" void WasmInterpreterEntryTrampoline() {
       operand_scale = interpreter::OperandScale::kSingle;
       continue;
     }
+    if (TryRunThrowSuperBytecode(isolate, bytecode_enum, &fallback_result)) {
+      PublishWasmInterpreterFallbackResult(isolate, "bytecode fallback",
+                                           &fallback_result);
+      if (should_log_step) {
+        PrintF("  fallback %s result=0x%x\n",
+               interpreter::Bytecodes::ToString(bytecode_enum),
+               static_cast<unsigned>(fallback_result));
+      }
+      current_offset +=
+          interpreter::Bytecodes::Size(bytecode_enum, operand_scale);
+      operand_scale = interpreter::OperandScale::kSingle;
+      continue;
+    }
+    if (TryRunThrowIfNotSuperConstructorBytecode(
+            isolate, bytecode, bytecode_index, bytecode_enum, operand_scale,
+            &fallback_result)) {
+      PublishWasmInterpreterFallbackResult(isolate, "bytecode fallback",
+                                           &fallback_result);
+      if (should_log_step) {
+        PrintF("  fallback ThrowIfNotSuperConstructor result=0x%x\n",
+               static_cast<unsigned>(fallback_result));
+      }
+      current_offset +=
+          interpreter::Bytecodes::Size(bytecode_enum, operand_scale);
+      operand_scale = interpreter::OperandScale::kSingle;
+      continue;
+    }
+    if (TryRunReferenceTestBytecode(isolate, bytecode, bytecode_index,
+                                    bytecode_enum, operand_scale,
+                                    &fallback_result)) {
+      PublishWasmInterpreterFallbackResult(isolate, "bytecode fallback",
+                                           &fallback_result);
+      if (should_log_step) {
+        PrintF("  fallback %s result=0x%x\n",
+               interpreter::Bytecodes::ToString(bytecode_enum),
+               static_cast<unsigned>(fallback_result));
+      }
+      current_offset +=
+          interpreter::Bytecodes::Size(bytecode_enum, operand_scale);
+      operand_scale = interpreter::OperandScale::kSingle;
+      continue;
+    }
     if (TryRunTestTypeOfBytecode(isolate, bytecode, bytecode_index,
                                  bytecode_enum, operand_scale,
                                  &fallback_result)) {
@@ -3967,6 +4613,21 @@ extern "C" void WasmInterpreterEntryTrampoline() {
       operand_scale = interpreter::OperandScale::kSingle;
       continue;
     }
+    if (TryRunRuntimeCallBytecode(isolate, bytecode, bytecode_index,
+                                  bytecode_enum, operand_scale,
+                                  &fallback_result)) {
+      PublishWasmInterpreterFallbackResult(isolate, "bytecode fallback",
+                                           &fallback_result);
+      if (should_log_step) {
+        PrintF("  fallback %s result=0x%x\n",
+               interpreter::Bytecodes::ToString(bytecode_enum),
+               static_cast<unsigned>(fallback_result));
+      }
+      current_offset +=
+          interpreter::Bytecodes::Size(bytecode_enum, operand_scale);
+      operand_scale = interpreter::OperandScale::kSingle;
+      continue;
+    }
     if (TryRunCallBytecode(isolate, bytecode, bytecode_index, bytecode_enum,
                            operand_scale, &fallback_result)) {
       PublishWasmInterpreterFallbackResult(isolate, "bytecode fallback",
@@ -3974,6 +4635,34 @@ extern "C" void WasmInterpreterEntryTrampoline() {
       if (should_log_step) {
         PrintF("  fallback %s result=0x%x\n",
                interpreter::Bytecodes::ToString(bytecode_enum),
+               static_cast<unsigned>(fallback_result));
+      }
+      current_offset +=
+          interpreter::Bytecodes::Size(bytecode_enum, operand_scale);
+      operand_scale = interpreter::OperandScale::kSingle;
+      continue;
+    }
+    if (TryRunConstructBytecode(isolate, bytecode, bytecode_index,
+                                bytecode_enum, operand_scale,
+                                &fallback_result)) {
+      PublishWasmInterpreterFallbackResult(isolate, "bytecode fallback",
+                                           &fallback_result);
+      if (should_log_step) {
+        PrintF("  fallback Construct result=0x%x\n",
+               static_cast<unsigned>(fallback_result));
+      }
+      current_offset +=
+          interpreter::Bytecodes::Size(bytecode_enum, operand_scale);
+      operand_scale = interpreter::OperandScale::kSingle;
+      continue;
+    }
+    if (TryRunFindNonDefaultConstructorOrConstructBytecode(
+            isolate, bytecode, bytecode_index, bytecode_enum, operand_scale,
+            &fallback_result)) {
+      PublishWasmInterpreterFallbackResult(isolate, "bytecode fallback",
+                                           &fallback_result);
+      if (should_log_step) {
+        PrintF("  fallback FindNonDefaultConstructorOrConstruct result=0x%x\n",
                static_cast<unsigned>(fallback_result));
       }
       current_offset +=
@@ -4038,6 +4727,21 @@ extern "C" void WasmInterpreterEntryTrampoline() {
       operand_scale = interpreter::OperandScale::kSingle;
       continue;
     }
+    if (TryRunStaContextSlotBytecode(isolate, bytecode, bytecode_index,
+                                     bytecode_enum, operand_scale,
+                                     &fallback_result)) {
+      PublishWasmInterpreterFallbackResult(isolate, "bytecode fallback",
+                                           &fallback_result);
+      if (should_log_step) {
+        PrintF("  fallback %s result=0x%x\n",
+               interpreter::Bytecodes::ToString(bytecode_enum),
+               static_cast<unsigned>(fallback_result));
+      }
+      current_offset +=
+          interpreter::Bytecodes::Size(bytecode_enum, operand_scale);
+      operand_scale = interpreter::OperandScale::kSingle;
+      continue;
+    }
     if (TryRunLdaGlobalBytecode(isolate, bytecode, bytecode_index,
                                 bytecode_enum, operand_scale,
                                 &fallback_result)) {
@@ -4085,6 +4789,20 @@ extern "C" void WasmInterpreterEntryTrampoline() {
                                            &fallback_result);
       if (should_log_step) {
         PrintF("  fallback ToString result=0x%x\n",
+               static_cast<unsigned>(fallback_result));
+      }
+      current_offset +=
+          interpreter::Bytecodes::Size(bytecode_enum, operand_scale);
+      operand_scale = interpreter::OperandScale::kSingle;
+      continue;
+    }
+    if (TryRunToNumberOrNumericBytecode(isolate, bytecode_enum,
+                                        &fallback_result)) {
+      PublishWasmInterpreterFallbackResult(isolate, "bytecode fallback",
+                                           &fallback_result);
+      if (should_log_step) {
+        PrintF("  fallback %s result=0x%x\n",
+               interpreter::Bytecodes::ToString(bytecode_enum),
                static_cast<unsigned>(fallback_result));
       }
       current_offset +=

@@ -33,6 +33,8 @@ namespace compiler {
 namespace {
 
 constexpr int kWasmGapTempSlot = kWasmStackSlotBase - 1;
+constexpr int kWasmReservedR10OperandSlot = kWasmCallReturnSlotBase + 2;
+constexpr int kWasmReservedR11OperandSlot = kWasmCallReturnSlotBase + 3;
 
 thread_local std::unique_ptr<wasm32::WasmFunctionBuilder> current_body;
 thread_local uint32_t current_scratch_local = 0;
@@ -126,10 +128,30 @@ int SlotFor(Register reg) {
   return WasmRegisterCodeToSlot(reg.code());
 }
 
+int SlotForGeneratedRegisterCode(int reg_code) {
+  if (reg_code == kInterpreterBytecodeOffsetRegister.code()) {
+    return kWasmReservedR10OperandSlot;
+  }
+  if (reg_code == kInterpreterBytecodeArrayRegister.code()) {
+    return kWasmReservedR11OperandSlot;
+  }
+  return WasmRegisterCodeToSlot(reg_code);
+}
+
+int SlotForGeneratedCallSavedSlot(int slot) {
+  if (slot == SlotFor(kInterpreterBytecodeOffsetRegister)) {
+    return kWasmReservedR10OperandSlot;
+  }
+  if (slot == SlotFor(kInterpreterBytecodeArrayRegister)) {
+    return kWasmReservedR11OperandSlot;
+  }
+  return slot;
+}
+
 int SlotForAllocatedOperand(InstructionOperand* operand) {
   if (operand->IsRegister()) {
-    return WasmRegisterCodeToSlot(
-        AllocatedOperand::cast(operand)->register_code());
+    int reg_code = AllocatedOperand::cast(operand)->register_code();
+    return SlotForGeneratedRegisterCode(reg_code);
   }
   if (operand->IsFPRegister()) {
     return WasmDoubleRegisterCodeToSlot(
@@ -264,13 +286,13 @@ bool IsCEntryBuiltinTarget(Builtin builtin) {
 
 void EmitGeneratedBuiltinCall(Builtin builtin) {
   for (int i = 0; i < kWasmCallSaveSlotCount; ++i) {
-    CopySlot(i, kWasmCallSaveSlotBase + i);
+    CopySlot(SlotForGeneratedCallSavedSlot(i), kWasmCallSaveSlotBase + i);
   }
   Body().CallSymbol(Builtins::name(builtin));
   CopySlot(SlotFor(kReturnRegister0), kWasmCallReturnSlotBase);
   CopySlot(SlotFor(kReturnRegister1), kWasmCallReturnSlotBase + 1);
   for (int i = kWasmCallSaveSlotCount; i-- > 0;) {
-    CopySlot(kWasmCallSaveSlotBase + i, i);
+    CopySlot(kWasmCallSaveSlotBase + i, SlotForGeneratedCallSavedSlot(i));
   }
   CopySlot(kWasmCallReturnSlotBase, SlotFor(kReturnRegister0));
   CopySlot(kWasmCallReturnSlotBase + 1, SlotFor(kReturnRegister1));

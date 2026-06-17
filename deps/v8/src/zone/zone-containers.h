@@ -287,8 +287,10 @@ class ZoneVector {
     } else {
       DCHECK_EQ(zone_, other.zone_);
     }
-    for (T* p = data_; p < end_; p++) p->~T();
-    if (data_) zone_->DeleteArray(data_, capacity());
+    if (data_ != nullptr) {
+      for (T* p = data_; p < end_; p++) p->~T();
+      if (zone_ != nullptr) zone_->DeleteArray(data_, capacity());
+    }
     data_ = other.data_;
     end_ = other.end_;
     capacity_ = other.capacity_;
@@ -357,13 +359,19 @@ class ZoneVector {
   }
 
   void clear() {
+    if (data_ == nullptr) {
+      end_ = data_;
+      return;
+    }
     for (T* p = data_; p < end_; p++) p->~T();
     end_ = data_;
   }
 
-  size_t size() const { return end_ - data_; }
-  bool empty() const { return end_ == data_; }
-  size_t capacity() const { return capacity_ - data_; }
+  size_t size() const { return data_ == nullptr ? 0 : end_ - data_; }
+  bool empty() const { return size() == 0; }
+  size_t capacity() const {
+    return data_ == nullptr ? 0 : capacity_ - data_;
+  }
   void reserve(size_t new_cap) { EnsureCapacity(new_cap); }
   T* data() { return data_; }
   const T* data() const { return data_; }
