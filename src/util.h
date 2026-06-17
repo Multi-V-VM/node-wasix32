@@ -921,9 +921,10 @@ class PersistentToLocal {
     // stores a storage-slot (location) pointer. The reinterpret_cast trick
     // below would hand the location to code expecting a tagged value, causing
     // OOB reads (e.g. Context::Global() in Realm::CreateProperties).
-    // Local::New dereferences the slot (and is a friend of PersistentBase);
-    // the isolate argument is unused on WASI.
-    return ::v8::Local<TypeName>::New(nullptr, persistent);
+    // Avoid Local::New() overload ambiguity in the WASI public handle shim:
+    // PersistentBase::operator->() returns the tagged value from the slot.
+    return ::v8::Local<TypeName>::FromAddress(
+        reinterpret_cast<::v8::internal::Address>(persistent.operator->()));
 #else
     return *reinterpret_cast<::v8::Local<TypeName>*>(
         const_cast<::v8::PersistentBase<TypeName>*>(&persistent));

@@ -59,15 +59,15 @@ inline v8::internal::DirectHandle<i::UnionOf<i::Smi, i::Foreign>> FromCData(
 template <class From, class To>
 inline Local<To> Utils::Convert(v8::internal::DirectHandle<From> obj) {
   DCHECK(obj.is_null() || IsSmi(*obj) || !IsTheHole(*obj));
-#ifdef V8_ENABLE_DIRECT_HANDLE
-  if (obj.is_null()) return Local<To>();
-  return Local<To>::FromAddress(obj.address());
-#elif defined(__wasi__)
-  // WASI: Local<T> stores tagged pointers directly as T*. Dereference the
-  // DirectHandle (which wraps an IndirectHandle) to get the Tagged value,
-  // then extract its tagged pointer address.
+#if defined(__wasi__)
+  // WASI Local<T> stores the tagged pointer directly. Do not use
+  // DirectHandle::address() here: depending on handle-mode shims that can be
+  // the address of a handle slot, which JS later interprets as a Smi.
   if (obj.is_null()) return Local<To>();
   return Local<To>::FromAddress((*obj).ptr());
+#elif defined(V8_ENABLE_DIRECT_HANDLE)
+  if (obj.is_null()) return Local<To>();
+  return Local<To>::FromAddress(obj.address());
 #else
   // This simply uses the location of the indirect handle wrapped inside a
   // "fake" direct handle.

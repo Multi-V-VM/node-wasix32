@@ -5468,13 +5468,21 @@ bool v8::Object::IsUndetectable() const {
 namespace {
 class PreparedArguments {
  public:
-  PreparedArguments(int argc, Local<Value> argv[]) {
-#if V8_TARGET_ARCH_WASM32
-    args_.reserve(argc);
-    for (int i = 0; i < argc; ++i) {
-      args_.push_back(Utils::OpenDirectHandle(*argv[i]));
-    }
-#else
+	  PreparedArguments(int argc, Local<Value> argv[]) {
+	#if V8_TARGET_ARCH_WASM32
+	    args_.reserve(argc);
+	    for (int i = 0; i < argc; ++i) {
+	      auto arg = Utils::OpenDirectHandle(*argv[i]);
+	      fprintf(stderr,
+	              "PrepareArguments wasm32 i=%d local=%p tagged=0x%x "
+	              "opened=0x%x\n",
+	              i, *argv[i],
+	              static_cast<unsigned>(
+	                  reinterpret_cast<i::Address>(*argv[i])),
+	              static_cast<unsigned>((*arg).ptr()));
+	      args_.push_back(arg);
+	    }
+	#else
     static_assert(sizeof(v8::Local<v8::Value>) ==
                   sizeof(i::DirectHandle<i::Object>));
     args_ = {reinterpret_cast<i::DirectHandle<i::Object>*>(argv),
@@ -7822,6 +7830,14 @@ static_assert(v8::String::kMaxLength == i::String::kMaxLength);
     ENTER_V8_NO_SCRIPT_NO_EXCEPTION(i_isolate);                               \
     API_RCS_SCOPE(i_isolate, class_name, function_name);                      \
     if (length < 0) length = StringLength(data);                              \
+    if (sizeof(Char) == 1) {                                                   \
+      fprintf(stderr,                                                          \
+              "NEW_STRING %s data=%p length=%d type=%d mem_pages=%lu\n",       \
+              #function_name, reinterpret_cast<const void*>(data), length,     \
+              static_cast<int>(type),                                          \
+              static_cast<unsigned long>(__builtin_wasm_memory_size(0)));      \
+      fflush(stderr);                                                          \
+    }                                                                          \
     i::DirectHandle<i::String> handle_result =                                \
         NewString(i_isolate->factory(), type,                                 \
                   i::ZoneVector<const Char>(data, length))                     \
@@ -12799,6 +12815,39 @@ TryToCopyAndConvertArrayToCppBuffer<CTypeInfoBuilder<double>::Build().GetId(),
 Isolate* Isolate::Allocate() {
   i::IsolateGroup* isolate_group = i::IsolateGroup::AcquireDefault();
   return reinterpret_cast<Isolate*>(i::Isolate::New(isolate_group));
+}
+
+bool Isolate::InContext() {
+  i::Isolate* i_isolate = reinterpret_cast<i::Isolate*>(this);
+  return !i_isolate->context().is_null();
+}
+
+v8::Local<v8::Context> Isolate::GetCurrentContext() {
+  i::Isolate* i_isolate = reinterpret_cast<i::Isolate*>(this);
+  i::Tagged<i::Context> context = i_isolate->context();
+  if (context.is_null()) return Local<Context>();
+  i::Tagged<i::NativeContext> native_context = context->native_context();
+  return Utils::ToLocal(i::direct_handle(native_context, i_isolate));
+}
+
+v8::Local<v8::Context> Isolate::GetEnteredOrMicrotaskContext() {
+  i::Isolate* i_isolate = reinterpret_cast<i::Isolate*>(this);
+  i::DirectHandle<i::NativeContext> last =
+      i_isolate->handle_scope_implementer()->LastEnteredContext();
+  if (last.is_null()) return Local<Context>();
+  return Utils::ToLocal(last);
+}
+
+// static
+Isolate* Isolate::GetCurrent() {
+  i::Isolate* i_isolate = i::Isolate::Current();
+  return reinterpret_cast<Isolate*>(i_isolate);
+}
+
+// static
+Isolate* Isolate::TryGetCurrent() {
+  i::Isolate* i_isolate = i::Isolate::TryGetCurrent();
+  return reinterpret_cast<Isolate*>(i_isolate);
 }
 
 // static

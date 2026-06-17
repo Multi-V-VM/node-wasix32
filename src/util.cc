@@ -113,6 +113,15 @@ static void MakeUtf8String(Isolate* isolate,
                            MaybeStackBuffer<T>* target) {
   Local<String> string;
   if (!value->ToString(isolate->GetCurrentContext()).ToLocal(&string)) return;
+
+#ifdef __wasi__
+  size_t storage = string->Utf8LengthV2(isolate) + 1;
+  target->AllocateSufficientStorage(storage);
+  size_t length = string->WriteUtf8V2(
+      isolate, target->out(), storage, String::WriteFlags::kReplaceInvalidUtf8);
+  target->SetLengthAndZeroTerminate(length);
+  return;
+#else
   String::ValueView value_view(isolate, string);
 
   auto value_length = value_view.length();
@@ -139,6 +148,7 @@ static void MakeUtf8String(Isolate* isolate,
   size_t length = string->WriteUtf8V2(
       isolate, target->out(), storage, String::WriteFlags::kReplaceInvalidUtf8);
   target->SetLengthAndZeroTerminate(length);
+#endif
 }
 
 Utf8Value::Utf8Value(Isolate* isolate, Local<Value> value) {

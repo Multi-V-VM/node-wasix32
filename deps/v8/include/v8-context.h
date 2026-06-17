@@ -483,14 +483,13 @@ Local<Value> Context::GetEmbedderData(int index) {
 }
 
 void* Context::GetAlignedPointerFromEmbedderData(Isolate* isolate, int index) {
+#ifdef __wasi__
+  return SlowGetAlignedPointerFromEmbedderData(index);
+#else
 #if !defined(V8_ENABLE_CHECKS)
   using A = internal::Address;
   using I = internal::Internals;
-#ifdef __wasi__
-  A ctx = reinterpret_cast<A>(this);
-#else
   A ctx = internal::ValueHelper::ValueAsAddress(this);
-#endif
   A embedder_data =
       I::ReadTaggedPointerField(ctx, I::kNativeContextEmbedderDataOffset);
   int value_offset = I::kEmbedderDataArrayHeaderSize +
@@ -502,17 +501,17 @@ void* Context::GetAlignedPointerFromEmbedderData(Isolate* isolate, int index) {
 #else
   return SlowGetAlignedPointerFromEmbedderData(index);
 #endif
+#endif
 }
 
 void* Context::GetAlignedPointerFromEmbedderData(int index) {
+#ifdef __wasi__
+  return SlowGetAlignedPointerFromEmbedderData(index);
+#else
 #if !defined(V8_ENABLE_CHECKS)
   using A = internal::Address;
   using I = internal::Internals;
-#ifdef __wasi__
-  A ctx = reinterpret_cast<A>(this);
-#else
   A ctx = internal::ValueHelper::ValueAsAddress(this);
-#endif
   A embedder_data =
       I::ReadTaggedPointerField(ctx, I::kNativeContextEmbedderDataOffset);
   int value_offset = I::kEmbedderDataArrayHeaderSize +
@@ -524,6 +523,7 @@ void* Context::GetAlignedPointerFromEmbedderData(int index) {
           isolate, embedder_data, value_offset));
 #else
   return SlowGetAlignedPointerFromEmbedderData(index);
+#endif
 #endif
 }
 

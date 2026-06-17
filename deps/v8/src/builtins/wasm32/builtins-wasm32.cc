@@ -365,7 +365,7 @@ namespace {
 
 constexpr bool kTraceWasmInterpreterSteps = false;
 constexpr bool kTraceWasmFallbackDetails = false;
-constexpr bool kTraceWasmJSEntry = false;
+constexpr bool kTraceWasmJSEntry = true;
 constexpr bool kTraceWasmCallBytecode = false;
 
 constexpr int SlotFor(Register reg) {
@@ -1625,6 +1625,83 @@ bool TryRunReferenceTestBytecode(Isolate* isolate, Tagged<BytecodeArray> bytecod
       return false;
   }
 
+  *out_result = result ? roots.true_value().ptr() : roots.false_value().ptr();
+  return true;
+}
+
+bool TryRunCompareBytecode(Isolate* isolate, Tagged<BytecodeArray> bytecode,
+                           int bytecode_index,
+                           interpreter::Bytecode bytecode_enum,
+                           interpreter::OperandScale operand_scale,
+                           Address* out_result) {
+  bool is_compare = bytecode_enum == interpreter::Bytecode::kTestEqual ||
+                    bytecode_enum == interpreter::Bytecode::kTestEqualStrict ||
+                    bytecode_enum == interpreter::Bytecode::kTestLessThan ||
+                    bytecode_enum == interpreter::Bytecode::kTestGreaterThan ||
+                    bytecode_enum ==
+                        interpreter::Bytecode::kTestLessThanOrEqual ||
+                    bytecode_enum ==
+                        interpreter::Bytecode::kTestGreaterThanOrEqual;
+  if (!is_compare) return false;
+
+  int32_t lhs_operand =
+      ReadBytecodeSignedOperand(bytecode, bytecode_index, bytecode_enum, 0,
+                                operand_scale);
+  Address lhs_address = SafeTaggedOrUndefined(
+      isolate, ReadInterpreterRegister(
+                   interpreter::Register::FromOperand(lhs_operand)));
+  Address rhs_address = SafeTaggedOrUndefined(
+      isolate, g_wasm_regs[SlotFor(kInterpreterAccumulatorRegister)]);
+
+  Tagged<Context> saved_context = isolate->context();
+  Address context_address = CurrentInterpreterContext();
+  bool switched_context = false;
+  if (IsSafeTaggedHandleValue(context_address) &&
+      IsContext(Tagged<Object>(context_address))) {
+    isolate->set_context(Cast<Context>(Tagged<Object>(context_address)));
+    switched_context = true;
+  }
+
+  ReadOnlyRoots roots(isolate);
+  bool result = false;
+  if (bytecode_enum == interpreter::Bytecode::kTestEqualStrict) {
+    result = Object::StrictEquals(Tagged<Object>(lhs_address),
+                                  Tagged<Object>(rhs_address));
+  } else {
+    HandleScope scope(isolate);
+    DirectHandle<Object> lhs =
+        direct_handle(Tagged<Object>(lhs_address), isolate);
+    DirectHandle<Object> rhs =
+        direct_handle(Tagged<Object>(rhs_address), isolate);
+    Maybe<bool> maybe_result = Nothing<bool>();
+    switch (bytecode_enum) {
+      case interpreter::Bytecode::kTestEqual:
+        maybe_result = Object::Equals(isolate, lhs, rhs);
+        break;
+      case interpreter::Bytecode::kTestLessThan:
+        maybe_result = Object::LessThan(isolate, lhs, rhs);
+        break;
+      case interpreter::Bytecode::kTestGreaterThan:
+        maybe_result = Object::GreaterThan(isolate, lhs, rhs);
+        break;
+      case interpreter::Bytecode::kTestLessThanOrEqual:
+        maybe_result = Object::LessThanOrEqual(isolate, lhs, rhs);
+        break;
+      case interpreter::Bytecode::kTestGreaterThanOrEqual:
+        maybe_result = Object::GreaterThanOrEqual(isolate, lhs, rhs);
+        break;
+      default:
+        UNREACHABLE();
+    }
+    if (maybe_result.IsNothing()) {
+      if (switched_context) isolate->set_context(saved_context);
+      *out_result = roots.exception().ptr();
+      return true;
+    }
+    result = maybe_result.FromJust();
+  }
+
+  if (switched_context) isolate->set_context(saved_context);
   *out_result = result ? roots.true_value().ptr() : roots.false_value().ptr();
   return true;
 }
@@ -3773,6 +3850,84 @@ bool TryFallbackJSEntryBuiltin(Isolate* isolate, Builtin builtin,
                                int actual_argc, Address* argv,
                                Address* out_result) {
   ReadOnlyRoots roots(isolate);
+  if (builtin == Builtin::kCompileLazy) {
+    Tagged<Context> saved_context = isolate->context();
+    isolate->set_context(function->context());
+
+    Address runtime_arg = function.ptr();
+    const Runtime::Function* compile_lazy =
+        Runtime::FunctionForId(Runtime::kCompileLazy);
+    using RuntimeEntry = Address (*)(int, Address*, Isolate*);
+    Address code = reinterpret_cast<RuntimeEntry>(compile_lazy->entry)(
+        1, &runtime_arg, isolate);
+    if (isolate->has_exception() || code == roots.exception().ptr()) {
+      isolate->set_context(saved_context);
+      *out_result = roots.exception().ptr();
+      return true;
+    }
+
+    Address nested_values[kWasmMaxOutgoingArgSlots == 0
+                              ? 1
+                              : kWasmMaxOutgoingArgSlots];
+    Address* nested_argv[kWasmMaxOutgoingArgSlots == 0
+                             ? 1
+                             : kWasmMaxOutgoingArgSlots];
+    int nested_argc = actual_argc;
+    if (nested_argc > kWasmMaxOutgoingArgSlots) {
+      nested_argc = kWasmMaxOutgoingArgSlots;
+    }
+    for (int i = 0; i < nested_argc; ++i) {
+      nested_values[i] = argv[i];
+      nested_argv[i] = &nested_values[i];
+    }
+
+    Address root = g_wasm_regs[kWasmRegRoot];
+    if (root == kNullAddress) root = g_wasm_regs[SlotFor(kRootRegister)];
+    *out_result = WasmJSEntry(root, roots.undefined_value().ptr(),
+                              function.ptr(), receiver,
+                              nested_argc + kJSArgcReceiverSlots, nested_argv);
+    isolate->set_context(saved_context);
+    return true;
+  }
+
+  if (builtin == Builtin::kHandleApiCallOrConstruct) {
+    if (!function->shared()->IsApiFunction()) return false;
+
+    Tagged<Context> saved_context = isolate->context();
+    isolate->set_context(function->context());
+
+    DirectHandle<FunctionTemplateInfo> function_template(
+        function->shared()->api_func_data(), isolate);
+    DirectHandle<Object> api_receiver(
+        Tagged<Object>(SafeTaggedOrUndefined(isolate, receiver)), isolate);
+    DirectHandle<Object> api_args[kWasmMaxOutgoingArgSlots == 0
+                                      ? 1
+                                      : kWasmMaxOutgoingArgSlots];
+    int api_argc = actual_argc;
+    if (api_argc > kWasmMaxOutgoingArgSlots) {
+      api_argc = kWasmMaxOutgoingArgSlots;
+    }
+    for (int i = 0; i < api_argc; ++i) {
+      api_args[i] =
+          direct_handle(Tagged<Object>(SafeTaggedOrUndefined(isolate, argv[i])),
+                        isolate);
+    }
+    DirectHandle<HeapObject> new_target(
+        Cast<HeapObject>(roots.undefined_value()), isolate);
+    MaybeHandle<Object> maybe_result = Builtins::InvokeApiFunction(
+        isolate, false, function_template, api_receiver,
+        ZoneVector<const DirectHandle<Object>>(api_args, api_argc), new_target);
+    DirectHandle<Object> result;
+    if (!maybe_result.ToHandle(&result)) {
+      isolate->set_context(saved_context);
+      *out_result = roots.exception().ptr();
+      return true;
+    }
+    *out_result = (*result).ptr();
+    isolate->set_context(saved_context);
+    return true;
+  }
+
   if (builtin == Builtin::kSymbolPrototypeDescriptionGetter) {
     Address receiver_address = SafeTaggedOrUndefined(isolate, receiver);
     if (IsSafeTaggedHandleValue(receiver_address)) {
@@ -4566,6 +4721,21 @@ extern "C" void WasmInterpreterEntryTrampoline() {
                                            &fallback_result);
       if (should_log_step) {
         PrintF("  fallback ThrowIfNotSuperConstructor result=0x%x\n",
+               static_cast<unsigned>(fallback_result));
+      }
+      current_offset +=
+          interpreter::Bytecodes::Size(bytecode_enum, operand_scale);
+      operand_scale = interpreter::OperandScale::kSingle;
+      continue;
+    }
+    if (TryRunCompareBytecode(isolate, bytecode, bytecode_index,
+                              bytecode_enum, operand_scale,
+                              &fallback_result)) {
+      PublishWasmInterpreterFallbackResult(isolate, "bytecode fallback",
+                                           &fallback_result);
+      if (should_log_step) {
+        PrintF("  fallback %s result=0x%x\n",
+               interpreter::Bytecodes::ToString(bytecode_enum),
                static_cast<unsigned>(fallback_result));
       }
       current_offset +=

@@ -568,9 +568,9 @@ class V8_EXPORT Isolate {
     bool allow_atomics_wait = true;
   };
   
-  static Isolate* GetCurrent() { return nullptr; }
-  static Isolate* TryGetCurrent() { return nullptr; }
   // Declaration only - implementation in api.cc
+  static Isolate* GetCurrent();
+  static Isolate* TryGetCurrent();
   static Isolate* New(const CreateParams& params);
   
   void Enter() {}
@@ -590,9 +590,9 @@ class V8_EXPORT Isolate {
   // Additional methods as needed
   void* GetData(uint32_t slot) { return nullptr; }
   void SetData(uint32_t slot, void* data) {}
-  Local<Context> GetCurrentContext() { return Local<Context>(); }
-  Local<Context> GetEnteredOrMicrotaskContext() { return Local<Context>(); }
-  bool InContext() const { return false; }
+  Local<Context> GetCurrentContext();
+  Local<Context> GetEnteredOrMicrotaskContext();
+  bool InContext();
   
   // Execution termination methods
   bool IsExecutionTerminating() { return false; }

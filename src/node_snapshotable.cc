@@ -29,6 +29,10 @@
 #include "node_v8_platform-inl.h"
 #include "timers.h"
 
+#ifdef __wasi__
+#include "src/codegen/wasm32/wasm32-builtin-module-writer.h"
+#endif
+
 #if HAVE_INSPECTOR
 #include "inspector/worker_inspector.h"  // ParentInspectorHandle
 #endif
@@ -973,6 +977,21 @@ ExitCode BuildSnapshotWithoutCodeCache(
       fprintf(stderr, "%s: %s\n", args[0].c_str(), err.c_str());
     return ExitCode::kBootstrapFailure;
   }
+
+#ifdef __wasi__
+  if (!config.wasm32_builtins_path.empty()) {
+    bool wrote_builtins =
+        v8::internal::wasm32::WriteGeneratedBuiltinModule(
+            config.wasm32_builtins_path.c_str(),
+            config.wasm32_builtins_manifest_path.c_str(),
+            config.wasm32_builtins_registry_source_path.c_str());
+    if (!wrote_builtins) {
+      std::cerr << "Failed to write wasm32 generated builtins to "
+                << config.wasm32_builtins_path << "\n";
+      return ExitCode::kGenericUserError;
+    }
+  }
+#endif
 
   Isolate* isolate = setup->isolate();
   v8::Locker locker(isolate);

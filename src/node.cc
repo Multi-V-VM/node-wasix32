@@ -372,9 +372,11 @@ MaybeLocal<Value> StartExecution(Environment* env, StartExecutionCallback cb) {
     return env->RunSnapshotDeserializeMain();
   }
 
+#ifndef __wasi__
   if (env->worker_context() != nullptr) {
     return StartExecution(env, "internal/main/worker_thread");
   }
+#endif
 
   std::string first_argv;
   if (env->argv().size() > 1) {

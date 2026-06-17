@@ -215,10 +215,6 @@ MaybeLocal<Value> Realm::RunBootstrapping() {
 
   CHECK(!has_run_bootstrapping_code());
 
-#ifdef __wasi__
-  DoneBootstrapping();
-  return scope.Escape(v8::Undefined(isolate_));
-#else
   Local<Value> result;
   if (!ExecuteBootstrapper("internal/bootstrap/realm").ToLocal(&result) ||
       !BootstrapRealm().ToLocal(&result)) {
@@ -228,7 +224,6 @@ MaybeLocal<Value> Realm::RunBootstrapping() {
   DoneBootstrapping();
 
   return scope.Escape(result);
-#endif
 }
 
 void Realm::DoneBootstrapping() {

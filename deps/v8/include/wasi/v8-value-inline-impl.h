@@ -27,9 +27,7 @@ inline bool Value::IsNullOrUndefined() const {
 }
 
 inline bool Value::IsString() const {
-  // For WASI, we can't check instance type directly
-  // Return false as a safe default
-  return false;
+  return IsName() && !IsSymbol();
 }
 
 // Add missing Value methods that Node.js expects
@@ -70,6 +68,10 @@ inline MaybeLocal<Number> Value::ToNumber(Local<Context> context) const {
 }
 
 inline MaybeLocal<String> Value::ToDetailString(Local<Context> context) const {
+  if (IsString()) {
+    return MaybeLocal<String>(
+        Local<String>::FromAddress(reinterpret_cast<internal::Address>(this)));
+  }
   return MaybeLocal<String>();
 }
 
@@ -98,6 +100,10 @@ inline Local<Boolean> Value::ToBoolean(Isolate* isolate) const {
 }
 
 inline MaybeLocal<String> Value::ToString(Local<Context> context) const {
+  if (IsString()) {
+    return MaybeLocal<String>(
+        Local<String>::FromAddress(reinterpret_cast<internal::Address>(this)));
+  }
   return MaybeLocal<String>();
 }
 

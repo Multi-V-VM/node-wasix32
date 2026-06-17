@@ -1,6 +1,7 @@
 #include <set>
 
 #include "env-inl.h"
+#include "node_internals.h"
 #include "node_process-inl.h"
 #include "util.h"
 
@@ -18,6 +19,7 @@ using v8::NewStringType;
 using v8::Nothing;
 using v8::Object;
 using v8::String;
+using v8::Undefined;
 using v8::Value;
 
 Maybe<void> ProcessEmitWarningSync(Environment* env, std::string_view message) {
@@ -57,8 +59,24 @@ MaybeLocal<Value> ProcessEmit(Environment* env,
 
   Local<Object> process = env->process_object();
   Local<Value> argv[] = {event_string, message};
+#ifdef __wasi__
+  Local<Value> callback_v;
+  if (!process->Get(env->context(), env->emit_string()).ToLocal(&callback_v)) {
+    return MaybeLocal<Value>();
+  }
+  if (!callback_v->IsFunction()) return Undefined(isolate);
+  return InternalMakeCallback(env,
+                              process,
+                              process,
+                              callback_v.As<Function>(),
+                              arraysize(argv),
+                              argv,
+                              {0, 0},
+                              Undefined(isolate));
+#else
   return MakeCallback(
       isolate, process, env->emit_string(), arraysize(argv), argv, {0, 0});
+#endif
 }
 
 Maybe<bool> ProcessEmitWarningGeneric(Environment* env,

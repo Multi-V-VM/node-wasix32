@@ -691,6 +691,36 @@ void BuiltinLoader::BuiltinIdsGetter(Local<Name> property,
     id_vector.push_back(id);
   }
 #endif
+  bool has_internal_errors = false;
+  for (const auto& id : id_vector) {
+    if (id == "internal/errors") {
+      has_internal_errors = true;
+      break;
+    }
+  }
+  fprintf(stderr,
+          "BuiltinIdsGetter wasm32 size=%zu has_internal_errors=%d first=%s\n",
+          id_vector.size(),
+          has_internal_errors,
+          id_vector.empty() ? "<empty>" : id_vector.front().c_str());
+  fflush(stderr);
+#ifdef __wasi__
+  MaybeStackBuffer<Local<Value>, 128> values(id_vector.size());
+  values.SetLength(id_vector.size());
+  for (size_t i = 0; i < id_vector.size(); ++i) {
+    Local<String> id;
+    if (!String::NewFromUtf8(isolate,
+                             id_vector[i].data(),
+                             NewStringType::kInternalized,
+                             id_vector[i].size())
+             .ToLocal(&id)) {
+      return;
+    }
+    values[i] = id.As<Value>();
+  }
+  info.GetReturnValue().Set(v8::Array::New(isolate, values.out(), values.length()));
+  return;
+#endif
   Local<Value> ret;
   if (ToV8Value(isolate->GetCurrentContext(), id_vector).ToLocal(&ret)) {
     info.GetReturnValue().Set(ret);

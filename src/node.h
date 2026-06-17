@@ -678,6 +678,12 @@ struct SnapshotConfig {
   // the snapshot builder can execute asynchronous operations as long as they
   // are run to completion when the snapshot is taken.
   std::optional<std::string> builder_script_path;
+
+#ifdef __wasi__
+  std::string wasm32_builtins_path;
+  std::string wasm32_builtins_manifest_path;
+  std::string wasm32_builtins_registry_source_path;
+#endif
 };
 
 struct InspectorParentHandle {

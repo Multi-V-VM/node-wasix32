@@ -18,11 +18,11 @@ class Integer;
 template <typename T>
 class LocalHandleHelper {
  public:
-  static internal::Address GetAddress(const Local<T>& handle) {
-    if (handle.IsEmpty()) return 0;
-    return reinterpret_cast<internal::Address>(handle.ptr());
-  }
-};
+	  static internal::Address GetAddress(const Local<T>& handle) {
+	    if (handle.IsEmpty()) return 0;
+	    return reinterpret_cast<internal::Address>(*handle);
+	  }
+	};
 
 // Extension methods for handle types to get internal address
 template <typename T>
