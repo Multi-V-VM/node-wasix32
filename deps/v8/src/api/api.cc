@@ -648,14 +648,6 @@ static_assert(Internals::StaticReadOnlyRoot::kNumberOfExportedStaticRoots ==
 namespace api_internal {
 
 i::Address* GlobalizeReference(i::Isolate* i_isolate, i::Address value) {
-#ifdef __wasi__
-  fprintf(stderr,
-          "GlobalizeReference: isolate=%p value=0x%lx mem_pages=%lu\n",
-          static_cast<void*>(i_isolate),
-          static_cast<unsigned long>(value),
-          static_cast<unsigned long>(__builtin_wasm_memory_size(0)));
-  fflush(stderr);
-#endif
   API_RCS_SCOPE(i_isolate, Persistent, New);
   i::IndirectHandle<i::Object> result =
       i_isolate->global_handles()->Create(value);
@@ -753,20 +745,6 @@ Address* WasiGetRootSlot(v8::Isolate* isolate, int index) {
   Address* slot = i_isolate->roots_table()
       .slot(static_cast<i::RootIndex>(index))
       .location();
-  static int root_trace_count = 0;
-  if (index == static_cast<int>(i::RootIndex::kNullValue) &&
-      root_trace_count < 128) {
-    Address value = 0;
-    if (slot != nullptr) value = *slot;
-    fprintf(stderr,
-            "WasiGetRootSlot wasm32 index=%d isolate=%p slot=%p value=0x%lx\n",
-            index,
-            isolate,
-            static_cast<void*>(slot),
-            static_cast<unsigned long>(value));
-    fflush(stderr);
-    ++root_trace_count;
-  }
   return slot;
 }
 
@@ -1035,18 +1013,6 @@ void* Context::SlowGetAlignedPointerFromEmbedderData(int index) {
   Utils::ApiCheck(
       i::EmbedderDataSlot(*data, index).ToAlignedPointer(i_isolate, &result),
       location, "Pointer is not aligned");
-#ifdef __wasi__
-  if (index >= 32 && index <= 39) {
-    fprintf(stderr,
-            "Context::GetAlignedPointer context=0x%lx index=%d result=%p "
-            "data=0x%lx\n",
-            static_cast<unsigned long>((*Utils::OpenDirectHandle(this)).ptr()),
-            index,
-            result,
-            static_cast<unsigned long>((*data).ptr()));
-    fflush(stderr);
-  }
-#endif
   return result;
 }
 
@@ -1055,27 +1021,6 @@ void Context::SetAlignedPointerInEmbedderData(int index, void* value) {
   i::Isolate* i_isolate = Utils::OpenDirectHandle(this)->GetIsolate();
   i::DirectHandle<i::EmbedderDataArray> data =
       EmbedderDataFor(this, index, true, location);
-#ifdef __wasi__
-  if (index >= 32 && index <= 39) {
-    uintptr_t value_word = 0;
-    uintptr_t value_address = reinterpret_cast<uintptr_t>(value);
-    uintptr_t mem_bytes =
-        static_cast<uintptr_t>(__builtin_wasm_memory_size(0)) * 65536u;
-    if (value_address != 0 && mem_bytes >= sizeof(uintptr_t) &&
-        value_address <= mem_bytes - sizeof(uintptr_t)) {
-      value_word = *reinterpret_cast<uintptr_t*>(value_address);
-    }
-    fprintf(stderr,
-            "Context::SetAlignedPointer context=0x%lx index=%d value=%p "
-            "value_word=0x%lx data=0x%lx\n",
-            static_cast<unsigned long>((*Utils::OpenDirectHandle(this)).ptr()),
-            index,
-            value,
-            static_cast<unsigned long>(value_word),
-            static_cast<unsigned long>((*data).ptr()));
-    fflush(stderr);
-  }
-#endif
   bool ok = i::EmbedderDataSlot(*data, index)
                 .store_aligned_pointer(i_isolate, *data, value);
   Utils::ApiCheck(ok, location, "Pointer is not aligned");
@@ -1200,16 +1145,6 @@ i::DirectHandle<i::FunctionTemplateInfo> FunctionTemplateNew(
     v8::Local<Private> cached_property_name = v8::Local<Private>(),
     SideEffectType side_effect_type = SideEffectType::kHasSideEffect,
     const MemorySpan<const CFunction>& c_function_overloads = {}) {
-  static int wasm32_function_template_new_trace_count = 0;
-  if (wasm32_function_template_new_trace_count < 512) {
-    ++wasm32_function_template_new_trace_count;
-    PrintF("FunctionTemplateNew trace #%d isolate=%p callback=%p length=%d "
-           "behavior=%d do_not_cache=%d data_empty=%d signature_empty=%d\n",
-           wasm32_function_template_new_trace_count, i_isolate,
-           reinterpret_cast<void*>(callback), length,
-           static_cast<int>(behavior), do_not_cache, data.IsEmpty(),
-           signature.IsEmpty());
-  }
   i::DirectHandle<i::FunctionTemplateInfo> obj =
       i_isolate->factory()->NewFunctionTemplateInfo(length, do_not_cache);
   {
@@ -1438,56 +1373,21 @@ i::DirectHandle<i::AccessorInfo> MakeAccessorInfo(i::Isolate* i_isolate,
   obj->set_setter(i_isolate, reinterpret_cast<i::Address>(setter));
 #endif
 
-#ifdef __wasi__
-  fprintf(stderr, "MakeAccessorInfo: getter/setter written OK\n");
-  fprintf(stderr, "MakeAccessorInfo: name.IsEmpty()=%d, name ptr=%p\n",
-          name.IsEmpty(), reinterpret_cast<void*>(*reinterpret_cast<uintptr_t*>(&name)));
-  fflush(stderr);
-#endif
   auto accessor_name = Utils::OpenDirectHandle(*name);
-#ifdef __wasi__
-  fprintf(stderr, "MakeAccessorInfo: got accessor_name ptr=0x%x\n",
-          (unsigned)(*accessor_name).ptr());
-  fflush(stderr);
-#endif
   if (!IsUniqueName(*accessor_name)) {
-#ifdef __wasi__
-    fprintf(stderr, "MakeAccessorInfo: InternalizeString...\n");
-    fflush(stderr);
-#endif
     accessor_name = i_isolate->factory()->InternalizeString(
         i::Cast<i::String>(accessor_name));
-#ifdef __wasi__
-    fprintf(stderr, "MakeAccessorInfo: InternalizeString done\n");
-    fflush(stderr);
-#endif
   }
   i::DisallowGarbageCollection no_gc;
   i::Tagged<i::AccessorInfo> raw_obj = *obj;
-#ifdef __wasi__
-  fprintf(stderr, "MakeAccessorInfo: about to set_data\n");
-  fflush(stderr);
-#endif
   if (data.IsEmpty()) {
     raw_obj->set_data(i::ReadOnlyRoots(i_isolate).undefined_value());
   } else {
     raw_obj->set_data(*Utils::OpenDirectHandle(*data));
   }
-#ifdef __wasi__
-  fprintf(stderr, "MakeAccessorInfo: set_data done, about to set_name\n");
-  fflush(stderr);
-#endif
   raw_obj->set_name(*accessor_name);
-#ifdef __wasi__
-  fprintf(stderr, "MakeAccessorInfo: set_name done\n");
-  fflush(stderr);
-#endif
   raw_obj->set_replace_on_access(replace_on_access);
   raw_obj->set_initial_property_attributes(i::NONE);
-#ifdef __wasi__
-  fprintf(stderr, "MakeAccessorInfo: COMPLETE\n");
-  fflush(stderr);
-#endif
   return obj;
 }
 
@@ -1576,11 +1476,6 @@ Local<ObjectTemplate> ObjectTemplate::New(
     Isolate* v8_isolate, v8::Local<FunctionTemplate> constructor) {
   auto i_isolate = reinterpret_cast<i::Isolate*>(v8_isolate);
 #ifdef __wasi__
-  fprintf(stderr,
-          "ObjectTemplate::New: enter constructor_empty=%d raw=%p\n",
-          constructor.IsEmpty(),
-          constructor.IsEmpty() ? nullptr : *constructor);
-  fflush(stderr);
   constexpr bool do_not_cache = false;
   i::DirectHandle<i::FunctionTemplateInfo> constructor_info;
   if (!constructor.IsEmpty()) {
@@ -1589,10 +1484,6 @@ Local<ObjectTemplate> ObjectTemplate::New(
   i::DirectHandle<i::ObjectTemplateInfo> obj =
       i_isolate->factory()->NewObjectTemplateInfo(constructor_info,
                                                   do_not_cache);
-  fprintf(stderr,
-          "ObjectTemplate::New: done obj=%p\n",
-          reinterpret_cast<void*>(obj.address()));
-  fflush(stderr);
   return Utils::ToLocal(obj);
 #else
   API_RCS_SCOPE(i_isolate, ObjectTemplate, New);
@@ -4930,16 +4821,6 @@ namespace {
 
 Maybe<bool> SetPrototypeImpl(v8::Object* this_, Local<Context> context,
                              Local<Value> value, bool from_javascript) {
-#ifdef __wasi__
-  fprintf(stderr,
-          "SetPrototypeImpl wasm32 raw this=%p context=%p value=%p "
-          "from_js=%d\n",
-          static_cast<void*>(this_),
-          reinterpret_cast<void*>(*context),
-          reinterpret_cast<void*>(*value),
-          from_javascript);
-  fflush(stderr);
-#endif
   auto i_isolate = reinterpret_cast<i::Isolate*>(context->GetIsolate());
   auto self = Utils::OpenDirectHandle(this_);
   auto value_obj = Utils::OpenDirectHandle(*value);
@@ -4951,25 +4832,9 @@ Maybe<bool> SetPrototypeImpl(v8::Object* this_, Local<Context> context,
     // TODO(333672197): turn this to DCHECK once it's no longer possible
     // to get JSGlobalObject via API.
     CHECK_IMPLIES(from_javascript, !i::IsJSGlobalObject(*self));
-#ifdef __wasi__
-    fprintf(stderr,
-            "SetPrototypeImpl wasm32 enter self=0x%x value=0x%x from_js=%d "
-            "self_type=%d value_type=%d\n",
-            static_cast<unsigned>(self->ptr()),
-            static_cast<unsigned>((*value_obj).ptr()),
-            from_javascript,
-            i::IsHeapObject(*self) ? i::Cast<i::HeapObject>(*self)->map()->instance_type() : -1,
-            i::IsHeapObject(*value_obj) ? i::Cast<i::HeapObject>(*value_obj)->map()->instance_type() : -1);
-#endif
     auto result =
         i::JSObject::SetPrototype(i_isolate, i::Cast<i::JSObject>(self),
                                   value_obj, from_javascript, i::kDontThrow);
-#ifdef __wasi__
-    fprintf(stderr,
-            "SetPrototypeImpl wasm32 exit self=0x%x result_nothing=%d\n",
-            static_cast<unsigned>(self->ptr()),
-            result.IsNothing());
-#endif
     if (!result.FromJust()) return Nothing<bool>();
     return Just(true);
   }
@@ -5584,13 +5449,6 @@ class PreparedArguments {
 	    args_.reserve(argc);
 	    for (int i = 0; i < argc; ++i) {
 	      auto arg = Utils::OpenDirectHandle(*argv[i]);
-	      fprintf(stderr,
-	              "PrepareArguments wasm32 i=%d local=%p tagged=0x%x "
-	              "opened=0x%x\n",
-	              i, *argv[i],
-	              static_cast<unsigned>(
-	                  reinterpret_cast<i::Address>(*argv[i])),
-	              static_cast<unsigned>((*arg).ptr()));
 	      args_.push_back(arg);
 	    }
 	#else
@@ -7941,14 +7799,6 @@ static_assert(v8::String::kMaxLength == i::String::kMaxLength);
     ENTER_V8_NO_SCRIPT_NO_EXCEPTION(i_isolate);                               \
     API_RCS_SCOPE(i_isolate, class_name, function_name);                      \
     if (length < 0) length = StringLength(data);                              \
-    if (sizeof(Char) == 1) {                                                   \
-      fprintf(stderr,                                                          \
-              "NEW_STRING %s data=%p length=%d type=%d mem_pages=%lu\n",       \
-              #function_name, reinterpret_cast<const void*>(data), length,     \
-              static_cast<int>(type),                                          \
-              static_cast<unsigned long>(__builtin_wasm_memory_size(0)));      \
-      fflush(stderr);                                                          \
-    }                                                                          \
     i::DirectHandle<i::String> handle_result =                                \
         NewString(i_isolate->factory(), type,                                 \
                   i::ZoneVector<const Char>(data, length))                     \
@@ -8137,33 +7987,9 @@ Local<v8::Object> v8::Object::New(Isolate* v8_isolate) {
   i::Isolate* i_isolate = reinterpret_cast<i::Isolate*>(v8_isolate);
   API_RCS_SCOPE(i_isolate, Object, New);
   ENTER_V8_NO_SCRIPT_NO_EXCEPTION(i_isolate);
-#ifdef __wasi__
-  i::Tagged<i::Context> current_context = i_isolate->context();
-  fprintf(stderr,
-          "v8::Object::New enter isolate=%p context=%p context_null=%d\n",
-          static_cast<void*>(i_isolate),
-          current_context.is_null()
-              ? nullptr
-              : reinterpret_cast<void*>(current_context.ptr()),
-          current_context.is_null());
-  fflush(stderr);
-#endif
   i::DirectHandle<i::JSFunction> constructor = i_isolate->object_function();
-#ifdef __wasi__
-  fprintf(stderr,
-          "v8::Object::New constructor=%p has_initial_map=%d\n",
-          reinterpret_cast<void*>(constructor->ptr()),
-          constructor->has_initial_map());
-  fflush(stderr);
-#endif
   i::DirectHandle<i::JSObject> obj =
       i_isolate->factory()->NewJSObject(constructor);
-#ifdef __wasi__
-  fprintf(stderr,
-          "v8::Object::New result=%p\n",
-          reinterpret_cast<void*>(obj->ptr()));
-  fflush(stderr);
-#endif
   return Utils::ToLocal(obj);
 }
 

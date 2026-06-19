@@ -1532,12 +1532,6 @@ DirectHandle<AccessorInfo> Factory::NewAccessorInfo() {
 
   info->clear_padding();
 
-#ifdef __wasi__
-  fprintf(stderr, "NewAccessorInfo: info ptr=0x%x, map=0x%x\n",
-          (unsigned)info.ptr(), (unsigned)info->map().ptr());
-  fflush(stderr);
-#endif
-
   return direct_handle(info, isolate());
 }
 
@@ -4676,21 +4670,6 @@ inline void InitializeTemplateWithProperties(
 DirectHandle<FunctionTemplateInfo> Factory::NewFunctionTemplateInfo(
     int length, bool do_not_cache) {
   const int size = FunctionTemplateInfo::SizeFor();
-  static int wasm32_new_function_template_info_trace_count = 0;
-  if (wasm32_new_function_template_info_trace_count < 512) {
-    ++wasm32_new_function_template_info_trace_count;
-    PrintF("Factory::NewFunctionTemplateInfo trace #%d isolate=%p size=%d "
-           "length=%d do_not_cache=%d old_top=0x%x old_limit=0x%x "
-           "old_start=0x%x\n",
-           wasm32_new_function_template_info_trace_count, isolate(), size,
-           length, do_not_cache,
-           static_cast<unsigned>(
-               isolate()->heap()->allocator()->old_space_allocator()->top()),
-           static_cast<unsigned>(
-               isolate()->heap()->allocator()->old_space_allocator()->limit()),
-           static_cast<unsigned>(
-               isolate()->heap()->allocator()->old_space_allocator()->start()));
-  }
   Tagged<FunctionTemplateInfo> obj =
       Cast<FunctionTemplateInfo>(AllocateRawWithImmortalMap(
           size, AllocationType::kOld,

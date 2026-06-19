@@ -57,10 +57,16 @@
 #include "src/runtime/runtime.h"
 #include "include/v8-locker.h"
 
+#include <cstdio>
 #include <vector>
 
 namespace v8 {
 namespace internal {
+
+extern "C" int v8_wasm32_silent_fprintf(FILE*, const char*, ...) { return 0; }
+extern "C" int v8_wasm32_silent_fflush(FILE*) { return 0; }
+void v8_wasm32_silent_printf(const char*, ...) {}
+void v8_wasm32_silent_printf(FILE*, const char*, ...) {}
 
 Address Runtime_CreateArrayLiteral(int args_length, Address* args_object,
                                    Isolate* isolate);
@@ -518,7 +524,7 @@ void RepairWasm32NodeEnvironmentRealm(Tagged<Context> context) {
     }
   }
   static int repair_trace_count = 0;
-  if (repair_trace_count < 64) {
+  if (kTraceWasmJSEntry && repair_trace_count < 64) {
     Address realm_vtable = 0;
     Address realm_context_slot = 0;
     Address env_isolate = 0;
@@ -914,7 +920,7 @@ extern "C" void Wasm32CopyDataPropertiesBuiltin() {
       SafeTaggedOrUndefined(isolate, g_wasm_regs[SlotFor(Register::r1())]);
 
   static int copy_data_properties_trace_count = 0;
-  if (copy_data_properties_trace_count < 12) {
+  if (kTraceWasmFallbackDetails && copy_data_properties_trace_count < 12) {
     ++copy_data_properties_trace_count;
     PrintF("Wasm32CopyDataPropertiesBuiltin: call count=%d ",
            copy_data_properties_trace_count);
@@ -952,6 +958,58 @@ extern "C" void Wasm32CopyDataPropertiesBuiltin() {
         isolate, target, source,
         PropertiesEnumerationMode::kPropertyAdditionOrder, {}, false);
     if (copied.IsNothing()) result = roots.exception().ptr();
+  }
+
+  if (switched_context) isolate->set_context(saved_context);
+  g_wasm_regs[SlotFor(kReturnRegister0)] = result;
+}
+
+extern "C" void Wasm32LoadICFunctionPrototypeBuiltin() {
+  Address root = g_wasm_regs[kWasmRegRoot];
+  if (root == kNullAddress) root = g_wasm_regs[SlotFor(kRootRegister)];
+  Isolate* isolate = Isolate::FromRootAddress(root);
+  ReadOnlyRoots roots(isolate);
+
+  Address receiver_address =
+      SafeTaggedOrUndefined(isolate, g_wasm_regs[SlotFor(Register::r1())]);
+  Address result = roots.exception().ptr();
+  Tagged<Context> saved_context = isolate->context();
+  Address context_address = g_wasm_regs[SlotFor(kContextRegister)];
+  bool switched_context = false;
+  if (IsSafeTaggedHandleValue(context_address) &&
+      IsContext(Tagged<Object>(context_address))) {
+    isolate->set_context(Cast<Context>(Tagged<Object>(context_address)));
+    switched_context = true;
+  }
+
+  {
+    HandleScope scope(isolate);
+    WasmGCStateScope gc_state(isolate);
+    if (IsSafeTaggedHandleValue(receiver_address) &&
+        IsJSFunction(Tagged<Object>(receiver_address))) {
+      DirectHandle<JSFunction> function =
+          direct_handle(Cast<JSFunction>(Tagged<Object>(receiver_address)),
+                        isolate);
+      if (function->has_prototype_slot()) {
+        if (!function->has_prototype()) {
+          DirectHandle<JSObject> prototype =
+              isolate->factory()->NewFunctionPrototype(function);
+          JSFunction::SetPrototype(isolate, function, prototype);
+        }
+        result = function->prototype().ptr();
+      } else {
+        result = roots.undefined_value().ptr();
+      }
+    } else if (IsSafeTaggedHandleValue(receiver_address) &&
+               IsJSReceiver(Tagged<Object>(receiver_address))) {
+      DirectHandle<JSAny> receiver =
+          direct_handle(Cast<JSAny>(Tagged<Object>(receiver_address)), isolate);
+      DirectHandle<Name> name = isolate->factory()->prototype_string();
+      DirectHandle<Object> value;
+      if (Runtime::GetObjectProperty(isolate, receiver, name).ToHandle(&value)) {
+        result = (*value).ptr();
+      }
+    }
   }
 
   if (switched_context) isolate->set_context(saved_context);
@@ -1276,7 +1334,7 @@ bool TryRunCreateClosureBytecode(Isolate* isolate,
       static_cast<uint32_t>(feedback_cell_array->length())) {
     maybe_feedback_cell =
         direct_handle(feedback_cell_array->get(feedback_index), isolate);
-  } else {
+  } else if (kTraceWasmFallbackDetails) {
     PrintF("WasmInterpreterEntryTrampoline: CreateClosure missing feedback "
            "index=%u length=%d\n",
            feedback_index, feedback_cell_array->length());
@@ -1376,7 +1434,8 @@ bool TryRunLdaContextSlotBytecode(
     DirectHandle<Context> context_handle = direct_handle(context, isolate);
     DirectHandle<Object> value =
         Context::Get(context_handle, static_cast<int>(slot_index), isolate);
-    if (slot_index == 46 && g_context_slot46_trace_count < 24) {
+    if (kTraceWasmFallbackDetails && slot_index == 46 &&
+        g_context_slot46_trace_count < 24) {
       ++g_context_slot46_trace_count;
       PrintF("WasmInterpreterEntryTrampoline: LdaContextSlot slot46 "
              "bytecode_index=%d no_cell=%d current=%d depth_index=%d "
@@ -1390,7 +1449,8 @@ bool TryRunLdaContextSlotBytecode(
     return true;
   }
   Tagged<Object> value = context->GetNoCell(slot_index);
-  if (slot_index == 46 && g_context_slot46_trace_count < 24) {
+  if (kTraceWasmFallbackDetails && slot_index == 46 &&
+      g_context_slot46_trace_count < 24) {
     ++g_context_slot46_trace_count;
     PrintF("WasmInterpreterEntryTrampoline: LdaContextSlot slot46 "
            "bytecode_index=%d no_cell=%d current=%d depth_index=%d "
@@ -1480,7 +1540,8 @@ bool TryRunStaContextSlotBytecode(
     Context::Set(context_handle, static_cast<int>(slot_index), value_handle,
                  isolate);
   }
-  if (slot_index == 46 && g_context_slot46_trace_count < 24) {
+  if (kTraceWasmFallbackDetails && slot_index == 46 &&
+      g_context_slot46_trace_count < 24) {
     ++g_context_slot46_trace_count;
     PrintF("WasmInterpreterEntryTrampoline: StaContextSlot slot46 "
            "bytecode_index=%d no_cell=%d current=%d depth_index=%d "
@@ -1571,7 +1632,8 @@ bool TryRunRuntimeCallBytecode(Isolate* isolate, Tagged<BytecodeArray> bytecode,
     static int inline_copy_data_properties_trace_count = 0;
     Address target_address = argv[reg_count - 1];
     Address source_address = argv[reg_count - 2];
-    if (inline_copy_data_properties_trace_count < 12) {
+    if (kTraceWasmFallbackDetails &&
+        inline_copy_data_properties_trace_count < 12) {
       ++inline_copy_data_properties_trace_count;
       PrintF("WasmInterpreterEntryTrampoline: InlineCopyDataProperties "
              "count=%d ",
@@ -1808,8 +1870,14 @@ bool TryRunGetNamedPropertyBytecode(
   DirectHandle<Object> result;
   if (IsJSFunction(receiver_object) &&
       Name::Equals(isolate, name, isolate->factory()->prototype_string())) {
-    Tagged<JSFunction> function = Cast<JSFunction>(receiver_object);
-    if (function->has_prototype_slot() && function->has_prototype()) {
+    DirectHandle<JSFunction> function =
+        handle(Cast<JSFunction>(receiver_object), isolate);
+    if (function->has_prototype_slot()) {
+      if (!function->has_prototype()) {
+        DirectHandle<JSObject> prototype =
+            isolate->factory()->NewFunctionPrototype(function);
+        JSFunction::SetPrototype(isolate, function, prototype);
+      }
       *out_result = function->prototype().ptr();
       if (kTraceWasmFallbackDetails) {
         PrintF("WasmInterpreterEntryTrampoline: named load JSFunction "
@@ -1909,6 +1977,30 @@ bool TryRunGetKeyedPropertyBytecode(
   Handle<Object> key = handle(key_object, isolate);
 
   DirectHandle<Object> result;
+  if (IsJSFunction(receiver_object) && IsName(key_object)) {
+    DirectHandle<Name> name = handle(Cast<Name>(key_object), isolate);
+    if (Name::Equals(isolate, name, isolate->factory()->prototype_string())) {
+      DirectHandle<JSFunction> function =
+          handle(Cast<JSFunction>(receiver_object), isolate);
+      if (function->has_prototype_slot()) {
+        if (!function->has_prototype()) {
+          DirectHandle<JSObject> prototype =
+              isolate->factory()->NewFunctionPrototype(function);
+          JSFunction::SetPrototype(isolate, function, prototype);
+        }
+        *out_result = function->prototype().ptr();
+        if (kTraceWasmFallbackDetails) {
+          PrintF("WasmInterpreterEntryTrampoline: keyed load JSFunction "
+                 "prototype fallback ");
+          DumpRuntimeArg("receiver", 0, receiver_address);
+          PrintF(" ");
+          DumpRuntimeArg("result", 0, *out_result);
+          PrintF("\n");
+        }
+        return true;
+      }
+    }
+  }
   if (!Runtime::GetObjectProperty(isolate, receiver, key).ToHandle(&result)) {
     *out_result = ReadOnlyRoots(isolate).exception().ptr();
     return true;
@@ -2654,7 +2746,7 @@ bool TryCallJSFunctionDirect(Isolate* isolate, DirectHandle<Object> callable,
                              DirectHandle<Object> receiver, int arg_count,
                              DirectHandle<Object>* args,
                              Address* out_result) {
-  if (!IsJSFunction(*callable)) return false;
+  if (!IsJSFunction(*callable) && !IsJSBoundFunction(*callable)) return false;
   if (arg_count > kMaxWasmCallArgs) return false;
 
   Address arg_values[64];
@@ -3232,7 +3324,8 @@ bool TryRunSetPrototypeAddBuiltin(Isolate* isolate,
     table = direct_handle(Cast<OrderedHashSet>(raw_table), isolate);
   }
   static int set_add_entry_trace_count = 0;
-  bool trace_set_add_entry = set_add_entry_trace_count < 24;
+  bool trace_set_add_entry =
+      kTraceWasmFallbackDetails && set_add_entry_trace_count < 24;
   if (trace_set_add_entry) {
     ++set_add_entry_trace_count;
     PrintF("WasmInterpreterEntryTrampoline: SetPrototypeAdd entry count=%d "
@@ -5338,6 +5431,7 @@ bool TryRunSetNamedPropertyBytecode(
   bool trace_reflect_own_keys_name =
       IsReflectOwnKeysTraceName(isolate, name_object);
   bool trace_module_state_name =
+      kTraceWasmFallbackDetails &&
       IsBuiltinModuleStateTraceName(isolate, name_object);
 
   Address object_address = ReadInterpreterRegister(
@@ -5381,8 +5475,8 @@ bool TryRunSetNamedPropertyBytecode(
       direct_handle(Tagged<Object>(value_address), isolate);
 
   bool trace_module_store = false;
-  if (kTraceWasmFallbackDetails && trace_module_state_name &&
-      g_module_property_store_trace_count < 512 && IsJSReceiver(*object)) {
+  if (trace_module_state_name && g_module_property_store_trace_count < 128 &&
+      IsJSReceiver(*object)) {
     DirectHandle<JSReceiver> receiver(Cast<JSReceiver>(*object), isolate);
     DirectHandle<Name> id_name =
         isolate->factory()->InternalizeUtf8String("id");
@@ -5553,14 +5647,16 @@ bool TryRunSetKeyedPropertyBytecode(
 
   Tagged<Object> object_object(object_address);
   if (!IsJSReceiver(object_object)) {
-    PrintF("WasmInterpreterEntryTrampoline: SetKeyedProperty primitive "
-           "receiver bytecode_index=%d object_operand=%d key_operand=%d",
-           bytecode_index, object_operand, key_operand);
-    DumpRuntimeArg(" receiver", 0, object_address);
-    DumpRuntimeArg(" key", 0, key_address);
-    DumpRuntimeArg(" value", 0, value_address);
-    PrintF("\n");
-    if (!g_dumped_set_keyed_primitive_receiver) {
+    if (kTraceWasmFallbackDetails) {
+      PrintF("WasmInterpreterEntryTrampoline: SetKeyedProperty primitive "
+             "receiver bytecode_index=%d object_operand=%d key_operand=%d",
+             bytecode_index, object_operand, key_operand);
+      DumpRuntimeArg(" receiver", 0, object_address);
+      DumpRuntimeArg(" key", 0, key_address);
+      DumpRuntimeArg(" value", 0, value_address);
+      PrintF("\n");
+    }
+    if (kTraceWasmFallbackDetails && !g_dumped_set_keyed_primitive_receiver) {
       g_dumped_set_keyed_primitive_receiver = true;
       PrintF("WasmInterpreterEntryTrampoline: SetKeyedProperty bytecode "
              "window length=%d regs=%d params=%d\n",
@@ -6873,10 +6969,69 @@ bool TryFallbackICMiss(Isolate* isolate, Runtime::FunctionId function_id,
   return true;
 }
 
+bool TryOrdinaryHasInstanceForWasm(Isolate* isolate, Address callable_address,
+                                   Address object_address,
+                                   Address* out_result) {
+  ReadOnlyRoots roots(isolate);
+  callable_address = SafeTaggedOrUndefined(isolate, callable_address);
+  object_address = SafeTaggedOrUndefined(isolate, object_address);
+  if (!IsSafeTaggedHandleValue(callable_address) ||
+      !IsSafeTaggedHandleValue(object_address)) {
+    return false;
+  }
+
+  Tagged<Object> callable_object(callable_address);
+  Tagged<Object> object_object(object_address);
+  if (!IsCallable(callable_object)) {
+    *out_result = roots.false_value().ptr();
+    return true;
+  }
+  if (!IsJSReceiver(object_object)) {
+    *out_result = roots.false_value().ptr();
+    return true;
+  }
+
+  if (!IsJSFunction(callable_object)) return false;
+
+  HandleScope scope(isolate);
+  DirectHandle<JSFunction> function =
+      direct_handle(Cast<JSFunction>(callable_object), isolate);
+  if (!function->has_prototype_slot()) return false;
+  if (!function->has_prototype()) {
+    DirectHandle<JSObject> prototype =
+        isolate->factory()->NewFunctionPrototype(function);
+    JSFunction::SetPrototype(isolate, function, prototype);
+  }
+  DirectHandle<Object> prototype(function->prototype(), isolate);
+  if (!IsJSReceiver(*prototype)) {
+    isolate->Throw(*isolate->factory()->NewTypeError(
+        MessageTemplate::kInstanceofNonobjectProto, prototype));
+    *out_result = roots.exception().ptr();
+    return true;
+  }
+
+  DirectHandle<JSReceiver> object =
+      direct_handle(Cast<JSReceiver>(object_object), isolate);
+  Maybe<bool> result =
+      JSReceiver::HasInPrototypeChain(isolate, object, prototype);
+  if (result.IsNothing()) {
+    *out_result = roots.exception().ptr();
+    return true;
+  }
+  *out_result = (*isolate->factory()->ToBoolean(result.FromJust())).ptr();
+  return true;
+}
+
 bool TryFallbackGeneratedRuntime(Isolate* isolate,
                                  Runtime::FunctionId function_id,
                                  Address* argv, int argc,
                                  Address* out_result) {
+  if (function_id == Runtime::kOrdinaryHasInstance && argc == 2) {
+    return TryOrdinaryHasInstanceForWasm(
+        isolate, RuntimeVisibleArg(argv, argc, 0),
+        RuntimeVisibleArg(argv, argc, 1), out_result);
+  }
+
   if (function_id == Runtime::kGetDerivedMap && argc == 3) {
     ReadOnlyRoots roots(isolate);
     Address visible_args[3] = {
@@ -7043,6 +7198,13 @@ bool TryFallbackJSEntryBuiltin(Isolate* isolate, Builtin builtin,
                               nested_argc + kJSArgcReceiverSlots, nested_argv);
     isolate->set_context(saved_context);
     return true;
+  }
+
+  if (builtin == Builtin::kFunctionPrototypeHasInstance) {
+    Address value = actual_argc > 0 ? argv[0] : roots.undefined_value().ptr();
+    if (TryOrdinaryHasInstanceForWasm(isolate, receiver, value, out_result)) {
+      return true;
+    }
   }
 
   if (builtin == Builtin::kHandleApiCallOrConstruct) {
@@ -8121,6 +8283,95 @@ bool TryFallbackJSEntryBuiltin(Isolate* isolate, Builtin builtin,
     DirectHandle<JSArray> result = isolate->factory()->NewJSArrayWithElements(
         elements, PACKED_ELEMENTS, length);
     *out_result = (*result).ptr();
+    isolate->set_context(saved_context);
+    return true;
+  }
+
+  if (builtin == Builtin::kArrayPrototypeFill) {
+    Tagged<Context> saved_context = isolate->context();
+    isolate->set_context(function->context());
+
+    HandleScope scope(isolate);
+    DirectHandle<Object> receiver_object(
+        Tagged<Object>(SafeTaggedOrUndefined(isolate, receiver)), isolate);
+    DirectHandle<JSReceiver> object;
+    if (!Object::ToObject(isolate, receiver_object, "Array.prototype.fill")
+             .ToHandle(&object)) {
+      isolate->set_context(saved_context);
+      *out_result = roots.exception().ptr();
+      return true;
+    }
+
+    DirectHandle<Object> length_object;
+    if (!Object::GetLengthFromArrayLike(isolate, object)
+             .ToHandle(&length_object)) {
+      isolate->set_context(saved_context);
+      *out_result = roots.exception().ptr();
+      return true;
+    }
+    double length = Object::NumberValue(*length_object);
+    if (length < 0) length = 0;
+    if (length > static_cast<double>(kMaxUInt32)) {
+      length = static_cast<double>(kMaxUInt32);
+    }
+
+    auto read_relative_index = [&](int arg_index, double default_value,
+                                   double* out_index) -> bool {
+      DirectHandle<Object> arg =
+          arg_index < actual_argc
+              ? direct_handle(
+                    Tagged<Object>(
+                        SafeTaggedOrUndefined(isolate, argv[arg_index])),
+                    isolate)
+              : direct_handle(roots.undefined_value(), isolate);
+      if (IsUndefined(*arg, roots)) {
+        *out_index = default_value;
+        return true;
+      }
+      DirectHandle<Number> number;
+      if (!Object::ToInteger(isolate, arg).ToHandle(&number)) return false;
+      double relative = Object::NumberValue(*number);
+      if (relative < 0) {
+        double index = length + relative;
+        *out_index = index > 0 ? index : 0;
+      } else {
+        *out_index = relative < length ? relative : length;
+      }
+      return true;
+    };
+
+    double start_index = 0;
+    double end_index = length;
+    if (!read_relative_index(1, 0, &start_index) ||
+        !read_relative_index(2, length, &end_index)) {
+      isolate->set_context(saved_context);
+      *out_result = roots.exception().ptr();
+      return true;
+    }
+    if (start_index < 0) start_index = 0;
+    if (end_index < start_index) end_index = start_index;
+    if (end_index > length) end_index = length;
+
+    DirectHandle<Object> value =
+        actual_argc > 0
+            ? direct_handle(
+                  Tagged<Object>(SafeTaggedOrUndefined(isolate, argv[0])),
+                  isolate)
+            : direct_handle(roots.undefined_value(), isolate);
+    DirectHandle<JSAny> object_any = Cast<JSAny>(object);
+    for (uint32_t index = static_cast<uint32_t>(start_index);
+         index < static_cast<uint32_t>(end_index); ++index) {
+      DirectHandle<Object> ignored;
+      if (!Object::SetElement(isolate, object_any, index, value,
+                              ShouldThrow::kThrowOnError)
+               .ToHandle(&ignored)) {
+        isolate->set_context(saved_context);
+        *out_result = roots.exception().ptr();
+        return true;
+      }
+    }
+
+    *out_result = (*object).ptr();
     isolate->set_context(saved_context);
     return true;
   }
@@ -9686,7 +9937,7 @@ extern "C" Address WasmJSEntry(Address root, Address new_target, Address target,
           isolate->factory()->InternalizeUtf8String("internal/async_hooks"));
     }
   }
-  if (trace_internal_async_hooks_require) {
+  if (kTraceWasmJSEntry && trace_internal_async_hooks_require) {
     PrintF("WasmJSEntry: internal/async_hooks target_name=");
     DumpNameForTrace(function->shared()->Name());
     PrintF(" target=0x%x receiver=0x%x\n", static_cast<unsigned>(target),
@@ -9808,7 +10059,7 @@ extern "C" Address WasmJSEntry(Address root, Address new_target, Address target,
 
   using WasmRegFileFn = void (*)();
   reinterpret_cast<WasmRegFileFn>(entry)();
-  if (trace_internal_async_hooks_require) {
+  if (kTraceWasmJSEntry && trace_internal_async_hooks_require) {
     PrintF("WasmJSEntry: internal/async_hooks return ");
     DumpRuntimeArg("result", 0, g_wasm_regs[SlotFor(kReturnRegister0)]);
     PrintF(" has_exception=%d\n", isolate->has_exception());

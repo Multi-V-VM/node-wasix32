@@ -647,20 +647,6 @@ static Local<Object> InitInternalBinding(Realm* realm, node_module* mod) {
   Local<Context> context = realm->context();
   Local<Object> exports = GetInternalBindingExportObject(
       realm->isolate_data(), mod->nm_modname, context);
-#ifdef __wasi__
-  Environment* env = Environment::GetCurrent(context);
-  fprintf(stderr,
-          "InitInternalBinding wasm32 before module=%s realm=%p context=%p "
-          "exports=%p env=%p principal=%p isolate=%p\n",
-          mod->nm_modname,
-          realm,
-          *context,
-          *exports,
-          env,
-          env == nullptr ? nullptr : env->principal_realm(),
-          env == nullptr ? nullptr : env->isolate());
-  fflush(stderr);
-#endif
   CHECK_NULL(mod->nm_register_func);
   CHECK_NOT_NULL(mod->nm_context_register_func);
   Local<Value> unused = Undefined(realm->isolate());
@@ -671,36 +657,6 @@ static Local<Object> InitInternalBinding(Realm* realm, node_module* mod) {
 
 void GetInternalBinding(const FunctionCallbackInfo<Value>& args) {
   Realm* realm = Realm::GetCurrent(args);
-#ifdef __wasi__
-  v8::Local<v8::Context> current_context = args.GetIsolate()->GetCurrentContext();
-  uint32_t embedder_fields = current_context.IsEmpty()
-                                 ? 0
-                                 : current_context->GetNumberOfEmbedderDataFields();
-  void* current_realm =
-      current_context.IsEmpty() ||
-              embedder_fields <= ContextEmbedderIndex::kRealm
-          ? nullptr
-          : current_context->GetAlignedPointerFromEmbedderData(
-                ContextEmbedderIndex::kRealm);
-  void* current_tag =
-      current_context.IsEmpty() ||
-              embedder_fields <= ContextEmbedderIndex::kContextTag
-          ? nullptr
-          : current_context->GetAlignedPointerFromEmbedderData(
-                ContextEmbedderIndex::kContextTag);
-  fprintf(stderr,
-          "GetInternalBinding wasm32 args_isolate=%p realm=%p "
-          "realm_isolate=%p current_context=%p fields=%u "
-          "ctx_realm=%p ctx_tag=%p argc=%d\n",
-          args.GetIsolate(),
-          realm,
-          realm == nullptr ? nullptr : realm->isolate(),
-          *current_context,
-          embedder_fields,
-          current_realm,
-          current_tag,
-          args.Length());
-#endif
   Isolate* isolate = realm->isolate();
   HandleScope scope(isolate);
 
@@ -716,12 +672,6 @@ void GetInternalBinding(const FunctionCallbackInfo<Value>& args) {
   if (cache_it != cache.end()) {
     exports = cache_it->second.Get(isolate);
     if (!exports.IsEmpty()) {
-#ifdef __wasi__
-      fprintf(stderr,
-              "GetInternalBinding wasm32 cache hit module=%s exports=%p\n",
-              module_name.c_str(),
-              *exports);
-#endif
       args.GetReturnValue().Set(exports);
       return;
     }
@@ -730,49 +680,19 @@ void GetInternalBinding(const FunctionCallbackInfo<Value>& args) {
 
 #ifdef __wasi__
   if (modlist_internal == nullptr) {
-    fprintf(stderr,
-            "GetInternalBinding wasm32 registering builtin bindings on demand\n");
     RegisterBuiltinBindings();
   }
 #endif
   node_module* mod = FindModule(modlist_internal, *module_v, NM_F_INTERNAL);
-#ifdef __wasi__
-  fprintf(stderr,
-          "GetInternalBinding wasm32 lookup module=%s list=%p mod=%p\n",
-          *module_v,
-          modlist_internal,
-          mod);
-#endif
   if (mod != nullptr) {
-#ifdef __wasi__
-    fprintf(stderr,
-            "GetInternalBinding wasm32 init begin module=%s register=%p\n",
-            *module_v,
-            reinterpret_cast<void*>(mod->nm_context_register_func));
-#endif
     exports = InitInternalBinding(realm, mod);
     cache[module_name].Reset(isolate, exports);
-#ifdef __wasi__
-    fprintf(stderr,
-            "GetInternalBinding wasm32 init done module=%s exports=%p\n",
-            *module_v,
-            *exports);
-#endif
     realm->internal_bindings.insert(mod);
   } else {
     return THROW_ERR_INVALID_MODULE(isolate, "No such binding: %s", *module_v);
   }
 
   args.GetReturnValue().Set(exports);
-#ifdef __wasi__
-  fprintf(stderr,
-          "GetInternalBinding wasm32 return module=%s mod=%p exports=%p "
-          "rv=%p\n",
-          *module_v,
-          mod,
-          *exports,
-          *args.GetReturnValue().Get());
-#endif
 }
 
 void GetLinkedBinding(const FunctionCallbackInfo<Value>& args) {

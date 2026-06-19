@@ -22,6 +22,10 @@ namespace builtins {
 #ifdef __wasi__
 namespace {
 Realm* g_wasm32_builtin_loader_realm = nullptr;
+using Wasm32BuiltinFunctionCache =
+    std::map<std::string, v8::Global<v8::Function>>;
+std::map<Realm*, Wasm32BuiltinFunctionCache>
+    g_wasm32_builtin_function_cache;
 }  // namespace
 #endif
 
@@ -307,11 +311,6 @@ MaybeLocal<Function> BuiltinLoader::LookupAndCompileInternal(
   if (!LoadBuiltinSource(isolate, id).ToLocal(&source)) {
     return {};
   }
-  fprintf(stderr,
-          "BuiltinLoader::LookupAndCompileInternal id=%s source=%p "
-          "length=%d parameters=%zu\n",
-          id, *source, source->Length(), parameters->size());
-
   std::string filename_s = std::string("node:") + id;
   Local<String> filename = OneByteString(isolate, filename_s);
   ScriptOrigin origin(filename, 0, 0, true);
@@ -546,8 +545,6 @@ MaybeLocal<Value> BuiltinLoader::CompileAndCall(Local<Context> context,
   if (!maybe_fn.ToLocal(&fn)) {
     return MaybeLocal<Value>();
   }
-  fprintf(stderr, "BuiltinLoader::CompileAndCall id=%s argc=%d fn=%p\n", id,
-          argc, *fn);
   Local<Value> undefined = Undefined(context->GetIsolate());
   return fn->Call(context, undefined, argc, argv);
 }
@@ -709,19 +706,6 @@ void BuiltinLoader::BuiltinIdsGetter(Local<Name> property,
     id_vector.push_back(id);
   }
 #endif
-  bool has_internal_errors = false;
-  for (const auto& id : id_vector) {
-    if (id == "internal/errors") {
-      has_internal_errors = true;
-      break;
-    }
-  }
-  fprintf(stderr,
-          "BuiltinIdsGetter wasm32 size=%zu has_internal_errors=%d first=%s\n",
-          id_vector.size(),
-          has_internal_errors,
-          id_vector.empty() ? "<empty>" : id_vector.front().c_str());
-  fflush(stderr);
 #ifdef __wasi__
   MaybeStackBuffer<Local<Value>, 128> values(id_vector.size());
   values.SetLength(id_vector.size());
@@ -784,13 +768,21 @@ void BuiltinLoader::CompileFunction(const FunctionCallbackInfo<Value>& args) {
     return;
   }
 #ifdef __wasi__
-  fprintf(stderr, "BuiltinLoader::CompileFunction id=%s exists=1\n", id);
-  fflush(stderr);
+  auto& function_cache = g_wasm32_builtin_function_cache[realm];
+  auto cached = function_cache.find(id);
+  if (cached != function_cache.end() && !cached->second.IsEmpty()) {
+    Local<Function> fn = Local<Function>::New(realm->isolate(), cached->second);
+    args.GetReturnValue().Set(fn);
+    return;
+  }
 #endif
   MaybeLocal<Function> maybe = realm->env()->builtin_loader()->LookupAndCompile(
       realm->context(), id, realm);
   Local<Function> fn;
   if (maybe.ToLocal(&fn)) {
+#ifdef __wasi__
+    function_cache[id].Reset(realm->isolate(), fn);
+#endif
     args.GetReturnValue().Set(fn);
   }
 }
