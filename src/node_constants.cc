@@ -1289,10 +1289,15 @@ void CreatePerContextProperties(Local<Object> target,
                                 Local<Context> context,
                                 void* priv) {
   Isolate* isolate = context->GetIsolate();
+#ifndef __wasi__
   Environment* env = Environment::GetCurrent(context);
+  Local<Context> binding_context = env->context();
+#else
+  Local<Context> binding_context = context;
+#endif
 
   CHECK(
-      target->SetPrototypeV2(env->context(), Null(env->isolate())).FromJust());
+      target->SetPrototypeV2(binding_context, Null(isolate)).FromJust());
 
   Local<Object> os_constants =
       Object::New(isolate, Null(isolate), nullptr, nullptr, 0);
@@ -1330,48 +1335,48 @@ void CreatePerContextProperties(Local<Object> target,
   NODE_DEFINE_CONSTANT(os_constants, UV_UDP_REUSEADDR);
 
   os_constants
-      ->Set(env->context(),
+      ->Set(binding_context,
             FIXED_ONE_BYTE_STRING(isolate, "dlopen"),
             dlopen_constants)
       .Check();
   os_constants
-      ->Set(env->context(),
+      ->Set(binding_context,
             FIXED_ONE_BYTE_STRING(isolate, "errno"),
             err_constants)
       .Check();
   os_constants
-      ->Set(env->context(),
+      ->Set(binding_context,
             FIXED_ONE_BYTE_STRING(isolate, "signals"),
             sig_constants)
       .Check();
   os_constants
-      ->Set(env->context(),
+      ->Set(binding_context,
             FIXED_ONE_BYTE_STRING(isolate, "priority"),
             priority_constants)
       .Check();
   target
-      ->Set(env->context(), FIXED_ONE_BYTE_STRING(isolate, "os"), os_constants)
+      ->Set(binding_context, FIXED_ONE_BYTE_STRING(isolate, "os"), os_constants)
       .Check();
   target
-      ->Set(env->context(), FIXED_ONE_BYTE_STRING(isolate, "fs"), fs_constants)
+      ->Set(binding_context, FIXED_ONE_BYTE_STRING(isolate, "fs"), fs_constants)
       .Check();
   target
-      ->Set(env->context(),
+      ->Set(binding_context,
             FIXED_ONE_BYTE_STRING(isolate, "crypto"),
             crypto_constants)
       .Check();
   target
-      ->Set(env->context(),
+      ->Set(binding_context,
             FIXED_ONE_BYTE_STRING(isolate, "zlib"),
             zlib_constants)
       .Check();
   target
-      ->Set(env->context(),
+      ->Set(binding_context,
             FIXED_ONE_BYTE_STRING(isolate, "trace"),
             trace_constants)
       .Check();
   target
-      ->Set(env->context(),
+      ->Set(binding_context,
             FIXED_ONE_BYTE_STRING(isolate, "internal"),
             internal_constants)
       .Check();

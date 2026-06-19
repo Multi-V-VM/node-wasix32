@@ -178,6 +178,11 @@ AllocationResult HeapAllocator::AllocateRaw(int size_in_bytes,
                                             AllocationType type,
                                             AllocationOrigin origin,
                                             AllocationAlignment alignment) {
+#if V8_TARGET_ARCH_WASM32
+  if (type == AllocationType::kYoung) {
+    type = AllocationType::kOld;
+  }
+#endif
   switch (type) {
     case AllocationType::kYoung:
       return AllocateRaw<AllocationType::kYoung>(size_in_bytes, origin,
@@ -218,6 +223,11 @@ HeapAllocator::AllocateRawWith(int size, AllocationType allocation,
   AllocationResult result;
   Tagged<HeapObject> object;
   size = ALIGN_TO_ALLOCATION_ALIGNMENT(size);
+#if V8_TARGET_ARCH_WASM32
+  if (allocation == AllocationType::kYoung) {
+    allocation = AllocationType::kOld;
+  }
+#endif
   if (allocation == AllocationType::kYoung) {
     result = AllocateRaw<AllocationType::kYoung>(size, origin, alignment);
     if (result.To(&object)) {

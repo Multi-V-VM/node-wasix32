@@ -140,6 +140,22 @@ void Blob::CreatePerContextProperties(Local<Object> target,
                                       Local<Context> context,
                                       void* priv) {
   Realm* realm = Realm::GetCurrent(context);
+#ifdef __wasi__
+  if (realm == nullptr) {
+    Local<Context> target_context = target->GetCreationContextChecked();
+    realm = Realm::GetCurrent(target_context);
+    fprintf(stderr,
+            "Blob::CreatePerContextProperties fallback target=%p context=%p "
+            "target_context=%p realm=%p priv=%p\n",
+            *target,
+            *context,
+            *target_context,
+            static_cast<void*>(realm),
+            priv);
+    fflush(stderr);
+  }
+#endif
+  CHECK_NOT_NULL(realm);
   realm->AddBindingData<BlobBindingData>(target);
 }
 

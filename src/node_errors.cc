@@ -1060,23 +1060,47 @@ void SetPrepareStackTraceCallback(const FunctionCallbackInfo<Value>& args) {
 }
 
 static void SetSourceMapsEnabled(const FunctionCallbackInfo<Value>& args) {
+#ifdef __wasi__
+  Realm* realm = Realm::GetCurrent(args);
+  CHECK_NOT_NULL(realm);
+  Environment* env = realm->env();
+#else
   Environment* env = Environment::GetCurrent(args);
+#endif
   CHECK(args[0]->IsBoolean());
   env->set_source_maps_enabled(args[0].As<Boolean>()->Value());
 }
 
 static void SetGetSourceMapErrorSource(
     const FunctionCallbackInfo<Value>& args) {
+#ifdef __wasi__
+  Realm* realm = Realm::GetCurrent(args);
+  CHECK_NOT_NULL(realm);
+#else
   Environment* env = Environment::GetCurrent(args);
+#endif
   CHECK(args[0]->IsFunction());
+#ifdef __wasi__
+  realm->set_get_source_map_error_source(args[0].As<Function>());
+#else
   env->set_get_source_map_error_source(args[0].As<Function>());
+#endif
 }
 
 static void SetMaybeCacheGeneratedSourceMap(
     const FunctionCallbackInfo<Value>& args) {
+#ifdef __wasi__
+  Realm* realm = Realm::GetCurrent(args);
+  CHECK_NOT_NULL(realm);
+#else
   Environment* env = Environment::GetCurrent(args);
+#endif
   CHECK(args[0]->IsFunction());
+#ifdef __wasi__
+  realm->set_maybe_cache_generated_source_map(args[0].As<Function>());
+#else
   env->set_maybe_cache_generated_source_map(args[0].As<Function>());
+#endif
 }
 
 static void SetEnhanceStackForFatalException(

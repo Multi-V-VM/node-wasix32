@@ -62,12 +62,17 @@ void CreatePerContextProperties(Local<Object> target,
                                 Local<Value> unused,
                                 Local<Context> context,
                                 void* priv) {
+#ifndef __wasi__
   Environment* env = Environment::GetCurrent(context);
+  Isolate* isolate = env->isolate();
+#else
+  Isolate* isolate = context->GetIsolate();
+#endif
 
   Local<String> getContinuationPreservedEmbedderData = FIXED_ONE_BYTE_STRING(
-      env->isolate(), "getContinuationPreservedEmbedderData");
+      isolate, "getContinuationPreservedEmbedderData");
   Local<String> setContinuationPreservedEmbedderData = FIXED_ONE_BYTE_STRING(
-      env->isolate(), "setContinuationPreservedEmbedderData");
+      isolate, "setContinuationPreservedEmbedderData");
 
   // Grab the intrinsics from the binding object and expose those to our
   // binding layer.

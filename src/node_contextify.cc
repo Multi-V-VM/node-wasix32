@@ -2018,14 +2018,19 @@ static void CreatePerContextProperties(Local<Object> target,
                                        Local<Context> context,
                                        void* priv) {
   Environment* env = Environment::GetCurrent(context);
+  CHECK_NOT_NULL(env);
+#ifdef __wasi__
+  Isolate* isolate = context->GetIsolate();
+#else
   Isolate* isolate = env->isolate();
+#endif
 
-  Local<Object> constants = Object::New(env->isolate());
-  Local<Object> measure_memory = Object::New(env->isolate());
-  Local<Object> memory_execution = Object::New(env->isolate());
+  Local<Object> constants = Object::New(isolate);
+  Local<Object> measure_memory = Object::New(isolate);
+  Local<Object> memory_execution = Object::New(isolate);
 
   {
-    Local<Object> memory_mode = Object::New(env->isolate());
+    Local<Object> memory_mode = Object::New(isolate);
     MeasureMemoryMode SUMMARY = MeasureMemoryMode::kSummary;
     MeasureMemoryMode DETAILED = MeasureMemoryMode::kDetailed;
     NODE_DEFINE_CONSTANT(memory_mode, SUMMARY);

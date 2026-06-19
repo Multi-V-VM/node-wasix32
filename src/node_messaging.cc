@@ -1742,11 +1742,16 @@ static void CreatePerContextProperties(Local<Object> target,
                                        Local<Context> context,
                                        void* priv) {
   Environment* env = Environment::GetCurrent(context);
+#ifdef __wasi__
+  Isolate* isolate = context->GetIsolate();
+#else
+  Isolate* isolate = env->isolate();
+#endif
   {
     Local<Function> domexception = GetDOMException(context).ToLocalChecked();
     target
         ->Set(context,
-              FIXED_ONE_BYTE_STRING(env->isolate(), "DOMException"),
+              FIXED_ONE_BYTE_STRING(isolate, "DOMException"),
               domexception)
         .Check();
   }

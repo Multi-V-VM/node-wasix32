@@ -642,6 +642,20 @@ static Local<Object> InitInternalBinding(Realm* realm, node_module* mod) {
   Local<Context> context = realm->context();
   Local<Object> exports = GetInternalBindingExportObject(
       realm->isolate_data(), mod->nm_modname, context);
+#ifdef __wasi__
+  Environment* env = Environment::GetCurrent(context);
+  fprintf(stderr,
+          "InitInternalBinding wasm32 before module=%s realm=%p context=%p "
+          "exports=%p env=%p principal=%p isolate=%p\n",
+          mod->nm_modname,
+          realm,
+          *context,
+          *exports,
+          env,
+          env == nullptr ? nullptr : env->principal_realm(),
+          env == nullptr ? nullptr : env->isolate());
+  fflush(stderr);
+#endif
   CHECK_NULL(mod->nm_register_func);
   CHECK_NOT_NULL(mod->nm_context_register_func);
   Local<Value> unused = Undefined(realm->isolate());

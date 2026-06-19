@@ -8,6 +8,7 @@
 #include "src/heap/main-allocator.h"
 // Include the non-inl header before the rest of the headers.
 
+#include "src/base/logging.h"
 #include "src/flags/flags.h"
 #include "src/heap/heap-inl.h"
 #include "src/heap/marking-state-inl.h"
@@ -43,6 +44,17 @@ AllocationResult MainAllocator::AllocateRaw(int size_in_bytes,
 AllocationResult MainAllocator::AllocateFastUnaligned(int size_in_bytes,
                                                       AllocationOrigin origin) {
   size_in_bytes = ALIGN_TO_ALLOCATION_ALIGNMENT(size_in_bytes);
+  static int wasm32_main_allocator_trace_count = 0;
+  if (identity() == OLD_SPACE && wasm32_main_allocator_trace_count < 128) {
+    ++wasm32_main_allocator_trace_count;
+    PrintF("MainAllocator::AllocateFastUnaligned trace #%d this=%p "
+           "identity=%d size=%d top=0x%x limit=0x%x start=0x%x "
+           "origin=%d in_gc=%d main_thread=%d\n",
+           wasm32_main_allocator_trace_count, this, static_cast<int>(identity()),
+           size_in_bytes, static_cast<unsigned>(top()),
+           static_cast<unsigned>(limit()), static_cast<unsigned>(start()),
+           static_cast<int>(origin), in_gc(), is_main_thread());
+  }
   if (!allocation_info().CanIncrementTop(size_in_bytes)) {
     return AllocationResult::Failure();
   }

@@ -241,6 +241,14 @@ inline bool FunctionTemplateInfo::BreakAtEntry(Isolate* isolate) {
 
 Tagged<FunctionTemplateInfo> FunctionTemplateInfo::GetParent(Isolate* isolate) {
   Tagged<Object> parent = GetParentTemplate();
+#ifdef __wasi__
+  if (!IsUndefined(parent, isolate) && !IsFunctionTemplateInfo(parent)) {
+    PrintF("FunctionTemplateInfo::GetParent wasm32 invalid parent info=0x%x "
+           "parent=0x%x\n",
+           static_cast<unsigned>(ptr()), static_cast<unsigned>(parent.ptr()));
+    return Tagged<FunctionTemplateInfo>{};
+  }
+#endif
   return IsUndefined(parent, isolate) ? Tagged<FunctionTemplateInfo>{}
                                       : Cast<FunctionTemplateInfo>(parent);
 }

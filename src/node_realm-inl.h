@@ -1,6 +1,7 @@
 #ifdef __wasi__
 #include "wasi-v8-extensions.h"
 #include "wasi-isolate-extensions.h"
+#include <stdio.h>
 #endif
 
 #ifndef SRC_NODE_REALM_INL_H_
@@ -101,7 +102,21 @@ inline T* Realm::AddBindingData(v8::Local<v8::Object> target, Args&&... args) {
   // should be referenced from JavaScript, thus the binding data should be
   // reachable throughout the lifetime of the realm.
   BaseObjectWeakPtr<T> item =
+#ifdef __wasi__
+      ([&]() {
+        constexpr size_t binding_index = static_cast<size_t>(T::binding_type_int);
+        fprintf(stderr,
+                "Realm::AddBindingData before MakeWeak this=%p target=%p "
+                "binding_index=%zu\n",
+                static_cast<void*>(this),
+                target.IsEmpty() ? nullptr : reinterpret_cast<void*>(*target),
+                binding_index);
+        fflush(stderr);
+        return MakeWeakBaseObject<T>(this, target, std::forward<Args>(args)...);
+      })();
+#else
       MakeWeakBaseObject<T>(this, target, std::forward<Args>(args)...);
+#endif
   constexpr size_t binding_index = static_cast<size_t>(T::binding_type_int);
   static_assert(binding_index < std::tuple_size_v<BindingDataStore>);
   // Each slot is expected to be assigned only once.

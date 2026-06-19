@@ -1327,10 +1327,44 @@ ExitCode SnapshotBuilder::GenerateAsSource(
   return exit_code;
 }
 
+#ifdef __wasi__
+namespace {
+Realm* TraceSnapshotableRealm(Realm* realm,
+                              Local<Object> wrap,
+                              EmbedderObjectType type) {
+  fprintf(stderr,
+          "SnapshotableObject::SnapshotableObject before BaseObject realm=%p "
+          "wrap=%p type=%d\n",
+          static_cast<void*>(realm),
+          *wrap,
+          static_cast<int>(type));
+  fflush(stderr);
+  return realm;
+}
+}  // namespace
+#endif
+
 SnapshotableObject::SnapshotableObject(Realm* realm,
                                        Local<Object> wrap,
                                        EmbedderObjectType type)
-    : BaseObject(realm, wrap), type_(type) {}
+    : BaseObject(
+#ifdef __wasi__
+          TraceSnapshotableRealm(realm, wrap, type),
+#else
+          realm,
+#endif
+          wrap),
+      type_(type) {
+#ifdef __wasi__
+  fprintf(stderr,
+          "SnapshotableObject::SnapshotableObject after BaseObject realm=%p "
+          "wrap=%p type=%d\n",
+          static_cast<void*>(realm),
+          *wrap,
+          static_cast<int>(type));
+  fflush(stderr);
+#endif
+}
 
 std::string SnapshotableObject::GetTypeName() const {
   switch (type_) {
@@ -1684,6 +1718,16 @@ void BindingData::Deserialize(Local<Context> context,
   DCHECK_IS_SNAPSHOT_SLOT(index);
   v8::HandleScope scope(context->GetIsolate());
   Realm* realm = Realm::GetCurrent(context);
+#ifdef __wasi__
+  if (realm == nullptr &&
+      !context.IsEmpty() &&
+      context->GetNumberOfEmbedderDataFields() > ContextEmbedderIndex::kRealm) {
+    realm = static_cast<Realm*>(
+        context->GetAlignedPointerFromEmbedderData(
+            ContextEmbedderIndex::kRealm));
+  }
+#endif
+  CHECK_NOT_NULL(realm);
   // Recreate the buffer in the constructor.
   InternalFieldInfo* casted_info = static_cast<InternalFieldInfo*>(info);
   BindingData* binding =
@@ -1701,6 +1745,43 @@ void CreatePerContextProperties(Local<Object> target,
                                 Local<Context> context,
                                 void* priv) {
   Realm* realm = Realm::GetCurrent(context);
+#ifdef __wasi__
+  void* raw_env = nullptr;
+  void* raw_realm = nullptr;
+  void* raw_tag = nullptr;
+  uint32_t fields = context.IsEmpty()
+                        ? 0
+                        : context->GetNumberOfEmbedderDataFields();
+  if (!context.IsEmpty() &&
+      fields > ContextEmbedderIndex::kEnvironment) {
+    raw_env = context->GetAlignedPointerFromEmbedderData(
+        ContextEmbedderIndex::kEnvironment);
+  }
+  if (!context.IsEmpty() &&
+      fields > ContextEmbedderIndex::kRealm) {
+    raw_realm = context->GetAlignedPointerFromEmbedderData(
+        ContextEmbedderIndex::kRealm);
+  }
+  if (!context.IsEmpty() &&
+      fields > ContextEmbedderIndex::kContextTag) {
+    raw_tag = context->GetAlignedPointerFromEmbedderData(
+        ContextEmbedderIndex::kContextTag);
+  }
+  fprintf(stderr,
+          "mksnapshot::CreatePerContextProperties wasm32 context=%p "
+          "realm=%p raw_env=%p raw_realm=%p raw_tag=%p fields=%u\n",
+          context.IsEmpty() ? nullptr : reinterpret_cast<void*>(*context),
+          static_cast<void*>(realm),
+          raw_env,
+          raw_realm,
+          raw_tag,
+          fields);
+  fflush(stderr);
+  if (realm == nullptr && raw_realm != nullptr) {
+    realm = static_cast<Realm*>(raw_realm);
+  }
+#endif
+  CHECK_NOT_NULL(realm);
   realm->AddBindingData<BindingData>(target);
 }
 

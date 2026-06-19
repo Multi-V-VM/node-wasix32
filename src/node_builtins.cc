@@ -19,12 +19,20 @@
 namespace node {
 namespace builtins {
 
+#ifdef __wasi__
+namespace {
+Realm* g_wasm32_builtin_loader_realm = nullptr;
+}  // namespace
+#endif
+
 using v8::Boolean;
 using v8::Context;
 using v8::EscapableHandleScope;
 using v8::Exception;
+using v8::External;
 using v8::Function;
 using v8::FunctionCallbackInfo;
+using v8::FunctionTemplate;
 using v8::IntegrityLevel;
 using v8::Isolate;
 using v8::Local;
@@ -392,8 +400,15 @@ MaybeLocal<Function> BuiltinLoader::LookupAndCompileInternal(
                                                                : "is accepted");
   }
 
-  if (result == Result::kWithoutCache && optional_realm != nullptr &&
-      !optional_realm->env()->isolate_data()->is_building_snapshot()) {
+  bool should_save_code_cache =
+      result == Result::kWithoutCache && optional_realm != nullptr &&
+      !optional_realm->env()->isolate_data()->is_building_snapshot();
+#ifdef __wasi__
+  // wasm32 snapshot/bootstrap execution currently runs with a V8 snapshot
+  // creator active. Creating function code cache in that state aborts in V8.
+  should_save_code_cache = false;
+#endif
+  if (should_save_code_cache) {
     // We failed to accept this cache, maybe because it was rejected, maybe
     // because it wasn't present. Either way, we'll attempt to replace this
     // code cache info with a new one.
@@ -748,7 +763,20 @@ void BuiltinLoader::RecordResult(const char* id,
 }
 
 void BuiltinLoader::CompileFunction(const FunctionCallbackInfo<Value>& args) {
+#ifdef __wasi__
+  Realm* realm = g_wasm32_builtin_loader_realm;
+  if (realm == nullptr) {
+    Local<Value> data = args.Data();
+    if (!data.IsEmpty() && data->IsExternal()) {
+      realm = static_cast<Realm*>(data.As<External>()->Value());
+    }
+  }
+  if (realm == nullptr) {
+    realm = Realm::GetCurrent(args);
+  }
+#else
   Realm* realm = Realm::GetCurrent(args);
+#endif
   CHECK(args[0]->IsString());
   node::Utf8Value id_v(realm->isolate(), args[0].As<String>());
   const char* id = *id_v;
@@ -878,6 +906,27 @@ void BuiltinLoader::CreatePerContextProperties(Local<Object> target,
                                                Local<Value> unused,
                                                Local<Context> context,
                                                void* priv) {
+#ifdef __wasi__
+  Isolate* isolate = context->GetIsolate();
+  Realm* realm = Realm::GetCurrent(context);
+  g_wasm32_builtin_loader_realm = realm;
+  Local<Value> realm_data =
+      External::New(isolate, realm);
+  Local<Function> compile_function =
+      FunctionTemplate::New(isolate,
+                            BuiltinLoader::CompileFunction,
+                            realm_data,
+                            Local<v8::Signature>(),
+                            0,
+                            v8::ConstructorBehavior::kThrow,
+                            SideEffectType::kHasSideEffect)
+          ->GetFunction(context)
+          .ToLocalChecked();
+  Local<String> compile_function_name =
+      FIXED_ONE_BYTE_STRING(isolate, "compileFunction");
+  target->Set(context, compile_function_name, compile_function).Check();
+  compile_function->SetName(compile_function_name);
+#endif
   // internalBinding('builtins') should be frozen
   target->SetIntegrityLevel(context, IntegrityLevel::kFrozen).FromJust();
 }

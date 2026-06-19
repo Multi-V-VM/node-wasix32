@@ -357,7 +357,11 @@ void CreatePerContextProperties(Local<Object> target,
                                 Local<Context> context,
                                 void* priv) {
   Environment* env = Environment::GetCurrent(context);
+#ifdef __wasi__
+  Isolate* isolate = context->GetIsolate();
+#else
   Isolate* isolate = env->isolate();
+#endif
   PerformanceState* state = env->performance_state();
 
   target->Set(context,

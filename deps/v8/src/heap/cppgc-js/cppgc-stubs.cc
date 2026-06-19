@@ -42,6 +42,9 @@
 #include "include/v8-external-memory-accounter.h"
 #include "include/cppgc/allocation.h"
 #include "include/cppgc/internal/gc-info.h"
+#include "include/cppgc/internal/logging.h"
+#include "include/cppgc/internal/persistent-node.h"
+#include "include/cppgc/internal/pointer-policies.h"
 #include "src/deoptimizer/deoptimizer.h"
 #include "src/execution/v8threads.h"
 #include "src/handles/handles.h"
@@ -72,6 +75,29 @@ v8::base::LazyMutex ProcessGlobalLock::process_mutex_ = LAZY_MUTEX_INITIALIZER;
 }  // namespace cppgc
 
 namespace v8 {
+
+__attribute__((weak))
+std::unique_ptr<MicrotaskQueue> MicrotaskQueue::New(Isolate* v8_isolate,
+                                                    MicrotasksPolicy policy) {
+  class NoopMicrotaskQueue final : public MicrotaskQueue {
+   public:
+    void EnqueueMicrotask(Isolate* isolate, Local<Function> microtask) override {
+    }
+    void EnqueueMicrotask(Isolate* isolate,
+                          MicrotaskCallback callback,
+                          void* data = nullptr) override {}
+    void AddMicrotasksCompletedCallback(
+        MicrotasksCompletedCallbackWithData callback,
+        void* data = nullptr) override {}
+    void RemoveMicrotasksCompletedCallback(
+        MicrotasksCompletedCallbackWithData callback,
+        void* data = nullptr) override {}
+    void PerformCheckpoint(Isolate* isolate) override {}
+    bool IsRunningMicrotasks() const override { return false; }
+    int GetMicrotasksScopeDepth() const override { return 0; }
+  };
+  return std::unique_ptr<MicrotaskQueue>(new NoopMicrotaskQueue());
+}
 
 // MicrotasksScope stubs
 MicrotasksScope::MicrotasksScope(Local<Context> context, Type type)
@@ -477,6 +503,39 @@ unsigned short EnsureGCInfoIndexTrait::EnsureGCInfoIndex(
     std::atomic<unsigned short>& registered_index,
     void (*trace)(Visitor*, const void*)) {
   return 0;
+}
+
+__attribute__((weak))
+unsigned short EnsureGCInfoIndexTrait::EnsureGCInfoIndex(
+    std::atomic<unsigned short>& registered_index,
+    void (*trace)(Visitor*, const void*),
+    void (*finalize)(void*),
+    HeapObjectName (*name)(const void*, HeapObjectNameForUnnamedObject)) {
+  return 0;
+}
+
+__attribute__((weak))
+PersistentRegion& WeakPersistentPolicy::GetPersistentRegion(
+    const void* object) {
+  static PersistentRegion* region = nullptr;
+  return *region;
+}
+
+__attribute__((weak))
+bool PersistentRegion::IsCreationThread() {
+  return true;
+}
+
+__attribute__((weak))
+PersistentNode* PersistentRegionBase::RefillFreeListAndAllocateNode(
+    void* owner,
+    void (*trace)(RootVisitor&, const void*)) {
+  return nullptr;
+}
+
+__attribute__((weak))
+void FatalImpl(const char* message, const v8::SourceLocation& loc) {
+  abort();
 }
 
 // MakeGarbageCollectedTraitInternal stub - use weak linkage

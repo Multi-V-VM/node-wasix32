@@ -146,7 +146,11 @@ void NodeCategorySet::Initialize(Local<Object> target,
                 Local<Context> context,
                 void* priv) {
   Environment* env = Environment::GetCurrent(context);
+#ifndef __wasi__
   Isolate* isolate = env->isolate();
+#else
+  Isolate* isolate = context->GetIsolate();
+#endif
 
   SetMethod(context, target, "getEnabledCategories", GetEnabledCategories);
   SetMethod(context,
@@ -166,8 +170,8 @@ void NodeCategorySet::Initialize(Local<Object> target,
   SetConstructorFunction(context, target, "CategorySet", category_set);
 
   Local<String> isTraceCategoryEnabled =
-      FIXED_ONE_BYTE_STRING(env->isolate(), "isTraceCategoryEnabled");
-  Local<String> trace = FIXED_ONE_BYTE_STRING(env->isolate(), "trace");
+      FIXED_ONE_BYTE_STRING(isolate, "isTraceCategoryEnabled");
+  Local<String> trace = FIXED_ONE_BYTE_STRING(isolate, "trace");
 
   // Grab the trace and isTraceCategoryEnabled intrinsics from the binding
   // object and expose those to our binding layer.

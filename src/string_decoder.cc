@@ -290,8 +290,12 @@ void InitializeStringDecoder(Local<Object> target,
                              Local<Value> unused,
                              Local<Context> context,
                              void* priv) {
+#ifndef __wasi__
   Environment* env = Environment::GetCurrent(context);
   Isolate* isolate = env->isolate();
+#else
+  Isolate* isolate = context->GetIsolate();
+#endif
 
 #define SET_DECODER_CONSTANT(name)                                            \
   target->Set(context,                                                        \

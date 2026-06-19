@@ -159,6 +159,13 @@ void AsyncWrap::EmitAfter(Environment* env, double async_id) {
 
 static void SetupHooks(const FunctionCallbackInfo<Value>& args) {
   Environment* env = Environment::GetCurrent(args);
+#ifdef __wasi__
+  v8::Isolate* isolate = args.GetIsolate();
+  Local<Context> context = isolate->GetCurrentContext();
+#else
+  v8::Isolate* isolate = env->isolate();
+  Local<Context> context = env->context();
+#endif
 
   CHECK(args[0]->IsObject());
 
@@ -173,9 +180,18 @@ static void SetupHooks(const FunctionCallbackInfo<Value>& args) {
 #define SET_HOOK_FN(name)                                                      \
   do {                                                                         \
     Local<Value> v =                                                           \
-        fn_obj->Get(env->context(),                                            \
-                    FIXED_ONE_BYTE_STRING(env->isolate(), #name))              \
+        fn_obj->Get(context, FIXED_ONE_BYTE_STRING(isolate, #name))            \
             .ToLocalChecked();                                                 \
+    if (!v->IsFunction()) {                                                     \
+      fprintf(stderr,                                                           \
+              "SetupHooks wasm32 hook=%s is_function=%d is_object=%d "         \
+              "is_undefined=%d is_null=%d\n",                                  \
+              #name,                                                           \
+              v->IsFunction(),                                                 \
+              v->IsObject(),                                                   \
+              v->IsUndefined(),                                                \
+              v->IsNull());                                                    \
+    }                                                                          \
     CHECK(v->IsFunction());                                                    \
     env->set_async_hooks_##name##_function(v.As<Function>());                  \
   } while (0)

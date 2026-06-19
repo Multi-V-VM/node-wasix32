@@ -411,6 +411,13 @@ MaybeDirectHandle<Object> GetInstancePrototype(
     Isolate* isolate, DirectHandle<Object> function_template) {
   // Enter a new scope.  Recursion could otherwise create a lot of handles.
   HandleScope scope(isolate);
+#ifdef __wasi__
+  if (!IsFunctionTemplateInfo(*function_template)) {
+    PrintF("ApiNatives::GetInstancePrototype wasm32 invalid provider=0x%x\n",
+           static_cast<unsigned>((*function_template).ptr()));
+    return scope.CloseAndEscape(isolate->factory()->undefined_value());
+  }
+#endif
   DirectHandle<JSFunction> parent_instance;
   ASSIGN_RETURN_ON_EXCEPTION(
       isolate, parent_instance,
@@ -461,9 +468,29 @@ MaybeHandle<JSFunction> InstantiateFunction(
   DirectHandle<Object> prototype;
   if (!info->remove_prototype()) {
     DirectHandle<Object> prototype_templ(info->GetPrototypeTemplate(), isolate);
+#ifdef __wasi__
+    if (!IsUndefined(*prototype_templ, isolate) &&
+        !IsObjectTemplateInfo(*prototype_templ)) {
+      PrintF("ApiNatives::InstantiateFunction wasm32 ignoring invalid "
+             "prototype_template info=0x%x value=0x%x\n",
+             static_cast<unsigned>(info->ptr()),
+             static_cast<unsigned>((*prototype_templ).ptr()));
+      prototype_templ = isolate->factory()->undefined_value();
+    }
+#endif
     if (IsUndefined(*prototype_templ, isolate)) {
       DirectHandle<Object> protoype_provider_templ(
           info->GetPrototypeProviderTemplate(), isolate);
+#ifdef __wasi__
+      if (!IsUndefined(*protoype_provider_templ, isolate) &&
+          !IsFunctionTemplateInfo(*protoype_provider_templ)) {
+        PrintF("ApiNatives::InstantiateFunction wasm32 ignoring invalid "
+               "prototype_provider info=0x%x value=0x%x\n",
+               static_cast<unsigned>(info->ptr()),
+               static_cast<unsigned>((*protoype_provider_templ).ptr()));
+        protoype_provider_templ = isolate->factory()->undefined_value();
+      }
+#endif
       if (IsUndefined(*protoype_provider_templ, isolate)) {
         prototype = isolate->factory()->NewJSObject(
             direct_handle(native_context->object_function(), isolate));
@@ -479,17 +506,39 @@ MaybeHandle<JSFunction> InstantiateFunction(
                             DirectHandle<JSReceiver>(), true));
     }
     DirectHandle<Object> parent(info->GetParentTemplate(), isolate);
+#ifdef __wasi__
+    if (!IsUndefined(*parent, isolate) && !IsFunctionTemplateInfo(*parent)) {
+      PrintF("ApiNatives::InstantiateFunction wasm32 ignoring invalid "
+             "parent_template info=0x%x value=0x%x\n",
+             static_cast<unsigned>(info->ptr()),
+             static_cast<unsigned>((*parent).ptr()));
+      parent = isolate->factory()->undefined_value();
+    }
+#endif
     if (!IsUndefined(*parent, isolate)) {
       DirectHandle<Object> parent_prototype;
       ASSIGN_RETURN_ON_EXCEPTION(isolate, parent_prototype,
                                  GetInstancePrototype(isolate, parent));
       DirectHandle<JSPrototype> checked_parent_prototype;
-      CHECK(TryCast(parent_prototype, &checked_parent_prototype));
-      JSObject::ForceSetPrototype(isolate, Cast<JSObject>(prototype),
-                                  checked_parent_prototype);
+      if (TryCast(parent_prototype, &checked_parent_prototype)) {
+        JSObject::ForceSetPrototype(isolate, Cast<JSObject>(prototype),
+                                    checked_parent_prototype);
+      }
     }
   }
   InstanceType function_type = JS_SPECIAL_API_OBJECT_TYPE;
+#ifdef __wasi__
+  Tagged<Object> named_handler = info->GetNamedPropertyHandler();
+  Tagged<Object> indexed_handler = info->GetIndexedPropertyHandler();
+  PrintF("ApiNatives::InstantiateFunction wasm32 before function_type "
+         "info=0x%x named=0x%x named_undef=%d indexed=0x%x "
+         "indexed_undef=%d access=%d\n",
+         static_cast<unsigned>(info->ptr()),
+         static_cast<unsigned>(named_handler.ptr()),
+         IsUndefined(named_handler, isolate),
+         static_cast<unsigned>(indexed_handler.ptr()),
+         IsUndefined(indexed_handler, isolate), info->needs_access_check());
+#endif
   if (!info->needs_access_check() &&
       IsUndefined(info->GetNamedPropertyHandler(), isolate) &&
       IsUndefined(info->GetIndexedPropertyHandler(), isolate)) {
@@ -499,14 +548,36 @@ MaybeHandle<JSFunction> InstantiateFunction(
     DCHECK(InstanceTypeChecker::IsJSApiObject(function_type));
   }
 
+#ifdef __wasi__
+  PrintF("ApiNatives::InstantiateFunction wasm32 before CreateApiFunction "
+         "info=0x%x prototype=0x%x type=%d cache=%d\n",
+         static_cast<unsigned>(info->ptr()),
+         static_cast<unsigned>((*prototype).ptr()),
+         static_cast<int>(function_type), should_cache);
+#endif
   Handle<JSFunction> function = ApiNatives::CreateApiFunction(
       isolate, native_context, info, prototype, function_type, maybe_name);
+#ifdef __wasi__
+  PrintF("ApiNatives::InstantiateFunction wasm32 after CreateApiFunction "
+         "info=0x%x function=0x%x\n",
+         static_cast<unsigned>(info->ptr()),
+         static_cast<unsigned>((*function).ptr()));
+#endif
   if (should_cache) {
     // Cache the function.
     TemplateInfo::CacheTemplateInstantiation(
         isolate, native_context, info, TemplateInfo::CachingMode::kUnlimited,
         function);
   }
+#ifdef __wasi__
+  PrintF("ApiNatives::InstantiateFunction wasm32 before ConfigureInstance "
+         "info=0x%x function=0x%x inst=0x%x props=0x%x prop_count=%d\n",
+         static_cast<unsigned>(info->ptr()),
+         static_cast<unsigned>((*function).ptr()),
+         static_cast<unsigned>(info->GetInstanceTemplate().ptr()),
+         static_cast<unsigned>(info->property_list().ptr()),
+         info->number_of_properties());
+#endif
   MaybeDirectHandle<JSObject> result =
       ConfigureInstance(isolate, function, info);
   if (result.is_null()) {

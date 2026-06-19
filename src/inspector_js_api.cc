@@ -43,7 +43,11 @@ struct LocalConnection {
   }
 
   static Local<String> GetClassName(Environment* env) {
+#ifdef __wasi__
+    return FIXED_ONE_BYTE_STRING(env->context()->GetIsolate(), "Connection");
+#else
     return FIXED_ONE_BYTE_STRING(env->isolate(), "Connection");
+#endif
   }
 };
 
@@ -54,7 +58,12 @@ struct MainThreadConnection {
   }
 
   static Local<String> GetClassName(Environment* env) {
+#ifdef __wasi__
+    return FIXED_ONE_BYTE_STRING(env->context()->GetIsolate(),
+                                 "MainThreadConnection");
+#else
     return FIXED_ONE_BYTE_STRING(env->isolate(), "MainThreadConnection");
+#endif
   }
 };
 
@@ -101,7 +110,11 @@ class JSBindingsConnection : public BaseObject {
   }
 
   static void Bind(Environment* env, Local<Object> target) {
+#ifdef __wasi__
+    Isolate* isolate = env->context()->GetIsolate();
+#else
     Isolate* isolate = env->isolate();
+#endif
     Local<FunctionTemplate> tmpl =
         NewFunctionTemplate(isolate, JSBindingsConnection::New);
     tmpl->InstanceTemplate()->SetInternalFieldCount(
@@ -344,7 +357,11 @@ void Url(const FunctionCallbackInfo<Value>& args) {
 void Initialize(Local<Object> target, Local<Value> unused,
                 Local<Context> context, void* priv) {
   Environment* env = Environment::GetCurrent(context);
+#ifdef __wasi__
+  Isolate* isolate = context->GetIsolate();
+#else
   Isolate* isolate = env->isolate();
+#endif
 
   v8::Local<v8::Function> consoleCallFunc =
       NewFunctionTemplate(isolate,

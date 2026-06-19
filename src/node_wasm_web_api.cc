@@ -187,8 +187,26 @@ void StartStreamingCompilation(const FunctionCallbackInfo<Value>& info) {
 
 // Called once by JavaScript during initialization.
 void SetImplementation(const FunctionCallbackInfo<Value>& info) {
+  fprintf(stderr,
+          "wasm_web_api::SetImplementation enter isolate=%p argc=%d\n",
+          info.GetIsolate(),
+          info.Length());
   Environment* env = Environment::GetCurrent(info);
-  env->set_wasm_streaming_compilation_impl(info[0].As<Function>());
+  fprintf(stderr,
+          "wasm_web_api::SetImplementation env=%p env_isolate=%p "
+          "context=%p principal=%p arg0=%p is_function=%d\n",
+          env,
+          env != nullptr ? env->isolate() : nullptr,
+          *info.GetIsolate()->GetCurrentContext(),
+          env != nullptr ? env->principal_realm() : nullptr,
+          *info[0],
+          info.Length() > 0 && info[0]->IsFunction());
+  Local<Function> impl = info[0].As<Function>();
+  fprintf(stderr,
+          "wasm_web_api::SetImplementation before store impl=%p\n",
+          *impl);
+  env->set_wasm_streaming_compilation_impl(impl);
+  fprintf(stderr, "wasm_web_api::SetImplementation done\n");
 }
 
 void Initialize(Local<Object> target,

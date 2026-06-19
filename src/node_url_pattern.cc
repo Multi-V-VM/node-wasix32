@@ -618,7 +618,11 @@ static void Initialize(Local<Object> target,
                        Local<Context> context,
                        void* priv) {
   Environment* env = Environment::GetCurrent(context);
+#ifdef __wasi__
+  Isolate* isolate = context->GetIsolate();
+#else
   Isolate* isolate = env->isolate();
+#endif
   auto attributes = static_cast<PropertyAttribute>(ReadOnly | DontDelete);
   auto ctor_tmpl = NewFunctionTemplate(isolate, URLPattern::New);
   auto instance_template = ctor_tmpl->InstanceTemplate();

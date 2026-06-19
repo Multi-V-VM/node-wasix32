@@ -27,13 +27,21 @@ using v8::WeakCallbackType;
 BaseObject::BaseObject(Realm* realm, Local<Object> object) : realm_(realm) {
   CHECK_EQ(false, object.IsEmpty());
 #ifdef __wasi__
+  IsolateData* isolate_data = realm == nullptr ? nullptr : realm->isolate_data();
+  uint16_t* non_cppgc_id =
+      isolate_data == nullptr ? nullptr : isolate_data->embedder_id_for_non_cppgc();
   fprintf(stderr,
-          "BaseObject::BaseObject object=%p internal_fields=%d realm=%p\n",
+          "BaseObject::BaseObject object=%p internal_fields=%d realm=%p "
+          "isolate_data=%p non_cppgc_id=%p this=%p\n",
           reinterpret_cast<void*>(*object),
           object->InternalFieldCount(),
-          static_cast<void*>(realm));
+          static_cast<void*>(realm),
+          static_cast<void*>(isolate_data),
+          static_cast<void*>(non_cppgc_id),
+          static_cast<void*>(this));
   fflush(stderr);
 #endif
+  CHECK_NOT_NULL(realm);
   CHECK_GE(object->InternalFieldCount(), BaseObject::kInternalFieldCount);
   SetInternalFields(realm->isolate_data(), object, static_cast<void*>(this));
   persistent_handle_.Reset(realm->isolate(), object);

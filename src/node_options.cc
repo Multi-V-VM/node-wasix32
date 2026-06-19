@@ -1597,7 +1597,18 @@ void GetCLIOptionsValues(const FunctionCallbackInfo<Value>& args) {
       default:
         UNREACHABLE();
     }
-    CHECK(!value.IsEmpty());
+    if (value.IsEmpty()) {
+#ifdef __wasi__
+      fprintf(stderr,
+              "GetCLIOptionsValues: empty value for %s type=%d, using "
+              "undefined\n",
+              item.first.c_str(),
+              static_cast<int>(option_info.type));
+      value = undefined_value;
+#else
+      CHECK(!value.IsEmpty());
+#endif
+    }
     if (item.first == "--eval" || item.first == "--print") {
       fprintf(stderr,
               "GetCLIOptionsValues: %s value=%p is_string=%d is_bool=%d "

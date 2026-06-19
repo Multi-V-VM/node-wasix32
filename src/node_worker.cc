@@ -1156,16 +1156,28 @@ void CreateWorkerPerContextProperties(Local<Object> target,
                                       Local<Context> context,
                                       void* priv) {
   Environment* env = Environment::GetCurrent(context);
-  Isolate* isolate = env->isolate();
+  Isolate* isolate = context->GetIsolate();
+#ifdef __wasi__
+  fprintf(stderr,
+          "CreateWorkerPerContextProperties enter env=%p env_isolate=%p "
+          "context=%p isolate=%p target=%p main=%d owns=%d\n",
+          static_cast<void*>(env),
+          static_cast<void*>(env->isolate()),
+          *context,
+          static_cast<void*>(isolate),
+          *target,
+          env->is_main_thread(),
+          env->owns_process_state());
+#endif
 
   target
-      ->Set(env->context(),
+      ->Set(context,
             env->thread_id_string(),
             Number::New(isolate, static_cast<double>(env->thread_id())))
       .Check();
 
   target
-      ->Set(env->context(),
+      ->Set(context,
             FIXED_ONE_BYTE_STRING(isolate, "isMainThread"),
             Boolean::New(isolate, env->is_main_thread()))
       .Check();
@@ -1175,20 +1187,20 @@ void CreateWorkerPerContextProperties(Local<Object> target,
 
   // Set the is_internal property
   target
-      ->Set(env->context(),
+      ->Set(context,
             FIXED_ONE_BYTE_STRING(isolate, "isInternalThread"),
             Boolean::New(isolate, is_internal))
       .Check();
 
   target
-      ->Set(env->context(),
+      ->Set(context,
             FIXED_ONE_BYTE_STRING(isolate, "ownsProcessState"),
             Boolean::New(isolate, env->owns_process_state()))
       .Check();
 
   if (!env->is_main_thread()) {
     target
-        ->Set(env->context(),
+        ->Set(context,
               FIXED_ONE_BYTE_STRING(isolate, "resourceLimits"),
               env->worker_context()->GetResourceLimits(isolate))
         .Check();
