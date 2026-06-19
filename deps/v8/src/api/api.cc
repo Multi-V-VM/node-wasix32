@@ -2750,17 +2750,11 @@ V8_WARN_UNUSED_RESULT MaybeLocal<Function> ScriptCompiler::CompileFunction(
            i_isolate, Utils::OpenHandle(*source->source_string), context,
            script_details, cached_data.get(), options, no_cache_reason)
            .ToHandle(&result);
-  if (!has_exception) {
-    i::Tagged<i::JSFunction> function = *result;
-    i::PrintF("ScriptCompiler::CompileFunction result=0x%x is_js=%d\n",
-              static_cast<unsigned>(function.ptr()), i::IsJSFunction(function));
-  }
   if (options & kConsumeCodeCache) {
     source->cached_data->rejected = cached_data->rejected();
   }
   RETURN_ON_FAILED_EXECUTION(Function);
   Local<Function> api_result = Utils::CallableToLocal(result);
-  i::PrintF("ScriptCompiler::CompileFunction api_result=%p\n", *api_result);
   return handle_scope.Escape(api_result);
 }
 

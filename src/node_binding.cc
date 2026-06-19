@@ -1,5 +1,6 @@
 #include "node_binding.h"
 #include <atomic>
+#include <unordered_map>
 #include "env-inl.h"
 #include "node_builtins.h"
 #include "node_errors.h"
@@ -264,6 +265,10 @@ using v8::Value;
 static node_module* modlist_internal;
 static node_module* modlist_linked;
 static thread_local node_module* thread_local_modpending;
+using InternalBindingCache =
+    std::unordered_map<std::string, v8::Global<v8::Object>>;
+static std::unordered_map<Realm*, InternalBindingCache>
+    per_realm_internal_binding_cache;
 
 // This is set by node::Init() which is used by embedders
 bool node_is_initialized = false;
@@ -703,7 +708,25 @@ void GetInternalBinding(const FunctionCallbackInfo<Value>& args) {
 
   Local<String> module = args[0].As<String>();
   node::Utf8Value module_v(isolate, module);
+  std::string module_name(*module_v, module_v.length());
   Local<Object> exports;
+
+  auto& cache = per_realm_internal_binding_cache[realm];
+  auto cache_it = cache.find(module_name);
+  if (cache_it != cache.end()) {
+    exports = cache_it->second.Get(isolate);
+    if (!exports.IsEmpty()) {
+#ifdef __wasi__
+      fprintf(stderr,
+              "GetInternalBinding wasm32 cache hit module=%s exports=%p\n",
+              module_name.c_str(),
+              *exports);
+#endif
+      args.GetReturnValue().Set(exports);
+      return;
+    }
+    cache.erase(cache_it);
+  }
 
 #ifdef __wasi__
   if (modlist_internal == nullptr) {
@@ -728,6 +751,7 @@ void GetInternalBinding(const FunctionCallbackInfo<Value>& args) {
             reinterpret_cast<void*>(mod->nm_context_register_func));
 #endif
     exports = InitInternalBinding(realm, mod);
+    cache[module_name].Reset(isolate, exports);
 #ifdef __wasi__
     fprintf(stderr,
             "GetInternalBinding wasm32 init done module=%s exports=%p\n",

@@ -1782,6 +1782,9 @@ void CreatePerContextProperties(Local<Object> target,
   }
 #endif
   CHECK_NOT_NULL(realm);
+  if (realm->GetBindingData<BindingData>() != nullptr) {
+    return;
+  }
   realm->AddBindingData<BindingData>(target);
 }
 

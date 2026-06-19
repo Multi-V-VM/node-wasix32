@@ -14,6 +14,7 @@ extern "C" Address g_wasm_regs[kWasmRegFileSize] = {0};
 extern "C" Address g_wasm_interpreter_frame[kWasmInterpreterFrameSlots] = {0};
 extern "C" Address g_wasm_current_frame_pointer = 0;
 extern "C" int g_wasm_trace_memory = 0;
+extern "C" void Wasm32CopyDataPropertiesBuiltin();
 
 namespace {
 std::array<void*, Builtins::kBuiltinCount>& Table() {
@@ -26,6 +27,8 @@ void EnsureRegistered() {
   if (registered) return;
   registered = true;
   RegisterAllWasmBuiltins();
+  RegisterWasmBuiltin(Builtin::kCopyDataProperties,
+                      reinterpret_cast<void*>(&Wasm32CopyDataPropertiesBuiltin));
 }
 }  // namespace
 
