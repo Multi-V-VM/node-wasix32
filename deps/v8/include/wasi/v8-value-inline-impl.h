@@ -9,17 +9,49 @@ namespace v8 {
 
 // Just is already defined in v8-maybe.h, no need to redefine
 
+namespace internal {
+
+inline internal::Address WasiTaggedValueFromApiValue(const Value* value) {
+  return reinterpret_cast<internal::Address>(value);
+}
+
+inline bool WasiHasStrongHeapObjectTag(internal::Address value) {
+  return value > 1 && ((value & 1) == 1);
+}
+
+inline int WasiOddballKindFromTaggedValue(internal::Address value) {
+  static constexpr int kHeapObjectTag = 1;
+  static constexpr int kHeapObjectMapOffset = 0;
+  static constexpr int kMapInstanceTypeOffset = 8;
+  static constexpr int kOddballKindOffset = 24;
+  static constexpr uint16_t kOddballType = 131;
+  static constexpr int kSmiTagSize = 1;
+
+  if (!WasiHasStrongHeapObjectTag(value)) return -1;
+  internal::Address object = value - kHeapObjectTag;
+  internal::Address map =
+      *reinterpret_cast<const internal::Address*>(object + kHeapObjectMapOffset);
+  if (!WasiHasStrongHeapObjectTag(map)) return -1;
+  internal::Address map_object = map - kHeapObjectTag;
+  uint16_t instance_type =
+      *reinterpret_cast<const uint16_t*>(map_object + kMapInstanceTypeOffset);
+  if (instance_type != kOddballType) return -1;
+  internal::Address kind_smi =
+      *reinterpret_cast<const internal::Address*>(object + kOddballKindOffset);
+  return static_cast<int>(static_cast<intptr_t>(kind_smi) >> kSmiTagSize);
+}
+
+}  // namespace internal
+
 // Inline implementations for v8::Value methods
 inline bool Value::IsUndefined() const {
-  // For WASI, we can't check instance type directly
-  // Return false as a safe default
-  return false;
+  return internal::WasiOddballKindFromTaggedValue(
+             internal::WasiTaggedValueFromApiValue(this)) == 4;
 }
 
 inline bool Value::IsNull() const {
-  // For WASI, we can't check instance type directly
-  // Return false as a safe default
-  return false;
+  return internal::WasiOddballKindFromTaggedValue(
+             internal::WasiTaggedValueFromApiValue(this)) == 3;
 }
 
 inline bool Value::IsNullOrUndefined() const {

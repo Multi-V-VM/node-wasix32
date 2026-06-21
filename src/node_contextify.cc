@@ -982,8 +982,17 @@ ContextifyScript* ContextifyScript::New(Environment* env,
 #ifndef __wasi__
   DCHECK_NOT_NULL(env->isolate()->GetCppHeap());
 #endif
-  return cppgc::MakeGarbageCollected<ContextifyScript>(
+  fprintf(stderr,
+          "ContextifyScript::New(env): before MakeGarbageCollected object=%p\n",
+          reinterpret_cast<void*>(*object));
+  fflush(stderr);
+  ContextifyScript* script = cppgc::MakeGarbageCollected<ContextifyScript>(
       env->cppgc_allocation_handle(), env, object);
+  fprintf(stderr,
+          "ContextifyScript::New(env): after MakeGarbageCollected script=%p\n",
+          static_cast<void*>(script));
+  fflush(stderr);
+  return script;
 }
 
 void ContextifyScript::New(const FunctionCallbackInfo<Value>& args) {
@@ -1056,7 +1065,15 @@ void ContextifyScript::New(const FunctionCallbackInfo<Value>& args) {
     id_symbol = args[7].As<Symbol>();
   }
 
+  fprintf(stderr,
+          "ContextifyScript::New callback: before wrapper object=%p\n",
+          reinterpret_cast<void*>(*args.This()));
+  fflush(stderr);
   ContextifyScript* contextify_script = New(env, args.This());
+  fprintf(stderr,
+          "ContextifyScript::New callback: after wrapper script=%p\n",
+          static_cast<void*>(contextify_script));
+  fflush(stderr);
 
   if (*TRACE_EVENT_API_GET_CATEGORY_GROUP_ENABLED(
           TRACING_CATEGORY_NODE2(vm, script)) != 0) {
@@ -1404,7 +1421,16 @@ void ContextifyScript::Trace(cppgc::Visitor* visitor) const {
 }
 
 ContextifyScript::ContextifyScript(Environment* env, Local<Object> object) {
+  fprintf(stderr,
+          "ContextifyScript::ctor: before Wrap this=%p object=%p fields=%d\n",
+          static_cast<void*>(this),
+          reinterpret_cast<void*>(*object),
+          object->InternalFieldCount());
+  fflush(stderr);
   CppgcMixin::Wrap(this, env, object);
+  fprintf(stderr, "ContextifyScript::ctor: after Wrap this=%p\n",
+          static_cast<void*>(this));
+  fflush(stderr);
 }
 
 ContextifyScript::~ContextifyScript() {}

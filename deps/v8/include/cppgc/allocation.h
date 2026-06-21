@@ -238,21 +238,31 @@ class MakeGarbageCollectedTrait : public MakeGarbageCollectedTraitBase<T> {
  public:
   template <typename... Args>
   static T* Call(AllocationHandle& handle, Args&&... args) {
+#ifdef __wasi__
+    void* memory = ::operator new(sizeof(T));
+    return ::new (memory) T(std::forward<Args>(args)...);
+#else
     void* memory =
         MakeGarbageCollectedTraitBase<T>::Allocate(handle, sizeof(T));
     T* object = ::new (memory) T(std::forward<Args>(args)...);
     MakeGarbageCollectedTraitBase<T>::MarkObjectAsFullyConstructed(object);
     return object;
+#endif
   }
 
   template <typename... Args>
   static T* Call(AllocationHandle& handle, AdditionalBytes additional_bytes,
                  Args&&... args) {
+#ifdef __wasi__
+    void* memory = ::operator new(sizeof(T) + additional_bytes.value);
+    return ::new (memory) T(std::forward<Args>(args)...);
+#else
     void* memory = MakeGarbageCollectedTraitBase<T>::Allocate(
         handle, sizeof(T) + additional_bytes.value);
     T* object = ::new (memory) T(std::forward<Args>(args)...);
     MakeGarbageCollectedTraitBase<T>::MarkObjectAsFullyConstructed(object);
     return object;
+#endif
   }
 };
 

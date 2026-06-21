@@ -55,20 +55,36 @@ class TracedHandle {
   TracedHandle& operator=(const TracedHandle&) = delete;
 
   // 移动构造和赋值
-  TracedHandle(TracedHandle&&) = default;
-  TracedHandle& operator=(TracedHandle&&) = default;
+  TracedHandle(TracedHandle&& other) : value_(other.value_) {
+    other.value_ = 0;
+  }
+  TracedHandle& operator=(TracedHandle&& other) {
+    if (this != &other) {
+      value_ = other.value_;
+      other.value_ = 0;
+    }
+    return *this;
+  }
 
-  bool IsEmpty() const { return true; }
-  void Reset() {}
+  bool IsEmpty() const { return value_ == 0; }
+  void Reset() { value_ = 0; }
   
   // Reset with isolate and handle
   template <class S>
   void Reset(Isolate* isolate, Local<S> handle) {
-    // WASI stub - no-op
+    value_ = reinterpret_cast<internal::Address>(*handle);
   }
 
-  T* operator->() const { return nullptr; }
-  T* operator*() const { return nullptr; }
+  T* operator->() const { return reinterpret_cast<T*>(value_); }
+  T* operator*() const { return reinterpret_cast<T*>(value_); }
+
+  template<typename U>
+  U* value() const {
+    return reinterpret_cast<U*>(value_);
+  }
+
+ protected:
+  internal::Address value_ = 0;
 };
 
 // 全局追踪句柄
@@ -96,14 +112,13 @@ class TracedReference : public TracedHandle<T> {
   
   // Get method for compatibility
   Local<T> Get(Isolate* isolate) const {
-    return Local<T>();
+    return Local<T>(reinterpret_cast<T*>(this->value_));
   }
   
   // WASI compatibility - provide value() method
   template<typename U>
   U* value() const {
-    // For WASI, return a dummy value since we don't have real implementation
-    return nullptr;
+    return reinterpret_cast<U*>(this->value_);
   }
 };
 

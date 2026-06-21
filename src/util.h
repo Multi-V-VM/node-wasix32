@@ -297,8 +297,40 @@ template <typename T>
 class ListNode {
  public:
   ListNode() = default;
-  bool IsEmpty() const { return true; }
-  void Remove() {}
+  ~ListNode() { Remove(); }
+  bool IsEmpty() const { return Registry().find(this) == Registry().end(); }
+  void Remove() {
+    auto it = Registry().find(this);
+    if (it == Registry().end()) return;
+    RegistryEntry entry = it->second;
+    Registry().erase(it);
+    entry.erase(entry.list, entry.element);
+  }
+
+ private:
+  struct RegistryEntry {
+    void* list;
+    T* element;
+    void (*erase)(void*, T*);
+  };
+
+  static std::unordered_map<ListNode<T>*, RegistryEntry>& Registry() {
+    static std::unordered_map<ListNode<T>*, RegistryEntry> registry;
+    return registry;
+  }
+
+  static void Register(ListNode<T>* node,
+                       void* list,
+                       T* element,
+                       void (*erase)(void*, T*)) {
+    Registry()[node] = {list, element, erase};
+  }
+
+  static void Unregister(ListNode<T>* node) {
+    Registry().erase(node);
+  }
+
+  template <typename U, ListNode<U> (U::*M)> friend class ListHead;
 };
 
 template <typename T, ListNode<T> (T::*M)>
@@ -306,19 +338,101 @@ class ListHead {
  public:
   class Iterator {
    public:
-    Iterator(ListNode<T>* node) {}
-    T* operator*() const { return nullptr; }
-    const Iterator& operator++() { return *this; }
-    bool operator!=(const Iterator& that) const { return false; }
+    Iterator(const std::vector<T*>* entries, size_t index)
+        : entries_(entries), index_(index) {}
+    T* operator*() const { return (*entries_)[index_]; }
+    const Iterator& operator++() {
+      ++index_;
+      return *this;
+    }
+    bool operator!=(const Iterator& that) const {
+      return entries_ != that.entries_ || index_ != that.index_;
+    }
+
+   private:
+    const std::vector<T*>* entries_;
+    size_t index_;
   };
   
   ListHead() = default;
-  bool IsEmpty() const { return true; }
-  void PushBack(T* element) {}
-  void PushFront(T* element) {}
-  T* PopFront() { return nullptr; }
-  Iterator begin() const { return Iterator(nullptr); }
-  Iterator end() const { return Iterator(nullptr); }
+  ~ListHead() {
+    auto it = Storage().find(this);
+    if (it == Storage().end()) return;
+    for (T* element : it->second) {
+      ListNode<T>::Unregister(&(element->*M));
+    }
+    Storage().erase(it);
+  }
+  bool IsEmpty() const {
+    auto it = Storage().find(this);
+    return it == Storage().end() || it->second.empty();
+  }
+  void PushBack(T* element) {
+    ListNode<T>* node = &(element->*M);
+    node->Remove();
+    Entries().push_back(element);
+    ListNode<T>::Register(node, this, element, EraseElement);
+  }
+  void PushFront(T* element) {
+    ListNode<T>* node = &(element->*M);
+    node->Remove();
+    auto& entries = Entries();
+    entries.insert(entries.begin(), element);
+    ListNode<T>::Register(node, this, element, EraseElement);
+  }
+  T* PopFront() {
+    auto it = Storage().find(this);
+    if (it == Storage().end() || it->second.empty()) return nullptr;
+    T* element = it->second.front();
+    it->second.erase(it->second.begin());
+    ListNode<T>::Unregister(&(element->*M));
+    if (it->second.empty()) Storage().erase(it);
+    return element;
+  }
+  Iterator begin() const {
+    const std::vector<T*>* entries = FindEntries();
+    return Iterator(entries, 0);
+  }
+  Iterator end() const {
+    const std::vector<T*>* entries = FindEntries();
+    return Iterator(entries, entries->size());
+  }
+
+ private:
+  static std::unordered_map<const ListHead<T, M>*, std::vector<T*>>& Storage() {
+    static std::unordered_map<const ListHead<T, M>*, std::vector<T*>> storage;
+    return storage;
+  }
+
+  std::vector<T*>& Entries() {
+    return Storage()[this];
+  }
+
+  const std::vector<T*>* FindEntries() const {
+    auto it = Storage().find(this);
+    if (it == Storage().end()) return &EmptyEntries();
+    return &it->second;
+  }
+
+  static const std::vector<T*>& EmptyEntries() {
+    static const std::vector<T*> empty;
+    return empty;
+  }
+
+  static void EraseElement(void* list, T* element) {
+    auto* self = static_cast<ListHead<T, M>*>(list);
+    auto it = Storage().find(self);
+    if (it == Storage().end()) return;
+    auto& entries = it->second;
+    for (auto entry_it = entries.begin(); entry_it != entries.end();
+         ++entry_it) {
+      if (*entry_it == element) {
+        entries.erase(entry_it);
+        break;
+      }
+    }
+    if (entries.empty()) Storage().erase(it);
+  }
 };
 #else
 // TAILQ-style intrusive list node.

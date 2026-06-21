@@ -4689,17 +4689,57 @@ Maybe<bool> v8::Object::DefineProperty(v8::Local<v8::Context> context,
 
 Maybe<bool> v8::Object::SetPrivate(Local<Context> context, Local<Private> key,
                                    Local<Value> value) {
+#ifdef __wasi__
+  fprintf(stderr,
+          "Object::SetPrivate enter this=%p context=%p key=%p value=%p\n",
+          static_cast<void*>(this),
+          static_cast<void*>(*context),
+          static_cast<void*>(*key),
+          static_cast<void*>(*value));
+#endif
   auto i_isolate = reinterpret_cast<i::Isolate*>(context->GetIsolate());
+#ifdef __wasi__
+  fprintf(stderr, "Object::SetPrivate after GetIsolate isolate=%p\n",
+          static_cast<void*>(i_isolate));
+#endif
   ENTER_V8_NO_SCRIPT(i_isolate, context, Object, SetPrivate, i::HandleScope);
+#ifdef __wasi__
+  fprintf(stderr, "Object::SetPrivate after ENTER_V8_NO_SCRIPT\n");
+#endif
   auto self = Utils::OpenDirectHandle(this);
+#ifdef __wasi__
+  fprintf(stderr, "Object::SetPrivate self opened raw=0x%lx\n",
+          static_cast<unsigned long>((*self).ptr()));
+#endif
   auto key_obj = Utils::OpenDirectHandle(reinterpret_cast<Name*>(*key));
+#ifdef __wasi__
+  fprintf(stderr, "Object::SetPrivate key opened raw=0x%lx\n",
+          static_cast<unsigned long>((*key_obj).ptr()));
+#endif
   auto value_obj = Utils::OpenDirectHandle(*value);
+#ifdef __wasi__
+  fprintf(stderr, "Object::SetPrivate value opened raw=0x%lx\n",
+          static_cast<unsigned long>((*value_obj).ptr()));
+#endif
   if (i::IsJSObject(*self)) {
+#ifdef __wasi__
+    fprintf(stderr, "Object::SetPrivate branch JSObject\n");
+#endif
     auto js_object = i::Cast<i::JSObject>(self);
+#ifdef __wasi__
+    fprintf(stderr, "Object::SetPrivate before LookupIterator\n");
+#endif
     i::LookupIterator it(i_isolate, js_object, key_obj, js_object);
+#ifdef __wasi__
+    fprintf(stderr, "Object::SetPrivate before DefineOwnPropertyIgnoreAttributes\n");
+#endif
     has_exception = i::JSObject::DefineOwnPropertyIgnoreAttributes(
                         &it, value_obj, i::DONT_ENUM)
                         .is_null();
+#ifdef __wasi__
+    fprintf(stderr, "Object::SetPrivate after Define has_exception=%d\n",
+            static_cast<int>(has_exception));
+#endif
     RETURN_ON_FAILED_EXECUTION_PRIMITIVE(bool);
     return Just(true);
   }

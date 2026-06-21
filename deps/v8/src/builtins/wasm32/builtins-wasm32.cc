@@ -7741,8 +7741,19 @@ bool TryFallbackJSEntryBuiltin(Isolate* isolate, Builtin builtin,
         function->shared()->api_func_data(), isolate);
     DirectHandle<FunctionTemplateInfo> function_template(
         rooted_function_template);
+    Address new_target_address = SafeTaggedOrUndefined(isolate, new_target);
+    bool is_construct =
+        !IsUndefined(Tagged<Object>(new_target_address), roots);
+    if (is_construct &&
+        (!IsSafeTaggedHandleValue(new_target_address) ||
+         !IsJSReceiver(Tagged<Object>(new_target_address)))) {
+      isolate->set_context(saved_context);
+      return false;
+    }
     Handle<Object> rooted_api_receiver(
-        Tagged<Object>(SafeTaggedOrUndefined(isolate, receiver)), isolate);
+        Tagged<Object>(is_construct ? roots.the_hole_value().ptr()
+                                    : SafeTaggedOrUndefined(isolate, receiver)),
+        isolate);
     DirectHandle<Object> api_receiver(rooted_api_receiver);
     Handle<Object> rooted_api_args[kWasmMaxOutgoingArgSlots == 0
                                        ? 1
@@ -7761,10 +7772,12 @@ bool TryFallbackJSEntryBuiltin(Isolate* isolate, Builtin builtin,
       api_args[i] = DirectHandle<Object>(rooted_api_args[i]);
     }
     Handle<HeapObject> rooted_new_target(
-        Cast<HeapObject>(roots.undefined_value()), isolate);
+        Cast<HeapObject>(Tagged<Object>(
+            is_construct ? new_target_address : roots.undefined_value().ptr())),
+        isolate);
     DirectHandle<HeapObject> new_target(rooted_new_target);
     MaybeHandle<Object> maybe_result = Builtins::InvokeApiFunction(
-        isolate, false, function_template, api_receiver,
+        isolate, is_construct, function_template, api_receiver,
         ZoneVector<const DirectHandle<Object>>(api_args, api_argc), new_target);
     DirectHandle<Object> result;
     if (!maybe_result.ToHandle(&result)) {
@@ -7900,6 +7913,43 @@ bool TryFallbackJSEntryBuiltin(Isolate* isolate, Builtin builtin,
     *out_result =
         (*isolate->SymbolFor(RootIndex::kPublicSymbolTable, key, false)).ptr();
     isolate->set_context(saved_context);
+    return true;
+  }
+
+  if (builtin == Builtin::kFunctionPrototypeToString) {
+    Tagged<Context> saved_context = isolate->context();
+    isolate->set_context(function->context());
+
+    HandleScope scope(isolate);
+    DirectHandle<Object> receiver_object(
+        Tagged<Object>(SafeTaggedOrUndefined(isolate, receiver)), isolate);
+    DirectHandle<String> result;
+    if (IsJSBoundFunction(*receiver_object)) {
+      result = JSBoundFunction::ToString(
+          isolate, Cast<JSBoundFunction>(receiver_object));
+    } else if (IsJSFunction(*receiver_object)) {
+      result =
+          JSFunction::ToString(isolate, Cast<JSFunction>(receiver_object));
+    } else if (IsJSReceiver(*receiver_object) &&
+               Cast<JSReceiver>(*receiver_object)->map()->is_callable()) {
+      result = direct_handle(roots.function_native_code_string(), isolate);
+    } else {
+      isolate->Throw(*isolate->factory()->NewTypeError(
+          MessageTemplate::kNotGeneric,
+          isolate->factory()->NewStringFromAsciiChecked(
+              "Function.prototype.toString"),
+          isolate->factory()->Function_string()));
+      isolate->set_context(saved_context);
+      *out_result = roots.exception().ptr();
+      return true;
+    }
+
+    *out_result = (*result).ptr();
+    isolate->set_context(saved_context);
+    if (kTraceWasmFallbackDetails) {
+      PrintF("WasmJSEntry: fallback FunctionPrototypeToString result=0x%x\n",
+             static_cast<unsigned>(*out_result));
+    }
     return true;
   }
 
