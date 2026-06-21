@@ -668,39 +668,61 @@ void Initialize(Local<Object> target,
                 Local<Value> unused,
                 Local<Context> context,
                 void* priv) {
+#ifdef __wasi__
+#define WASI_V8_INIT_TRACE(label)                                              \
+  do {                                                                         \
+    fprintf(stderr, "node_v8::Initialize %s\n", label);                       \
+    fflush(stderr);                                                            \
+  } while (0)
+#else
+#define WASI_V8_INIT_TRACE(label)                                              \
+  do {                                                                         \
+  } while (0)
+#endif
+  WASI_V8_INIT_TRACE("begin");
   Realm* realm = Realm::GetCurrent(context);
   Environment* env = realm->env();
   BindingData* const binding_data = realm->AddBindingData<BindingData>(target);
+  WASI_V8_INIT_TRACE("after AddBindingData");
   if (binding_data == nullptr) return;
 
   SetMethodNoSideEffect(
       context, target, "cachedDataVersionTag", CachedDataVersionTag);
+  WASI_V8_INIT_TRACE("after cachedDataVersionTag");
   SetMethodNoSideEffect(context,
                         target,
                         "setHeapSnapshotNearHeapLimit",
                         SetHeapSnapshotNearHeapLimit);
+  WASI_V8_INIT_TRACE("after setHeapSnapshotNearHeapLimit");
   SetMethod(context,
             target,
             "updateHeapStatisticsBuffer",
             UpdateHeapStatisticsBuffer);
+  WASI_V8_INIT_TRACE("after updateHeapStatisticsBuffer");
 
   SetMethod(context,
             target,
             "updateHeapCodeStatisticsBuffer",
             UpdateHeapCodeStatisticsBuffer);
+  WASI_V8_INIT_TRACE("after updateHeapCodeStatisticsBuffer");
   SetMethodNoSideEffect(
       context, target, "getCppHeapStatistics", GetCppHeapStatistics);
+  WASI_V8_INIT_TRACE("after getCppHeapStatistics");
 
   size_t number_of_heap_spaces = env->isolate()->NumberOfHeapSpaces();
+  WASI_V8_INIT_TRACE("after NumberOfHeapSpaces");
 
   // Heap space names are extracted once and exposed to JavaScript to
   // avoid excessive creation of heap space name Strings.
   v8::Isolate::HeapSpaceStatistics s;
   MaybeStackBuffer<Local<Value>, 16> heap_spaces(number_of_heap_spaces);
   for (size_t i = 0; i < number_of_heap_spaces; i++) {
+    WASI_V8_INIT_TRACE("before GetHeapSpaceStatistics");
     env->isolate()->GetHeapSpaceStatistics(&s, i);
+    WASI_V8_INIT_TRACE("after GetHeapSpaceStatistics");
     heap_spaces[i] = String::NewFromUtf8(env->isolate(), s.space_name())
                                              .ToLocalChecked();
+    WASI_V8_INIT_TRACE("after heap space string");
   }
   target
       ->Set(
@@ -708,11 +730,13 @@ void Initialize(Local<Object> target,
           FIXED_ONE_BYTE_STRING(env->isolate(), "kHeapSpaces"),
           Array::New(env->isolate(), heap_spaces.out(), number_of_heap_spaces))
       .Check();
+  WASI_V8_INIT_TRACE("after kHeapSpaces");
 
   SetMethod(context,
             target,
             "updateHeapSpaceStatisticsBuffer",
             UpdateHeapSpaceStatisticsBuffer);
+  WASI_V8_INIT_TRACE("after updateHeapSpaceStatisticsBuffer");
 
 #define V(i, _, name)                                                          \
   target                                                                       \
@@ -725,9 +749,11 @@ void Initialize(Local<Object> target,
   HEAP_CODE_STATISTICS_PROPERTIES(V)
   HEAP_SPACE_STATISTICS_PROPERTIES(V)
 #undef V
+  WASI_V8_INIT_TRACE("after statistics constants");
 
   // Export symbols used by v8.setFlagsFromString()
   SetMethod(context, target, "setFlagsFromString", SetFlagsFromString);
+  WASI_V8_INIT_TRACE("after setFlagsFromString");
 
   // Export symbols used by v8.isStringOneByteRepresentation()
   SetFastMethodNoSideEffect(context,
@@ -735,28 +761,40 @@ void Initialize(Local<Object> target,
                             "isStringOneByteRepresentation",
                             IsStringOneByteRepresentation,
                             &fast_is_string_one_byte_representation_);
+  WASI_V8_INIT_TRACE("after isStringOneByteRepresentation");
 
   SetMethodNoSideEffect(context, target, "getHashSeed", GetHashSeed);
+  WASI_V8_INIT_TRACE("after getHashSeed");
 
   // GCProfiler
   Local<FunctionTemplate> t =
       NewFunctionTemplate(env->isolate(), GCProfiler::New);
+  WASI_V8_INIT_TRACE("after GCProfiler template");
   t->InstanceTemplate()->SetInternalFieldCount(BaseObject::kInternalFieldCount);
   SetProtoMethod(env->isolate(), t, "start", GCProfiler::Start);
+  WASI_V8_INIT_TRACE("after GCProfiler start");
   SetProtoMethod(env->isolate(), t, "stop", GCProfiler::Stop);
+  WASI_V8_INIT_TRACE("after GCProfiler stop");
   SetConstructorFunction(context, target, "GCProfiler", t);
+  WASI_V8_INIT_TRACE("after GCProfiler constructor");
 
   {
     Isolate* isolate = env->isolate();
     Local<Object> detail_level = Object::New(isolate);
+    WASI_V8_INIT_TRACE("after detailLevel object");
     cppgc::HeapStatistics::DetailLevel DETAILED =
         cppgc::HeapStatistics::DetailLevel::kDetailed;
     cppgc::HeapStatistics::DetailLevel BRIEF =
         cppgc::HeapStatistics::DetailLevel::kBrief;
     NODE_DEFINE_CONSTANT(detail_level, DETAILED);
+    WASI_V8_INIT_TRACE("after detailLevel detailed");
     NODE_DEFINE_CONSTANT(detail_level, BRIEF);
+    WASI_V8_INIT_TRACE("after detailLevel brief");
     READONLY_PROPERTY(target, "detailLevel", detail_level);
+    WASI_V8_INIT_TRACE("after detailLevel property");
   }
+  WASI_V8_INIT_TRACE("done");
+#undef WASI_V8_INIT_TRACE
 }
 
 void RegisterExternalReferences(ExternalReferenceRegistry* registry) {

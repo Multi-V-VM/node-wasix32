@@ -768,10 +768,74 @@ void BuiltinLoader::CompileFunction(const FunctionCallbackInfo<Value>& args) {
     return;
   }
 #ifdef __wasi__
+  static int compile_function_trace_count = 0;
+  int trace_index = ++compile_function_trace_count;
+  bool trace_compile_function = trace_index <= 16 || trace_index % 512 == 0;
+  if (trace_compile_function) {
+    auto describe_value = [](Local<Value> value) -> const char* {
+      if (value.IsEmpty()) return "empty";
+      if (value->IsUndefined()) return "undefined";
+      if (value->IsNull()) return "null";
+      if (value->IsFunction()) return "function";
+      if (value->IsString()) return "string";
+      if (value->IsObject()) return "object";
+      if (value->IsBoolean()) return "boolean";
+      if (value->IsNumber()) return "number";
+      return "other";
+    };
+    Local<Value> data = args.Data();
+    void* data_ptr = nullptr;
+    if (!data.IsEmpty() && data->IsExternal()) {
+      data_ptr = data.As<External>()->Value();
+    }
+    int64_t trace_tag = -1;
+    if (args.Length() > 1 && args[1]->IsNumber()) {
+      trace_tag = args[1]
+                      ->IntegerValue(realm->context())
+                      .FromMaybe(static_cast<int64_t>(-1));
+    }
+    fprintf(stderr,
+            "BuiltinLoader::CompileFunction #%d id=%s argc=%d this=%p "
+            "this_type=%s data=%p arg1_type=%s arg1_i64=%lld "
+            "arg2_type=%s\n",
+            trace_index,
+            id,
+            args.Length(),
+            *args.This(),
+            describe_value(args.This()),
+            data_ptr,
+            args.Length() > 1 ? describe_value(args[1]) : "missing",
+            static_cast<long long>(trace_tag),
+            args.Length() > 2 ? describe_value(args[2]) : "missing");
+    if (trace_index <= 4 || trace_index % 512 == 0) {
+      Local<v8::StackTrace> stack = v8::StackTrace::CurrentStackTrace(
+          realm->isolate(), 8, v8::StackTrace::kDetailed);
+      for (int i = 0; i < stack->GetFrameCount(); ++i) {
+        Local<v8::StackFrame> frame = stack->GetFrame(realm->isolate(), i);
+        node::Utf8Value function_name(realm->isolate(),
+                                      frame->GetFunctionName());
+        node::Utf8Value script_name(realm->isolate(),
+                                    frame->GetScriptName());
+        fprintf(stderr,
+                "  frame[%d] %s %s:%d:%d\n",
+                i,
+                *function_name == nullptr ? "<anon>" : *function_name,
+                *script_name == nullptr ? "<unknown>" : *script_name,
+                frame->GetLineNumber(),
+                frame->GetColumn());
+      }
+    }
+    fflush(stderr);
+  }
   auto& function_cache = g_wasm32_builtin_function_cache[realm];
   auto cached = function_cache.find(id);
   if (cached != function_cache.end() && !cached->second.IsEmpty()) {
     Local<Function> fn = Local<Function>::New(realm->isolate(), cached->second);
+    if (trace_compile_function) {
+      fprintf(stderr, "BuiltinLoader::CompileFunction hit id=%s fn=%p\n", id,
+              *fn);
+      fflush(stderr);
+    }
     args.GetReturnValue().Set(fn);
     return;
   }
@@ -782,6 +846,11 @@ void BuiltinLoader::CompileFunction(const FunctionCallbackInfo<Value>& args) {
   if (maybe.ToLocal(&fn)) {
 #ifdef __wasi__
     function_cache[id].Reset(realm->isolate(), fn);
+    if (trace_compile_function) {
+      fprintf(stderr, "BuiltinLoader::CompileFunction store id=%s fn=%p\n", id,
+              *fn);
+      fflush(stderr);
+    }
 #endif
     args.GetReturnValue().Set(fn);
   }

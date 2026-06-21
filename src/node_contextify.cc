@@ -43,6 +43,8 @@
 #include "node_watchdog.h"
 #include "util-inl.h"
 
+#include <cstdio>
+
 namespace node {
 namespace contextify {
 
@@ -1011,6 +1013,26 @@ void ContextifyScript::New(const FunctionCallbackInfo<Value>& args) {
     // new ContextifyScript(code, filename, lineOffset, columnOffset,
     //                      cachedData, produceCachedData, parsingContext,
     //                      hostDefinedOptionId)
+    static int wasm32_contextify_trace_count = 0;
+    if (wasm32_contextify_trace_count < 8) {
+      fprintf(stderr, "ContextifyScript::New argc=%d\n", argc);
+      for (int i = 0; i < argc && i < 8; ++i) {
+        fprintf(stderr,
+                "  arg[%d]: undef=%d null=%d str=%d num=%d bool=%d obj=%d "
+                "abv=%d sym=%d func=%d\n",
+                i,
+                args[i]->IsUndefined(),
+                args[i]->IsNull(),
+                args[i]->IsString(),
+                args[i]->IsNumber(),
+                args[i]->IsBoolean(),
+                args[i]->IsObject(),
+                args[i]->IsArrayBufferView(),
+                args[i]->IsSymbol(),
+                args[i]->IsFunction());
+      }
+      wasm32_contextify_trace_count++;
+    }
     CHECK_EQ(argc, 8);
     CHECK(args[2]->IsNumber());
     line_offset = args[2].As<Int32>()->Value();

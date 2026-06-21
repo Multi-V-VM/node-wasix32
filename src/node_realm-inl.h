@@ -112,7 +112,23 @@ inline T* Realm::AddBindingData(v8::Local<v8::Object> target, Args&&... args) {
                 target.IsEmpty() ? nullptr : reinterpret_cast<void*>(*target),
                 binding_index);
         fflush(stderr);
-        return MakeWeakBaseObject<T>(this, target, std::forward<Args>(args)...);
+        T* raw = new T(this, target, std::forward<Args>(args)...);
+        fprintf(stderr,
+                "Realm::AddBindingData after new this=%p raw=%p "
+                "binding_index=%zu\n",
+                static_cast<void*>(this),
+                static_cast<void*>(raw),
+                binding_index);
+        fflush(stderr);
+        raw->MakeWeak();
+        fprintf(stderr,
+                "Realm::AddBindingData after MakeWeak this=%p raw=%p "
+                "binding_index=%zu\n",
+                static_cast<void*>(this),
+                static_cast<void*>(raw),
+                binding_index);
+        fflush(stderr);
+        return BaseObjectWeakPtr<T>(raw);
       })();
 #else
       MakeWeakBaseObject<T>(this, target, std::forward<Args>(args)...);
