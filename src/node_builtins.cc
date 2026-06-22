@@ -21,6 +21,7 @@ namespace builtins {
 
 #ifdef __wasi__
 namespace {
+constexpr bool kTraceWasiBuiltinLoader = false;
 Realm* g_wasm32_builtin_loader_realm = nullptr;
 using Wasm32BuiltinFunctionCache =
     std::map<std::string, v8::Global<v8::Function>>;
@@ -770,7 +771,9 @@ void BuiltinLoader::CompileFunction(const FunctionCallbackInfo<Value>& args) {
 #ifdef __wasi__
   static int compile_function_trace_count = 0;
   int trace_index = ++compile_function_trace_count;
-  bool trace_compile_function = trace_index <= 96 || trace_index % 128 == 0;
+  bool trace_compile_function =
+      kTraceWasiBuiltinLoader &&
+      (trace_index <= 96 || trace_index % 128 == 0);
   if (trace_compile_function) {
     auto describe_value = [](Local<Value> value) -> const char* {
       if (value.IsEmpty()) return "empty";

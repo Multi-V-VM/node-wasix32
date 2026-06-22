@@ -193,6 +193,10 @@ namespace v8 {
 
 static OOMErrorCallback g_oom_error_callback = nullptr;
 
+#if defined(__wasi__)
+constexpr bool kTraceWasiApi = false;
+#endif
+
 #if V8_TARGET_ARCH_WASM32
 extern "C" i::Address WasmRunScriptEntryForApi(i::Address root,
                                                i::Address target,
@@ -211,7 +215,7 @@ static i::Isolate* WasiRecoverCurrentIsolateForApi(Isolate** v8_isolate,
   i_isolate = current;
   *v8_isolate = reinterpret_cast<Isolate*>(current);
   static int wasm_api_null_isolate_recovery_count = 0;
-  if (wasm_api_null_isolate_recovery_count < 32) {
+  if (kTraceWasiApi && wasm_api_null_isolate_recovery_count < 32) {
     fprintf(stderr, "%s recovered bad isolate #%d original=%p current=%p\n",
             api_name,
             wasm_api_null_isolate_recovery_count + 1,
@@ -968,7 +972,8 @@ void Context::Enter() {
   i::Tagged<i::NativeContext> env = *Utils::OpenDirectHandle(this);
 #ifdef __wasi__
   static int wasm_context_enter_trace_count = 0;
-  const bool trace_context_enter = wasm_context_enter_trace_count < 32;
+  const bool trace_context_enter =
+      kTraceWasiApi && wasm_context_enter_trace_count < 32;
   if (trace_context_enter) {
     fprintf(stderr, "Context::Enter #%d env=0x%x is_native=%d\n",
             wasm_context_enter_trace_count + 1,
@@ -1128,7 +1133,7 @@ void Template::Set(v8::Local<Name> name, v8::Local<Data> value,
 
 #ifdef __wasi__
   static int wasm_template_set_trace_count = 0;
-  if (wasm_template_set_trace_count < 1000) {
+  if (kTraceWasiApi && wasm_template_set_trace_count < 1000) {
     fprintf(stderr,
             "Template::Set #%d templ=0x%x name=0x%x value=0x%x "
             "is_js_receiver=%d is_template=%d is_object_template=%d "
@@ -1271,7 +1276,7 @@ i::DirectHandle<i::FunctionTemplateInfo> FunctionTemplateNew(
 #ifdef __wasi__
   static int wasm_function_template_new_trace_count = 0;
   const bool trace_function_template_new =
-      wasm_function_template_new_trace_count < 1024;
+      kTraceWasiApi && wasm_function_template_new_trace_count < 1024;
   if (trace_function_template_new) {
     fprintf(stderr,
             "FunctionTemplateNew enter #%d isolate=%p current=%p factory=%p "
@@ -1347,7 +1352,7 @@ Local<FunctionTemplate> FunctionTemplate::New(
     i_isolate = wasm_current_isolate;
     v8_isolate = reinterpret_cast<Isolate*>(i_isolate);
     static int wasm_function_template_null_isolate_count = 0;
-    if (wasm_function_template_null_isolate_count < 16) {
+    if (kTraceWasiApi && wasm_function_template_null_isolate_count < 16) {
       fprintf(stderr,
               "FunctionTemplate::New recovered bad isolate #%d original=%p "
               "current=%p callback=%p\n",
@@ -1363,7 +1368,7 @@ Local<FunctionTemplate> FunctionTemplate::New(
   }
   static int wasm_function_template_new_api_trace_count = 0;
   const bool trace_function_template_new_api =
-      wasm_function_template_new_api_trace_count < 1024;
+      kTraceWasiApi && wasm_function_template_new_api_trace_count < 1024;
   if (trace_function_template_new_api) {
     fprintf(stderr,
             "FunctionTemplate::New enter #%d v8_isolate=%p i_isolate=%p "
@@ -2080,7 +2085,8 @@ Local<Script> UnboundScript::BindToCurrentContext() {
   auto function_info = Utils::OpenDirectHandle(this);
 #ifdef __wasi__
   static int wasm_bind_to_context_trace_count = 0;
-  const bool trace_bind = wasm_bind_to_context_trace_count < 16;
+  const bool trace_bind =
+      kTraceWasiApi && wasm_bind_to_context_trace_count < 16;
   if (trace_bind) {
     fprintf(stderr,
             "UnboundScript::BindToCurrentContext enter #%d sfi=0x%x "
@@ -2872,7 +2878,8 @@ V8_WARN_UNUSED_RESULT MaybeLocal<Function> ScriptCompiler::CompileFunction(
 #ifdef __wasi__
   static int wasm_compile_function_trace_count = 0;
   const bool trace_wasm_compile_function =
-      wasm_compile_function_trace_count < 32 || arguments_count == 5;
+      kTraceWasiApi &&
+      (wasm_compile_function_trace_count < 32 || arguments_count == 5);
   if (trace_wasm_compile_function) {
     fprintf(stderr,
             "ScriptCompiler::CompileFunction enter #%d context=%p "
@@ -4962,55 +4969,74 @@ Maybe<bool> v8::Object::DefineProperty(v8::Local<v8::Context> context,
 Maybe<bool> v8::Object::SetPrivate(Local<Context> context, Local<Private> key,
                                    Local<Value> value) {
 #ifdef __wasi__
-  fprintf(stderr,
-          "Object::SetPrivate enter this=%p context=%p key=%p value=%p\n",
-          static_cast<void*>(this),
-          static_cast<void*>(*context),
-          static_cast<void*>(*key),
-          static_cast<void*>(*value));
+  if (kTraceWasiApi) {
+    fprintf(stderr,
+            "Object::SetPrivate enter this=%p context=%p key=%p value=%p\n",
+            static_cast<void*>(this), static_cast<void*>(*context),
+            static_cast<void*>(*key), static_cast<void*>(*value));
+  }
 #endif
   auto i_isolate = reinterpret_cast<i::Isolate*>(context->GetIsolate());
 #ifdef __wasi__
-  fprintf(stderr, "Object::SetPrivate after GetIsolate isolate=%p\n",
-          static_cast<void*>(i_isolate));
+  if (kTraceWasiApi) {
+    fprintf(stderr, "Object::SetPrivate after GetIsolate isolate=%p\n",
+            static_cast<void*>(i_isolate));
+  }
 #endif
   ENTER_V8_NO_SCRIPT(i_isolate, context, Object, SetPrivate, i::HandleScope);
 #ifdef __wasi__
-  fprintf(stderr, "Object::SetPrivate after ENTER_V8_NO_SCRIPT\n");
+  if (kTraceWasiApi) {
+    fprintf(stderr, "Object::SetPrivate after ENTER_V8_NO_SCRIPT\n");
+  }
 #endif
   auto self = Utils::OpenDirectHandle(this);
 #ifdef __wasi__
-  fprintf(stderr, "Object::SetPrivate self opened raw=0x%lx\n",
-          static_cast<unsigned long>((*self).ptr()));
+  if (kTraceWasiApi) {
+    fprintf(stderr, "Object::SetPrivate self opened raw=0x%lx\n",
+            static_cast<unsigned long>((*self).ptr()));
+  }
 #endif
   auto key_obj = Utils::OpenDirectHandle(reinterpret_cast<Name*>(*key));
 #ifdef __wasi__
-  fprintf(stderr, "Object::SetPrivate key opened raw=0x%lx\n",
-          static_cast<unsigned long>((*key_obj).ptr()));
+  if (kTraceWasiApi) {
+    fprintf(stderr, "Object::SetPrivate key opened raw=0x%lx\n",
+            static_cast<unsigned long>((*key_obj).ptr()));
+  }
 #endif
   auto value_obj = Utils::OpenDirectHandle(*value);
 #ifdef __wasi__
-  fprintf(stderr, "Object::SetPrivate value opened raw=0x%lx\n",
-          static_cast<unsigned long>((*value_obj).ptr()));
+  if (kTraceWasiApi) {
+    fprintf(stderr, "Object::SetPrivate value opened raw=0x%lx\n",
+            static_cast<unsigned long>((*value_obj).ptr()));
+  }
 #endif
   if (i::IsJSObject(*self)) {
 #ifdef __wasi__
-    fprintf(stderr, "Object::SetPrivate branch JSObject\n");
+    if (kTraceWasiApi) {
+      fprintf(stderr, "Object::SetPrivate branch JSObject\n");
+    }
 #endif
     auto js_object = i::Cast<i::JSObject>(self);
 #ifdef __wasi__
-    fprintf(stderr, "Object::SetPrivate before LookupIterator\n");
+    if (kTraceWasiApi) {
+      fprintf(stderr, "Object::SetPrivate before LookupIterator\n");
+    }
 #endif
     i::LookupIterator it(i_isolate, js_object, key_obj, js_object);
 #ifdef __wasi__
-    fprintf(stderr, "Object::SetPrivate before DefineOwnPropertyIgnoreAttributes\n");
+    if (kTraceWasiApi) {
+      fprintf(stderr,
+              "Object::SetPrivate before DefineOwnPropertyIgnoreAttributes\n");
+    }
 #endif
     has_exception = i::JSObject::DefineOwnPropertyIgnoreAttributes(
                         &it, value_obj, i::DONT_ENUM)
                         .is_null();
 #ifdef __wasi__
-    fprintf(stderr, "Object::SetPrivate after Define has_exception=%d\n",
-            static_cast<int>(has_exception));
+    if (kTraceWasiApi) {
+      fprintf(stderr, "Object::SetPrivate after Define has_exception=%d\n",
+              static_cast<int>(has_exception));
+    }
 #endif
     RETURN_ON_FAILED_EXECUTION_PRIMITIVE(bool);
     return Just(true);
@@ -5966,7 +5992,7 @@ ScriptOrigin Function::GetScriptOrigin() const {
 #ifdef __wasi__
   static int wasm_get_script_origin_trace_count = 0;
   const bool trace_get_script_origin =
-      wasm_get_script_origin_trace_count < 32;
+      kTraceWasiApi && wasm_get_script_origin_trace_count < 32;
   if (trace_get_script_origin) {
     fprintf(stderr,
             "Function::GetScriptOrigin enter #%d self=0x%x is_jsfn=%d\n",
@@ -8001,7 +8027,8 @@ bool FunctionTemplate::HasInstance(v8::Local<v8::Value> value) {
   auto obj = Utils::OpenDirectHandle(*value);
 #ifdef __wasi__
   static int wasm_has_instance_trace_count = 0;
-  const bool trace_has_instance = wasm_has_instance_trace_count < 32;
+  const bool trace_has_instance =
+      kTraceWasiApi && wasm_has_instance_trace_count < 32;
   if (trace_has_instance) {
     fprintf(stderr,
             "FunctionTemplate::HasInstance enter #%d self=0x%x obj=0x%x "
@@ -8456,8 +8483,9 @@ Local<v8::Object> v8::Object::New(Isolate* v8_isolate,
   i::Isolate* i_isolate = reinterpret_cast<i::Isolate*>(v8_isolate);
 #ifdef __wasi__
   static int wasm_object_new_props_trace_count = 0;
-  const bool trace_object_new_props = wasm_object_new_props_trace_count < 32 ||
-                                      length == 5;
+  const bool trace_object_new_props =
+      kTraceWasiApi &&
+      (wasm_object_new_props_trace_count < 32 || length == 5);
   if (trace_object_new_props) {
     fprintf(stderr,
             "Object::New(props) enter #%d prototype=%p length=%zu "
@@ -10661,8 +10689,12 @@ Isolate::CreateParams::~CreateParams() = default;
 void Isolate::Initialize(Isolate* v8_isolate,
                          const v8::Isolate::CreateParams& params) {
   // Unconditional debug for WASI troubleshooting
-  fprintf(stderr, "api.cc: Isolate::Initialize() called\n");
-  fflush(stderr);
+#ifdef __wasi__
+  if (kTraceWasiApi) {
+    fprintf(stderr, "api.cc: Isolate::Initialize() called\n");
+    fflush(stderr);
+  }
+#endif
   i::Isolate* i_isolate = reinterpret_cast<i::Isolate*>(v8_isolate);
   TRACE_EVENT_CALL_STATS_SCOPED(i_isolate, "v8", "V8.IsolateInitialize");
   if (auto allocator = params.array_buffer_allocator_shared) {
@@ -10677,9 +10709,11 @@ void Isolate::Initialize(Isolate* v8_isolate,
   if (params.snapshot_blob != nullptr) {
     i_isolate->set_snapshot_blob(params.snapshot_blob);
 #ifdef __wasi__
-    fprintf(stderr, "api.cc: Using provided snapshot_blob data=%p size=%d\n",
-            (void*)params.snapshot_blob->data, params.snapshot_blob->raw_size);
-    fflush(stderr);
+    if (kTraceWasiApi) {
+      fprintf(stderr, "api.cc: Using provided snapshot_blob data=%p size=%d\n",
+              (void*)params.snapshot_blob->data, params.snapshot_blob->raw_size);
+      fflush(stderr);
+    }
 #endif
   } else {
     auto default_blob = i::Snapshot::DefaultSnapshotBlob();
@@ -10736,8 +10770,12 @@ void Isolate::Initialize(Isolate* v8_isolate,
   Isolate::Scope isolate_scope(v8_isolate);
   // Always use no-snapshot mode for WASI/WASM32 builds
   // Snapshots are architecture-specific (x86-64 vs WASM32)
-  fprintf(stderr, "api.cc: no-snapshot mode - calling InitWithoutSnapshot\n");
-  fflush(stderr);
+#ifdef __wasi__
+  if (kTraceWasiApi) {
+    fprintf(stderr, "api.cc: no-snapshot mode - calling InitWithoutSnapshot\n");
+    fflush(stderr);
+  }
+#endif
   if (!i_isolate->InitWithoutSnapshot()) {
     FATAL("Failed to initialize V8 isolate without snapshot");
   }
@@ -13265,8 +13303,12 @@ Isolate* Isolate::TryGetCurrent() {
 // static
 void Isolate::Initialize(Isolate* v8_isolate,
                           const v8::Isolate::CreateParams& params) {
-  fprintf(stderr, "api.cc: Isolate::Initialize() called\n");
-  fflush(stderr);
+#ifdef __wasi__
+  if (kTraceWasiApi) {
+    fprintf(stderr, "api.cc: Isolate::Initialize() called\n");
+    fflush(stderr);
+  }
+#endif
   i::Isolate* i_isolate = reinterpret_cast<i::Isolate*>(v8_isolate);
   if (auto allocator = params.array_buffer_allocator_shared) {
     CHECK(params.array_buffer_allocator == nullptr ||
@@ -13297,8 +13339,12 @@ void Isolate::Initialize(Isolate* v8_isolate,
   i_isolate->heap()->ConfigureHeap(params.constraints, cpp_heap);
 
   Isolate::Scope isolate_scope(v8_isolate);
-  fprintf(stderr, "api.cc: no-snapshot mode - calling InitWithoutSnapshot\n");
-  fflush(stderr);
+#ifdef __wasi__
+  if (kTraceWasiApi) {
+    fprintf(stderr, "api.cc: no-snapshot mode - calling InitWithoutSnapshot\n");
+    fflush(stderr);
+  }
+#endif
   if (!i_isolate->InitWithoutSnapshot()) {
     FATAL("Failed to initialize V8 isolate without snapshot");
   }

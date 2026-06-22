@@ -270,7 +270,11 @@ static void RawWrite(const FunctionCallbackInfo<Value>& args) {
         "must be called with fd and string");
 
   int32_t fd;
-  if (!args[0]->Int32Value(args.GetIsolate()->GetCurrentContext()).To(&fd)) {
+  if (args[0]->IsInt32()) {
+    fd = args[0].As<v8::Int32>()->Value();
+  } else if (!args[0]
+                  ->Int32Value(args.GetIsolate()->GetCurrentContext())
+                  .To(&fd)) {
     return;
   }
 

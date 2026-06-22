@@ -102,6 +102,10 @@
 namespace v8 {
 namespace internal {
 
+#ifdef __wasi__
+constexpr bool kTraceWasiFactory = false;
+#endif
+
 Factory::CodeBuilder::CodeBuilder(Isolate* isolate, const CodeDesc& desc,
                                   CodeKind kind)
     : isolate_(isolate),
@@ -4674,6 +4678,7 @@ DirectHandle<FunctionTemplateInfo> Factory::NewFunctionTemplateInfo(
 #ifdef __wasi__
   static int wasm_new_function_template_info_trace_count = 0;
   const bool trace_new_function_template_info =
+      kTraceWasiFactory &&
       wasm_new_function_template_info_trace_count < 1024;
   if (trace_new_function_template_info) {
     Heap* heap = isolate()->heap();

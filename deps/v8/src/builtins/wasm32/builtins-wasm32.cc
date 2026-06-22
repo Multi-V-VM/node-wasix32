@@ -1585,7 +1585,7 @@ bool TryRunLdaContextSlotBytecode(
     return true;
   }
   Tagged<Object> value = context->GetNoCell(slot_index);
-  if (slot_index == 43 && depth == 2 &&
+  if (kTraceWasmFallbackDetails && slot_index == 43 && depth == 2 &&
       g_context_slot43_depth2_trace_count < 8) {
     ++g_context_slot43_depth2_trace_count;
     PrintF("WasmInterpreterEntryTrampoline: LdaContextSlot slot43-depth2 "
@@ -1965,6 +1965,7 @@ bool TryRunGetNamedPropertyBytecode(
       IsReflectOwnKeysTraceName(isolate, name_object);
   bool trace_eval_named_property =
 #ifdef __wasi__
+      kTraceWasmFallbackDetails &&
       CurrentInterpreterFunctionMatchesTraceNeedle();
 #else
       false;
@@ -2837,7 +2838,8 @@ bool TryRunTestInstanceOfBytecode(Isolate* isolate,
         *out_result = ordinary_result;
 #ifdef __wasi__
         static int test_instanceof_ordinary_trace_count = 0;
-        if (test_instanceof_ordinary_trace_count < 16) {
+        if (kTraceWasmFallbackDetails &&
+            test_instanceof_ordinary_trace_count < 16) {
           ++test_instanceof_ordinary_trace_count;
           PrintF("WasmInterpreterEntryTrampoline: TestInstanceOf ordinary "
                  "handler detail");
@@ -3479,8 +3481,9 @@ bool TryConstructJSFunctionDirect(Isolate* isolate,
 #ifdef __wasi__
   static int construct_js_function_trace_count = 0;
   bool trace_construct_js_function =
-      ++construct_js_function_trace_count <= 64 ||
-      (construct_js_function_trace_count % 256) == 0;
+      kTraceWasmFallbackDetails &&
+      (++construct_js_function_trace_count <= 64 ||
+       (construct_js_function_trace_count % 256) == 0);
   if (trace_construct_js_function) {
     PrintF("TryConstructJSFunctionDirect: #%d kind=%s derived=%d argc=%d ",
            construct_js_function_trace_count, FunctionKind2String(ctor_kind),
@@ -4581,6 +4584,7 @@ bool TryRunCallBytecode(Isolate* isolate, Tagged<BytecodeArray> bytecode,
       bytecode_index >= 1230 && bytecode_index <= 1305;
   bool trace_eval_call =
 #ifdef __wasi__
+      kTraceWasmFallbackDetails &&
       FunctionMatchesWasmEvalTraceNeedle(current_function->shared());
 #else
       false;
@@ -6121,6 +6125,7 @@ bool TryRunSetNamedPropertyBytecode(
     return false;
   }
   bool trace_reflect_own_keys_name =
+      kTraceWasmFallbackDetails &&
       IsReflectOwnKeysTraceName(isolate, name_object);
   bool trace_module_state_name =
       kTraceWasmFallbackDetails &&
@@ -7807,10 +7812,12 @@ bool TryFallbackGeneratedRuntime(Isolate* isolate,
     Address generated_arg0 = ReadGeneratedJSArgument(0);
     if (IsSafeTaggedHandleValue(generated_arg0) &&
         IsJSReceiver(Tagged<Object>(generated_arg0))) {
-      PrintF("WasmRuntimeCallFromGenerated: JSReceiverGetPrototypeOf "
-             "recovered receiver from JS arg0");
-      DumpRuntimeArg("receiver", 0, generated_arg0);
-      PrintF("\n");
+      if (kTraceWasmFallbackDetails) {
+        PrintF("WasmRuntimeCallFromGenerated: JSReceiverGetPrototypeOf "
+               "recovered receiver from JS arg0");
+        DumpRuntimeArg("receiver", 0, generated_arg0);
+        PrintF("\n");
+      }
       receiver_address = generated_arg0;
     }
   }
@@ -7830,9 +7837,11 @@ bool TryFallbackGeneratedRuntime(Isolate* isolate,
                     isolate);
   DirectHandle<JSPrototype> prototype;
 #ifdef __wasi__
-  PrintF("WasmRuntimeCallFromGenerated: JSReceiverGetPrototypeOf before get ");
-  DumpRuntimeArg("receiver", 0, receiver_address);
-  PrintF("\n");
+  if (kTraceWasmFallbackDetails) {
+    PrintF("WasmRuntimeCallFromGenerated: JSReceiverGetPrototypeOf before get ");
+    DumpRuntimeArg("receiver", 0, receiver_address);
+    PrintF("\n");
+  }
 #endif
   if (!JSReceiver::GetPrototype(isolate, receiver).ToHandle(&prototype)) {
 #ifdef __wasi__
@@ -7845,9 +7854,11 @@ bool TryFallbackGeneratedRuntime(Isolate* isolate,
   }
   *out_result = (*prototype).ptr();
 #ifdef __wasi__
-  PrintF("WasmRuntimeCallFromGenerated: JSReceiverGetPrototypeOf result ");
-  DumpRuntimeArg("prototype", 0, *out_result);
-  PrintF(" has_exception=%d\n", isolate->has_exception() ? 1 : 0);
+  if (kTraceWasmFallbackDetails) {
+    PrintF("WasmRuntimeCallFromGenerated: JSReceiverGetPrototypeOf result ");
+    DumpRuntimeArg("prototype", 0, *out_result);
+    PrintF(" has_exception=%d\n", isolate->has_exception() ? 1 : 0);
+  }
 #endif
   return true;
 }
@@ -8214,7 +8225,7 @@ bool TryFallbackJSEntryBuiltin(Isolate* isolate, Builtin builtin,
     Tagged<SharedFunctionInfo> shared = function->shared();
 #ifdef __wasi__
     static int api_fallback_probe_count = 0;
-    if (api_fallback_probe_count < 16) {
+    if (kTraceWasmFallbackDetails && api_fallback_probe_count < 16) {
       Tagged<Object> data = shared->GetUntrustedData();
       PrintF("WasmJSEntry: API fallback probe builtin=%s is_api=%d ",
              Builtins::name(builtin), shared->IsApiFunction() ? 1 : 0);
@@ -8243,7 +8254,7 @@ bool TryFallbackJSEntryBuiltin(Isolate* isolate, Builtin builtin,
       api_native_context = api_native_context->native_context();
     }
     static int api_context_trace_count = 0;
-    if (api_context_trace_count < 16) {
+    if (kTraceWasmFallbackDetails && api_context_trace_count < 16) {
       PrintF("WasmJSEntry: API fallback context source=%s raw=0x%x "
              "native=0x%x raw_type=%d native_type=%d function_context=0x%x\n",
              using_caller_context ? "caller" : "function",
@@ -8300,14 +8311,18 @@ bool TryFallbackJSEntryBuiltin(Isolate* isolate, Builtin builtin,
 #ifdef __wasi__
     static int api_fallback_args_trace_count = 0;
     bool trace_cjs_loader_api_args =
-        SharedDebugNameEqualsAsciiForTrace(shared, "compileFunctionForCJSLoader") ||
-        (api_argc == 4 && IsString(*api_args[0]) && IsString(*api_args[1]) &&
-         IsBoolean(*api_args[2]));
+        kTraceWasmFallbackDetails &&
+        (SharedDebugNameEqualsAsciiForTrace(shared,
+                                            "compileFunctionForCJSLoader") ||
+         (api_argc == 4 && IsString(*api_args[0]) &&
+          IsString(*api_args[1]) && IsBoolean(*api_args[2])));
     bool trace_contextify_run_api_args =
-        SharedDebugNameEqualsAsciiForTrace(shared, "runInContext") ||
-        SharedDebugNameEqualsAsciiForTrace(shared, "runInThisContext");
-    if (trace_cjs_loader_api_args || trace_contextify_run_api_args ||
-        api_fallback_args_trace_count < 128) {
+        kTraceWasmFallbackDetails &&
+        (SharedDebugNameEqualsAsciiForTrace(shared, "runInContext") ||
+         SharedDebugNameEqualsAsciiForTrace(shared, "runInThisContext"));
+    if (kTraceWasmFallbackDetails &&
+        (trace_cjs_loader_api_args || trace_contextify_run_api_args ||
+         api_fallback_args_trace_count < 128)) {
       PrintF("WasmJSEntry: API fallback args builtin=%s argc=%d name=",
              Builtins::name(builtin), api_argc);
       DumpNameForTrace(shared->Name());
@@ -8328,8 +8343,9 @@ bool TryFallbackJSEntryBuiltin(Isolate* isolate, Builtin builtin,
     DirectHandle<HeapObject> new_target(rooted_new_target);
 #ifdef __wasi__
     bool trace_api_invoke =
-        trace_cjs_loader_api_args || trace_contextify_run_api_args ||
-        api_fallback_args_trace_count < 128;
+        kTraceWasmFallbackDetails &&
+        (trace_cjs_loader_api_args || trace_contextify_run_api_args ||
+         api_fallback_args_trace_count < 128);
     if (trace_api_invoke) {
       PrintF("WasmJSEntry: API fallback before InvokeApiFunction builtin=%s "
              "argc=%d name=",
@@ -9287,8 +9303,9 @@ bool TryFallbackJSEntryBuiltin(Isolate* isolate, Builtin builtin,
 #ifdef __wasi__
       static int object_define_property_trace_count = 0;
       bool trace_object_define_property =
-          ++object_define_property_trace_count <= 32 ||
-          (object_define_property_trace_count % 256) == 0;
+          kTraceWasmFallbackDetails &&
+          (++object_define_property_trace_count <= 32 ||
+           (object_define_property_trace_count % 256) == 0);
       if (trace_object_define_property) {
         PrintF("WasmJSEntry: ObjectDefineProperty fallback enter #%d argc=%d",
                object_define_property_trace_count, actual_argc);
@@ -10031,7 +10048,8 @@ bool TryFallbackJSEntryBuiltin(Isolate* isolate, Builtin builtin,
 
 #ifdef __wasi__
     static int reflect_apply_trace_count = 0;
-    const bool trace_reflect_apply = reflect_apply_trace_count < 64;
+    const bool trace_reflect_apply =
+        kTraceWasmFallbackDetails && reflect_apply_trace_count < 64;
     if (trace_reflect_apply) {
       PrintF("WasmJSEntry: %s fallback enter callable=",
              Builtins::name(builtin));
@@ -10328,10 +10346,11 @@ extern "C" Address WasmRuntimeCallFromGenerated(Address runtime_entry,
     return result;
   }
 
-  if (function->function_id == Runtime::kLoadIC_Miss ||
-      function->function_id == Runtime::kKeyedLoadIC_Miss ||
-      function->function_id == Runtime::kJSReceiverGetPrototypeOf ||
-      function->function_id == Runtime::kNewObject) {
+  if (kTraceWasmFallbackDetails &&
+      (function->function_id == Runtime::kLoadIC_Miss ||
+       function->function_id == Runtime::kKeyedLoadIC_Miss ||
+       function->function_id == Runtime::kJSReceiverGetPrototypeOf ||
+       function->function_id == Runtime::kNewObject)) {
     PrintF("WasmRuntimeCallFromGenerated: entering %s id=%d argc=%d "
            "entry=0x%x context=0x%x\n",
            function->name, static_cast<int>(function->function_id), argc,
@@ -10357,7 +10376,8 @@ extern "C" Address WasmRuntimeCallFromGenerated(Address runtime_entry,
 
   static uint32_t to_numeric_count = 0;
   uint32_t to_numeric_sample = 0;
-  if (function->function_id == Runtime::kToNumeric) {
+  if (kTraceWasmFallbackDetails &&
+      function->function_id == Runtime::kToNumeric) {
     to_numeric_sample = ++to_numeric_count;
     if (to_numeric_sample <= 16 || (to_numeric_sample % 10000) == 0) {
       PrintF("WasmRuntimeCallFromGenerated: ToNumeric call count=%u argc=%d "
@@ -10398,7 +10418,8 @@ extern "C" Address WasmRuntimeCallFromGenerated(Address runtime_entry,
     if (switched_context) isolate->set_context(saved_context);
     g_wasm_regs[SlotFor(kReturnRegister0)] = fallback_result;
 #ifdef __wasi__
-    if (function->function_id == Runtime::kJSReceiverGetPrototypeOf) {
+    if (kTraceWasmFallbackDetails &&
+        function->function_id == Runtime::kJSReceiverGetPrototypeOf) {
       PrintF("WasmRuntimeCallFromGenerated: generated runtime return %s id=%d "
              "argc=%d ",
              function->name, static_cast<int>(function->function_id), argc);
@@ -10428,25 +10449,31 @@ extern "C" Address WasmRuntimeCallFromGenerated(Address runtime_entry,
     if (IsJSSet(object)) {
       DirectHandle<JSSet> set(Cast<JSSet>(object), isolate);
       JSSet::Initialize(set, isolate);
-      PrintF("WasmRuntimeCallFromGenerated: initialized JSSet table result=0x%x "
-             "table=0x%x\n",
-             static_cast<unsigned>(result),
-             static_cast<unsigned>(set->table().ptr()));
+      if (kTraceWasmFallbackDetails) {
+        PrintF("WasmRuntimeCallFromGenerated: initialized JSSet table "
+               "result=0x%x table=0x%x\n",
+               static_cast<unsigned>(result),
+               static_cast<unsigned>(set->table().ptr()));
+      }
     } else if (IsJSMap(object)) {
       DirectHandle<JSMap> map(Cast<JSMap>(object), isolate);
       JSMap::Initialize(map, isolate);
-      PrintF("WasmRuntimeCallFromGenerated: initialized JSMap table result=0x%x "
-             "table=0x%x\n",
-             static_cast<unsigned>(result),
-             static_cast<unsigned>(map->table().ptr()));
+      if (kTraceWasmFallbackDetails) {
+        PrintF("WasmRuntimeCallFromGenerated: initialized JSMap table "
+               "result=0x%x table=0x%x\n",
+               static_cast<unsigned>(result),
+               static_cast<unsigned>(map->table().ptr()));
+      }
     } else if (IsJSWeakCollection(object)) {
       DirectHandle<JSWeakCollection> weak_collection(
           Cast<JSWeakCollection>(object), isolate);
       JSWeakCollection::Initialize(weak_collection, isolate);
-      PrintF("WasmRuntimeCallFromGenerated: initialized JSWeakCollection "
-             "table result=0x%x table=0x%x\n",
-             static_cast<unsigned>(result),
-             static_cast<unsigned>(weak_collection->table().ptr()));
+      if (kTraceWasmFallbackDetails) {
+        PrintF("WasmRuntimeCallFromGenerated: initialized JSWeakCollection "
+               "table result=0x%x table=0x%x\n",
+               static_cast<unsigned>(result),
+               static_cast<unsigned>(weak_collection->table().ptr()));
+      }
     }
   }
 
@@ -10511,8 +10538,10 @@ extern "C" void WasmInterpreterEntryTrampoline() {
   bool trace_entry_steps = false;
   int trace_entry_index = -1;
 #ifdef __wasi__
-  bool trace_eval_source = FunctionMatchesWasmEvalTraceNeedle(shared);
-  if (trace_eval_source || wasm_interpreter_entry_trace_count < 12) {
+  bool trace_eval_source =
+      kTraceWasmFallbackDetails && FunctionMatchesWasmEvalTraceNeedle(shared);
+  if (kTraceWasmFallbackDetails &&
+      (trace_eval_source || wasm_interpreter_entry_trace_count < 12)) {
     trace_entry_index = wasm_interpreter_entry_trace_count++;
     trace_entry_steps = true;
     PrintF("WasmInterpreterEntryTrace: enter #%d eval_match=%d argc=%d actual=%d "
@@ -11658,7 +11687,7 @@ extern "C" Address WasmJSEntry(Address root, Address new_target, Address target,
   Tagged<Code> code = function->code(isolate);
   Address entry = code->instruction_start();
 #ifdef __wasi__
-  if (function->shared()->is_script()) {
+  if (kTraceWasmJSEntry && function->shared()->is_script()) {
     static int wasm_js_entry_script_trace_count = 0;
     if (wasm_js_entry_script_trace_count < 32) {
       ++wasm_js_entry_script_trace_count;
@@ -11709,7 +11738,7 @@ extern "C" Address WasmJSEntry(Address root, Address new_target, Address target,
   if (code->is_builtin()) {
     Builtin builtin = code->builtin_id();
 #ifdef __wasi__
-    if (builtin == Builtin::kObjectDefineProperty) {
+    if (kTraceWasmJSEntry && builtin == Builtin::kObjectDefineProperty) {
       static int object_define_entry_trace_count = 0;
       bool trace_object_define_entry =
           ++object_define_entry_trace_count <= 32 ||
@@ -11727,7 +11756,8 @@ extern "C" Address WasmJSEntry(Address root, Address new_target, Address target,
       }
     }
 #endif
-    if (std::strstr(Builtins::name(builtin), "RegExp") != nullptr) {
+    if (kTraceWasmJSEntry &&
+        std::strstr(Builtins::name(builtin), "RegExp") != nullptr) {
       PrintF("WasmJSEntry: regexp builtin target=%d name=%s receiver=0x%x "
              "actual_argc=%d",
              static_cast<int>(builtin), Builtins::name(builtin),
@@ -11871,7 +11901,7 @@ extern "C" Address WasmRunScriptEntryForApi(Address root, Address target,
   Address* argv[] = {&arg0};
 #ifdef __wasi__
   static int wasm_api_script_trace_count = 0;
-  if (wasm_api_script_trace_count < 16) {
+  if (kTraceWasmJSEntry && wasm_api_script_trace_count < 16) {
     ++wasm_api_script_trace_count;
     PrintF("WasmRunScriptEntryForApi: #%d target=0x%x receiver=0x%x "
            "host_options=0x%x\n",

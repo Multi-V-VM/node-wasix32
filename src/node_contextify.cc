@@ -48,6 +48,10 @@
 namespace node {
 namespace contextify {
 
+#ifdef __wasi__
+constexpr bool kTraceWasiContextify = false;
+#endif
+
 using errors::TryCatchScope;
 
 using v8::Array;
@@ -1348,7 +1352,8 @@ bool ContextifyScript::EvalMachine(Local<Context> context,
   bool received_signal = false;
   auto run = [&]() {
     static int wasm_eval_trace_count = 0;
-    const bool trace_eval = wasm_eval_trace_count < 16;
+    const bool trace_eval =
+        kTraceWasiContextify && wasm_eval_trace_count < 16;
 #ifdef __wasi__
     if (trace_eval) {
       fprintf(stderr,
@@ -1444,7 +1449,7 @@ bool ContextifyScript::EvalMachine(Local<Context> context,
 
 #ifdef __wasi__
   static int wasm_eval_return_trace_count = 0;
-  if (wasm_eval_return_trace_count < 16) {
+  if (kTraceWasiContextify && wasm_eval_return_trace_count < 16) {
     fprintf(stderr,
             "ContextifyScript::EvalMachine set return res=%p undef=%d "
             "null=%d num=%d str=%d bool=%d obj=%d func=%d\n",
@@ -1857,7 +1862,7 @@ static bool ShouldRetryAsESM(Realm* realm,
 static void CompileFunctionForCJSLoader(
     const FunctionCallbackInfo<Value>& args) {
   static int wasm32_cjs_loader_trace_count = 0;
-  if (wasm32_cjs_loader_trace_count < 8) {
+  if (kTraceWasiContextify && wasm32_cjs_loader_trace_count < 8) {
     Isolate* trace_isolate = args.GetIsolate();
     fprintf(stderr,
             "CompileFunctionForCJSLoader argc=%d\n",
