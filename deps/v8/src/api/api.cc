@@ -1126,9 +1126,43 @@ void Template::Set(v8::Local<Name> name, v8::Local<Data> value,
   i::HandleScope scope(i_isolate);
   auto value_obj = Utils::OpenDirectHandle(*value);
 
+#ifdef __wasi__
+  static int wasm_template_set_trace_count = 0;
+  if (wasm_template_set_trace_count < 1000) {
+    fprintf(stderr,
+            "Template::Set #%d templ=0x%x name=0x%x value=0x%x "
+            "is_js_receiver=%d is_template=%d is_object_template=%d "
+            "is_boolean=%d is_true=%d is_false=%d\n",
+            wasm_template_set_trace_count + 1,
+            static_cast<unsigned>((*templ).ptr()),
+            static_cast<unsigned>((*Utils::OpenDirectHandle(*name)).ptr()),
+            static_cast<unsigned>((*value_obj).ptr()),
+            IsJSReceiver(*value_obj) ? 1 : 0,
+            IsTemplateInfo(*value_obj) ? 1 : 0,
+            i::IsObjectTemplateInfo(*value_obj) ? 1 : 0,
+            i::IsBoolean(*value_obj) ? 1 : 0,
+            i::IsTrue(*value_obj, i_isolate) ? 1 : 0,
+            i::IsFalse(*value_obj, i_isolate) ? 1 : 0);
+    fflush(stderr);
+    wasm_template_set_trace_count++;
+  }
+#endif
+
+#ifdef __wasi__
+  const bool wasm_primitive_root =
+      i::IsTrue(*value_obj, i_isolate) ||
+      i::IsFalse(*value_obj, i_isolate) ||
+      i::IsNull(*value_obj, i_isolate) ||
+      i::IsUndefined(*value_obj, i_isolate);
+  Utils::ApiCheck(wasm_primitive_root || !IsJSReceiver(*value_obj) ||
+                      IsTemplateInfo(*value_obj),
+                  "v8::Template::Set",
+                  "Invalid value, must be a primitive or a Template");
+#else
   Utils::ApiCheck(!IsJSReceiver(*value_obj) || IsTemplateInfo(*value_obj),
                   "v8::Template::Set",
                   "Invalid value, must be a primitive or a Template");
+#endif
 
   // The template cache only performs shallow clones, if we set an
   // ObjectTemplate as a property value then we can not cache the receiver

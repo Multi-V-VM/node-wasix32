@@ -77,6 +77,15 @@ void TCPWrap::Initialize(Local<Object> target,
                          void* priv) {
   Environment* env = Environment::GetCurrent(context);
   Isolate* isolate = env->isolate();
+#ifdef __wasi__
+  auto refresh_isolate = [&]() {
+    isolate = env->isolate();
+    if (isolate == nullptr) {
+      isolate = Isolate::TryGetCurrent();
+    }
+  };
+  refresh_isolate();
+#endif
 
   Local<FunctionTemplate> t = NewFunctionTemplate(isolate, New);
   t->InstanceTemplate()->SetInternalFieldCount(StreamBase::kInternalFieldCount);
@@ -89,22 +98,55 @@ void TCPWrap::Initialize(Local<Object> target,
 
   t->Inherit(LibuvStreamWrap::GetConstructorTemplate(env));
 
+#ifdef __wasi__
+  refresh_isolate();
+#endif
   SetProtoMethod(isolate, t, "open", Open);
+#ifdef __wasi__
+  refresh_isolate();
+#endif
   SetProtoMethod(isolate, t, "bind", Bind);
+#ifdef __wasi__
+  refresh_isolate();
+#endif
   SetProtoMethod(isolate, t, "listen", Listen);
+#ifdef __wasi__
+  refresh_isolate();
+#endif
   SetProtoMethod(isolate, t, "connect", Connect);
+#ifdef __wasi__
+  refresh_isolate();
+#endif
   SetProtoMethod(isolate, t, "bind6", Bind6);
+#ifdef __wasi__
+  refresh_isolate();
+#endif
   SetProtoMethod(isolate, t, "connect6", Connect6);
+#ifdef __wasi__
+  refresh_isolate();
+#endif
   SetProtoMethod(isolate,
                  t,
                  "getsockname",
                  GetSockOrPeerName<TCPWrap, uv_tcp_getsockname>);
+#ifdef __wasi__
+  refresh_isolate();
+#endif
   SetProtoMethod(isolate,
                  t,
                  "getpeername",
                  GetSockOrPeerName<TCPWrap, uv_tcp_getpeername>);
+#ifdef __wasi__
+  refresh_isolate();
+#endif
   SetProtoMethod(isolate, t, "setNoDelay", SetNoDelay);
+#ifdef __wasi__
+  refresh_isolate();
+#endif
   SetProtoMethod(isolate, t, "setKeepAlive", SetKeepAlive);
+#ifdef __wasi__
+  refresh_isolate();
+#endif
   SetProtoMethod(isolate, t, "reset", Reset);
 
 #ifdef _WIN32

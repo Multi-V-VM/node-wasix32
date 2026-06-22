@@ -494,10 +494,17 @@ RUNTIME_FUNCTION(Runtime_ObjectValues) {
   DirectHandle<JSReceiver> receiver = args.at<JSReceiver>(0);
 
   DirectHandle<FixedArray> values;
+#ifdef __wasi__
+  // The fast element collection path is still unsafe on the wasm32 backend.
+  constexpr bool try_fast_path = false;
+#else
+  constexpr bool try_fast_path = true;
+#endif
   ASSIGN_RETURN_FAILURE_ON_EXCEPTION(
       isolate, values,
       JSReceiver::GetOwnValues(isolate, receiver,
-                               PropertyFilter::ENUMERABLE_STRINGS, true));
+                               PropertyFilter::ENUMERABLE_STRINGS,
+                               try_fast_path));
   return *isolate->factory()->NewJSArrayWithElements(values);
 }
 
@@ -522,10 +529,17 @@ RUNTIME_FUNCTION(Runtime_ObjectEntries) {
   DirectHandle<JSReceiver> receiver = args.at<JSReceiver>(0);
 
   DirectHandle<FixedArray> entries;
+#ifdef __wasi__
+  // The fast element collection path is still unsafe on the wasm32 backend.
+  constexpr bool try_fast_path = false;
+#else
+  constexpr bool try_fast_path = true;
+#endif
   ASSIGN_RETURN_FAILURE_ON_EXCEPTION(
       isolate, entries,
       JSReceiver::GetOwnEntries(isolate, receiver,
-                                PropertyFilter::ENUMERABLE_STRINGS, true));
+                                PropertyFilter::ENUMERABLE_STRINGS,
+                                try_fast_path));
   return *isolate->factory()->NewJSArrayWithElements(entries);
 }
 

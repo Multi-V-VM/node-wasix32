@@ -13,6 +13,7 @@
 #include "v8.h"
 
 #include <climits>  // INT_MAX
+#include <cstdio>
 
 namespace node {
 
@@ -544,47 +545,129 @@ void StreamBase::AddMethods(IsolateData* isolate_data,
   enum PropertyAttribute attributes =
       static_cast<PropertyAttribute>(ReadOnly | DontDelete | DontEnum);
   Local<Signature> sig = Signature::New(isolate, t);
+#ifdef __wasi__
+  static int wasm_stream_base_add_methods_trace_count = 0;
+  auto trace_add_methods = [&](const char* stage) {
+    if (wasm_stream_base_add_methods_trace_count >= 80) return;
+    Isolate* current_isolate = Isolate::TryGetCurrent();
+    fprintf(stderr,
+            "StreamBase::AddMethods %s #%d isolate_data=%p isolate=%p "
+            "current=%p tmpl=%p sig=%p\n",
+            stage,
+            wasm_stream_base_add_methods_trace_count + 1,
+            static_cast<void*>(isolate_data),
+            static_cast<void*>(isolate),
+            static_cast<void*>(current_isolate),
+            t.IsEmpty() ? nullptr : reinterpret_cast<void*>(*t),
+            sig.IsEmpty() ? nullptr : reinterpret_cast<void*>(*sig));
+    fflush(stderr);
+    wasm_stream_base_add_methods_trace_count++;
+  };
+  auto refresh_isolate = [&]() {
+    isolate = isolate_data->isolate();
+    if (isolate == nullptr) {
+      isolate = Isolate::TryGetCurrent();
+    }
+  };
+  trace_add_methods("entry");
+#endif
 
   AddMethod(isolate, sig, attributes, t, GetFD, isolate_data->fd_string());
+#ifdef __wasi__
+  trace_add_methods("after_fd");
+#endif
   AddMethod(isolate,
             sig,
             attributes,
             t,
             GetExternal,
             isolate_data->external_stream_string());
+#ifdef __wasi__
+  trace_add_methods("after_external");
+#endif
   AddMethod(isolate,
             sig,
             attributes,
             t,
             GetBytesRead,
             isolate_data->bytes_read_string());
+#ifdef __wasi__
+  trace_add_methods("after_bytes_read");
+#endif
   AddMethod(isolate,
             sig,
             attributes,
             t,
             GetBytesWritten,
             isolate_data->bytes_written_string());
+#ifdef __wasi__
+  trace_add_methods("after_bytes_written");
+  refresh_isolate();
+#endif
   SetProtoMethod(isolate, t, "readStart", JSMethod<&StreamBase::ReadStartJS>);
+#ifdef __wasi__
+  trace_add_methods("after_read_start");
+  refresh_isolate();
+#endif
   SetProtoMethod(isolate, t, "readStop", JSMethod<&StreamBase::ReadStopJS>);
+#ifdef __wasi__
+  trace_add_methods("after_read_stop");
+  refresh_isolate();
+#endif
   SetProtoMethod(isolate, t, "shutdown", JSMethod<&StreamBase::Shutdown>);
+#ifdef __wasi__
+  trace_add_methods("after_shutdown");
+  refresh_isolate();
+#endif
   SetProtoMethod(
       isolate, t, "useUserBuffer", JSMethod<&StreamBase::UseUserBuffer>);
+#ifdef __wasi__
+  trace_add_methods("after_use_user_buffer");
+  refresh_isolate();
+#endif
   SetProtoMethod(isolate, t, "writev", JSMethod<&StreamBase::Writev>);
+#ifdef __wasi__
+  trace_add_methods("after_writev");
+  refresh_isolate();
+#endif
   SetProtoMethod(isolate, t, "writeBuffer", JSMethod<&StreamBase::WriteBuffer>);
+#ifdef __wasi__
+  trace_add_methods("after_write_buffer");
+  refresh_isolate();
+#endif
   SetProtoMethod(isolate,
                  t,
                  "writeAsciiString",
                  JSMethod<&StreamBase::WriteString<ASCII>>);
+#ifdef __wasi__
+  trace_add_methods("after_write_ascii");
+  refresh_isolate();
+#endif
   SetProtoMethod(
       isolate, t, "writeUtf8String", JSMethod<&StreamBase::WriteString<UTF8>>);
+#ifdef __wasi__
+  trace_add_methods("after_write_utf8");
+  refresh_isolate();
+#endif
   SetProtoMethod(
       isolate, t, "writeUcs2String", JSMethod<&StreamBase::WriteString<UCS2>>);
+#ifdef __wasi__
+  trace_add_methods("after_write_ucs2");
+  refresh_isolate();
+#endif
   SetProtoMethod(isolate,
                  t,
                  "writeLatin1String",
                  JSMethod<&StreamBase::WriteString<LATIN1>>);
+#ifdef __wasi__
+  trace_add_methods("after_write_latin1");
+  refresh_isolate();
+#endif
   t->PrototypeTemplate()->Set(FIXED_ONE_BYTE_STRING(isolate, "isStreamBase"),
                               True(isolate));
+#ifdef __wasi__
+  trace_add_methods("after_is_stream_base");
+#endif
   AddAccessor(isolate,
               sig,
               static_cast<PropertyAttribute>(DontDelete | DontEnum),

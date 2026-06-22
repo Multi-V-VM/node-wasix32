@@ -33,6 +33,8 @@
 #include "stream_wrap.h"
 #include "util-inl.h"
 
+#include <cstdio>
+
 namespace node {
 
 using v8::Context;
@@ -70,39 +72,122 @@ void PipeWrap::Initialize(Local<Object> target,
                           void* priv) {
   Environment* env = Environment::GetCurrent(context);
   Isolate* isolate = env->isolate();
+#ifdef __wasi__
+  auto refresh_api_locals = [&]() {
+    isolate = env->isolate();
+    if (isolate == nullptr) {
+      isolate = Isolate::TryGetCurrent();
+    }
+    context = env->context();
+  };
+  static int wasm_pipe_wrap_initialize_trace_count = 0;
+  auto trace_pipe_wrap_initialize = [&](const char* stage,
+                                        Local<FunctionTemplate> tmpl = {}) {
+    if (wasm_pipe_wrap_initialize_trace_count >= 80) return;
+    fprintf(stderr,
+            "PipeWrap::Initialize %s #%d env=%p isolate=%p current=%p "
+            "context=%p target=%p tmpl=%p\n",
+            stage,
+            wasm_pipe_wrap_initialize_trace_count + 1,
+            static_cast<void*>(env),
+            static_cast<void*>(isolate),
+            static_cast<void*>(Isolate::TryGetCurrent()),
+            context.IsEmpty() ? nullptr : reinterpret_cast<void*>(*context),
+            target.IsEmpty() ? nullptr : reinterpret_cast<void*>(*target),
+            tmpl.IsEmpty() ? nullptr : reinterpret_cast<void*>(*tmpl));
+    fflush(stderr);
+    wasm_pipe_wrap_initialize_trace_count++;
+  };
+  refresh_api_locals();
+  trace_pipe_wrap_initialize("entry");
+#endif
 
   Local<FunctionTemplate> t = NewFunctionTemplate(isolate, New);
+#ifdef __wasi__
+  trace_pipe_wrap_initialize("after_new", t);
+#endif
   t->InstanceTemplate()->SetInternalFieldCount(StreamBase::kInternalFieldCount);
+#ifdef __wasi__
+  trace_pipe_wrap_initialize("after_fields", t);
+#endif
 
   t->Inherit(LibuvStreamWrap::GetConstructorTemplate(env));
+#ifdef __wasi__
+  trace_pipe_wrap_initialize("after_inherit", t);
+  refresh_api_locals();
+#endif
 
   SetProtoMethod(isolate, t, "bind", Bind);
+#ifdef __wasi__
+  trace_pipe_wrap_initialize("after_bind", t);
+  refresh_api_locals();
+#endif
   SetProtoMethod(isolate, t, "listen", Listen);
+#ifdef __wasi__
+  trace_pipe_wrap_initialize("after_listen", t);
+  refresh_api_locals();
+#endif
   SetProtoMethod(isolate, t, "connect", Connect);
+#ifdef __wasi__
+  trace_pipe_wrap_initialize("after_connect", t);
+  refresh_api_locals();
+#endif
   SetProtoMethod(isolate, t, "open", Open);
+#ifdef __wasi__
+  trace_pipe_wrap_initialize("after_open", t);
+  refresh_api_locals();
+#endif
 
 #ifdef _WIN32
   SetProtoMethod(isolate, t, "setPendingInstances", SetPendingInstances);
 #endif
 
   SetProtoMethod(isolate, t, "fchmod", Fchmod);
+#ifdef __wasi__
+  trace_pipe_wrap_initialize("after_fchmod", t);
+  refresh_api_locals();
+#endif
 
   SetConstructorFunction(context, target, "Pipe", t);
+#ifdef __wasi__
+  trace_pipe_wrap_initialize("after_pipe_ctor", t);
+  refresh_api_locals();
+#endif
   env->set_pipe_constructor_template(t);
+#ifdef __wasi__
+  trace_pipe_wrap_initialize("after_pipe_template", t);
+#endif
 
   // Create FunctionTemplate for PipeConnectWrap.
   auto cwt = BaseObject::MakeLazilyInitializedJSTemplate(env);
+#ifdef __wasi__
+  trace_pipe_wrap_initialize("after_cwt_new", cwt);
+#endif
   cwt->Inherit(AsyncWrap::GetConstructorTemplate(env));
+#ifdef __wasi__
+  trace_pipe_wrap_initialize("after_cwt_inherit", cwt);
+  refresh_api_locals();
+#endif
   SetConstructorFunction(context, target, "PipeConnectWrap", cwt);
+#ifdef __wasi__
+  trace_pipe_wrap_initialize("after_cwt_ctor", cwt);
+  refresh_api_locals();
+#endif
 
   // Define constants
-  Local<Object> constants = Object::New(env->isolate());
+  Local<Object> constants = Object::New(isolate);
+#ifdef __wasi__
+  trace_pipe_wrap_initialize("after_constants_new");
+#endif
   NODE_DEFINE_CONSTANT(constants, SOCKET);
   NODE_DEFINE_CONSTANT(constants, SERVER);
   NODE_DEFINE_CONSTANT(constants, IPC);
   NODE_DEFINE_CONSTANT(constants, UV_READABLE);
   NODE_DEFINE_CONSTANT(constants, UV_WRITABLE);
   target->Set(context, env->constants_string(), constants).Check();
+#ifdef __wasi__
+  trace_pipe_wrap_initialize("done");
+#endif
 }
 
 void PipeWrap::RegisterExternalReferences(ExternalReferenceRegistry* registry) {

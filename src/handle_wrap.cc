@@ -163,16 +163,88 @@ Local<FunctionTemplate> HandleWrap::GetConstructorTemplate(
     IsolateData* isolate_data) {
   Local<FunctionTemplate> tmpl = isolate_data->handle_wrap_ctor_template();
   if (tmpl.IsEmpty()) {
+#ifdef __wasi__
+    static int wasm_handle_wrap_ctor_trace_count = 0;
+    auto trace_handle_wrap_ctor = [&](const char* stage,
+                                      Isolate* isolate,
+                                      Local<FunctionTemplate> current_tmpl =
+                                          Local<FunctionTemplate>()) {
+      if (wasm_handle_wrap_ctor_trace_count >= 80) return;
+      fprintf(stderr,
+              "HandleWrap::GetConstructorTemplate %s #%d isolate_data=%p "
+              "isolate=%p current=%p tmpl=%p\n",
+              stage,
+              wasm_handle_wrap_ctor_trace_count + 1,
+              static_cast<void*>(isolate_data),
+              static_cast<void*>(isolate),
+              static_cast<void*>(Isolate::TryGetCurrent()),
+              current_tmpl.IsEmpty()
+                  ? nullptr
+                  : reinterpret_cast<void*>(*current_tmpl));
+      fflush(stderr);
+      wasm_handle_wrap_ctor_trace_count++;
+    };
+#endif
     Isolate* isolate = isolate_data->isolate();
+#ifdef __wasi__
+    if (isolate == nullptr) {
+      isolate = Isolate::TryGetCurrent();
+    }
+    trace_handle_wrap_ctor("entry", isolate, tmpl);
+#endif
     tmpl = NewFunctionTemplate(isolate, nullptr);
+#ifdef __wasi__
+    trace_handle_wrap_ctor("after_new", isolate, tmpl);
+#endif
     tmpl->SetClassName(
         FIXED_ONE_BYTE_STRING(isolate_data->isolate(), "HandleWrap"));
+#ifdef __wasi__
+    trace_handle_wrap_ctor("after_class_name", isolate, tmpl);
+#endif
     tmpl->Inherit(AsyncWrap::GetConstructorTemplate(isolate_data));
+#ifdef __wasi__
+    trace_handle_wrap_ctor("after_async_parent", isolate, tmpl);
+    isolate = isolate_data->isolate();
+    if (isolate == nullptr) {
+      isolate = Isolate::TryGetCurrent();
+    }
+    trace_handle_wrap_ctor("before_close", isolate, tmpl);
+#endif
     SetProtoMethod(isolate, tmpl, "close", HandleWrap::Close);
+#ifdef __wasi__
+    trace_handle_wrap_ctor("after_close", isolate, tmpl);
+    isolate = isolate_data->isolate();
+    if (isolate == nullptr) {
+      isolate = Isolate::TryGetCurrent();
+    }
+    trace_handle_wrap_ctor("before_has_ref", isolate, tmpl);
+#endif
     SetProtoMethodNoSideEffect(isolate, tmpl, "hasRef", HandleWrap::HasRef);
+#ifdef __wasi__
+    trace_handle_wrap_ctor("after_has_ref", isolate, tmpl);
+    isolate = isolate_data->isolate();
+    if (isolate == nullptr) {
+      isolate = Isolate::TryGetCurrent();
+    }
+    trace_handle_wrap_ctor("before_ref", isolate, tmpl);
+#endif
     SetProtoMethod(isolate, tmpl, "ref", HandleWrap::Ref);
+#ifdef __wasi__
+    trace_handle_wrap_ctor("after_ref", isolate, tmpl);
+    isolate = isolate_data->isolate();
+    if (isolate == nullptr) {
+      isolate = Isolate::TryGetCurrent();
+    }
+    trace_handle_wrap_ctor("before_unref", isolate, tmpl);
+#endif
     SetProtoMethod(isolate, tmpl, "unref", HandleWrap::Unref);
+#ifdef __wasi__
+    trace_handle_wrap_ctor("after_unref", isolate, tmpl);
+#endif
     isolate_data->set_handle_wrap_ctor_template(tmpl);
+#ifdef __wasi__
+    trace_handle_wrap_ctor("after_store", isolate, tmpl);
+#endif
   }
   return tmpl;
 }
