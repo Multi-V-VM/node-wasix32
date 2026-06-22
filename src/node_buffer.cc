@@ -1257,22 +1257,45 @@ void SetBufferPrototype(const FunctionCallbackInfo<Value>& args) {
 #ifdef __wasi__
   fprintf(stderr,
           "SetBufferPrototype: argc=%d arg0=%p is_object=%d is_undefined=%d "
-          "is_function=%d\n",
+          "is_function=%d realm=%p\n",
           args.Length(),
           reinterpret_cast<void*>(*args[0]),
           args[0]->IsObject(),
           args[0]->IsUndefined(),
-          args[0]->IsFunction());
+          args[0]->IsFunction(),
+          static_cast<void*>(realm));
   fflush(stderr);
   if (!args[0]->IsObject()) {
     Local<Object> fallback = Object::New(args.GetIsolate());
+    fprintf(stderr,
+            "SetBufferPrototype: before fallback persistent fallback=%p\n",
+            reinterpret_cast<void*>(*fallback));
+    fflush(stderr);
     realm->set_buffer_prototype_object(fallback);
+    fprintf(stderr, "SetBufferPrototype: after fallback persistent\n");
+    fflush(stderr);
     return;
   }
 #endif
   CHECK(args[0]->IsObject());
   Local<Object> proto = args[0].As<Object>();
+#ifdef __wasi__
+  fprintf(stderr,
+          "SetBufferPrototype: before persistent proto=%p current_empty=%d\n",
+          reinterpret_cast<void*>(*proto),
+          realm->buffer_prototype_object().IsEmpty());
+  fflush(stderr);
+#endif
   realm->set_buffer_prototype_object(proto);
+#ifdef __wasi__
+  fprintf(stderr,
+          "SetBufferPrototype: after persistent stored_empty=%d stored=%p\n",
+          realm->buffer_prototype_object().IsEmpty(),
+          realm->buffer_prototype_object().IsEmpty()
+              ? nullptr
+              : reinterpret_cast<void*>(*realm->buffer_prototype_object()));
+  fflush(stderr);
+#endif
 }
 
 void GetZeroFillToggle(const FunctionCallbackInfo<Value>& args) {

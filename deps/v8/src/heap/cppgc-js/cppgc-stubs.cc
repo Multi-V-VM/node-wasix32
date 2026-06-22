@@ -46,8 +46,10 @@
 #include "include/cppgc/internal/persistent-node.h"
 #include "include/cppgc/internal/pointer-policies.h"
 #include "src/deoptimizer/deoptimizer.h"
+#include "src/execution/isolate-inl.h"
 #include "src/execution/v8threads.h"
 #include "src/handles/handles.h"
+#include "src/roots/roots-inl.h"
 #include "src/base/virtual-address-space.h"
 #include <cstdlib>
 #include <atomic>
@@ -112,8 +114,19 @@ String::Utf8Value::Utf8Value(Isolate* v8_isolate, Local<v8::Value> obj,
 String::Utf8Value::~Utf8Value() {}
 
 // Value stubs
-bool Value::IsTrue() const { return false; }
-bool Value::IsFalse() const { return false; }
+bool Value::IsTrue() const {
+  internal::Isolate* isolate = internal::Isolate::TryGetCurrent();
+  if (isolate == nullptr) return false;
+  return reinterpret_cast<internal::Address>(this) ==
+         internal::ReadOnlyRoots(isolate).true_value().ptr();
+}
+
+bool Value::IsFalse() const {
+  internal::Isolate* isolate = internal::Isolate::TryGetCurrent();
+  if (isolate == nullptr) return false;
+  return reinterpret_cast<internal::Address>(this) ==
+         internal::ReadOnlyRoots(isolate).false_value().ptr();
+}
 
 namespace internal {
 

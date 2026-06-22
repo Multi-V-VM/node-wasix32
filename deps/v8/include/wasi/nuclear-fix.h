@@ -530,20 +530,25 @@ class Internals {
   static int GetInstanceType(Address) { return 0; }
   static ::v8::Isolate* GetIsolateForSandbox(Address) { return nullptr; }
 
-  // ReadExternalPointerField for V8 public API (used by v8-context.h, v8-object.h, etc.)
-  // This is different from the HeapObject::ReadExternalPointerField which is for internal use
+  static Address HeapObjectAddress(Address obj) {
+    return (static_cast<intptr_t>(obj) & 1) == 1 ? obj - 1 : obj;
+  }
+
+  // ReadExternalPointerField for V8 public API (used by v8-context.h,
+  // v8-object.h, etc.). Public API callers pass tagged heap object values; the
+  // field offset is relative to the untagged heap object base.
 
   // Template version (tag as template parameter)
   template <uint64_t tag>
   static Address ReadExternalPointerField(void* /*isolate*/, Address obj, int offset) {
     // In sandbox-disabled mode, external pointer fields just contain the raw pointer
-    return *reinterpret_cast<Address*>(obj + offset);
+    return *reinterpret_cast<Address*>(HeapObjectAddress(obj) + offset);
   }
 
   // Non-template version (tag as function parameter)
   static Address ReadExternalPointerField(void* /*isolate*/, Address obj, int offset, uint64_t /*tag*/) {
     // In sandbox-disabled mode, external pointer fields just contain the raw pointer
-    return *reinterpret_cast<Address*>(obj + offset);
+    return *reinterpret_cast<Address*>(HeapObjectAddress(obj) + offset);
   }
 
   // Node state helpers for persistent handles
@@ -555,7 +560,7 @@ class Internals {
   // Raw field utilities used by some accessors
   template <typename T>
   static T ReadRawField(Address obj, int offset) {
-    return *reinterpret_cast<T*>(obj + offset);
+    return *reinterpret_cast<T*>(HeapObjectAddress(obj) + offset);
   }
   static Address DecompressTaggedField(Address /*obj*/, uint32_t value) {
     return static_cast<Address>(value);
@@ -566,7 +571,7 @@ class Internals {
 
   // Tagged field helpers
   static Address ReadTaggedPointerField(Address obj, int offset) {
-    return *reinterpret_cast<Address*>(obj + offset);
+    return *reinterpret_cast<Address*>(HeapObjectAddress(obj) + offset);
   }
   static bool HasHeapObjectTag(Address value) {
     return (static_cast<intptr_t>(value) & 1) == 1;  // minimal check

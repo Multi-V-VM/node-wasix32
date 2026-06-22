@@ -193,6 +193,76 @@ namespace v8 {
 
 static OOMErrorCallback g_oom_error_callback = nullptr;
 
+#if V8_TARGET_ARCH_WASM32
+extern "C" i::Address WasmRunScriptEntryForApi(i::Address root,
+                                               i::Address target,
+                                               i::Address receiver,
+                                               i::Address host_options);
+#endif
+
+#if defined(__wasi__)
+static i::Isolate* WasiRecoverCurrentIsolateForApi(Isolate** v8_isolate,
+                                                   const char* api_name) {
+  i::Isolate* original_isolate = reinterpret_cast<i::Isolate*>(*v8_isolate);
+  i::Isolate* i_isolate = original_isolate;
+  i::Isolate* current = i::Isolate::TryGetCurrent();
+  if (current == nullptr) return i_isolate;
+  if (i_isolate == current) return i_isolate;
+  i_isolate = current;
+  *v8_isolate = reinterpret_cast<Isolate*>(current);
+  static int wasm_api_null_isolate_recovery_count = 0;
+  if (wasm_api_null_isolate_recovery_count < 32) {
+    fprintf(stderr, "%s recovered bad isolate #%d original=%p current=%p\n",
+            api_name,
+            wasm_api_null_isolate_recovery_count + 1,
+            static_cast<void*>(original_isolate),
+            static_cast<void*>(i_isolate));
+    fflush(stderr);
+    wasm_api_null_isolate_recovery_count++;
+  }
+  return i_isolate;
+}
+
+static int WasiRootBooleanFromApiValue(const void* value) {
+  i::Isolate* i_isolate = i::Isolate::TryGetCurrent();
+  if (i_isolate == nullptr) return -1;
+
+  i::Address tagged = reinterpret_cast<i::Address>(value);
+  i::ReadOnlyRoots roots(i_isolate);
+  if (tagged == roots.false_value().ptr()) return 0;
+  if (tagged == roots.true_value().ptr()) return 1;
+  return -1;
+}
+
+static int WasiOddballKindFromApiValue(const Value* value) {
+  static constexpr i::Address kHeapObjectTag = 1;
+  static constexpr int kMapInstanceTypeOffset = 8;
+  static constexpr int kOddballKindOffset = 24;
+  static constexpr uint16_t kOddballType = 131;
+  static constexpr int kSmiTagSize = 1;
+
+  i::Address tagged = reinterpret_cast<i::Address>(value);
+  if (tagged <= 1 || ((tagged & kHeapObjectTag) == 0)) return -1;
+  i::Address object = tagged - kHeapObjectTag;
+  i::Address map = *reinterpret_cast<const i::Address*>(object);
+  if (map <= 1 || ((map & kHeapObjectTag) == 0)) return -1;
+  i::Address map_object = map - kHeapObjectTag;
+  uint16_t instance_type =
+      *reinterpret_cast<const uint16_t*>(map_object + kMapInstanceTypeOffset);
+  if (instance_type != kOddballType) return -1;
+  i::Address kind_smi =
+      *reinterpret_cast<const i::Address*>(object + kOddballKindOffset);
+  return static_cast<int>(static_cast<intptr_t>(kind_smi) >> kSmiTagSize);
+}
+#endif
+
+#if !defined(__wasi__)
+static i::Isolate* WasiRecoverCurrentIsolateForApi(Isolate** v8_isolate,
+                                                   const char*) {
+  return reinterpret_cast<i::Isolate*>(*v8_isolate);
+}
+#endif
+
 static ScriptOrigin GetScriptOriginForScript(
     i::Isolate* i_isolate, i::DirectHandle<i::Script> script) {
   i::DirectHandle<i::Object> scriptName(script->GetNameOrSourceURL(),
@@ -896,12 +966,31 @@ bool Data::IsCppHeapExternal() const {
 void Context::Enter() {
   i::DisallowGarbageCollection no_gc;
   i::Tagged<i::NativeContext> env = *Utils::OpenDirectHandle(this);
+#ifdef __wasi__
+  static int wasm_context_enter_trace_count = 0;
+  const bool trace_context_enter = wasm_context_enter_trace_count < 32;
+  if (trace_context_enter) {
+    fprintf(stderr, "Context::Enter #%d env=0x%x is_native=%d\n",
+            wasm_context_enter_trace_count + 1,
+            static_cast<unsigned>(env.ptr()), i::IsNativeContext(env) ? 1 : 0);
+    fflush(stderr);
+  }
+#endif
   i::Isolate* i_isolate = env->GetIsolate();
   ENTER_V8_NO_SCRIPT_NO_EXCEPTION(i_isolate);
   i::HandleScopeImplementer* impl = i_isolate->handle_scope_implementer();
   impl->EnterContext(env);
   impl->SaveContext(i_isolate->context());
   i_isolate->set_context(env);
+#ifdef __wasi__
+  if (trace_context_enter) {
+    fprintf(stderr, "Context::Enter after set #%d current=0x%x\n",
+            wasm_context_enter_trace_count + 1,
+            static_cast<unsigned>(i_isolate->context().ptr()));
+    fflush(stderr);
+    wasm_context_enter_trace_count++;
+  }
+#endif
 }
 
 void Context::Exit() {
@@ -1145,8 +1234,36 @@ i::DirectHandle<i::FunctionTemplateInfo> FunctionTemplateNew(
     v8::Local<Private> cached_property_name = v8::Local<Private>(),
     SideEffectType side_effect_type = SideEffectType::kHasSideEffect,
     const MemorySpan<const CFunction>& c_function_overloads = {}) {
+#ifdef __wasi__
+  static int wasm_function_template_new_trace_count = 0;
+  const bool trace_function_template_new =
+      wasm_function_template_new_trace_count < 1024;
+  if (trace_function_template_new) {
+    fprintf(stderr,
+            "FunctionTemplateNew enter #%d isolate=%p current=%p factory=%p "
+            "callback=%p data=%p signature_empty=%d length=%d behavior=%d "
+            "do_not_cache=%d overloads=%zu\n",
+            wasm_function_template_new_trace_count + 1,
+            static_cast<void*>(i_isolate),
+            static_cast<void*>(i::Isolate::TryGetCurrent()),
+            static_cast<void*>(i_isolate->factory()),
+            reinterpret_cast<void*>(callback), data.IsEmpty() ? nullptr : *data,
+            signature.IsEmpty() ? 1 : 0, length, static_cast<int>(behavior),
+            do_not_cache ? 1 : 0, c_function_overloads.size());
+    fflush(stderr);
+  }
+#endif
   i::DirectHandle<i::FunctionTemplateInfo> obj =
       i_isolate->factory()->NewFunctionTemplateInfo(length, do_not_cache);
+#ifdef __wasi__
+  if (trace_function_template_new) {
+    fprintf(stderr, "FunctionTemplateNew after alloc #%d obj=0x%x\n",
+            wasm_function_template_new_trace_count + 1,
+            static_cast<unsigned>((*obj).ptr()));
+    fflush(stderr);
+    wasm_function_template_new_trace_count++;
+  }
+#endif
   {
     // Disallow GC until all fields of obj have acceptable types.
     i::DisallowGarbageCollection no_gc;
@@ -1188,7 +1305,46 @@ Local<FunctionTemplate> FunctionTemplate::New(
     SideEffectType side_effect_type, const CFunction* c_function,
     uint16_t instance_type, uint16_t allowed_receiver_instance_type_range_start,
     uint16_t allowed_receiver_instance_type_range_end) {
-  i::Isolate* i_isolate = reinterpret_cast<i::Isolate*>(v8_isolate);
+  i::Isolate* original_isolate = reinterpret_cast<i::Isolate*>(v8_isolate);
+  i::Isolate* i_isolate = original_isolate;
+#ifdef __wasi__
+  i::Isolate* wasm_current_isolate = i::Isolate::TryGetCurrent();
+  if (wasm_current_isolate != nullptr && i_isolate != wasm_current_isolate) {
+    i_isolate = wasm_current_isolate;
+    v8_isolate = reinterpret_cast<Isolate*>(i_isolate);
+    static int wasm_function_template_null_isolate_count = 0;
+    if (wasm_function_template_null_isolate_count < 16) {
+      fprintf(stderr,
+              "FunctionTemplate::New recovered bad isolate #%d original=%p "
+              "current=%p callback=%p\n",
+              wasm_function_template_null_isolate_count + 1,
+              static_cast<void*>(original_isolate),
+              static_cast<void*>(i_isolate), reinterpret_cast<void*>(callback));
+      fflush(stderr);
+      wasm_function_template_null_isolate_count++;
+    }
+  }
+  if (i_isolate == nullptr) {
+    return Local<FunctionTemplate>();
+  }
+  static int wasm_function_template_new_api_trace_count = 0;
+  const bool trace_function_template_new_api =
+      wasm_function_template_new_api_trace_count < 1024;
+  if (trace_function_template_new_api) {
+    fprintf(stderr,
+            "FunctionTemplate::New enter #%d v8_isolate=%p i_isolate=%p "
+            "current=%p callback=%p data=%p signature_empty=%d length=%d "
+            "behavior=%d side_effect=%d c_function=%p instance_type=%u\n",
+            wasm_function_template_new_api_trace_count + 1,
+            static_cast<void*>(v8_isolate), static_cast<void*>(i_isolate),
+            static_cast<void*>(i::Isolate::TryGetCurrent()),
+            reinterpret_cast<void*>(callback), data.IsEmpty() ? nullptr : *data,
+            signature.IsEmpty() ? 1 : 0, length, static_cast<int>(behavior),
+            static_cast<int>(side_effect_type),
+            static_cast<const void*>(c_function), instance_type);
+    fflush(stderr);
+  }
+#endif
   // Changes to the environment cannot be captured in the snapshot. Expect no
   // function templates when the isolate is created for serialization.
   API_RCS_SCOPE(i_isolate, FunctionTemplate, New);
@@ -1206,6 +1362,16 @@ Local<FunctionTemplate> FunctionTemplate::New(
       Local<Private>(), side_effect_type,
       c_function ? MemorySpan<const CFunction>{c_function, 1}
                  : MemorySpan<const CFunction>{});
+#ifdef __wasi__
+  if (trace_function_template_new_api) {
+    fprintf(stderr, "FunctionTemplate::New after FunctionTemplateNew #%d "
+                    "templ=0x%x\n",
+            wasm_function_template_new_api_trace_count + 1,
+            static_cast<unsigned>((*templ).ptr()));
+    fflush(stderr);
+    wasm_function_template_new_api_trace_count++;
+  }
+#endif
 
   if (instance_type) {
     if (!Utils::ApiCheck(
@@ -1878,6 +2044,19 @@ ScriptCompiler::StreamedSource::~StreamedSource() = default;
 
 Local<Script> UnboundScript::BindToCurrentContext() {
   auto function_info = Utils::OpenDirectHandle(this);
+#ifdef __wasi__
+  static int wasm_bind_to_context_trace_count = 0;
+  const bool trace_bind = wasm_bind_to_context_trace_count < 16;
+  if (trace_bind) {
+    fprintf(stderr,
+            "UnboundScript::BindToCurrentContext enter #%d sfi=0x%x "
+            "is_sfi=%d\n",
+            wasm_bind_to_context_trace_count + 1,
+            static_cast<unsigned>((*function_info).ptr()),
+            i::IsSharedFunctionInfo(*function_info) ? 1 : 0);
+    fflush(stderr);
+  }
+#endif
   // TODO(jgruber): Remove this DCHECK once Function::GetUnboundScript is gone.
   DCHECK(!i::HeapLayout::InReadOnlySpace(*function_info));
   i::Isolate* i_isolate = i::GetIsolateFromWritableObject(*function_info);
@@ -1886,6 +2065,18 @@ Local<Script> UnboundScript::BindToCurrentContext() {
       i::Factory::JSFunctionBuilder{i_isolate, function_info,
                                     i_isolate->native_context()}
           .Build();
+#ifdef __wasi__
+  if (trace_bind) {
+    fprintf(stderr,
+            "UnboundScript::BindToCurrentContext after Build #%d fn=0x%x "
+            "native_context=0x%x\n",
+            wasm_bind_to_context_trace_count + 1,
+            static_cast<unsigned>((*function).ptr()),
+            static_cast<unsigned>((*i_isolate->native_context()).ptr()));
+    fflush(stderr);
+    wasm_bind_to_context_trace_count++;
+  }
+#endif
   return ToApiHandle<Script>(function);
 }
 
@@ -2051,8 +2242,25 @@ MaybeLocal<Value> Script::Run(Local<Context> context,
       i::Cast<i::Script>(fun->shared()->script())->host_defined_options(),
       i_isolate);
   Local<Value> result;
+#if V8_TARGET_ARCH_WASM32
+  if (!fun->shared()->needs_script_context()) {
+    i::Address raw_result = WasmRunScriptEntryForApi(
+        i_isolate->isolate_data()->isolate_root(), (*fun).ptr(),
+        (*receiver).ptr(), (*options).ptr());
+    i::Tagged<i::Object> value(raw_result);
+    has_exception = i::IsException(value, i_isolate);
+    if (has_exception) {
+      i_isolate->ReportPendingMessages();
+    } else {
+      i_isolate->clear_pending_message();
+      result = Utils::ToLocal(i::direct_handle(value, i_isolate));
+    }
+  } else
+#endif
+  {
   has_exception = !ToLocal<Value>(
       i::Execution::CallScript(i_isolate, fun, receiver, options), &result);
+  }
 
   RETURN_ON_FAILED_EXECUTION(Value);
   RETURN_ESCAPED(result);
@@ -2627,6 +2835,21 @@ V8_WARN_UNUSED_RESULT MaybeLocal<Function> ScriptCompiler::CompileFunction(
       source->host_defined_options, source->resource_options);
   script_details.wrapped_arguments = arguments_list;
 
+#ifdef __wasi__
+  static int wasm_compile_function_trace_count = 0;
+  const bool trace_wasm_compile_function =
+      wasm_compile_function_trace_count < 32 || arguments_count == 5;
+  if (trace_wasm_compile_function) {
+    fprintf(stderr,
+            "ScriptCompiler::CompileFunction enter #%d context=%p "
+            "argc=%zu extensions=%zu options=%d source=%p\n",
+            wasm_compile_function_trace_count + 1, *v8_context,
+            arguments_count, context_extension_count, static_cast<int>(options),
+            *source->source_string);
+    fflush(stderr);
+  }
+#endif
+
   std::unique_ptr<i::AlignedCachedData> cached_data;
   if (options & kConsumeCodeCache) {
     DCHECK(source->cached_data);
@@ -2641,6 +2864,18 @@ V8_WARN_UNUSED_RESULT MaybeLocal<Function> ScriptCompiler::CompileFunction(
            i_isolate, Utils::OpenHandle(*source->source_string), context,
            script_details, cached_data.get(), options, no_cache_reason)
            .ToHandle(&result);
+#ifdef __wasi__
+  if (trace_wasm_compile_function) {
+    fprintf(stderr,
+            "ScriptCompiler::CompileFunction after GetWrappedFunction "
+            "has_exception=%d result=0x%x rejected=%d\n",
+            has_exception,
+            static_cast<unsigned>(has_exception ? 0 : (*result).ptr()),
+            cached_data ? cached_data->rejected() : 0);
+    fflush(stderr);
+    wasm_compile_function_trace_count++;
+  }
+#endif
   if (options & kConsumeCodeCache) {
     source->cached_data->rejected = cached_data->rejected();
   }
@@ -3737,6 +3972,9 @@ VALUE_IS_SPECIFIC_TYPE(WeakRef, JSWeakRef)
 #undef VALUE_IS_SPECIFIC_TYPE
 
 bool Value::IsBoolean() const {
+#if defined(__wasi__)
+  if (WasiRootBooleanFromApiValue(this) >= 0) return true;
+#endif
   return i::IsBoolean(*Utils::OpenDirectHandle(this));
 }
 
@@ -5691,14 +5929,44 @@ Local<Value> Function::GetDebugName() const {
 
 ScriptOrigin Function::GetScriptOrigin() const {
   auto self = Utils::OpenDirectHandle(this);
+#ifdef __wasi__
+  static int wasm_get_script_origin_trace_count = 0;
+  const bool trace_get_script_origin =
+      wasm_get_script_origin_trace_count < 32;
+  if (trace_get_script_origin) {
+    fprintf(stderr,
+            "Function::GetScriptOrigin enter #%d self=0x%x is_jsfn=%d\n",
+            wasm_get_script_origin_trace_count + 1,
+            static_cast<unsigned>((*self).ptr()), IsJSFunction(*self));
+    fflush(stderr);
+  }
+#endif
   if (!IsJSFunction(*self)) return v8::ScriptOrigin(Local<Value>());
   auto func = i::Cast<i::JSFunction>(self);
   auto shared = func->shared();
   if (i::IsScript(shared->script())) {
     i::DirectHandle<i::Script> script(i::Cast<i::Script>(shared->script()),
                                       func->GetIsolate());
+#ifdef __wasi__
+    if (trace_get_script_origin) {
+      fprintf(stderr,
+              "Function::GetScriptOrigin script #%d script=0x%x\n",
+              wasm_get_script_origin_trace_count + 1,
+              static_cast<unsigned>((*script).ptr()));
+      fflush(stderr);
+      wasm_get_script_origin_trace_count++;
+    }
+#endif
     return GetScriptOriginForScript(func->GetIsolate(), script);
   }
+#ifdef __wasi__
+  if (trace_get_script_origin) {
+    fprintf(stderr, "Function::GetScriptOrigin no-script #%d\n",
+            wasm_get_script_origin_trace_count + 1);
+    fflush(stderr);
+    wasm_get_script_origin_trace_count++;
+  }
+#endif
   return v8::ScriptOrigin(Local<Value>());
 }
 
@@ -6458,6 +6726,10 @@ double Number::Value() const {
 }
 
 bool Boolean::Value() const {
+#if defined(__wasi__)
+  int root_boolean = WasiRootBooleanFromApiValue(this);
+  if (root_boolean >= 0) return root_boolean != 0;
+#endif
   return i::IsTrue(*Utils::OpenDirectHandle(this));
 }
 
@@ -7693,7 +7965,30 @@ MaybeLocal<v8::Object> FunctionTemplate::NewRemoteInstance() {
 bool FunctionTemplate::HasInstance(v8::Local<v8::Value> value) {
   auto self = Utils::OpenDirectHandle(this);
   auto obj = Utils::OpenDirectHandle(*value);
+#ifdef __wasi__
+  static int wasm_has_instance_trace_count = 0;
+  const bool trace_has_instance = wasm_has_instance_trace_count < 32;
+  if (trace_has_instance) {
+    fprintf(stderr,
+            "FunctionTemplate::HasInstance enter #%d self=0x%x obj=0x%x "
+            "is_obj=%d is_proxy=%d\n",
+            wasm_has_instance_trace_count + 1,
+            static_cast<unsigned>((*self).ptr()),
+            static_cast<unsigned>((*obj).ptr()),
+            i::IsJSObject(*obj) ? 1 : 0,
+            i::IsJSGlobalProxy(*obj) ? 1 : 0);
+    fflush(stderr);
+  }
+#endif
   if (i::IsJSObject(*obj) && self->IsTemplateFor(i::Cast<i::JSObject>(*obj))) {
+#ifdef __wasi__
+    if (trace_has_instance) {
+      fprintf(stderr, "FunctionTemplate::HasInstance true direct #%d\n",
+              wasm_has_instance_trace_count + 1);
+      fflush(stderr);
+      wasm_has_instance_trace_count++;
+    }
+#endif
     return true;
   }
   if (i::IsJSGlobalProxy(*obj)) {
@@ -7704,8 +7999,25 @@ bool FunctionTemplate::HasInstance(v8::Local<v8::Value> value) {
     // The global proxy should always have a prototype, as it is a bug to call
     // this on a detached JSGlobalProxy.
     DCHECK(!iter.IsAtEnd());
-    return self->IsTemplateFor(iter.GetCurrent<i::JSObject>());
+    bool result = self->IsTemplateFor(iter.GetCurrent<i::JSObject>());
+#ifdef __wasi__
+    if (trace_has_instance) {
+      fprintf(stderr, "FunctionTemplate::HasInstance proxy result #%d=%d\n",
+              wasm_has_instance_trace_count + 1, result ? 1 : 0);
+      fflush(stderr);
+      wasm_has_instance_trace_count++;
+    }
+#endif
+    return result;
   }
+#ifdef __wasi__
+  if (trace_has_instance) {
+    fprintf(stderr, "FunctionTemplate::HasInstance false #%d\n",
+            wasm_has_instance_trace_count + 1);
+    fflush(stderr);
+    wasm_has_instance_trace_count++;
+  }
+#endif
   return false;
 }
 
@@ -7835,15 +8147,21 @@ static_assert(v8::String::kMaxLength == i::String::kMaxLength);
              static_cast<uint32_t>(length) > i::String::kMaxLength) {         \
     result = MaybeLocal<String>();                                            \
   } else {                                                                    \
-    i::Isolate* i_isolate = reinterpret_cast<internal::Isolate*>(v8_isolate); \
-    ENTER_V8_NO_SCRIPT_NO_EXCEPTION(i_isolate);                               \
-    API_RCS_SCOPE(i_isolate, class_name, function_name);                      \
-    if (length < 0) length = StringLength(data);                              \
-    i::DirectHandle<i::String> handle_result =                                \
-        NewString(i_isolate->factory(), type,                                 \
-                  i::ZoneVector<const Char>(data, length))                     \
-            .ToHandleChecked();                                               \
-    result = Utils::ToLocal(handle_result);                                   \
+    i::Isolate* i_isolate =                                                   \
+        WasiRecoverCurrentIsolateForApi(&v8_isolate, #class_name "::"         \
+                                                     #function_name);          \
+    if (i_isolate == nullptr) {                                               \
+      result = MaybeLocal<String>();                                          \
+    } else {                                                                  \
+      ENTER_V8_NO_SCRIPT_NO_EXCEPTION(i_isolate);                             \
+      API_RCS_SCOPE(i_isolate, class_name, function_name);                    \
+      if (length < 0) length = StringLength(data);                            \
+      i::DirectHandle<i::String> handle_result =                              \
+          NewString(i_isolate->factory(), type,                               \
+                    i::ZoneVector<const Char>(data, length))                  \
+              .ToHandleChecked();                                             \
+      result = Utils::ToLocal(handle_result);                                 \
+    }                                                                          \
   }
 
 Local<String> String::NewFromUtf8Literal(Isolate* v8_isolate,
@@ -8102,6 +8420,19 @@ Local<v8::Object> v8::Object::New(Isolate* v8_isolate,
                                   Local<Name>* names, Local<Value>* values,
                                   size_t length) {
   i::Isolate* i_isolate = reinterpret_cast<i::Isolate*>(v8_isolate);
+#ifdef __wasi__
+  static int wasm_object_new_props_trace_count = 0;
+  const bool trace_object_new_props = wasm_object_new_props_trace_count < 32 ||
+                                      length == 5;
+  if (trace_object_new_props) {
+    fprintf(stderr,
+            "Object::New(props) enter #%d prototype=%p length=%zu "
+            "names=%p values=%p\n",
+            wasm_object_new_props_trace_count + 1, *prototype_or_null, length,
+            static_cast<void*>(names), static_cast<void*>(values));
+    fflush(stderr);
+  }
+#endif
   i::DirectHandle<i::JSPrototype> proto;
   if (!Utils::ApiCheck(
           i::TryCast(Utils::OpenDirectHandle(*prototype_or_null), &proto),
@@ -8126,6 +8457,15 @@ Local<v8::Object> v8::Object::New(Isolate* v8_isolate,
     i::DirectHandle<i::JSObject> obj =
         i_isolate->factory()->NewSlowJSObjectWithPropertiesAndElements(
             proto, properties, elements);
+#ifdef __wasi__
+    if (trace_object_new_props) {
+      fprintf(stderr, "Object::New(props) return swiss #%d obj=0x%x\n",
+              wasm_object_new_props_trace_count + 1,
+              static_cast<unsigned>((*obj).ptr()));
+      fflush(stderr);
+      wasm_object_new_props_trace_count++;
+    }
+#endif
     return Utils::ToLocal(obj);
   } else {
     i::DirectHandle<i::NameDictionary> properties =
@@ -8135,6 +8475,15 @@ Local<v8::Object> v8::Object::New(Isolate* v8_isolate,
     i::DirectHandle<i::JSObject> obj =
         i_isolate->factory()->NewSlowJSObjectWithPropertiesAndElements(
             proto, properties, elements);
+#ifdef __wasi__
+    if (trace_object_new_props) {
+      fprintf(stderr, "Object::New(props) return dict #%d obj=0x%x\n",
+              wasm_object_new_props_trace_count + 1,
+              static_cast<unsigned>((*obj).ptr()));
+      fflush(stderr);
+      wasm_object_new_props_trace_count++;
+    }
+#endif
     return Utils::ToLocal(obj);
   }
 }
@@ -9828,7 +10177,9 @@ Local<Private> v8::Private::ForApi(Isolate* v8_isolate, Local<String> name) {
 }
 
 Local<Number> v8::Number::New(Isolate* v8_isolate, double value) {
-  i::Isolate* i_isolate = reinterpret_cast<i::Isolate*>(v8_isolate);
+  i::Isolate* i_isolate =
+      WasiRecoverCurrentIsolateForApi(&v8_isolate, "Number::New");
+  if (i_isolate == nullptr) return Local<Number>();
   DCHECK_NO_SCRIPT_NO_EXCEPTION(i_isolate);
   if (std::isnan(value)) {
     // Introduce only canonical NaN value into the VM, to avoid signaling NaNs.
@@ -9839,7 +10190,9 @@ Local<Number> v8::Number::New(Isolate* v8_isolate, double value) {
 }
 
 Local<Integer> v8::Integer::New(Isolate* v8_isolate, int32_t value) {
-  i::Isolate* i_isolate = reinterpret_cast<i::Isolate*>(v8_isolate);
+  i::Isolate* i_isolate =
+      WasiRecoverCurrentIsolateForApi(&v8_isolate, "Integer::New");
+  if (i_isolate == nullptr) return Local<Integer>();
   ENTER_V8_NO_SCRIPT_NO_EXCEPTION(i_isolate);
   if (i::Smi::IsValid(value)) {
     return Utils::IntegerToLocal(
@@ -9851,7 +10204,10 @@ Local<Integer> v8::Integer::New(Isolate* v8_isolate, int32_t value) {
 
 Local<Integer> v8::Integer::NewFromUnsigned(Isolate* v8_isolate,
                                             uint32_t value) {
-  i::Isolate* i_isolate = reinterpret_cast<i::Isolate*>(v8_isolate);
+  i::Isolate* i_isolate =
+      WasiRecoverCurrentIsolateForApi(&v8_isolate,
+                                      "Integer::NewFromUnsigned");
+  if (i_isolate == nullptr) return Local<Integer>();
   ENTER_V8_NO_SCRIPT_NO_EXCEPTION(i_isolate);
   bool fits_into_int32_t = (value & (1 << 31)) == 0;
   if (fits_into_int32_t) {

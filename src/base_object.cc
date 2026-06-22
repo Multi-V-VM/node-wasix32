@@ -102,11 +102,45 @@ void BaseObject::LazilyInitializedJSTemplateConstructor(
 
 Local<FunctionTemplate> BaseObject::MakeLazilyInitializedJSTemplate(
     Environment* env) {
+#ifdef __wasi__
+  static int wasm_base_template_env_trace_count = 0;
+  if (wasm_base_template_env_trace_count < 64) {
+    IsolateData* isolate_data = env == nullptr ? nullptr : env->isolate_data();
+    v8::Isolate* isolate = isolate_data == nullptr ? nullptr
+                                                   : isolate_data->isolate();
+    fprintf(stderr,
+            "BaseObject::MakeLazilyInitializedJSTemplate env #%d env=%p "
+            "isolate_data=%p isolate=%p current=%p\n",
+            wasm_base_template_env_trace_count + 1,
+            static_cast<void*>(env),
+            static_cast<void*>(isolate_data),
+            static_cast<void*>(isolate),
+            static_cast<void*>(v8::Isolate::TryGetCurrent()));
+    fflush(stderr);
+    wasm_base_template_env_trace_count++;
+  }
+#endif
   return MakeLazilyInitializedJSTemplate(env->isolate_data());
 }
 
 Local<FunctionTemplate> BaseObject::MakeLazilyInitializedJSTemplate(
     IsolateData* isolate_data) {
+#ifdef __wasi__
+  static int wasm_base_template_isolate_data_trace_count = 0;
+  if (wasm_base_template_isolate_data_trace_count < 64) {
+    v8::Isolate* isolate = isolate_data == nullptr ? nullptr
+                                                   : isolate_data->isolate();
+    fprintf(stderr,
+            "BaseObject::MakeLazilyInitializedJSTemplate isolate_data #%d "
+            "isolate_data=%p isolate=%p current=%p\n",
+            wasm_base_template_isolate_data_trace_count + 1,
+            static_cast<void*>(isolate_data),
+            static_cast<void*>(isolate),
+            static_cast<void*>(v8::Isolate::TryGetCurrent()));
+    fflush(stderr);
+    wasm_base_template_isolate_data_trace_count++;
+  }
+#endif
   Local<FunctionTemplate> t = NewFunctionTemplate(
       isolate_data->isolate(), LazilyInitializedJSTemplateConstructor);
   t->InstanceTemplate()->SetInternalFieldCount(BaseObject::kInternalFieldCount);

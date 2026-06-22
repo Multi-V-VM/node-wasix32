@@ -5,6 +5,7 @@
 #include "src/heap/factory.h"
 
 #include <algorithm>  // For copy
+#include <cstdio>
 #include <memory>     // For shared_ptr<>
 #include <optional>
 #include <string>
@@ -4670,10 +4671,40 @@ inline void InitializeTemplateWithProperties(
 DirectHandle<FunctionTemplateInfo> Factory::NewFunctionTemplateInfo(
     int length, bool do_not_cache) {
   const int size = FunctionTemplateInfo::SizeFor();
+#ifdef __wasi__
+  static int wasm_new_function_template_info_trace_count = 0;
+  const bool trace_new_function_template_info =
+      wasm_new_function_template_info_trace_count < 1024;
+  if (trace_new_function_template_info) {
+    Heap* heap = isolate()->heap();
+    std::fprintf(stderr,
+                 "Factory::NewFunctionTemplateInfo enter #%d this=%p "
+                 "isolate=%p current=%p heap=%p allocator=%p length=%d "
+                 "size=%d do_not_cache=%d map=0x%x\n",
+                 wasm_new_function_template_info_trace_count + 1,
+                 static_cast<void*>(this), static_cast<void*>(isolate()),
+                 static_cast<void*>(Isolate::TryGetCurrent()),
+                 static_cast<void*>(heap), static_cast<void*>(heap->allocator()),
+                 length, size, do_not_cache ? 1 : 0,
+                 static_cast<unsigned>(
+                     read_only_roots().function_template_info_map().ptr()));
+    std::fflush(stderr);
+  }
+#endif
   Tagged<FunctionTemplateInfo> obj =
       Cast<FunctionTemplateInfo>(AllocateRawWithImmortalMap(
           size, AllocationType::kOld,
           read_only_roots().function_template_info_map()));
+#ifdef __wasi__
+  if (trace_new_function_template_info) {
+    std::fprintf(stderr,
+                 "Factory::NewFunctionTemplateInfo after alloc #%d obj=0x%x\n",
+                 wasm_new_function_template_info_trace_count + 1,
+                 static_cast<unsigned>(obj.ptr()));
+    std::fflush(stderr);
+    wasm_new_function_template_info_trace_count++;
+  }
+#endif
   {
     // Disallow GC until all fields of obj have acceptable types.
     DisallowGarbageCollection no_gc;

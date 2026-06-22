@@ -8,6 +8,10 @@
 #include "node_url_pattern.h"
 #include "util.h"
 
+#ifdef __wasi__
+#include <stdio.h>
+#endif
+
 #include <string>
 
 #if HAVE_OPENSSL
@@ -645,6 +649,56 @@ static Local<Object> GetInternalBindingExportObject(IsolateData* isolate_data,
 static Local<Object> InitInternalBinding(Realm* realm, node_module* mod) {
   EscapableHandleScope scope(realm->isolate());
   Local<Context> context = realm->context();
+#ifdef __wasi__
+  Environment* context_env = Environment::GetCurrent(context);
+  if (context_env != realm->env()) {
+    Local<Context> current_context = realm->isolate()->GetCurrentContext();
+    Environment* current_env = Environment::GetCurrent(current_context);
+    static int wasm_internal_binding_context_recovery_count = 0;
+    if (current_env == realm->env()) {
+      if (wasm_internal_binding_context_recovery_count < 64) {
+        fprintf(stderr,
+                "InitInternalBinding recovered context #%d mod=%s "
+                "realm_context=%p context_env=%p current_context=%p "
+                "realm=%p env=%p mode=current\n",
+                wasm_internal_binding_context_recovery_count + 1,
+                mod->nm_modname,
+                context.IsEmpty() ? nullptr : reinterpret_cast<void*>(*context),
+                static_cast<void*>(context_env),
+                reinterpret_cast<void*>(*current_context),
+                static_cast<void*>(realm),
+                static_cast<void*>(realm->env()));
+        fflush(stderr);
+        wasm_internal_binding_context_recovery_count++;
+      }
+      context = current_context;
+    } else if (!context.IsEmpty()) {
+      if (wasm_internal_binding_context_recovery_count < 64) {
+        fprintf(stderr,
+                "InitInternalBinding recovered context #%d mod=%s "
+                "realm_context=%p context_env=%p current_context=%p "
+                "current_env=%p realm=%p env=%p mode=repair\n",
+                wasm_internal_binding_context_recovery_count + 1,
+                mod->nm_modname,
+                reinterpret_cast<void*>(*context),
+                static_cast<void*>(context_env),
+                current_context.IsEmpty()
+                    ? nullptr
+                    : reinterpret_cast<void*>(*current_context),
+                static_cast<void*>(current_env),
+                static_cast<void*>(realm),
+                static_cast<void*>(realm->env()));
+        fflush(stderr);
+        wasm_internal_binding_context_recovery_count++;
+      }
+      context->SetAlignedPointerInEmbedderData(
+          ContextEmbedderIndex::kEnvironment, realm->env());
+      context->SetAlignedPointerInEmbedderData(
+          ContextEmbedderIndex::kRealm, realm);
+      ContextEmbedderTag::TagNodeContext(context);
+    }
+  }
+#endif
   Local<Object> exports = GetInternalBindingExportObject(
       realm->isolate_data(), mod->nm_modname, context);
   CHECK_NULL(mod->nm_register_func);
