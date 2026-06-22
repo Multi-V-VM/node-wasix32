@@ -265,6 +265,33 @@ void RawDebug(const FunctionCallbackInfo<Value>& args) {
   fflush(stderr);
 }
 
+static void RawWrite(const FunctionCallbackInfo<Value>& args) {
+  CHECK(args.Length() == 2 && args[1]->IsString() &&
+        "must be called with fd and string");
+
+  int32_t fd;
+  if (!args[0]->Int32Value(args.GetIsolate()->GetCurrentContext()).To(&fd)) {
+    return;
+  }
+
+  FILE* stream = nullptr;
+  switch (fd) {
+    case 1:
+      stream = stdout;
+      break;
+    case 2:
+      stream = stderr;
+      break;
+    default:
+      return;
+  }
+
+  Utf8Value message(args.GetIsolate(), args[1]);
+  std::string_view view = message.ToStringView();
+  fwrite(view.data(), 1, view.size(), stream);
+  fflush(stream);
+}
+
 static void Umask(const FunctionCallbackInfo<Value>& args) {
   Environment* env = Environment::GetCurrent(args);
   CHECK(env->has_run_bootstrapping_code());
@@ -785,6 +812,7 @@ static void CreatePerIsolateProperties(IsolateData* isolate_data,
   SetMethod(isolate, target, "getActiveResourcesInfo", GetActiveResourcesInfo);
   SetMethod(isolate, target, "_kill", Kill);
   SetMethod(isolate, target, "_rawDebug", RawDebug);
+  SetMethod(isolate, target, "_rawWrite", RawWrite);
 
   SetMethodNoSideEffect(isolate, target, "cwd", Cwd);
   SetMethod(isolate, target, "dlopen", binding::DLOpen);
@@ -866,6 +894,7 @@ void RegisterExternalReferences(ExternalReferenceRegistry* registry) {
 
   registry->Register(Umask);
   registry->Register(RawDebug);
+  registry->Register(RawWrite);
   registry->Register(MemoryUsage);
   registry->Register(GetConstrainedMemory);
   registry->Register(GetAvailableMemory);

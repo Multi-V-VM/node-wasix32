@@ -788,6 +788,13 @@ Maybe<bool> KeyAccumulator::CollectInterceptorKeys(
 Maybe<bool> KeyAccumulator::CollectOwnElementIndices(
     DirectHandle<JSReceiver> receiver, DirectHandle<JSObject> object) {
   if (filter_ & SKIP_STRINGS || skip_indices_) return Just(true);
+#ifdef __wasi__
+  // Plain-object element metadata is not reliable yet on the wasm32 backend.
+  // Named own properties are still collected by CollectOwnPropertyNames().
+  if (!IsJSArray(*object)) {
+    return CollectInterceptorKeys(receiver, object, kIndexed);
+  }
+#endif
 
   ElementsAccessor* accessor = object->GetElementsAccessor();
   RETURN_NOTHING_IF_NOT_SUCCESSFUL(
