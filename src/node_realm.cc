@@ -25,10 +25,22 @@ Realm::Realm(Environment* env, v8::Local<v8::Context> context, Kind kind)
     : env_(env), isolate_(context->GetIsolate()), kind_(kind) {
   context_.Reset(isolate_, context);
   env->AssignToContext(context, this, ContextInfo(""));
+#ifdef __wasi__
+  fprintf(stderr, "Realm::Realm after AssignToContext\n");
+  fflush(stderr);
+#endif
   // The environment can also purge empty wrappers in the check callback,
   // though that may be a bit excessive depending on usage patterns.
   // For now using the GC epilogue is adequate.
+#ifdef __wasi__
+  fprintf(stderr, "Realm::Realm before AddGCEpilogueCallback\n");
+  fflush(stderr);
+#endif
   isolate_->AddGCEpilogueCallback(PurgeEmptyCppgcWrappers, this);
+#ifdef __wasi__
+  fprintf(stderr, "Realm::Realm after AddGCEpilogueCallback\n");
+  fflush(stderr);
+#endif
 }
 
 Realm::~Realm() {
@@ -65,9 +77,17 @@ void Realm::CreateProperties() {
 
   // Store primordials setup by the per-context script in the environment.
 #ifdef __wasi__
+  fprintf(stderr, "Realm::CreateProperties before per-context exports\n");
+  fflush(stderr);
   GetPerContextExports(ctx, env_->isolate_data()).ToLocalChecked();
+  fprintf(stderr, "Realm::CreateProperties after per-context exports\n");
+  fflush(stderr);
+  fprintf(stderr, "Realm::CreateProperties before primordials\n");
+  fflush(stderr);
   Local<Object> primordials =
       GetPerContextPrimordialsForWasi(ctx).ToLocalChecked();
+  fprintf(stderr, "Realm::CreateProperties after primordials\n");
+  fflush(stderr);
 #else
   Local<Object> per_context_bindings =
       GetPerContextExports(ctx, env_->isolate_data()).ToLocalChecked();
@@ -115,8 +135,16 @@ void Realm::CreateProperties() {
   // TODO(legendecas): some methods probably doesn't need to be created with
   // process. Distinguish them and create process object only in the principal
   // realm.
+#ifdef __wasi__
+  fprintf(stderr, "Realm::CreateProperties before CreateProcessObject\n");
+  fflush(stderr);
+#endif
   Local<Object> process_object =
       node::CreateProcessObject(this).FromMaybe(Local<Object>());
+#ifdef __wasi__
+  fprintf(stderr, "Realm::CreateProperties after CreateProcessObject\n");
+  fflush(stderr);
+#endif
   set_process_object(process_object);
 }
 
@@ -335,11 +363,24 @@ PrincipalRealm::PrincipalRealm(Environment* env,
                                v8::Local<v8::Context> context,
                                const RealmSerializeInfo* realm_info)
     : Realm(env, context, kPrincipal) {
+#ifdef __wasi__
+  fprintf(stderr, "PrincipalRealm::PrincipalRealm enter realm_info=%p\n",
+          static_cast<const void*>(realm_info));
+  fflush(stderr);
+#endif
   // Create properties if not deserializing from snapshot.
   // Or the properties are deserialized with DeserializeProperties() when the
   // env drained the deserialize requests.
   if (realm_info == nullptr) {
+#ifdef __wasi__
+    fprintf(stderr, "PrincipalRealm::PrincipalRealm before CreateProperties\n");
+    fflush(stderr);
+#endif
     CreateProperties();
+#ifdef __wasi__
+    fprintf(stderr, "PrincipalRealm::PrincipalRealm after CreateProperties\n");
+    fflush(stderr);
+#endif
   }
 }
 

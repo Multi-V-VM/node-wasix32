@@ -716,11 +716,33 @@ void Environment::AssignToContext(Local<v8::Context> context,
 #endif
 
 #if HAVE_INSPECTOR
+#ifdef __wasi__
+  fprintf(stderr, "Environment::AssignToContext before ContextCreated\n");
+  fflush(stderr);
+#endif
   inspector_agent()->ContextCreated(context, info);
+#ifdef __wasi__
+  fprintf(stderr, "Environment::AssignToContext after ContextCreated\n");
+  fflush(stderr);
+#endif
 #endif  // HAVE_INSPECTOR
 
+#ifdef __wasi__
+  fprintf(stderr, "Environment::AssignToContext before promise hooks\n");
+  fflush(stderr);
+#endif
   this->async_hooks()->InstallPromiseHooks(context);
+#ifdef __wasi__
+  fprintf(stderr, "Environment::AssignToContext after promise hooks\n");
+  fflush(stderr);
+  fprintf(stderr, "Environment::AssignToContext before TrackContext\n");
+  fflush(stderr);
+#endif
   TrackContext(context);
+#ifdef __wasi__
+  fprintf(stderr, "Environment::AssignToContext after TrackContext\n");
+  fflush(stderr);
+#endif
 }
 
 void Environment::UnassignFromContext(Local<v8::Context> context) {

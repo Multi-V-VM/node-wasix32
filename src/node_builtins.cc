@@ -308,10 +308,19 @@ MaybeLocal<Function> BuiltinLoader::LookupAndCompileInternal(
   Isolate* isolate = context->GetIsolate();
   EscapableHandleScope scope(isolate);
 
+#ifdef __wasi__
+  fprintf(stderr, "BuiltinLoader::LookupAndCompileInternal enter id=%s\n", id);
+  fflush(stderr);
+#endif
   Local<String> source;
   if (!LoadBuiltinSource(isolate, id).ToLocal(&source)) {
     return {};
   }
+#ifdef __wasi__
+  fprintf(stderr,
+          "BuiltinLoader::LookupAndCompileInternal after source id=%s\n", id);
+  fflush(stderr);
+#endif
   std::string filename_s = std::string("node:") + id;
   Local<String> filename = OneByteString(isolate, filename_s);
   ScriptOrigin origin(filename, 0, 0, true);
@@ -364,6 +373,14 @@ MaybeLocal<Function> BuiltinLoader::LookupAndCompileInternal(
                                       0,
                                       nullptr,
                                       options);
+#ifdef __wasi__
+  fprintf(stderr,
+          "BuiltinLoader::LookupAndCompileInternal after CompileFunction "
+          "id=%s empty=%d\n",
+          id,
+          maybe_fun.IsEmpty());
+  fflush(stderr);
+#endif
 
   // This could fail when there are early errors in the built-in modules,
   // e.g. the syntax errors
@@ -541,13 +558,29 @@ MaybeLocal<Value> BuiltinLoader::CompileAndCall(Local<Context> context,
                                                 Realm* optional_realm) {
   // Arguments must match the parameters specified in
   // BuiltinLoader::LookupAndCompile().
+#ifdef __wasi__
+  fprintf(stderr, "BuiltinLoader::CompileAndCall enter id=%s argc=%d\n", id,
+          argc);
+  fflush(stderr);
+#endif
   MaybeLocal<Function> maybe_fn = LookupAndCompile(context, id, optional_realm);
   Local<Function> fn;
   if (!maybe_fn.ToLocal(&fn)) {
     return MaybeLocal<Value>();
   }
+#ifdef __wasi__
+  fprintf(stderr, "BuiltinLoader::CompileAndCall before call id=%s\n", id);
+  fflush(stderr);
+#endif
   Local<Value> undefined = Undefined(context->GetIsolate());
-  return fn->Call(context, undefined, argc, argv);
+  MaybeLocal<Value> result = fn->Call(context, undefined, argc, argv);
+#ifdef __wasi__
+  fprintf(stderr, "BuiltinLoader::CompileAndCall after call id=%s empty=%d\n",
+          id,
+          result.IsEmpty());
+  fflush(stderr);
+#endif
+  return result;
 }
 
 MaybeLocal<Function> BuiltinLoader::LookupAndCompile(

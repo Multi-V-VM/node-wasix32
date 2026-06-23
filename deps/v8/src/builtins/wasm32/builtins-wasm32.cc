@@ -445,6 +445,9 @@ int InterpreterFrameSlotForOffset(int offset) {
   return slot;
 }
 
+void MirrorWasmGCRegSlotForWrite(int slot, Address value);
+void MirrorWasmGCFrameSlotForWrite(int slot, Address value);
+
 int GeneratedFrameSlotForOffset(int offset) {
   DCHECK_EQ(offset % kSystemPointerSize, 0);
   int index = offset / kSystemPointerSize;
@@ -458,11 +461,15 @@ int GeneratedFrameSlotForOffset(int offset) {
 }
 
 void StoreInterpreterFrameOffset(int offset, Address value) {
-  g_wasm_interpreter_frame[InterpreterFrameSlotForOffset(offset)] = value;
+  int slot = InterpreterFrameSlotForOffset(offset);
+  g_wasm_interpreter_frame[slot] = value;
+  MirrorWasmGCFrameSlotForWrite(slot, value);
 }
 
 void StoreGeneratedFrameOffset(int offset, Address value) {
-  g_wasm_regs[GeneratedFrameSlotForOffset(offset)] = value;
+  int slot = GeneratedFrameSlotForOffset(offset);
+  g_wasm_regs[slot] = value;
+  MirrorWasmGCRegSlotForWrite(slot, value);
 }
 
 Address ReadGeneratedJSArgument(int index) {
@@ -711,6 +718,52 @@ struct WasmGCStateStorage {
 
 WasmGCStateStorage g_wasm_gc_state[kMaxWasmGCStateDepth];
 int g_wasm_gc_state_depth = 0;
+
+void PrepareWasmGCRootMirrorValue(Address value, bool* active,
+                                  Address* mirror_value) {
+  Isolate* isolate = g_wasm32_last_isolate;
+  if (isolate == nullptr) {
+    *active = false;
+    *mirror_value = kNullAddress;
+    return;
+  }
+
+  *active = IsSafeTaggedRootValue(isolate, value);
+  *mirror_value = *active ? value : ReadOnlyRoots(isolate).undefined_value().ptr();
+}
+
+void MirrorWasmGCRegSlotForWrite(int slot, Address value) {
+  if (slot < 0 || slot >= kWasmRegFileSize || g_wasm_gc_state_depth == 0) {
+    return;
+  }
+
+  bool active = false;
+  Address mirror_value = kNullAddress;
+  PrepareWasmGCRootMirrorValue(value, &active, &mirror_value);
+  for (int depth = 0; depth < g_wasm_gc_state_depth; ++depth) {
+    WasmGCStateStorage* storage = &g_wasm_gc_state[depth];
+    storage->original_regs[slot] = value;
+    storage->active_regs[slot] = active;
+    storage->regs[slot] = mirror_value;
+  }
+}
+
+void MirrorWasmGCFrameSlotForWrite(int slot, Address value) {
+  if (slot < 0 || slot >= kWasmInterpreterFrameSlots ||
+      g_wasm_gc_state_depth == 0) {
+    return;
+  }
+
+  bool active = false;
+  Address mirror_value = kNullAddress;
+  PrepareWasmGCRootMirrorValue(value, &active, &mirror_value);
+  for (int depth = 0; depth < g_wasm_gc_state_depth; ++depth) {
+    WasmGCStateStorage* storage = &g_wasm_gc_state[depth];
+    storage->original_frame[slot] = value;
+    storage->active_frame[slot] = active;
+    storage->frame[slot] = mirror_value;
+  }
+}
 
 class WasmGCStateScope {
  public:
@@ -1003,6 +1056,118 @@ bool FunctionMatchesWasmEvalTraceNeedle(Tagged<SharedFunctionInfo> shared) {
                                                   "process.stdout.write") ||
          FunctionSourceRangeContainsAsciiForTrace(shared, "console.log(42)") ||
          StringContainsAsciiForTrace(source_object, "[eval]");
+}
+
+bool FunctionMatchesPerContextPrimordialsTraceNeedle(
+    Tagged<SharedFunctionInfo> shared) {
+  Tagged<Object> script_object = shared->script();
+  if (!IsScript(script_object)) return false;
+  Tagged<Script> script = Cast<Script>(script_object);
+  return StringContainsAsciiForTrace(script->name(),
+                                    "internal/per_context/primordials");
+}
+
+bool FunctionMatchesPerContextPrimordialsGetNewKey(
+    Tagged<SharedFunctionInfo> shared) {
+  if (!FunctionMatchesPerContextPrimordialsTraceNeedle(shared)) return false;
+  if (SharedDebugNameEqualsAsciiForTrace(shared, "getNewKey")) return true;
+  if (shared->function_literal_id() == 2 && shared->StartPosition() == 2055 &&
+      shared->EndPosition() == 2222) {
+    return true;
+  }
+  return false;
+}
+
+uint16_t UpperAsciiForGetNewKey(uint16_t ch) {
+  return (ch >= 'a' && ch <= 'z') ? static_cast<uint16_t>(ch - 'a' + 'A')
+                                  : ch;
+}
+
+bool ConcatTwoStringsForGetNewKey(Isolate* isolate, DirectHandle<String> left,
+                                  DirectHandle<String> right,
+                                  DirectHandle<String>* out) {
+  MaybeDirectHandle<String> maybe =
+      isolate->factory()->NewConsString(left, right);
+  return maybe.ToHandle(out);
+}
+
+bool TryRunPerContextPrimordialsGetNewKey(Isolate* isolate,
+                                          Tagged<SharedFunctionInfo> shared,
+                                          int argc, Address* out_result) {
+  if (!FunctionMatchesPerContextPrimordialsGetNewKey(shared)) return false;
+  if (argc <= kJSArgcReceiverSlots) return false;
+
+  static int get_new_key_fast_count = 0;
+  if (get_new_key_fast_count < 8 || (get_new_key_fast_count % 1000) == 0) {
+    PrintF("WasmInterpreterEntryTrace: getNewKey fast count=%d argc=%d "
+           "sfi=0x%x start=%d end=%d literal_id=%d name=",
+           get_new_key_fast_count, argc, static_cast<unsigned>(shared.ptr()),
+           shared->StartPosition(), shared->EndPosition(),
+           shared->function_literal_id());
+    DumpNameForTrace(shared->Name());
+    PrintF("\n");
+  }
+  ++get_new_key_fast_count;
+
+  Tagged<Object> key(g_wasm_regs[kWasmOutgoingArgSlotBase + 1]);
+  if (get_new_key_fast_count <= 8) {
+    PrintF("WasmInterpreterEntryTrace: getNewKey slots");
+    DumpRuntimeArg("receiver", 0, g_wasm_regs[kWasmOutgoingArgSlotBase]);
+    DumpRuntimeArg("arg0", 0, g_wasm_regs[kWasmOutgoingArgSlotBase + 1]);
+    DumpRuntimeArg("arg1", 1, g_wasm_regs[kWasmOutgoingArgSlotBase + 2]);
+    PrintF("\n");
+  }
+  DirectHandle<String> suffix;
+  DirectHandle<String> first;
+  if (IsString(key)) {
+    DirectHandle<String> input = direct_handle(Cast<String>(key), isolate);
+    input = String::Flatten(isolate, input);
+    if (input->length() == 0) return false;
+    first = isolate->factory()->LookupSingleCharacterStringFromCode(
+        UpperAsciiForGetNewKey(input->Get(0)));
+    suffix = input->length() <= 1
+                 ? isolate->factory()->empty_string()
+                 : isolate->factory()->NewProperSubString(
+                       input, 1, input->length());
+    DirectHandle<String> result;
+    if (!ConcatTwoStringsForGetNewKey(isolate, first, suffix, &result)) {
+      *out_result = ReadOnlyRoots(isolate).exception().ptr();
+      return true;
+    }
+    *out_result = (*result).ptr();
+    return true;
+  }
+
+  if (!IsSymbol(key)) return false;
+  Tagged<Object> description_object = Cast<Symbol>(key)->description();
+  if (!IsString(description_object)) return false;
+  DirectHandle<String> description =
+      direct_handle(Cast<String>(description_object), isolate);
+  description = String::Flatten(isolate, description);
+  if (description->length() <= 7) return false;
+
+  DirectHandle<String> symbol_prefix =
+      isolate->factory()->NewStringFromAsciiChecked("Symbol");
+  first = isolate->factory()->LookupSingleCharacterStringFromCode(
+      UpperAsciiForGetNewKey(description->Get(7)));
+  suffix = description->length() <= 8
+               ? isolate->factory()->empty_string()
+               : isolate->factory()->NewProperSubString(
+                     description, 8, description->length());
+  DirectHandle<String> prefix_with_first;
+  if (!ConcatTwoStringsForGetNewKey(isolate, symbol_prefix, first,
+                                    &prefix_with_first)) {
+    *out_result = ReadOnlyRoots(isolate).exception().ptr();
+    return true;
+  }
+  DirectHandle<String> result;
+  if (!ConcatTwoStringsForGetNewKey(isolate, prefix_with_first, suffix,
+                                    &result)) {
+    *out_result = ReadOnlyRoots(isolate).exception().ptr();
+    return true;
+  }
+  *out_result = (*result).ptr();
+  return true;
 }
 
 bool IsReflectOwnKeysTraceName(Isolate* isolate, Tagged<Object> name_object) {
@@ -3222,8 +3387,12 @@ Address NormalizeWasmInterpreterResult(Isolate* isolate, const char* label,
 void PublishWasmInterpreterFallbackResult(Isolate* isolate, const char* label,
                                           Address* result) {
   *result = NormalizeWasmInterpreterResult(isolate, label, *result);
-  g_wasm_regs[SlotFor(kInterpreterAccumulatorRegister)] = *result;
-  g_wasm_regs[SlotFor(kReturnRegister0)] = *result;
+  int accumulator_slot = SlotFor(kInterpreterAccumulatorRegister);
+  g_wasm_regs[accumulator_slot] = *result;
+  MirrorWasmGCRegSlotForWrite(accumulator_slot, *result);
+  int return_slot = SlotFor(kReturnRegister0);
+  g_wasm_regs[return_slot] = *result;
+  MirrorWasmGCRegSlotForWrite(return_slot, *result);
 }
 
 interpreter::Register RegisterFromListOperand(int32_t first_operand,
@@ -5083,6 +5252,20 @@ bool TryRunCallBytecode(Isolate* isolate, Tagged<BytecodeArray> bytecode,
   Address callable_address = SafeTaggedOrUndefined(
       isolate, ReadInterpreterRegister(
                    interpreter::Register::FromOperand(callable_operand)));
+#ifdef __wasi__
+  if (IsSafeTaggedHandleValue(callable_address) &&
+      IsJSFunction(Tagged<Object>(callable_address))) {
+    Tagged<SharedFunctionInfo> callable_shared =
+        Wasm32JSFunctionShared(Cast<JSFunction>(Tagged<Object>(callable_address)));
+    if (FunctionMatchesPerContextPrimordialsGetNewKey(callable_shared)) {
+      static int get_new_key_call_trace_count = 0;
+      if (get_new_key_call_trace_count < 16) {
+        trace_call_details = true;
+      }
+      ++get_new_key_call_trace_count;
+    }
+  }
+#endif
   if (trace_call_details) {
     PrintF("TryRunCallBytecode: callable_operand=%d ", callable_operand);
     DumpRuntimeArg("callable", 0, callable_address);
@@ -7955,6 +8138,16 @@ bool TryRunGetIteratorBytecode(Isolate* isolate, Tagged<BytecodeArray> bytecode,
     iterator->set_next_index(Smi::zero(), SKIP_WRITE_BARRIER);
     iterator->set_kind(IterationKind::kValues);
     *out_result = (*iterator).ptr();
+    static int get_iterator_array_trace_count = 0;
+    if (get_iterator_array_trace_count < 8) {
+      PrintF("WasmInterpreterEntryTrace: GetIterator array count=%d",
+             get_iterator_array_trace_count);
+      DumpRuntimeArg("receiver", 0, receiver_address);
+      DumpRuntimeArg("iterator_map", 0, (*iterator_map).ptr());
+      DumpRuntimeArg("iterator", 0, *out_result);
+      PrintF("\n");
+    }
+    ++get_iterator_array_trace_count;
     return true;
   }
 
@@ -11160,6 +11353,13 @@ extern "C" void WasmInterpreterEntryTrampoline() {
     return;
   }
 
+  Address fast_result = kNullAddress;
+  if (TryRunPerContextPrimordialsGetNewKey(isolate, shared, argc,
+                                           &fast_result)) {
+    g_wasm_regs[SlotFor(kReturnRegister0)] = fast_result;
+    return;
+  }
+
   Tagged<Context> function_context = Wasm32JSFunctionContext(function);
   Tagged<BytecodeArray> bytecode = shared->GetBytecodeArray(isolate);
   Address bytecode_offset = BytecodeArray::kHeaderSize - kHeapObjectTag;
@@ -11171,15 +11371,21 @@ extern "C" void WasmInterpreterEntryTrampoline() {
   bool trace_entry_steps = false;
   int trace_entry_index = -1;
 #ifdef __wasi__
+  bool trace_per_context_primordials =
+      FunctionMatchesPerContextPrimordialsTraceNeedle(shared);
   bool trace_eval_source =
       kTraceWasmFallbackDetails && FunctionMatchesWasmEvalTraceNeedle(shared);
-  if (kTraceWasmFallbackDetails &&
-      (trace_eval_source || wasm_interpreter_entry_trace_count < 12)) {
+  if ((trace_per_context_primordials &&
+       wasm_interpreter_entry_trace_count < 32) ||
+      (kTraceWasmFallbackDetails &&
+       (trace_eval_source || wasm_interpreter_entry_trace_count < 12))) {
     trace_entry_index = wasm_interpreter_entry_trace_count++;
     trace_entry_steps = true;
-    PrintF("WasmInterpreterEntryTrace: enter #%d eval_match=%d argc=%d actual=%d "
-           "bytecode_len=%d regs=%d params=%d ",
-           trace_entry_index, trace_eval_source ? 1 : 0, argc,
+    PrintF("WasmInterpreterEntryTrace: enter #%d eval_match=%d "
+           "primordials_match=%d argc=%d actual=%d bytecode_len=%d regs=%d "
+           "params=%d ",
+           trace_entry_index, trace_eval_source ? 1 : 0,
+           trace_per_context_primordials ? 1 : 0, argc,
            argc - kJSArgcReceiverSlots,
            bytecode->length(), bytecode->register_count(),
            bytecode->parameter_count());
@@ -11351,6 +11557,10 @@ extern "C" void WasmInterpreterEntryTrampoline() {
     bool should_log_step =
         trace_collection_followup || trace_fs_utils_ownkeys ||
         (trace_entry_steps && step < 96) ||
+#ifdef __wasi__
+        (trace_per_context_primordials &&
+         (step < 160 || (step % 100000) == 0)) ||
+#endif
         (kTraceWasmInterpreterSteps &&
          (step < 16 || bytecode_enum == interpreter::Bytecode::kCreateClosure ||
         bytecode_enum == interpreter::Bytecode::kLdaGlobal ||
@@ -11462,6 +11672,11 @@ extern "C" void WasmInterpreterEntryTrampoline() {
           trace_fs_utils_ownkeys || (step >= 420 && step <= 440)
               ? register_count
               : (register_count < 8 ? register_count : 8);
+#ifdef __wasi__
+      if (trace_per_context_primordials) {
+        logged_register_count = register_count;
+      }
+#endif
       for (int register_index = 0; register_index < logged_register_count;
            ++register_index) {
         DumpRuntimeArg("l", register_index,
