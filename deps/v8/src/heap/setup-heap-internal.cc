@@ -65,6 +65,10 @@
 namespace v8 {
 namespace internal {
 
+#ifdef __wasi__
+constexpr bool kTraceWasiHeapSetup = false;
+#endif
+
 namespace {
 
 DirectHandle<SharedFunctionInfo> CreateSharedFunctionInfo(
@@ -181,17 +185,23 @@ constexpr std::initializer_list<StructInit> kStructTable{
 
 bool SetupIsolateDelegate::SetupHeapInternal(Isolate* isolate) {
   // Unconditional debug for WASI troubleshooting
-  fprintf(stderr, "SetupHeapInternal: ENTER\n");
-  fflush(stderr);
+  if (kTraceWasiHeapSetup) {
+    fprintf(stderr, "SetupHeapInternal: ENTER\n");
+    fflush(stderr);
+  }
   auto heap = isolate->heap();
   if (!isolate->read_only_heap()->roots_init_complete()) {
-    fprintf(stderr, "SetupHeapInternal: calling CreateReadOnlyHeapObjects\n");
-    fflush(stderr);
+    if (kTraceWasiHeapSetup) {
+      fprintf(stderr, "SetupHeapInternal: calling CreateReadOnlyHeapObjects\n");
+      fflush(stderr);
+    }
     if (!heap->CreateReadOnlyHeapObjects()) return false;
     isolate->VerifyStaticRoots();
     isolate->read_only_heap()->OnCreateRootsComplete(isolate);
-    fprintf(stderr, "SetupHeapInternal: OnCreateRootsComplete done\n");
-    fflush(stderr);
+    if (kTraceWasiHeapSetup) {
+      fprintf(stderr, "SetupHeapInternal: OnCreateRootsComplete done\n");
+      fflush(stderr);
+    }
   }
   // We prefer to fit all of read-only space in one page.
   CHECK_EQ(heap->read_only_space()->pages().size(), 1);
@@ -919,25 +929,33 @@ bool Heap::CreateImportantReadOnlyObjects() {
 
   // Hash seed for strings
   // Unconditional debug for WASI troubleshooting
-  fprintf(stderr, "CreateImportantReadOnlyObjects: creating hash_seed\n");
-  fprintf(stderr, "CreateImportantReadOnlyObjects: roots_table ptr = %p\n",
-          (void*)&roots_table()[RootIndex::kFreeSpaceMap]);
-  fflush(stderr);
+  if (kTraceWasiHeapSetup) {
+    fprintf(stderr, "CreateImportantReadOnlyObjects: creating hash_seed\n");
+    fprintf(stderr, "CreateImportantReadOnlyObjects: roots_table ptr = %p\n",
+            (void*)&roots_table()[RootIndex::kFreeSpaceMap]);
+    fflush(stderr);
+  }
 
   Factory* factory = isolate()->factory();
   Handle<ByteArray> hash_seed_array = factory->NewByteArray(kInt64Size, AllocationType::kReadOnly);
 
-  fprintf(stderr, "CreateImportantReadOnlyObjects: hash_seed_array created at %p\n",
-          (void*)hash_seed_array->ptr());
-  fflush(stderr);
+  if (kTraceWasiHeapSetup) {
+    fprintf(stderr,
+            "CreateImportantReadOnlyObjects: hash_seed_array created at %p\n",
+            (void*)hash_seed_array->ptr());
+    fflush(stderr);
+  }
 
   set_hash_seed(*hash_seed_array);
 
   // Verify it was set correctly
   Address stored_hash_seed = roots_table()[RootIndex::kHashSeed];
-  fprintf(stderr, "CreateImportantReadOnlyObjects: stored hash_seed addr = 0x%lx\n",
-          (unsigned long)stored_hash_seed);
-  fflush(stderr);
+  if (kTraceWasiHeapSetup) {
+    fprintf(stderr,
+            "CreateImportantReadOnlyObjects: stored hash_seed addr = 0x%lx\n",
+            (unsigned long)stored_hash_seed);
+    fflush(stderr);
+  }
 
   InitializeHashSeed();
 
