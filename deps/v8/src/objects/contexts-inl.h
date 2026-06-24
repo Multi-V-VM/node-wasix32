@@ -165,6 +165,9 @@ Tagged<HeapObject> Context::extension() const {
 }
 
 Tagged<NativeContext> Context::native_context() const {
+  if (IsNativeContext(*this)) {
+    return Cast<NativeContext>(*this);
+  }
   return this->map()->native_context();
 }
 
