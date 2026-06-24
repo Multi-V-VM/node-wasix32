@@ -3737,6 +3737,24 @@ Handle<JSTypedArray> Factory::NewJSTypedArray(
   DisallowGarbageCollection no_gc;
   raw->set_length(length);
   raw->SetOffHeapDataPtr(isolate(), buffer->backing_store(), byte_offset);
+#ifdef __wasi__
+  fprintf(stderr,
+          "Factory::NewJSTypedArray raw=0x%lx type=%d length=%zu "
+          "byte_length=%zu offset=%zu buffer=0x%lx buffer_len=%zu "
+          "base=0x%lx smi0=0x%lx ext=0x%lx is_on_heap=%d\n",
+          static_cast<unsigned long>(raw.ptr()),
+          static_cast<int>(type),
+          length,
+          byte_length,
+          byte_offset,
+          static_cast<unsigned long>(buffer->ptr()),
+          buffer->GetByteLength(),
+          static_cast<unsigned long>(raw->base_pointer().ptr()),
+          static_cast<unsigned long>(Smi::zero().ptr()),
+          static_cast<unsigned long>(raw->external_pointer()),
+          raw->is_on_heap() ? 1 : 0);
+  fflush(stderr);
+#endif
   raw->set_is_length_tracking(is_length_tracking);
   raw->set_is_backed_by_rab(is_backed_by_rab);
   return typed_array;

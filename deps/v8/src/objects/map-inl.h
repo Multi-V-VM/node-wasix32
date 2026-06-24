@@ -869,6 +869,11 @@ void Map::SetBackPointer(Tagged<HeapObject> value, WriteBarrierMode mode) {
   CHECK_EQ(Cast<Map>(value)->GetConstructorRaw(),
            constructor_or_back_pointer());
   set_constructor_or_back_pointer(value, mode);
+#if defined(__wasi__)
+  std::fprintf(stderr, "Map::SetBackPointer after store self=0x%lx\n",
+               static_cast<unsigned long>(ptr()));
+  std::fflush(stderr);
+#endif
 }
 
 // static

@@ -4,6 +4,10 @@
 
 #include "src/objects/transitions.h"
 
+#ifdef __wasi__
+#include <cstdio>
+#endif
+
 #include <optional>
 
 #include "src/base/small-vector.h"
@@ -48,12 +52,40 @@ void TransitionsAccessor::InsertHelper(Isolate* isolate, DirectHandle<Map> map,
   Encoding encoding = GetEncoding(isolate, map);
   DCHECK_NE(kPrototypeInfo, encoding);
   ReadOnlyRoots roots(isolate);
+#ifdef __wasi__
+  std::fprintf(stderr,
+               "Transitions::InsertHelper enter map=0x%lx target=0x%lx "
+               "name=0x%lx encoding=%d flag=%d\n",
+               static_cast<unsigned long>((*map).ptr()),
+               static_cast<unsigned long>((*target).ptr()),
+               static_cast<unsigned long>((*name).ptr()),
+               static_cast<int>(encoding),
+               static_cast<int>(flag));
+  std::fflush(stderr);
+#endif
   (*target)->SetBackPointer(*map);
+#ifdef __wasi__
+  std::fprintf(stderr,
+               "Transitions::InsertHelper after backpointer map=0x%lx "
+               "target=0x%lx encoding=%d\n",
+               static_cast<unsigned long>((*map).ptr()),
+               static_cast<unsigned long>((*target).ptr()),
+               static_cast<int>(encoding));
+  std::fflush(stderr);
+#endif
 
   // If the map doesn't have any transitions at all yet, install the new one.
   if (encoding == kUninitialized || encoding == kMigrationTarget) {
     if (flag == SIMPLE_PROPERTY_TRANSITION) {
+#ifdef __wasi__
+      std::fprintf(stderr, "Transitions::InsertHelper replace weak simple\n");
+      std::fflush(stderr);
+#endif
       ReplaceTransitions(isolate, map, MakeWeak(*target));
+#ifdef __wasi__
+      std::fprintf(stderr, "Transitions::InsertHelper after replace weak simple\n");
+      std::fflush(stderr);
+#endif
       return;
     }
     // If the flag requires a full TransitionArray, allocate one.
@@ -66,6 +98,10 @@ void TransitionsAccessor::InsertHelper(Isolate* isolate, DirectHandle<Map> map,
   }
 
   if (encoding == kWeakRef) {
+#ifdef __wasi__
+    std::fprintf(stderr, "Transitions::InsertHelper weakref branch\n");
+    std::fflush(stderr);
+#endif
     Tagged<Map> simple_transition = GetSimpleTransition(isolate, map);
     DCHECK(!simple_transition.is_null());
 
@@ -131,6 +167,10 @@ void TransitionsAccessor::InsertHelper(Isolate* isolate, DirectHandle<Map> map,
 
   // At this point, we know that the map has a full TransitionArray.
   DCHECK_EQ(kFullTransitionArray, encoding);
+#ifdef __wasi__
+  std::fprintf(stderr, "Transitions::InsertHelper full array branch\n");
+  std::fflush(stderr);
+#endif
 
   int number_of_transitions = 0;
   int new_nof = 0;
@@ -145,6 +185,14 @@ void TransitionsAccessor::InsertHelper(Isolate* isolate, DirectHandle<Map> map,
     DisallowGarbageCollection no_gc;
     Tagged<TransitionArray> array = GetTransitionArray(isolate, map);
     number_of_transitions = array->number_of_transitions();
+#ifdef __wasi__
+    std::fprintf(stderr,
+                 "Transitions::InsertHelper array=0x%lx number=%d cap=%d\n",
+                 static_cast<unsigned long>(array.ptr()),
+                 number_of_transitions,
+                 array->Capacity());
+    std::fflush(stderr);
+#endif
 
     int index =
         is_special_transition

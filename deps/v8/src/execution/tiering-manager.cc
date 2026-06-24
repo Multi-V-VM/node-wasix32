@@ -4,6 +4,10 @@
 
 #include "src/execution/tiering-manager.h"
 
+#ifdef __wasi__
+#include <cstdio>
+#endif
+
 #include <optional>
 
 #include "src/base/platform/platform.h"
@@ -228,11 +232,37 @@ int InterruptBudgetFor(Isolate* isolate, std::optional<CodeKind> code_kind,
 int TieringManager::InterruptBudgetFor(
     Isolate* isolate, Tagged<JSFunction> function,
     std::optional<CodeKind> override_active_tier) {
+#ifdef __wasi__
+  fprintf(stderr, "TieringManager::InterruptBudgetFor enter function=0x%lx\n",
+          static_cast<unsigned long>(function.ptr()));
+  fflush(stderr);
+#endif
   DCHECK(function->shared()->is_compiled());
+#ifdef __wasi__
+  Tagged<SharedFunctionInfo> shared = function->shared();
+  fprintf(stderr,
+          "TieringManager::InterruptBudgetFor shared=0x%lx compiled=%d\n",
+          static_cast<unsigned long>(shared.ptr()), shared->is_compiled());
+  fflush(stderr);
+#endif
   const int bytecode_length =
       function->shared()->GetBytecodeArray(isolate)->length();
+#ifdef __wasi__
+  fprintf(stderr,
+          "TieringManager::InterruptBudgetFor bytecode_length=%d "
+          "raw_cell=0x%lx value=0x%lx\n",
+          bytecode_length,
+          static_cast<unsigned long>(function->raw_feedback_cell().ptr()),
+          static_cast<unsigned long>(
+              function->raw_feedback_cell()->value().ptr()));
+  fflush(stderr);
+#endif
 
   if (FirstTimeTierUpToSparkplug(isolate, function)) {
+#ifdef __wasi__
+    fprintf(stderr, "TieringManager::InterruptBudgetFor first_sparkplug\n");
+    fflush(stderr);
+#endif
     return bytecode_length * v8_flags.invocation_count_for_feedback_allocation;
   }
 
