@@ -9333,6 +9333,43 @@ bool TryFallbackJSEntryBuiltin(Isolate* isolate, Builtin builtin,
     return true;
   }
 
+  if (builtin == Builtin::kConsoleLog) {
+    Tagged<Context> saved_context = isolate->context();
+    Tagged<Context> function_context = Wasm32JSFunctionContext(function);
+    Tagged<Context> native_context = function_context;
+    if (TryResolveWasm32NativeContext(function_context, &native_context)) {
+      isolate->set_context(native_context);
+    } else {
+      isolate->set_context(function_context);
+    }
+
+    HandleScope scope(isolate);
+    for (int i = 0; i < actual_argc; ++i) {
+      DirectHandle<Object> input(
+          Tagged<Object>(SafeTaggedOrUndefined(isolate, argv[i])), isolate);
+      DirectHandle<String> string;
+      if (!Object::ToString(isolate, input).ToHandle(&string)) {
+        isolate->set_context(saved_context);
+        *out_result = roots.exception().ptr();
+        return true;
+      }
+      string = String::Flatten(isolate, string);
+      size_t text_length = 0;
+      std::unique_ptr<char[]> text = string->ToCString(
+          0, string->length(), &text_length);
+      if (i != 0) std::fputc(' ', stdout);
+      if (text_length != 0) {
+        std::fwrite(text.get(), 1, text_length, stdout);
+      }
+    }
+    std::fputc('\n', stdout);
+    std::fflush(stdout);
+
+    *out_result = roots.undefined_value().ptr();
+    isolate->set_context(saved_context);
+    return true;
+  }
+
   if (builtin == Builtin::kStringConstructor) {
     Address input_address = actual_argc > 0
                                 ? SafeTaggedOrUndefined(isolate, argv[0])
@@ -13193,9 +13230,11 @@ extern "C" void WasmInterpreterEntryTrampoline() {
     }
 
     if (entry == kNullAddress) {
-      PrintF("WasmInterpreterEntryTrampoline: missing handler bytecode=0x%x "
-             "scale=%d\n",
-             static_cast<unsigned>(opcode), static_cast<int>(operand_scale));
+      if (kTraceWasmFallbackDetails) {
+        PrintF("WasmInterpreterEntryTrampoline: missing handler bytecode=0x%x "
+               "scale=%d\n",
+               static_cast<unsigned>(opcode), static_cast<int>(operand_scale));
+      }
       g_wasm_regs[SlotFor(kReturnRegister0)] = Smi::zero().ptr();
       return;
     }
@@ -13345,8 +13384,12 @@ extern "C" Address WasmJSEntry(Address root, Address new_target, Address target,
       return Smi::zero().ptr();
     }
 
-    std::vector<Address> merged_args(total_argc);
-    std::vector<Address*> merged_argv(total_argc);
+    Address merged_args[kWasmMaxOutgoingArgSlots == 0
+                            ? 1
+                            : kWasmMaxOutgoingArgSlots];
+    Address* merged_argv[kWasmMaxOutgoingArgSlots == 0
+                             ? 1
+                             : kWasmMaxOutgoingArgSlots];
     for (int i = 0; i < bound_argc; ++i) {
       merged_args[i] = bound_arguments->get(i).ptr();
       merged_argv[i] = &merged_args[i];
@@ -13367,8 +13410,7 @@ extern "C" Address WasmJSEntry(Address root, Address new_target, Address target,
     }
     Address result = WasmJSEntry(root, new_target, bound_target, bound_receiver,
                                  total_argc + kJSArgcReceiverSlots,
-                                 merged_argv.empty() ? nullptr
-                                                     : merged_argv.data());
+                                 total_argc == 0 ? nullptr : merged_argv);
     entry_state.Restore();
     return result;
   }
@@ -13507,10 +13549,12 @@ extern "C" Address WasmJSEntry(Address root, Address new_target, Address target,
     }
     void* fn = WasmBuiltinFuncref(builtin);
     if (fn == nullptr) {
-      PrintF("WasmJSEntry: unregistered builtin target=%d name=%s "
-             "entry=0x%x\n",
-             static_cast<int>(builtin), Builtins::name(builtin),
-             static_cast<unsigned>(entry));
+      if (kTraceWasmJSEntry) {
+        PrintF("WasmJSEntry: unregistered builtin target=%d name=%s "
+               "entry=0x%x\n",
+               static_cast<int>(builtin), Builtins::name(builtin),
+               static_cast<unsigned>(entry));
+      }
       entry_state.Restore();
       return Smi::zero().ptr();
     }
