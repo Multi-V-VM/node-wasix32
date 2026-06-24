@@ -1396,14 +1396,21 @@ bool ContextifyScript::EvalMachine(Local<Context> context,
       mtask_queue->PerformCheckpoint(env->isolate());
     return result;
   };
-  if (break_on_sigint && timeout != -1) {
+  // The WASI build does not have a usable pthread-backed libuv thread path here;
+  // creating the timeout watchdog traps before the script can run.
+#ifdef __wasi__
+  const bool use_watchdog = false;
+#else
+  const bool use_watchdog = timeout != -1;
+#endif
+  if (break_on_sigint && use_watchdog) {
     Watchdog wd(env->isolate(), timeout, &timed_out);
     SigintWatchdog swd(env->isolate(), &received_signal);
     result = run();
   } else if (break_on_sigint) {
     SigintWatchdog swd(env->isolate(), &received_signal);
     result = run();
-  } else if (timeout != -1) {
+  } else if (use_watchdog) {
     Watchdog wd(env->isolate(), timeout, &timed_out);
     result = run();
   } else {

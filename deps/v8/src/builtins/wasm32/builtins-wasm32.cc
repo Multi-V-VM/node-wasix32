@@ -11,6 +11,7 @@
 #include "src/base/logging.h"
 #include "src/builtins/builtins.h"
 #include "src/builtins/wasm32/builtins-wasm32-abi.h"
+#include "src/codegen/compiler.h"
 #include "src/codegen/macro-assembler.h"
 #include "src/codegen/wasm32/register-wasm32.h"
 #include "src/execution/execution.h"
@@ -63,6 +64,7 @@
 #include "src/roots/roots-inl.h"
 #include "src/runtime/runtime.h"
 #include "src/strings/string-builder.h"
+#include "src/strings/string-builder-inl.h"
 #include "include/v8-locker.h"
 
 #include <cstring>
@@ -509,6 +511,8 @@ void RepairWasm32NodeEnvironmentRealm(Tagged<Context> context) {
   // 32 and 38. The wasm32 C++ ABI currently leaves Environment::principal_realm_
   // unset for some API callbacks; repair that slot from the already-valid
   // Realm embedder slot before invoking Node native callbacks.
+  if (!IsNativeContext(context)) return;
+
   constexpr int kNodeEnvironmentEmbedderIndex = 32;
   constexpr int kNodeRealmEmbedderIndex = 38;
   constexpr Address kNodeEnvironmentPrincipalRealmOffset = 1472;
@@ -1011,6 +1015,14 @@ bool SharedDebugNameEqualsAsciiForTrace(Tagged<SharedFunctionInfo> shared,
   return std::strcmp(debug_name.get(), needle) == 0;
 }
 
+bool FunctionScriptNameContainsAsciiForTrace(
+    Tagged<SharedFunctionInfo> shared, const char* needle) {
+  Tagged<Object> script_object = shared->script();
+  if (!IsScript(script_object)) return false;
+  return StringContainsAsciiForTrace(Cast<Script>(script_object)->name(),
+                                     needle);
+}
+
 bool FunctionSourceRangeContainsAsciiForTrace(
     Tagged<SharedFunctionInfo> shared, const char* needle) {
   Tagged<Object> script_object = shared->script();
@@ -1078,6 +1090,16 @@ bool FunctionMatchesPerContextPrimordialsGetNewKey(
   return false;
 }
 
+bool FunctionMatchesPerContextPrimordialsCopyPrototype(
+    Tagged<SharedFunctionInfo> shared) {
+  if (!FunctionMatchesPerContextPrimordialsTraceNeedle(shared)) return false;
+  if (SharedDebugNameEqualsAsciiForTrace(shared, "copyPrototype")) return true;
+  return shared->function_literal_id() == 6 && shared->StartPosition() == 4080 &&
+         shared->EndPosition() == 4749;
+}
+
+bool CurrentInterpreterFunctionMatchesPerContextPrimordialsCopyPrototype();
+
 uint16_t UpperAsciiForGetNewKey(uint16_t ch) {
   return (ch >= 'a' && ch <= 'z') ? static_cast<uint16_t>(ch - 'a' + 'A')
                                   : ch;
@@ -1097,26 +1119,7 @@ bool TryRunPerContextPrimordialsGetNewKey(Isolate* isolate,
   if (!FunctionMatchesPerContextPrimordialsGetNewKey(shared)) return false;
   if (argc <= kJSArgcReceiverSlots) return false;
 
-  static int get_new_key_fast_count = 0;
-  if (get_new_key_fast_count < 8 || (get_new_key_fast_count % 1000) == 0) {
-    PrintF("WasmInterpreterEntryTrace: getNewKey fast count=%d argc=%d "
-           "sfi=0x%x start=%d end=%d literal_id=%d name=",
-           get_new_key_fast_count, argc, static_cast<unsigned>(shared.ptr()),
-           shared->StartPosition(), shared->EndPosition(),
-           shared->function_literal_id());
-    DumpNameForTrace(shared->Name());
-    PrintF("\n");
-  }
-  ++get_new_key_fast_count;
-
   Tagged<Object> key(g_wasm_regs[kWasmOutgoingArgSlotBase + 1]);
-  if (get_new_key_fast_count <= 8) {
-    PrintF("WasmInterpreterEntryTrace: getNewKey slots");
-    DumpRuntimeArg("receiver", 0, g_wasm_regs[kWasmOutgoingArgSlotBase]);
-    DumpRuntimeArg("arg0", 0, g_wasm_regs[kWasmOutgoingArgSlotBase + 1]);
-    DumpRuntimeArg("arg1", 1, g_wasm_regs[kWasmOutgoingArgSlotBase + 2]);
-    PrintF("\n");
-  }
   DirectHandle<String> suffix;
   DirectHandle<String> first;
   if (IsString(key)) {
@@ -1167,6 +1170,223 @@ bool TryRunPerContextPrimordialsGetNewKey(Isolate* isolate,
     return true;
   }
   *out_result = (*result).ptr();
+  return true;
+}
+
+bool TryFindNativeContextMapByInstanceType(Isolate* isolate,
+                                           InstanceType instance_type,
+                                           DirectHandle<Map>* out_map) {
+  Tagged<Context> current_context = isolate->context();
+  DirectHandle<NativeContext> native_context =
+      IsNativeContext(current_context)
+          ? direct_handle(Cast<NativeContext>(current_context), isolate)
+          : direct_handle(current_context->native_context(), isolate);
+  for (int index = 0; index < Context::NATIVE_CONTEXT_SLOTS; ++index) {
+    Tagged<Object> value = TaggedField<Object>::load(
+        *native_context, Context::OffsetOfElementAt(index));
+    if (!IsSafeTaggedHandleValue(value.ptr())) continue;
+    if (!IsMap(value)) continue;
+    Tagged<Map> map = Cast<Map>(value);
+    if (map->instance_type() != instance_type) continue;
+    *out_map = direct_handle(map, isolate);
+    return true;
+  }
+  return false;
+}
+
+constexpr int kMaxWasm32ArrayIteratorStates = 32;
+
+struct Wasm32ArrayIteratorState {
+  Address array;
+  uint32_t next_index;
+  Address last_value;
+  Address last_done;
+  bool has_result;
+};
+
+Wasm32ArrayIteratorState
+    g_wasm32_array_iterator_states[kMaxWasm32ArrayIteratorStates] = {};
+int g_wasm32_array_iterator_next_state = 0;
+
+constexpr int kMaxWasm32IteratorResultStates = 128;
+
+struct Wasm32IteratorResultState {
+  Address result;
+  Address value;
+  Address done;
+};
+
+Wasm32IteratorResultState
+    g_wasm32_iterator_result_states[kMaxWasm32IteratorResultStates] = {};
+int g_wasm32_iterator_result_next_state = 0;
+
+void StartWasm32ArrayIteratorState(Address array) {
+  for (int i = 0; i < kMaxWasm32ArrayIteratorStates; ++i) {
+    if (g_wasm32_array_iterator_states[i].array == array) {
+      g_wasm32_array_iterator_states[i].next_index = 0;
+      g_wasm32_array_iterator_states[i].last_value = 0;
+      g_wasm32_array_iterator_states[i].last_done = 0;
+      g_wasm32_array_iterator_states[i].has_result = false;
+      return;
+    }
+  }
+  int slot = g_wasm32_array_iterator_next_state++ %
+             kMaxWasm32ArrayIteratorStates;
+  g_wasm32_array_iterator_states[slot].array = array;
+  g_wasm32_array_iterator_states[slot].next_index = 0;
+  g_wasm32_array_iterator_states[slot].last_value = 0;
+  g_wasm32_array_iterator_states[slot].last_done = 0;
+  g_wasm32_array_iterator_states[slot].has_result = false;
+}
+
+void RecordWasm32IteratorResultState(Address result, Address value,
+                                     Address done) {
+  int slot = g_wasm32_iterator_result_next_state++ %
+             kMaxWasm32IteratorResultStates;
+  g_wasm32_iterator_result_states[slot].result = result;
+  g_wasm32_iterator_result_states[slot].value = value;
+  g_wasm32_iterator_result_states[slot].done = done;
+}
+
+bool TryReadWasm32IteratorResultState(Isolate* isolate,
+                                      Address receiver_address,
+                                      Handle<Name> name,
+                                      Address* out_result) {
+  for (int i = 0; i < kMaxWasm32IteratorResultStates; ++i) {
+    if (g_wasm32_iterator_result_states[i].result != receiver_address) {
+      continue;
+    }
+    if (Name::Equals(isolate, name, isolate->factory()->done_string())) {
+      *out_result = g_wasm32_iterator_result_states[i].done;
+      return true;
+    }
+    if (Name::Equals(isolate, name, isolate->factory()->value_string())) {
+      *out_result = g_wasm32_iterator_result_states[i].value;
+      return true;
+    }
+    return false;
+  }
+  return false;
+}
+
+bool TryReadWasm32ArrayIteratorResultMarker(Isolate* isolate,
+                                            Address receiver_address,
+                                            Handle<Name> name,
+                                            Address* out_result) {
+  for (int i = 0; i < kMaxWasm32ArrayIteratorStates; ++i) {
+    if (g_wasm32_array_iterator_states[i].array != receiver_address ||
+        !g_wasm32_array_iterator_states[i].has_result) {
+      continue;
+    }
+    if (Name::Equals(isolate, name, isolate->factory()->done_string())) {
+      *out_result = g_wasm32_array_iterator_states[i].last_done;
+      return true;
+    }
+    if (Name::Equals(isolate, name, isolate->factory()->value_string())) {
+      *out_result = g_wasm32_array_iterator_states[i].last_value;
+      return true;
+    }
+    return false;
+  }
+  return false;
+}
+
+bool TryReadWasm32CopyPrototypeIteratorResultLayout(Isolate* isolate,
+                                                    Tagged<Object> receiver,
+                                                    Handle<Name> name,
+                                                    Address* out_result) {
+  if (!CurrentInterpreterFunctionMatchesPerContextPrimordialsCopyPrototype()) {
+    return false;
+  }
+  if (!IsJSObject(receiver)) return false;
+  Tagged<Map> map = Cast<JSObject>(receiver)->map();
+  if (map->instance_type() != JS_OBJECT_TYPE ||
+      map->instance_size() < JSIteratorResult::kSize) {
+    return false;
+  }
+
+  Tagged<JSIteratorResult> iterator_result = Cast<JSIteratorResult>(receiver);
+  if (Name::Equals(isolate, name, isolate->factory()->done_string())) {
+    *out_result = iterator_result->done().ptr();
+    return true;
+  }
+  if (Name::Equals(isolate, name, isolate->factory()->value_string())) {
+    *out_result = iterator_result->value().ptr();
+    return true;
+  }
+  return false;
+}
+
+bool TryRunWasm32ArrayIteratorMarkerNext(Isolate* isolate,
+                                         Tagged<JSFunction> current_function,
+                                         interpreter::Bytecode bytecode_enum,
+                                         Address callable_address,
+                                         Address receiver_address,
+                                         Address* out_result) {
+  if (bytecode_enum != interpreter::Bytecode::kCallProperty0) return false;
+  ReadOnlyRoots roots(isolate);
+  if (!IsSafeTaggedHandleValue(receiver_address) ||
+      !IsJSArray(Tagged<Object>(receiver_address))) {
+    return false;
+  }
+
+  int state_index = -1;
+  for (int i = 0; i < kMaxWasm32ArrayIteratorStates; ++i) {
+    if (g_wasm32_array_iterator_states[i].array == receiver_address) {
+      state_index = i;
+      break;
+    }
+  }
+  if (state_index < 0 &&
+      FunctionMatchesPerContextPrimordialsCopyPrototype(
+          Wasm32JSFunctionShared(current_function))) {
+    StartWasm32ArrayIteratorState(receiver_address);
+    for (int i = 0; i < kMaxWasm32ArrayIteratorStates; ++i) {
+      if (g_wasm32_array_iterator_states[i].array == receiver_address) {
+        state_index = i;
+        break;
+      }
+    }
+  }
+  if (state_index < 0) return false;
+
+  Tagged<JSArray> array = Cast<JSArray>(Tagged<Object>(receiver_address));
+  uint32_t length = 0;
+  if (!Object::ToArrayLength(array->length(), &length)) {
+    *out_result = roots.exception().ptr();
+    return true;
+  }
+
+  uint32_t index = g_wasm32_array_iterator_states[state_index].next_index;
+  bool done = index >= length;
+  DirectHandle<Object> value = isolate->factory()->undefined_value();
+  if (!done) {
+    if (!JSReceiver::GetElement(isolate, direct_handle(array, isolate), index)
+             .ToHandle(&value)) {
+      *out_result = roots.exception().ptr();
+      return true;
+    }
+    g_wasm32_array_iterator_states[state_index].next_index = index + 1;
+  }
+
+  g_wasm32_array_iterator_states[state_index].last_value = (*value).ptr();
+  g_wasm32_array_iterator_states[state_index].last_done =
+      done ? roots.true_value().ptr() : roots.false_value().ptr();
+  g_wasm32_array_iterator_states[state_index].has_result = true;
+  *out_result = receiver_address;
+  if (kTraceWasmFallbackDetails) {
+    static int array_marker_next_trace_count = 0;
+    if (array_marker_next_trace_count < 16 || done ||
+        (array_marker_next_trace_count % 1000) == 0) {
+      PrintF("WasmInterpreterEntryTrace: array marker next count=%d index=%u "
+             "length=%u done=%d",
+             array_marker_next_trace_count, index, length, done ? 1 : 0);
+      DumpRuntimeArg("value", 0, (*value).ptr());
+      DumpRuntimeArg("result_marker", 0, *out_result);
+      PrintF("\n");
+    }
+    ++array_marker_next_trace_count;
+  }
   return true;
 }
 
@@ -1371,15 +1591,15 @@ bool Wasm32IsPrototypeOrInitialMapValue(Tagged<Object> value) {
 }
 
 int Wasm32JSFunctionPrototypeOrInitialMapOffset(Tagged<JSFunction> function) {
-  Tagged<Object> direct = TaggedField<Object>::load(
-      function, JSFunction::kPrototypeOrInitialMapOffset);
-  if (Wasm32IsPrototypeOrInitialMapValue(direct)) {
-    return JSFunction::kPrototypeOrInitialMapOffset;
-  }
   Tagged<Object> shifted = TaggedField<Object>::load(
       function, JSFunction::kPrototypeOrInitialMapOffset - kTaggedSize);
   if (Wasm32IsPrototypeOrInitialMapValue(shifted)) {
     return JSFunction::kPrototypeOrInitialMapOffset - kTaggedSize;
+  }
+  Tagged<Object> direct = TaggedField<Object>::load(
+      function, JSFunction::kPrototypeOrInitialMapOffset);
+  if (Wasm32IsPrototypeOrInitialMapValue(direct)) {
+    return JSFunction::kPrototypeOrInitialMapOffset;
   }
   return JSFunction::kPrototypeOrInitialMapOffset;
 }
@@ -1398,12 +1618,135 @@ Tagged<Map> Wasm32JSFunctionInitialMap(Tagged<JSFunction> function) {
   return Cast<Map>(Wasm32JSFunctionPrototypeOrInitialMapObject(function));
 }
 
+bool TryResolveWasm32NativeContext(Tagged<Context> context,
+                                   Tagged<Context>* out_context);
+
+Handle<JSObject> NewWasm32PlainJSObject(Isolate* isolate) {
+  Tagged<Context> native_context_value = isolate->context();
+  if (TryResolveWasm32NativeContext(isolate->context(), &native_context_value) &&
+      IsNativeContext(native_context_value)) {
+    DirectHandle<NativeContext> native_context(
+        Cast<NativeContext>(native_context_value), isolate);
+    DirectHandle<Map> map =
+        isolate->factory()->ObjectLiteralMapFromCache(native_context, 0);
+    return isolate->factory()->NewFastOrSlowJSObjectFromMap(map, 0);
+  }
+
+  DirectHandle<JSFunction> object_function = isolate->object_function();
+  if (Wasm32JSFunctionHasInitialMap(*object_function)) {
+    DirectHandle<Map> map(Wasm32JSFunctionInitialMap(*object_function),
+                          isolate);
+    if (map->instance_type() == JS_OBJECT_TYPE) {
+      return isolate->factory()->NewFastOrSlowJSObjectFromMap(map, 0);
+    }
+  }
+  return isolate->factory()->NewJSObject(object_function);
+}
+
 void Wasm32StoreJSFunctionPrototypeOrInitialMap(Tagged<JSFunction> function,
                                                 Tagged<Object> value) {
   int offset = Wasm32JSFunctionPrototypeOrInitialMapOffset(function);
   TaggedField<Object>::Release_Store(function, offset, value);
   WriteBarrier::ForValue(function, function->RawMaybeWeakField(offset), value,
                          UPDATE_WRITE_BARRIER);
+}
+
+bool Wasm32IsMapPrototypeValue(Tagged<Object> value, ReadOnlyRoots roots) {
+  return IsNull(value, roots) || IsJSReceiver(value);
+}
+
+Tagged<Object> Wasm32MapPrototypeObject(Isolate* isolate, Tagged<Map> map) {
+  ReadOnlyRoots roots(isolate);
+  Tagged<Object> shifted =
+      TaggedField<Object>::load(map, Map::kPrototypeOffset - kTaggedSize);
+  if (Wasm32IsMapPrototypeValue(shifted, roots)) return shifted;
+
+  Tagged<Object> direct =
+      TaggedField<Object>::load(map, Map::kPrototypeOffset);
+  if (Wasm32IsMapPrototypeValue(direct, roots)) return direct;
+
+  return map->prototype();
+}
+
+bool Wasm32IsContextValue(Tagged<Object> value) {
+  return IsSafeTaggedHandleValue(value.ptr()) && IsContext(value);
+}
+
+bool Wasm32IsNativeContextValue(Tagged<Object> value) {
+  return IsSafeTaggedHandleValue(value.ptr()) && IsNativeContext(value);
+}
+
+bool TryWasm32NativeContextValue(Tagged<Object> value,
+                                 Tagged<Context>* out_context) {
+  if (!Wasm32IsNativeContextValue(value)) return false;
+  *out_context = Cast<Context>(value);
+  return true;
+}
+
+bool TryWasm32ContextValue(Tagged<Object> value, Tagged<Context>* out_context) {
+  if (!Wasm32IsContextValue(value)) return false;
+  *out_context = Cast<Context>(value);
+  return true;
+}
+
+bool TryWasm32MapNativeContextSlot(Tagged<Map> map, int offset,
+                                   Tagged<Context>* out_context) {
+  if (offset < 0) return false;
+  if (!IsReadableTaggedHeapObject(map.ptr(), offset + sizeof(Address))) {
+    return false;
+  }
+  return TryWasm32NativeContextValue(TaggedField<Object>::load(map, offset),
+                                    out_context);
+}
+
+bool TryWasm32ContextMapNativeContext(Tagged<Context> context,
+                                      Tagged<Context>* out_context) {
+  if (TryWasm32NativeContextValue(context, out_context)) return true;
+  if (!Wasm32IsContextValue(context)) return false;
+
+  Tagged<Map> map = context->map();
+  if (TryWasm32MapNativeContextSlot(
+          map, Map::kConstructorOrBackPointerOrNativeContextOffset - kTaggedSize,
+          out_context)) {
+    return true;
+  }
+  if (TryWasm32MapNativeContextSlot(
+          map, Map::kConstructorOrBackPointerOrNativeContextOffset,
+          out_context)) {
+    return true;
+  }
+
+  Tagged<NativeContext> native_context = context->native_context();
+  return TryWasm32NativeContextValue(native_context, out_context);
+}
+
+bool TryWasm32ContextPrevious(Tagged<Context> context,
+                              Tagged<Context>* out_context) {
+  Tagged<Object> previous = context->unchecked_previous();
+  if (TryWasm32ContextValue(previous, out_context)) return true;
+
+  int shifted_offset =
+      Context::OffsetOfElementAt(Context::PREVIOUS_INDEX) - kTaggedSize;
+  if (shifted_offset < 0 ||
+      !IsReadableTaggedHeapObject(context.ptr(),
+                                  shifted_offset + sizeof(Address))) {
+    return false;
+  }
+  return TryWasm32ContextValue(TaggedField<Object>::load(context, shifted_offset),
+                               out_context);
+}
+
+bool TryResolveWasm32NativeContext(Tagged<Context> context,
+                                   Tagged<Context>* out_context) {
+  Tagged<Context> current = context;
+  for (int depth = 0; depth < 16; ++depth) {
+    if (TryWasm32ContextMapNativeContext(current, out_context)) return true;
+    Tagged<Context> previous = current;
+    if (!TryWasm32ContextPrevious(current, &previous)) return false;
+    if (previous.ptr() == current.ptr()) return false;
+    current = previous;
+  }
+  return false;
 }
 
 Address Wasm32JSFunctionPrototypeAddress(Isolate* isolate,
@@ -1419,7 +1762,9 @@ Address Wasm32JSFunctionPrototypeAddress(Isolate* isolate,
   Tagged<Object> prototype_or_initial_map =
       Wasm32JSFunctionPrototypeOrInitialMapObject(*function);
   if (IsMap(prototype_or_initial_map)) {
-    return Cast<Map>(prototype_or_initial_map)->prototype().ptr();
+    return Wasm32MapPrototypeObject(isolate,
+                                    Cast<Map>(prototype_or_initial_map))
+        .ptr();
   }
   if (IsJSReceiver(prototype_or_initial_map)) {
     return prototype_or_initial_map.ptr();
@@ -1634,6 +1979,18 @@ bool CurrentInterpreterFunctionMatchesTraceNeedle() {
   }
   return FunctionMatchesWasmEvalTraceNeedle(
       Cast<JSFunction>(Tagged<Object>(function_address))->shared());
+}
+
+bool CurrentInterpreterFunctionMatchesPerContextPrimordialsCopyPrototype() {
+  Address function_address =
+      g_wasm_interpreter_frame[InterpreterFrameSlotForOffset(
+          StandardFrameConstants::kFunctionOffset)];
+  if (!IsSafeTaggedHandleValue(function_address) ||
+      !IsJSFunction(Tagged<Object>(function_address))) {
+    return false;
+  }
+  return FunctionMatchesPerContextPrimordialsCopyPrototype(
+      Wasm32JSFunctionShared(Cast<JSFunction>(Tagged<Object>(function_address))));
 }
 
 bool TryRunCreateFunctionContextBytecode(
@@ -2478,6 +2835,18 @@ bool TryRunGetNamedPropertyBytecode(
       return true;
     }
   }
+  if (TryReadWasm32ArrayIteratorResultMarker(isolate, receiver_address, name,
+                                             out_result)) {
+    return true;
+  }
+  if (TryReadWasm32IteratorResultState(isolate, receiver_address, name,
+                                       out_result)) {
+    return true;
+  }
+  if (TryReadWasm32CopyPrototypeIteratorResultLayout(isolate, receiver_object,
+                                                     name, out_result)) {
+    return true;
+  }
   if (IsJSObject(receiver_object) &&
       Cast<JSObject>(receiver_object)->map() ==
           isolate->native_context()->iterator_result_map()) {
@@ -3124,6 +3493,37 @@ bool TryRunTestTypeOfBytecode(Isolate* isolate, Tagged<BytecodeArray> bytecode,
       break;
   }
 
+  *out_result = result ? roots.true_value().ptr() : roots.false_value().ptr();
+  return true;
+}
+
+bool TryRunBooleanConversionBytecode(Isolate* isolate,
+                                     interpreter::Bytecode bytecode_enum,
+                                     Address* out_result) {
+  bool is_to_boolean = bytecode_enum == interpreter::Bytecode::kToBoolean;
+  bool is_to_boolean_not =
+      bytecode_enum == interpreter::Bytecode::kToBooleanLogicalNot;
+  bool is_logical_not = bytecode_enum == interpreter::Bytecode::kLogicalNot;
+  if (!is_to_boolean && !is_to_boolean_not && !is_logical_not) return false;
+
+  ReadOnlyRoots roots(isolate);
+  Address value_address = SafeTaggedOrUndefined(
+      isolate, g_wasm_regs[SlotFor(kInterpreterAccumulatorRegister)]);
+  Tagged<Object> value(value_address);
+
+  bool truthy = false;
+  if (IsTrue(value, roots)) {
+    truthy = true;
+  } else if (IsFalse(value, roots) || IsUndefined(value, roots) ||
+             IsNull(value, roots)) {
+    truthy = false;
+  } else if (IsSmi(value)) {
+    truthy = Smi::ToInt(value) != 0;
+  } else {
+    truthy = Object::BooleanValue(value, isolate);
+  }
+
+  bool result = is_to_boolean ? truthy : !truthy;
   *out_result = result ? roots.true_value().ptr() : roots.false_value().ptr();
   return true;
 }
@@ -4098,9 +4498,11 @@ bool TryRunArrayForEachBuiltin(Isolate* isolate, DirectHandle<Object> callable,
 
   ReadOnlyRoots roots(isolate);
   if (arg_count == 0 || !IsCallable(*args[0])) {
-    PrintF("WasmInterpreterEntryTrampoline: ArrayForEach callback invalid ");
-    if (arg_count > 0) DumpRuntimeArg("callback", 0, (*args[0]).ptr());
-    PrintF("\n");
+    if (kTraceWasmFallbackDetails) {
+      PrintF("WasmInterpreterEntryTrampoline: ArrayForEach callback invalid ");
+      if (arg_count > 0) DumpRuntimeArg("callback", 0, (*args[0]).ptr());
+      PrintF("\n");
+    }
     *out_result = roots.exception().ptr();
     return true;
   }
@@ -5147,6 +5549,9 @@ bool TryRunArrayIteratorPrototypeNextBuiltin(Isolate* isolate,
   DirectHandle<JSIteratorResult> result =
       isolate->factory()->NewJSIteratorResult(value, done);
   *out_result = (*result).ptr();
+  RecordWasm32IteratorResultState(
+      *out_result, (*value).ptr(),
+      done ? roots.true_value().ptr() : roots.false_value().ptr());
   static int array_iterator_next_trace_count = 0;
   if (kTraceWasmFallbackDetails &&
       (array_iterator_next_trace_count < 96 || done ||
@@ -5239,8 +5644,18 @@ bool TryRunCallBytecode(Isolate* isolate, Tagged<BytecodeArray> bytecode,
 #else
       false;
 #endif
+  bool trace_bootstrap_realm_call =
+#ifdef __wasi__
+      kTraceWasmFallbackDetails &&
+      FunctionScriptNameContainsAsciiForTrace(
+          Wasm32JSFunctionShared(current_function),
+          "node:internal/bootstrap/realm");
+#else
+      false;
+#endif
   bool trace_call_details =
-      trace_collection_call || trace_fs_utils_ownkeys_call || trace_eval_call;
+      trace_collection_call || trace_fs_utils_ownkeys_call || trace_eval_call ||
+      trace_bootstrap_realm_call;
   if (trace_call_details) {
     PrintF("TryRunCallBytecode: enter bytecode=%s index=%d scale=%d\n",
            interpreter::Bytecodes::ToString(bytecode_enum), bytecode_index,
@@ -5252,20 +5667,6 @@ bool TryRunCallBytecode(Isolate* isolate, Tagged<BytecodeArray> bytecode,
   Address callable_address = SafeTaggedOrUndefined(
       isolate, ReadInterpreterRegister(
                    interpreter::Register::FromOperand(callable_operand)));
-#ifdef __wasi__
-  if (IsSafeTaggedHandleValue(callable_address) &&
-      IsJSFunction(Tagged<Object>(callable_address))) {
-    Tagged<SharedFunctionInfo> callable_shared =
-        Wasm32JSFunctionShared(Cast<JSFunction>(Tagged<Object>(callable_address)));
-    if (FunctionMatchesPerContextPrimordialsGetNewKey(callable_shared)) {
-      static int get_new_key_call_trace_count = 0;
-      if (get_new_key_call_trace_count < 16) {
-        trace_call_details = true;
-      }
-      ++get_new_key_call_trace_count;
-    }
-  }
-#endif
   if (trace_call_details) {
     PrintF("TryRunCallBytecode: callable_operand=%d ", callable_operand);
     DumpRuntimeArg("callable", 0, callable_address);
@@ -5288,6 +5689,19 @@ bool TryRunCallBytecode(Isolate* isolate, Tagged<BytecodeArray> bytecode,
     }
     PrintF("\n");
   }
+  if (bytecode_enum == interpreter::Bytecode::kCallProperty0) {
+    int32_t receiver_operand =
+        ReadBytecodeSignedOperand(bytecode, bytecode_index, bytecode_enum, 1,
+                                  operand_scale);
+    Address receiver_address = SafeTaggedOrUndefined(
+        isolate, ReadInterpreterRegister(
+                     interpreter::Register::FromOperand(receiver_operand)));
+    if (TryRunWasm32ArrayIteratorMarkerNext(
+            isolate, current_function, bytecode_enum, callable_address,
+            receiver_address, out_result)) {
+      return true;
+    }
+  }
   if (kTraceWasmCallBytecode) {
     interpreter::Register callable_reg =
         interpreter::Register::FromOperand(callable_operand);
@@ -5299,6 +5713,19 @@ bool TryRunCallBytecode(Isolate* isolate, Tagged<BytecodeArray> bytecode,
     PrintF("\n");
   }
   if (!IsCallable(Tagged<Object>(callable_address))) {
+    if (bytecode_enum == interpreter::Bytecode::kCallProperty0) {
+      int32_t receiver_operand =
+          ReadBytecodeSignedOperand(bytecode, bytecode_index, bytecode_enum, 1,
+                                    operand_scale);
+      Address receiver_address = SafeTaggedOrUndefined(
+          isolate, ReadInterpreterRegister(
+                       interpreter::Register::FromOperand(receiver_operand)));
+      if (TryRunWasm32ArrayIteratorMarkerNext(
+              isolate, current_function, bytecode_enum, callable_address,
+              receiver_address, out_result)) {
+        return true;
+      }
+    }
     if (bytecode_enum == interpreter::Bytecode::kCallUndefinedReceiver2) {
       int32_t regexp_operand =
           ReadBytecodeSignedOperand(bytecode, bytecode_index, bytecode_enum, 1,
@@ -7600,6 +8027,29 @@ bool TryRunCreateRestParameterBytecode(
   return true;
 }
 
+bool TryRunCreateEmptyArrayLiteralBytecode(
+    Isolate* isolate, interpreter::Bytecode bytecode_enum,
+    Address* out_result) {
+  if (bytecode_enum != interpreter::Bytecode::kCreateEmptyArrayLiteral) {
+    return false;
+  }
+
+  Tagged<Context> saved_context = isolate->context();
+  Address context_address = CurrentInterpreterContext();
+  bool switched_context = false;
+  if (IsSafeTaggedHandleValue(context_address) &&
+      IsContext(Tagged<Object>(context_address))) {
+    isolate->set_context(Cast<Context>(Tagged<Object>(context_address)));
+    switched_context = true;
+  }
+
+  HandleScope scope(isolate);
+  Handle<JSArray> result = isolate->factory()->NewJSArray(0);
+  *out_result = (*result).ptr();
+  if (switched_context) isolate->set_context(saved_context);
+  return true;
+}
+
 bool TryRunCreateRegExpLiteralBytecode(
     Isolate* isolate, Tagged<BytecodeArray> bytecode, int bytecode_index,
     interpreter::Bytecode bytecode_enum,
@@ -7643,7 +8093,7 @@ bool TryRunCreateRegExpLiteralBytecode(
     DirectHandle<String> pattern =
         direct_handle(Cast<String>(pattern_object), isolate);
     DirectHandle<JSObject> regexp_marker =
-        isolate->factory()->NewJSObject(isolate->object_function());
+        NewWasm32PlainJSObject(isolate);
     DirectHandle<String> pattern_marker =
         isolate->factory()->InternalizeUtf8String(kWasm32RegExpPatternMarker);
     DirectHandle<String> flags_marker =
@@ -7808,7 +8258,13 @@ bool TryCreateWasm32ObjectLiteral(
     int flags, int depth, DirectHandle<JSObject>* out_object) {
   if (depth > 8) return false;
 
-  DirectHandle<NativeContext> native_context = isolate->native_context();
+  Tagged<Context> native_context_value = isolate->context();
+  if (!TryResolveWasm32NativeContext(isolate->context(), &native_context_value) ||
+      !IsNativeContext(native_context_value)) {
+    return false;
+  }
+  DirectHandle<NativeContext> native_context(
+      Cast<NativeContext>(native_context_value), isolate);
   bool use_fast_elements = (flags & ObjectLiteral::kFastElements) != 0;
   bool has_null_prototype = (flags & ObjectLiteral::kHasNullPrototype) != 0;
   int number_of_properties = description->backing_store_size();
@@ -7980,8 +8436,7 @@ bool TryRunCreateEmptyObjectLiteralBytecode(
   }
 
   HandleScope scope(isolate);
-  Handle<JSObject> result =
-      isolate->factory()->NewJSObject(isolate->object_function());
+  Handle<JSObject> result = NewWasm32PlainJSObject(isolate);
   *out_result = (*result).ptr();
   if (switched_context) isolate->set_context(saved_context);
   return true;
@@ -8129,25 +8584,18 @@ bool TryRunGetIteratorBytecode(Isolate* isolate, Tagged<BytecodeArray> bytecode,
   HandleScope scope(isolate);
   Handle<JSAny> receiver = handle(Cast<JSAny>(receiver_object), isolate);
   if (IsJSArray(receiver_object)) {
-    DirectHandle<Map> iterator_map(
-        isolate->native_context()->initial_array_iterator_map(), isolate);
-    DirectHandle<JSArrayIterator> iterator =
-        Cast<JSArrayIterator>(isolate->factory()->NewJSObjectFromMap(
-            iterator_map, AllocationType::kYoung));
-    iterator->set_iterated_object(Cast<JSReceiver>(receiver_object));
-    iterator->set_next_index(Smi::zero(), SKIP_WRITE_BARRIER);
-    iterator->set_kind(IterationKind::kValues);
-    *out_result = (*iterator).ptr();
-    static int get_iterator_array_trace_count = 0;
-    if (get_iterator_array_trace_count < 8) {
-      PrintF("WasmInterpreterEntryTrace: GetIterator array count=%d",
-             get_iterator_array_trace_count);
-      DumpRuntimeArg("receiver", 0, receiver_address);
-      DumpRuntimeArg("iterator_map", 0, (*iterator_map).ptr());
-      DumpRuntimeArg("iterator", 0, *out_result);
-      PrintF("\n");
+    StartWasm32ArrayIteratorState(receiver_address);
+    *out_result = receiver_address;
+    if (kTraceWasmFallbackDetails) {
+      static int get_iterator_array_trace_count = 0;
+      if (get_iterator_array_trace_count < 8) {
+        PrintF("WasmInterpreterEntryTrace: GetIterator array marker count=%d",
+               get_iterator_array_trace_count);
+        DumpRuntimeArg("receiver", 0, receiver_address);
+        PrintF("\n");
+      }
+      ++get_iterator_array_trace_count;
     }
-    ++get_iterator_array_trace_count;
     return true;
   }
 
@@ -8600,11 +9048,215 @@ Address WasmBytecodeHandlerEntry(Isolate* isolate, uint8_t opcode,
   return fn == nullptr ? kNullAddress : reinterpret_cast<Address>(fn);
 }
 
+MaybeDirectHandle<Object> Wasm32CreateDynamicFunction(
+    Isolate* isolate, Tagged<JSFunction> function, Address new_target,
+    int actual_argc, Address* argv, const char* token) {
+#ifdef __wasi__
+  static int dynamic_function_trace_count = 0;
+  int trace_dynamic_function_index = ++dynamic_function_trace_count;
+  bool trace_dynamic_function =
+      kTraceWasmFallbackDetails && trace_dynamic_function_index <= 16;
+  if (trace_dynamic_function) {
+    PrintF("Wasm32CreateDynamicFunction enter #%d argc=%d token=%s ",
+           trace_dynamic_function_index, actual_argc, token);
+    DumpRuntimeArg("function", 0, function.ptr());
+    DumpRuntimeArg("new_target", 0, new_target);
+    PrintF("\n");
+  }
+#endif
+  DirectHandle<JSFunction> target = direct_handle(function, isolate);
+  DirectHandle<JSObject> target_global_proxy(target->global_proxy(), isolate);
+  if (!Builtins::AllowDynamicFunction(isolate, target, target_global_proxy)) {
+    isolate->CountUsage(v8::Isolate::kFunctionConstructorReturnedUndefined);
+    isolate->Throw(*isolate->factory()->NewTypeError(MessageTemplate::kNoAccess));
+    return MaybeDirectHandle<Object>();
+  }
+
+  Tagged<Context> function_context = Wasm32JSFunctionContext(function);
+  DirectHandle<NativeContext> native_context =
+      IsNativeContext(function_context)
+          ? direct_handle(Cast<NativeContext>(function_context), isolate)
+          : direct_handle(function_context->native_context(), isolate);
+
+  DirectHandle<String> source;
+  int parameters_end_pos = kNoSourcePosition;
+  {
+    IncrementalStringBuilder builder(isolate);
+    builder.AppendCharacter('(');
+    builder.AppendCString(token);
+    builder.AppendCStringLiteral(" anonymous(");
+    if (actual_argc > 1) {
+      for (int i = 0; i < actual_argc - 1; ++i) {
+        if (i > 0) builder.AppendCharacter(',');
+        DirectHandle<Object> argument(
+            Tagged<Object>(SafeTaggedOrUndefined(isolate, argv[i])), isolate);
+        DirectHandle<String> parameter;
+        if (!Object::ToString(isolate, argument).ToHandle(&parameter)) {
+          return MaybeDirectHandle<Object>();
+        }
+        parameter = String::Flatten(isolate, parameter);
+        builder.AppendString(parameter);
+      }
+    }
+    builder.AppendCharacter('\n');
+    parameters_end_pos = builder.Length();
+    builder.AppendCStringLiteral(") {\n");
+    if (actual_argc > 0) {
+      DirectHandle<Object> body_object(
+          Tagged<Object>(
+              SafeTaggedOrUndefined(isolate, argv[actual_argc - 1])),
+          isolate);
+      DirectHandle<String> body;
+      if (!Object::ToString(isolate, body_object).ToHandle(&body)) {
+        return MaybeDirectHandle<Object>();
+      }
+#ifdef __wasi__
+      if (trace_dynamic_function) {
+        PrintStringPreviewForTrace(" body", *body, 0, 120);
+        PrintF("\n");
+      }
+#endif
+      builder.AppendString(body);
+    }
+    builder.AppendCStringLiteral("\n})");
+    if (!builder.Finish().ToHandle(&source)) {
+      return MaybeDirectHandle<Object>();
+    }
+  }
+#ifdef __wasi__
+  if (trace_dynamic_function) {
+    PrintF("Wasm32CreateDynamicFunction source #%d len=%d params_end=%d",
+           trace_dynamic_function_index, source->length(), parameters_end_pos);
+    PrintStringPreviewForTrace(" source", *source, 0, 160);
+    PrintF("\n");
+  }
+#endif
+
+  bool is_code_like = true;
+  for (int i = 0; i < actual_argc; ++i) {
+    DirectHandle<Object> argument(
+        Tagged<Object>(SafeTaggedOrUndefined(isolate, argv[i])), isolate);
+    if (!Object::IsCodeLike(*argument, isolate)) {
+      is_code_like = false;
+      break;
+    }
+  }
+#ifdef __wasi__
+  if (trace_dynamic_function) {
+    PrintF("Wasm32CreateDynamicFunction before compile #%d code_like=%d\n",
+           trace_dynamic_function_index, is_code_like ? 1 : 0);
+  }
+#endif
+
+  if (actual_argc <= 1 &&
+      (actual_argc == 0 ||
+       IsUndefined(Tagged<Object>(SafeTaggedOrUndefined(isolate, argv[0])),
+                   isolate))) {
+    DirectHandle<JSFunction> empty_function(native_context->empty_function(),
+                                            isolate);
+#ifdef __wasi__
+    if (trace_dynamic_function) {
+      PrintF("Wasm32CreateDynamicFunction empty fast-path #%d ",
+             trace_dynamic_function_index);
+      DumpRuntimeArg("function", 0, (*empty_function).ptr());
+      PrintF("\n");
+    }
+#endif
+    return empty_function;
+  }
+
+  DirectHandle<JSFunction> compiled_function;
+  if (!Compiler::GetFunctionFromString(
+           isolate, native_context, indirect_handle(source, isolate),
+           parameters_end_pos, is_code_like)
+           .ToHandle(&compiled_function)) {
+    return MaybeDirectHandle<Object>();
+  }
+#ifdef __wasi__
+  if (trace_dynamic_function) {
+    PrintF("Wasm32CreateDynamicFunction after compile #%d ",
+           trace_dynamic_function_index);
+    DumpRuntimeArg("compiled", 0, (*compiled_function).ptr());
+    PrintF("\n");
+  }
+#endif
+
+  DirectHandle<Object> result;
+  if (!Execution::Call(isolate, compiled_function, target_global_proxy, {})
+           .ToHandle(&result)) {
+    return MaybeDirectHandle<Object>();
+  }
+#ifdef __wasi__
+  if (trace_dynamic_function) {
+    PrintF("Wasm32CreateDynamicFunction after call #%d ",
+           trace_dynamic_function_index);
+    DumpRuntimeArg("result", 0, (*result).ptr());
+    PrintF("\n");
+  }
+#endif
+  compiled_function = Cast<JSFunction>(result);
+  compiled_function->shared()->set_name_should_print_as_anonymous(true);
+
+  DirectHandle<Object> unchecked_new_target(
+      Tagged<Object>(SafeTaggedOrUndefined(isolate, new_target)), isolate);
+  if (!IsUndefined(*unchecked_new_target, isolate) &&
+      !unchecked_new_target.is_identical_to(target)) {
+    if (!IsJSReceiver(*unchecked_new_target)) {
+      return MaybeDirectHandle<Object>();
+    }
+    DirectHandle<JSReceiver> constructor_new_target =
+        Cast<JSReceiver>(unchecked_new_target);
+    DirectHandle<Map> initial_map;
+    if (!JSFunction::GetDerivedMap(isolate, target, constructor_new_target)
+             .ToHandle(&initial_map)) {
+      return MaybeDirectHandle<Object>();
+    }
+
+    DirectHandle<SharedFunctionInfo> shared_info(compiled_function->shared(),
+                                                 isolate);
+    DirectHandle<Map> map =
+        Map::AsLanguageMode(isolate, initial_map, shared_info);
+    DirectHandle<Context> context(compiled_function->context(), isolate);
+    compiled_function =
+        Factory::JSFunctionBuilder{isolate, shared_info, context}
+            .set_map(map)
+            .set_allocation_type(AllocationType::kYoung)
+            .Build();
+  }
+
+#ifdef __wasi__
+  if (trace_dynamic_function) {
+    PrintF("Wasm32CreateDynamicFunction return #%d ",
+           trace_dynamic_function_index);
+    DumpRuntimeArg("function", 0, (*compiled_function).ptr());
+    PrintF("\n");
+  }
+#endif
+  return compiled_function;
+}
+
 bool TryFallbackJSEntryBuiltin(Isolate* isolate, Builtin builtin,
                                Tagged<JSFunction> function, Address receiver,
                                Address new_target, int actual_argc,
                                Address* argv, Address* out_result) {
   ReadOnlyRoots roots(isolate);
+#ifdef __wasi__
+  static int wasm_try_fallback_api_entry_count = 0;
+  if ((builtin == Builtin::kHandleApiCallOrConstruct ||
+       builtin == Builtin::kCallApiCallbackGeneric ||
+       builtin == Builtin::kCallApiCallbackOptimizedNoProfiling ||
+       builtin == Builtin::kCallApiCallbackOptimized) &&
+      kTraceWasmFallbackDetails &&
+      wasm_try_fallback_api_entry_count < 64) {
+    ++wasm_try_fallback_api_entry_count;
+    Tagged<SharedFunctionInfo> entry_shared = Wasm32JSFunctionShared(function);
+    PrintF("TryFallbackJSEntryBuiltin: API entry #%d builtin=%s "
+           "actual_argc=%d is_api=%d function=0x%x\n",
+           wasm_try_fallback_api_entry_count, Builtins::name(builtin),
+           actual_argc, entry_shared->IsApiFunction() ? 1 : 0,
+           static_cast<unsigned>(function.ptr()));
+  }
+#endif
   if (builtin == Builtin::kCompileLazy) {
     Tagged<Context> saved_context = isolate->context();
     isolate->set_context(Wasm32JSFunctionContext(function));
@@ -8650,6 +9302,30 @@ bool TryFallbackJSEntryBuiltin(Isolate* isolate, Builtin builtin,
     if (TryOrdinaryHasInstanceForWasm(isolate, receiver, value, out_result)) {
       return true;
     }
+  }
+
+  if (builtin == Builtin::kFunctionConstructor) {
+    Tagged<Context> saved_context = isolate->context();
+    Tagged<Context> function_context = Wasm32JSFunctionContext(function);
+    isolate->set_context(function_context);
+
+    HandleScope scope(isolate);
+    DirectHandle<Object> result;
+    if (!Wasm32CreateDynamicFunction(isolate, function, new_target,
+                                     actual_argc, argv, "function")
+             .ToHandle(&result)) {
+      isolate->set_context(saved_context);
+      *out_result = roots.exception().ptr();
+      return true;
+    }
+
+    *out_result = (*result).ptr();
+    isolate->set_context(saved_context);
+    if (kTraceWasmFallbackDetails) {
+      PrintF("WasmJSEntry: fallback FunctionConstructor result=0x%x\n",
+             static_cast<unsigned>(*out_result));
+    }
+    return true;
   }
 
   if (builtin == Builtin::kIsTraceCategoryEnabled) {
@@ -8725,6 +9401,64 @@ bool TryFallbackJSEntryBuiltin(Isolate* isolate, Builtin builtin,
     *out_result = (*wrapper).ptr();
     isolate->set_context(saved_context);
     return true;
+  }
+
+  if (builtin == Builtin::kObjectGetPrototypeOf) {
+    Tagged<Context> saved_context = isolate->context();
+    isolate->set_context(Wasm32JSFunctionContext(function));
+
+    HandleScope scope(isolate);
+    DirectHandle<Object> target(
+        Tagged<Object>(actual_argc > 0
+                           ? SafeTaggedOrUndefined(isolate, argv[0])
+                           : roots.undefined_value().ptr()),
+        isolate);
+    DirectHandle<JSReceiver> object;
+    if (!Object::ToObject(isolate, target, "Object.getPrototypeOf")
+             .ToHandle(&object)) {
+      isolate->set_context(saved_context);
+      *out_result = roots.exception().ptr();
+      return true;
+    }
+
+    DirectHandle<JSPrototype> prototype;
+    if (!JSReceiver::GetPrototype(isolate, object).ToHandle(&prototype)) {
+      isolate->set_context(saved_context);
+      *out_result = roots.exception().ptr();
+      return true;
+    }
+    *out_result = (*prototype).ptr();
+    isolate->set_context(saved_context);
+    if (kTraceWasmFallbackDetails) {
+      PrintF("WasmJSEntry: fallback ObjectGetPrototypeOf result=0x%x\n",
+             static_cast<unsigned>(*out_result));
+    }
+    return true;
+  }
+
+  if (builtin == Builtin::kArrayForEach) {
+    if (actual_argc > kMaxWasmCallArgs) {
+      *out_result = roots.exception().ptr();
+      return true;
+    }
+
+    Tagged<Context> saved_context = isolate->context();
+    isolate->set_context(Wasm32JSFunctionContext(function));
+
+    HandleScope scope(isolate);
+    DirectHandle<Object> callable = direct_handle(function, isolate);
+    DirectHandle<Object> receiver_object(
+        Tagged<Object>(SafeTaggedOrUndefined(isolate, receiver)), isolate);
+    DirectHandle<Object> args[kMaxWasmCallArgs];
+    for (int i = 0; i < actual_argc; ++i) {
+      args[i] = direct_handle(
+          Tagged<Object>(SafeTaggedOrUndefined(isolate, argv[i])), isolate);
+    }
+
+    bool handled = TryRunArrayForEachBuiltin(
+        isolate, callable, receiver_object, actual_argc, args, out_result);
+    isolate->set_context(saved_context);
+    return handled;
   }
 
   if (builtin == Builtin::kBooleanConstructor) {
@@ -9016,10 +9750,30 @@ bool TryFallbackJSEntryBuiltin(Isolate* isolate, Builtin builtin,
       api_fallback_probe_count++;
     }
 #endif
-    if (!shared->IsApiFunction()) return false;
+    if (!shared->IsApiFunction()) {
+#ifdef __wasi__
+      static int wasm_non_api_handle_api_trace_count = 0;
+      if (kTraceWasmFallbackDetails &&
+          wasm_non_api_handle_api_trace_count < 64) {
+        ++wasm_non_api_handle_api_trace_count;
+        PrintF("WasmJSEntry: API fallback rejected non-api #%d builtin=%s ",
+               wasm_non_api_handle_api_trace_count, Builtins::name(builtin));
+        DumpRuntimeArg("function", 0, function.ptr());
+        PrintF(" sfi=0x%x name=", static_cast<unsigned>(shared.ptr()));
+        DumpNameForTrace(shared->Name());
+        PrintF(" kind=%d has_api_data=%d data=",
+               static_cast<int>(shared->kind()),
+               IsFunctionTemplateInfo(shared->GetUntrustedData()) ? 1 : 0);
+        DumpRuntimeArg("data", 0, shared->GetUntrustedData().ptr());
+        PrintF("\n");
+      }
+#endif
+      return false;
+    }
 
     Tagged<Context> saved_context = isolate->context();
-    Tagged<Context> api_context = Wasm32JSFunctionContext(function);
+    Tagged<Context> function_context = Wasm32JSFunctionContext(function);
+    Tagged<Context> api_context = function_context;
     bool using_caller_context = false;
     Address caller_context_address = CurrentInterpreterContext();
     if (IsReadableTaggedHeapObject(caller_context_address,
@@ -9031,8 +9785,11 @@ bool TryFallbackJSEntryBuiltin(Isolate* isolate, Builtin builtin,
       using_caller_context = true;
     }
     Tagged<Context> api_native_context = api_context;
-    if (!IsNativeContext(api_native_context)) {
-      api_native_context = api_native_context->native_context();
+    if (!TryResolveWasm32NativeContext(api_context, &api_native_context) &&
+        !TryResolveWasm32NativeContext(function_context, &api_native_context) &&
+        !TryResolveWasm32NativeContext(saved_context, &api_native_context)) {
+      *out_result = roots.exception().ptr();
+      return true;
     }
     static int api_context_trace_count = 0;
     if (kTraceWasmFallbackDetails && api_context_trace_count < 16) {
@@ -9046,7 +9803,7 @@ bool TryFallbackJSEntryBuiltin(Isolate* isolate, Builtin builtin,
              IsHeapObject(api_native_context)
                  ? api_native_context->map()->instance_type()
                  : -1,
-             static_cast<unsigned>(Wasm32JSFunctionContext(function).ptr()));
+             static_cast<unsigned>(function_context.ptr()));
       api_context_trace_count++;
     }
     v8::Locker locker(reinterpret_cast<v8::Isolate*>(isolate));
@@ -9090,6 +9847,22 @@ bool TryFallbackJSEntryBuiltin(Isolate* isolate, Builtin builtin,
       api_args[i] = DirectHandle<Object>(rooted_api_args[i]);
     }
 #ifdef __wasi__
+    static int wasm_api_probe_always_count = 0;
+    bool trace_api_probe_always =
+        kTraceWasmFallbackDetails && wasm_api_probe_always_count < 64;
+    if (trace_api_probe_always) {
+      ++wasm_api_probe_always_count;
+      PrintF("WasmJSEntry: API probe #%d builtin=%s argc=%d name=",
+             wasm_api_probe_always_count, Builtins::name(builtin), api_argc);
+      DumpNameForTrace(shared->Name());
+      DumpRuntimeArg(" receiver", 0, (*api_receiver).ptr());
+      for (int i = 0; i < api_argc && i < 4; ++i) {
+        DumpRuntimeArg(" arg", i, (*api_args[i]).ptr());
+      }
+      PrintF(" context=0x%x native=0x%x\n",
+             static_cast<unsigned>(api_context.ptr()),
+             static_cast<unsigned>(api_native_context.ptr()));
+    }
     static int api_fallback_args_trace_count = 0;
     bool trace_cjs_loader_api_args =
         kTraceWasmFallbackDetails &&
@@ -9146,6 +9919,16 @@ bool TryFallbackJSEntryBuiltin(Isolate* isolate, Builtin builtin,
       state.Restore();
     }
 #ifdef __wasi__
+    if (trace_api_probe_always) {
+      PrintF("WasmJSEntry: API probe result #%d empty=%d has_exception=%d ",
+             wasm_api_probe_always_count, maybe_result.is_null() ? 1 : 0,
+             isolate->has_exception() ? 1 : 0);
+      DirectHandle<Object> probe_result;
+      if (maybe_result.ToHandle(&probe_result)) {
+        DumpRuntimeArg("result", 0, (*probe_result).ptr());
+      }
+      PrintF("\n");
+    }
     if (trace_api_invoke) {
       PrintF("WasmJSEntry: API fallback after InvokeApiFunction empty=%d "
              "has_exception=%d name=",
@@ -9414,7 +10197,8 @@ bool TryFallbackJSEntryBuiltin(Isolate* isolate, Builtin builtin,
     return true;
   }
 
-  if (builtin == Builtin::kArrayPrototypeJoin) {
+  if (builtin == Builtin::kArrayPrototypeJoin ||
+      builtin == Builtin::kArrayPrototypeToString) {
     Tagged<Context> saved_context = isolate->context();
     isolate->set_context(Wasm32JSFunctionContext(function));
 
@@ -9447,7 +10231,7 @@ bool TryFallbackJSEntryBuiltin(Isolate* isolate, Builtin builtin,
     const uint32_t length = static_cast<uint32_t>(raw_length);
 
     DirectHandle<String> separator = isolate->factory()->comma_string();
-    if (actual_argc > 0) {
+    if (builtin == Builtin::kArrayPrototypeJoin && actual_argc > 0) {
       DirectHandle<Object> separator_object(
           Tagged<Object>(SafeTaggedOrUndefined(isolate, argv[0])), isolate);
       if (!IsUndefined(*separator_object, roots)) {
@@ -9931,8 +10715,14 @@ bool TryFallbackJSEntryBuiltin(Isolate* isolate, Builtin builtin,
       return true;
     }
 
-    DirectHandle<Map> iterator_map(
-        isolate->native_context()->initial_array_iterator_map(), isolate);
+    DirectHandle<Map> iterator_map;
+    if (!TryFindNativeContextMapByInstanceType(
+            isolate, JS_ARRAY_ITERATOR_TYPE, &iterator_map)) {
+      isolate->set_context(saved_context);
+      PrintF("WasmJSEntry: missing array iterator map\n");
+      *out_result = roots.exception().ptr();
+      return true;
+    }
     DirectHandle<JSArrayIterator> iterator =
         Cast<JSArrayIterator>(isolate->factory()->NewJSObjectFromMap(
             iterator_map, AllocationType::kYoung));
@@ -10175,7 +10965,7 @@ bool TryFallbackJSEntryBuiltin(Isolate* isolate, Builtin builtin,
       return true;
     }
     DirectHandle<JSObject> descriptors =
-        isolate->factory()->NewJSObject(isolate->object_function());
+        NewWasm32PlainJSObject(isolate);
     for (int i = 0; i < keys->length(); ++i) {
       DirectHandle<Name> key(Cast<Name>(keys->get(i)), isolate);
       PropertyDescriptor desc;
@@ -11321,7 +12111,6 @@ extern "C" void WasmInterpreterEntryTrampoline() {
   Address new_target = g_wasm_regs[SlotFor(kJavaScriptCallNewTargetRegister)];
   int argc =
       static_cast<int>(g_wasm_regs[SlotFor(kJavaScriptCallArgCountRegister)]);
-
   if (kTraceWasmInterpreterSteps) {
     PrintF("WasmInterpreterEntryTrampoline: target=0x%x new_target=0x%x "
            "argc=%d\n",
@@ -11338,6 +12127,17 @@ extern "C" void WasmInterpreterEntryTrampoline() {
 
   Tagged<JSFunction> function = Cast<JSFunction>(target_object);
   Tagged<SharedFunctionInfo> shared = Wasm32JSFunctionShared(function);
+#ifdef __wasi__
+  if (kTraceWasmFallbackDetails &&
+      FunctionMatchesWasmEvalTraceNeedle(shared)) {
+    PrintF("WasmInterpreterEntryTrampoline: eval probe target=0x%x "
+           "new_target=0x%x argc=%d has_bytecode=%d ",
+           static_cast<unsigned>(target), static_cast<unsigned>(new_target),
+           argc, shared->HasBytecodeArray() ? 1 : 0);
+    DumpFunctionSourceForTrace(target);
+    PrintF("\n");
+  }
+#endif
   if (!shared->HasBytecodeArray()) {
     PrintF("WasmInterpreterEntryTrampoline: missing bytecode array "
            "target=0x%x sfi=0x%x builtin=%d kind=%d name=",
@@ -11372,13 +12172,27 @@ extern "C" void WasmInterpreterEntryTrampoline() {
   int trace_entry_index = -1;
 #ifdef __wasi__
   bool trace_per_context_primordials =
+      kTraceWasmFallbackDetails &&
       FunctionMatchesPerContextPrimordialsTraceNeedle(shared);
   bool trace_eval_source =
       kTraceWasmFallbackDetails && FunctionMatchesWasmEvalTraceNeedle(shared);
-  if ((trace_per_context_primordials &&
+  bool trace_domexception =
+      kTraceWasmFallbackDetails &&
+      FunctionScriptNameContainsAsciiForTrace(
+          shared, "node:internal/per_context/domexception");
+  bool trace_bootstrap_realm_source =
+      kTraceWasmFallbackDetails &&
+      FunctionScriptNameContainsAsciiForTrace(shared,
+                                             "node:internal/bootstrap/realm");
+  bool trace_bootstrap_entry =
+      kTraceWasmFallbackDetails &&
+      (trace_domexception || wasm_interpreter_entry_trace_count < 2);
+  if (trace_bootstrap_entry ||
+      (trace_per_context_primordials &&
        wasm_interpreter_entry_trace_count < 32) ||
-      (kTraceWasmFallbackDetails &&
-       (trace_eval_source || wasm_interpreter_entry_trace_count < 12))) {
+      trace_eval_source ||
+      trace_bootstrap_realm_source ||
+      (kTraceWasmFallbackDetails && wasm_interpreter_entry_trace_count < 12)) {
     trace_entry_index = wasm_interpreter_entry_trace_count++;
     trace_entry_steps = true;
     PrintF("WasmInterpreterEntryTrace: enter #%d eval_match=%d "
@@ -11554,12 +12368,17 @@ extern "C" void WasmInterpreterEntryTrampoline() {
         kTraceWasmFallbackDetails && bytecode->length() == 2762 &&
         shared->StartPosition() == 0 && shared->EndPosition() == 27082 &&
         bytecode_index >= 1230 && bytecode_index <= 1305;
+    bool trace_copy_prototype_loop =
+        kTraceWasmFallbackDetails &&
+        FunctionMatchesPerContextPrimordialsCopyPrototype(shared) &&
+        bytecode_index >= 0 && bytecode_index <= 65 && step < 260;
     bool should_log_step =
         trace_collection_followup || trace_fs_utils_ownkeys ||
-        (trace_entry_steps && step < 96) ||
+        trace_copy_prototype_loop ||
+        (trace_entry_steps && (step < 260 || (step % 100000) == 0)) ||
 #ifdef __wasi__
         (trace_per_context_primordials &&
-         (step < 160 || (step % 100000) == 0)) ||
+         (step < 260 || (step % 100000) == 0)) ||
 #endif
         (kTraceWasmInterpreterSteps &&
          (step < 16 || bytecode_enum == interpreter::Bytecode::kCreateClosure ||
@@ -11669,7 +12488,8 @@ extern "C" void WasmInterpreterEntryTrampoline() {
                 interpreter::Register::FromParameterIndex(parameter_index)));
       }
       int logged_register_count =
-          trace_fs_utils_ownkeys || (step >= 420 && step <= 440)
+          trace_fs_utils_ownkeys || trace_copy_prototype_loop ||
+                  (step >= 420 && step <= 440)
               ? register_count
               : (register_count < 8 ? register_count : 8);
 #ifdef __wasi__
@@ -11853,6 +12673,20 @@ extern "C" void WasmInterpreterEntryTrampoline() {
                                            &fallback_result);
       if (should_log_step) {
         PrintF("  fallback TestTypeOf result=0x%x\n",
+               static_cast<unsigned>(fallback_result));
+      }
+      current_offset +=
+          interpreter::Bytecodes::Size(bytecode_enum, operand_scale);
+      operand_scale = interpreter::OperandScale::kSingle;
+      continue;
+    }
+    if (TryRunBooleanConversionBytecode(isolate, bytecode_enum,
+                                        &fallback_result)) {
+      PublishWasmInterpreterFallbackResult(isolate, "bytecode fallback",
+                                           &fallback_result);
+      if (should_log_step) {
+        PrintF("  fallback %s result=0x%x\n",
+               interpreter::Bytecodes::ToString(bytecode_enum),
                static_cast<unsigned>(fallback_result));
       }
       current_offset +=
@@ -12251,6 +13085,19 @@ extern "C" void WasmInterpreterEntryTrampoline() {
       operand_scale = interpreter::OperandScale::kSingle;
       continue;
     }
+    if (TryRunCreateEmptyArrayLiteralBytecode(isolate, bytecode_enum,
+                                              &fallback_result)) {
+      PublishWasmInterpreterFallbackResult(isolate, "bytecode fallback",
+                                           &fallback_result);
+      if (should_log_step) {
+        PrintF("  fallback CreateEmptyArrayLiteral result=0x%x\n",
+               static_cast<unsigned>(fallback_result));
+      }
+      current_offset +=
+          interpreter::Bytecodes::Size(bytecode_enum, operand_scale);
+      operand_scale = interpreter::OperandScale::kSingle;
+      continue;
+    }
     if (TryRunStaInArrayLiteralBytecode(isolate, bytecode, bytecode_index,
                                         bytecode_enum, operand_scale,
                                         &fallback_result)) {
@@ -12537,18 +13384,26 @@ extern "C" Address WasmJSEntry(Address root, Address new_target, Address target,
   Tagged<Context> function_context = Wasm32JSFunctionContext(function);
   Address entry = code->instruction_start();
 #ifdef __wasi__
-  if (kTraceWasmJSEntry && shared->is_script()) {
+  bool trace_eval_js_entry =
+      kTraceWasmJSEntry && FunctionMatchesWasmEvalTraceNeedle(shared);
+  if (kTraceWasmJSEntry && (shared->is_script() || trace_eval_js_entry)) {
     static int wasm_js_entry_script_trace_count = 0;
-    if (wasm_js_entry_script_trace_count < 32) {
+    if (wasm_js_entry_script_trace_count < 64) {
       ++wasm_js_entry_script_trace_count;
       PrintF("WasmJSEntry: script entry #%d receiver=0x%x actual_argc=%d "
-             "code_builtin=%d builtin_id=%d builtin_name=%s entry=0x%x ",
+             "eval_match=%d code_builtin=%d builtin_id=%d builtin_name=%s "
+             "entry=0x%x builtin_funcref=0x%x ",
              wasm_js_entry_script_trace_count,
              static_cast<unsigned>(receiver), actual_argc,
+             trace_eval_js_entry ? 1 : 0,
              code->is_builtin() ? 1 : 0,
              code->is_builtin() ? static_cast<int>(code->builtin_id()) : -1,
              code->is_builtin() ? Builtins::name(code->builtin_id()) : "<none>",
-             static_cast<unsigned>(entry));
+             static_cast<unsigned>(entry),
+             code->is_builtin()
+                 ? static_cast<unsigned>(reinterpret_cast<Address>(
+                       WasmBuiltinFuncref(code->builtin_id())))
+                 : 0);
       DumpFunctionSourceForTrace(target);
       for (int i = 0; i < actual_argc && i < 4; ++i) {
         DumpRuntimeArg(" script_arg", i,
@@ -12588,6 +13443,24 @@ extern "C" Address WasmJSEntry(Address root, Address new_target, Address target,
   if (code->is_builtin()) {
     Builtin builtin = code->builtin_id();
 #ifdef __wasi__
+    static int wasm_js_entry_api_dispatch_trace_count = 0;
+    if ((builtin == Builtin::kHandleApiCallOrConstruct ||
+         builtin == Builtin::kCallApiCallbackGeneric ||
+         builtin == Builtin::kCallApiCallbackOptimizedNoProfiling ||
+         builtin == Builtin::kCallApiCallbackOptimized ||
+         std::strstr(Builtins::name(builtin), "Api") != nullptr) &&
+        kTraceWasmJSEntry &&
+        wasm_js_entry_api_dispatch_trace_count < 64) {
+      ++wasm_js_entry_api_dispatch_trace_count;
+      PrintF("WasmJSEntry: api dispatch #%d builtin_id=%d name=%s "
+             "target=0x%x actual_argc=%d shared=0x%x is_api=%d ",
+             wasm_js_entry_api_dispatch_trace_count, static_cast<int>(builtin),
+             Builtins::name(builtin), static_cast<unsigned>(target),
+             actual_argc, static_cast<unsigned>(shared.ptr()),
+             shared->IsApiFunction() ? 1 : 0);
+      DumpNameForTrace(shared->Name());
+      PrintF("\n");
+    }
     if (kTraceWasmJSEntry && builtin == Builtin::kObjectDefineProperty) {
       static int object_define_entry_trace_count = 0;
       bool trace_object_define_entry =
