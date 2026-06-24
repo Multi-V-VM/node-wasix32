@@ -709,7 +709,25 @@ void Map::ReplaceDescriptors(Isolate* isolate,
 Tagged<Map> Map::FindRootMap(PtrComprCageBase cage_base) const {
   DisallowGarbageCollection no_gc;
   Tagged<Map> result = *this;
+#if defined(__wasi__)
+  std::fprintf(stderr, "Map::FindRootMap enter this=0x%zx\n",
+               static_cast<size_t>(result.ptr()));
+  std::fflush(stderr);
+#endif
   while (true) {
+#if defined(__wasi__)
+    Tagged<Object> raw_back =
+        result->constructor_or_back_pointer(cage_base, kRelaxedLoad);
+    std::fprintf(stderr,
+                 "Map::FindRootMap loop result=0x%zx meta=0x%zx raw_back=0x%zx "
+                 "nof=%d inst_size=%d type=%u\n",
+                 static_cast<size_t>(result.ptr()),
+                 static_cast<size_t>(result->map(cage_base).ptr()),
+                 static_cast<size_t>(raw_back.ptr()),
+                 result->NumberOfOwnDescriptors(), result->instance_size(),
+                 static_cast<unsigned>(result->instance_type()));
+    std::fflush(stderr);
+#endif
     Tagged<Map> parent;
     if (!result->TryGetBackPointer(cage_base, &parent)) {
       // Initial map must not contain descriptors in the descriptors array
@@ -717,8 +735,19 @@ Tagged<Map> Map::FindRootMap(PtrComprCageBase cage_base) const {
       DCHECK_LE(result->NumberOfOwnDescriptors(),
                 result->instance_descriptors(cage_base, kRelaxedLoad)
                     ->number_of_descriptors());
+#if defined(__wasi__)
+      std::fprintf(stderr, "Map::FindRootMap return result=0x%zx\n",
+                   static_cast<size_t>(result.ptr()));
+      std::fflush(stderr);
+#endif
       return result;
     }
+#if defined(__wasi__)
+    std::fprintf(stderr, "Map::FindRootMap parent result=0x%zx parent=0x%zx\n",
+                 static_cast<size_t>(result.ptr()),
+                 static_cast<size_t>(parent.ptr()));
+    std::fflush(stderr);
+#endif
     result = parent;
   }
 }

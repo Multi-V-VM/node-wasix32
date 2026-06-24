@@ -11,6 +11,9 @@
 #include "src/handles/handles-inl.h"
 #include "src/objects/js-proxy.h"
 #include "src/objects/map-inl.h"
+#if defined(__wasi__)
+#include <cstdio>
+#endif
 
 namespace v8 {
 namespace internal {
@@ -82,13 +85,30 @@ bool PrototypeIterator::HasAccess() const {
 }
 
 void PrototypeIterator::Advance() {
+#if defined(__wasi__)
+  Tagged<JSPrototype> current = handle_.is_null() ? object_ : *handle_;
+  std::fprintf(stderr,
+               "PrototypeIterator::Advance enter handle_null=%d current=0x%zx "
+               "is_at_end=%d where_to_end=%d seen=%d\n",
+               handle_.is_null(), static_cast<size_t>(current.ptr()),
+               is_at_end_, where_to_end_, seen_proxies_);
+  std::fflush(stderr);
+#endif
   if (handle_.is_null() && IsJSProxy(object_)) {
     is_at_end_ = true;
     object_ = ReadOnlyRoots(isolate_).null_value();
+#if defined(__wasi__)
+    std::fprintf(stderr, "PrototypeIterator::Advance jsproxy object -> null\n");
+    std::fflush(stderr);
+#endif
     return;
   } else if (!handle_.is_null() && IsJSProxy(*handle_)) {
     is_at_end_ = true;
     handle_ = isolate_->factory()->null_value();
+#if defined(__wasi__)
+    std::fprintf(stderr, "PrototypeIterator::Advance jsproxy handle -> null\n");
+    std::fflush(stderr);
+#endif
     return;
   }
   AdvanceIgnoringProxies();
@@ -96,9 +116,26 @@ void PrototypeIterator::Advance() {
 
 void PrototypeIterator::AdvanceIgnoringProxies() {
   Tagged<JSPrototype> object = handle_.is_null() ? object_ : *handle_;
+#if defined(__wasi__)
+  std::fprintf(stderr,
+               "PrototypeIterator::AdvanceIgnoringProxies before map "
+               "handle_null=%d object=0x%zx is_at_end=%d\n",
+               handle_.is_null(), static_cast<size_t>(object.ptr()),
+               is_at_end_);
+  std::fflush(stderr);
+#endif
   Tagged<Map> map = object->map();
 
   Tagged<JSPrototype> prototype = map->prototype();
+#if defined(__wasi__)
+  std::fprintf(stderr,
+               "PrototypeIterator::AdvanceIgnoringProxies after read "
+               "object=0x%zx map=0x%zx prototype=0x%zx map_type=%u\n",
+               static_cast<size_t>(object.ptr()), static_cast<size_t>(map.ptr()),
+               static_cast<size_t>(prototype.ptr()),
+               static_cast<unsigned>(map->instance_type()));
+  std::fflush(stderr);
+#endif
   is_at_end_ = IsNull(prototype, isolate_) ||
                (where_to_end_ == END_AT_NON_HIDDEN && !IsJSGlobalProxyMap(map));
 

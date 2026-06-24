@@ -8,6 +8,10 @@
 #include "src/objects/map.h"
 // Include the non-inl header before the rest of the headers.
 
+#if defined(__wasi__)
+#include <cstdio>
+#endif
+
 #include "src/heap/heap-layout-inl.h"
 #include "src/heap/heap-write-barrier-inl.h"
 #include "src/objects/api-callbacks-inl.h"
@@ -845,6 +849,22 @@ bool Map::TryGetBackPointer(PtrComprCageBase cage_base,
 void Map::SetBackPointer(Tagged<HeapObject> value, WriteBarrierMode mode) {
   CHECK_GE(instance_type(), FIRST_JS_RECEIVER_TYPE);
   CHECK(IsMap(value));
+#if defined(__wasi__)
+  Tagged<Object> debug_constructor = constructor_or_back_pointer();
+  Tagged<HeapObject> debug_back_pointer = GetBackPointer();
+  std::fprintf(stderr,
+               "Map::SetBackPointer self=0x%lx value=0x%lx ctor_or_back=0x%lx "
+               "get_back=0x%lx value_ctor=0x%lx self_type=%d value_type=%d\n",
+               static_cast<unsigned long>(ptr()),
+               static_cast<unsigned long>(value.ptr()),
+               static_cast<unsigned long>(debug_constructor.ptr()),
+               static_cast<unsigned long>(debug_back_pointer.ptr()),
+               static_cast<unsigned long>(
+                   Cast<Map>(value)->GetConstructorRaw().ptr()),
+               static_cast<int>(instance_type()),
+               static_cast<int>(Cast<Map>(value)->instance_type()));
+  std::fflush(stderr);
+#endif
   CHECK(IsUndefined(GetBackPointer()));
   CHECK_EQ(Cast<Map>(value)->GetConstructorRaw(),
            constructor_or_back_pointer());

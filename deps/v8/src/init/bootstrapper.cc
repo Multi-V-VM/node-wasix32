@@ -552,18 +552,45 @@ V8_NOINLINE DirectHandle<JSFunction> InstallFunction(
       CreateFunction(isolate, name, type, instance_size, inobject_properties,
                      prototype, call, len, adapt);
 #if defined(__wasi__)
+  std::fprintf(stderr, "InstallFunction before AddProperty begin\n");
+  std::fflush(stderr);
+  std::fprintf(stderr, "InstallFunction before target ptr\n");
+  std::fflush(stderr);
+  Address debug_target = (*target).ptr();
+  std::fprintf(stderr, "InstallFunction target ptr=0x%lx\n",
+               static_cast<unsigned long>(debug_target));
+  std::fflush(stderr);
+  std::fprintf(stderr, "InstallFunction before name ptr\n");
+  std::fflush(stderr);
+  Address debug_name = (*name).ptr();
+  std::fprintf(stderr, "InstallFunction name ptr=0x%lx\n",
+               static_cast<unsigned long>(debug_name));
+  std::fflush(stderr);
+  std::fprintf(stderr, "InstallFunction before function ptr\n");
+  std::fflush(stderr);
+  Address debug_function = (*function).ptr();
+  std::fprintf(stderr, "InstallFunction function ptr=0x%lx\n",
+               static_cast<unsigned long>(debug_function));
+  std::fflush(stderr);
+  std::fprintf(stderr, "InstallFunction before target map\n");
+  std::fflush(stderr);
+  Address debug_target_map = target->map().ptr();
+  std::fprintf(stderr, "InstallFunction target map=0x%lx\n",
+               static_cast<unsigned long>(debug_target_map));
+  std::fflush(stderr);
   std::fprintf(stderr,
                "InstallFunction before AddProperty target=0x%lx name=0x%lx "
                "function=0x%lx target_map=0x%lx call=%d\n",
-               static_cast<unsigned long>((*target).ptr()),
-               static_cast<unsigned long>((*name).ptr()),
-               static_cast<unsigned long>((*function).ptr()),
-               static_cast<unsigned long>(target->map().ptr()),
-               static_cast<int>(call));
+               static_cast<unsigned long>(debug_target),
+               static_cast<unsigned long>(debug_name),
+               static_cast<unsigned long>(debug_function),
+               static_cast<unsigned long>(debug_target_map), static_cast<int>(call));
   std::fflush(stderr);
 #endif
   JSObject::AddProperty(isolate, target, name, function, DONT_ENUM);
 #if defined(__wasi__)
+  std::fprintf(stderr, "InstallFunction after AddProperty begin\n");
+  std::fflush(stderr);
   std::fprintf(stderr,
                "InstallFunction after AddProperty target=0x%lx name=0x%lx "
                "function=0x%lx target_map=0x%lx\n",
@@ -2293,6 +2320,15 @@ void Genesis::InitializeGlobal(DirectHandle<JSGlobalObject> global_object,
   // --- N a t i v e   C o n t e x t ---
   // Set extension and global object.
   native_context()->set_extension(*global_object);
+#if defined(__wasi__)
+  std::fprintf(stderr,
+               "InitializeGlobal after set_extension native_context=0x%lx "
+               "global_object=0x%lx extension=0x%lx\n",
+               static_cast<unsigned long>((*native_context()).ptr()),
+               static_cast<unsigned long>((*global_object).ptr()),
+               static_cast<unsigned long>(native_context()->extension().ptr()));
+  std::fflush(stderr);
+#endif
   // Security setup: Set the security token of the native context to the global
   // object. This makes the security check between two different contexts fail
   // by default even in case of global object reinitialization.
@@ -2457,6 +2493,15 @@ void Genesis::InitializeGlobal(DirectHandle<JSGlobalObject> global_object,
                           Builtin::kObjectPrototypeToLocaleString, 0, kAdapt);
   }
 
+#if defined(__wasi__)
+  std::fprintf(stderr,
+               "InitializeGlobal before global handle native_context=0x%lx "
+               "extension=0x%lx global_arg=0x%lx\n",
+               static_cast<unsigned long>((*native_context()).ptr()),
+               static_cast<unsigned long>(native_context()->extension().ptr()),
+               static_cast<unsigned long>((*global_object).ptr()));
+  std::fflush(stderr);
+#endif
   DirectHandle<JSObject> global(native_context()->global_object(), isolate());
 
   {  // --- F u n c t i o n ---

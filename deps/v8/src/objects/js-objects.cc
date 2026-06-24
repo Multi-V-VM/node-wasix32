@@ -5329,6 +5329,15 @@ Maybe<bool> JSObject::SetPrototype(Isolate* isolate,
                                    DirectHandle<Object> value_obj,
                                    bool from_javascript,
                                    ShouldThrow should_throw) {
+#if defined(__wasi__)
+  std::fprintf(stderr,
+               "JSObject::SetPrototype entry object=0x%zx value_obj=0x%zx "
+               "from_js=%d should_throw=%d\n",
+               static_cast<size_t>((*object).ptr()),
+               static_cast<size_t>((*value_obj).ptr()), from_javascript,
+               static_cast<int>(should_throw));
+  std::fflush(stderr);
+#endif
 #ifdef DEBUG
   int size = object->Size();
 #endif
@@ -5348,6 +5357,15 @@ Maybe<bool> JSObject::SetPrototype(Isolate* isolate,
   // SpiderMonkey behaves this way.
   DirectHandle<JSPrototype> value;
   if (!TryCast(value_obj, &value)) return Just(true);
+#if defined(__wasi__)
+  std::fprintf(stderr,
+               "JSObject::SetPrototype cast value=0x%zx object_map=0x%zx "
+               "current_proto=0x%zx\n",
+               static_cast<size_t>((*value).ptr()),
+               static_cast<size_t>(object->map().ptr()),
+               static_cast<size_t>(object->map()->prototype().ptr()));
+  std::fflush(stderr);
+#endif
 
   bool all_extensible = object->map()->is_extensible();
   DirectHandle<JSObject> real_receiver = object;
@@ -5397,8 +5415,25 @@ Maybe<bool> JSObject::SetPrototype(Isolate* isolate,
   // prevented.  It is sufficient to validate that the receiver is not in the
   // new prototype chain.
   if (Tagged<JSReceiver> receiver; TryCast<JSReceiver>(*value, &receiver)) {
+#if defined(__wasi__)
+    std::fprintf(stderr,
+                 "JSObject::SetPrototype cycle-check receiver=0x%zx "
+                 "target_object=0x%zx\n",
+                 static_cast<size_t>(receiver.ptr()),
+                 static_cast<size_t>((*object).ptr()));
+    std::fflush(stderr);
+#endif
     for (PrototypeIterator iter(isolate, receiver, kStartAtReceiver);
          !iter.IsAtEnd(); iter.Advance()) {
+#if defined(__wasi__)
+      Tagged<JSReceiver> current = iter.GetCurrent<JSReceiver>();
+      std::fprintf(stderr,
+                   "JSObject::SetPrototype cycle current=0x%zx "
+                   "target_object=0x%zx\n",
+                   static_cast<size_t>(current.ptr()),
+                   static_cast<size_t>((*object).ptr()));
+      std::fflush(stderr);
+#endif
       if (iter.GetCurrent<JSReceiver>() == *object) {
         // Cycle detected.
         RETURN_FAILURE(isolate, should_throw,

@@ -188,6 +188,9 @@ Tagged<SourceTextModule> Context::module() const {
 }
 
 Tagged<JSGlobalObject> Context::global_object() const {
+  if (IsNativeContext(*this)) {
+    return Cast<JSGlobalObject>(extension());
+  }
   return Cast<JSGlobalObject>(native_context()->extension());
 }
 

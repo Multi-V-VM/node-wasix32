@@ -3127,6 +3127,20 @@ void Factory::InitializeJSObjectFromMap(Tagged<JSObject> obj,
 void Factory::InitializeJSObjectBody(Tagged<JSObject> obj, Tagged<Map> map,
                                      int start_offset) {
   DisallowGarbageCollection no_gc;
+#if defined(__wasi__)
+  std::fprintf(stderr,
+               "Factory::InitializeJSObjectBody enter obj=0x%zx map=0x%zx "
+               "start=%d inst_size=%d raw_back=0x%zx nof=%d counter=%d "
+               "type=%u\n",
+               static_cast<size_t>(obj.ptr()), static_cast<size_t>(map.ptr()),
+               start_offset, map->instance_size(),
+               static_cast<size_t>(
+                   map->constructor_or_back_pointer(isolate(), kRelaxedLoad)
+                       .ptr()),
+               map->NumberOfOwnDescriptors(), map->construction_counter(),
+               static_cast<unsigned>(map->instance_type()));
+  std::fflush(stderr);
+#endif
   if (start_offset == map->instance_size()) return;
   DCHECK_LT(start_offset, map->instance_size());
 
@@ -3140,10 +3154,25 @@ void Factory::InitializeJSObjectBody(Tagged<JSObject> obj, Tagged<Map> map,
   // In case of Array subclassing the |map| could already be transitioned
   // to different elements kind from the initial map on which we track slack.
   bool in_progress = map->IsInobjectSlackTrackingInProgress();
+#if defined(__wasi__)
+  std::fprintf(stderr,
+               "Factory::InitializeJSObjectBody before body obj=0x%zx "
+               "map=0x%zx in_progress=%d\n",
+               static_cast<size_t>(obj.ptr()), static_cast<size_t>(map.ptr()),
+               in_progress);
+  std::fflush(stderr);
+#endif
   obj->InitializeBody(map, start_offset, in_progress,
                       ReadOnlyRoots(isolate()).one_pointer_filler_map_word(),
                       *undefined_value());
   if (in_progress) {
+#if defined(__wasi__)
+    std::fprintf(stderr,
+                 "Factory::InitializeJSObjectBody before FindRootMap "
+                 "map=0x%zx\n",
+                 static_cast<size_t>(map.ptr()));
+    std::fflush(stderr);
+#endif
     map->FindRootMap(isolate())->InobjectSlackTrackingStep(isolate());
   }
 }
@@ -4822,6 +4851,20 @@ Handle<JSFunction> Factory::JSFunctionBuilder::BuildRaw(
                         isolate_);
   }
   DCHECK(InstanceTypeChecker::IsJSFunction(*map));
+#if defined(__wasi__)
+  std::fprintf(stderr,
+               "JSFunctionBuilder::BuildRaw map=0x%zx sfi=0x%zx context=0x%zx "
+               "raw_back=0x%zx nof=%d counter=%d inst_size=%d type=%u\n",
+               static_cast<size_t>((*map).ptr()),
+               static_cast<size_t>((*sfi_).ptr()),
+               static_cast<size_t>((*context_).ptr()),
+               static_cast<size_t>(
+                   map->constructor_or_back_pointer(isolate, kRelaxedLoad)
+                       .ptr()),
+               map->NumberOfOwnDescriptors(), map->construction_counter(),
+               map->instance_size(), static_cast<unsigned>(map->instance_type()));
+  std::fflush(stderr);
+#endif
 
   Handle<JSFunction> function_handle;
   bool many_closures_cell = false;
