@@ -480,10 +480,58 @@ Tagged<NativeContext> JSFunction::native_context() {
   return context()->native_context();
 }
 
+#ifdef __wasi__
+namespace {
+
+inline bool IsWasm32PrototypeOrInitialMapValue(Tagged<Object> value,
+                                               PtrComprCageBase cage_base) {
+  return IsMap(value, cage_base) || IsJSReceiver(value, cage_base) ||
+         IsTheHole(value);
+}
+
+inline int Wasm32PrototypeOrInitialMapOffset(Tagged<JSFunction> function,
+                                             PtrComprCageBase cage_base) {
+  Tagged<Object> shifted = TaggedField<Object>::Acquire_Load(
+      cage_base, function, JSFunction::kPrototypeOrInitialMapOffset - kTaggedSize);
+  if (IsWasm32PrototypeOrInitialMapValue(shifted, cage_base)) {
+    return JSFunction::kPrototypeOrInitialMapOffset - kTaggedSize;
+  }
+
+  Tagged<Object> direct = TaggedField<Object>::Acquire_Load(
+      cage_base, function, JSFunction::kPrototypeOrInitialMapOffset);
+  if (IsWasm32PrototypeOrInitialMapValue(direct, cage_base)) {
+    return JSFunction::kPrototypeOrInitialMapOffset;
+  }
+
+  return JSFunction::kPrototypeOrInitialMapOffset;
+}
+
+}  // namespace
+
+DEF_ACQUIRE_GETTER(JSFunction, prototype_or_initial_map,
+                   Tagged<UnionOf<JSPrototype, Map, Hole>>) {
+  DCHECK(map(cage_base)->has_prototype_slot());
+  int offset = Wasm32PrototypeOrInitialMapOffset(*this, cage_base);
+  return TaggedField<UnionOf<JSPrototype, Map, Hole>>::Acquire_Load(
+      cage_base, *this, offset);
+}
+
+void JSFunction::set_prototype_or_initial_map(
+    Tagged<UnionOf<JSPrototype, Map, Hole>> value, ReleaseStoreTag,
+    WriteBarrierMode mode) {
+  DCHECK(map()->has_prototype_slot());
+  PtrComprCageBase cage_base = GetPtrComprCageBase(*this);
+  int offset = Wasm32PrototypeOrInitialMapOffset(*this, cage_base);
+  TaggedField<UnionOf<JSPrototype, Map, Hole>>::Release_Store(*this, offset,
+                                                              value);
+  CONDITIONAL_WRITE_BARRIER(*this, offset, value, mode);
+}
+#else
 RELEASE_ACQUIRE_ACCESSORS_CHECKED(JSFunction, prototype_or_initial_map,
                                   (Tagged<UnionOf<JSPrototype, Map, Hole>>),
                                   kPrototypeOrInitialMapOffset,
                                   map()->has_prototype_slot())
+#endif
 
 DEF_GETTER(JSFunction, has_prototype_slot, bool) {
   return map(cage_base)->has_prototype_slot();

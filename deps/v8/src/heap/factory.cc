@@ -80,6 +80,7 @@
 #include "src/objects/string-set-inl.h"
 #include "src/objects/struct-inl.h"
 #include "src/objects/synthetic-module-inl.h"
+#include "src/objects/tagged-field-inl.h"
 #include "src/objects/template-objects-inl.h"
 #include "src/objects/templates.h"
 #include "src/objects/transitions-inl.h"
@@ -104,6 +105,43 @@ namespace internal {
 
 #ifdef __wasi__
 constexpr bool kTraceWasiFactory = false;
+
+void TraceWasiBadMap(Isolate* isolate, const char* site, Tagged<Object> raw) {
+  static int trace_count = 0;
+  if (trace_count++ >= 8) return;
+  PtrComprCageBase cage_base(isolate);
+  std::fprintf(stderr,
+               "Factory bad map site=%s raw=0x%zx is_map=%d is_smi=%d "
+               "is_heap=%d\n",
+               site, static_cast<size_t>(raw.ptr()),
+               IsMap(raw, cage_base), IsSmi(raw), IsHeapObject(raw));
+  isolate->PrintStack(stderr, Isolate::kPrintStackConcise);
+  std::fflush(stderr);
+}
+
+void TraceWasiConstructorMap(Isolate* isolate,
+                             DirectHandle<JSFunction> constructor,
+                             Tagged<Object> raw_map) {
+  PtrComprCageBase cage_base(isolate);
+  Tagged<Object> shifted = TaggedField<Object>::Acquire_Load(
+      cage_base, *constructor,
+      JSFunction::kPrototypeOrInitialMapOffset - kTaggedSize);
+  Tagged<Object> direct = TaggedField<Object>::Acquire_Load(
+      cage_base, *constructor, JSFunction::kPrototypeOrInitialMapOffset);
+  std::fprintf(stderr,
+               "Factory NewJSObject bad constructor map constructor=0x%zx "
+               "raw_map=0x%zx shifted=0x%zx shifted_is_map=%d "
+               "direct=0x%zx direct_is_map=%d function_map=0x%zx "
+               "shared=0x%zx context=0x%zx\n",
+               static_cast<size_t>((*constructor).ptr()),
+               static_cast<size_t>(raw_map.ptr()),
+               static_cast<size_t>(shifted.ptr()), IsMap(shifted, cage_base),
+               static_cast<size_t>(direct.ptr()), IsMap(direct, cage_base),
+               static_cast<size_t>(constructor->map(cage_base).ptr()),
+               static_cast<size_t>(constructor->shared().ptr()),
+               static_cast<size_t>(constructor->context().ptr()));
+  std::fflush(stderr);
+}
 #endif
 
 Factory::CodeBuilder::CodeBuilder(Isolate* isolate, const CodeDesc& desc,
@@ -3012,6 +3050,16 @@ Handle<JSObject> Factory::NewJSObject(DirectHandle<JSFunction> constructor,
                                       NewJSObjectType new_js_object_type) {
   JSFunction::EnsureHasInitialMap(isolate(), constructor);
   DirectHandle<Map> map(constructor->initial_map(), isolate());
+#ifdef __wasi__
+  {
+    Tagged<Object> raw_map(*map);
+    PtrComprCageBase cage_base(isolate());
+    if (!IsMap(raw_map, cage_base)) {
+      TraceWasiConstructorMap(isolate(), constructor, raw_map);
+      TraceWasiBadMap(isolate(), "NewJSObject.initial_map", raw_map);
+    }
+  }
+#endif
   // NewJSObjectFromMap does not support creating dictionary mode objects. Need
   // to use NewSlowJSObjectFromMap instead.
   DCHECK(!map->is_dictionary_map());
@@ -3181,6 +3229,15 @@ Handle<JSObject> Factory::NewJSObjectFromMap(
     DirectHandle<Map> map, AllocationType allocation,
     DirectHandle<AllocationSite> allocation_site,
     NewJSObjectType new_js_object_type) {
+#ifdef __wasi__
+  {
+    Tagged<Object> raw_map(*map);
+    PtrComprCageBase cage_base(isolate());
+    if (!IsMap(raw_map, cage_base)) {
+      TraceWasiBadMap(isolate(), "NewJSObjectFromMap.entry", raw_map);
+    }
+  }
+#endif
   // JSFunctions should be allocated using AllocateFunction to be
   // properly initialized.
   DCHECK(!InstanceTypeChecker::IsJSFunction(*map));
