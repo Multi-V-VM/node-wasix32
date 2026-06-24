@@ -4,6 +4,9 @@
 
 #include "src/objects/js-objects.h"
 
+#if defined(__wasi__)
+#include <cstdio>
+#endif
 #include <limits>
 #include <optional>
 
@@ -3594,9 +3597,25 @@ bool TryFastAddDataProperty(Isolate* isolate, DirectHandle<JSObject> object,
                             DirectHandle<Name> name, DirectHandle<Object> value,
                             PropertyAttributes attributes) {
   DCHECK(IsUniqueName(*name));
+#if defined(__wasi__)
+  std::fprintf(stderr,
+               "TryFastAddDataProperty enter object=0x%lx map=0x%lx "
+               "name=0x%lx value=0x%lx attrs=%d\n",
+               static_cast<unsigned long>((*object).ptr()),
+               static_cast<unsigned long>(object->map().ptr()),
+               static_cast<unsigned long>((*name).ptr()),
+               static_cast<unsigned long>((*value).ptr()),
+               static_cast<int>(attributes));
+  std::fflush(stderr);
+#endif
   Tagged<Map> map =
       TransitionsAccessor(isolate, object->map())
           .SearchTransition(*name, PropertyKind::kData, attributes);
+#if defined(__wasi__)
+  std::fprintf(stderr, "TryFastAddDataProperty after SearchTransition map=0x%lx\n",
+               static_cast<unsigned long>(map.ptr()));
+  std::fflush(stderr);
+#endif
   if (map.is_null()) return false;
   DCHECK(!map->is_dictionary_map());
 
@@ -3607,14 +3626,66 @@ bool TryFastAddDataProperty(Isolate* isolate, DirectHandle<JSObject> object,
   }
 
   InternalIndex descriptor = new_map->LastAdded();
+#if defined(__wasi__)
+  std::fprintf(stderr,
+               "TryFastAddDataProperty before Prepare descriptor=%d "
+               "new_map=0x%lx own=%d inst_desc=0x%lx\n",
+               descriptor.as_int(), static_cast<unsigned long>((*new_map).ptr()),
+               new_map->NumberOfOwnDescriptors(),
+               static_cast<unsigned long>(
+                   new_map->instance_descriptors()->ptr()));
+  std::fflush(stderr);
+#endif
   new_map = Map::PrepareForDataProperty(isolate, new_map, descriptor,
                                         PropertyConstness::kConst, value);
+#if defined(__wasi__)
+  std::fprintf(stderr,
+               "TryFastAddDataProperty after Prepare new_map=0x%lx own=%d\n",
+               static_cast<unsigned long>((*new_map).ptr()),
+               new_map->NumberOfOwnDescriptors());
+  std::fflush(stderr);
+#endif
   JSObject::MigrateToMap(isolate, object, new_map);
+#if defined(__wasi__)
+  std::fprintf(stderr,
+               "TryFastAddDataProperty after Migrate object_map=0x%lx "
+               "properties=0x%lx\n",
+               static_cast<unsigned long>(object->map().ptr()),
+               static_cast<unsigned long>(object->raw_properties_or_hash().ptr()));
+  std::fflush(stderr);
+#endif
   // TODO(leszeks): Avoid re-loading the property details, which we already
   // loaded in PrepareForDataProperty.
-  object->WriteToField(descriptor,
-                       new_map->instance_descriptors()->GetDetails(descriptor),
-                       *value);
+#if defined(__wasi__)
+  std::fprintf(stderr, "TryFastAddDataProperty before GetDetails\n");
+  std::fflush(stderr);
+#endif
+  PropertyDetails details =
+      new_map->instance_descriptors()->GetDetails(descriptor);
+#if defined(__wasi__)
+  FieldIndex field_index = FieldIndex::ForDetails(object->map(), details);
+  int property_array_length = -1;
+  Tagged<PropertyArray> properties = object->property_array();
+  if (!field_index.is_inobject()) {
+    property_array_length = properties->length(kAcquireLoad);
+  }
+  std::fprintf(stderr,
+               "TryFastAddDataProperty object=0x%lx map=0x%lx new_map=0x%lx "
+               "descriptor=%d details_field=%d field_bit=0x%llx "
+               "inobject=%d offset=%d out_index=%d prop_array=0x%lx "
+               "prop_len=%d value=0x%lx\n",
+               static_cast<unsigned long>((*object).ptr()),
+               static_cast<unsigned long>(object->map().ptr()),
+               static_cast<unsigned long>((*new_map).ptr()),
+               descriptor.as_int(), details.field_index(),
+               static_cast<unsigned long long>(field_index.bit_field()),
+               field_index.is_inobject() ? 1 : 0, field_index.offset(),
+               field_index.is_inobject() ? -1 : field_index.outobject_array_index(),
+               static_cast<unsigned long>(properties.ptr()), property_array_length,
+               static_cast<unsigned long>((*value).ptr()));
+  std::fflush(stderr);
+#endif
+  object->WriteToField(descriptor, details, *value);
   return true;
 }
 
@@ -3641,10 +3712,31 @@ void JSObject::AddProperty(Isolate* isolate, DirectHandle<JSObject> object,
   DCHECK(!it.IsFound());
   DCHECK(object->map()->is_extensible() || name->IsPrivate());
 #endif
+#if defined(__wasi__)
+  std::fprintf(stderr,
+               "JSObject::AddProperty before Object::AddDataProperty object=0x%lx "
+               "map=0x%lx name=0x%lx value=0x%lx attrs=%d state=%d\n",
+               static_cast<unsigned long>((*object).ptr()),
+               static_cast<unsigned long>(object->map().ptr()),
+               static_cast<unsigned long>((*name).ptr()),
+               static_cast<unsigned long>((*value).ptr()),
+               static_cast<int>(attributes), static_cast<int>(it.state()));
+  std::fflush(stderr);
+#endif
   CHECK(Object::AddDataProperty(&it, value, attributes,
                                 Just(ShouldThrow::kThrowOnError),
                                 StoreOrigin::kNamed)
             .IsJust());
+#if defined(__wasi__)
+  std::fprintf(stderr,
+               "JSObject::AddProperty after Object::AddDataProperty object=0x%lx "
+               "map=0x%lx name=0x%lx state=%d\n",
+               static_cast<unsigned long>((*object).ptr()),
+               static_cast<unsigned long>(object->map().ptr()),
+               static_cast<unsigned long>((*name).ptr()),
+               static_cast<int>(it.state()));
+  std::fflush(stderr);
+#endif
 }
 
 void JSObject::AddProperty(Isolate* isolate, DirectHandle<JSObject> object,

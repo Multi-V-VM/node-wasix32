@@ -8,6 +8,10 @@
 #include "src/objects/descriptor-array.h"
 // Include the non-inl header before the rest of the headers.
 
+#if defined(__wasi__)
+#include <cstdio>
+#endif
+
 #include "src/execution/isolate.h"
 #include "src/handles/maybe-handles-inl.h"
 #include "src/heap/heap-write-barrier.h"
@@ -339,6 +343,17 @@ Tagged<FieldType> DescriptorArray::GetFieldType(
 
 void DescriptorArray::Set(InternalIndex descriptor_number, Tagged<Name> key,
                           Tagged<MaybeObject> value, PropertyDetails details) {
+#if defined(__wasi__)
+  std::fprintf(stderr,
+               "DescriptorArray::Set array=0x%lx n=%d all=%d index=%d "
+               "offset=%d key=0x%lx value=0x%lx\n",
+               static_cast<unsigned long>(ptr()), number_of_descriptors(),
+               number_of_all_descriptors(), descriptor_number.as_int(),
+               OffsetOfDescriptorAt(descriptor_number.as_int()),
+               static_cast<unsigned long>(key.ptr()),
+               static_cast<unsigned long>(value.ptr()));
+  std::fflush(stderr);
+#endif
   CHECK_LT(descriptor_number.as_int(), number_of_descriptors());
   SetKey(descriptor_number, key);
   SetDetails(descriptor_number, details);
@@ -358,24 +373,77 @@ void DescriptorArray::Set(InternalIndex descriptor_number, Descriptor* desc) {
 void DescriptorArray::Append(Descriptor* desc) {
   DisallowGarbageCollection no_gc;
   int descriptor_number = number_of_descriptors();
+#if defined(__wasi__)
+  Tagged<Name> debug_key = *desc->GetKey();
+  Tagged<MaybeObject> debug_value = *desc->GetValue();
+  std::fprintf(stderr,
+               "DescriptorArray::Append array=0x%lx before_n=%d all=%d "
+               "append_index=%d offset=%d key=0x%lx value=0x%lx\n",
+               static_cast<unsigned long>(ptr()), descriptor_number,
+               number_of_all_descriptors(), descriptor_number,
+               OffsetOfDescriptorAt(descriptor_number),
+               static_cast<unsigned long>(debug_key.ptr()),
+               static_cast<unsigned long>(debug_value.ptr()));
+  std::fflush(stderr);
+#endif
   DCHECK_LE(descriptor_number + 1, number_of_all_descriptors());
   set_number_of_descriptors(descriptor_number + 1);
   Set(InternalIndex(descriptor_number), desc);
 
+#if defined(__wasi__)
+  std::fprintf(stderr,
+               "DescriptorArray::Append after Set array=0x%lx n=%d all=%d\n",
+               static_cast<unsigned long>(ptr()), number_of_descriptors(),
+               number_of_all_descriptors());
+  std::fflush(stderr);
+#endif
   uint32_t desc_hash = desc->GetKey()->hash();
+#if defined(__wasi__)
+  std::fprintf(stderr, "DescriptorArray::Append desc_hash=%u\n", desc_hash);
+  std::fflush(stderr);
+#endif
   // Hash value can't be zero, see String::ComputeAndSetHash()
   uint32_t collision_hash = 0;
 
   int insertion;
 
   for (insertion = descriptor_number; insertion > 0; --insertion) {
+#if defined(__wasi__)
+    std::fprintf(stderr,
+                 "DescriptorArray::Append loop insertion=%d prev=%d\n",
+                 insertion, insertion - 1);
+    std::fflush(stderr);
+#endif
     Tagged<Name> key = GetSortedKey(insertion - 1);
     collision_hash = key->hash();
+#if defined(__wasi__)
+    std::fprintf(stderr,
+                 "DescriptorArray::Append loop key=0x%lx collision_hash=%u\n",
+                 static_cast<unsigned long>(key.ptr()), collision_hash);
+    std::fflush(stderr);
+#endif
     if (collision_hash <= desc_hash) break;
     SetSortedKey(insertion, GetSortedKeyIndex(insertion - 1));
+#if defined(__wasi__)
+    std::fprintf(stderr,
+                 "DescriptorArray::Append loop shifted insertion=%d\n",
+                 insertion);
+    std::fflush(stderr);
+#endif
   }
 
+#if defined(__wasi__)
+  std::fprintf(stderr,
+               "DescriptorArray::Append before final SetSortedKey insertion=%d "
+               "descriptor_number=%d collision_hash=%u desc_hash=%u\n",
+               insertion, descriptor_number, collision_hash, desc_hash);
+  std::fflush(stderr);
+#endif
   SetSortedKey(insertion, descriptor_number);
+#if defined(__wasi__)
+  std::fprintf(stderr, "DescriptorArray::Append after final SetSortedKey\n");
+  std::fflush(stderr);
+#endif
 
   // Resetting the fast iterable state is bottlenecked in SetKey().
   DCHECK_EQ(fast_iterable(), FastIterableState::kUnknown);

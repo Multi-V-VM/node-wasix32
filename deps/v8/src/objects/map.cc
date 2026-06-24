@@ -4,6 +4,9 @@
 
 #include "src/objects/map.h"
 
+#if defined(__wasi__)
+#include <cstdio>
+#endif
 #include <optional>
 
 #include "src/common/assert-scope.h"
@@ -1573,9 +1576,26 @@ Handle<Map> Map::CopyReplaceDescriptors(
     DirectHandle<DescriptorArray> descriptors, TransitionFlag flag,
     MaybeDirectHandle<Name> maybe_name, const char* reason,
     TransitionKindFlag transition_kind) {
+#if defined(__wasi__)
+  std::fprintf(stderr,
+               "Map::CopyReplaceDescriptors enter map=0x%lx desc=0x%lx "
+               "nof=%d all=%d flag=%d reason=%s transition_kind=%d\n",
+               static_cast<unsigned long>((*map).ptr()),
+               static_cast<unsigned long>((*descriptors).ptr()),
+               descriptors->number_of_descriptors(),
+               descriptors->number_of_all_descriptors(), static_cast<int>(flag),
+               reason, static_cast<int>(transition_kind));
+  std::fflush(stderr);
+#endif
   DCHECK(descriptors->IsSortedNoDuplicates());
 
   Handle<Map> result = CopyDropDescriptors(isolate, map);
+#if defined(__wasi__)
+  std::fprintf(stderr,
+               "Map::CopyReplaceDescriptors after CopyDrop result=0x%lx\n",
+               static_cast<unsigned long>((*result).ptr()));
+  std::fflush(stderr);
+#endif
   bool is_connected = false;
 
   // Properly mark the {result} if the {name} is an "interesting symbol".
@@ -1589,11 +1609,20 @@ Handle<Map> Map::CopyReplaceDescriptors(
   } else {
     if (flag == INSERT_TRANSITION &&
         TransitionsAccessor::CanHaveMoreTransitions(isolate, map)) {
+#if defined(__wasi__)
+      std::fprintf(stderr,
+                   "Map::CopyReplaceDescriptors before Initialize/Connect\n");
+      std::fflush(stderr);
+#endif
       result->InitializeDescriptors(isolate, *descriptors);
 
       DCHECK(!maybe_name.is_null());
       ConnectTransition(isolate, map, result, name, transition_kind);
       is_connected = true;
+#if defined(__wasi__)
+      std::fprintf(stderr, "Map::CopyReplaceDescriptors after Connect\n");
+      std::fflush(stderr);
+#endif
     } else if ((transition_kind == PROTOTYPE_TRANSITION &&
                 v8_flags.move_prototype_transitions_first) ||
                isolate->bootstrapper()->IsActive()) {
@@ -1602,12 +1631,37 @@ Handle<Map> Map::CopyReplaceDescriptors(
       // is allowed to happen lazily.
       DCHECK_IMPLIES(transition_kind == PROTOTYPE_TRANSITION,
                      IsUndefined(map->GetBackPointer()));
+#if defined(__wasi__)
+      std::fprintf(stderr,
+                   "Map::CopyReplaceDescriptors before Initialize bootstrap\n");
+      std::fflush(stderr);
+#endif
       result->InitializeDescriptors(isolate, *descriptors);
+#if defined(__wasi__)
+      std::fprintf(stderr,
+                   "Map::CopyReplaceDescriptors after Initialize bootstrap\n");
+      std::fflush(stderr);
+#endif
     } else {
       DCHECK_IMPLIES(transition_kind == PROTOTYPE_TRANSITION,
                      !v8_flags.move_prototype_transitions_first);
+#if defined(__wasi__)
+      std::fprintf(stderr,
+                   "Map::CopyReplaceDescriptors before GeneralizeAllFields\n");
+      std::fflush(stderr);
+#endif
       descriptors->GeneralizeAllFields(transition_kind == PROTOTYPE_TRANSITION);
+#if defined(__wasi__)
+      std::fprintf(stderr,
+                   "Map::CopyReplaceDescriptors after GeneralizeAllFields\n");
+      std::fflush(stderr);
+#endif
       result->InitializeDescriptors(isolate, *descriptors);
+#if defined(__wasi__)
+      std::fprintf(stderr,
+                   "Map::CopyReplaceDescriptors after Initialize generalized\n");
+      std::fflush(stderr);
+#endif
     }
   }
   if (v8_flags.log_maps && !is_connected) {
@@ -1615,6 +1669,13 @@ Handle<Map> Map::CopyReplaceDescriptors(
         MapEvent("ReplaceDescriptors", map, result, reason,
                  maybe_name.is_null() ? DirectHandle<HeapObject>() : name));
   }
+#if defined(__wasi__)
+  std::fprintf(stderr,
+               "Map::CopyReplaceDescriptors return result=0x%lx connected=%d\n",
+               static_cast<unsigned long>((*result).ptr()),
+               static_cast<int>(is_connected));
+  std::fflush(stderr);
+#endif
   return result;
 }
 
@@ -2195,6 +2256,21 @@ Handle<Map> Map::CopyAddDescriptor(Isolate* isolate, DirectHandle<Map> map,
                                    TransitionFlag flag) {
   DirectHandle<DescriptorArray> descriptors(map->instance_descriptors(isolate),
                                             isolate);
+#if defined(__wasi__)
+  Tagged<Name> debug_key = *descriptor->GetKey();
+  Tagged<MaybeObject> debug_value = *descriptor->GetValue();
+  std::fprintf(stderr,
+               "Map::CopyAddDescriptor enter map=0x%lx old_desc=0x%lx "
+               "old_n=%d old_all=%d own=%d flag=%d key=0x%lx value=0x%lx\n",
+               static_cast<unsigned long>((*map).ptr()),
+               static_cast<unsigned long>((*descriptors).ptr()),
+               descriptors->number_of_descriptors(),
+               descriptors->number_of_all_descriptors(),
+               map->NumberOfOwnDescriptors(), static_cast<int>(flag),
+               static_cast<unsigned long>(debug_key.ptr()),
+               static_cast<unsigned long>(debug_value.ptr()));
+  std::fflush(stderr);
+#endif
 
   // Share descriptors only if map owns descriptors and is not an initial map.
   if (flag == INSERT_TRANSITION && map->owns_descriptors() &&
@@ -2206,7 +2282,24 @@ Handle<Map> Map::CopyAddDescriptor(Isolate* isolate, DirectHandle<Map> map,
   int nof = map->NumberOfOwnDescriptors();
   DirectHandle<DescriptorArray> new_descriptors =
       DescriptorArray::CopyUpTo(isolate, descriptors, nof, 1);
+#if defined(__wasi__)
+  std::fprintf(stderr,
+               "Map::CopyAddDescriptor after CopyUpTo new_desc=0x%lx n=%d "
+               "all=%d nof=%d\n",
+               static_cast<unsigned long>((*new_descriptors).ptr()),
+               new_descriptors->number_of_descriptors(),
+               new_descriptors->number_of_all_descriptors(), nof);
+  std::fflush(stderr);
+#endif
   new_descriptors->Append(descriptor);
+#if defined(__wasi__)
+  std::fprintf(stderr,
+               "Map::CopyAddDescriptor after Append new_desc=0x%lx n=%d all=%d\n",
+               static_cast<unsigned long>((*new_descriptors).ptr()),
+               new_descriptors->number_of_descriptors(),
+               new_descriptors->number_of_all_descriptors());
+  std::fflush(stderr);
+#endif
 
   return CopyReplaceDescriptors(isolate, map, new_descriptors, flag,
                                 descriptor->GetKey(), "CopyAddDescriptor",

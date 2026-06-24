@@ -4,6 +4,9 @@
 
 #include "src/init/bootstrapper.h"
 
+#if defined(__wasi__)
+#include <cstdio>
+#endif
 #include "include/v8-function.h"
 #include "src/api/api-inl.h"
 #include "src/api/api-natives.h"
@@ -548,7 +551,28 @@ V8_NOINLINE DirectHandle<JSFunction> InstallFunction(
   DirectHandle<JSFunction> function =
       CreateFunction(isolate, name, type, instance_size, inobject_properties,
                      prototype, call, len, adapt);
+#if defined(__wasi__)
+  std::fprintf(stderr,
+               "InstallFunction before AddProperty target=0x%lx name=0x%lx "
+               "function=0x%lx target_map=0x%lx call=%d\n",
+               static_cast<unsigned long>((*target).ptr()),
+               static_cast<unsigned long>((*name).ptr()),
+               static_cast<unsigned long>((*function).ptr()),
+               static_cast<unsigned long>(target->map().ptr()),
+               static_cast<int>(call));
+  std::fflush(stderr);
+#endif
   JSObject::AddProperty(isolate, target, name, function, DONT_ENUM);
+#if defined(__wasi__)
+  std::fprintf(stderr,
+               "InstallFunction after AddProperty target=0x%lx name=0x%lx "
+               "function=0x%lx target_map=0x%lx\n",
+               static_cast<unsigned long>((*target).ptr()),
+               static_cast<unsigned long>((*name).ptr()),
+               static_cast<unsigned long>((*function).ptr()),
+               static_cast<unsigned long>(target->map().ptr()));
+  std::fflush(stderr);
+#endif
   return function;
 }
 

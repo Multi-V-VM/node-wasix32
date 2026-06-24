@@ -6,6 +6,9 @@
 
 #include <algorithm>
 #include <cmath>
+#if defined(__wasi__)
+#include <cstdio>
+#endif
 #include <memory>
 #include <optional>
 #include <sstream>
@@ -2754,16 +2757,42 @@ Maybe<bool> Object::TransitionAndWriteDataProperty(
     PropertyAttributes attributes, Maybe<ShouldThrow> should_throw,
     StoreOrigin store_origin) {
   DirectHandle<JSReceiver> receiver = it->GetStoreTarget<JSReceiver>();
+#if defined(__wasi__)
+  std::fprintf(stderr,
+               "Object::TransitionAndWriteDataProperty enter receiver=0x%lx "
+               "name=0x%lx value=0x%lx attrs=%d state=%d\n",
+               static_cast<unsigned long>((*receiver).ptr()),
+               static_cast<unsigned long>(it->GetName()->ptr()),
+               static_cast<unsigned long>((*value).ptr()),
+               static_cast<int>(attributes), static_cast<int>(it->state()));
+  std::fflush(stderr);
+#endif
   it->UpdateProtector();
   // Migrate to the most up-to-date map that will be able to store |value|
   // under it->name() with |attributes|.
   it->PrepareTransitionToDataProperty(receiver, value, attributes,
                                       store_origin);
+#if defined(__wasi__)
+  std::fprintf(stderr,
+               "Object::TransitionAndWriteDataProperty after Prepare state=%d\n",
+               static_cast<int>(it->state()));
+  std::fflush(stderr);
+#endif
   DCHECK_EQ(LookupIterator::TRANSITION, it->state());
   it->ApplyTransitionToDataProperty(receiver);
+#if defined(__wasi__)
+  std::fprintf(stderr,
+               "Object::TransitionAndWriteDataProperty after Apply state=%d\n",
+               static_cast<int>(it->state()));
+  std::fflush(stderr);
+#endif
 
   // Write the property value.
   it->WriteDataValue(value, true);
+#if defined(__wasi__)
+  std::fprintf(stderr, "Object::TransitionAndWriteDataProperty after Write\n");
+  std::fflush(stderr);
+#endif
 
 #if VERIFY_HEAP
   if (v8_flags.verify_heap) {
@@ -3726,6 +3755,17 @@ DirectHandle<DescriptorArray> DescriptorArray::CopyUpTo(
 DirectHandle<DescriptorArray> DescriptorArray::CopyUpToAddAttributes(
     Isolate* isolate, DirectHandle<DescriptorArray> source_handle,
     int enumeration_index, PropertyAttributes attributes, int slack) {
+#if defined(__wasi__)
+  std::fprintf(stderr,
+               "DescriptorArray::CopyUpTo source=0x%lx enum=%d slack=%d "
+               "attrs=%d source_n=%d source_all=%d entry_size=%d header=%d\n",
+               static_cast<unsigned long>((*source_handle).ptr()),
+               enumeration_index, slack, static_cast<int>(attributes),
+               (*source_handle)->number_of_descriptors(),
+               (*source_handle)->number_of_all_descriptors(), kEntrySize,
+               kHeaderSize);
+  std::fflush(stderr);
+#endif
   if (enumeration_index + slack == 0) {
     return isolate->factory()->empty_descriptor_array();
   }
@@ -3733,6 +3773,15 @@ DirectHandle<DescriptorArray> DescriptorArray::CopyUpToAddAttributes(
   int size = enumeration_index;
   DirectHandle<DescriptorArray> copy_handle =
       DescriptorArray::Allocate(isolate, size, slack);
+#if defined(__wasi__)
+  std::fprintf(stderr,
+               "DescriptorArray::CopyUpTo copy=0x%lx copy_n=%d copy_all=%d "
+               "size=%d\n",
+               static_cast<unsigned long>((*copy_handle).ptr()),
+               (*copy_handle)->number_of_descriptors(),
+               (*copy_handle)->number_of_all_descriptors(), size);
+  std::fflush(stderr);
+#endif
 
   DisallowGarbageCollection no_gc;
   Tagged<DescriptorArray> source = *source_handle;
@@ -3760,7 +3809,17 @@ DirectHandle<DescriptorArray> DescriptorArray::CopyUpToAddAttributes(
     }
   } else {
     for (InternalIndex i : InternalIndex::Range(size)) {
+#if defined(__wasi__)
+      std::fprintf(stderr, "DescriptorArray::CopyUpTo before CopyFrom i=%d\n",
+                   i.as_int());
+      std::fflush(stderr);
+#endif
       copy->CopyFrom(i, source);
+#if defined(__wasi__)
+      std::fprintf(stderr, "DescriptorArray::CopyUpTo after CopyFrom i=%d\n",
+                   i.as_int());
+      std::fflush(stderr);
+#endif
     }
   }
 
@@ -3947,8 +4006,41 @@ void DescriptorArray::InitializeOrChangeEnumCache(
 
 void DescriptorArray::CopyFrom(InternalIndex index,
                                Tagged<DescriptorArray> src) {
+#if defined(__wasi__)
+  std::fprintf(stderr,
+               "DescriptorArray::CopyFrom dst=0x%lx dst_n=%d dst_all=%d "
+               "src=0x%lx src_n=%d src_all=%d index=%d offset=%d\n",
+               static_cast<unsigned long>(ptr()), number_of_descriptors(),
+               number_of_all_descriptors(), static_cast<unsigned long>(src.ptr()),
+               src->number_of_descriptors(), src->number_of_all_descriptors(),
+               index.as_int(), OffsetOfDescriptorAt(index.as_int()));
+  std::fflush(stderr);
+  std::fprintf(stderr, "DescriptorArray::CopyFrom before GetDetails\n");
+  std::fflush(stderr);
+#endif
   PropertyDetails details = src->GetDetails(index);
-  Set(index, src->GetKey(index), src->GetValue(index), details);
+#if defined(__wasi__)
+  std::fprintf(stderr, "DescriptorArray::CopyFrom before GetKey\n");
+  std::fflush(stderr);
+#endif
+  Tagged<Name> key = src->GetKey(index);
+#if defined(__wasi__)
+  std::fprintf(stderr, "DescriptorArray::CopyFrom before GetValue\n");
+  std::fflush(stderr);
+#endif
+  Tagged<MaybeObject> value = src->GetValue(index);
+#if defined(__wasi__)
+  std::fprintf(stderr,
+               "DescriptorArray::CopyFrom before Set key=0x%lx value=0x%lx\n",
+               static_cast<unsigned long>(key.ptr()),
+               static_cast<unsigned long>(value.ptr()));
+  std::fflush(stderr);
+#endif
+  Set(index, key, value, details);
+#if defined(__wasi__)
+  std::fprintf(stderr, "DescriptorArray::CopyFrom after Set\n");
+  std::fflush(stderr);
+#endif
 }
 
 void DescriptorArray::Sort() {
