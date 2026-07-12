@@ -483,8 +483,24 @@ Tagged<NativeContext> JSFunction::native_context() {
 #ifdef __wasi__
 namespace {
 
+inline bool IsWasm32ReadablePrototypeFieldValue(Tagged<Object> value) {
+  Address address = value.ptr();
+  if (!HAS_STRONG_HEAP_OBJECT_TAG(address) || address < kHeapObjectTag) {
+    return false;
+  }
+  size_t memory_bytes =
+      static_cast<size_t>(__builtin_wasm_memory_size(0)) * 65536u;
+  Address object_address = address - kHeapObjectTag;
+  if (object_address > memory_bytes - sizeof(Address)) return false;
+  Address map = *reinterpret_cast<Address*>(object_address);
+  if (!HAS_STRONG_HEAP_OBJECT_TAG(map) || map < kHeapObjectTag) return false;
+  Address map_address = map - kHeapObjectTag;
+  return map_address <= memory_bytes - sizeof(Address);
+}
+
 inline bool IsWasm32PrototypeOrInitialMapValue(Tagged<Object> value,
                                                PtrComprCageBase cage_base) {
+  if (!IsWasm32ReadablePrototypeFieldValue(value)) return false;
   return IsMap(value, cage_base) || IsJSReceiver(value, cage_base) ||
          IsTheHole(value);
 }
@@ -501,6 +517,13 @@ inline int Wasm32PrototypeOrInitialMapOffset(Tagged<JSFunction> function,
       cage_base, function, JSFunction::kPrototypeOrInitialMapOffset);
   if (IsWasm32PrototypeOrInitialMapValue(direct, cage_base)) {
     return JSFunction::kPrototypeOrInitialMapOffset;
+  }
+
+  Tagged<Object> plus_one = TaggedField<Object>::Acquire_Load(
+      cage_base, function,
+      JSFunction::kPrototypeOrInitialMapOffset + kTaggedSize);
+  if (IsWasm32PrototypeOrInitialMapValue(plus_one, cage_base)) {
+    return JSFunction::kPrototypeOrInitialMapOffset + kTaggedSize;
   }
 
   return JSFunction::kPrototypeOrInitialMapOffset;

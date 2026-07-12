@@ -70,11 +70,55 @@ RELEASE_ACQUIRE_ACCESSORS(
     (Tagged<UnionOf<Smi, MaybeWeak<Map>, TransitionArray>>),
     kTransitionsOrPrototypeInfoOffset)
 
+#ifdef __wasi__
+namespace {
+
+inline bool IsWasm32MapPrototypeValue(Tagged<Object> value,
+                                      PtrComprCageBase cage_base) {
+  return IsNull(value) || IsJSReceiver(value, cage_base);
+}
+
+inline int Wasm32MapPrototypeOffset(Tagged<Map> map,
+                                    PtrComprCageBase cage_base) {
+  Tagged<Object> shifted = TaggedField<Object>::load(
+      cage_base, map, Map::kPrototypeOffset - kTaggedSize);
+  if (IsWasm32MapPrototypeValue(shifted, cage_base)) {
+    return Map::kPrototypeOffset - kTaggedSize;
+  }
+
+  Tagged<Object> direct =
+      TaggedField<Object>::load(cage_base, map, Map::kPrototypeOffset);
+  if (IsWasm32MapPrototypeValue(direct, cage_base)) {
+    return Map::kPrototypeOffset;
+  }
+
+  return Map::kPrototypeOffset;
+}
+
+}  // namespace
+
+DEF_GETTER(Map, prototype, Tagged<JSPrototype>) {
+  int offset = Wasm32MapPrototypeOffset(*this, cage_base);
+  return TaggedField<JSPrototype>::load(cage_base, *this, offset);
+}
+
+void Map::set_prototype(Tagged<JSPrototype> value, WriteBarrierMode mode) {
+  DCHECK(IsNull(value) || IsJSProxy(value) || IsWasmObject(value) ||
+         (IsJSObject(value) &&
+          (HeapLayout::InWritableSharedSpace(value) ||
+           value->map()->is_prototype_map())));
+  PtrComprCageBase cage_base = GetPtrComprCageBase(*this);
+  int offset = Wasm32MapPrototypeOffset(*this, cage_base);
+  TaggedField<JSPrototype>::store(*this, offset, value);
+  CONDITIONAL_WRITE_BARRIER(*this, offset, value, mode);
+}
+#else
 ACCESSORS_CHECKED2(Map, prototype, Tagged<JSPrototype>, kPrototypeOffset, true,
                    IsNull(value) || IsJSProxy(value) || IsWasmObject(value) ||
                        (IsJSObject(value) &&
                         (HeapLayout::InWritableSharedSpace(value) ||
                          value->map()->is_prototype_map())))
+#endif
 
 DEF_GETTER(Map, prototype_info, Tagged<UnionOf<Smi, PrototypeInfo>>) {
   Tagged<UnionOf<Smi, PrototypeInfo>> value =
