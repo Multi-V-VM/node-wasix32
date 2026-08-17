@@ -314,6 +314,7 @@ enum class MemoryPressureLevel { kNone, kModerate, kCritical };
 enum class PromiseHookType { kInit, kResolve, kBefore, kAfter };
 #endif  // INCLUDE_V8_PROMISE_H_
 
+#ifndef INCLUDE_V8_ISOLATE_CALLBACKS_H_
 enum GCType {
   kGCTypeScavenge = 1 << 0,
   kGCTypeMinorMarkSweep = 1 << 1,
@@ -337,6 +338,7 @@ enum GCCallbackFlags {
 };
 
 #define V8_WASI_GC_CALLBACK_TYPES_DEFINED 1
+#endif  // INCLUDE_V8_ISOLATE_CALLBACKS_H_
 
 // Now import these v8:: types into v8::internal:: for internal code
 namespace internal {

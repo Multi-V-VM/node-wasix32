@@ -184,6 +184,7 @@ using Address = uintptr_t;
 // kNullAddress constant
 #ifndef V8_NULL_ADDRESS_DEFINED
 #define V8_NULL_ADDRESS_DEFINED
+#define V8_WASI_NULL_ADDRESS_DEFINED
 constexpr Address kNullAddress = 0;
 #endif
 
@@ -394,6 +395,7 @@ constexpr int kSmiValueSize = 31;
 #endif
 #ifndef V8_WASI_SMI_TAG_MASK_DEFINED
 #define V8_WASI_SMI_TAG_MASK_DEFINED
+#define V8_WASI_SMI_TAG_MASK_VALUE_DEFINED
 constexpr intptr_t kSmiTagMask = (1 << kSmiTagSize) - 1;
 #endif
 

@@ -7,18 +7,22 @@
 // headers at global scope instead.
 
 // Forward declare v8::Isolate and template Local<T> for pointer signatures
-namespace v8 { class Isolate; template <typename T> class Local; }
+namespace v8 {
+class Isolate;
+template <typename T>
+class Local;
+}  // namespace v8
 
 #if defined(__wasi__) || defined(V8_USING_WASI_SHIMS)
 // Include necessary WASI fixes but avoid redefinitions, and avoid pulling in
 // any heavy base headers that include the C++ standard library from here.
 // This header is sometimes included while inside `namespace v8 {}` blocks.
 // Keep these WASI shims minimal.
-#include "v8-data.h"              // Ensure Local<T> is defined in WASI builds
-#include "v8-forward.h"           // Ensure template Local<T> is declared
+#include "../../../wasi-v8-internals-minimal.h"
+#include "v8-data.h"     // Ensure Local<T> is defined in WASI builds
+#include "v8-forward.h"  // Ensure template Local<T> is declared
 #include "wasi/nuclear-fix.h"
 #include "wasi/v8-wasi-compat.h"
-#include "../../../wasi-v8-internals-minimal.h"
 // Avoid including src/base/* headers here; include them at TU global scope.
 // Provide namespace bridge helpers without touching std::
 #include "wasi/v8-namespace-fix.h"
@@ -44,10 +48,11 @@ void PrintPropertyCallbackInfo(void*);
 #if defined(__wasi__) || defined(V8_USING_WASI_SHIMS)
 #else
 // Non-WASI content would go here
-#include "v8config.h"  // For V8_EXPORT and other macros
-#include <cstdint>
 #include <cstddef>
+#include <cstdint>
 #include <optional>
+
+#include "v8config.h"  // For V8_EXPORT and other macros
 
 namespace v8 {
 namespace internal {
@@ -89,18 +94,29 @@ class Internals {
   static Address ReadTaggedPointerField(Address, int) { return 0; }
   static Address ReadRawField(Address a, int) { return a; }
   template <typename T>
-  static T ReadRawField(Address a, int) { return static_cast<T>(a); }
+  static T ReadRawField(Address a, int) {
+    return static_cast<T>(a);
+  }
   static Address DecompressTaggedField(Address a, uint32_t) { return a; }
   static uint8_t GetNodeState(Address*) { return 0; }
   static int GetInstanceType(Address) { return 0; }
   static ::v8::Isolate* GetIsolateForSandbox(Address) { return nullptr; }
   static bool IsExternalTwoByteString(int) { return false; }
   template <typename T>
-  static constexpr bool IsValidSmi(T) { return true; }
+  static constexpr bool IsValidSmi(T) {
+    return true;
+  }
+  static constexpr int SmiValue(Address value) {
+    return static_cast<int32_t>(static_cast<intptr_t>(value)) >> 1;
+  }
   template <typename T>
-  static Address IntegralToSmi(T v) { return static_cast<Address>(v); }
+  static Address IntegralToSmi(T v) {
+    return static_cast<Address>(v);
+  }
   template <typename T>
-  static ::std::optional<Address> TryIntegralToSmi(T) { return ::std::nullopt; }
+  static ::std::optional<Address> TryIntegralToSmi(T) {
+    return ::std::nullopt;
+  }
   static bool CanHaveInternalField(int) { return false; }
   static void CheckInitialized(::v8::Isolate*) {}
   static Address* GetRootSlot(::v8::Isolate*, int) { return nullptr; }
@@ -120,7 +136,7 @@ class Internals {
 
 }  // namespace internal
 }  // namespace v8
-#endif  // defined(__wasi__) || defined(V8_USING_WASI_SHIMS)
+#endif                 // defined(__wasi__) || defined(V8_USING_WASI_SHIMS)
 
 // Provide core size and feature constants expected by src/common/globals.h
 // These must be in the v8::internal namespace and available for both WASI and
@@ -185,7 +201,8 @@ struct BackingStoreBase {};
 #endif  // !defined(__wasi__) && !defined(V8_USING_WASI_SHIMS)
 
 // Debug helper used by v8-function-callback.h when V8_ENABLE_CHECKS.
-// Only provide this stub for WASI builds; other builds use the definition in api.cc.
+// Only provide this stub for WASI builds; other builds use the definition in
+// api.cc.
 #if defined(__wasi__) || defined(V8_USING_WASI_SHIMS)
 inline void VerifyHandleIsNonEmpty(bool) {}
 #else
@@ -198,9 +215,9 @@ V8_EXPORT void VerifyHandleIsNonEmpty(bool is_empty);
 #ifdef V8_TARGET_ARCH_WASM32
 // Adjust for WASI 32-bit pointers
 #undef kFixedArrayHeaderSize
-static constexpr int kFixedArrayHeaderSize = sizeof(void*) * 2;  // 8 bytes on 32-bit
+static constexpr int kFixedArrayHeaderSize =
+    sizeof(void*) * 2;  // 8 bytes on 32-bit
 #endif
-
 
 #ifndef V8_WASI_VALUEHELPER_DEFINED
 #define V8_WASI_VALUEHELPER_DEFINED
@@ -214,7 +231,9 @@ struct ValueHelper {
       static_cast<InternalRepresentationType>(0x1);
 
   template <typename T>
-  static bool IsEmpty(T* that) { return that == nullptr; }
+  static bool IsEmpty(T* that) {
+    return that == nullptr;
+  }
 
 #ifdef __wasi__
   template <typename V, bool kCheck = false>
@@ -242,7 +261,9 @@ struct ValueHelper {
   template <typename T>
   static void PerformCastCheck(T) {}
   template <typename A, typename B>
-  static bool EqualHandles(const A&, const B&) { return false; }
+  static bool EqualHandles(const A&, const B&) {
+    return false;
+  }
 };
 }  // namespace internal
 }  // namespace v8
@@ -251,10 +272,14 @@ struct ValueHelper {
 #ifndef __wasi__
 // Provide a free function in v8::internal to match headers expecting
 // internal::PerformCastCheck(...) symbols on host builds.
-namespace v8 { namespace internal {
+namespace v8 {
+namespace internal {
 template <typename T>
-inline void PerformCastCheck(T t) { ValueHelper::PerformCastCheck(t); }
-} }
+inline void PerformCastCheck(T t) {
+  ValueHelper::PerformCastCheck(t);
+}
+}  // namespace internal
+}  // namespace v8
 #endif
 
-#endif // INCLUDE_V8_INTERNAL_H_
+#endif  // INCLUDE_V8_INTERNAL_H_

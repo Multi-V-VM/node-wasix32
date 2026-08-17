@@ -7,62 +7,61 @@
 
 #include <stddef.h>
 #include <stdint.h>
-#include <new>
 
 #include <limits>
+#include <new>
 #include <ostream>
 
 #include "include/v8-internal.h"
-#include "src/base/build_config.h"
-#include "src/base/enum-set.h"
-#include "src/base/flags.h"
-#include "src/base/logging.h"
-#include "src/base/macros.h"
-#include "src/base/strong-alias.h"
-#include "src/base/template-utils.h"
-#include "src/base/template-meta-programming/list.h"
-#include "src/base/template-meta-programming/functional.h"
-#include "src/base/template-meta-programming/string-literal.h"
-#include "src/base/atomic-utils.h"
-#include "src/base/vlq.h"
-#include "src/base/vlq-base64.h"
-#include "src/base/contextual.h"
 #include "src/base/abort-mode.h"
-#include "src/base/platform/time.h"
-#include "src/base/vector.h"
-#include "src/base/hashing.h"
-#include "src/base/small-vector.h"
-#include "src/base/small-map.h"
-#include "src/base/bits-iterator.h"
-#include "src/base/division-by-constant.h"
-#include "src/base/overflowing-math.h"
-#include "src/base/ieee754.h"
-#include "src/base/fpu.h"
-#include "src/base/numbers/dtoa.h"
-#include "src/base/numbers/strtod.h"
-#include "src/base/numbers/double.h"
-#include "src/base/hashmap-entry.h"
-#include "src/base/hashmap.h"
-#include "src/base/bounds.h"
-#include "src/base/container-utils.h"
-#include "src/base/numerics/safe_conversions.h"
-#include "src/base/platform/elapsed-timer.h"
-#include "src/base/platform/platform.h"
 #include "src/base/address-region.h"
-#include "src/base/platform/wrappers.h"
-#include "src/base/platform/mutex.h"
-#include "src/base/vector.h"
-#include "src/base/strings.h"
-#include "src/base/string-format.h"
-#include "src/base/iterator.h"
-#include "src/base/memory.h"
-#include "src/base/platform/memory.h"
-#include "src/base/utils/random-number-generator.h"
 #include "src/base/atomic-utils.h"
 #include "src/base/bit-field.h"
+#include "src/base/bits-iterator.h"
+#include "src/base/bounds.h"
+#include "src/base/build_config.h"
+#include "src/base/container-utils.h"
+#include "src/base/contextual.h"
+#include "src/base/division-by-constant.h"
+#include "src/base/enum-set.h"
+#include "src/base/flags.h"
+#include "src/base/fpu.h"
+#include "src/base/hashing.h"
+#include "src/base/hashmap-entry.h"
+#include "src/base/hashmap.h"
+#include "src/base/ieee754.h"
+#include "src/base/iterator.h"
+#include "src/base/logging.h"
+#include "src/base/macros.h"
+#include "src/base/memory.h"
+#include "src/base/numbers/double.h"
+#include "src/base/numbers/dtoa.h"
+#include "src/base/numbers/strtod.h"
+#include "src/base/numerics/safe_conversions.h"
+#include "src/base/overflowing-math.h"
+#include "src/base/platform/elapsed-timer.h"
+#include "src/base/platform/memory.h"
+#include "src/base/platform/mutex.h"
+#include "src/base/platform/platform.h"
+#include "src/base/platform/time.h"
+#include "src/base/platform/wrappers.h"
+#include "src/base/small-map.h"
+#include "src/base/small-vector.h"
+#include "src/base/string-format.h"
+#include "src/base/strings.h"
+#include "src/base/strong-alias.h"
+#include "src/base/template-meta-programming/functional.h"
+#include "src/base/template-meta-programming/list.h"
+#include "src/base/template-meta-programming/string-literal.h"
+#include "src/base/template-utils.h"
+#include "src/base/utils/random-number-generator.h"
+#include "src/base/vector.h"
+#include "src/base/vlq-base64.h"
+#include "src/base/vlq.h"
 
 // WASI compatibility shims (also enabled for WASM32 builds lacking __wasi__)
-#if defined(__wasi__) || defined(V8_USING_WASI_SHIMS)
+#if defined(__wasi__) || defined(V8_USING_WASI_SHIMS) || \
+    defined(V8_TARGET_ARCH_WASM32)
 #ifdef V8_TARGET_ARCH_IA32
 #undef V8_TARGET_ARCH_IA32
 #endif
@@ -73,11 +72,36 @@
 #include "wasi/concepts-fix.h"
 #ifndef V8_INTERNAL_IS64_DEFINED
 #define V8_INTERNAL_IS64_DEFINED
-namespace v8 { namespace internal {
+namespace v8 {
+namespace internal {
 constexpr bool Is64() { return false; }
-} }
+}  // namespace internal
+}  // namespace v8
 #endif
-#endif  // defined(__wasi__) || defined(V8_USING_WASI_SHIMS)
+namespace v8 {
+namespace internal {
+#ifndef V8_WASI_NULL_ADDRESS_DEFINED
+#define V8_WASI_NULL_ADDRESS_DEFINED
+inline constexpr uintptr_t kNullAddress = 0;
+#endif
+#ifndef V8_WASI_SMI_TAG_MASK_VALUE_DEFINED
+#define V8_WASI_SMI_TAG_MASK_VALUE_DEFINED
+inline constexpr intptr_t kSmiTagMask = 1;
+#endif
+#ifndef V8_WASI_SMI_TAG_DEFINED
+#define V8_WASI_SMI_TAG_DEFINED
+inline constexpr int kSmiTag = 0;
+#endif
+#ifndef V8_WASI_HEAP_TAG_DEFINED
+#define V8_WASI_HEAP_TAG_DEFINED
+inline constexpr int kHeapObjectTag = 1;
+inline constexpr intptr_t kHeapObjectTagMask = 3;
+inline constexpr int kWeakHeapObjectTag = 3;
+#endif
+}  // namespace internal
+}  // namespace v8
+#endif  // defined(__wasi__) || defined(V8_USING_WASI_SHIMS) ||
+        // V8_TARGET_ARCH_WASM32
 
 #if defined(__wasi__) || defined(V8_USING_WASI_SHIMS)
 // Some freestanding libc++/WASI configurations require an explicit declaration
@@ -101,7 +125,7 @@ class BackingStore;
 namespace base {
 class Mutex;
 class ConditionVariable;
-}
+}  // namespace base
 #endif  // !defined(__wasi__) && !defined(V8_USING_WASI_SHIMS)
 
 namespace internal {
@@ -786,8 +810,9 @@ static_assert((kTaggedSize == 8) == TAGGED_SIZE_8_BYTES);
 #endif
 
 using AsAtomicTagged = ::v8::base::AsAtomicPointerImpl<AtomicTagged_t>;
-// Note: These assertions are only valid when compiling with matching target compiler
-// For cross-compilation (native compiler with wasm32 target), skip these checks
+// Note: These assertions are only valid when compiling with matching target
+// compiler For cross-compilation (native compiler with wasm32 target), skip
+// these checks
 #if !defined(V8_TARGET_ARCH_WASM32) || defined(__wasi__)
 static_assert(sizeof(Tagged_t) == kTaggedSize);
 static_assert(sizeof(AtomicTagged_t) == kTaggedSize);
@@ -1693,7 +1718,7 @@ constexpr int kGarbageCollectionReasonMaxValue =
     static_cast<int>(GarbageCollectionReason::NUM_REASONS) - 1;
 
 static_assert(kGarbageCollectionReasonMaxValue ==
-              static_cast<int>(GarbageCollectionReason::NUM_REASONS) - 1,
+                  static_cast<int>(GarbageCollectionReason::NUM_REASONS) - 1,
               "The value of kGarbageCollectionReasonMaxValue is inconsistent.");
 
 constexpr const char* ToString(GarbageCollectionReason reason) {
@@ -3176,7 +3201,8 @@ constexpr int kSmiMaxValue = (1 << 30) - 1;
 
 }  // namespace v8
 
-// std::hash specialization for WasmCodePointer - needed for unordered containers
+// std::hash specialization for WasmCodePointer - needed for unordered
+// containers
 namespace std {
 template <>
 struct hash<v8::internal::WasmCodePointer> {

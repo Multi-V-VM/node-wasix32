@@ -1018,6 +1018,9 @@ using StackTracePrinter = void (*)();
  */
 class Platform {
  public:
+  using HighAllocationThroughputObserver =
+      ::v8::HighAllocationThroughputObserver;
+
   // BlockingType indicates the likelihood that a blocking call will actually
   // block
   enum class BlockingType { kMayBlock, kWillBlock };
