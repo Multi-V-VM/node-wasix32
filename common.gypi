@@ -581,6 +581,12 @@
           }],
         ],
       }],
+      [ 'OS=="wasi"', {
+        'cflags_cc': [
+          '-std=gnu++20',
+        ],
+        'defines': [ '__STDC_FORMAT_MACROS' ],
+      }],
       [ 'OS in "aix os400"', {
         'variables': {
           # Used to differentiate `AIX` and `OS400`(IBM i).

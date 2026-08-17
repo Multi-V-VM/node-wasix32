@@ -73,25 +73,27 @@ RELEASE_ACQUIRE_ACCESSORS(
 #ifdef __wasi__
 namespace {
 
-inline bool IsWasm32MapPrototypeValue(Tagged<Object> value,
-                                      PtrComprCageBase cage_base) {
-  return IsNull(value) || IsJSReceiver(value, cage_base);
+inline bool IsReadableWasm32MapField(Tagged<Map> map, int offset) {
+  if (offset < 0) return false;
+  size_t memory_bytes =
+      static_cast<size_t>(__builtin_wasm_memory_size(0)) * 65536u;
+  if (memory_bytes < sizeof(Address) + static_cast<size_t>(offset)) {
+    return false;
+  }
+  Address object_address = map.ptr() - kHeapObjectTag;
+  return object_address <= memory_bytes - sizeof(Address) - offset;
 }
 
 inline int Wasm32MapPrototypeOffset(Tagged<Map> map,
                                     PtrComprCageBase cage_base) {
-  Tagged<Object> shifted = TaggedField<Object>::load(
-      cage_base, map, Map::kPrototypeOffset - kTaggedSize);
-  if (IsWasm32MapPrototypeValue(shifted, cage_base)) {
-    return Map::kPrototypeOffset - kTaggedSize;
+  int shifted_offset = Map::kPrototypeOffset - kTaggedSize;
+  if (IsReadableWasm32MapField(map, shifted_offset)) {
+    Tagged<Object> shifted =
+        TaggedField<Object>::load(cage_base, map, shifted_offset);
+    if (IsNull(shifted) || IsJSReceiver(shifted, cage_base)) {
+      return shifted_offset;
+    }
   }
-
-  Tagged<Object> direct =
-      TaggedField<Object>::load(cage_base, map, Map::kPrototypeOffset);
-  if (IsWasm32MapPrototypeValue(direct, cage_base)) {
-    return Map::kPrototypeOffset;
-  }
-
   return Map::kPrototypeOffset;
 }
 
@@ -104,9 +106,8 @@ DEF_GETTER(Map, prototype, Tagged<JSPrototype>) {
 
 void Map::set_prototype(Tagged<JSPrototype> value, WriteBarrierMode mode) {
   DCHECK(IsNull(value) || IsJSProxy(value) || IsWasmObject(value) ||
-         (IsJSObject(value) &&
-          (HeapLayout::InWritableSharedSpace(value) ||
-           value->map()->is_prototype_map())));
+         (IsJSObject(value) && (HeapLayout::InWritableSharedSpace(value) ||
+                                value->map()->is_prototype_map())));
   PtrComprCageBase cage_base = GetPtrComprCageBase(*this);
   int offset = Wasm32MapPrototypeOffset(*this, cage_base);
   TaggedField<JSPrototype>::store(*this, offset, value);
@@ -896,17 +897,17 @@ void Map::SetBackPointer(Tagged<HeapObject> value, WriteBarrierMode mode) {
 #if defined(__wasi__)
   Tagged<Object> debug_constructor = constructor_or_back_pointer();
   Tagged<HeapObject> debug_back_pointer = GetBackPointer();
-  std::fprintf(stderr,
-               "Map::SetBackPointer self=0x%lx value=0x%lx ctor_or_back=0x%lx "
-               "get_back=0x%lx value_ctor=0x%lx self_type=%d value_type=%d\n",
-               static_cast<unsigned long>(ptr()),
-               static_cast<unsigned long>(value.ptr()),
-               static_cast<unsigned long>(debug_constructor.ptr()),
-               static_cast<unsigned long>(debug_back_pointer.ptr()),
-               static_cast<unsigned long>(
-                   Cast<Map>(value)->GetConstructorRaw().ptr()),
-               static_cast<int>(instance_type()),
-               static_cast<int>(Cast<Map>(value)->instance_type()));
+  std::fprintf(
+      stderr,
+      "Map::SetBackPointer self=0x%lx value=0x%lx ctor_or_back=0x%lx "
+      "get_back=0x%lx value_ctor=0x%lx self_type=%d value_type=%d\n",
+      static_cast<unsigned long>(ptr()),
+      static_cast<unsigned long>(value.ptr()),
+      static_cast<unsigned long>(debug_constructor.ptr()),
+      static_cast<unsigned long>(debug_back_pointer.ptr()),
+      static_cast<unsigned long>(Cast<Map>(value)->GetConstructorRaw().ptr()),
+      static_cast<int>(instance_type()),
+      static_cast<int>(Cast<Map>(value)->instance_type()));
   std::fflush(stderr);
 #endif
   CHECK(IsUndefined(GetBackPointer()));

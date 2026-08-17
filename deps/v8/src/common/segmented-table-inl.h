@@ -13,7 +13,7 @@
 #include "src/utils/allocation.h"
 // Include VirtualAddressSpace definition for method calls
 #ifdef __wasi__
-#include "include/v8-platform-full.h"
+#include "include/v8-platform-original.h"
 #else
 #include "src/base/virtual-address-space.h"
 #endif

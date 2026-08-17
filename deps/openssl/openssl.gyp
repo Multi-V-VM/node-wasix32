@@ -3,6 +3,7 @@
     'gas_version%': '0.0',
     'llvm_version%': '0.0',
     'nasm_version%': '0.0',
+    'xcode_version%': '0.0',
     'conditions': [
       ['GENERATOR == "ninja"', {
         'modules_dir': '<(PRODUCT_DIR_ABS_CSTR)/obj/lib/openssl-modules',

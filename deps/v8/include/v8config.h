@@ -5,6 +5,10 @@
 #ifndef V8CONFIG_H_
 #define V8CONFIG_H_
 
+#if defined(__wasi__)
+#define V8_WASI_USE_CANONICAL_PLATFORM_HEADER 1
+#endif
+
 #ifdef V8_GN_HEADER
 #if __cplusplus >= 201703L && !__has_include("v8-gn.h")
 #error Missing v8-gn.h. The configuration for v8 is missing from the include \

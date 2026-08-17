@@ -10,7 +10,6 @@
 
 #include <optional>
 
-
 // Include other inline headers *after* including js-function.h, such that e.g.
 // the definition of JSFunction is available (and this comment prevents
 // clang-format from merging that include into the following ones).
@@ -483,49 +482,57 @@ Tagged<NativeContext> JSFunction::native_context() {
 #ifdef __wasi__
 namespace {
 
-inline bool IsWasm32ReadablePrototypeFieldValue(Tagged<Object> value) {
-  Address address = value.ptr();
-  if (!HAS_STRONG_HEAP_OBJECT_TAG(address) || address < kHeapObjectTag) {
-    return false;
-  }
+inline bool IsReadableWasm32FunctionField(Tagged<JSFunction> function,
+                                          int offset) {
+  if (offset < 0) return false;
   size_t memory_bytes =
       static_cast<size_t>(__builtin_wasm_memory_size(0)) * 65536u;
-  Address object_address = address - kHeapObjectTag;
-  if (object_address > memory_bytes - sizeof(Address)) return false;
-  Address map = *reinterpret_cast<Address*>(object_address);
-  if (!HAS_STRONG_HEAP_OBJECT_TAG(map) || map < kHeapObjectTag) return false;
-  Address map_address = map - kHeapObjectTag;
-  return map_address <= memory_bytes - sizeof(Address);
+  if (memory_bytes < sizeof(Address) + static_cast<size_t>(offset)) {
+    return false;
+  }
+  Address object_address = function.ptr() - kHeapObjectTag;
+  return object_address <= memory_bytes - sizeof(Address) - offset;
 }
 
 inline bool IsWasm32PrototypeOrInitialMapValue(Tagged<Object> value,
                                                PtrComprCageBase cage_base) {
-  if (!IsWasm32ReadablePrototypeFieldValue(value)) return false;
-  return IsMap(value, cage_base) || IsJSReceiver(value, cage_base) ||
+  if (!HAS_STRONG_HEAP_OBJECT_TAG(value.ptr()) ||
+      value.ptr() < kHeapObjectTag) {
+    return false;
+  }
+  size_t memory_bytes =
+      static_cast<size_t>(__builtin_wasm_memory_size(0)) * 65536u;
+  if (memory_bytes < sizeof(Address)) return false;
+  Address object_address = value.ptr() - kHeapObjectTag;
+  if (object_address > memory_bytes - sizeof(Address)) return false;
+  return IsJSReceiver(value, cage_base) || IsMap(value, cage_base) ||
          IsTheHole(value);
 }
 
 inline int Wasm32PrototypeOrInitialMapOffset(Tagged<JSFunction> function,
                                              PtrComprCageBase cage_base) {
-  Tagged<Object> shifted = TaggedField<Object>::Acquire_Load(
-      cage_base, function, JSFunction::kPrototypeOrInitialMapOffset - kTaggedSize);
-  if (IsWasm32PrototypeOrInitialMapValue(shifted, cage_base)) {
-    return JSFunction::kPrototypeOrInitialMapOffset - kTaggedSize;
+  int shifted_offset = JSFunction::kPrototypeOrInitialMapOffset - kTaggedSize;
+  if (IsReadableWasm32FunctionField(function, shifted_offset) &&
+      IsWasm32PrototypeOrInitialMapValue(
+          TaggedField<Object>::Acquire_Load(cage_base, function,
+                                            shifted_offset),
+          cage_base)) {
+    return shifted_offset;
   }
-
-  Tagged<Object> direct = TaggedField<Object>::Acquire_Load(
-      cage_base, function, JSFunction::kPrototypeOrInitialMapOffset);
-  if (IsWasm32PrototypeOrInitialMapValue(direct, cage_base)) {
-    return JSFunction::kPrototypeOrInitialMapOffset;
+  int direct_offset = JSFunction::kPrototypeOrInitialMapOffset;
+  if (IsReadableWasm32FunctionField(function, direct_offset) &&
+      IsWasm32PrototypeOrInitialMapValue(
+          TaggedField<Object>::Acquire_Load(cage_base, function, direct_offset),
+          cage_base)) {
+    return direct_offset;
   }
-
-  Tagged<Object> plus_one = TaggedField<Object>::Acquire_Load(
-      cage_base, function,
-      JSFunction::kPrototypeOrInitialMapOffset + kTaggedSize);
-  if (IsWasm32PrototypeOrInitialMapValue(plus_one, cage_base)) {
-    return JSFunction::kPrototypeOrInitialMapOffset + kTaggedSize;
+  int next_offset = JSFunction::kPrototypeOrInitialMapOffset + kTaggedSize;
+  if (IsReadableWasm32FunctionField(function, next_offset) &&
+      IsWasm32PrototypeOrInitialMapValue(
+          TaggedField<Object>::Acquire_Load(cage_base, function, next_offset),
+          cage_base)) {
+    return next_offset;
   }
-
   return JSFunction::kPrototypeOrInitialMapOffset;
 }
 

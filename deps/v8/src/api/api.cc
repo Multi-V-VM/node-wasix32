@@ -13261,6 +13261,35 @@ TryToCopyAndConvertArrayToCppBuffer<CTypeInfoBuilder<double>::Build().GetId(),
 // WASI implementations for Isolate lifecycle methods.
 // These are excluded by the #if !defined(__wasi__) guard above.
 
+String::ValueView::ValueView(v8::Isolate* v8_isolate,
+                             v8::Local<v8::String> str) {
+  i::Isolate* i_isolate = reinterpret_cast<i::Isolate*>(v8_isolate);
+  i::HandleScope scope(i_isolate);
+  i::DirectHandle<i::String> i_str = Utils::OpenDirectHandle(*str);
+  i::DirectHandle<i::String> i_flat_str = i::String::Flatten(i_isolate, i_str);
+
+  flat_str_ = Utils::ToLocal(i_flat_str);
+
+  i::DisallowGarbageCollectionInRelease* no_gc =
+      new (no_gc_debug_scope_) i::DisallowGarbageCollectionInRelease();
+  i::String::FlatContent flat_content = i_flat_str->GetFlatContent(*no_gc);
+  DCHECK(flat_content.IsFlat());
+  is_one_byte_ = flat_content.IsOneByte();
+  length_ = flat_content.length();
+  if (is_one_byte_) {
+    data8_ = flat_content.ToOneByteVector().data();
+  } else {
+    data16_ = flat_content.ToUC16Vector().data();
+  }
+}
+
+String::ValueView::~ValueView() {
+  using i::DisallowGarbageCollectionInRelease;
+  DisallowGarbageCollectionInRelease* no_gc =
+      reinterpret_cast<DisallowGarbageCollectionInRelease*>(no_gc_debug_scope_);
+  no_gc->~DisallowGarbageCollectionInRelease();
+}
+
 // static
 Isolate* Isolate::Allocate() {
   i::IsolateGroup* isolate_group = i::IsolateGroup::AcquireDefault();

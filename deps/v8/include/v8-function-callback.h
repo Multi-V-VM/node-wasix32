@@ -1,5 +1,6 @@
 #ifdef __wasi__
 #include "wasi/concepts-fix.h"
+#include "wasi/v8-constants.h"
 #include "wasi/v8-handle-fixes.h"
 #endif
 // Copyright 2021 the V8 project authors. All rights reserved.
@@ -12,11 +13,10 @@
 #include <cstdint>
 #include <limits>
 
+#include "v8-container.h"     // NOLINT(build/include_directory)
 #include "v8-internal.h"      // NOLINT(build/include_directory)
-
 #include "v8-local-handle.h"  // NOLINT(build/include_directory)
 #include "v8-primitive.h"     // NOLINT(build/include_directory)
-#include "v8-container.h"     // NOLINT(build/include_directory)
 #include "v8config.h"         // NOLINT(build/include_directory)
 
 namespace v8 {
@@ -200,8 +200,7 @@ class FunctionCallbackInfo {
   static constexpr int kImplicitArgsOffset = 0;
   static constexpr int kValuesOffset =
       kImplicitArgsOffset + kApiSystemPointerSize;
-  static constexpr int kLengthOffset =
-      kValuesOffset + kApiSystemPointerSize;
+  static constexpr int kLengthOffset = kValuesOffset + kApiSystemPointerSize;
 
   static constexpr int kThisValuesIndex = -1;
   static_assert(ReturnValue<Value>::kIsolateValueIndex ==
@@ -438,9 +437,9 @@ void ReturnValue<T>::Set(const Local<S> handle) {
 #else
   static constexpr bool is_allowed_void = std::is_void<T>::value;
 #endif  // V8_IMMINENT_DEPRECATION_WARNINGS
-  #ifndef __wasi__
+#ifndef __wasi__
   static_assert(is_allowed_void || std::is_base_of<T, S>::value, "type check");
-  #endif
+#endif
   if (V8_UNLIKELY(handle.IsEmpty())) {
     SetDefaultValue();
   } else if constexpr (is_allowed_void) {
@@ -471,9 +470,10 @@ void ReturnValue<T>::SetNonEmpty(const Local<S> handle) {
 #else
   static constexpr bool is_allowed_void = ::std::is_void<T>::value;
 #endif  // V8_IMMINENT_DEPRECATION_WARNINGS
-  #ifndef __wasi__
-  static_assert(is_allowed_void || ::std::is_base_of<T, S>::value, "type check");
-  #endif
+#ifndef __wasi__
+  static_assert(is_allowed_void || ::std::is_base_of<T, S>::value,
+                "type check");
+#endif
 #ifdef V8_ENABLE_CHECKS
   internal::VerifyHandleIsNonEmpty(handle.IsEmpty());
 #endif  // V8_ENABLE_CHECKS
@@ -492,17 +492,17 @@ void ReturnValue<T>::SetNonEmpty(const Local<S> handle) {
 
 template <typename T>
 void ReturnValue<T>::Set(double i) {
-  #ifndef __wasi__
+#ifndef __wasi__
   static_assert(std::is_base_of<T, Number>::value, "type check");
-  #endif
+#endif
   SetNonEmpty(Number::New(GetIsolate(), i));
 }
 
 template <typename T>
 void ReturnValue<T>::Set(int16_t i) {
-  #ifndef __wasi__
+#ifndef __wasi__
   static_assert(std::is_base_of<T, Integer>::value, "type check");
-  #endif
+#endif
   using I = internal::Internals;
   static_assert(I::IsValidSmi(::std::numeric_limits<int16_t>::min()));
   static_assert(I::IsValidSmi(::std::numeric_limits<int16_t>::max()));
@@ -511,9 +511,9 @@ void ReturnValue<T>::Set(int16_t i) {
 
 template <typename T>
 void ReturnValue<T>::Set(int32_t i) {
-  #ifndef __wasi__
+#ifndef __wasi__
   static_assert(std::is_base_of<T, Integer>::value, "type check");
-  #endif
+#endif
   if (const auto result = internal::Internals::TryIntegralToSmi(i)) {
     SetInternal(*result);
     return;
@@ -523,9 +523,9 @@ void ReturnValue<T>::Set(int32_t i) {
 
 template <typename T>
 void ReturnValue<T>::Set(int64_t i) {
-  #ifndef __wasi__
+#ifndef __wasi__
   static_assert(std::is_base_of<T, Integer>::value, "type check");
-  #endif
+#endif
   if (const auto result = internal::Internals::TryIntegralToSmi(i)) {
     SetInternal(*result);
     return;
@@ -535,9 +535,9 @@ void ReturnValue<T>::Set(int64_t i) {
 
 template <typename T>
 void ReturnValue<T>::Set(uint16_t i) {
-  #ifndef __wasi__
+#ifndef __wasi__
   static_assert(std::is_base_of<T, Integer>::value, "type check");
-  #endif
+#endif
   using I = internal::Internals;
   static_assert(I::IsValidSmi(std::numeric_limits<uint16_t>::min()));
   static_assert(I::IsValidSmi(std::numeric_limits<uint16_t>::max()));
@@ -546,9 +546,9 @@ void ReturnValue<T>::Set(uint16_t i) {
 
 template <typename T>
 void ReturnValue<T>::Set(uint32_t i) {
-  #ifndef __wasi__
+#ifndef __wasi__
   static_assert(std::is_base_of<T, Integer>::value, "type check");
-  #endif
+#endif
   if (const auto result = internal::Internals::TryIntegralToSmi(i)) {
     SetInternal(*result);
     return;
@@ -568,10 +568,10 @@ void ReturnValue<T>::Set(uint64_t i) {
 
 template <typename T>
 void ReturnValue<T>::Set(bool value) {
-  #ifndef __wasi__
+#ifndef __wasi__
   static_assert(std::is_void<T>::value || std::is_base_of<T, Boolean>::value,
                 "type check");
-  #endif
+#endif
   using I = internal::Internals;
 #if V8_STATIC_ROOTS_BOOL
 #ifdef V8_ENABLE_CHECKS
@@ -587,7 +587,8 @@ void ReturnValue<T>::Set(bool value) {
     root_index = I::kFalseValueRootIndex;
   }
 #ifdef __wasi__
-  *value_ = reinterpret_cast<internal::Address>(I::GetRoot(GetIsolate(), root_index));
+  *value_ =
+      reinterpret_cast<internal::Address>(I::GetRoot(GetIsolate(), root_index));
 #else
   *value_ = I::GetRoot(GetIsolate(), root_index);
 #endif
@@ -597,17 +598,20 @@ void ReturnValue<T>::Set(bool value) {
 template <typename T>
 void ReturnValue<T>::SetDefaultValue() {
   using I = internal::Internals;
-  if constexpr (std::is_same<void, T>::value || std::is_same<v8::Boolean, T>::value) {
+  if constexpr (std::is_same<void, T>::value ||
+                std::is_same<v8::Boolean, T>::value) {
     Set(true);
   } else if constexpr (std::is_same<v8::Integer, T>::value) {
     SetInternal(I::IntegralToSmi(0));
   } else {
-    static_assert(std::is_same<v8::Value, T>::value || std::is_same<v8::Array, T>::value);
+    static_assert(std::is_same<v8::Value, T>::value ||
+                  std::is_same<v8::Array, T>::value);
 #if V8_STATIC_ROOTS_BOOL
     SetInternal(I::StaticReadOnlyRoot::kUndefinedValue);
 #else
 #ifdef __wasi__
-    *value_ = reinterpret_cast<internal::Address>(I::GetRoot(GetIsolate(), I::kUndefinedValueRootIndex));
+    *value_ = reinterpret_cast<internal::Address>(
+        I::GetRoot(GetIsolate(), I::kUndefinedValueRootIndex));
 #else
     *value_ = I::GetRoot(GetIsolate(), I::kUndefinedValueRootIndex);
 #endif
@@ -626,7 +630,8 @@ void ReturnValue<T>::SetNull() {
   SetInternal(I::StaticReadOnlyRoot::kNullValue);
 #else
 #ifdef __wasi__
-  *value_ = reinterpret_cast<internal::Address>(I::GetRoot(GetIsolate(), I::kNullValueRootIndex));
+  *value_ = reinterpret_cast<internal::Address>(
+      I::GetRoot(GetIsolate(), I::kNullValueRootIndex));
 #else
   *value_ = I::GetRoot(GetIsolate(), I::kNullValueRootIndex);
 #endif
@@ -644,7 +649,8 @@ void ReturnValue<T>::SetUndefined() {
   SetInternal(I::StaticReadOnlyRoot::kUndefinedValue);
 #else
 #ifdef __wasi__
-  *value_ = reinterpret_cast<internal::Address>(I::GetRoot(GetIsolate(), I::kUndefinedValueRootIndex));
+  *value_ = reinterpret_cast<internal::Address>(
+      I::GetRoot(GetIsolate(), I::kUndefinedValueRootIndex));
 #else
   *value_ = I::GetRoot(GetIsolate(), I::kUndefinedValueRootIndex);
 #endif
@@ -663,7 +669,8 @@ void ReturnValue<T>::SetFalse() {
   SetInternal(I::StaticReadOnlyRoot::kFalseValue);
 #else
 #ifdef __wasi__
-  *value_ = reinterpret_cast<internal::Address>(I::GetRoot(GetIsolate(), I::kFalseValueRootIndex));
+  *value_ = reinterpret_cast<internal::Address>(
+      I::GetRoot(GetIsolate(), I::kFalseValueRootIndex));
 #else
   *value_ = I::GetRoot(GetIsolate(), I::kFalseValueRootIndex);
 #endif
@@ -681,7 +688,8 @@ void ReturnValue<T>::SetEmptyString() {
   SetInternal(I::StaticReadOnlyRoot::kEmptyString);
 #else
 #ifdef __wasi__
-  *value_ = reinterpret_cast<internal::Address>(I::GetRoot(GetIsolate(), I::kEmptyStringRootIndex));
+  *value_ = reinterpret_cast<internal::Address>(
+      I::GetRoot(GetIsolate(), I::kEmptyStringRootIndex));
 #else
   *value_ = I::GetRoot(GetIsolate(), I::kEmptyStringRootIndex);
 #endif
@@ -808,6 +816,5 @@ bool PropertyCallbackInfo<T>::ShouldThrowOnError() const {
 }
 
 }  // namespace v8
-
 
 #endif  // INCLUDE_V8_FUNCTION_CALLBACK_H_

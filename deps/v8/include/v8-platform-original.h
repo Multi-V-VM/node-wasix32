@@ -14,11 +14,16 @@
 #include <string>
 
 #include "v8-source-location.h"  // NOLINT(build/include_directory)
-#include "v8config.h"  // NOLINT(build/include_directory)
+#include "v8config.h"            // NOLINT(build/include_directory)
 
 namespace v8 {
 
 class Isolate;
+
+#if defined(__wasi__)
+enum class PriorityMode { kDontApply, kApply };
+enum class MessageLoopBehavior { kDoNotWait, kWaitForWork };
+#endif
 
 // Valid priorities supported by the task scheduling infrastructure.
 enum class TaskPriority : uint8_t {
@@ -1013,7 +1018,8 @@ using StackTracePrinter = void (*)();
  */
 class Platform {
  public:
-  // BlockingType indicates the likelihood that a blocking call will actually block
+  // BlockingType indicates the likelihood that a blocking call will actually
+  // block
   enum class BlockingType { kMayBlock, kWillBlock };
 
   virtual ~Platform() = default;

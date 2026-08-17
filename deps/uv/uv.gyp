@@ -287,7 +287,7 @@
                     },
                 ],
                 [
-                    'OS in "linux mac ios android zos openharmony"',
+                    'OS in "linux mac ios android zos openharmony" or (OS=="wasi" and _toolset=="host")',
                     {
                         "sources": ["src/unix/proctitle.c"],
                     },
@@ -320,13 +320,13 @@
                     },
                 ],
                 [
-                    'OS=="linux" or OS=="openharmony"',
+                    'OS=="linux" or OS=="openharmony" or (OS=="wasi" and _toolset=="host")',
                     {
                         "defines": ["_GNU_SOURCE"],
                     },
                 ],
                 [
-                    '(OS=="linux" or OS=="openharmony") and (target_arch!="wasm32" or _toolset=="host")',
+                    '((OS=="linux" or OS=="openharmony") and (target_arch!="wasm32" or _toolset=="host")) or (OS=="wasi" and _toolset=="host")',
                     {
                         "sources": [
                             "<@(uv_sources_linux)",
@@ -337,7 +337,7 @@
                     },
                 ],
                 [
-                    '(OS=="linux" or OS=="openharmony") and target_arch=="wasm32" and _toolset!="host"',
+                    '((OS=="linux" or OS=="openharmony") and target_arch=="wasm32" and _toolset!="host") or (OS=="wasi" and _toolset!="host")',
                     {
                         "defines": [
                             "UV_WASI_STUBS",

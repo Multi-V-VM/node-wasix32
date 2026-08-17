@@ -3,12 +3,12 @@
 
 #if defined(__wasi__) || defined(V8_USING_WASI_SHIMS)
 
-#include <cstdint>
 #include <cstddef>
+#include <cstdint>
+#include <cstring>
 #include <limits>
 #include <memory>
 #include <type_traits>
-#include <cstring>
 
 #ifdef __wasi__
 // Only include heavy base/standard headers when:
@@ -19,22 +19,23 @@
 // from public headers before base headers.
 #include "src/base/atomicops.h"
 // Ensure base facilities are visible when public headers include this early
-#include "src/base/platform/memory.h"   // v8::base::AlignedAlloc/AlignedFree
-#include "src/base/platform/platform.h" // v8::base::OS
-#include "src/base/platform/time.h"     // v8::base::TimeTicks/TimeDelta
-#include "src/base/vector.h"            // v8::base::Vector/EmbeddedVector
-#include "src/base/lazy-instance.h"     // v8::base::Lazy* traits
+#include "src/base/lazy-instance.h"      // v8::base::Lazy* traits
+#include "src/base/platform/memory.h"    // v8::base::AlignedAlloc/AlignedFree
+#include "src/base/platform/platform.h"  // v8::base::OS
+#include "src/base/platform/time.h"      // v8::base::TimeTicks/TimeDelta
+#include "src/base/vector.h"             // v8::base::Vector/EmbeddedVector
 #endif  // V8_WASI_STD_POLYFILLS_GLOBAL_SCOPE && V8_EXPORT_PRIVATE
 
 // Provide an early, minimal definition of v8::PageAllocator so nested
-// types like ::v8::PageAllocator::Permission and the alias ::v8::PagePermissions
-// are always available to any header that includes v8-internal.h before
-// v8-platform.h. The full interface (with identical API surface) may be
-// provided later by v8-platform-full.h; we guard redefinition via
-// V8_PAGE_ALLOCATOR_INTERFACE_DEFINED.
-#ifndef V8_PAGE_ALLOCATOR_INTERFACE_DEFINED
+// types like ::v8::PageAllocator::Permission and the alias
+// ::v8::PagePermissions are always available to any header that includes
+// v8-internal.h before v8-platform.h. The full interface (with identical API
+// surface) may be provided later by v8-platform-full.h; we guard redefinition
+// via V8_PAGE_ALLOCATOR_INTERFACE_DEFINED.
+#if !defined(V8_PAGE_ALLOCATOR_INTERFACE_DEFINED) && \
+    !defined(V8_WASI_USE_CANONICAL_PLATFORM_HEADER)
 namespace v8 {
-class VirtualAddressSpace;  // Forward declare to satisfy friend decls
+class VirtualAddressSpace;     // Forward declare to satisfy friend decls
 class VirtualAddressSubspace;  // Forward declare to satisfy friend decls
 class PageAllocator {
  public:
@@ -57,7 +58,8 @@ class PageAllocator {
   virtual void* AllocatePages(void* address, size_t length, size_t alignment,
                               PagePermissions permissions) = 0;
   virtual bool FreePages(void* address, size_t length) = 0;
-  virtual bool ReleasePages(void* address, size_t length, size_t new_length) = 0;
+  virtual bool ReleasePages(void* address, size_t length,
+                            size_t new_length) = 0;
   virtual bool SetPermissions(void* address, size_t length,
                               PagePermissions permissions) = 0;
   virtual bool RecommitPages(void* address, size_t length,
@@ -83,7 +85,8 @@ class PageAllocator {
     virtual void* GetMemory() const { return nullptr; }
     virtual size_t GetSize() const { return 0; }
     // Stub for WASI - shared memory remapping not supported
-    virtual std::unique_ptr<SharedMemoryMapping> RemapTo(void* new_address) const {
+    virtual std::unique_ptr<SharedMemoryMapping> RemapTo(
+        void* new_address) const {
       return nullptr;
     }
   };
@@ -91,7 +94,9 @@ class PageAllocator {
   // Shared memory allocation - optional, default returns false/nullptr
   virtual bool CanAllocateSharedPages() { return false; }
   virtual std::unique_ptr<SharedMemory> AllocateSharedPages(
-      size_t length, const void* original_address) { return nullptr; }
+      size_t length, const void* original_address) {
+    return nullptr;
+  }
   virtual void FreeSharedPages(void* address, size_t length) {}
 };
 
@@ -147,8 +152,8 @@ struct SmiTagging {
   // WASI uses 31-bit Smis for 32-bit pointer size configurations.
   static constexpr int kSmiTagSize = 1;
   static constexpr int kSmiShiftSize = 0;
-  static constexpr int32_t kSmiMaxValue = 0x3fffffff;  // 2^30 - 1
-  static constexpr int32_t kSmiMinValue = -0x40000000; // -2^30
+  static constexpr int32_t kSmiMaxValue = 0x3fffffff;   // 2^30 - 1
+  static constexpr int32_t kSmiMinValue = -0x40000000;  // -2^30
 };
 
 // Mark that nuclear-fix provides SMI helpers so project stubs can avoid redefs
@@ -158,9 +163,9 @@ struct SmiTagging {
 
 // Forward declarations before namespace definitions
 namespace v8 {
-  class Isolate;
-  class CustomSpaceStatisticsReceiver;
-}
+class Isolate;
+class CustomSpaceStatisticsReceiver;
+}  // namespace v8
 
 namespace v8 {
 // Forward declare types referenced by stubs
@@ -264,7 +269,8 @@ enum ExternalPointerTag : uint64_t {
   kApiAccessCheckCallbackTag = 0x002F000000000000ULL,
   kApiAbortScriptExecutionCallbackTag = 0x0030000000000000ULL,
   kMicrotaskCallbackTag = 0x0031000000000000ULL,
-  kMicrotaskCallbackDataTag = 0x0031000000000000ULL,  // Same as kMicrotaskCallbackTag
+  kMicrotaskCallbackDataTag =
+      0x0031000000000000ULL,  // Same as kMicrotaskCallbackTag
   // Foreign object tags for CFunction
   kCFunctionTag = 0x0032000000000000ULL,
   kCFunctionInfoTag = 0x0033000000000000ULL,
@@ -281,7 +287,7 @@ enum ExternalPointerTag : uint64_t {
   kLastExternalPointerTag = kWasmNativeModuleTag,
 };
 
-#endif // V8_EXTERNAL_POINTER_TAGS_DEFINED
+#endif  // V8_EXTERNAL_POINTER_TAGS_DEFINED
 
 // Provide aliases for renamed tags used in newer V8 code paths.
 #ifndef V8_WASI_EXTERNAL_POINTER_TAG_ALIASES
@@ -308,7 +314,7 @@ enum TrustedPointerTag : uint64_t {
   kLastTrustedPointerTag = kProtectedFixedArrayTrustedPointerTag,
 };
 
-#endif // V8_TRUSTED_POINTER_TAGS_DEFINED
+#endif  // V8_TRUSTED_POINTER_TAGS_DEFINED
 
 // Code pointer tags
 #ifndef V8_CODE_POINTER_TAGS_DEFINED
@@ -333,7 +339,7 @@ enum CodePointerTag : uint32_t {
   kLastCodePointerTag = kUnknownCodePointerTag,
 };
 
-#endif // V8_CODE_POINTER_TAGS_DEFINED
+#endif  // V8_CODE_POINTER_TAGS_DEFINED
 
 // Type aliases with guards
 #ifndef V8_POINTER_HANDLE_TYPES_DEFINED
@@ -343,18 +349,20 @@ using ExternalPointerHandle = uint32_t;
 using TrustedPointerHandle = uint32_t;
 using CodePointerHandle = uint32_t;
 
-#endif // V8_POINTER_HANDLE_TYPES_DEFINED
+#endif  // V8_POINTER_HANDLE_TYPES_DEFINED
 
 // Provide external/code pointer table constants for WASI.
 // These are marked inline constexpr to allow multiple ODR definitions safely
 // across translation units if some .cc files also define them.
-inline constexpr size_t kExternalPointerTableReservationSize = 1024 * 1024;  // 1MB
+inline constexpr size_t kExternalPointerTableReservationSize =
+    1024 * 1024;  // 1MB
 inline constexpr uint32_t kMaxExternalPointers = 65536;
 inline constexpr uint32_t kMaxCapacity = 65536;
 inline constexpr size_t kExternalPointerTableEntrySize = 8;
 inline constexpr ExternalPointerHandle kNullExternalPointerHandle = 0;
 
-inline constexpr size_t kTrustedPointerTableReservationSize = 1024 * 1024;  // 1MB
+inline constexpr size_t kTrustedPointerTableReservationSize =
+    1024 * 1024;  // 1MB
 inline constexpr size_t kCodePointerTableEntrySize = 8;
 inline constexpr uint32_t kMaxCodePointers = 65536;
 // Code pointer handle helpers for WASI builds (no tagging/marking)
@@ -433,19 +441,24 @@ inline bool IsConstructor(uint32_t) { return false; }
 inline ::v8::Isolate* TryGetCurrent() { return nullptr; }
 inline void IncrementLongTasksStatsCounter(::v8::Isolate* isolate) {}
 
-// ReadExternalPointerField stub removed - causes ambiguity with actual V8 implementation
-// The real implementation is in deps/v8/src/sandbox/external-pointer-inl.h
+// ReadExternalPointerField stub removed - causes ambiguity with actual V8
+// implementation The real implementation is in
+// deps/v8/src/sandbox/external-pointer-inl.h
 
 // Slot and embedder field operations
 inline void InternalWriteRawField(Address object, int offset, Address value) {}
 inline Address InternalReadRawField(Address object, int offset) { return 0; }
 
 // Tag/untag operations
-template<typename T>
-inline T* InternalTagged(T* value) { return value; }
+template <typename T>
+inline T* InternalTagged(T* value) {
+  return value;
+}
 
-template<typename T>  
-inline T* InternalUntagged(T* value) { return value; }
+template <typename T>
+inline T* InternalUntagged(T* value) {
+  return value;
+}
 
 // Object slot operations
 inline void InternalWriteSlot(Address object, int offset, Address value) {}
@@ -479,13 +492,17 @@ class Internals {
   // String representation and encoding masks/tags used by public API helpers
   static constexpr int kStringRepresentationAndEncodingMask = 0x0f;
   static constexpr int kStringEncodingMask = 1 << 3;  // 0x08
-  // Match instance-type.h: kExternalOneByteStringTag = kExternalStringTag | kOneByteStringTag
-  static constexpr int kExternalOneByteRepresentationTag = 0x02 | (1 << 3);  // 0x0A
-  static constexpr int kExternalTwoByteRepresentationTag = 0x02;             // kExternalStringTag
+  // Match instance-type.h: kExternalOneByteStringTag = kExternalStringTag |
+  // kOneByteStringTag
+  static constexpr int kExternalOneByteRepresentationTag =
+      0x02 | (1 << 3);  // 0x0A
+  static constexpr int kExternalTwoByteRepresentationTag =
+      0x02;  // kExternalStringTag
   static constexpr uint64_t kExternalStringResourceTag = 0x0002000000000000ULL;
   static constexpr uint64_t kEmbedderDataSlotPayloadTag = 0x0005000000000000ULL;
   static constexpr int kJSAPIObjectWithEmbedderSlotsHeaderSize = 16;
-  static constexpr int kEmbedderDataSlotSize = sizeof(void*);  // 4 on WASM32, 8 on 64-bit
+  static constexpr int kEmbedderDataSlotSize =
+      sizeof(void*);  // 4 on WASM32, 8 on 64-bit
   static constexpr int kEmbedderDataSlotExternalPointerOffset = 0;
   static constexpr int kJSObjectHeaderSize = 12;
   // FixedArray header size used by some public header checks.
@@ -499,7 +516,7 @@ class Internals {
   // Forwarding pointer tag constants (non-external-code-space configuration).
   // Forwarding pointers are raw addresses with kHeapObjectTag cleared.
   static constexpr Address kForwardingTagMask = 1;  // same as kHeapObjectTag
-  static constexpr Address kForwardingTag = 0;      // even => forwarding pointer
+  static constexpr Address kForwardingTag = 0;  // even => forwarding pointer
   // Offset differs on 32-bit vs 64-bit configurations. On 32-bit (WASI),
   // contexts.h expects 24; on 64-bit it is 32.
   static constexpr int kNativeContextEmbedderDataOffset =
@@ -508,8 +525,9 @@ class Internals {
   // Number of embedder data slots reserved in IsolateData
   static constexpr int kNumIsolateDataSlots = 4;
 
-  // DisallowGarbageCollection layout constants for assert-scope.cc static_assert
-  // On WASM32, alignment is 4 bytes and size is 4 bytes (single pointer)
+  // DisallowGarbageCollection layout constants for assert-scope.cc
+  // static_assert On WASM32, alignment is 4 bytes and size is 4 bytes (single
+  // pointer)
   static constexpr int kDisallowGarbageCollectionAlign = 4;
   static constexpr int kDisallowGarbageCollectionSize = 4;
 
@@ -540,14 +558,18 @@ class Internals {
 
   // Template version (tag as template parameter)
   template <uint64_t tag>
-  static Address ReadExternalPointerField(void* /*isolate*/, Address obj, int offset) {
-    // In sandbox-disabled mode, external pointer fields just contain the raw pointer
+  static Address ReadExternalPointerField(void* /*isolate*/, Address obj,
+                                          int offset) {
+    // In sandbox-disabled mode, external pointer fields just contain the raw
+    // pointer
     return *reinterpret_cast<Address*>(HeapObjectAddress(obj) + offset);
   }
 
   // Non-template version (tag as function parameter)
-  static Address ReadExternalPointerField(void* /*isolate*/, Address obj, int offset, uint64_t /*tag*/) {
-    // In sandbox-disabled mode, external pointer fields just contain the raw pointer
+  static Address ReadExternalPointerField(void* /*isolate*/, Address obj,
+                                          int offset, uint64_t /*tag*/) {
+    // In sandbox-disabled mode, external pointer fields just contain the raw
+    // pointer
     return *reinterpret_cast<Address*>(HeapObjectAddress(obj) + offset);
   }
 
@@ -730,7 +752,6 @@ inline constexpr int CountTrailingZerosNonZero(size_t value) {
 #define V8_BITS_CTZ_NZ_DEFINED 1
 #endif
 
-
 #ifndef V8_WASI_BIT_CAST_DEFINED
 #define V8_WASI_BIT_CAST_DEFINED
 // Provide a global bit_cast implementation usable from legacy call sites.
@@ -751,7 +772,9 @@ inline To bit_cast(const From& from) {
 namespace v8 {
 namespace internal {
 // Match the signature used by internal API to avoid overload conflicts.
-inline Isolate* IsolateFromNeverReadOnlySpaceObject(Address /*obj*/) { return nullptr; }
+inline Isolate* IsolateFromNeverReadOnlySpaceObject(Address /*obj*/) {
+  return nullptr;
+}
 
 template <typename T>
 inline T* ReadCppHeapPointerField(void* /*isolate*/, Address obj, int offset,
@@ -759,10 +782,12 @@ inline T* ReadCppHeapPointerField(void* /*isolate*/, Address obj, int offset,
   return reinterpret_cast<T*>(*reinterpret_cast<Address*>(obj + offset));
 }
 
-// Safe buffer size for typed arrays when sandbox is enabled. Use full range in WASI.
+// Safe buffer size for typed arrays when sandbox is enabled. Use full range in
+// WASI.
 constexpr size_t kMaxSafeBufferSizeForSandbox = static_cast<size_t>(-1);
 
-// Size constants within v8::internal for qualified usages (e.g., v8::internal::KB)
+// Size constants within v8::internal for qualified usages (e.g.,
+// v8::internal::KB)
 constexpr size_t KB = static_cast<size_t>(1024);
 constexpr size_t MB = KB * static_cast<size_t>(1024);
 constexpr size_t GB = MB * static_cast<size_t>(1024);
@@ -808,42 +833,50 @@ constexpr bool operator!=(const ExternalPointerTagRange& range,
                           ExternalPointerTag tag) {
   return !(range == tag);
 }
-  constexpr bool operator!=(ExternalPointerTag tag,
+constexpr bool operator!=(ExternalPointerTag tag,
                           const ExternalPointerTagRange& range) {
-    return !(range == tag);
-  }
+  return !(range == tag);
+}
 
-  inline bool ExternalPointerCanBeEmpty(ExternalPointerTagRange) { return true; }
+inline bool ExternalPointerCanBeEmpty(ExternalPointerTagRange) { return true; }
 
-  // Provide permissive tag range constants and helpers for WASI builds.
-  inline constexpr ExternalPointerTagRange kAnyForeignExternalPointerTagRange(
-      kAnyExternalPointerTag);
-  inline constexpr ExternalPointerTagRange kAnyExternalPointerTagRange(
-      kAnyExternalPointerTag);
+// Provide permissive tag range constants and helpers for WASI builds.
+inline constexpr ExternalPointerTagRange kAnyForeignExternalPointerTagRange(
+    kAnyExternalPointerTag);
+inline constexpr ExternalPointerTagRange kAnyExternalPointerTagRange(
+    kAnyExternalPointerTag);
 
-  // Return true for WASI stubs so Managed<T> static_asserts pass
-  inline constexpr bool IsManagedExternalPointerType(ExternalPointerTag) { return true; }
-  inline constexpr bool IsSharedExternalPointerType(ExternalPointerTagRange) { return false; }
-  inline constexpr bool IsSharedExternalPointerType(ExternalPointerTag) { return false; }
-  inline constexpr bool IsMaybeReadOnlyExternalPointerType(ExternalPointerTagRange) { return false; }
+// Return true for WASI stubs so Managed<T> static_asserts pass
+inline constexpr bool IsManagedExternalPointerType(ExternalPointerTag) {
+  return true;
+}
+inline constexpr bool IsSharedExternalPointerType(ExternalPointerTagRange) {
+  return false;
+}
+inline constexpr bool IsSharedExternalPointerType(ExternalPointerTag) {
+  return false;
+}
+inline constexpr bool IsMaybeReadOnlyExternalPointerType(
+    ExternalPointerTagRange) {
+  return false;
+}
 
-  // Managed range constant alias used in some code paths.
-  inline constexpr ExternalPointerTagRange kAnyManagedExternalPointerTagRange(
-      kAnyExternalPointerTag);
+// Managed range constant alias used in some code paths.
+inline constexpr ExternalPointerTagRange kAnyManagedExternalPointerTagRange(
+    kAnyExternalPointerTag);
 
-  // Specific tag ranges for wasm-related external pointers used in body
-  // descriptors. These mirror single-tag usages in accessor macros.
-  inline constexpr ExternalPointerTagRange kWasmStackMemoryTagRange(
-      kWasmStackMemoryTag);
+// Specific tag ranges for wasm-related external pointers used in body
+// descriptors. These mirror single-tag usages in accessor macros.
+inline constexpr ExternalPointerTagRange kWasmStackMemoryTagRange(
+    kWasmStackMemoryTag);
 
 // External pointer tagging masks and mark bit. On WASI, no tagging is applied,
 // so choose no-op values to keep operations safe.
 constexpr Address kExternalPointerTagMask = static_cast<Address>(0);
-constexpr Address kExternalPointerPayloadMask =
-    ~static_cast<Address>(0);
-  constexpr Address kExternalPointerMarkBit = static_cast<Address>(0);
+constexpr Address kExternalPointerPayloadMask = ~static_cast<Address>(0);
+constexpr Address kExternalPointerMarkBit = static_cast<Address>(0);
 
-  // Tag shift used for external pointer tagging
+// Tag shift used for external pointer tagging
 #ifndef V8_EXTERNAL_POINTER_TAG_SHIFT
 #define V8_EXTERNAL_POINTER_TAG_SHIFT
 // Use an int for shift counts to match other WASI stubs

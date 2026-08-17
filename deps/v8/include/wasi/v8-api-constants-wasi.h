@@ -70,9 +70,7 @@ enum class UseCounterFeature {
 };
 
 // Isolate protector invalidation reasons
-enum class InvalidatedArrayBufferDetachingProtector {
-  kInvalidated = 0
-};
+enum class InvalidatedArrayBufferDetachingProtector { kInvalidated = 0 };
 
 // HeapProfiler constants
 constexpr uint32_t kUnknownObjectId = 0;
@@ -88,10 +86,7 @@ enum SamplingFlags {
 // Do not duplicate here to avoid redefinition errors
 
 // CppHeap allocation modes
-enum class AllocationMode {
-  kNormal,
-  kAtomic
-};
+enum class AllocationMode { kNormal, kAtomic };
 
 // Embedder heap tracer flags
 enum class EmbedderHeapTracerFlags {
@@ -102,50 +97,26 @@ enum class EmbedderHeapTracerFlags {
 };
 
 // V8 compilation cache modes
-enum class CompilationCacheMode {
-  kNormal,
-  kBypassCache,
-  kSkipCache
-};
+enum class CompilationCacheMode { kNormal, kBypassCache, kSkipCache };
 
 // V8 compilation hints
-enum class CompilationHintTier {
-  kDefault,
-  kBaseline,
-  kOptimized
-};
+enum class CompilationHintTier { kDefault, kBaseline, kOptimized };
 
 // NOTE: CodeKind enum removed - use the real definition from
 // src/objects/code-kind.h to avoid redefinition errors.
 
 // V8 builtin tier
-enum class BuiltinTier {
-  kInterpreter,
-  kSparkplug,
-  kMaglev,
-  kTurbofan
-};
+enum class BuiltinTier { kInterpreter, kSparkplug, kMaglev, kTurbofan };
 
 // Memory pressure level - defined in v8:: namespace (see bottom of file)
 
 // RAILMode for performance optimization hints
-enum class RAILMode {
-  kDefault,
-  kResponse,
-  kAnimation,
-  kIdle,
-  kLoad
-};
+enum class RAILMode { kDefault, kResponse, kAnimation, kIdle, kLoad };
 
 // Promise hook types - defined in v8:: namespace (see bottom of file)
 
 // Import attributes (formerly import assertions)
-enum class ImportAttributesType {
-  kJSON,
-  kWasm,
-  kCSS,
-  kUnknown
-};
+enum class ImportAttributesType { kJSON, kWasm, kCSS, kUnknown };
 
 // Module status
 enum class ModuleStatus {
@@ -158,43 +129,27 @@ enum class ModuleStatus {
 };
 
 // Script type
-enum class ScriptType {
-  kClassic,
-  kModule
-};
+enum class ScriptType { kClassic, kModule };
 
 // Script compilation type
-enum class ScriptCompilationType {
-  kEager,
-  kLazy
-};
+enum class ScriptCompilationType { kEager, kLazy };
 
 // Array buffer allocation mode
-enum class ArrayBufferAllocationMode {
-  kNormal,
-  kReservation
-};
+enum class ArrayBufferAllocationMode { kNormal, kReservation };
 
 // Backing store initialization mode
-enum class BackingStoreInitializationMode {
-  kZeroInitialize,
-  kUninitialized
-};
+enum class BackingStoreInitializationMode { kZeroInitialize, kUninitialized };
 
 // Shared array buffer constructability
-enum class SharedArrayBufferConstructionEnabledCallback {
-  kEnabled,
-  kDisabled
-};
+enum class SharedArrayBufferConstructionEnabledCallback { kEnabled, kDisabled };
 
-// V8 GC callback flags and GC type - defined in v8:: namespace (see bottom of file)
+// V8 GC callback flags and GC type - defined in v8:: namespace (see bottom of
+// file)
 
-// Interceptor result types - only define if not already defined by v8-template.h
+// Interceptor result types - only define if not already defined by
+// v8-template.h
 #ifndef INCLUDE_V8_TEMPLATE_H_
-enum class Intercepted {
-  kNo,
-  kYes
-};
+enum class Intercepted { kNo, kYes };
 #endif  // INCLUDE_V8_TEMPLATE_H_
 
 // Property attribute - only define if not already defined by v8-object.h
@@ -215,7 +170,8 @@ enum AccessControl {
   PROHIBITS_OVERWRITING = 1 << 2
 };
 
-// Side effects type for API functions - only define if not already defined by v8-object.h
+// Side effects type for API functions - only define if not already defined by
+// v8-object.h
 #ifndef INCLUDE_V8_OBJECT_H_
 enum class SideEffectType {
   kHasSideEffect,
@@ -226,23 +182,14 @@ enum class SideEffectType {
 
 // Constructor behavior - only define if not already defined by v8-template.h
 #ifndef INCLUDE_V8_TEMPLATE_H_
-enum class ConstructorBehavior {
-  kThrow,
-  kAllow
-};
+enum class ConstructorBehavior { kThrow, kAllow };
 #endif  // INCLUDE_V8_TEMPLATE_H_
 
 // String resource types
-enum class StringResourceType {
-  kOneByte,
-  kTwoByte
-};
+enum class StringResourceType { kOneByte, kTwoByte };
 
 // Integrity level
-enum class IntegrityLevel {
-  kSealed,
-  kFrozen
-};
+enum class IntegrityLevel { kSealed, kFrozen };
 
 // KeyCollectionMode, IndexFilter, KeyConversionMode are defined in v8-object.h
 // Do not duplicate here to avoid redefinition errors
@@ -256,24 +203,13 @@ enum class PromiseRejectEvent {
 };
 
 // Microtask queue priority
-enum class MicrotaskQueuePriority {
-  kDefault,
-  kHigh
-};
+enum class MicrotaskQueuePriority { kDefault, kHigh };
 
 // WebAssembly compilation mode
-enum class WasmCompilationMode {
-  kSynchronous,
-  kAsync,
-  kAsyncStreaming
-};
+enum class WasmCompilationMode { kSynchronous, kAsync, kAsyncStreaming };
 
 // WebAssembly compilation tier
-enum class WasmTier {
-  kLiftoff,
-  kTurbofan,
-  kTurboshaft
-};
+enum class WasmTier { kLiftoff, kTurbofan, kTurboshaft };
 
 // WebAssembly feature flags
 struct WasmFeatures {
@@ -290,8 +226,8 @@ struct WasmFeatures {
 };
 
 // Condition codes for comparisons (unified cross-platform)
-// For WASI, we need unique values for each condition to avoid duplicate case errors
-// in switch statements (kZero and kEqual must be different values)
+// For WASI, we need unique values for each condition to avoid duplicate case
+// errors in switch statements (kZero and kEqual must be different values)
 #ifndef V8_CONDITION_ENUM_DEFINED
 #define V8_CONDITION_ENUM_DEFINED
 enum Condition : int {
@@ -319,7 +255,7 @@ enum Condition : int {
   // aliases
   carry = below,
   not_carry = above_equal,
-  zero = zero_cond,      // Use unique value, not equal
+  zero = zero_cond,          // Use unique value, not equal
   not_zero = not_zero_cond,  // Use unique value, not not_equal
   sign = negative,
   not_sign = positive,
@@ -331,18 +267,18 @@ enum Condition : int {
   kGreaterThan = greater,
   kLessThanEqual = less_equal,
   kGreaterThanEqual = greater_equal,
-  kLessThanOrEqual = less_equal,      // Alternative naming
-  kGreaterThanOrEqual = greater_equal, // Alternative naming
+  kLessThanOrEqual = less_equal,        // Alternative naming
+  kGreaterThanOrEqual = greater_equal,  // Alternative naming
   kUnsignedLessThan = below,
   kUnsignedGreaterThan = above,
   kUnsignedLessThanEqual = below_equal,
   kUnsignedGreaterThanEqual = above_equal,
-  kUnsignedLessThanOrEqual = below_equal,      // Alternative naming
-  kUnsignedGreaterThanOrEqual = above_equal,   // Alternative naming
+  kUnsignedLessThanOrEqual = below_equal,     // Alternative naming
+  kUnsignedGreaterThanOrEqual = above_equal,  // Alternative naming
   kOverflow = overflow,
   kNoOverflow = no_overflow,
-  kZero = zero_cond,      // Use unique value to avoid duplicate case
-  kNotZero = not_zero_cond   // Use unique value to avoid duplicate case
+  kZero = zero_cond,        // Use unique value to avoid duplicate case
+  kNotZero = not_zero_cond  // Use unique value to avoid duplicate case
 };
 
 // Returns the equivalent of !cc
@@ -369,14 +305,7 @@ inline Condition NegateCondition(Condition cc) {
 // Types that belong in v8:: namespace (not v8::internal::)
 // These match the definitions in v8-callbacks.h, v8-promise.h, v8-isolate.h
 
-// Memory pressure level - only define if not already defined by v8-isolate.h
-#ifndef V8_V8_ISOLATE_H_
-enum class MemoryPressureLevel {
-  kNone,
-  kModerate,
-  kCritical
-};
-#endif  // V8_V8_ISOLATE_H_
+enum class MemoryPressureLevel { kNone, kModerate, kCritical };
 
 // Promise hook types - define if v8-promise.h hasn't been included yet
 // Also define guard so v8-promise.h knows not to redefine
@@ -385,21 +314,6 @@ enum class MemoryPressureLevel {
 enum class PromiseHookType { kInit, kResolve, kBefore, kAfter };
 #endif  // INCLUDE_V8_PROMISE_H_
 
-// V8 GC callback flags - only define if not already defined by v8-callbacks.h
-// The include guard is INCLUDE_V8_ISOLATE_CALLBACKS_H_ (not V8_CALLBACKS_H_)
-#ifndef INCLUDE_V8_ISOLATE_CALLBACKS_H_
-enum GCCallbackFlags {
-  kNoGCCallbackFlags = 0,
-  kGCCallbackFlagCompacted = 1 << 0,
-  kGCCallbackFlagConstructRetainedObjectInfos = 1 << 1,
-  kGCCallbackFlagForced = 1 << 2,
-  kGCCallbackFlagSynchronousPhantomCallbackProcessing = 1 << 3,
-  kGCCallbackFlagCollectAllAvailableGarbage = 1 << 4,
-  kGCCallbackFlagCollectAllExternalMemory = 1 << 5,
-  kGCCallbackScheduleIdleGarbageCollection = 1 << 6
-};
-
-// V8 GC type - use regular enum (not enum class) to allow bitwise operations
 enum GCType {
   kGCTypeScavenge = 1 << 0,
   kGCTypeMinorMarkSweep = 1 << 1,
@@ -410,7 +324,19 @@ enum GCType {
                kGCTypeMarkSweepCompact | kGCTypeIncrementalMarking |
                kGCTypeProcessWeakCallbacks
 };
-#endif  // INCLUDE_V8_ISOLATE_CALLBACKS_H_
+
+enum GCCallbackFlags {
+  kNoGCCallbackFlags = 0,
+  kGCCallbackFlagCompacted = 1 << 0,
+  kGCCallbackFlagConstructRetainedObjectInfos = 1 << 1,
+  kGCCallbackFlagForced = 1 << 2,
+  kGCCallbackFlagSynchronousPhantomCallbackProcessing = 1 << 3,
+  kGCCallbackFlagCollectAllAvailableGarbage = 1 << 4,
+  kGCCallbackFlagCollectAllExternalMemory = 1 << 5,
+  kGCCallbackScheduleIdleGarbageCollection = 1 << 6,
+};
+
+#define V8_WASI_GC_CALLBACK_TYPES_DEFINED 1
 
 // Now import these v8:: types into v8::internal:: for internal code
 namespace internal {
@@ -423,20 +349,20 @@ using v8::PromiseHookType;
 #ifndef INCLUDE_V8_ISOLATE_CALLBACKS_H_
 using v8::GCCallbackFlags;
 using v8::GCType;
-using v8::kNoGCCallbackFlags;
+using v8::kGCCallbackFlagCollectAllAvailableGarbage;
+using v8::kGCCallbackFlagCollectAllExternalMemory;
 using v8::kGCCallbackFlagCompacted;
 using v8::kGCCallbackFlagConstructRetainedObjectInfos;
 using v8::kGCCallbackFlagForced;
 using v8::kGCCallbackFlagSynchronousPhantomCallbackProcessing;
-using v8::kGCCallbackFlagCollectAllAvailableGarbage;
-using v8::kGCCallbackFlagCollectAllExternalMemory;
 using v8::kGCCallbackScheduleIdleGarbageCollection;
-using v8::kGCTypeScavenge;
-using v8::kGCTypeMinorMarkSweep;
-using v8::kGCTypeMarkSweepCompact;
-using v8::kGCTypeIncrementalMarking;
-using v8::kGCTypeProcessWeakCallbacks;
 using v8::kGCTypeAll;
+using v8::kGCTypeIncrementalMarking;
+using v8::kGCTypeMarkSweepCompact;
+using v8::kGCTypeMinorMarkSweep;
+using v8::kGCTypeProcessWeakCallbacks;
+using v8::kGCTypeScavenge;
+using v8::kNoGCCallbackFlags;
 #endif
 }  // namespace internal
 

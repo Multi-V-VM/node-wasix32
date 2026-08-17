@@ -18,6 +18,8 @@
 #define V8_HAVE_TARGET_OS 1
 #define V8_TARGET_OS_WASI 1
 
+#include "v8-api-constants-wasi.h"
+
 /* Basic V8 macros for WASI */
 #define V8_INLINE inline
 #define V8_WARN_UNUSED_RESULT __attribute__((warn_unused_result))

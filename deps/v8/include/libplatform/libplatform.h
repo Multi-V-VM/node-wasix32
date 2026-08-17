@@ -4,11 +4,9 @@
 #ifdef __wasi__
 
 #include <memory>
-#include "v8-platform-full.h"
-#include "v8-tracing.h"
-#include "v8-task-full.h"
-#include "v8-isolate.h"
-#include "v8-thread-isolated-allocator.h"
+
+#include "libplatform/libplatform-export.h"
+#include "v8-platform-original.h"
 
 namespace v8 {
 
@@ -28,7 +26,8 @@ using tracing::TracingController;
 std::unique_ptr<Platform> NewDefaultPlatform(
     int thread_pool_size = 0,
     IdleTaskSupport idle_task_support = IdleTaskSupport::kDisabled,
-    InProcessStackDumping in_process_stack_dumping = InProcessStackDumping::kDisabled,
+    InProcessStackDumping in_process_stack_dumping =
+        InProcessStackDumping::kDisabled,
     std::unique_ptr<::v8::TracingController> tracing_controller = {});
 
 }  // namespace platform

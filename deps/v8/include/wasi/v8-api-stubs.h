@@ -11,21 +11,11 @@
 namespace cppgc {
 #ifndef CPPGC_STACKSTATE_DEFINED
 #define CPPGC_STACKSTATE_DEFINED
-enum class StackState : uint8_t {
-  kNoHeapPointers,
-  kMayContainHeapPointers
-};
+enum class StackState : uint8_t { kNoHeapPointers, kMayContainHeapPointers };
 #endif
 }  // namespace cppgc
 
 namespace v8 {
-
-// Memory pressure level enum
-enum class MemoryPressureLevel {
-  kNone,
-  kModerate,
-  kCritical
-};
 
 // MessageErrorLevel enum for inspector
 enum MessageErrorLevel {
