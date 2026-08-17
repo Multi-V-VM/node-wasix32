@@ -285,14 +285,16 @@
     # simply not feasible to squelch all warnings, never mind that the
     # libraries in deps/ are not under our control.
     'conditions': [
-      ['target_arch=="wasm32"', {
+      ['_toolset=="target" and (target_arch=="wasm32" or '
+       'v8_target_arch=="wasm32")', {
         'cflags': [
-          '-include', '<(DEPTH)/wasi-all-fixes.h',
         ],
         'cflags_cc': [
-          '-include', '<(DEPTH)/wasi-all-fixes.h',
         ],
-        'defines': ['V8_USING_WASI_SHIMS=1'],
+        'defines': [
+          'V8_USING_WASI_SHIMS=1',
+          '__wasi__=1',
+        ],
       }],
       [ 'error_on_warn=="false"', {
         'cflags!': ['-Werror'],

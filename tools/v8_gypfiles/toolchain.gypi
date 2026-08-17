@@ -336,6 +336,14 @@
         'defines': [
           'V8_TARGET_ARCH_WASM32',
         ],
+        'target_conditions': [
+          ['_toolset=="target"', {
+            'defines': [
+              'V8_USING_WASI_SHIMS=1',
+              '__wasi__=1',
+            ],
+          }],
+        ],
       }],  # v8_target_arch=="wasm32"
       ['v8_target_arch=="mips64" or v8_target_arch=="mips64el"', {
         'target_conditions': [

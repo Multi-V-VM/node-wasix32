@@ -88,11 +88,13 @@ inline constexpr uintptr_t kNullAddress = 0;
 #define V8_WASI_SMI_TAG_MASK_VALUE_DEFINED
 inline constexpr intptr_t kSmiTagMask = 1;
 #endif
-#ifndef V8_WASI_SMI_TAG_DEFINED
+#if !defined(V8_WASI_TAGGED_CONSTANTS_DEFINED) && \
+    !defined(V8_WASI_SMI_TAG_DEFINED)
 #define V8_WASI_SMI_TAG_DEFINED
 inline constexpr int kSmiTag = 0;
 #endif
-#ifndef V8_WASI_HEAP_TAG_DEFINED
+#if !defined(V8_WASI_TAGGED_CONSTANTS_DEFINED) && \
+    !defined(V8_WASI_HEAP_TAG_DEFINED)
 #define V8_WASI_HEAP_TAG_DEFINED
 inline constexpr int kHeapObjectTag = 1;
 inline constexpr intptr_t kHeapObjectTagMask = 3;

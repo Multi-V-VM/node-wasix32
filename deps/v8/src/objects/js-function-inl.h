@@ -479,89 +479,10 @@ Tagged<NativeContext> JSFunction::native_context() {
   return context()->native_context();
 }
 
-#ifdef __wasi__
-namespace {
-
-inline bool IsReadableWasm32FunctionField(Tagged<JSFunction> function,
-                                          int offset) {
-  if (offset < 0) return false;
-  size_t memory_bytes =
-      static_cast<size_t>(__builtin_wasm_memory_size(0)) * 65536u;
-  if (memory_bytes < sizeof(Address) + static_cast<size_t>(offset)) {
-    return false;
-  }
-  Address object_address = function.ptr() - kHeapObjectTag;
-  return object_address <= memory_bytes - sizeof(Address) - offset;
-}
-
-inline bool IsWasm32PrototypeOrInitialMapValue(Tagged<Object> value,
-                                               PtrComprCageBase cage_base) {
-  if (!HAS_STRONG_HEAP_OBJECT_TAG(value.ptr()) ||
-      value.ptr() < kHeapObjectTag) {
-    return false;
-  }
-  size_t memory_bytes =
-      static_cast<size_t>(__builtin_wasm_memory_size(0)) * 65536u;
-  if (memory_bytes < sizeof(Address)) return false;
-  Address object_address = value.ptr() - kHeapObjectTag;
-  if (object_address > memory_bytes - sizeof(Address)) return false;
-  return IsJSReceiver(value, cage_base) || IsMap(value, cage_base) ||
-         IsTheHole(value);
-}
-
-inline int Wasm32PrototypeOrInitialMapOffset(Tagged<JSFunction> function,
-                                             PtrComprCageBase cage_base) {
-  int shifted_offset = JSFunction::kPrototypeOrInitialMapOffset - kTaggedSize;
-  if (IsReadableWasm32FunctionField(function, shifted_offset) &&
-      IsWasm32PrototypeOrInitialMapValue(
-          TaggedField<Object>::Acquire_Load(cage_base, function,
-                                            shifted_offset),
-          cage_base)) {
-    return shifted_offset;
-  }
-  int direct_offset = JSFunction::kPrototypeOrInitialMapOffset;
-  if (IsReadableWasm32FunctionField(function, direct_offset) &&
-      IsWasm32PrototypeOrInitialMapValue(
-          TaggedField<Object>::Acquire_Load(cage_base, function, direct_offset),
-          cage_base)) {
-    return direct_offset;
-  }
-  int next_offset = JSFunction::kPrototypeOrInitialMapOffset + kTaggedSize;
-  if (IsReadableWasm32FunctionField(function, next_offset) &&
-      IsWasm32PrototypeOrInitialMapValue(
-          TaggedField<Object>::Acquire_Load(cage_base, function, next_offset),
-          cage_base)) {
-    return next_offset;
-  }
-  return JSFunction::kPrototypeOrInitialMapOffset;
-}
-
-}  // namespace
-
-DEF_ACQUIRE_GETTER(JSFunction, prototype_or_initial_map,
-                   Tagged<UnionOf<JSPrototype, Map, Hole>>) {
-  DCHECK(map(cage_base)->has_prototype_slot());
-  int offset = Wasm32PrototypeOrInitialMapOffset(*this, cage_base);
-  return TaggedField<UnionOf<JSPrototype, Map, Hole>>::Acquire_Load(
-      cage_base, *this, offset);
-}
-
-void JSFunction::set_prototype_or_initial_map(
-    Tagged<UnionOf<JSPrototype, Map, Hole>> value, ReleaseStoreTag,
-    WriteBarrierMode mode) {
-  DCHECK(map()->has_prototype_slot());
-  PtrComprCageBase cage_base = GetPtrComprCageBase(*this);
-  int offset = Wasm32PrototypeOrInitialMapOffset(*this, cage_base);
-  TaggedField<UnionOf<JSPrototype, Map, Hole>>::Release_Store(*this, offset,
-                                                              value);
-  CONDITIONAL_WRITE_BARRIER(*this, offset, value, mode);
-}
-#else
 RELEASE_ACQUIRE_ACCESSORS_CHECKED(JSFunction, prototype_or_initial_map,
                                   (Tagged<UnionOf<JSPrototype, Map, Hole>>),
                                   kPrototypeOrInitialMapOffset,
                                   map()->has_prototype_slot())
-#endif
 
 DEF_GETTER(JSFunction, has_prototype_slot, bool) {
   return map(cage_base)->has_prototype_slot();

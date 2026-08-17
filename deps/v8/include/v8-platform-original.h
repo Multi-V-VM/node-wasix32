@@ -413,6 +413,20 @@ class TracingController {
  *
  * Can be implemented by an embedder to manage large host OS allocations.
  */
+#if defined(__wasi__) || defined(V8_USING_WASI_SHIMS)
+#ifndef V8_WASI_PAGE_PERMISSIONS_DEFINED
+enum class PagePermissions {
+  kNoAccess,
+  kRead,
+  kReadWrite,
+  kReadWriteExecute,
+  kReadExecute,
+  kNoAccessWillJitLater,
+};
+#define V8_WASI_PAGE_PERMISSIONS_DEFINED 1
+#endif
+#endif
+#ifndef V8_PAGE_ALLOCATOR_INTERFACE_DEFINED
 class PageAllocator {
  public:
   virtual ~PageAllocator() = default;
@@ -444,6 +458,16 @@ class PageAllocator {
   /**
    * Memory permissions.
    */
+#if defined(__wasi__) || defined(V8_USING_WASI_SHIMS)
+  using Permission = ::v8::PagePermissions;
+  static constexpr Permission kNoAccess = Permission::kNoAccess;
+  static constexpr Permission kRead = Permission::kRead;
+  static constexpr Permission kReadWrite = Permission::kReadWrite;
+  static constexpr Permission kReadWriteExecute = Permission::kReadWriteExecute;
+  static constexpr Permission kReadExecute = Permission::kReadExecute;
+  static constexpr Permission kNoAccessWillJitLater =
+      Permission::kNoAccessWillJitLater;
+#else
   enum Permission {
     kNoAccess,
     kRead,
@@ -459,6 +483,7 @@ class PageAllocator {
     // VirtualAddressSpace API.
     kNoAccessWillJitLater
   };
+#endif
 
   /**
    * Allocates memory in range with the given alignment and permission.
@@ -583,6 +608,7 @@ class PageAllocator {
    */
   virtual bool CanAllocateSharedPages() { return false; }
 };
+#endif
 
 /**
  * An allocator that uses per-thread permissions to protect the memory.
@@ -674,6 +700,7 @@ inline int FileDescriptorFromSharedMemoryHandle(
 /**
  * Possible permissions for memory pages.
  */
+#ifndef V8_WASI_PAGE_PERMISSIONS_DEFINED
 enum class PagePermissions {
   kNoAccess,
   kRead,
@@ -681,6 +708,7 @@ enum class PagePermissions {
   kReadWriteExecute,
   kReadExecute,
 };
+#endif
 
 /**
  * Class to manage a virtual memory address space.
@@ -1157,6 +1185,13 @@ class Platform {
     PostDelayedTaskOnWorkerThreadImpl(TaskPriority::kUserVisible,
                                       std::move(task), delay_in_seconds,
                                       SourceLocation::Current());
+  }
+
+  virtual void PostDelayedTaskOnWorkerThread(TaskPriority priority,
+                                             std::unique_ptr<Task> task,
+                                             double delay_in_seconds) {
+    PostDelayedTaskOnWorkerThreadImpl(
+        priority, std::move(task), delay_in_seconds, SourceLocation::Current());
   }
 
   /**

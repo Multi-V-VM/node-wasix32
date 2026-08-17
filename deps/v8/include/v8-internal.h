@@ -21,6 +21,7 @@ class Local;
 #include "../../../wasi-v8-internals-minimal.h"
 #include "v8-data.h"     // Ensure Local<T> is defined in WASI builds
 #include "v8-forward.h"  // Ensure template Local<T> is declared
+#define V8_WASI_USE_CANONICAL_PLATFORM_HEADER 1
 #include "wasi/nuclear-fix.h"
 #include "wasi/v8-wasi-compat.h"
 // Avoid including src/base/* headers here; include them at TU global scope.

@@ -37,17 +37,27 @@
 namespace v8 {
 class VirtualAddressSpace;     // Forward declare to satisfy friend decls
 class VirtualAddressSubspace;  // Forward declare to satisfy friend decls
+#ifndef V8_WASI_PAGE_PERMISSIONS_DEFINED
+enum class PagePermissions {
+  kNoAccess,
+  kRead,
+  kReadWrite,
+  kReadWriteExecute,
+  kReadExecute,
+  kNoAccessWillJitLater,
+};
+#define V8_WASI_PAGE_PERMISSIONS_DEFINED 1
+#endif
 class PageAllocator {
  public:
-  enum Permission {
-    kNoAccess,
-    kRead,
-    kReadWrite,
-    kReadWriteExecute,
-    kReadExecute,
-    kNoAccessWillJitLater
-  };
-  using PagePermissions = Permission;
+  using Permission = ::v8::PagePermissions;
+  static constexpr Permission kNoAccess = Permission::kNoAccess;
+  static constexpr Permission kRead = Permission::kRead;
+  static constexpr Permission kReadWrite = Permission::kReadWrite;
+  static constexpr Permission kReadWriteExecute = Permission::kReadWriteExecute;
+  static constexpr Permission kReadExecute = Permission::kReadExecute;
+  static constexpr Permission kNoAccessWillJitLater =
+      Permission::kNoAccessWillJitLater;
 
   virtual ~PageAllocator() = default;
 
@@ -100,7 +110,6 @@ class PageAllocator {
   virtual void FreeSharedPages(void* address, size_t length) {}
 };
 
-using PagePermissions = PageAllocator::PagePermissions;
 }  // namespace v8
 
 #define V8_PAGE_ALLOCATOR_INTERFACE_DEFINED 1

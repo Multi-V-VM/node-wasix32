@@ -779,7 +779,8 @@
             '<(obj_dir)/<(node_text_start_object_path)'
           ]
         }],
-        ['node_wasm32_generated_builtins=="true"', {
+        ['node_use_node_snapshot=="true" and '
+         'node_wasm32_generated_builtins=="true"', {
           'ldflags+': [
             '<(SHARED_INTERMEDIATE_DIR)/wasm32_generated_builtins.o',
           ],

@@ -408,7 +408,7 @@
             '<(V8_ROOT)/src/builtins/s390/builtins-s390.cc',
           ],
         }],
-        ['v8_target_arch=="wasm32" or (v8_target_arch=="ia32" and OS=="wasi")', {
+        ['target_arch=="wasm32" or v8_target_arch=="wasm32" or OS=="wasi"', {
           'sources': [
             '<(V8_ROOT)/src/builtins/wasm32/builtins-wasm32.cc',
             '<(V8_ROOT)/src/builtins/wasm32/builtins-wasm32-registry.cc',
@@ -431,10 +431,12 @@
       'type': 'static_library',
       'toolsets': ['target'],
       'sources': [
-        '<(V8_ROOT)/src/init/setup-isolate-deserialize.cc',
+        '<(V8_ROOT)/src/init/setup-isolate-full.cc',
+        '<(V8_ROOT)/src/snapshot/embedded/embedded-empty.cc',
+        '<(V8_ROOT)/src/snapshot/snapshot-empty.cc',
       ],
       'conditions': [
-        ['v8_target_arch=="wasm32" or (v8_target_arch=="ia32" and OS=="wasi")', {
+        ['target_arch=="wasm32" or v8_target_arch=="wasm32" or OS=="wasi"', {
           # For WASM32, use setup-isolate-full.cc which can create heap objects from scratch
           # since we don't have a compatible 32-bit snapshot.
           # Also use empty embedded blob and snapshot since x86-64 builtins won't work on WASM32.
@@ -1593,6 +1595,11 @@
               '-lrt'
             ],
           },
+        }],
+        ['OS=="wasi"', {
+          'sources': [
+            '<(V8_ROOT)/src/base/debug/stack_trace_posix.cc',
+          ],
         }],
         ['OS in "aix os400"', {
           'variables': {
