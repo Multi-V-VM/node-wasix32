@@ -716,6 +716,7 @@ struct WasmGCStateStorage {
   Address original_frame[kWasmInterpreterFrameSlots];
   bool active_regs[kWasmRegFileSize];
   bool active_frame[kWasmInterpreterFrameSlots];
+  Heap* registered_heap;
   StrongRootsEntry* regs_entry;
   StrongRootsEntry* frame_entry;
 };
@@ -779,8 +780,12 @@ class WasmGCStateScope {
     }
     depth_ = g_wasm_gc_state_depth++;
     storage_ = &g_wasm_gc_state[depth_];
-    storage_->regs_entry = nullptr;
-    storage_->frame_entry = nullptr;
+    Heap* heap = isolate_->heap();
+    if (storage_->registered_heap != heap) {
+      storage_->registered_heap = heap;
+      storage_->regs_entry = nullptr;
+      storage_->frame_entry = nullptr;
+    }
 
     Address undefined = ReadOnlyRoots(isolate).undefined_value().ptr();
     for (int i = 0; i < kWasmRegFileSize; ++i) {
@@ -796,12 +801,16 @@ class WasmGCStateScope {
       storage_->frame[i] = storage_->active_frame[i] ? value : undefined;
     }
 
-    storage_->regs_entry = isolate->heap()->RegisterStrongRoots(
-        "wasm32-regs", FullObjectSlot(storage_->regs),
-        FullObjectSlot(storage_->regs + kWasmRegFileSize));
-    storage_->frame_entry = isolate->heap()->RegisterStrongRoots(
-        "wasm32-interpreter-frame", FullObjectSlot(storage_->frame),
-        FullObjectSlot(storage_->frame + kWasmInterpreterFrameSlots));
+    if (storage_->regs_entry == nullptr) {
+      storage_->regs_entry = heap->RegisterStrongRoots(
+          "wasm32-regs", FullObjectSlot(storage_->regs),
+          FullObjectSlot(storage_->regs + kWasmRegFileSize));
+    }
+    if (storage_->frame_entry == nullptr) {
+      storage_->frame_entry = heap->RegisterStrongRoots(
+          "wasm32-interpreter-frame", FullObjectSlot(storage_->frame),
+          FullObjectSlot(storage_->frame + kWasmInterpreterFrameSlots));
+    }
   }
 
   ~WasmGCStateScope() { Restore(); }
@@ -820,8 +829,6 @@ class WasmGCStateScope {
         g_wasm_interpreter_frame[i] = storage_->frame[i];
       }
     }
-    isolate_->heap()->UnregisterStrongRoots(storage_->frame_entry);
-    isolate_->heap()->UnregisterStrongRoots(storage_->regs_entry);
     if (g_wasm_gc_state_depth != depth_ + 1) {
       FATAL("wasm32 GC root state restore out of order");
     }
@@ -1754,26 +1761,12 @@ Address Wasm32JSFunctionPrototypeAddress(Isolate* isolate,
   ReadOnlyRoots roots(isolate);
   if (!function->has_prototype_slot()) return roots.undefined_value().ptr();
 
-  Tagged<Map> function_map = (*function)->map();
-  if (function_map->has_non_instance_prototype()) {
-    return function_map->GetNonInstancePrototype().ptr();
+  if (!function->has_prototype()) {
+    DirectHandle<JSObject> prototype =
+        isolate->factory()->NewFunctionPrototype(function);
+    JSFunction::SetPrototype(isolate, function, prototype);
   }
-
-  Tagged<Object> prototype_or_initial_map =
-      Wasm32JSFunctionPrototypeOrInitialMapObject(*function);
-  if (IsMap(prototype_or_initial_map)) {
-    return Wasm32MapPrototypeObject(isolate,
-                                    Cast<Map>(prototype_or_initial_map))
-        .ptr();
-  }
-  if (IsJSReceiver(prototype_or_initial_map)) {
-    return prototype_or_initial_map.ptr();
-  }
-
-  DirectHandle<JSObject> prototype =
-      isolate->factory()->NewFunctionPrototype(function);
-  Wasm32StoreJSFunctionPrototypeOrInitialMap(*function, *prototype);
-  return (*prototype).ptr();
+  return function->prototype().ptr();
 }
 
 Tagged<Object> Wasm32JSFunctionFeedbackVectorOrUndefined(
@@ -3809,7 +3802,8 @@ struct WasmSlotSnapshot {
 };
 
 void SaveWasmSlot(Isolate* isolate, Address value,
-                  DirectHandle<Object>* handles, int* handle_count,
+                  DirectHandle<Object>* handles,
+                  int* handle_count,
                   WasmSlotSnapshot* snapshot) {
   snapshot->raw = value;
   snapshot->handle_index = -1;
@@ -3832,7 +3826,8 @@ Address RestoreWasmSlot(const DirectHandle<Object>* handles,
 constexpr int kMaxWasmInterpreterSnapshotDepth = 256;
 
 struct WasmInterpreterSnapshotStorage {
-  DirectHandle<Object> handles[kWasmRegFileSize + kWasmInterpreterFrameSlots];
+  DirectHandle<Object> handles[kWasmRegFileSize +
+                               kWasmInterpreterFrameSlots];
   int handle_count;
   WasmSlotSnapshot regs[kWasmRegFileSize];
   WasmSlotSnapshot frame[kWasmInterpreterFrameSlots];
@@ -10354,10 +10349,10 @@ bool TryFallbackJSEntryBuiltin(Isolate* isolate, Builtin builtin,
         direct_handle(Tagged<Object>(mapfn_address), isolate);
     DirectHandle<Object> this_arg =
         direct_handle(Tagged<Object>(this_arg_address), isolate);
-    std::vector<Handle<Object>> values;
+    DirectHandle<FixedArray> elements;
+    uint32_t result_length = 0;
 
-    auto push_value = [&](DirectHandle<Object> value,
-                          uint32_t index) -> bool {
+    auto store_value = [&](DirectHandle<Object> value, uint32_t index) -> bool {
       DirectHandle<Object> mapped = value;
       if (mapping) {
         DirectHandle<Object> callback_args[2];
@@ -10388,15 +10383,17 @@ bool TryFallbackJSEntryBuiltin(Isolate* isolate, Builtin builtin,
         }
         state.Restore();
       }
-      values.push_back(Handle<Object>(*mapped, isolate));
+      elements->set(index, *mapped);
       return true;
     };
 
     Tagged<Object> items_object(items_address);
     if (IsSafeTaggedHandleValue(items_address) &&
         IsJSArrayIterator(items_object)) {
-      Tagged<JSArrayIterator> iterator = Cast<JSArrayIterator>(items_object);
-      Tagged<JSReceiver> iterated_object = iterator->iterated_object();
+      DirectHandle<JSArrayIterator> iterator =
+          direct_handle(Cast<JSArrayIterator>(items_object), isolate);
+      DirectHandle<JSReceiver> iterated_object =
+          direct_handle(iterator->iterated_object(), isolate);
       Tagged<Number> next_index = iterator->next_index();
 
       uint32_t index = 0;
@@ -10406,18 +10403,16 @@ bool TryFallbackJSEntryBuiltin(Isolate* isolate, Builtin builtin,
         *out_result = roots.exception().ptr();
         return true;
       }
-      if (IsJSArray(iterated_object)) {
-        if (!Object::ToArrayLength(Cast<JSArray>(iterated_object)->length(),
+      if (IsJSArray(*iterated_object)) {
+        if (!Object::ToArrayLength(Cast<JSArray>(*iterated_object)->length(),
                                    &length)) {
           isolate->set_context(saved_context);
           *out_result = roots.exception().ptr();
           return true;
         }
       } else {
-        DirectHandle<JSReceiver> object =
-            direct_handle(iterated_object, isolate);
         DirectHandle<Object> length_object;
-        if (!Object::GetLengthFromArrayLike(isolate, object)
+        if (!Object::GetLengthFromArrayLike(isolate, iterated_object)
                  .ToHandle(&length_object) ||
             !Object::ToArrayLength(*length_object, &length)) {
           isolate->set_context(saved_context);
@@ -10431,17 +10426,18 @@ bool TryFallbackJSEntryBuiltin(Isolate* isolate, Builtin builtin,
         *out_result = roots.exception().ptr();
         return true;
       }
-      values.reserve(length - index);
+      result_length = length - index;
+      elements = isolate->factory()->NewFixedArray(
+          static_cast<int>(result_length));
       for (uint32_t current = index; current < length; ++current) {
+        HandleScope iteration_scope(isolate);
         DirectHandle<Object> value;
         switch (iterator->kind()) {
           case IterationKind::kKeys:
             value = isolate->factory()->NewNumberFromUint(current);
             break;
           case IterationKind::kValues:
-            if (!JSReceiver::GetElement(isolate,
-                                        direct_handle(iterated_object, isolate),
-                                        current)
+            if (!JSReceiver::GetElement(isolate, iterated_object, current)
                      .ToHandle(&value)) {
               isolate->set_context(saved_context);
               *out_result = roots.exception().ptr();
@@ -10450,9 +10446,7 @@ bool TryFallbackJSEntryBuiltin(Isolate* isolate, Builtin builtin,
             break;
           case IterationKind::kEntries: {
             DirectHandle<Object> element;
-            if (!JSReceiver::GetElement(isolate,
-                                        direct_handle(iterated_object, isolate),
-                                        current)
+            if (!JSReceiver::GetElement(isolate, iterated_object, current)
                      .ToHandle(&element)) {
               isolate->set_context(saved_context);
               *out_result = roots.exception().ptr();
@@ -10465,7 +10459,7 @@ bool TryFallbackJSEntryBuiltin(Isolate* isolate, Builtin builtin,
             break;
           }
         }
-        if (!push_value(value, static_cast<uint32_t>(values.size()))) {
+        if (!store_value(value, current - index)) {
           isolate->set_context(saved_context);
           return true;
         }
@@ -10495,33 +10489,30 @@ bool TryFallbackJSEntryBuiltin(Isolate* isolate, Builtin builtin,
         return true;
       }
       uint32_t length = static_cast<uint32_t>(raw_length);
-      values.reserve(length);
+      result_length = length;
+      elements = isolate->factory()->NewFixedArray(static_cast<int>(length));
       for (uint32_t index = 0; index < length; ++index) {
+        HandleScope iteration_scope(isolate);
         DirectHandle<Object> value;
         if (!JSReceiver::GetElement(isolate, object, index).ToHandle(&value)) {
           isolate->set_context(saved_context);
           *out_result = roots.exception().ptr();
           return true;
         }
-        if (!push_value(value, index)) {
+        if (!store_value(value, index)) {
           isolate->set_context(saved_context);
           return true;
         }
       }
     }
 
-    DirectHandle<FixedArray> elements =
-        isolate->factory()->NewFixedArray(static_cast<int>(values.size()));
-    for (int i = 0; i < static_cast<int>(values.size()); ++i) {
-      elements->set(i, *values[i]);
-    }
     DirectHandle<JSArray> result = isolate->factory()->NewJSArrayWithElements(
-        elements, PACKED_ELEMENTS, static_cast<int>(values.size()));
+        elements, PACKED_ELEMENTS, static_cast<int>(result_length));
     *out_result = (*result).ptr();
     isolate->set_context(saved_context);
     if (kTraceWasmFallbackDetails) {
       PrintF("WasmJSEntry: fallback ArrayFrom length=%d result=0x%x\n",
-             static_cast<int>(values.size()),
+             static_cast<int>(result_length),
              static_cast<unsigned>(*out_result));
     }
     return true;
