@@ -343,7 +343,7 @@ Tagged<FieldType> DescriptorArray::GetFieldType(
 
 void DescriptorArray::Set(InternalIndex descriptor_number, Tagged<Name> key,
                           Tagged<MaybeObject> value, PropertyDetails details) {
-#if defined(__wasi__)
+#if defined(__wasi__) && defined(V8_WASM32_TRACE_OBJECT_LAYOUT)
   std::fprintf(stderr,
                "DescriptorArray::Set array=0x%lx n=%d all=%d index=%d "
                "offset=%d key=0x%lx value=0x%lx\n",
@@ -373,7 +373,7 @@ void DescriptorArray::Set(InternalIndex descriptor_number, Descriptor* desc) {
 void DescriptorArray::Append(Descriptor* desc) {
   DisallowGarbageCollection no_gc;
   int descriptor_number = number_of_descriptors();
-#if defined(__wasi__)
+#if defined(__wasi__) && defined(V8_WASM32_TRACE_OBJECT_LAYOUT)
   Tagged<Name> debug_key = *desc->GetKey();
   Tagged<MaybeObject> debug_value = *desc->GetValue();
   std::fprintf(stderr,
@@ -390,7 +390,7 @@ void DescriptorArray::Append(Descriptor* desc) {
   set_number_of_descriptors(descriptor_number + 1);
   Set(InternalIndex(descriptor_number), desc);
 
-#if defined(__wasi__)
+#if defined(__wasi__) && defined(V8_WASM32_TRACE_OBJECT_LAYOUT)
   std::fprintf(stderr,
                "DescriptorArray::Append after Set array=0x%lx n=%d all=%d\n",
                static_cast<unsigned long>(ptr()), number_of_descriptors(),
@@ -398,7 +398,7 @@ void DescriptorArray::Append(Descriptor* desc) {
   std::fflush(stderr);
 #endif
   uint32_t desc_hash = desc->GetKey()->hash();
-#if defined(__wasi__)
+#if defined(__wasi__) && defined(V8_WASM32_TRACE_OBJECT_LAYOUT)
   std::fprintf(stderr, "DescriptorArray::Append desc_hash=%u\n", desc_hash);
   std::fflush(stderr);
 #endif
@@ -408,7 +408,7 @@ void DescriptorArray::Append(Descriptor* desc) {
   int insertion;
 
   for (insertion = descriptor_number; insertion > 0; --insertion) {
-#if defined(__wasi__)
+#if defined(__wasi__) && defined(V8_WASM32_TRACE_OBJECT_LAYOUT)
     std::fprintf(stderr,
                  "DescriptorArray::Append loop insertion=%d prev=%d\n",
                  insertion, insertion - 1);
@@ -416,7 +416,7 @@ void DescriptorArray::Append(Descriptor* desc) {
 #endif
     Tagged<Name> key = GetSortedKey(insertion - 1);
     collision_hash = key->hash();
-#if defined(__wasi__)
+#if defined(__wasi__) && defined(V8_WASM32_TRACE_OBJECT_LAYOUT)
     std::fprintf(stderr,
                  "DescriptorArray::Append loop key=0x%lx collision_hash=%u\n",
                  static_cast<unsigned long>(key.ptr()), collision_hash);
@@ -424,7 +424,7 @@ void DescriptorArray::Append(Descriptor* desc) {
 #endif
     if (collision_hash <= desc_hash) break;
     SetSortedKey(insertion, GetSortedKeyIndex(insertion - 1));
-#if defined(__wasi__)
+#if defined(__wasi__) && defined(V8_WASM32_TRACE_OBJECT_LAYOUT)
     std::fprintf(stderr,
                  "DescriptorArray::Append loop shifted insertion=%d\n",
                  insertion);
@@ -432,7 +432,7 @@ void DescriptorArray::Append(Descriptor* desc) {
 #endif
   }
 
-#if defined(__wasi__)
+#if defined(__wasi__) && defined(V8_WASM32_TRACE_OBJECT_LAYOUT)
   std::fprintf(stderr,
                "DescriptorArray::Append before final SetSortedKey insertion=%d "
                "descriptor_number=%d collision_hash=%u desc_hash=%u\n",
@@ -440,7 +440,7 @@ void DescriptorArray::Append(Descriptor* desc) {
   std::fflush(stderr);
 #endif
   SetSortedKey(insertion, descriptor_number);
-#if defined(__wasi__)
+#if defined(__wasi__) && defined(V8_WASM32_TRACE_OBJECT_LAYOUT)
   std::fprintf(stderr, "DescriptorArray::Append after final SetSortedKey\n");
   std::fflush(stderr);
 #endif

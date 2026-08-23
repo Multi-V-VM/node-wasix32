@@ -3175,7 +3175,7 @@ void Factory::InitializeJSObjectFromMap(Tagged<JSObject> obj,
 void Factory::InitializeJSObjectBody(Tagged<JSObject> obj, Tagged<Map> map,
                                      int start_offset) {
   DisallowGarbageCollection no_gc;
-#if defined(__wasi__)
+#if defined(__wasi__) && defined(V8_WASM32_TRACE_OBJECT_LAYOUT)
   std::fprintf(stderr,
                "Factory::InitializeJSObjectBody enter obj=0x%zx map=0x%zx "
                "start=%d inst_size=%d raw_back=0x%zx nof=%d counter=%d "
@@ -3202,7 +3202,7 @@ void Factory::InitializeJSObjectBody(Tagged<JSObject> obj, Tagged<Map> map,
   // In case of Array subclassing the |map| could already be transitioned
   // to different elements kind from the initial map on which we track slack.
   bool in_progress = map->IsInobjectSlackTrackingInProgress();
-#if defined(__wasi__)
+#if defined(__wasi__) && defined(V8_WASM32_TRACE_OBJECT_LAYOUT)
   std::fprintf(stderr,
                "Factory::InitializeJSObjectBody before body obj=0x%zx "
                "map=0x%zx in_progress=%d\n",
@@ -3214,7 +3214,7 @@ void Factory::InitializeJSObjectBody(Tagged<JSObject> obj, Tagged<Map> map,
                       ReadOnlyRoots(isolate()).one_pointer_filler_map_word(),
                       *undefined_value());
   if (in_progress) {
-#if defined(__wasi__)
+#if defined(__wasi__) && defined(V8_WASM32_TRACE_OBJECT_LAYOUT)
     std::fprintf(stderr,
                  "Factory::InitializeJSObjectBody before FindRootMap "
                  "map=0x%zx\n",
@@ -3229,7 +3229,7 @@ Handle<JSObject> Factory::NewJSObjectFromMap(
     DirectHandle<Map> map, AllocationType allocation,
     DirectHandle<AllocationSite> allocation_site,
     NewJSObjectType new_js_object_type) {
-#ifdef __wasi__
+#if defined(__wasi__) && defined(V8_WASM32_TRACE_OBJECT_LAYOUT)
   {
     Tagged<Object> raw_map(*map);
     PtrComprCageBase cage_base(isolate());
@@ -3794,7 +3794,7 @@ Handle<JSTypedArray> Factory::NewJSTypedArray(
   DisallowGarbageCollection no_gc;
   raw->set_length(length);
   raw->SetOffHeapDataPtr(isolate(), buffer->backing_store(), byte_offset);
-#ifdef __wasi__
+#if defined(__wasi__) && defined(V8_WASM32_TRACE_OBJECT_LAYOUT)
   fprintf(stderr,
           "Factory::NewJSTypedArray raw=0x%lx type=%d length=%zu "
           "byte_length=%zu offset=%zu buffer=0x%lx buffer_len=%zu "
@@ -4926,7 +4926,7 @@ Handle<JSFunction> Factory::JSFunctionBuilder::BuildRaw(
                         isolate_);
   }
   DCHECK(InstanceTypeChecker::IsJSFunction(*map));
-#if defined(__wasi__)
+#if defined(__wasi__) && defined(V8_WASM32_TRACE_OBJECT_LAYOUT)
   std::fprintf(stderr,
                "JSFunctionBuilder::BuildRaw map=0x%zx sfi=0x%zx context=0x%zx "
                "raw_back=0x%zx nof=%d counter=%d inst_size=%d type=%u\n",

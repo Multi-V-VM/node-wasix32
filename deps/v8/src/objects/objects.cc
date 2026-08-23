@@ -2757,7 +2757,7 @@ Maybe<bool> Object::TransitionAndWriteDataProperty(
     PropertyAttributes attributes, Maybe<ShouldThrow> should_throw,
     StoreOrigin store_origin) {
   DirectHandle<JSReceiver> receiver = it->GetStoreTarget<JSReceiver>();
-#if defined(__wasi__)
+#if defined(__wasi__) && defined(V8_WASM32_TRACE_OBJECT_LAYOUT)
   std::fprintf(stderr,
                "Object::TransitionAndWriteDataProperty enter receiver=0x%lx "
                "name=0x%lx value=0x%lx attrs=%d state=%d\n",
@@ -2772,7 +2772,7 @@ Maybe<bool> Object::TransitionAndWriteDataProperty(
   // under it->name() with |attributes|.
   it->PrepareTransitionToDataProperty(receiver, value, attributes,
                                       store_origin);
-#if defined(__wasi__)
+#if defined(__wasi__) && defined(V8_WASM32_TRACE_OBJECT_LAYOUT)
   std::fprintf(stderr,
                "Object::TransitionAndWriteDataProperty after Prepare state=%d\n",
                static_cast<int>(it->state()));
@@ -2780,7 +2780,7 @@ Maybe<bool> Object::TransitionAndWriteDataProperty(
 #endif
   DCHECK_EQ(LookupIterator::TRANSITION, it->state());
   it->ApplyTransitionToDataProperty(receiver);
-#if defined(__wasi__)
+#if defined(__wasi__) && defined(V8_WASM32_TRACE_OBJECT_LAYOUT)
   std::fprintf(stderr,
                "Object::TransitionAndWriteDataProperty after Apply state=%d\n",
                static_cast<int>(it->state()));
@@ -2789,7 +2789,7 @@ Maybe<bool> Object::TransitionAndWriteDataProperty(
 
   // Write the property value.
   it->WriteDataValue(value, true);
-#if defined(__wasi__)
+#if defined(__wasi__) && defined(V8_WASM32_TRACE_OBJECT_LAYOUT)
   std::fprintf(stderr, "Object::TransitionAndWriteDataProperty after Write\n");
   std::fflush(stderr);
 #endif
@@ -3755,7 +3755,7 @@ DirectHandle<DescriptorArray> DescriptorArray::CopyUpTo(
 DirectHandle<DescriptorArray> DescriptorArray::CopyUpToAddAttributes(
     Isolate* isolate, DirectHandle<DescriptorArray> source_handle,
     int enumeration_index, PropertyAttributes attributes, int slack) {
-#if defined(__wasi__)
+#if defined(__wasi__) && defined(V8_WASM32_TRACE_OBJECT_LAYOUT)
   std::fprintf(stderr,
                "DescriptorArray::CopyUpTo source=0x%lx enum=%d slack=%d "
                "attrs=%d source_n=%d source_all=%d entry_size=%d header=%d\n",
@@ -3773,7 +3773,7 @@ DirectHandle<DescriptorArray> DescriptorArray::CopyUpToAddAttributes(
   int size = enumeration_index;
   DirectHandle<DescriptorArray> copy_handle =
       DescriptorArray::Allocate(isolate, size, slack);
-#if defined(__wasi__)
+#if defined(__wasi__) && defined(V8_WASM32_TRACE_OBJECT_LAYOUT)
   std::fprintf(stderr,
                "DescriptorArray::CopyUpTo copy=0x%lx copy_n=%d copy_all=%d "
                "size=%d\n",
@@ -3809,13 +3809,13 @@ DirectHandle<DescriptorArray> DescriptorArray::CopyUpToAddAttributes(
     }
   } else {
     for (InternalIndex i : InternalIndex::Range(size)) {
-#if defined(__wasi__)
+#if defined(__wasi__) && defined(V8_WASM32_TRACE_OBJECT_LAYOUT)
       std::fprintf(stderr, "DescriptorArray::CopyUpTo before CopyFrom i=%d\n",
                    i.as_int());
       std::fflush(stderr);
 #endif
       copy->CopyFrom(i, source);
-#if defined(__wasi__)
+#if defined(__wasi__) && defined(V8_WASM32_TRACE_OBJECT_LAYOUT)
       std::fprintf(stderr, "DescriptorArray::CopyUpTo after CopyFrom i=%d\n",
                    i.as_int());
       std::fflush(stderr);
@@ -4006,7 +4006,7 @@ void DescriptorArray::InitializeOrChangeEnumCache(
 
 void DescriptorArray::CopyFrom(InternalIndex index,
                                Tagged<DescriptorArray> src) {
-#if defined(__wasi__)
+#if defined(__wasi__) && defined(V8_WASM32_TRACE_OBJECT_LAYOUT)
   std::fprintf(stderr,
                "DescriptorArray::CopyFrom dst=0x%lx dst_n=%d dst_all=%d "
                "src=0x%lx src_n=%d src_all=%d index=%d offset=%d\n",
@@ -4019,17 +4019,17 @@ void DescriptorArray::CopyFrom(InternalIndex index,
   std::fflush(stderr);
 #endif
   PropertyDetails details = src->GetDetails(index);
-#if defined(__wasi__)
+#if defined(__wasi__) && defined(V8_WASM32_TRACE_OBJECT_LAYOUT)
   std::fprintf(stderr, "DescriptorArray::CopyFrom before GetKey\n");
   std::fflush(stderr);
 #endif
   Tagged<Name> key = src->GetKey(index);
-#if defined(__wasi__)
+#if defined(__wasi__) && defined(V8_WASM32_TRACE_OBJECT_LAYOUT)
   std::fprintf(stderr, "DescriptorArray::CopyFrom before GetValue\n");
   std::fflush(stderr);
 #endif
   Tagged<MaybeObject> value = src->GetValue(index);
-#if defined(__wasi__)
+#if defined(__wasi__) && defined(V8_WASM32_TRACE_OBJECT_LAYOUT)
   std::fprintf(stderr,
                "DescriptorArray::CopyFrom before Set key=0x%lx value=0x%lx\n",
                static_cast<unsigned long>(key.ptr()),
@@ -4037,7 +4037,7 @@ void DescriptorArray::CopyFrom(InternalIndex index,
   std::fflush(stderr);
 #endif
   Set(index, key, value, details);
-#if defined(__wasi__)
+#if defined(__wasi__) && defined(V8_WASM32_TRACE_OBJECT_LAYOUT)
   std::fprintf(stderr, "DescriptorArray::CopyFrom after Set\n");
   std::fflush(stderr);
 #endif

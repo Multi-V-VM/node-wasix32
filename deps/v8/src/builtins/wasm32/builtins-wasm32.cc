@@ -844,6 +844,66 @@ class WasmGCStateScope {
   bool restored_;
 };
 
+constexpr int kMaxWasmTemporaryRootDepth = 1024;
+constexpr int kMaxWasmTemporaryRootSlots = 65;
+
+struct WasmTemporaryRootStorage {
+  Address values[kMaxWasmTemporaryRootSlots];
+  Heap* registered_heap;
+  StrongRootsEntry* entry;
+};
+
+WasmTemporaryRootStorage
+    g_wasm_temporary_roots[kMaxWasmTemporaryRootDepth];
+int g_wasm_temporary_root_depth = 0;
+
+class WasmTemporaryRootScope {
+ public:
+  WasmTemporaryRootScope(Isolate* isolate, const Address* values, int count)
+      : isolate_(isolate), storage_(nullptr), depth_(-1) {
+    CHECK_GE(count, 0);
+    CHECK_LE(count, kMaxWasmTemporaryRootSlots);
+    if (g_wasm_temporary_root_depth >= kMaxWasmTemporaryRootDepth) {
+      FATAL("wasm32 temporary root depth exceeded depth=%d limit=%d",
+            g_wasm_temporary_root_depth, kMaxWasmTemporaryRootDepth);
+    }
+
+    depth_ = g_wasm_temporary_root_depth++;
+    storage_ = &g_wasm_temporary_roots[depth_];
+    Heap* heap = isolate_->heap();
+    if (storage_->registered_heap != heap) {
+      storage_->registered_heap = heap;
+      storage_->entry = nullptr;
+    }
+
+    Address undefined = ReadOnlyRoots(isolate_).undefined_value().ptr();
+    for (int i = 0; i < kMaxWasmTemporaryRootSlots; ++i) {
+      storage_->values[i] = i < count ? values[i] : undefined;
+    }
+    if (storage_->entry == nullptr) {
+      storage_->entry = heap->RegisterStrongRoots(
+          "wasm32-temporary-roots", FullObjectSlot(storage_->values),
+          FullObjectSlot(storage_->values + kMaxWasmTemporaryRootSlots));
+    }
+  }
+
+  ~WasmTemporaryRootScope() {
+    Address undefined = ReadOnlyRoots(isolate_).undefined_value().ptr();
+    for (Address& value : storage_->values) value = undefined;
+    if (g_wasm_temporary_root_depth != depth_ + 1) {
+      FATAL("wasm32 temporary roots released out of order");
+    }
+    g_wasm_temporary_root_depth = depth_;
+  }
+
+  Address* data() { return storage_->values; }
+
+ private:
+  Isolate* isolate_;
+  WasmTemporaryRootStorage* storage_;
+  int depth_;
+};
+
 void DumpRuntimeArg(const char* label, int index, Address value) {
   PrintF(" %s[%d]=0x%x", label, index, static_cast<unsigned>(value));
   if (!IsPlausibleTaggedValue(value)) {
@@ -2513,21 +2573,16 @@ bool TryRunRuntimeCallBytecode(Isolate* isolate, Tagged<BytecodeArray> bytecode,
   }
 
   using RuntimeEntry = Address (*)(int, Address*, Isolate*);
-  Address* args_object = reg_count == 0 ? argv : &argv[reg_count - 1];
-  StrongRootsEntry* argv_roots = nullptr;
-  if (reg_count > 0) {
-    argv_roots = isolate->heap()->RegisterStrongRoots(
-        "wasm32-runtime-args", FullObjectSlot(argv),
-        FullObjectSlot(argv + reg_count));
-  }
+  WasmTemporaryRootScope argv_roots(isolate, argv,
+                                    static_cast<int>(reg_count));
+  Address* rooted_argv = argv_roots.data();
+  Address* args_object =
+      reg_count == 0 ? rooted_argv : &rooted_argv[reg_count - 1];
   if (function_id == Runtime::kInlineAsyncFunctionEnter) {
     Address result = roots.undefined_value().ptr();
     bool handled =
-        TryRunAsyncFunctionEnterIntrinsic(isolate, argv,
+        TryRunAsyncFunctionEnterIntrinsic(isolate, rooted_argv,
                                           static_cast<int>(reg_count), &result);
-    if (argv_roots != nullptr) {
-      isolate->heap()->UnregisterStrongRoots(argv_roots);
-    }
     if (switched_context) isolate->set_context(saved_context);
     if (handled) {
       *out_result = result;
@@ -2535,8 +2590,8 @@ bool TryRunRuntimeCallBytecode(Isolate* isolate, Tagged<BytecodeArray> bytecode,
     }  }
   if (function_id == Runtime::kInlineCopyDataProperties && reg_count == 2) {
     static int inline_copy_data_properties_trace_count = 0;
-    Address target_address = argv[reg_count - 1];
-    Address source_address = argv[reg_count - 2];
+    Address target_address = rooted_argv[reg_count - 1];
+    Address source_address = rooted_argv[reg_count - 2];
     if (kTraceWasmFallbackDetails &&
         inline_copy_data_properties_trace_count < 12) {
       ++inline_copy_data_properties_trace_count;
@@ -2584,9 +2639,6 @@ bool TryRunRuntimeCallBytecode(Isolate* isolate, Tagged<BytecodeArray> bytecode,
       if (copied.IsNothing()) result = roots.exception().ptr();
     }
 
-    if (argv_roots != nullptr) {
-      isolate->heap()->UnregisterStrongRoots(argv_roots);
-    }
     if (switched_context) isolate->set_context(saved_context);
     *out_result = result;
     return true;
@@ -2606,23 +2658,16 @@ bool TryRunRuntimeCallBytecode(Isolate* isolate, Tagged<BytecodeArray> bytecode,
   Address result =
       reinterpret_cast<RuntimeEntry>(function->entry)(
           static_cast<int>(reg_count), args_object, isolate);
-  StrongRootsEntry* result_root = nullptr;
-  if (IsSafeTaggedRootValue(isolate, result)) {
-    result_root = isolate->heap()->RegisterStrongRoots(
-        "wasm32-runtime-result", FullObjectSlot(&result),
-        FullObjectSlot(&result + 1));
-  }
   if (function_id == Runtime::kDefineClass && kTraceWasmFallbackDetails) {
     PrintF("WasmInterpreterEntryTrampoline: Runtime_DefineClass argc=%u "
            "result=0x%x has_exception=%d",
            reg_count, static_cast<unsigned>(result), isolate->has_exception());
     for (uint32_t i = 0; i < reg_count && i < 8; ++i) {
-      DumpRuntimeArg(" arg", static_cast<int>(i), argv[reg_count - 1 - i]);
+      DumpRuntimeArg(" arg", static_cast<int>(i),
+                     rooted_argv[reg_count - 1 - i]);
     }
     PrintF("\n");
   }
-  if (result_root != nullptr) isolate->heap()->UnregisterStrongRoots(result_root);
-  if (argv_roots != nullptr) isolate->heap()->UnregisterStrongRoots(argv_roots);
   if (switched_context) isolate->set_context(saved_context);
   *out_result = result;
   return true;
@@ -4525,6 +4570,7 @@ bool TryRunArrayForEachBuiltin(Isolate* isolate, DirectHandle<Object> callable,
       arg_count > 1 ? args[1] : direct_handle(roots.undefined_value(), isolate);
 
   for (uint32_t index = 0; index < length; ++index) {
+    HandleScope iteration_scope(isolate);
     DirectHandle<JSReceiver> current_object = protected_object;
     Maybe<bool> maybe_has_element =
         JSReceiver::HasElement(isolate, current_object, index);
@@ -4628,6 +4674,7 @@ bool TryRunArrayFilterBuiltin(Isolate* isolate, DirectHandle<Object> callable,
 
   int result_length = 0;
   for (uint32_t index = 0; index < length; ++index) {
+    HandleScope iteration_scope(isolate);
     DirectHandle<JSReceiver> current_object = protected_object;
     Maybe<bool> maybe_has_element =
         JSReceiver::HasElement(isolate, current_object, index);
@@ -4749,6 +4796,7 @@ bool TryRunArrayMapBuiltin(Isolate* isolate, DirectHandle<Object> callable,
       arg_count > 1 ? args[1] : direct_handle(roots.undefined_value(), isolate);
 
   for (uint32_t index = 0; index < length; ++index) {
+    HandleScope iteration_scope(isolate);
     DirectHandle<JSReceiver> current_object = protected_object;
     Maybe<bool> maybe_has_element =
         JSReceiver::HasElement(isolate, current_object, index);
@@ -4853,11 +4901,14 @@ bool TryRunArrayReduceBuiltin(Isolate* isolate, DirectHandle<Object> callable,
 
   DirectHandle<JSReceiver> protected_object = object;
   DirectHandle<Object> protected_callback = args[0];
-  DirectHandle<Object> accumulator =
-      arg_count > 1 ? args[1] : direct_handle(roots.the_hole_value(), isolate);
+  DirectHandle<FixedArray> accumulator_holder =
+      isolate->factory()->NewFixedArray(1);
+  accumulator_holder->set(
+      0, arg_count > 1 ? *args[1] : roots.the_hole_value());
   bool has_accumulator = arg_count > 1;
 
   for (uint32_t index = 0; index < length; ++index) {
+    HandleScope iteration_scope(isolate);
     DirectHandle<JSReceiver> current_object = protected_object;
     Maybe<bool> maybe_has_element =
         JSReceiver::HasElement(isolate, current_object, index);
@@ -4875,11 +4926,13 @@ bool TryRunArrayReduceBuiltin(Isolate* isolate, DirectHandle<Object> callable,
     }
 
     if (!has_accumulator) {
-      accumulator = element;
+      accumulator_holder->set(0, *element);
       has_accumulator = true;
       continue;
     }
 
+    DirectHandle<Object> accumulator =
+        direct_handle(accumulator_holder->get(0), isolate);
     DirectHandle<Object> callback_args[4];
     callback_args[0] = accumulator;
     callback_args[1] = element;
@@ -4916,7 +4969,7 @@ bool TryRunArrayReduceBuiltin(Isolate* isolate, DirectHandle<Object> callable,
     }
     state.Restore();
 
-    accumulator = next_accumulator;
+    accumulator_holder->set(0, *next_accumulator);
   }
 
   if (!has_accumulator) {
@@ -4928,7 +4981,7 @@ bool TryRunArrayReduceBuiltin(Isolate* isolate, DirectHandle<Object> callable,
     return true;
   }
 
-  *out_result = (*accumulator).ptr();
+  *out_result = accumulator_holder->get(0).ptr();
   if (kTraceWasmFallbackDetails) {
     PrintF("WasmInterpreterEntryTrampoline: fallback ArrayReduce "
            "length=%u result=0x%x\n",
@@ -6665,21 +6718,9 @@ bool TryRunTypedArrayConstructorBuiltin(Isolate* isolate,
         (*source).ptr(),
         (*typed_array).ptr(),
     };
-    StrongRootsEntry* copy_roots = isolate->heap()->RegisterStrongRoots(
-        "wasm32-typed-array-copy-args", FullObjectSlot(copy_args),
-        FullObjectSlot(copy_args + 3));
+    WasmTemporaryRootScope copy_roots(isolate, copy_args, 3);
     Address copy_result =
-        Runtime_TypedArrayCopyElements(3, &copy_args[2], isolate);
-    StrongRootsEntry* result_root = nullptr;
-    if (IsSafeTaggedRootValue(isolate, copy_result)) {
-      result_root = isolate->heap()->RegisterStrongRoots(
-          "wasm32-typed-array-copy-result", FullObjectSlot(&copy_result),
-          FullObjectSlot(&copy_result + 1));
-    }
-    if (result_root != nullptr) {
-      isolate->heap()->UnregisterStrongRoots(result_root);
-    }
-    isolate->heap()->UnregisterStrongRoots(copy_roots);
+        Runtime_TypedArrayCopyElements(3, &copy_roots.data()[2], isolate);
     if (isolate->has_exception()) {
       *out_result = roots.exception().ptr();
       return true;
@@ -7890,18 +7931,9 @@ bool TryRunCloneObjectBytecode(
   }
 
   Address args[2] = {Smi::FromInt(flags).ptr(), source_address};
-  StrongRootsEntry* args_roots = isolate->heap()->RegisterStrongRoots(
-      "wasm32-clone-object-args", FullObjectSlot(args),
-      FullObjectSlot(args + 2));
-  Address result = Runtime_CloneObjectIC_Slow(2, &args[1], isolate);
-  StrongRootsEntry* result_root = nullptr;
-  if (IsSafeTaggedRootValue(isolate, result)) {
-    result_root = isolate->heap()->RegisterStrongRoots(
-        "wasm32-clone-object-result", FullObjectSlot(&result),
-        FullObjectSlot(&result + 1));
-  }
-  if (result_root != nullptr) isolate->heap()->UnregisterStrongRoots(result_root);
-  isolate->heap()->UnregisterStrongRoots(args_roots);
+  WasmTemporaryRootScope args_roots(isolate, args, 2);
+  Address result =
+      Runtime_CloneObjectIC_Slow(2, &args_roots.data()[1], isolate);
   if (switched_context) isolate->set_context(saved_context);
 
   *out_result = result;
@@ -8391,11 +8423,9 @@ bool TryRunCreateObjectLiteralBytecode(
                      TaggedIndex::FromIntptr(
                          static_cast<intptr_t>(literal_index)).ptr(),
                      maybe_vector};
-  StrongRootsEntry* args_roots = isolate->heap()->RegisterStrongRoots(
-      "wasm32-create-object-literal-args", FullObjectSlot(args),
-      FullObjectSlot(args + 4));
-  Address runtime_result = Runtime_CreateObjectLiteral(4, &args[3], isolate);
-  isolate->heap()->UnregisterStrongRoots(args_roots);
+  WasmTemporaryRootScope args_roots(isolate, args, 4);
+  Address runtime_result =
+      Runtime_CreateObjectLiteral(4, &args_roots.data()[3], isolate);
   if (IsSafeTaggedHandleValue(runtime_result) &&
       IsJSObject(Tagged<Object>(runtime_result))) {
     if (switched_context) isolate->set_context(saved_context);
@@ -9256,14 +9286,18 @@ bool TryFallbackJSEntryBuiltin(Isolate* isolate, Builtin builtin,
     Tagged<Context> saved_context = isolate->context();
     isolate->set_context(Wasm32JSFunctionContext(function));
 
-    Address runtime_arg = function.ptr();
+    Address compile_values[3] = {function.ptr(), receiver,
+                                 saved_context.ptr()};
+    WasmTemporaryRootScope compile_roots(isolate, compile_values, 3);
+    WasmTemporaryRootScope compile_args_roots(isolate, argv, actual_argc);
     const Runtime::Function* compile_lazy =
         Runtime::FunctionForId(Runtime::kCompileLazy);
     using RuntimeEntry = Address (*)(int, Address*, Isolate*);
     Address code = reinterpret_cast<RuntimeEntry>(compile_lazy->entry)(
-        1, &runtime_arg, isolate);
+        1, compile_roots.data(), isolate);
     if (isolate->has_exception() || code == roots.exception().ptr()) {
-      isolate->set_context(saved_context);
+      isolate->set_context(
+          Cast<Context>(Tagged<Object>(compile_roots.data()[2])));
       *out_result = roots.exception().ptr();
       return true;
     }
@@ -9279,16 +9313,19 @@ bool TryFallbackJSEntryBuiltin(Isolate* isolate, Builtin builtin,
       nested_argc = kWasmMaxOutgoingArgSlots;
     }
     for (int i = 0; i < nested_argc; ++i) {
-      nested_values[i] = argv[i];
+      nested_values[i] = compile_args_roots.data()[i];
       nested_argv[i] = &nested_values[i];
     }
 
     Address root = g_wasm_regs[kWasmRegRoot];
     if (root == kNullAddress) root = g_wasm_regs[SlotFor(kRootRegister)];
+    Address compiled_function = compile_roots.data()[0];
+    Address compiled_receiver = compile_roots.data()[1];
     *out_result = WasmJSEntry(root, roots.undefined_value().ptr(),
-                              function.ptr(), receiver,
+                              compiled_function, compiled_receiver,
                               nested_argc + kJSArgcReceiverSlots, nested_argv);
-    isolate->set_context(saved_context);
+    isolate->set_context(
+        Cast<Context>(Tagged<Object>(compile_roots.data()[2])));
     return true;
   }
 
@@ -13341,6 +13378,7 @@ extern "C" Address WasmJSEntry(Address root, Address new_target, Address target,
     return Smi::zero().ptr();
   }
   SetCurrentIsolateScope current_isolate_scope(isolate);
+  HandleScope entry_scope(isolate);
   WasmInterpreterStateSnapshot entry_state(isolate);
   g_wasm_regs[kWasmRegRoot] = root;
   Address undefined = ReadOnlyRoots(isolate).undefined_value().ptr();

@@ -849,7 +849,7 @@ bool Map::TryGetBackPointer(PtrComprCageBase cage_base,
 void Map::SetBackPointer(Tagged<HeapObject> value, WriteBarrierMode mode) {
   CHECK_GE(instance_type(), FIRST_JS_RECEIVER_TYPE);
   CHECK(IsMap(value));
-#if defined(__wasi__)
+#if defined(__wasi__) && defined(V8_WASM32_TRACE_OBJECT_LAYOUT)
   Tagged<Object> debug_constructor = constructor_or_back_pointer();
   Tagged<HeapObject> debug_back_pointer = GetBackPointer();
   std::fprintf(
@@ -869,7 +869,7 @@ void Map::SetBackPointer(Tagged<HeapObject> value, WriteBarrierMode mode) {
   CHECK_EQ(Cast<Map>(value)->GetConstructorRaw(),
            constructor_or_back_pointer());
   set_constructor_or_back_pointer(value, mode);
-#if defined(__wasi__)
+#if defined(__wasi__) && defined(V8_WASM32_TRACE_OBJECT_LAYOUT)
   std::fprintf(stderr, "Map::SetBackPointer after store self=0x%lx\n",
                static_cast<unsigned long>(ptr()));
   std::fflush(stderr);

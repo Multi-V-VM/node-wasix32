@@ -198,11 +198,30 @@ class ZoneVector {
     DCHECK_EQ(first, last);
   }
 
-  ZoneVector(const ZoneVector& other) V8_NOEXCEPT : zone_(other.zone_) {
-    *this = other;
+  ZoneVector(const ZoneVector& other) V8_NOEXCEPT
+      : zone_(other.zone_), data_(nullptr), end_(nullptr), capacity_(nullptr) {
+    if (zone_ == nullptr) {
+      data_ = other.data_;
+      end_ = other.end_;
+      capacity_ = other.capacity_;
+      return;
+    }
+
+    size_t new_capacity = other.capacity();
+    if (new_capacity == 0) return;
+    data_ = zone_->AllocateArray<T>(new_capacity);
+    end_ = data_ + other.size();
+    capacity_ = data_ + new_capacity;
+    CopyToNewStorage(data_, other.data_, other.end_);
   }
 
-  ZoneVector(ZoneVector&& other) V8_NOEXCEPT { *this = std::move(other); }
+  ZoneVector(ZoneVector&& other) V8_NOEXCEPT
+      : zone_(other.zone_),
+        data_(other.data_),
+        end_(other.end_),
+        capacity_(other.capacity_) {
+    other.data_ = other.end_ = other.capacity_ = nullptr;
+  }
 
   ~ZoneVector() {
     for (T* p = data_; p < end_; p++) p->~T();

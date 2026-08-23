@@ -85,7 +85,7 @@ bool PrototypeIterator::HasAccess() const {
 }
 
 void PrototypeIterator::Advance() {
-#if defined(__wasi__)
+#if defined(__wasi__) && defined(V8_WASM32_TRACE_OBJECT_LAYOUT)
   Tagged<JSPrototype> current = handle_.is_null() ? object_ : *handle_;
   std::fprintf(stderr,
                "PrototypeIterator::Advance enter handle_null=%d current=0x%zx "
@@ -97,7 +97,7 @@ void PrototypeIterator::Advance() {
   if (handle_.is_null() && IsJSProxy(object_)) {
     is_at_end_ = true;
     object_ = ReadOnlyRoots(isolate_).null_value();
-#if defined(__wasi__)
+#if defined(__wasi__) && defined(V8_WASM32_TRACE_OBJECT_LAYOUT)
     std::fprintf(stderr, "PrototypeIterator::Advance jsproxy object -> null\n");
     std::fflush(stderr);
 #endif
@@ -105,7 +105,7 @@ void PrototypeIterator::Advance() {
   } else if (!handle_.is_null() && IsJSProxy(*handle_)) {
     is_at_end_ = true;
     handle_ = isolate_->factory()->null_value();
-#if defined(__wasi__)
+#if defined(__wasi__) && defined(V8_WASM32_TRACE_OBJECT_LAYOUT)
     std::fprintf(stderr, "PrototypeIterator::Advance jsproxy handle -> null\n");
     std::fflush(stderr);
 #endif
@@ -116,7 +116,7 @@ void PrototypeIterator::Advance() {
 
 void PrototypeIterator::AdvanceIgnoringProxies() {
   Tagged<JSPrototype> object = handle_.is_null() ? object_ : *handle_;
-#if defined(__wasi__)
+#if defined(__wasi__) && defined(V8_WASM32_TRACE_OBJECT_LAYOUT)
   std::fprintf(stderr,
                "PrototypeIterator::AdvanceIgnoringProxies before map "
                "handle_null=%d object=0x%zx is_at_end=%d\n",
@@ -127,7 +127,7 @@ void PrototypeIterator::AdvanceIgnoringProxies() {
   Tagged<Map> map = object->map();
 
   Tagged<JSPrototype> prototype = map->prototype();
-#if defined(__wasi__)
+#if defined(__wasi__) && defined(V8_WASM32_TRACE_OBJECT_LAYOUT)
   std::fprintf(stderr,
                "PrototypeIterator::AdvanceIgnoringProxies after read "
                "object=0x%zx map=0x%zx prototype=0x%zx map_type=%u\n",
