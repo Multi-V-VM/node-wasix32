@@ -42,6 +42,24 @@ static struct uv__queue wq;
 static struct uv__queue run_slow_work_message;
 static struct uv__queue slow_io_pending_wq;
 
+#ifdef __wasi__
+static struct uv__queue wasi_completed_wq;
+static int wasi_completed_wq_initialized;
+static uv_timer_t wasi_work_timer;
+static int wasi_work_timer_initialized;
+static int wasi_work_timer_active;
+
+static void uv__work_done_wasi(void);
+
+static void uv__work_timer_cb(uv_timer_t* timer) {
+  uv__work_done_wasi();
+  if (uv__queue_empty(&wasi_completed_wq)) {
+    uv_timer_stop(timer);
+    wasi_work_timer_active = 0;
+  }
+}
+#endif
+
 static unsigned int slow_work_thread_threshold(void) {
   return (nthreads + 1) / 2;
 }
@@ -268,12 +286,62 @@ void uv__work_submit(uv_loop_t* loop,
                      enum uv__work_kind kind,
                      void (*work)(struct uv__work* w),
                      void (*done)(struct uv__work* w, int status)) {
+#ifdef __wasi__
+  (void) kind;
+  w->loop = loop;
+  w->work = work;
+  w->done = done;
+  uv__queue_init(&w->wq);
+  work(w);
+  w->work = NULL;
+  if (!wasi_completed_wq_initialized) {
+    uv__queue_init(&wasi_completed_wq);
+    wasi_completed_wq_initialized = 1;
+  }
+  uv__queue_insert_tail(&wasi_completed_wq, &w->wq);
+  if (!wasi_work_timer_initialized) {
+    if (uv_timer_init(loop, &wasi_work_timer) != 0)
+      abort();
+    uv_unref((uv_handle_t*) &wasi_work_timer);
+    wasi_work_timer_initialized = 1;
+  }
+  if (!wasi_work_timer_active) {
+    if (uv_timer_start(&wasi_work_timer, uv__work_timer_cb, 0, 1) != 0)
+      abort();
+    wasi_work_timer_active = 1;
+  }
+#else
   uv_once(&once, init_once);
   w->loop = loop;
   w->work = work;
   w->done = done;
   post(&w->wq, kind);
+#endif
 }
+
+
+#ifdef __wasi__
+static void uv__work_done_wasi(void) {
+  struct uv__queue completed;
+  struct uv__queue* q;
+  struct uv__work* w;
+
+  if (!wasi_completed_wq_initialized)
+    return;
+
+  if (uv__queue_empty(&wasi_completed_wq))
+    return;
+
+  uv__queue_move(&wasi_completed_wq, &completed);
+  while (!uv__queue_empty(&completed)) {
+    q = uv__queue_head(&completed);
+    uv__queue_remove(q);
+    uv__queue_init(q);
+    w = container_of(q, struct uv__work, wq);
+    w->done(w, 0);
+  }
+}
+#endif
 
 
 /* TODO(bnoordhuis) teach libuv how to cancel file operations

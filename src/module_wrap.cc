@@ -1017,6 +1017,11 @@ static MaybeLocal<Promise> ImportModuleDynamicallyWithPhase(
                   .ToLocal(&id)) {
     return MaybeLocal<Promise>();
   }
+#ifdef __wasi__
+  if (id.IsEmpty() || id->IsUndefined()) {
+    id = env->vm_dynamic_import_default_internal();
+  }
+#endif
 
   Local<Object> attributes =
       createImportAttributesContainer(realm, isolate, import_attributes, 2);
@@ -1292,6 +1297,12 @@ void ModuleWrap::CreateRequiredModuleFacade(
 void ModuleWrap::CreatePerIsolateProperties(IsolateData* isolate_data,
                                             Local<ObjectTemplate> target) {
   Isolate* isolate = isolate_data->isolate();
+
+  isolate->SetHostImportModuleDynamicallyCallback(ImportModuleDynamically);
+  isolate->SetHostImportModuleWithPhaseDynamicallyCallback(
+      ImportModuleDynamicallyWithPhase);
+  isolate->SetHostInitializeImportMetaObjectCallback(
+      HostInitializeImportMetaObjectCallback);
 
   Local<FunctionTemplate> tpl = NewFunctionTemplate(isolate, New);
   tpl->InstanceTemplate()->SetInternalFieldCount(

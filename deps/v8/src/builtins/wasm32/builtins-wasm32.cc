@@ -1666,16 +1666,7 @@ bool Wasm32IsPrototypeOrInitialMapValue(Tagged<Object> value) {
 }
 
 int Wasm32JSFunctionPrototypeOrInitialMapOffset(Tagged<JSFunction> function) {
-  Tagged<Object> shifted = TaggedField<Object>::load(
-      function, JSFunction::kPrototypeOrInitialMapOffset - kTaggedSize);
-  if (Wasm32IsPrototypeOrInitialMapValue(shifted)) {
-    return JSFunction::kPrototypeOrInitialMapOffset - kTaggedSize;
-  }
-  Tagged<Object> direct = TaggedField<Object>::load(
-      function, JSFunction::kPrototypeOrInitialMapOffset);
-  if (Wasm32IsPrototypeOrInitialMapValue(direct)) {
-    return JSFunction::kPrototypeOrInitialMapOffset;
-  }
+  USE(function);
   return JSFunction::kPrototypeOrInitialMapOffset;
 }
 
@@ -1686,11 +1677,11 @@ Tagged<Object> Wasm32JSFunctionPrototypeOrInitialMapObject(
 }
 
 bool Wasm32JSFunctionHasInitialMap(Tagged<JSFunction> function) {
-  return IsMap(Wasm32JSFunctionPrototypeOrInitialMapObject(function));
+  return function->has_prototype_slot() && function->has_initial_map();
 }
 
 Tagged<Map> Wasm32JSFunctionInitialMap(Tagged<JSFunction> function) {
-  return Cast<Map>(Wasm32JSFunctionPrototypeOrInitialMapObject(function));
+  return function->initial_map();
 }
 
 bool TryResolveWasm32NativeContext(Tagged<Context> context,
@@ -6968,26 +6959,79 @@ bool TryRunArrayConstructorBuiltin(Isolate* isolate,
   return true;
 }
 
+bool TryGetWasm32TypedArrayElementsKind(Tagged<JSFunction> function,
+                                        ElementsKind* out_kind) {
+  Tagged<NativeContext> context = function->native_context();
+#define MATCH_TYPED_ARRAY(accessor, kind) \
+  if (function == context->accessor()) {   \
+    *out_kind = kind;                      \
+    return true;                           \
+  }
+  MATCH_TYPED_ARRAY(uint8_array_fun, UINT8_ELEMENTS)
+  MATCH_TYPED_ARRAY(int8_array_fun, INT8_ELEMENTS)
+  MATCH_TYPED_ARRAY(uint16_array_fun, UINT16_ELEMENTS)
+  MATCH_TYPED_ARRAY(int16_array_fun, INT16_ELEMENTS)
+  MATCH_TYPED_ARRAY(uint32_array_fun, UINT32_ELEMENTS)
+  MATCH_TYPED_ARRAY(int32_array_fun, INT32_ELEMENTS)
+  MATCH_TYPED_ARRAY(biguint64_array_fun, BIGUINT64_ELEMENTS)
+  MATCH_TYPED_ARRAY(bigint64_array_fun, BIGINT64_ELEMENTS)
+  MATCH_TYPED_ARRAY(uint8_clamped_array_fun, UINT8_CLAMPED_ELEMENTS)
+  MATCH_TYPED_ARRAY(float32_array_fun, FLOAT32_ELEMENTS)
+  MATCH_TYPED_ARRAY(float64_array_fun, FLOAT64_ELEMENTS)
+  MATCH_TYPED_ARRAY(float16_array_fun, FLOAT16_ELEMENTS)
+#undef MATCH_TYPED_ARRAY
+
+  Tagged<Object> name_object = function->shared()->Name();
+  if (!IsString(name_object)) return false;
+  Tagged<String> name = Cast<String>(name_object);
+#define MATCH_TYPED_ARRAY_NAME(literal, kind)                   \
+  do {                                                          \
+    constexpr char expected[] = literal;                        \
+    constexpr int expected_length = sizeof(expected) - 1;       \
+    if (name->length() == expected_length) {                     \
+      bool matches = true;                                      \
+      for (int i = 0; i < expected_length; ++i) {                \
+        if (name->Get(i) != static_cast<uint16_t>(expected[i])) {\
+          matches = false;                                      \
+          break;                                                \
+        }                                                       \
+      }                                                         \
+      if (matches) {                                            \
+        *out_kind = kind;                                       \
+        return true;                                            \
+      }                                                         \
+    }                                                           \
+  } while (false)
+  MATCH_TYPED_ARRAY_NAME("Uint8Array", UINT8_ELEMENTS);
+  MATCH_TYPED_ARRAY_NAME("Int8Array", INT8_ELEMENTS);
+  MATCH_TYPED_ARRAY_NAME("Uint16Array", UINT16_ELEMENTS);
+  MATCH_TYPED_ARRAY_NAME("Int16Array", INT16_ELEMENTS);
+  MATCH_TYPED_ARRAY_NAME("Uint32Array", UINT32_ELEMENTS);
+  MATCH_TYPED_ARRAY_NAME("Int32Array", INT32_ELEMENTS);
+  MATCH_TYPED_ARRAY_NAME("BigUint64Array", BIGUINT64_ELEMENTS);
+  MATCH_TYPED_ARRAY_NAME("BigInt64Array", BIGINT64_ELEMENTS);
+  MATCH_TYPED_ARRAY_NAME("Uint8ClampedArray", UINT8_CLAMPED_ELEMENTS);
+  MATCH_TYPED_ARRAY_NAME("Float32Array", FLOAT32_ELEMENTS);
+  MATCH_TYPED_ARRAY_NAME("Float64Array", FLOAT64_ELEMENTS);
+  MATCH_TYPED_ARRAY_NAME("Float16Array", FLOAT16_ELEMENTS);
+#undef MATCH_TYPED_ARRAY_NAME
+  return false;
+}
+
 bool TryRunTypedArrayConstructorBuiltin(Isolate* isolate,
                                         DirectHandle<Object> constructor,
                                         DirectHandle<Object> new_target,
                                         int arg_count,
                                         DirectHandle<Object>* args,
                                         Address* out_result) {
-  if (!IsJSFunctionBuiltin(isolate, constructor,
-                           Builtin::kTypedArrayConstructor)) {
+  if (!IsJSFunction(*constructor) || !IsJSReceiver(*new_target)) {
     return false;
   }
-  if (!IsJSFunction(*constructor) || !IsJSReceiver(*new_target)) {
-    *out_result = ReadOnlyRoots(isolate).exception().ptr();
-    return true;
-  }
-
   DirectHandle<JSFunction> function = Cast<JSFunction>(constructor);
-  if (!Wasm32JSFunctionHasInitialMap(*function)) return false;
-  ElementsKind elements_kind =
-      Wasm32JSFunctionInitialMap(*function)->elements_kind();
-  if (!IsTypedArrayElementsKind(elements_kind)) return false;
+  ElementsKind elements_kind;
+  if (!TryGetWasm32TypedArrayElementsKind(*function, &elements_kind)) {
+    return false;
+  }
 
   ReadOnlyRoots roots(isolate);
   DirectHandle<Object> source =
@@ -11816,10 +11860,10 @@ bool TryFallbackJSEntryBuiltin(Isolate* isolate, Builtin builtin,
   }
 
   if (builtin == Builtin::kTypedArrayConstructor) {
-    if (!Wasm32JSFunctionHasInitialMap(function)) return false;
-    ElementsKind elements_kind =
-        Wasm32JSFunctionInitialMap(function)->elements_kind();
-    if (!IsTypedArrayElementsKind(elements_kind)) return false;
+    ElementsKind elements_kind;
+    if (!TryGetWasm32TypedArrayElementsKind(function, &elements_kind)) {
+      return false;
+    }
 
     Address length_address =
         actual_argc > 0 ? SafeTaggedOrUndefined(isolate, argv[0])
@@ -14108,7 +14152,16 @@ extern "C" void WasmInterpreterEntryTrampoline() {
                     Tagged<Object>(ReadInterpreterRegister(
                         RegisterFromListOperand(first_register_operand, i))));
       }
-      generator->set_context(isolate->context());
+      Address suspend_context_address = CurrentInterpreterContext();
+      if (!IsSafeTaggedHandleValue(suspend_context_address) ||
+          !IsContext(Tagged<Object>(suspend_context_address))) {
+        g_wasm_regs[SlotFor(kReturnRegister0)] =
+            ReadOnlyRoots(isolate).exception().ptr();
+        return;
+      }
+      Tagged<Context> suspend_context =
+          Cast<Context>(Tagged<Object>(suspend_context_address));
+      generator->set_context(suspend_context);
       generator->set_continuation(static_cast<int>(suspend_id));
       generator->set_input_or_debug_pos(Smi::FromInt(bytecode_index));
 

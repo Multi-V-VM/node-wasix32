@@ -10,6 +10,7 @@
 
 #include "src/api/api-inl.h"
 #include "src/base/logging.h"
+#include "src/builtins/builtins-promise.h"
 #include "src/execution/execution.h"
 #include "src/execution/isolate.h"
 #include "src/handles/handles-inl.h"
@@ -179,8 +180,59 @@ MaybeDirectHandle<Object> MicrotaskQueue::RunMicrotasksWasm(Isolate* isolate) {
           ToCData<MicrotaskCallback, kMicrotaskCallbackTag>(
               isolate, callback_task->callback());
       void* data = ToCData<void*, kMicrotaskCallbackDataTag>(
-          isolate, callback_task->data());
+              isolate, callback_task->data());
       callback(data);
+    } else if (IsPromiseResolveThenableJobTask(*task)) {
+      DirectHandle<PromiseResolveThenableJobTask> thenable_job =
+          Cast<PromiseResolveThenableJobTask>(task);
+      SaveContext save_context(isolate);
+      isolate->set_context(thenable_job->context());
+
+      DirectHandle<JSPromise> promise(thenable_job->promise_to_resolve(),
+                                      isolate);
+      DirectHandle<Context> resolving_context =
+          isolate->factory()->NewBuiltinContext(
+              isolate->native_context(),
+              PromiseBuiltins::kPromiseContextLength);
+      resolving_context->SetNoCell(PromiseBuiltins::kPromiseSlot, *promise);
+      resolving_context->SetNoCell(PromiseBuiltins::kAlreadyResolvedSlot,
+                                   roots.false_value());
+      resolving_context->SetNoCell(PromiseBuiltins::kDebugEventSlot,
+                                   roots.true_value());
+
+      DirectHandle<SharedFunctionInfo> resolve_info =
+          isolate->factory()->promise_capability_default_resolve_shared_fun();
+      DirectHandle<SharedFunctionInfo> reject_info =
+          isolate->factory()->promise_capability_default_reject_shared_fun();
+      Handle<JSFunction> resolve =
+          Factory::JSFunctionBuilder{isolate, resolve_info, resolving_context}
+              .Build();
+      Handle<JSFunction> reject =
+          Factory::JSFunctionBuilder{isolate, reject_info, resolving_context}
+              .Build();
+
+      DirectHandle<Object> then(thenable_job->then(), isolate);
+      DirectHandle<Object> thenable(thenable_job->thenable(), isolate);
+      DirectHandle<Object> arguments[] = {resolve, reject};
+      MaybeDirectHandle<Object> exception;
+      if (Execution::TryCall(isolate, then, thenable, {arguments, 2},
+                             Execution::MessageHandling::kKeepPending,
+                             &exception)
+              .is_null()) {
+        DirectHandle<Object> reason;
+        if (!exception.ToHandle(&reason)) {
+          return MaybeDirectHandle<Object>();
+        }
+        DirectHandle<Object> reject_argument = reason;
+        MaybeDirectHandle<Object> reject_exception;
+        if (Execution::TryCall(
+                isolate, reject, isolate->factory()->undefined_value(),
+                {&reject_argument, 1}, Execution::MessageHandling::kKeepPending,
+                &reject_exception)
+                .is_null()) {
+          return MaybeDirectHandle<Object>();
+        }
+      }
     } else if (IsPromiseFulfillReactionJobTask(*task) ||
                IsPromiseRejectReactionJobTask(*task)) {
       bool rejected = IsPromiseRejectReactionJobTask(*task);
