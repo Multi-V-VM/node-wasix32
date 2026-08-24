@@ -277,19 +277,16 @@ class ZoneVector {
     // Move-assigning vectors from different zones would have surprising
     // lifetime semantics regardless of how we choose to implement it (keep
     // the old zone? Take the new zone?).
-    if (zone_ == nullptr) {
-      zone_ = other.zone_;
-    } else {
-      DCHECK_EQ(zone_, other.zone_);
-    }
+    Zone* old_zone = zone_;
+    if (old_zone != nullptr) DCHECK_EQ(old_zone, other.zone_);
     if (data_ != nullptr) {
       for (T* p = data_; p < end_; p++) p->~T();
-      if (zone_ != nullptr) zone_->DeleteArray(data_, capacity());
+      if (old_zone != nullptr) old_zone->DeleteArray(data_, capacity());
     }
+    if (old_zone == nullptr) zone_ = other.zone_;
     data_ = other.data_;
     end_ = other.end_;
     capacity_ = other.capacity_;
-    // {other.zone_} may stay.
     other.data_ = other.end_ = other.capacity_ = nullptr;
     return *this;
   }

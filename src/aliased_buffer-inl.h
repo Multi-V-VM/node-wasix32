@@ -29,15 +29,6 @@ AliasedBufferBase<NativeT, V8T>::AliasedBufferBase(
 
   // allocate v8 ArrayBuffer
   v8::Local<v8::ArrayBuffer> ab = v8::ArrayBuffer::New(isolate_, size_in_bytes);
-#ifdef __wasi__
-  fprintf(stderr,
-          "AliasedBuffer owning native_size=%zu count=%zu size=%zu ab_len=%zu\n",
-          sizeof(NativeT),
-          count,
-          size_in_bytes,
-          ab->ByteLength());
-  fflush(stderr);
-#endif
   buffer_ = static_cast<NativeT*>(ab->Data());
 
   // allocate v8 TypedArray
@@ -62,24 +53,6 @@ AliasedBufferBase<NativeT, V8T>::AliasedBufferBase(
   }
   const v8::HandleScope handle_scope(isolate_);
   v8::Local<v8::ArrayBuffer> ab = backing_buffer.GetArrayBuffer();
-#ifdef __wasi__
-  v8::Local<v8::Uint8Array> backing_js_array = backing_buffer.GetJSArray();
-  fprintf(stderr,
-          "AliasedBuffer view native_size=%zu byte_offset=%zu count=%zu "
-          "need=%zu ab_len=%zu ab_data=%p backing_js_len=%zu "
-          "backing_js_offset=%zu backing_len=%zu native=%p\n",
-          sizeof(NativeT),
-          byte_offset,
-          count,
-          MultiplyWithOverflowCheck(sizeof(NativeT), count),
-          ab->ByteLength(),
-          ab->Data(),
-          backing_js_array->ByteLength(),
-          backing_js_array->ByteOffset(),
-          backing_buffer.Length(),
-          backing_buffer.GetNativeBuffer());
-  fflush(stderr);
-#endif
 
   // validate that the byte_offset is aligned with sizeof(NativeT)
   CHECK_EQ(byte_offset & (sizeof(NativeT) - 1), 0);

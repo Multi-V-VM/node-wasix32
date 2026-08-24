@@ -790,6 +790,27 @@ static void SetEmitWarningSync(const FunctionCallbackInfo<Value>& args) {
   env->set_process_emit_warning_sync(args[0].As<Function>());
 }
 
+#ifdef __wasi__
+static void WriteWasiStdio(const FunctionCallbackInfo<Value>& args,
+                           FILE* stream) {
+  if (args.Length() == 0) return;
+  Utf8Value text(args.GetIsolate(), args[0]);
+  if (*text == nullptr) return;
+  size_t length = static_cast<size_t>(text.length());
+  if (length != 0) fwrite(*text, 1, length, stream);
+  fflush(stream);
+  args.GetReturnValue().Set(true);
+}
+
+static void WasmWriteStdout(const FunctionCallbackInfo<Value>& args) {
+  WriteWasiStdio(args, stdout);
+}
+
+static void WasmWriteStderr(const FunctionCallbackInfo<Value>& args) {
+  WriteWasiStdio(args, stderr);
+}
+#endif
+
 static void CreatePerIsolateProperties(IsolateData* isolate_data,
                                        Local<ObjectTemplate> target) {
   Isolate* isolate = isolate_data->isolate();
@@ -817,6 +838,10 @@ static void CreatePerIsolateProperties(IsolateData* isolate_data,
   SetMethod(isolate, target, "_kill", Kill);
   SetMethod(isolate, target, "_rawDebug", RawDebug);
   SetMethod(isolate, target, "_rawWrite", RawWrite);
+#ifdef __wasi__
+  SetMethod(isolate, target, "_wasmWriteStdout", WasmWriteStdout);
+  SetMethod(isolate, target, "_wasmWriteStderr", WasmWriteStderr);
+#endif
 
   SetMethodNoSideEffect(isolate, target, "cwd", Cwd);
   SetMethod(isolate, target, "dlopen", binding::DLOpen);
@@ -837,53 +862,7 @@ static void CreatePerContextProperties(Local<Object> target,
                                        Local<Value> unused,
                                        Local<Context> context,
                                        void* priv) {
-#ifdef __wasi__
-  Isolate* isolate = context->GetIsolate();
-  Local<Context> current = isolate->GetCurrentContext();
-  fprintf(stderr,
-          "process_methods::CreatePerContextProperties target=%p context=%p "
-          "current=%p fields=%d current_fields=%d\n",
-          reinterpret_cast<void*>(*target),
-          reinterpret_cast<void*>(*context),
-          reinterpret_cast<void*>(*current),
-          context->GetNumberOfEmbedderDataFields(),
-          current->GetNumberOfEmbedderDataFields());
-  if (context->GetNumberOfEmbedderDataFields() >
-      ContextEmbedderIndex::kContextTag) {
-    fprintf(stderr,
-            "process_methods::context slots env=%p realm=%p ctxify=%p tag=%p\n",
-            context->GetAlignedPointerFromEmbedderData(
-                ContextEmbedderIndex::kEnvironment),
-            context->GetAlignedPointerFromEmbedderData(
-                ContextEmbedderIndex::kRealm),
-            context->GetAlignedPointerFromEmbedderData(
-                ContextEmbedderIndex::kContextifyContext),
-            context->GetAlignedPointerFromEmbedderData(
-                ContextEmbedderIndex::kContextTag));
-  }
-  if (!current.IsEmpty() &&
-      current->GetNumberOfEmbedderDataFields() >
-          ContextEmbedderIndex::kContextTag) {
-    fprintf(stderr,
-            "process_methods::current slots env=%p realm=%p ctxify=%p tag=%p\n",
-            current->GetAlignedPointerFromEmbedderData(
-                ContextEmbedderIndex::kEnvironment),
-            current->GetAlignedPointerFromEmbedderData(
-                ContextEmbedderIndex::kRealm),
-            current->GetAlignedPointerFromEmbedderData(
-                ContextEmbedderIndex::kContextifyContext),
-            current->GetAlignedPointerFromEmbedderData(
-                ContextEmbedderIndex::kContextTag));
-  }
-  fflush(stderr);
-#endif
   Realm* realm = Realm::GetCurrent(context);
-#ifdef __wasi__
-  fprintf(stderr,
-          "process_methods::CreatePerContextProperties realm=%p\n",
-          static_cast<void*>(realm));
-  fflush(stderr);
-#endif
   realm->AddBindingData<BindingData>(target);
 }
 
@@ -899,6 +878,10 @@ void RegisterExternalReferences(ExternalReferenceRegistry* registry) {
   registry->Register(Umask);
   registry->Register(RawDebug);
   registry->Register(RawWrite);
+#ifdef __wasi__
+  registry->Register(WasmWriteStdout);
+  registry->Register(WasmWriteStderr);
+#endif
   registry->Register(MemoryUsage);
   registry->Register(GetConstrainedMemory);
   registry->Register(GetAvailableMemory);

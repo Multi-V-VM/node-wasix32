@@ -546,23 +546,7 @@ void StreamBase::AddMethods(IsolateData* isolate_data,
       static_cast<PropertyAttribute>(ReadOnly | DontDelete | DontEnum);
   Local<Signature> sig = Signature::New(isolate, t);
 #ifdef __wasi__
-  static int wasm_stream_base_add_methods_trace_count = 0;
-  auto trace_add_methods = [&](const char* stage) {
-    if (wasm_stream_base_add_methods_trace_count >= 80) return;
-    Isolate* current_isolate = Isolate::TryGetCurrent();
-    fprintf(stderr,
-            "StreamBase::AddMethods %s #%d isolate_data=%p isolate=%p "
-            "current=%p tmpl=%p sig=%p\n",
-            stage,
-            wasm_stream_base_add_methods_trace_count + 1,
-            static_cast<void*>(isolate_data),
-            static_cast<void*>(isolate),
-            static_cast<void*>(current_isolate),
-            t.IsEmpty() ? nullptr : reinterpret_cast<void*>(*t),
-            sig.IsEmpty() ? nullptr : reinterpret_cast<void*>(*sig));
-    fflush(stderr);
-    wasm_stream_base_add_methods_trace_count++;
-  };
+  auto trace_add_methods = [&](const char*) {};
   auto refresh_isolate = [&]() {
     isolate = isolate_data->isolate();
     if (isolate == nullptr) {

@@ -1513,14 +1513,15 @@ static void uv__to_stat(struct stat* src, uv_stat_t* dst) {
 #endif
 }
 
-
 static int uv__fs_statx(int fd,
                         const char* path,
                         int is_fstat,
                         int is_lstat,
                         uv_stat_t* buf) {
   STATIC_ASSERT(UV_ENOSYS != -1);
-#ifdef __linux__
+#if defined(__wasi__)
+  return UV_ENOSYS;
+#elif defined(__linux__)
   static _Atomic int no_statx;
   struct uv__statx statxbuf;
   int dirfd;

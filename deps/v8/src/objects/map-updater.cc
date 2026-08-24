@@ -1110,72 +1110,15 @@ MapUpdater::State MapUpdater::ConstructNewMap() {
         old_value, new_field_type, new_value);
   }
 
-#ifdef __wasi__
-  std::fprintf(stderr,
-               "MapUpdater::ConstructNewMap before AddMissingTransitions "
-               "split=0x%lx desc=0x%lx old_nof=%d split_nof=%d desc_n=%d\n",
-               static_cast<unsigned long>((*split_map).ptr()),
-               static_cast<unsigned long>((*new_descriptors).ptr()),
-               old_nof_,
-               split_nof,
-               new_descriptors->number_of_descriptors());
-  std::fflush(stderr);
-#endif
   Handle<Map> new_map =
       Map::AddMissingTransitions(isolate_, split_map, new_descriptors);
-#ifdef __wasi__
-  std::fprintf(stderr,
-               "MapUpdater::ConstructNewMap after AddMissingTransitions "
-               "new_map=0x%lx nof=%d\n",
-               static_cast<unsigned long>((*new_map).ptr()),
-               new_map->NumberOfOwnDescriptors());
-  std::fflush(stderr);
-#endif
 
-#ifdef __wasi__
-  Tagged<DescriptorArray> split_descriptors =
-      split_map->instance_descriptors(isolate_);
-  std::fprintf(stderr,
-               "MapUpdater::ConstructNewMap enum split_desc=0x%lx "
-               "split_n=%d old_desc=0x%lx old_n=%d\n",
-               static_cast<unsigned long>(split_descriptors.ptr()),
-               split_descriptors->number_of_descriptors(),
-               static_cast<unsigned long>((*old_descriptors_).ptr()),
-               old_descriptors_->number_of_descriptors());
-  std::fflush(stderr);
-  Tagged<EnumCache> split_enum_cache = split_descriptors->enum_cache();
-  std::fprintf(stderr, "MapUpdater::ConstructNewMap enum split_cache=0x%lx\n",
-               static_cast<unsigned long>(split_enum_cache.ptr()));
-  std::fflush(stderr);
-  Tagged<FixedArray> split_keys = split_enum_cache->keys();
-  std::fprintf(stderr, "MapUpdater::ConstructNewMap enum split_keys=0x%lx\n",
-               static_cast<unsigned long>(split_keys.ptr()));
-  std::fflush(stderr);
-  int split_keys_len = split_keys->length();
-  std::fprintf(stderr, "MapUpdater::ConstructNewMap enum split_len=%d\n",
-               split_keys_len);
-  std::fflush(stderr);
-  Tagged<EnumCache> old_enum_cache = old_descriptors_->enum_cache();
-  std::fprintf(stderr, "MapUpdater::ConstructNewMap enum old_cache=0x%lx\n",
-               static_cast<unsigned long>(old_enum_cache.ptr()));
-  std::fflush(stderr);
-  Tagged<FixedArray> old_keys = old_enum_cache->keys();
-  std::fprintf(stderr, "MapUpdater::ConstructNewMap enum old_keys=0x%lx\n",
-               static_cast<unsigned long>(old_keys.ptr()));
-  std::fflush(stderr);
-  int old_keys_len = old_keys->length();
-  std::fprintf(stderr, "MapUpdater::ConstructNewMap enum old_len=%d\n",
-               old_keys_len);
-  std::fflush(stderr);
-  bool had_any_enum_cache = split_keys_len > 0 || old_keys_len > 0;
-#else
   bool had_any_enum_cache =
       split_map->instance_descriptors(isolate_)
               ->enum_cache()
               ->keys()
               ->length() > 0 ||
       old_descriptors_->enum_cache()->keys()->length() > 0;
-#endif
 
   // Deprecated part of the transition tree is no longer reachable, so replace
   // current instance descriptors in the "survived" part of the tree with

@@ -1079,7 +1079,11 @@ static void InternalModuleStat(const FunctionCallbackInfo<Value>& args) {
   }
   uv_fs_req_cleanup(&req);
 
+#ifdef __wasi__
+  args.GetReturnValue().SetNonEmpty(v8::Integer::New(env->isolate(), rc));
+#else
   args.GetReturnValue().Set(rc);
+#endif
 }
 
 constexpr bool is_uv_error_except_no_entry(int result) {

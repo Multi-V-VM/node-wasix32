@@ -97,16 +97,7 @@ ReadOnlyRoots::ReadOnlyRoots(Heap* heap)
 
 ReadOnlyRoots::ReadOnlyRoots(const Isolate* isolate)
     : read_only_roots_(reinterpret_cast<Address*>(
-          isolate->roots_table().read_only_roots_begin().address())) {
-#ifdef __wasi__
-  static bool first_call = true;
-  if (first_call) {
-    fprintf(stderr, "ReadOnlyRoots::ReadOnlyRoots: read_only_roots_ = %p\n",
-            (void*)read_only_roots_);
-    first_call = false;
-  }
-#endif
-}
+          isolate->roots_table().read_only_roots_begin().address())) {}
 
 ReadOnlyRoots::ReadOnlyRoots(LocalIsolate* isolate)
     : ReadOnlyRoots(isolate->factory()->read_only_roots()) {}

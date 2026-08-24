@@ -22,11 +22,10 @@ namespace builtins {
 #ifdef __wasi__
 namespace {
 constexpr bool kTraceWasiBuiltinLoader = false;
-Realm* g_wasm32_builtin_loader_realm = nullptr;
 using Wasm32BuiltinFunctionCache =
     std::map<std::string, v8::Global<v8::Function>>;
-std::map<Realm*, Wasm32BuiltinFunctionCache>
-    g_wasm32_builtin_function_cache;
+auto* const g_wasm32_builtin_function_cache =
+    new std::map<Realm*, Wasm32BuiltinFunctionCache>();
 }  // namespace
 #endif
 
@@ -308,7 +307,7 @@ MaybeLocal<Function> BuiltinLoader::LookupAndCompileInternal(
   Isolate* isolate = context->GetIsolate();
   EscapableHandleScope scope(isolate);
 
-#ifdef __wasi__
+#if defined(__wasi__) && defined(NODE_WASM32_DEBUG_TRACE)
   fprintf(stderr, "BuiltinLoader::LookupAndCompileInternal enter id=%s\n", id);
   fflush(stderr);
 #endif
@@ -316,7 +315,7 @@ MaybeLocal<Function> BuiltinLoader::LookupAndCompileInternal(
   if (!LoadBuiltinSource(isolate, id).ToLocal(&source)) {
     return {};
   }
-#ifdef __wasi__
+#if defined(__wasi__) && defined(NODE_WASM32_DEBUG_TRACE)
   fprintf(stderr,
           "BuiltinLoader::LookupAndCompileInternal after source id=%s\n", id);
   fflush(stderr);
@@ -346,6 +345,12 @@ MaybeLocal<Function> BuiltinLoader::LookupAndCompileInternal(
   ScriptCompiler::CompileOptions options =
       has_cache ? ScriptCompiler::kConsumeCodeCache
                 : ScriptCompiler::kNoCompileOptions;
+#ifdef __wasi__
+  // Lazy recompilation of Node's internal modules is unsafe on wasm32 because
+  // it can outlive the parser's temporary allocation state. Keep user scripts
+  // lazy, but compile the internal module graph eagerly at this boundary.
+  options = ScriptCompiler::kEagerCompile;
+#endif
   if (should_eager_compile_) {
     options = ScriptCompiler::kEagerCompile;
   } else if (!to_eager_compile_.empty()) {
@@ -373,7 +378,7 @@ MaybeLocal<Function> BuiltinLoader::LookupAndCompileInternal(
                                       0,
                                       nullptr,
                                       options);
-#ifdef __wasi__
+#if defined(__wasi__) && defined(NODE_WASM32_DEBUG_TRACE)
   fprintf(stderr,
           "BuiltinLoader::LookupAndCompileInternal after CompileFunction "
           "id=%s empty=%d\n",
@@ -558,7 +563,7 @@ MaybeLocal<Value> BuiltinLoader::CompileAndCall(Local<Context> context,
                                                 Realm* optional_realm) {
   // Arguments must match the parameters specified in
   // BuiltinLoader::LookupAndCompile().
-#ifdef __wasi__
+#if defined(__wasi__) && defined(NODE_WASM32_DEBUG_TRACE)
   fprintf(stderr, "BuiltinLoader::CompileAndCall enter id=%s argc=%d\n", id,
           argc);
   fflush(stderr);
@@ -568,13 +573,13 @@ MaybeLocal<Value> BuiltinLoader::CompileAndCall(Local<Context> context,
   if (!maybe_fn.ToLocal(&fn)) {
     return MaybeLocal<Value>();
   }
-#ifdef __wasi__
+#if defined(__wasi__) && defined(NODE_WASM32_DEBUG_TRACE)
   fprintf(stderr, "BuiltinLoader::CompileAndCall before call id=%s\n", id);
   fflush(stderr);
 #endif
   Local<Value> undefined = Undefined(context->GetIsolate());
   MaybeLocal<Value> result = fn->Call(context, undefined, argc, argv);
-#ifdef __wasi__
+#if defined(__wasi__) && defined(NODE_WASM32_DEBUG_TRACE)
   fprintf(stderr, "BuiltinLoader::CompileAndCall after call id=%s empty=%d\n",
           id,
           result.IsEmpty());
@@ -782,12 +787,10 @@ void BuiltinLoader::RecordResult(const char* id,
 
 void BuiltinLoader::CompileFunction(const FunctionCallbackInfo<Value>& args) {
 #ifdef __wasi__
-  Realm* realm = g_wasm32_builtin_loader_realm;
-  if (realm == nullptr) {
-    Local<Value> data = args.Data();
-    if (!data.IsEmpty() && data->IsExternal()) {
-      realm = static_cast<Realm*>(data.As<External>()->Value());
-    }
+  Realm* realm = nullptr;
+  Local<Value> data = args.Data();
+  if (!data.IsEmpty() && data->IsExternal()) {
+    realm = static_cast<Realm*>(data.As<External>()->Value());
   }
   if (realm == nullptr) {
     realm = Realm::GetCurrent(args);
@@ -804,7 +807,7 @@ void BuiltinLoader::CompileFunction(const FunctionCallbackInfo<Value>& args) {
 #ifdef __wasi__
   static int compile_function_trace_count = 0;
   int trace_index = ++compile_function_trace_count;
-  bool trace_compile_function =
+  bool trace_compile_function = false &&
       kTraceWasiBuiltinLoader &&
       (trace_index <= 96 || trace_index % 128 == 0);
   if (trace_compile_function) {
@@ -863,7 +866,7 @@ void BuiltinLoader::CompileFunction(const FunctionCallbackInfo<Value>& args) {
     }
     fflush(stderr);
   }
-  auto& function_cache = g_wasm32_builtin_function_cache[realm];
+  auto& function_cache = (*g_wasm32_builtin_function_cache)[realm];
   auto cached = function_cache.find(id);
   if (cached != function_cache.end() && !cached->second.IsEmpty()) {
     Local<Function> fn = Local<Function>::New(realm->isolate(), cached->second);
@@ -900,7 +903,7 @@ void BuiltinLoader::IsBuiltin(const FunctionCallbackInfo<Value>& args) {
   }
 
   node::Utf8Value id_v(realm->isolate(), args[0].As<String>());
-#ifdef __wasi__
+#if defined(__wasi__) && defined(NODE_WASM32_DEBUG_TRACE)
   fprintf(stderr,
           "BuiltinLoader::IsBuiltin id=%s exists=%d\n",
           *id_v,
@@ -919,38 +922,12 @@ void BuiltinLoader::HasCachedBuiltins(const FunctionCallbackInfo<Value>& args) {
 
 void SetInternalLoaders(const FunctionCallbackInfo<Value>& args) {
   Realm* realm = Realm::GetCurrent(args);
-#ifdef __wasi__
-  Local<Value> arg0 = args.Length() > 0 ? args[0] : Local<Value>();
-  Local<Value> arg1 = args.Length() > 1 ? args[1] : Local<Value>();
-  Local<Function> before_internal = realm->internal_binding_loader();
-  Local<Function> before_builtin = realm->builtin_module_require();
-  fprintf(stderr,
-          "SetInternalLoaders: len=%d arg0=%p is_function=%d "
-          "arg1=%p is_function=%d before_internal=%p before_builtin=%p\n",
-          args.Length(),
-          arg0.IsEmpty() ? nullptr : *arg0,
-          arg0.IsEmpty() ? 0 : arg0->IsFunction(),
-          arg1.IsEmpty() ? nullptr : *arg1,
-          arg1.IsEmpty() ? 0 : arg1->IsFunction(),
-          before_internal.IsEmpty() ? nullptr : *before_internal,
-          before_builtin.IsEmpty() ? nullptr : *before_builtin);
-  fflush(stderr);
-#endif
   CHECK(args[0]->IsFunction());
   CHECK(args[1]->IsFunction());
   DCHECK(realm->internal_binding_loader().IsEmpty());
   DCHECK(realm->builtin_module_require().IsEmpty());
   realm->set_internal_binding_loader(args[0].As<Function>());
   realm->set_builtin_module_require(args[1].As<Function>());
-#ifdef __wasi__
-  Local<Function> after_internal = realm->internal_binding_loader();
-  Local<Function> after_builtin = realm->builtin_module_require();
-  fprintf(stderr,
-          "SetInternalLoaders: after_internal=%p after_builtin=%p\n",
-          after_internal.IsEmpty() ? nullptr : *after_internal,
-          after_builtin.IsEmpty() ? nullptr : *after_builtin);
-  fflush(stderr);
-#endif
 }
 
 void BuiltinLoader::CopySourceAndCodeCacheReferenceFrom(
@@ -1006,7 +983,6 @@ void BuiltinLoader::CreatePerContextProperties(Local<Object> target,
 #ifdef __wasi__
   Isolate* isolate = context->GetIsolate();
   Realm* realm = Realm::GetCurrent(context);
-  g_wasm32_builtin_loader_realm = realm;
   Local<Value> realm_data =
       External::New(isolate, realm);
   Local<Function> compile_function =

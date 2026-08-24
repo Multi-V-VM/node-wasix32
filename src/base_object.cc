@@ -26,21 +26,6 @@ using v8::WeakCallbackType;
 
 BaseObject::BaseObject(Realm* realm, Local<Object> object) : realm_(realm) {
   CHECK_EQ(false, object.IsEmpty());
-#ifdef __wasi__
-  IsolateData* isolate_data = realm == nullptr ? nullptr : realm->isolate_data();
-  uint16_t* non_cppgc_id =
-      isolate_data == nullptr ? nullptr : isolate_data->embedder_id_for_non_cppgc();
-  fprintf(stderr,
-          "BaseObject::BaseObject object=%p internal_fields=%d realm=%p "
-          "isolate_data=%p non_cppgc_id=%p this=%p\n",
-          reinterpret_cast<void*>(*object),
-          object->InternalFieldCount(),
-          static_cast<void*>(realm),
-          static_cast<void*>(isolate_data),
-          static_cast<void*>(non_cppgc_id),
-          static_cast<void*>(this));
-  fflush(stderr);
-#endif
   CHECK_NOT_NULL(realm);
   CHECK_GE(object->InternalFieldCount(), BaseObject::kInternalFieldCount);
   SetInternalFields(realm->isolate_data(), object, static_cast<void*>(this));
@@ -102,45 +87,11 @@ void BaseObject::LazilyInitializedJSTemplateConstructor(
 
 Local<FunctionTemplate> BaseObject::MakeLazilyInitializedJSTemplate(
     Environment* env) {
-#ifdef __wasi__
-  static int wasm_base_template_env_trace_count = 0;
-  if (wasm_base_template_env_trace_count < 64) {
-    IsolateData* isolate_data = env == nullptr ? nullptr : env->isolate_data();
-    v8::Isolate* isolate = isolate_data == nullptr ? nullptr
-                                                   : isolate_data->isolate();
-    fprintf(stderr,
-            "BaseObject::MakeLazilyInitializedJSTemplate env #%d env=%p "
-            "isolate_data=%p isolate=%p current=%p\n",
-            wasm_base_template_env_trace_count + 1,
-            static_cast<void*>(env),
-            static_cast<void*>(isolate_data),
-            static_cast<void*>(isolate),
-            static_cast<void*>(v8::Isolate::TryGetCurrent()));
-    fflush(stderr);
-    wasm_base_template_env_trace_count++;
-  }
-#endif
   return MakeLazilyInitializedJSTemplate(env->isolate_data());
 }
 
 Local<FunctionTemplate> BaseObject::MakeLazilyInitializedJSTemplate(
     IsolateData* isolate_data) {
-#ifdef __wasi__
-  static int wasm_base_template_isolate_data_trace_count = 0;
-  if (wasm_base_template_isolate_data_trace_count < 64) {
-    v8::Isolate* isolate = isolate_data == nullptr ? nullptr
-                                                   : isolate_data->isolate();
-    fprintf(stderr,
-            "BaseObject::MakeLazilyInitializedJSTemplate isolate_data #%d "
-            "isolate_data=%p isolate=%p current=%p\n",
-            wasm_base_template_isolate_data_trace_count + 1,
-            static_cast<void*>(isolate_data),
-            static_cast<void*>(isolate),
-            static_cast<void*>(v8::Isolate::TryGetCurrent()));
-    fflush(stderr);
-    wasm_base_template_isolate_data_trace_count++;
-  }
-#endif
   Local<FunctionTemplate> t = NewFunctionTemplate(
       isolate_data->isolate(), LazilyInitializedJSTemplateConstructor);
   t->InstanceTemplate()->SetInternalFieldCount(BaseObject::kInternalFieldCount);

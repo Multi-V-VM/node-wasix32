@@ -586,10 +586,6 @@ IsolateData::IsolateData(Isolate* isolate,
       snapshot_data_(snapshot_data),
       options_(std::move(options)),
       worker_context_(nullptr) {
-  fprintf(stderr,
-          "IsolateData::IsolateData worker_context=%p snapshot=%p\n",
-          static_cast<void*>(worker_context_),
-          static_cast<const void*>(snapshot_data_));
   uint16_t cppgc_id = kDefaultCppGCEmbedderID;
   // We do not care about overflow since we just want this to be different
   // from the cppgc id.
@@ -678,16 +674,6 @@ void TrackingTraceStateObserver::UpdateTraceCategoryState() {
 void Environment::AssignToContext(Local<v8::Context> context,
                                   Realm* realm,
                                   const ContextInfo& info) {
-#ifdef __wasi__
-  fprintf(stderr,
-          "Environment::AssignToContext begin context=%p env=%p realm=%p "
-          "fields=%d\n",
-          reinterpret_cast<void*>(*context),
-          static_cast<void*>(this),
-          static_cast<void*>(realm),
-          context->GetNumberOfEmbedderDataFields());
-  fflush(stderr);
-#endif
   context->SetAlignedPointerInEmbedderData(ContextEmbedderIndex::kEnvironment,
                                            this);
   context->SetAlignedPointerInEmbedderData(ContextEmbedderIndex::kRealm, realm);
@@ -698,51 +684,12 @@ void Environment::AssignToContext(Local<v8::Context> context,
 
   // This must not be done before other context fields are initialized.
   ContextEmbedderTag::TagNodeContext(context);
-#ifdef __wasi__
-  fprintf(stderr,
-          "Environment::AssignToContext done context=%p env_slot=%p "
-          "realm_slot=%p ctxify_slot=%p tag_slot=%p fields=%d\n",
-          reinterpret_cast<void*>(*context),
-          context->GetAlignedPointerFromEmbedderData(
-              ContextEmbedderIndex::kEnvironment),
-          context->GetAlignedPointerFromEmbedderData(
-              ContextEmbedderIndex::kRealm),
-          context->GetAlignedPointerFromEmbedderData(
-              ContextEmbedderIndex::kContextifyContext),
-          context->GetAlignedPointerFromEmbedderData(
-              ContextEmbedderIndex::kContextTag),
-          context->GetNumberOfEmbedderDataFields());
-  fflush(stderr);
-#endif
-
 #if HAVE_INSPECTOR
-#ifdef __wasi__
-  fprintf(stderr, "Environment::AssignToContext before ContextCreated\n");
-  fflush(stderr);
-#endif
   inspector_agent()->ContextCreated(context, info);
-#ifdef __wasi__
-  fprintf(stderr, "Environment::AssignToContext after ContextCreated\n");
-  fflush(stderr);
-#endif
 #endif  // HAVE_INSPECTOR
 
-#ifdef __wasi__
-  fprintf(stderr, "Environment::AssignToContext before promise hooks\n");
-  fflush(stderr);
-#endif
   this->async_hooks()->InstallPromiseHooks(context);
-#ifdef __wasi__
-  fprintf(stderr, "Environment::AssignToContext after promise hooks\n");
-  fflush(stderr);
-  fprintf(stderr, "Environment::AssignToContext before TrackContext\n");
-  fflush(stderr);
-#endif
   TrackContext(context);
-#ifdef __wasi__
-  fprintf(stderr, "Environment::AssignToContext after TrackContext\n");
-  fflush(stderr);
-#endif
 }
 
 void Environment::UnassignFromContext(Local<v8::Context> context) {
@@ -872,10 +819,6 @@ Environment::Environment(IsolateData* isolate_data,
       thread_id_(thread_id.id == static_cast<uint64_t>(-1)
                      ? AllocateEnvironmentThreadId().id
                      : thread_id.id) {
-  fprintf(stderr,
-          "Environment::Environment worker_context=%p flags=0x%llx\n",
-          static_cast<void*>(isolate_data->worker_context()),
-          static_cast<unsigned long long>(flags_));
   if (!is_main_thread()) {
     // If this is a Worker thread, we can always safely use the parent's
     // Isolate's code cache because of the shared read-only heap.

@@ -102,37 +102,7 @@ inline T* Realm::AddBindingData(v8::Local<v8::Object> target, Args&&... args) {
   // should be referenced from JavaScript, thus the binding data should be
   // reachable throughout the lifetime of the realm.
   BaseObjectWeakPtr<T> item =
-#ifdef __wasi__
-      ([&]() {
-        constexpr size_t binding_index = static_cast<size_t>(T::binding_type_int);
-        fprintf(stderr,
-                "Realm::AddBindingData before MakeWeak this=%p target=%p "
-                "binding_index=%zu\n",
-                static_cast<void*>(this),
-                target.IsEmpty() ? nullptr : reinterpret_cast<void*>(*target),
-                binding_index);
-        fflush(stderr);
-        T* raw = new T(this, target, std::forward<Args>(args)...);
-        fprintf(stderr,
-                "Realm::AddBindingData after new this=%p raw=%p "
-                "binding_index=%zu\n",
-                static_cast<void*>(this),
-                static_cast<void*>(raw),
-                binding_index);
-        fflush(stderr);
-        raw->MakeWeak();
-        fprintf(stderr,
-                "Realm::AddBindingData after MakeWeak this=%p raw=%p "
-                "binding_index=%zu\n",
-                static_cast<void*>(this),
-                static_cast<void*>(raw),
-                binding_index);
-        fflush(stderr);
-        return BaseObjectWeakPtr<T>(raw);
-      })();
-#else
       MakeWeakBaseObject<T>(this, target, std::forward<Args>(args)...);
-#endif
   constexpr size_t binding_index = static_cast<size_t>(T::binding_type_int);
   static_assert(binding_index < std::tuple_size_v<BindingDataStore>);
   // Each slot is expected to be assigned only once.

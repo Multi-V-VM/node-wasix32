@@ -609,12 +609,12 @@ class V8_EXPORT Isolate {
       TimeZoneDetection detection = TimeZoneDetection::kRedetect) {}
   
   // Host callback methods
-  template <typename F>
-  void SetHostImportModuleDynamicallyCallback(F) {}
-  template <typename F>
-  void SetHostImportModuleWithPhaseDynamicallyCallback(F) {}
-  template <typename F>
-  void SetHostInitializeImportMetaObjectCallback(F) {}
+  void SetHostImportModuleDynamicallyCallback(
+      HostImportModuleDynamicallyCallback callback);
+  void SetHostImportModuleWithPhaseDynamicallyCallback(
+      HostImportModuleWithPhaseDynamicallyCallback callback);
+  void SetHostInitializeImportMetaObjectCallback(
+      HostInitializeImportMetaObjectCallback callback);
   
   // Heap profiler
   HeapProfiler* GetHeapProfiler() { return nullptr; }

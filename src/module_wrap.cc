@@ -1338,15 +1338,11 @@ void ModuleWrap::CreatePerContextProperties(Local<Object> target,
   Realm* realm = Realm::GetCurrent(context);
   Isolate* isolate = realm->isolate();
 #define V(enum_type, name)                                                     \
-  fprintf(stderr, "ModuleWrap::CreatePerContextProperties begin %s\n", #name); \
-  fflush(stderr);                                                              \
   target                                                                       \
       ->Set(context,                                                           \
             FIXED_ONE_BYTE_STRING(isolate, #name),                             \
             Integer::New(isolate, enum_type::name))                            \
-      .FromJust();                                                             \
-  fprintf(stderr, "ModuleWrap::CreatePerContextProperties done %s\n", #name);  \
-  fflush(stderr)
+      .FromJust()
   V(Module::Status, kUninstantiated);
   V(Module::Status, kInstantiating);
   V(Module::Status, kInstantiated);

@@ -5257,9 +5257,6 @@ void Isolate::TearDownEmbeddedBlob() {
 }
 
 bool Isolate::InitWithoutSnapshot() {
-  // Unconditional debug for WASI troubleshooting
-  fprintf(stderr, "Isolate::InitWithoutSnapshot called\n");
-  fflush(stderr);
   return Init(nullptr, nullptr, nullptr, false);
 }
 
@@ -5466,11 +5463,6 @@ void Isolate::VerifyStaticRoots() {
 bool Isolate::Init(SnapshotData* startup_snapshot_data,
                    SnapshotData* read_only_snapshot_data,
                    SnapshotData* shared_heap_snapshot_data, bool can_rehash) {
-  // Unconditional debug for WASI troubleshooting
-  fprintf(stderr, "Isolate::Init ENTER: startup=%p ro=%p shared=%p\n",
-          (void*)startup_snapshot_data, (void*)read_only_snapshot_data,
-          (void*)shared_heap_snapshot_data);
-  fflush(stderr);
   TRACE_ISOLATE(init);
 
 #ifdef V8_COMPRESS_POINTERS_IN_SHARED_CAGE
@@ -5751,14 +5743,9 @@ bool Isolate::Init(SnapshotData* startup_snapshot_data,
 
   if (!v8_flags.inline_new) heap_.DisableInlineAllocation();
 
-  // Unconditional debug for WASI troubleshooting
-  fprintf(stderr, "Isolate::Init: before SetupHeap, create_heap_objects=%d\n", create_heap_objects);
-  fflush(stderr);
   if (!setup_delegate_->SetupHeap(this, create_heap_objects)) {
     V8::FatalProcessOutOfMemory(this, "heap object creation");
   }
-  fprintf(stderr, "Isolate::Init: after SetupHeap\n");
-  fflush(stderr);
 
   if (create_heap_objects) {
     // Terminate the startup and shared heap object caches so we can iterate.

@@ -2,8 +2,6 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-#include <cstdio>
-
 #include "src/base/logging.h"
 #include "src/debug/debug-evaluate.h"
 #include "src/execution/isolate.h"
@@ -15,9 +13,6 @@ namespace internal {
 
 bool SetupIsolateDelegate::SetupHeap(Isolate* isolate,
                                      bool create_heap_objects) {
-  // Unconditional debug for WASI troubleshooting
-  fprintf(stderr, "SetupHeap: create_heap_objects=%d\n", create_heap_objects);
-  fflush(stderr);
   if (!create_heap_objects) {
     CHECK(isolate->snapshot_available());
     return true;

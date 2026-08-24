@@ -585,32 +585,10 @@ bool Heap::CreateEarlyReadOnlyMapsAndObjects() {
     AllocationResult allocation =
         Allocate(roots_table().enum_cache_map(), AllocationType::kReadOnly);
     if (!allocation.To(&obj)) return false;
-#ifdef __wasi__
-    fprintf(stderr,
-            "Heap setup empty_enum_cache alloc obj=0x%lx map=0x%lx "
-            "map_size=%d StructSize=%d kSize=%d SizeFor=%d keys_off=%d "
-            "indices_off=%d empty_fixed=0x%lx\n",
-            static_cast<unsigned long>(obj.ptr()),
-            static_cast<unsigned long>(roots_table().enum_cache_map()->ptr()),
-            roots_table().enum_cache_map()->instance_size(),
-            StructSize<EnumCache>(), EnumCache::kSize, EnumCache::SizeFor(),
-            EnumCache::kKeysOffset, EnumCache::kIndicesOffset,
-            static_cast<unsigned long>(roots.empty_fixed_array().ptr()));
-    fflush(stderr);
-#endif
   }
   set_empty_enum_cache(Cast<EnumCache>(obj));
   Cast<EnumCache>(obj)->set_keys(roots.empty_fixed_array());
   Cast<EnumCache>(obj)->set_indices(roots.empty_fixed_array());
-#ifdef __wasi__
-  fprintf(stderr,
-          "Heap setup empty_enum_cache fields obj=0x%lx keys=0x%lx "
-          "indices=0x%lx\n",
-          static_cast<unsigned long>(roots.empty_enum_cache().ptr()),
-          static_cast<unsigned long>(roots.empty_enum_cache()->keys().ptr()),
-          static_cast<unsigned long>(roots.empty_enum_cache()->indices().ptr()));
-  fflush(stderr);
-#endif
 
   // Allocate the empty descriptor array.
   {
@@ -624,18 +602,6 @@ bool Heap::CreateEarlyReadOnlyMapsAndObjects() {
     array->set_fast_iterable(DescriptorArray::FastIterableState::kJsonFast);
   }
   set_empty_descriptor_array(Cast<DescriptorArray>(obj));
-#ifdef __wasi__
-  fprintf(stderr,
-          "Heap setup after empty_descriptor_array enum=0x%lx keys=0x%lx "
-          "indices=0x%lx desc=0x%lx desc_cache=0x%lx\n",
-          static_cast<unsigned long>(roots.empty_enum_cache().ptr()),
-          static_cast<unsigned long>(roots.empty_enum_cache()->keys().ptr()),
-          static_cast<unsigned long>(roots.empty_enum_cache()->indices().ptr()),
-          static_cast<unsigned long>(roots.empty_descriptor_array().ptr()),
-          static_cast<unsigned long>(
-              roots.empty_descriptor_array()->enum_cache().ptr()));
-  fflush(stderr);
-#endif
 
   // Fix the instance_descriptors for the existing maps.
   FinalizePartialMap(roots.meta_map());

@@ -232,13 +232,13 @@ int InterruptBudgetFor(Isolate* isolate, std::optional<CodeKind> code_kind,
 int TieringManager::InterruptBudgetFor(
     Isolate* isolate, Tagged<JSFunction> function,
     std::optional<CodeKind> override_active_tier) {
-#ifdef __wasi__
+#if defined(__wasi__) && defined(V8_WASM32_DEBUG_TRACE)
   fprintf(stderr, "TieringManager::InterruptBudgetFor enter function=0x%lx\n",
           static_cast<unsigned long>(function.ptr()));
   fflush(stderr);
 #endif
   DCHECK(function->shared()->is_compiled());
-#ifdef __wasi__
+#if defined(__wasi__) && defined(V8_WASM32_DEBUG_TRACE)
   Tagged<SharedFunctionInfo> shared = function->shared();
   fprintf(stderr,
           "TieringManager::InterruptBudgetFor shared=0x%lx compiled=%d\n",
@@ -247,7 +247,7 @@ int TieringManager::InterruptBudgetFor(
 #endif
   const int bytecode_length =
       function->shared()->GetBytecodeArray(isolate)->length();
-#ifdef __wasi__
+#if defined(__wasi__) && defined(V8_WASM32_DEBUG_TRACE)
   fprintf(stderr,
           "TieringManager::InterruptBudgetFor bytecode_length=%d "
           "raw_cell=0x%lx value=0x%lx\n",
@@ -259,7 +259,7 @@ int TieringManager::InterruptBudgetFor(
 #endif
 
   if (FirstTimeTierUpToSparkplug(isolate, function)) {
-#ifdef __wasi__
+#if defined(__wasi__) && defined(V8_WASM32_DEBUG_TRACE)
     fprintf(stderr, "TieringManager::InterruptBudgetFor first_sparkplug\n");
     fflush(stderr);
 #endif

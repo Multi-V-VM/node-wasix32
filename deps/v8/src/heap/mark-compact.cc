@@ -2929,11 +2929,7 @@ class MarkCompactCollector::FilterNonTrivialWeakRefJobItem final
 
 void MarkCompactCollector::ClearNonLiveReferences() {
   TRACE_GC(heap_->tracer(), GCTracer::Scope::MC_CLEAR);
-#if V8_TARGET_ARCH_WASM32
-#define WASM32_MC_CLEAR_TRACE(name) PrintF("wasm32 MC_CLEAR: %s\n", name)
-#else
 #define WASM32_MC_CLEAR_TRACE(name) ((void)0)
-#endif
   WASM32_MC_CLEAR_TRACE("enter");
 
   Isolate* const isolate = heap_->isolate();

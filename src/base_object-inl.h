@@ -311,22 +311,8 @@ BaseObjectPtr<T> MakeBaseObject(Args&&... args) {
 }
 template <typename T, typename... Args>
 BaseObjectWeakPtr<T> MakeWeakBaseObject(Args&&... args) {
-#ifdef __wasi__
-  fprintf(stderr, "MakeWeakBaseObject before new\n");
-  fflush(stderr);
-#endif
   T* target = new T(std::forward<Args>(args)...);
-#ifdef __wasi__
-  fprintf(stderr, "MakeWeakBaseObject after new target=%p\n",
-          static_cast<void*>(target));
-  fflush(stderr);
-#endif
   target->MakeWeak();
-#ifdef __wasi__
-  fprintf(stderr, "MakeWeakBaseObject after MakeWeak target=%p\n",
-          static_cast<void*>(target));
-  fflush(stderr);
-#endif
   return BaseObjectWeakPtr<T>(target);
 }
 

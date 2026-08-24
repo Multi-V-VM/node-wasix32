@@ -112,7 +112,11 @@ static void MakeUtf8String(Isolate* isolate,
                            Local<Value> value,
                            MaybeStackBuffer<T>* target) {
   Local<String> string;
-  if (!value->ToString(isolate->GetCurrentContext()).ToLocal(&string)) return;
+  if (value->IsString()) {
+    string = value.As<String>();
+  } else if (!value->ToString(isolate->GetCurrentContext()).ToLocal(&string)) {
+    return;
+  }
 
 #ifdef __wasi__
   size_t storage = string->Utf8LengthV2(isolate) + 1;

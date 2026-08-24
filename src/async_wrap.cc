@@ -365,7 +365,6 @@ void AsyncWrap::SetCallbackTrampoline(const FunctionCallbackInfo<Value>& args) {
 Local<FunctionTemplate> AsyncWrap::GetConstructorTemplate(
     IsolateData* isolate_data) {
 #ifdef __wasi__
-  IsolateData* original_isolate_data = isolate_data;
   if (isolate_data == nullptr) {
     v8::Isolate* current_isolate = v8::Isolate::TryGetCurrent();
     if (current_isolate != nullptr) {
@@ -375,32 +374,6 @@ Local<FunctionTemplate> AsyncWrap::GetConstructorTemplate(
         isolate_data = current_env->isolate_data();
       }
     }
-  }
-  static int wasm_async_wrap_template_trace_count = 0;
-  if (wasm_async_wrap_template_trace_count < 64) {
-    // This offset is from the generated wasm load for
-    // IsolateData::async_wrap_ctor_template() in this build. Do not dereference
-    // the loaded slot here: the crash is precisely that it can be invalid.
-    constexpr uintptr_t kAsyncWrapCtorTemplateRawSlotOffset = 1568;
-    uintptr_t raw_slot = 0;
-    if (isolate_data != nullptr) {
-      raw_slot = *reinterpret_cast<uintptr_t*>(
-          reinterpret_cast<uintptr_t>(isolate_data) +
-          kAsyncWrapCtorTemplateRawSlotOffset);
-    }
-    v8::Isolate* isolate = isolate_data == nullptr ? nullptr
-                                                   : isolate_data->isolate();
-    fprintf(stderr,
-            "AsyncWrap::GetConstructorTemplate #%d isolate_data=%p "
-            "original=%p isolate=%p current=%p async_wrap_slot=0x%zx\n",
-            wasm_async_wrap_template_trace_count + 1,
-            static_cast<void*>(isolate_data),
-            static_cast<void*>(original_isolate_data),
-            static_cast<void*>(isolate),
-            static_cast<void*>(v8::Isolate::TryGetCurrent()),
-            static_cast<size_t>(raw_slot));
-    fflush(stderr);
-    wasm_async_wrap_template_trace_count++;
   }
 #endif
   Local<FunctionTemplate> tmpl = isolate_data->async_wrap_ctor_template();

@@ -10,10 +10,13 @@
 
 #include "src/api/api-inl.h"
 #include "src/base/logging.h"
+#include "src/execution/execution.h"
 #include "src/execution/isolate.h"
 #include "src/handles/handles-inl.h"
 #include "src/heap/factory-inl.h"
+#include "src/objects/js-promise-inl.h"
 #include "src/objects/microtask-inl.h"
+#include "src/objects/promise-inl.h"
 #include "src/objects/visitors.h"
 #include "src/roots/roots-inl.h"
 #include "src/tracing/trace-event.h"
@@ -150,6 +153,110 @@ class SetIsRunningMicrotasks {
 };
 
 }  // namespace
+
+#ifdef __wasi__
+MaybeDirectHandle<Object> MicrotaskQueue::RunMicrotasksWasm(Isolate* isolate) {
+  ReadOnlyRoots roots(isolate);
+  while (size_ != 0) {
+    HandleScope task_scope(isolate);
+    Tagged<Microtask> raw_task = get(0);
+    --size_;
+    start_ = (start_ + 1) & (capacity_ - 1);
+    DirectHandle<Microtask> task(raw_task, isolate);
+
+    if (IsCallableTask(*task)) {
+      DirectHandle<CallableTask> callable_task = Cast<CallableTask>(task);
+      SaveContext save_context(isolate);
+      isolate->set_context(callable_task->context());
+      DirectHandle<Object> callable(callable_task->callable(), isolate);
+      MaybeDirectHandle<Object> exception;
+      Execution::TryCall(isolate, callable,
+                         isolate->factory()->undefined_value(), {},
+                         Execution::MessageHandling::kReport, &exception);
+    } else if (IsCallbackTask(*task)) {
+      DirectHandle<CallbackTask> callback_task = Cast<CallbackTask>(task);
+      MicrotaskCallback callback =
+          ToCData<MicrotaskCallback, kMicrotaskCallbackTag>(
+              isolate, callback_task->callback());
+      void* data = ToCData<void*, kMicrotaskCallbackDataTag>(
+          isolate, callback_task->data());
+      callback(data);
+    } else if (IsPromiseFulfillReactionJobTask(*task) ||
+               IsPromiseRejectReactionJobTask(*task)) {
+      bool rejected = IsPromiseRejectReactionJobTask(*task);
+      DirectHandle<PromiseReactionJobTask> reaction =
+          Cast<PromiseReactionJobTask>(task);
+      SaveContext save_context(isolate);
+      isolate->set_context(reaction->context());
+
+      DirectHandle<Object> completion(reaction->argument(), isolate);
+      Tagged<Object> handler_value = reaction->handler();
+      if (!IsUndefined(handler_value, roots)) {
+        DirectHandle<Object> handler(handler_value, isolate);
+        DirectHandle<Object> argument = completion;
+        MaybeDirectHandle<Object> exception;
+        MaybeDirectHandle<Object> call_result = Execution::TryCall(
+            isolate, handler, isolate->factory()->undefined_value(),
+            {&argument, 1}, Execution::MessageHandling::kKeepPending,
+            &exception);
+        if (!call_result.ToHandle(&completion)) {
+          if (!exception.ToHandle(&completion)) {
+            return MaybeDirectHandle<Object>();
+          }
+          rejected = true;
+        } else {
+          rejected = false;
+        }
+      }
+
+      Tagged<HeapObject> promise_or_capability =
+          reaction->promise_or_capability();
+      if (IsJSPromise(promise_or_capability)) {
+        DirectHandle<JSPromise> promise(
+            Cast<JSPromise>(promise_or_capability), isolate);
+        if (rejected) {
+          JSPromise::Reject(promise, completion);
+        } else {
+          DirectHandle<Object> resolve_result;
+          if (!JSPromise::Resolve(promise, completion)
+                   .ToHandle(&resolve_result)) {
+            return MaybeDirectHandle<Object>();
+          }
+        }
+      } else if (IsPromiseCapability(promise_or_capability)) {
+        DirectHandle<PromiseCapability> capability(
+            Cast<PromiseCapability>(promise_or_capability), isolate);
+        DirectHandle<Object> settle(
+            rejected ? capability->reject() : capability->resolve(), isolate);
+        DirectHandle<Object> argument = completion;
+        MaybeDirectHandle<Object> exception;
+        if (Execution::TryCall(
+                isolate, settle, isolate->factory()->undefined_value(),
+                {&argument, 1}, Execution::MessageHandling::kKeepPending,
+                &exception)
+                .is_null()) {
+          return MaybeDirectHandle<Object>();
+        }
+      } else if (rejected) {
+        isolate->Throw(*completion);
+        isolate->ReportPendingMessages(true);
+        isolate->clear_exception();
+      }
+    } else {
+      isolate->Throw(*isolate->factory()->NewTypeError(
+          MessageTemplate::kNotCallable, task));
+      return MaybeDirectHandle<Object>();
+    }
+
+    ++finished_microtask_count_;
+    if (isolate->is_execution_terminating()) {
+      return MaybeDirectHandle<Object>();
+    }
+  }
+
+  return isolate->factory()->undefined_value();
+}
+#endif
 
 int MicrotaskQueue::RunMicrotasks(Isolate* isolate) {
   SetIsRunningMicrotasks scope(&is_running_microtasks_);

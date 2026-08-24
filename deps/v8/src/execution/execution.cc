@@ -450,7 +450,7 @@ V8_WARN_UNUSED_RESULT MaybeHandle<Object> Invoke(Isolate* isolate,
       SealHandleScope shs(isolate);
 
       RCS_SCOPE(isolate, RuntimeCallCounterId::kJS_Execution);
-#ifdef __wasi__
+#if defined(__wasi__) && defined(V8_WASM32_DEBUG_TRACE)
       fprintf(stderr,
               "Invoke callable before stub entry_code=0x%lx builtin=%d "
               "entry=0x%lx root=0x%lx new=0x%lx target=0x%lx recv=0x%lx "
@@ -488,7 +488,7 @@ V8_WARN_UNUSED_RESULT MaybeHandle<Object> Invoke(Isolate* isolate,
       value = Tagged<Object>(
           stub_entry.Call(isolate->isolate_data()->isolate_root(), orig_func,
                           func, recv, JSParameterCount(argc), argv));
-#ifdef __wasi__
+#if defined(__wasi__) && defined(V8_WASM32_DEBUG_TRACE)
       fprintf(stderr, "Invoke callable after stub value=0x%lx\n",
               static_cast<unsigned long>(value.ptr()));
       fflush(stderr);
@@ -658,8 +658,12 @@ MaybeDirectHandle<Object> Execution::TryCall(
 // static
 MaybeDirectHandle<Object> Execution::TryRunMicrotasks(
     Isolate* isolate, MicrotaskQueue* microtask_queue) {
+#ifdef __wasi__
+  return microtask_queue->RunMicrotasksWasm(isolate);
+#else
   return InvokeWithTryCatch(
       isolate, InvokeParams::SetUpForRunMicrotasks(isolate, microtask_queue));
+#endif
 }
 
 struct StackHandlerMarker {

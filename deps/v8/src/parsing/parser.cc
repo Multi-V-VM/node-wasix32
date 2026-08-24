@@ -624,6 +624,9 @@ Parser::Parser(LocalIsolate* local_isolate, ParseInfo* info)
   // Debug::FindSharedFunctionInfoInScript
   // We also compile eagerly for kProduceExhaustiveCodeCache.
   bool can_compile_lazily = flags().allow_lazy_compile() && !flags().is_eager();
+#ifdef __wasi__
+  can_compile_lazily = can_compile_lazily && flags().is_user_javascript();
+#endif
 
   set_default_eager_compile_hint(can_compile_lazily
                                      ? FunctionLiteral::kShouldLazyCompile

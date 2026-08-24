@@ -70,41 +70,9 @@ void LibuvStreamWrap::Initialize(Local<Object> target,
                                  void* priv) {
   Environment* env = Environment::GetCurrent(context);
   Isolate* isolate = env->isolate();
-#ifdef __wasi__
-  static int wasm_stream_wrap_initialize_trace_count = 0;
-  auto trace_stream_wrap_initialize = [&](const char* stage,
-                                          Local<FunctionTemplate> tmpl =
-                                              Local<FunctionTemplate>()) {
-    if (wasm_stream_wrap_initialize_trace_count >= 80) return;
-    Isolate* current_isolate = Isolate::TryGetCurrent();
-    Environment* context_env = Environment::GetCurrent(context);
-    fprintf(stderr,
-            "LibuvStreamWrap::Initialize %s #%d env=%p isolate=%p "
-            "current=%p context=%p context_env=%p target=%p tmpl=%p\n",
-            stage,
-            wasm_stream_wrap_initialize_trace_count + 1,
-            static_cast<void*>(env),
-            static_cast<void*>(isolate),
-            static_cast<void*>(current_isolate),
-            context.IsEmpty() ? nullptr : reinterpret_cast<void*>(*context),
-            static_cast<void*>(context_env),
-            target.IsEmpty() ? nullptr : reinterpret_cast<void*>(*target),
-            tmpl.IsEmpty() ? nullptr : reinterpret_cast<void*>(*tmpl));
-    fflush(stderr);
-    wasm_stream_wrap_initialize_trace_count++;
-  };
-  trace_stream_wrap_initialize("entry");
-#endif
-
   Local<FunctionTemplate> sw =
       NewFunctionTemplate(isolate, IsConstructCallCallback);
-#ifdef __wasi__
-  trace_stream_wrap_initialize("after_sw_new", sw);
-#endif
   sw->InstanceTemplate()->SetInternalFieldCount(StreamReq::kInternalFieldCount);
-#ifdef __wasi__
-  trace_stream_wrap_initialize("after_sw_fields", sw);
-#endif
 
   // we need to set handle and callback to null,
   // so that those fields are created and functions
@@ -118,53 +86,23 @@ void LibuvStreamWrap::Initialize(Local<Object> target,
                               v8::Null(isolate));
   sw->InstanceTemplate()->Set(FIXED_ONE_BYTE_STRING(isolate, "handle"),
                               v8::Null(isolate));
-#ifdef __wasi__
-  trace_stream_wrap_initialize("after_sw_props", sw);
-#endif
 
   Local<FunctionTemplate> sw_async_parent =
       AsyncWrap::GetConstructorTemplate(env);
-#ifdef __wasi__
-  trace_stream_wrap_initialize("after_sw_async_parent", sw_async_parent);
-#endif
   sw->Inherit(sw_async_parent);
-#ifdef __wasi__
-  trace_stream_wrap_initialize("after_sw_inherit", sw);
-#endif
 
   SetConstructorFunction(context, target, "ShutdownWrap", sw);
-#ifdef __wasi__
-  trace_stream_wrap_initialize("after_shutdown_ctor", sw);
-#endif
   env->set_shutdown_wrap_template(sw->InstanceTemplate());
-#ifdef __wasi__
-  trace_stream_wrap_initialize("after_shutdown_template", sw);
-#endif
 
   Local<FunctionTemplate> ww =
       FunctionTemplate::New(isolate, IsConstructCallCallback);
-#ifdef __wasi__
-  trace_stream_wrap_initialize("after_ww_new", ww);
-#endif
   ww->InstanceTemplate()->SetInternalFieldCount(
       StreamReq::kInternalFieldCount);
   Local<FunctionTemplate> ww_async_parent =
       AsyncWrap::GetConstructorTemplate(env);
-#ifdef __wasi__
-  trace_stream_wrap_initialize("after_ww_async_parent", ww_async_parent);
-#endif
   ww->Inherit(ww_async_parent);
-#ifdef __wasi__
-  trace_stream_wrap_initialize("after_ww_inherit", ww);
-#endif
   SetConstructorFunction(context, target, "WriteWrap", ww);
-#ifdef __wasi__
-  trace_stream_wrap_initialize("after_write_ctor", ww);
-#endif
   env->set_write_wrap_template(ww->InstanceTemplate());
-#ifdef __wasi__
-  trace_stream_wrap_initialize("after_write_template", ww);
-#endif
 
   NODE_DEFINE_CONSTANT(target, kReadBytesOrError);
   NODE_DEFINE_CONSTANT(target, kArrayBufferOffset);
@@ -203,88 +141,36 @@ Local<FunctionTemplate> LibuvStreamWrap::GetConstructorTemplate(
     Environment* env) {
   Local<FunctionTemplate> tmpl = env->libuv_stream_wrap_ctor_template();
   if (tmpl.IsEmpty()) {
-#ifdef __wasi__
-    static int wasm_libuv_stream_ctor_trace_count = 0;
-    auto trace_libuv_stream_ctor = [&](const char* stage,
-                                       Isolate* isolate,
-                                       Local<FunctionTemplate> current_tmpl =
-                                           Local<FunctionTemplate>()) {
-      if (wasm_libuv_stream_ctor_trace_count >= 80) return;
-      fprintf(stderr,
-              "LibuvStreamWrap::GetConstructorTemplate %s #%d env=%p "
-              "isolate=%p current=%p tmpl=%p\n",
-              stage,
-              wasm_libuv_stream_ctor_trace_count + 1,
-              static_cast<void*>(env),
-              static_cast<void*>(isolate),
-              static_cast<void*>(Isolate::TryGetCurrent()),
-              current_tmpl.IsEmpty()
-                  ? nullptr
-                  : reinterpret_cast<void*>(*current_tmpl));
-      fflush(stderr);
-      wasm_libuv_stream_ctor_trace_count++;
-    };
-#endif
     Isolate* isolate = env->isolate();
 #ifdef __wasi__
     if (isolate == nullptr) {
       isolate = Isolate::TryGetCurrent();
     }
-    trace_libuv_stream_ctor("entry", isolate, tmpl);
 #endif
     tmpl = NewFunctionTemplate(isolate, nullptr);
-#ifdef __wasi__
-    trace_libuv_stream_ctor("after_new", isolate, tmpl);
-#endif
     tmpl->SetClassName(FIXED_ONE_BYTE_STRING(isolate, "LibuvStreamWrap"));
-#ifdef __wasi__
-    trace_libuv_stream_ctor("after_class_name", isolate, tmpl);
-#endif
     tmpl->Inherit(HandleWrap::GetConstructorTemplate(env));
-#ifdef __wasi__
-    trace_libuv_stream_ctor("after_handle_parent", isolate, tmpl);
-#endif
     tmpl->InstanceTemplate()->SetInternalFieldCount(
         StreamBase::kInternalFieldCount);
-#ifdef __wasi__
-    trace_libuv_stream_ctor("after_fields", isolate, tmpl);
-#endif
 #ifdef __wasi__
     isolate = env->isolate();
     if (isolate == nullptr) {
       isolate = Isolate::TryGetCurrent();
     }
-    trace_libuv_stream_ctor("before_write_queue_template", isolate, tmpl);
 #endif
     Local<FunctionTemplate> get_write_queue_size =
         FunctionTemplate::New(isolate,
                               GetWriteQueueSize,
                               Local<Value>(),
                               Signature::New(isolate, tmpl));
-#ifdef __wasi__
-    trace_libuv_stream_ctor(
-        "after_write_queue_template", isolate, get_write_queue_size);
-#endif
     tmpl->PrototypeTemplate()->SetAccessorProperty(
         env->write_queue_size_string(),
         get_write_queue_size,
         Local<FunctionTemplate>(),
         static_cast<PropertyAttribute>(ReadOnly | DontDelete));
-#ifdef __wasi__
-    trace_libuv_stream_ctor("after_accessor", isolate, tmpl);
-#endif
     SetProtoMethod(isolate, tmpl, "setBlocking", SetBlocking);
-#ifdef __wasi__
-    trace_libuv_stream_ctor("after_set_blocking", isolate, tmpl);
-#endif
     StreamBase::AddMethods(env, tmpl);
-#ifdef __wasi__
-    trace_libuv_stream_ctor("after_stream_base_methods", isolate, tmpl);
-#endif
     env->set_libuv_stream_wrap_ctor_template(tmpl);
-#ifdef __wasi__
-    trace_libuv_stream_ctor("after_store", isolate, tmpl);
-#endif
   }
   return tmpl;
 }

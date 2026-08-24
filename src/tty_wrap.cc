@@ -64,68 +64,40 @@ void TTYWrap::Initialize(Local<Object> target,
       isolate = Isolate::TryGetCurrent();
     }
     context = env->context();
-  };
-  static int wasm_tty_wrap_initialize_trace_count = 0;
-  auto trace_tty_wrap_initialize = [&](const char* stage,
-                                       Local<FunctionTemplate> tmpl = {}) {
-    if (wasm_tty_wrap_initialize_trace_count >= 80) return;
-    fprintf(stderr,
-            "TTYWrap::Initialize %s #%d env=%p isolate=%p current=%p "
-            "context=%p target=%p tmpl=%p\n",
-            stage,
-            wasm_tty_wrap_initialize_trace_count + 1,
-            static_cast<void*>(env),
-            static_cast<void*>(isolate),
-            static_cast<void*>(Isolate::TryGetCurrent()),
-            context.IsEmpty() ? nullptr : reinterpret_cast<void*>(*context),
-            target.IsEmpty() ? nullptr : reinterpret_cast<void*>(*target),
-            tmpl.IsEmpty() ? nullptr : reinterpret_cast<void*>(*tmpl));
-    fflush(stderr);
-    wasm_tty_wrap_initialize_trace_count++;
-  };
-  refresh_api_locals();
-  trace_tty_wrap_initialize("entry");
+  };  refresh_api_locals();
 #endif
 
   Local<String> ttyString = FIXED_ONE_BYTE_STRING(isolate, "TTY");
 #ifdef __wasi__
-  trace_tty_wrap_initialize("after_name");
   refresh_api_locals();
 #endif
 
   Local<FunctionTemplate> t = NewFunctionTemplate(isolate, New);
 #ifdef __wasi__
-  trace_tty_wrap_initialize("after_new", t);
 #endif
   t->SetClassName(ttyString);
 #ifdef __wasi__
-  trace_tty_wrap_initialize("after_class_name", t);
 #endif
   t->InstanceTemplate()->SetInternalFieldCount(StreamBase::kInternalFieldCount);
 #ifdef __wasi__
-  trace_tty_wrap_initialize("after_fields", t);
 #endif
   t->Inherit(LibuvStreamWrap::GetConstructorTemplate(env));
 #ifdef __wasi__
-  trace_tty_wrap_initialize("after_inherit", t);
   refresh_api_locals();
 #endif
 
   SetProtoMethodNoSideEffect(
       isolate, t, "getWindowSize", TTYWrap::GetWindowSize);
 #ifdef __wasi__
-  trace_tty_wrap_initialize("after_get_window_size", t);
   refresh_api_locals();
 #endif
   SetProtoMethod(isolate, t, "setRawMode", SetRawMode);
 #ifdef __wasi__
-  trace_tty_wrap_initialize("after_set_raw_mode", t);
   refresh_api_locals();
 #endif
 
   SetMethodNoSideEffect(context, target, "isTTY", IsTTY);
 #ifdef __wasi__
-  trace_tty_wrap_initialize("after_is_tty_method", t);
   refresh_api_locals();
 #endif
 
@@ -134,7 +106,6 @@ void TTYWrap::Initialize(Local<Object> target,
       target->Set(context, ttyString, func).IsJust()) {
     env->set_tty_constructor_template(t);
 #ifdef __wasi__
-    trace_tty_wrap_initialize("after_store", t);
 #endif
   }
 }

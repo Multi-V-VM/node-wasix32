@@ -475,18 +475,14 @@ void* OS::Allocate(void* hint, size_t size, size_t alignment,
   DCHECK_EQ(0, alignment % page_size);
   hint = AlignedAddress(hint, alignment);
 #ifdef __wasi__
-  // WASI: the mmap emulation neither returns page-aligned memory nor supports
-  // partial munmap (wasm linear memory is never released). Over-allocate a
-  // full extra `alignment` so the aligned region is guaranteed to fit inside
-  // the mapping, return the aligned base, and leak the padding.
-  size_t request_size = RoundUp(size + alignment, OS::AllocatePageSize());
-  void* result = base::Allocate(hint, request_size, access, PageType::kPrivate);
-  if (result == nullptr) return nullptr;
-  uint8_t* base = static_cast<uint8_t*>(result);
-  uint8_t* aligned_base = reinterpret_cast<uint8_t*>(
-      RoundUp(reinterpret_cast<uintptr_t>(base), alignment));
-  DCHECK_LE(aligned_base + size, base + request_size);
-  return static_cast<void*>(aligned_base);
+  // wasi-libc's mmap emulation stores allocation metadata immediately before
+  // the pointer it returns. Returning an aligned interior pointer would make
+  // a later munmap read application data as allocator metadata. Allocate an
+  // independently aligned, free-able block instead.
+  void* result = nullptr;
+  if (posix_memalign(&result, alignment, size) != 0) return nullptr;
+  memset(result, 0, size);
+  return result;
 #else
   // Add the maximum misalignment so we are guaranteed an aligned base address.
   size_t request_size = size + (alignment - page_size);
@@ -528,9 +524,7 @@ void OS::Free(void* address, size_t size) {
   DCHECK_EQ(0, reinterpret_cast<uintptr_t>(address) % AllocatePageSize());
   DCHECK_EQ(0, size % AllocatePageSize());
 #ifdef __wasi__
-  // Best-effort: the WASI mmap emulation cannot release wasm linear memory,
-  // so munmap may legitimately fail here.
-  munmap(address, size);
+  free(address);
 #else
   CHECK_EQ(0, munmap(address, size));
 #endif
@@ -560,7 +554,13 @@ void OS::FreeShared(void* address, size_t size) {
 void OS::Release(void* address, size_t size) {
   DCHECK_EQ(0, reinterpret_cast<uintptr_t>(address) % CommitPageSize());
   DCHECK_EQ(0, size % CommitPageSize());
+#ifdef __wasi__
+  // WebAssembly linear memory cannot release an allocation suffix. The full
+  // allocation remains owned until OS::Free receives its original base.
+  return;
+#else
   CHECK_EQ(0, munmap(address, size));
+#endif
 }
 
 // static
@@ -568,6 +568,10 @@ bool OS::SetPermissions(void* address, size_t size, MemoryPermission access) {
   DCHECK_EQ(0, reinterpret_cast<uintptr_t>(address) % CommitPageSize());
   DCHECK_EQ(0, size % CommitPageSize());
 
+#ifdef __wasi__
+  // WASI linear memory has no per-page protection mechanism.
+  return true;
+#else
   int prot = GetProtectionFromMemoryPermission(access);
   int ret = mprotect(address, size, prot);
 
@@ -604,6 +608,7 @@ bool OS::SetPermissions(void* address, size_t size, MemoryPermission access) {
 #endif
 
   return ret == 0;
+#endif
 }
 
 // static
@@ -637,6 +642,10 @@ bool OS::DiscardSystemPages(void* address, size_t size) {
   // (base/allocator/partition_allocator/page_allocator_internals_posix.h)
   DCHECK_EQ(0, reinterpret_cast<uintptr_t>(address) % CommitPageSize());
   DCHECK_EQ(0, size % CommitPageSize());
+#ifdef __wasi__
+  memset(address, 0, size);
+  return true;
+#endif
 #if defined(V8_OS_DARWIN)
   // On OSX, MADV_FREE_REUSABLE has comparable behavior to MADV_FREE, but also
   // marks the pages with the reusable bit, which allows both Activity Monitor
@@ -672,6 +681,12 @@ bool OS::DiscardSystemPages(void* address, size_t size) {
 bool OS::DecommitPages(void* address, size_t size) {
   DCHECK_EQ(0, reinterpret_cast<uintptr_t>(address) % CommitPageSize());
   DCHECK_EQ(0, size % CommitPageSize());
+#ifdef __wasi__
+  // Preserve the observable decommit/recommit contract: recommitted pages are
+  // zero-filled even though their linear-memory backing cannot be released.
+  memset(address, 0, size);
+  return true;
+#endif
   // From https://pubs.opengroup.org/onlinepubs/9699919799/functions/mmap.html:
   // "If a MAP_FIXED request is successful, then any previous mappings [...] for
   // those whole pages containing any part of the address range [pa,pa+len)

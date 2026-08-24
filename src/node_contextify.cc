@@ -986,16 +986,8 @@ ContextifyScript* ContextifyScript::New(Environment* env,
 #ifndef __wasi__
   DCHECK_NOT_NULL(env->isolate()->GetCppHeap());
 #endif
-  fprintf(stderr,
-          "ContextifyScript::New(env): before MakeGarbageCollected object=%p\n",
-          reinterpret_cast<void*>(*object));
-  fflush(stderr);
   ContextifyScript* script = cppgc::MakeGarbageCollected<ContextifyScript>(
       env->cppgc_allocation_handle(), env, object);
-  fprintf(stderr,
-          "ContextifyScript::New(env): after MakeGarbageCollected script=%p\n",
-          static_cast<void*>(script));
-  fflush(stderr);
   return script;
 }
 
@@ -1026,26 +1018,6 @@ void ContextifyScript::New(const FunctionCallbackInfo<Value>& args) {
     // new ContextifyScript(code, filename, lineOffset, columnOffset,
     //                      cachedData, produceCachedData, parsingContext,
     //                      hostDefinedOptionId)
-    static int wasm32_contextify_trace_count = 0;
-    if (wasm32_contextify_trace_count < 8) {
-      fprintf(stderr, "ContextifyScript::New argc=%d\n", argc);
-      for (int i = 0; i < argc && i < 8; ++i) {
-        fprintf(stderr,
-                "  arg[%d]: undef=%d null=%d str=%d num=%d bool=%d obj=%d "
-                "abv=%d sym=%d func=%d\n",
-                i,
-                args[i]->IsUndefined(),
-                args[i]->IsNull(),
-                args[i]->IsString(),
-                args[i]->IsNumber(),
-                args[i]->IsBoolean(),
-                args[i]->IsObject(),
-                args[i]->IsArrayBufferView(),
-                args[i]->IsSymbol(),
-                args[i]->IsFunction());
-      }
-      wasm32_contextify_trace_count++;
-    }
     CHECK_EQ(argc, 8);
     CHECK(args[2]->IsNumber());
     line_offset = args[2].As<Int32>()->Value();
@@ -1057,6 +1029,12 @@ void ContextifyScript::New(const FunctionCallbackInfo<Value>& args) {
     }
     CHECK(args[5]->IsBoolean());
     produce_cached_data = args[5]->IsTrue();
+#ifdef __wasi__
+    // The wasm32 bootstrap runs while V8's snapshot creator still owns an
+    // unfinalized read-only space. Code-cache generation is unsupported in
+    // that state, as in BuiltinLoader::LookupAndCompileInternal.
+    produce_cached_data = false;
+#endif
     if (!args[6]->IsUndefined()) {
       CHECK(args[6]->IsObject());
       ContextifyContext* sandbox =
@@ -1069,15 +1047,7 @@ void ContextifyScript::New(const FunctionCallbackInfo<Value>& args) {
     id_symbol = args[7].As<Symbol>();
   }
 
-  fprintf(stderr,
-          "ContextifyScript::New callback: before wrapper object=%p\n",
-          reinterpret_cast<void*>(*args.This()));
-  fflush(stderr);
   ContextifyScript* contextify_script = New(env, args.This());
-  fprintf(stderr,
-          "ContextifyScript::New callback: after wrapper script=%p\n",
-          static_cast<void*>(contextify_script));
-  fflush(stderr);
 
   if (*TRACE_EVENT_API_GET_CATEGORY_GROUP_ENABLED(
           TRACING_CATEGORY_NODE2(vm, script)) != 0) {
@@ -1489,16 +1459,7 @@ void ContextifyScript::Trace(cppgc::Visitor* visitor) const {
 }
 
 ContextifyScript::ContextifyScript(Environment* env, Local<Object> object) {
-  fprintf(stderr,
-          "ContextifyScript::ctor: before Wrap this=%p object=%p fields=%d\n",
-          static_cast<void*>(this),
-          reinterpret_cast<void*>(*object),
-          object->InternalFieldCount());
-  fflush(stderr);
   CppgcMixin::Wrap(this, env, object);
-  fprintf(stderr, "ContextifyScript::ctor: after Wrap this=%p\n",
-          static_cast<void*>(this));
-  fflush(stderr);
 }
 
 ContextifyScript::~ContextifyScript() {}

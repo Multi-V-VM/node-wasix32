@@ -171,6 +171,7 @@ int main(int argc, char* argv[]) {
     } else {
       // Generic assembly for WASI and other platforms
       fprintf(out, ".globl %s\n", symbol_name.c_str());
+      fprintf(out, ".type %s,@object\n", symbol_name.c_str());
       fprintf(out, ".section .rodata\n");
       fprintf(out, ".align 8\n");
       fprintf(out, "%s:\n", symbol_name.c_str());
@@ -181,8 +182,8 @@ int main(int argc, char* argv[]) {
     if (is_macos) {
       fprintf(out, "\n");
     } else {
-      fprintf(out, "%s_size:\n", symbol_name.c_str());
-      fprintf(out, ".long %ld\n", filesize);
+      fprintf(out, ".size %s, .-%s\n", symbol_name.c_str(),
+              symbol_name.c_str());
     }
   }
 
