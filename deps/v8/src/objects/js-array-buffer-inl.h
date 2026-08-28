@@ -38,19 +38,19 @@ size_t JSArrayBuffer::byte_length() const {
 }
 
 size_t JSArrayBuffer::byte_length_unchecked() const {
-  return ReadBoundedSizeField(FIELD_ADDR(*this, kRawByteLengthOffset));
+  return ReadBoundedSizeField(kRawByteLengthOffset);
 }
 
 void JSArrayBuffer::set_byte_length(size_t value) {
-  WriteBoundedSizeField(FIELD_ADDR(*this, kRawByteLengthOffset), value);
+  WriteBoundedSizeField(kRawByteLengthOffset, value);
 }
 
 size_t JSArrayBuffer::max_byte_length() const {
-  return ReadBoundedSizeField(FIELD_ADDR(*this, kRawMaxByteLengthOffset));
+  return ReadBoundedSizeField(kRawMaxByteLengthOffset);
 }
 
 void JSArrayBuffer::set_max_byte_length(size_t value) {
-  WriteBoundedSizeField(FIELD_ADDR(*this, kRawMaxByteLengthOffset), value);
+  WriteBoundedSizeField(kRawMaxByteLengthOffset, value);
 }
 
 DEF_GETTER(JSArrayBuffer, backing_store, void*) {
@@ -199,19 +199,19 @@ bool JSArrayBuffer::IsEmpty() const {
 }
 
 size_t JSArrayBufferView::byte_offset() const {
-  return ReadBoundedSizeField(FIELD_ADDR(*this, kRawByteOffsetOffset));
+  return ReadBoundedSizeField(kRawByteOffsetOffset);
 }
 
 void JSArrayBufferView::set_byte_offset(size_t value) {
-  WriteBoundedSizeField(FIELD_ADDR(*this, kRawByteOffsetOffset), value);
+  WriteBoundedSizeField(kRawByteOffsetOffset, value);
 }
 
 size_t JSArrayBufferView::byte_length() const {
-  return ReadBoundedSizeField(FIELD_ADDR(*this, kRawByteLengthOffset));
+  return ReadBoundedSizeField(kRawByteLengthOffset);
 }
 
 void JSArrayBufferView::set_byte_length(size_t value) {
-  WriteBoundedSizeField(FIELD_ADDR(*this, kRawByteLengthOffset), value);
+  WriteBoundedSizeField(kRawByteLengthOffset, value);
 }
 
 bool JSArrayBufferView::WasDetached() const {
@@ -289,15 +289,15 @@ inline void JSTypedArray::ForFixedTypedArray(ExternalArrayType array_type,
 size_t JSTypedArray::length() const {
   DCHECK(!is_length_tracking());
   DCHECK(!is_backed_by_rab());
-  return ReadBoundedSizeField(FIELD_ADDR(*this, kRawLengthOffset));
+  return ReadBoundedSizeField(kRawLengthOffset);
 }
 
 size_t JSTypedArray::LengthUnchecked() const {
-  return ReadBoundedSizeField(FIELD_ADDR(*this, kRawLengthOffset));
+  return ReadBoundedSizeField(kRawLengthOffset);
 }
 
 void JSTypedArray::set_length(size_t value) {
-  WriteBoundedSizeField(FIELD_ADDR(*this, kRawLengthOffset), value);
+  WriteBoundedSizeField(kRawLengthOffset, value);
 }
 
 DEF_GETTER(JSTypedArray, external_pointer, Address) {

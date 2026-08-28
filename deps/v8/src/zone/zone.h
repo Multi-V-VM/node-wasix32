@@ -45,6 +45,11 @@ namespace internal {
 class ZoneSnapshot;
 template <typename T> class ZoneVector;  // Forward declaration
 
+#ifdef __wasi__
+extern "C" void V8WasiCheckZoneAllocation(void* zone, void* result,
+                                            size_t size);
+#endif
+
 class V8_EXPORT_PRIVATE Zone final {
  public:
   Zone(AccountingAllocator* allocator, const char* name,
@@ -83,6 +88,9 @@ class V8_EXPORT_PRIVATE Zone final {
     DCHECK_EQ(0, position_ % kAlignmentInBytes);
     void* result = reinterpret_cast<void*>(position_);
     position_ += size;
+#ifdef __wasi__
+    V8WasiCheckZoneAllocation(this, result, size);
+#endif
     return result;
 #endif  // V8_USE_ADDRESS_SANITIZER
   }
@@ -235,7 +243,7 @@ class V8_EXPORT_PRIVATE Zone final {
   const TypeStats& type_stats() const { return type_stats_; }
 #endif
 
-#ifdef DEBUG
+#if defined(DEBUG) || defined(__wasi__)
   bool Contains(const void* ptr) const;
 #endif
 

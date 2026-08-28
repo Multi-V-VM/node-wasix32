@@ -621,7 +621,8 @@ class Internals {
   }
   static Address* TryIntegralToSmi(intptr_t value) {
     if (IsValidSmi(value)) {
-      static thread_local Address smi = IntegralToSmi(static_cast<int>(value));
+      static thread_local Address smi;
+      smi = IntegralToSmi(static_cast<int>(value));
       return &smi;
     }
     return nullptr;

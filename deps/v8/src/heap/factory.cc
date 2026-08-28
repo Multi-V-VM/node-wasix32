@@ -3844,6 +3844,19 @@ MaybeDirectHandle<JSBoundFunction> Factory::NewJSBoundFunction(
     DirectHandle<JSReceiver> target_function, DirectHandle<JSAny> bound_this,
     base::Vector<DirectHandle<Object>> bound_args,
     DirectHandle<JSPrototype> prototype) {
+#ifdef __wasi__
+  DirectHandleVector<Object> wasm_roots(isolate());
+  wasm_roots.reserve(4 + bound_args.length());
+  wasm_roots.push_back(target_function);
+  wasm_roots.push_back(bound_this);
+  wasm_roots.push_back(prototype);
+  for (DirectHandle<Object> argument : bound_args) {
+    wasm_roots.push_back(argument);
+  }
+  target_function = Cast<JSReceiver>(wasm_roots[0]);
+  bound_this = Cast<JSAny>(wasm_roots[1]);
+  prototype = Cast<JSPrototype>(wasm_roots[2]);
+#endif
   DCHECK(IsCallable(*target_function));
   static_assert(Code::kMaxArguments <= FixedArray::kMaxLength);
   if (bound_args.length() >= Code::kMaxArguments) {
@@ -3861,9 +3874,19 @@ MaybeDirectHandle<JSBoundFunction> Factory::NewJSBoundFunction(
   } else {
     bound_arguments = NewFixedArray(bound_args.length());
     for (int i = 0; i < bound_args.length(); ++i) {
+#ifdef __wasi__
+      bound_arguments->set(i, *wasm_roots[3 + i]);
+#else
       bound_arguments->set(i, *bound_args[i]);
+#endif
     }
   }
+#ifdef __wasi__
+  wasm_roots.push_back(bound_arguments);
+  const int bound_arguments_index = 3 + bound_args.length();
+  target_function = Cast<JSReceiver>(wasm_roots[0]);
+  prototype = Cast<JSPrototype>(wasm_roots[2]);
+#endif
 
   // Setup the map for the JSBoundFunction instance.
   DirectHandle<Map> map =
@@ -3874,11 +3897,19 @@ MaybeDirectHandle<JSBoundFunction> Factory::NewJSBoundFunction(
     map = Map::TransitionRootMapToPrototypeForNewObject(isolate(), map,
                                                         prototype);
   }
+#ifdef __wasi__
+  target_function = Cast<JSReceiver>(wasm_roots[0]);
+#endif
   DCHECK_EQ(IsConstructor(*target_function), map->is_constructor());
 
   // Setup the JSBoundFunction instance.
   DirectHandle<JSBoundFunction> result =
       Cast<JSBoundFunction>(NewJSObjectFromMap(map, AllocationType::kYoung));
+#ifdef __wasi__
+  target_function = Cast<JSReceiver>(wasm_roots[0]);
+  bound_this = Cast<JSAny>(wasm_roots[1]);
+  bound_arguments = Cast<FixedArray>(wasm_roots[bound_arguments_index]);
+#endif
   DisallowGarbageCollection no_gc;
   Tagged<JSBoundFunction> raw = *result;
   raw->set_bound_target_function(Cast<JSCallable>(*target_function),

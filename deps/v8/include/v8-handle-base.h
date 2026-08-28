@@ -8,6 +8,11 @@
 
 namespace v8 {
 
+template <typename T>
+class Local;
+template <typename T>
+class PersistentBase;
+
 namespace internal {
 
 // Tag type used to skip expensive validation paths when constructing Handles.
@@ -49,10 +54,30 @@ using api_internal::StackAllocated;
 
 class HandleHelper {
  public:
+#ifdef __wasi__
+  template <typename T>
+  static T* HandleValue(const Local<T>& handle) {
+    return *handle;
+  }
+
+  template <typename T>
+  static T* HandleValue(const PersistentBase<T>& handle) {
+    return &*handle;
+  }
+
+  template <typename T1, typename T2>
+  static bool EqualHandles(const T1& lhs, const T2& rhs) {
+    if (lhs.IsEmpty() || rhs.IsEmpty()) {
+      return lhs.IsEmpty() == rhs.IsEmpty();
+    }
+    return HandleValue(lhs) == HandleValue(rhs);
+  }
+#else
   template <typename T1, typename T2>
   static bool EqualHandles(const T1&, const T2&) {
     return false;
   }
+#endif
 };
 
 }  // namespace internal
@@ -60,4 +85,3 @@ class HandleHelper {
 }  // namespace v8
 
 #endif  // INCLUDE_V8_HANDLE_BASE_H_
-

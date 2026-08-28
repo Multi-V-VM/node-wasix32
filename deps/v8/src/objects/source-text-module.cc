@@ -4,6 +4,7 @@
 
 #include "src/objects/source-text-module.h"
 
+
 #include "src/api/api-inl.h"
 #include "src/ast/modules.h"
 #include "src/builtins/accessors.h"
@@ -16,6 +17,12 @@
 
 namespace v8 {
 namespace internal {
+
+#ifdef __wasi__
+extern "C" Address WasmJSEntry(Address root, Address new_target,
+                               Address target, Address receiver, intptr_t argc,
+                               Address** argv);
+#endif
 
 struct StringHandleHash {
   V8_INLINE size_t operator()(DirectHandle<String> string) const {
@@ -449,13 +456,24 @@ bool SourceTextModule::RunInitializationCode(
       module, isolate->native_context(), scope_info);
   function->set_context(*context);
 
+  DirectHandle<Object> generator;
+#ifdef __wasi__
+  ReadOnlyRoots roots(isolate);
+  Address raw_generator = WasmJSEntry(
+      isolate->isolate_data()->isolate_root(), roots.undefined_value().ptr(),
+      (*function).ptr(), (*receiver).ptr(), JSParameterCount(0), nullptr);
+  if (raw_generator == roots.exception().ptr() || isolate->has_exception()) {
+    return false;
+  }
+  generator = direct_handle(Tagged<Object>(raw_generator), isolate);
+#else
   MaybeDirectHandle<Object> maybe_generator =
       Execution::Call(isolate, function, receiver, {});
-  DirectHandle<Object> generator;
   if (!maybe_generator.ToHandle(&generator)) {
     DCHECK(isolate->has_exception());
     return false;
   }
+#endif
   DCHECK_EQ(*function, Cast<JSGeneratorObject>(generator)->function());
   module->set_code(Cast<JSGeneratorObject>(*generator));
   return true;
@@ -1128,10 +1146,24 @@ MaybeDirectHandle<Object> SourceTextModule::InnerExecuteAsyncModule(
   DirectHandle<JSAsyncFunctionObject> async_function_object(
       Cast<JSAsyncFunctionObject>(module->code()), isolate);
   async_function_object->set_promise(*capability);
+#ifdef __wasi__
+  ReadOnlyRoots roots(isolate);
+  async_function_object->set_input_or_debug_pos(roots.undefined_value());
+  async_function_object->set_resume_mode(JSGeneratorObject::ResumeMode::kNext);
+  DirectHandle<JSFunction> target(async_function_object->function(), isolate);
+  DirectHandle<JSAny> receiver(async_function_object->receiver(), isolate);
+  Address result = WasmJSEntry(
+      isolate->isolate_data()->isolate_root(),
+      (*async_function_object).ptr(),
+      (*target).ptr(), (*receiver).ptr(), JSParameterCount(0), nullptr);
+  if (result == roots.exception().ptr() || isolate->has_exception()) return {};
+  return direct_handle(Tagged<Object>(result), isolate);
+#else
   DirectHandle<JSFunction> resume(
       isolate->native_context()->async_module_evaluate_internal(), isolate);
   return Execution::TryCall(isolate, resume, async_function_object, {},
                             Execution::MessageHandling::kKeepPending, nullptr);
+#endif
 }
 
 MaybeDirectHandle<Object> SourceTextModule::ExecuteModule(
@@ -1144,12 +1176,28 @@ MaybeDirectHandle<Object> SourceTextModule::ExecuteModule(
       isolate->native_context()->generator_next_internal(), isolate);
   DirectHandle<Object> result;
 
+#ifdef __wasi__
+  ReadOnlyRoots roots(isolate);
+  Address raw_result = WasmJSEntry(
+      isolate->isolate_data()->isolate_root(), roots.undefined_value().ptr(),
+      (*resume).ptr(), (*generator).ptr(), JSParameterCount(0), nullptr);
+  if (raw_result == roots.exception().ptr() || isolate->has_exception()) {
+    if (exception_out != nullptr && isolate->has_exception()) {
+      *exception_out = direct_handle(isolate->exception(), isolate);
+      isolate->clear_exception();
+      isolate->clear_pending_message();
+    }
+    return {};
+  }
+  result = direct_handle(Tagged<Object>(raw_result), isolate);
+#else
   if (!Execution::TryCall(isolate, resume, generator, {},
                           Execution::MessageHandling::kKeepPending,
                           exception_out)
            .ToHandle(&result)) {
     return {};
   }
+#endif
   DCHECK(
       Object::BooleanValue(Cast<JSIteratorResult>(*result)->done(), isolate));
   return direct_handle(Cast<JSIteratorResult>(*result)->value(), isolate);

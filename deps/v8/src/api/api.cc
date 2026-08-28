@@ -35,6 +35,9 @@
 #include "include/v8-unwinder-state.h"
 #include "include/v8-util.h"
 #include "include/v8-wasm.h"
+#ifdef __wasi__
+#include "include/wasi/v8-fixed-array-stub.h"
+#endif
 #include "src/api/api-arguments.h"
 #include "src/api/api-inl.h"
 #include "src/api/api-natives.h"
@@ -2440,7 +2443,6 @@ void v8::PrimitiveArray::CheckCast(v8::Data* that) {
       "v8::PrimitiveArray will not be compatible in the future");
 }
 
-#if !defined(__wasi__)
 int FixedArray::Length() const {
   return Utils::OpenDirectHandle(this)->length();
 }
@@ -2451,7 +2453,6 @@ Local<Data> FixedArray::Get(Local<Context> context, int i) const {
   CHECK_LT(i, self->length());
   return ToApiHandle<Data>(i::direct_handle(self->get(i), i_isolate));
 }
-#endif  // !defined(__wasi__)
 
 Local<String> ModuleRequest::GetSpecifier() const {
   auto self = Utils::OpenDirectHandle(this);
@@ -10256,6 +10257,13 @@ Local<Integer> v8::Integer::New(Isolate* v8_isolate, int32_t value) {
       WasiRecoverCurrentIsolateForApi(&v8_isolate, "Integer::New");
   if (i_isolate == nullptr) return Local<Integer>();
   ENTER_V8_NO_SCRIPT_NO_EXCEPTION(i_isolate);
+#ifdef __wasi__
+  if (value == 0) {
+    i::DirectHandle<i::Object> result =
+        i_isolate->factory()->NewHeapNumber(0.0);
+    return Utils::IntegerToLocal(result);
+  }
+#endif
   if (i::Smi::IsValid(value)) {
     return Utils::IntegerToLocal(
         i::DirectHandle<i::Object>(i::Smi::FromInt(value), i_isolate));

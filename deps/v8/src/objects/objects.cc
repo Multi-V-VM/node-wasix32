@@ -4901,6 +4901,20 @@ MaybeHandle<SharedFunctionInfo> Script::FindSharedFunctionInfo(
   }
   Handle<SharedFunctionInfo> result(Cast<SharedFunctionInfo>(heap_object),
                                     isolate);
+#ifdef __wasi__
+  if (result->function_literal_id() != function_literal_id) {
+    PrintF("WASI_SFI_ID_MISMATCH literal_id=%d slot_id=%d infos_length=%d "
+           "literal_start=%d literal_end=%d sfi_start=%d sfi_end=%d "
+           "script=0x%x infos=0x%x slot=0x%x literal=0x%x\n",
+           function_literal_id, result->function_literal_id(),
+           script->infos()->length(), function_literal->start_position(),
+           function_literal->end_position(), result->StartPosition(),
+           result->EndPosition(), static_cast<unsigned>(script->ptr()),
+           static_cast<unsigned>(script->infos()->ptr()),
+           static_cast<unsigned>(shared.ptr()),
+           static_cast<unsigned>(reinterpret_cast<uintptr_t>(function_literal)));
+  }
+#endif
   function_literal->set_shared_function_info(result);
   return result;
 }

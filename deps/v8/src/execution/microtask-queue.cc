@@ -15,6 +15,7 @@
 #include "src/execution/isolate.h"
 #include "src/handles/handles-inl.h"
 #include "src/heap/factory-inl.h"
+#include "src/objects/js-function-inl.h"
 #include "src/objects/js-promise-inl.h"
 #include "src/objects/microtask-inl.h"
 #include "src/objects/promise-inl.h"
@@ -24,6 +25,20 @@
 
 namespace v8 {
 namespace internal {
+
+#ifdef __wasi__
+extern "C" Address WasmJSEntry(Address root, Address new_target,
+                               Address target, Address receiver, intptr_t argc,
+                               Address** argv);
+extern "C" bool Wasm32TryResumeAsyncFunctionAwait(
+    Isolate* isolate, Address handler_address, Address value_address,
+    bool rejected, Address* out_result);
+extern "C" Address Wasm32CallMicrotaskFunction(Isolate* isolate,
+                                                Address callable_address);
+extern "C" bool Wasm32TryRunPromiseAllElementClosure(
+    Isolate* isolate, Address handler_address, Address value_address,
+    bool rejected, Address* out_result);
+#endif
 
 const size_t MicrotaskQueue::kRingBufferOffset =
     OFFSET_OF(MicrotaskQueue, ring_buffer_);
@@ -171,9 +186,39 @@ MaybeDirectHandle<Object> MicrotaskQueue::RunMicrotasksWasm(Isolate* isolate) {
       isolate->set_context(callable_task->context());
       DirectHandle<Object> callable(callable_task->callable(), isolate);
       MaybeDirectHandle<Object> exception;
-      Execution::TryCall(isolate, callable,
-                         isolate->factory()->undefined_value(), {},
-                         Execution::MessageHandling::kReport, &exception);
+      if (IsJSBoundFunction(*callable) &&
+          Cast<JSBoundFunction>(*callable)->bound_arguments()->length() == 0) {
+        DirectHandle<JSBoundFunction> bound = Cast<JSBoundFunction>(callable);
+        DirectHandle<Object> target(bound->bound_target_function(), isolate);
+        DirectHandle<Object> receiver(bound->bound_this(), isolate);
+        DirectHandle<Object> callback;
+        bool has_callback = false;
+        if (IsJSReceiver(*receiver)) {
+          DirectHandle<Name> callback_name =
+              isolate->factory()->InternalizeUtf8String("callback");
+          has_callback = Object::GetProperty(
+                             isolate, Cast<JSReceiver>(receiver), callback_name)
+                             .ToHandle(&callback) &&
+                         IsCallable(*callback);
+        }
+        if (has_callback) {
+          Address call_result =
+              Wasm32CallMicrotaskFunction(isolate, (*callback).ptr());
+          if (call_result == roots.exception().ptr() ||
+              isolate->has_exception()) {
+            isolate->ReportPendingMessages(true);
+            isolate->clear_exception();
+            isolate->clear_pending_message();
+          }
+        } else {
+          Execution::TryCall(isolate, target, receiver, {},
+                             Execution::MessageHandling::kReport, &exception);
+        }
+      } else {
+        Execution::TryCall(isolate, callable,
+                           isolate->factory()->undefined_value(), {},
+                           Execution::MessageHandling::kReport, &exception);
+      }
     } else if (IsCallbackTask(*task)) {
       DirectHandle<CallbackTask> callback_task = Cast<CallbackTask>(task);
       MicrotaskCallback callback =
@@ -247,10 +292,37 @@ MaybeDirectHandle<Object> MicrotaskQueue::RunMicrotasksWasm(Isolate* isolate) {
         DirectHandle<Object> handler(handler_value, isolate);
         DirectHandle<Object> argument = completion;
         MaybeDirectHandle<Object> exception;
-        MaybeDirectHandle<Object> call_result = Execution::TryCall(
-            isolate, handler, isolate->factory()->undefined_value(),
-            {&argument, 1}, Execution::MessageHandling::kKeepPending,
-            &exception);
+        MaybeDirectHandle<Object> call_result;
+        bool handled_await_closure = false;
+        if (IsJSFunction(*handler)) {
+          Address call_value = roots.undefined_value().ptr();
+          handled_await_closure = Wasm32TryRunPromiseAllElementClosure(
+              isolate, (*handler).ptr(), (*argument).ptr(), rejected,
+              &call_value);
+          if (!handled_await_closure) {
+            handled_await_closure = Wasm32TryResumeAsyncFunctionAwait(
+                isolate, (*handler).ptr(), (*argument).ptr(), rejected,
+                &call_value);
+          }
+          if (handled_await_closure) {
+            if (call_value == roots.exception().ptr() ||
+                isolate->has_exception()) {
+              if (isolate->has_exception()) {
+                exception = direct_handle(isolate->exception(), isolate);
+                isolate->clear_exception();
+                isolate->clear_pending_message();
+              }
+            } else {
+              call_result = isolate->factory()->undefined_value();
+            }
+          }
+        }
+        if (!handled_await_closure) {
+          call_result = Execution::TryCall(
+              isolate, handler, isolate->factory()->undefined_value(),
+              {&argument, 1}, Execution::MessageHandling::kKeepPending,
+              &exception);
+        }
         if (!call_result.ToHandle(&completion)) {
           if (!exception.ToHandle(&completion)) {
             return MaybeDirectHandle<Object>();

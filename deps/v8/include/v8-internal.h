@@ -104,19 +104,25 @@ class Internals {
   static ::v8::Isolate* GetIsolateForSandbox(Address) { return nullptr; }
   static bool IsExternalTwoByteString(int) { return false; }
   template <typename T>
-  static constexpr bool IsValidSmi(T) {
-    return true;
+  static constexpr bool IsValidSmi(T value) {
+    if constexpr (::std::is_signed<T>::value) {
+      return value >= static_cast<T>(-0x40000000LL) &&
+             value <= static_cast<T>(0x3fffffffLL);
+    } else {
+      return value <= static_cast<T>(0x3fffffffULL);
+    }
   }
   static constexpr int SmiValue(Address value) {
     return static_cast<int32_t>(static_cast<intptr_t>(value)) >> 1;
   }
   template <typename T>
   static Address IntegralToSmi(T v) {
-    return static_cast<Address>(v);
+    return static_cast<Address>(v) << 1;
   }
   template <typename T>
-  static ::std::optional<Address> TryIntegralToSmi(T) {
-    return ::std::nullopt;
+  static ::std::optional<Address> TryIntegralToSmi(T value) {
+    if (!IsValidSmi(value)) return ::std::nullopt;
+    return IntegralToSmi(value);
   }
   static bool CanHaveInternalField(int) { return false; }
   static void CheckInitialized(::v8::Isolate*) {}

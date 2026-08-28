@@ -4,6 +4,8 @@
 
 #include "src/ast/scopes.h"
 
+#include <cstdio>
+
 #include <optional>
 #include <set>
 
@@ -23,6 +25,130 @@
 
 namespace v8 {
 namespace internal {
+
+#ifdef __wasi__
+extern "C" int V8WasiFindZoneRestoreRange(const Zone* zone, const void* ptr,
+                                           uintptr_t* begin,
+                                           uintptr_t* end);
+
+namespace {
+
+struct WasiTrackedVariableProxy {
+  VariableProxy* proxy;
+  const AstRawString* raw_name;
+  Scope* scope;
+  int position;
+};
+
+constexpr size_t kMaxWasiTrackedVariableProxies = 1024 * 1024;
+WasiTrackedVariableProxy
+    g_wasi_tracked_variable_proxies[kMaxWasiTrackedVariableProxies];
+size_t g_wasi_tracked_variable_proxy_count = 0;
+bool g_wasi_track_variable_proxies = false;
+VariableProxy* g_wasi_resolve_previous_proxy = nullptr;
+Scope* g_wasi_resolve_scope = nullptr;
+VariableProxy* g_wasi_watched_variable_proxy = nullptr;
+const char* g_wasi_watch_last_phase = "unset";
+int g_wasi_watch_last_position = -1;
+VariableProxy* g_wasi_watch_last_next = nullptr;
+size_t g_wasi_watch_last_next_index = 0;
+VariableProxy* g_wasi_current_add_proxy = nullptr;
+
+const WasiTrackedVariableProxy* FindWasiTrackedVariableProxy(
+    VariableProxy* proxy, size_t* index) {
+  for (size_t i = g_wasi_tracked_variable_proxy_count; i > 0; --i) {
+    if (g_wasi_tracked_variable_proxies[i - 1].proxy == proxy) {
+      *index = i - 1;
+      return &g_wasi_tracked_variable_proxies[i - 1];
+    }
+  }
+  return nullptr;
+}
+
+void CheckWasiWatchedVariableProxy(const char* phase, int current_position) {
+  if (g_wasi_watched_variable_proxy == nullptr) return;
+  VariableProxy* next = g_wasi_watched_variable_proxy->next_unresolved();
+  if (next == nullptr) {
+    g_wasi_watch_last_phase = phase;
+    g_wasi_watch_last_position = current_position;
+    g_wasi_watch_last_next = nullptr;
+    g_wasi_watch_last_next_index = 0;
+    return;
+  }
+  size_t next_index = 0;
+  if (FindWasiTrackedVariableProxy(next, &next_index) != nullptr) {
+    g_wasi_watch_last_phase = phase;
+    g_wasi_watch_last_position = current_position;
+    g_wasi_watch_last_next = next;
+    g_wasi_watch_last_next_index = next_index;
+    return;
+  }
+  std::fprintf(stderr,
+               "WASI_SCOPE_WATCH_CORRUPT phase=%s current_pos=%d "
+               "watch=0x%x next=0x%x count=%zu last_phase=%s "
+               "last_pos=%d last_next=0x%x last_next_index=%zu "
+               "current_add=0x%x\n",
+               phase, current_position,
+               static_cast<unsigned>(reinterpret_cast<uintptr_t>(
+                   g_wasi_watched_variable_proxy)),
+               static_cast<unsigned>(reinterpret_cast<uintptr_t>(next)),
+               g_wasi_tracked_variable_proxy_count, g_wasi_watch_last_phase,
+               g_wasi_watch_last_position,
+               static_cast<unsigned>(
+                   reinterpret_cast<uintptr_t>(g_wasi_watch_last_next)),
+               g_wasi_watch_last_next_index,
+               static_cast<unsigned>(
+                   reinterpret_cast<uintptr_t>(g_wasi_current_add_proxy)));
+  __builtin_trap();
+}
+
+void MaybeSetWasiWatchedVariableProxy(size_t index) {
+  if (index != 241997) return;
+  g_wasi_watched_variable_proxy =
+      g_wasi_tracked_variable_proxies[index].proxy;
+  g_wasi_watch_last_phase = "watch_set";
+  g_wasi_watch_last_position =
+      g_wasi_tracked_variable_proxies[index].position;
+  g_wasi_watch_last_next =
+      g_wasi_watched_variable_proxy->next_unresolved();
+  g_wasi_watch_last_next_index = 0;
+  std::fprintf(stderr,
+               "WASI_SCOPE_WATCH_SET index=%zu proxy=0x%x position=%d\n",
+               index,
+               static_cast<unsigned>(reinterpret_cast<uintptr_t>(
+                   g_wasi_watched_variable_proxy)),
+               g_wasi_tracked_variable_proxies[index].position);
+}
+
+}  // namespace
+
+extern "C" void V8WasiBeginScopeProxyTracking() {
+  g_wasi_tracked_variable_proxy_count = 0;
+  g_wasi_track_variable_proxies = true;
+  g_wasi_watched_variable_proxy = nullptr;
+}
+
+extern "C" void V8WasiCheckZoneAllocation(void* zone, void* result,
+                                            size_t size) {
+  if (g_wasi_watched_variable_proxy == nullptr) return;
+  uintptr_t allocation_begin = reinterpret_cast<uintptr_t>(result);
+  uintptr_t allocation_end = allocation_begin + size;
+  uintptr_t watch_begin =
+      reinterpret_cast<uintptr_t>(g_wasi_watched_variable_proxy);
+  uintptr_t watch_end = watch_begin + sizeof(*g_wasi_watched_variable_proxy);
+  if (allocation_begin >= watch_end || allocation_end <= watch_begin) return;
+  std::fprintf(stderr,
+               "WASI_ZONE_OVERLAP zone=0x%x result=0x%x size=%zu "
+               "watch=0x%x watch_scope=0x%x count=%zu\n",
+               static_cast<unsigned>(reinterpret_cast<uintptr_t>(zone)),
+               static_cast<unsigned>(allocation_begin), size,
+               static_cast<unsigned>(watch_begin),
+               static_cast<unsigned>(reinterpret_cast<uintptr_t>(
+                   g_wasi_tracked_variable_proxies[241997].scope)),
+               g_wasi_tracked_variable_proxy_count);
+  __builtin_trap();
+}
+#endif
 
 // ----------------------------------------------------------------------------
 // Implementation of LocalsMap
@@ -1228,7 +1354,23 @@ void Scope::AddUnresolved(VariableProxy* proxy) {
   // separate from regular variable resolution.
   DCHECK_IMPLIES(already_resolved_, reparsing_for_class_initializer_);
   DCHECK(!proxy->is_resolved());
+#ifdef __wasi__
+  g_wasi_current_add_proxy = proxy;
+  CheckWasiWatchedVariableProxy("add_unresolved", proxy->position());
+#endif
   unresolved_list_.Add(proxy);
+#ifdef __wasi__
+  if (g_wasi_track_variable_proxies &&
+      g_wasi_tracked_variable_proxy_count <
+          kMaxWasiTrackedVariableProxies) {
+    size_t tracked_index = g_wasi_tracked_variable_proxy_count++;
+    g_wasi_tracked_variable_proxies[tracked_index] =
+        {proxy, proxy->raw_name(), this, proxy->position()};
+    MaybeSetWasiWatchedVariableProxy(tracked_index);
+  }
+  CheckWasiWatchedVariableProxy("add_unresolved_after", proxy->position());
+  g_wasi_current_add_proxy = nullptr;
+#endif
 }
 
 Variable* DeclarationScope::DeclareDynamicGlobal(const AstRawString* name,
@@ -1612,10 +1754,18 @@ void Scope::AnalyzePartially(DeclarationScope* max_outer_scope,
 
     for (VariableProxy* proxy = scope->unresolved_list_.first();
          proxy != nullptr; proxy = proxy->next_unresolved()) {
+#ifdef __wasi__
+      CheckWasiWatchedVariableProxy("analyze_partial_enter",
+                                    proxy->position());
+#endif
       if (proxy->is_removed_from_unresolved()) continue;
       DCHECK(!proxy->is_resolved());
       Variable* var =
           Lookup<kParsedScope>(proxy, scope, max_outer_scope->outer_scope());
+#ifdef __wasi__
+      CheckWasiWatchedVariableProxy("analyze_partial_after_lookup",
+                                    proxy->position());
+#endif
       if (var == nullptr) {
         // Don't copy unresolved references to the script scope, unless it's a
         // reference to a private name or method. In that case keep it so we
@@ -1623,7 +1773,23 @@ void Scope::AnalyzePartially(DeclarationScope* max_outer_scope,
         if (!max_outer_scope->outer_scope()->is_script_scope() ||
             maybe_in_arrowhead) {
           VariableProxy* copy = ast_node_factory->CopyVariableProxy(proxy);
+#ifdef __wasi__
+          CheckWasiWatchedVariableProxy("analyze_partial_after_copy",
+                                        copy->position());
+#endif
           new_unresolved_list->Add(copy);
+#ifdef __wasi__
+          if (g_wasi_track_variable_proxies &&
+              g_wasi_tracked_variable_proxy_count <
+                  kMaxWasiTrackedVariableProxies) {
+            size_t tracked_index = g_wasi_tracked_variable_proxy_count++;
+            g_wasi_tracked_variable_proxies[tracked_index] =
+                {copy, copy->raw_name(), max_outer_scope, copy->position()};
+            MaybeSetWasiWatchedVariableProxy(tracked_index);
+            CheckWasiWatchedVariableProxy("analyze_partial_after_add",
+                                          copy->position());
+          }
+#endif
         }
       } else {
         var->set_is_used();
@@ -2071,6 +2237,99 @@ template <Scope::ScopeLookupMode mode>
 Variable* Scope::Lookup(VariableProxy* proxy, Scope* scope,
                         Scope* outer_scope_end, Scope* cache_scope,
                         bool force_context_allocation) {
+#ifdef __wasi__
+  auto check_linear_pointer = [](const void* pointer, size_t object_size,
+                                 const char* label) {
+    uintptr_t address = reinterpret_cast<uintptr_t>(pointer);
+    uint64_t limit =
+        static_cast<uint64_t>(__builtin_wasm_memory_size(0)) * 65536u;
+    if (address < 65536u ||
+        static_cast<uint64_t>(address) + object_size > limit) {
+      std::fprintf(stderr,
+                   "WASI_SCOPE_BAD_POINTER label=%s address=0x%x "
+                   "size=%zu limit=0x%llx\n",
+                   label, static_cast<unsigned>(address), object_size,
+                   static_cast<unsigned long long>(limit));
+      __builtin_trap();
+    }
+  };
+  check_linear_pointer(proxy, sizeof(*proxy), "proxy");
+  check_linear_pointer(scope, sizeof(*scope), "scope");
+  const AstRawString* diagnostic_raw_name = proxy->raw_name();
+  if (diagnostic_raw_name == nullptr) {
+    const uint32_t* words = reinterpret_cast<const uint32_t*>(proxy);
+    uintptr_t restore_begin = 0;
+    uintptr_t restore_end = 0;
+    int restore_index = V8WasiFindZoneRestoreRange(
+        scope->zone(), proxy, &restore_begin, &restore_end);
+    size_t tracked_index = 0;
+    const WasiTrackedVariableProxy* tracked =
+        FindWasiTrackedVariableProxy(proxy, &tracked_index);
+    std::fprintf(stderr,
+                 "WASI_SCOPE_NULL_NAME proxy=0x%x resolved=%d union=0x%x "
+                 "next=0x%x position=%d zone=0x%x contains=%d "
+                 "restore=%d range=0x%x:0x%x "
+                 "words=%08x,%08x,%08x,%08x\n",
+                 static_cast<unsigned>(reinterpret_cast<uintptr_t>(proxy)),
+                 proxy->is_resolved(),
+                 static_cast<unsigned>(reinterpret_cast<uintptr_t>(
+                     proxy->is_resolved() ? proxy->var() : nullptr)),
+                 static_cast<unsigned>(reinterpret_cast<uintptr_t>(
+                     proxy->next_unresolved())),
+                 proxy->position(),
+                 static_cast<unsigned>(reinterpret_cast<uintptr_t>(
+                     scope->zone())),
+                 scope->zone()->Contains(proxy), restore_index,
+                 static_cast<unsigned>(restore_begin),
+                 static_cast<unsigned>(restore_end), words[0], words[1],
+                 words[2], words[3]);
+    if (tracked != nullptr) {
+      std::fprintf(stderr,
+                   "WASI_SCOPE_TRACKED index=%zu count=%zu initial_pos=%d "
+                   "initial_name=0x%x initial_scope=0x%x name_length=%d\n",
+                   tracked_index, g_wasi_tracked_variable_proxy_count,
+                   tracked->position,
+                   static_cast<unsigned>(reinterpret_cast<uintptr_t>(
+                       tracked->raw_name)),
+                   static_cast<unsigned>(reinterpret_cast<uintptr_t>(
+                       tracked->scope)),
+                   tracked->raw_name == nullptr ? -1
+                                                : tracked->raw_name->length());
+    } else {
+      std::fprintf(stderr, "WASI_SCOPE_TRACKED missing count=%zu\n",
+                   g_wasi_tracked_variable_proxy_count);
+    }
+    size_t previous_index = 0;
+    const WasiTrackedVariableProxy* previous_tracked =
+        FindWasiTrackedVariableProxy(g_wasi_resolve_previous_proxy,
+                                     &previous_index);
+    std::fprintf(
+        stderr,
+        "WASI_SCOPE_PREVIOUS proxy=0x%x scope=0x%x current_next=0x%x "
+        "tracked=%d index=%zu initial_pos=%d initial_name=0x%x "
+        "initial_scope=0x%x\n",
+        static_cast<unsigned>(reinterpret_cast<uintptr_t>(
+            g_wasi_resolve_previous_proxy)),
+        static_cast<unsigned>(
+            reinterpret_cast<uintptr_t>(g_wasi_resolve_scope)),
+        g_wasi_resolve_previous_proxy == nullptr
+            ? 0
+            : static_cast<unsigned>(reinterpret_cast<uintptr_t>(
+                  g_wasi_resolve_previous_proxy->next_unresolved())),
+        previous_tracked != nullptr, previous_index,
+        previous_tracked == nullptr ? -1 : previous_tracked->position,
+        previous_tracked == nullptr
+            ? 0
+            : static_cast<unsigned>(reinterpret_cast<uintptr_t>(
+                  previous_tracked->raw_name)),
+        previous_tracked == nullptr
+            ? 0
+            : static_cast<unsigned>(reinterpret_cast<uintptr_t>(
+                  previous_tracked->scope)));
+  }
+  check_linear_pointer(diagnostic_raw_name, sizeof(*diagnostic_raw_name),
+                       "raw_name");
+#endif
   // If we have already passed the cache scope in earlier recursions, we should
   // first quickly check if the current scope uses the cache scope before
   // continuing.
@@ -2080,6 +2339,9 @@ Variable* Scope::Lookup(VariableProxy* proxy, Scope* scope,
   }
 
   while (true) {
+#ifdef __wasi__
+    check_linear_pointer(scope, sizeof(*scope), "scope_loop");
+#endif
     DCHECK_IMPLIES(mode == kParsedScope, !scope->is_debug_evaluate_scope_);
     // Short-cut: whenever we find a debug-evaluate scope, just look everything
     // up dynamically. Debug-evaluate doesn't properly create scope info for the
@@ -2364,6 +2626,16 @@ void Scope::ResolvePreparsedVariable(VariableProxy* proxy, Scope* scope,
 }
 
 bool Scope::ResolveVariablesRecursively(Scope* end) {
+#ifdef __wasi__
+  static uintptr_t stack_low_water = UINTPTR_MAX;
+  uintptr_t stack_pointer =
+      reinterpret_cast<uintptr_t>(__builtin_frame_address(0));
+  if (stack_pointer + 256 * 1024 < stack_low_water) {
+    stack_low_water = stack_pointer;
+    std::fprintf(stderr, "WASI_SCOPE_STACK sp=0x%x\n",
+                 static_cast<unsigned>(stack_pointer));
+  }
+#endif
   // Lazy parsed declaration scopes are already partially analyzed. If there are
   // unresolved references remaining, they just need to be resolved in outer
   // scopes.
@@ -2372,13 +2644,25 @@ bool Scope::ResolveVariablesRecursively(Scope* end) {
     // Resolve in all parsed scopes except for the script scope.
     if (!end->is_script_scope()) end = end->outer_scope();
 
+    VariableProxy* previous_proxy = nullptr;
     for (VariableProxy* proxy : unresolved_list_) {
+#ifdef __wasi__
+      g_wasi_resolve_previous_proxy = previous_proxy;
+      g_wasi_resolve_scope = this;
+#endif
       ResolvePreparsedVariable(proxy, outer_scope(), end);
+      previous_proxy = proxy;
     }
   } else {
     // Resolve unresolved variables for this scope.
+    VariableProxy* previous_proxy = nullptr;
     for (VariableProxy* proxy : unresolved_list_) {
+#ifdef __wasi__
+      g_wasi_resolve_previous_proxy = previous_proxy;
+      g_wasi_resolve_scope = this;
+#endif
       ResolveVariable(proxy);
+      previous_proxy = proxy;
     }
 
     // Resolve unresolved variables for inner scopes.
@@ -2757,7 +3041,30 @@ template <typename IsolateT>
 void DeclarationScope::AllocateScopeInfos(ParseInfo* parse_info,
                                           DirectHandle<Script> script,
                                           IsolateT* isolate) {
-  DeclarationScope* scope = parse_info->literal()->scope();
+  bool wasi_trace_large_script = false;
+#ifdef __wasi__
+  wasi_trace_large_script =
+      IsString(script->source()) && Cast<String>(script->source())->length() > 1000000;
+  if (wasi_trace_large_script) {
+    std::fprintf(stderr,
+                 "WASI_SCOPE_ALLOC_ENTRY parse_info=0x%x literal=0x%x "
+                 "source_length=%d\n",
+                 static_cast<unsigned>(reinterpret_cast<uintptr_t>(parse_info)),
+                 static_cast<unsigned>(
+                     reinterpret_cast<uintptr_t>(parse_info->literal())),
+                 Cast<String>(script->source())->length());
+  }
+#endif
+  FunctionLiteral* literal = parse_info->literal();
+  DeclarationScope* scope = literal->scope();
+#ifdef __wasi__
+  if (wasi_trace_large_script) {
+    std::fprintf(stderr,
+                 "WASI_SCOPE_ALLOC_SCOPE scope=0x%x first=%d max=%d\n",
+                 static_cast<unsigned>(reinterpret_cast<uintptr_t>(scope)),
+                 literal->function_literal_id(), parse_info->max_info_id());
+  }
+#endif
 
   // No one else should have allocated a scope info for this scope yet.
   DCHECK(scope->scope_info_.is_null());
@@ -2771,9 +3078,23 @@ void DeclarationScope::AllocateScopeInfos(ParseInfo* parse_info,
   if (scope->needs_private_name_context_chain_recalc()) {
     scope->RecalcPrivateNameContextChain();
   }
+#ifdef __wasi__
+  if (wasi_trace_large_script) {
+    std::fprintf(stderr, "WASI_SCOPE_ALLOC_PRIVATE_DONE scope=0x%x\n",
+                 static_cast<unsigned>(reinterpret_cast<uintptr_t>(scope)));
+  }
+#endif
 
   Tagged<WeakFixedArray> infos = script->infos();
   std::unordered_map<int, Handle<ScopeInfo>> scope_infos_to_reuse;
+#ifdef __wasi__
+  if (wasi_trace_large_script) {
+    std::fprintf(stderr,
+                 "WASI_SCOPE_ALLOC_INFOS infos=0x%x length=%d reuse=%d\n",
+                 static_cast<unsigned>(infos.ptr()), infos->length(),
+                 v8_flags.reuse_scope_infos ? 1 : 0);
+  }
+#endif
   if (v8_flags.reuse_scope_infos && infos->length() != 0) {
     Tagged<SharedFunctionInfo> parse_info_sfi =
         *parse_info->literal()->shared_function_info();
@@ -2785,6 +3106,16 @@ void DeclarationScope::AllocateScopeInfos(ParseInfo* parse_info,
     // scope info if it exists.
     for (int i = parse_info->literal()->function_literal_id();
          i <= parse_info->max_info_id(); ++i) {
+#ifdef __wasi__
+      if (i < 0 || i >= infos->length()) {
+        std::fprintf(stderr,
+                     "WASI_SCOPE_INFOS_OOB index=%d length=%d first=%d max=%d\n",
+                     i, infos->length(),
+                     parse_info->literal()->function_literal_id(),
+                     parse_info->max_info_id());
+        __builtin_trap();
+      }
+#endif
       Tagged<MaybeObject> maybe_info = infos->get(i);
       if (maybe_info.IsWeak()) {
         Tagged<Object> info = maybe_info.GetHeapObjectAssumeWeak();
@@ -2916,8 +3247,22 @@ void DeclarationScope::AllocateScopeInfos(ParseInfo* parse_info,
     }
   }
 
+#ifdef __wasi__
+  if (wasi_trace_large_script) {
+    std::fprintf(stderr,
+                 "WASI_SCOPE_ALLOC_RECURSE scope=0x%x reused=%zu\n",
+                 static_cast<unsigned>(reinterpret_cast<uintptr_t>(scope)),
+                 scope_infos_to_reuse.size());
+  }
+#endif
   scope->AllocateScopeInfosRecursively(isolate, outer_scope,
                                        scope_infos_to_reuse);
+#ifdef __wasi__
+  if (wasi_trace_large_script) {
+    std::fprintf(stderr, "WASI_SCOPE_ALLOC_RECURSE_DONE scope=0x%x\n",
+                 static_cast<unsigned>(reinterpret_cast<uintptr_t>(scope)));
+  }
+#endif
 
   // The debugger expects all shared function infos to contain a scope info.
   // Since the top-most scope will end up in a shared function info, make sure

@@ -2184,40 +2184,6 @@ void Initialize(Local<Object> target,
                 void* priv) {
   Environment* env = Environment::GetCurrent(context);
   Isolate* isolate = env->isolate();
-#ifdef __wasi__
-  static int wasm_cares_initialize_trace_count = 0;
-  auto trace_cares_initialize = [&](const char* stage) {
-    if (wasm_cares_initialize_trace_count >= 64) return;
-    Isolate* current_isolate = Isolate::TryGetCurrent();
-    Environment* current_env = nullptr;
-    void* current_context_ptr = nullptr;
-    if (current_isolate != nullptr) {
-      Local<Context> current_context = current_isolate->GetCurrentContext();
-      current_context_ptr = current_context.IsEmpty()
-                                ? nullptr
-                                : reinterpret_cast<void*>(*current_context);
-      current_env = Environment::GetCurrent(current_context);
-    }
-    fprintf(stderr,
-            "cares_wrap::Initialize %s #%d env=%p isolate=%p current=%p "
-            "context=%p context_env=%p current_context=%p current_env=%p "
-            "target=%p priv=%p\n",
-            stage,
-            wasm_cares_initialize_trace_count + 1,
-            static_cast<void*>(env),
-            static_cast<void*>(isolate),
-            static_cast<void*>(current_isolate),
-            context.IsEmpty() ? nullptr : reinterpret_cast<void*>(*context),
-            static_cast<void*>(Environment::GetCurrent(context)),
-            current_context_ptr,
-            static_cast<void*>(current_env),
-            target.IsEmpty() ? nullptr : reinterpret_cast<void*>(*target),
-            priv);
-    fflush(stderr);
-    wasm_cares_initialize_trace_count++;
-  };
-  trace_cares_initialize("entry");
-#endif
 
   SetMethod(context, target, "getaddrinfo", GetAddrInfo);
   SetMethod(context, target, "getnameinfo", GetNameInfo);
@@ -2237,9 +2203,6 @@ void Initialize(Local<Object> target,
   NODE_DEFINE_CONSTANT(target, DNS_ORDER_IPV4_FIRST);
   NODE_DEFINE_CONSTANT(target, DNS_ORDER_IPV6_FIRST);
 
-#ifdef __wasi__
-  trace_cares_initialize("before_templates");
-#endif
   Local<FunctionTemplate> aiw =
       BaseObject::MakeLazilyInitializedJSTemplate(env);
   aiw->Inherit(AsyncWrap::GetConstructorTemplate(env));

@@ -1200,11 +1200,17 @@ FactoryBase<Impl>::AllocateRawOneByteInternalizedString(
 
   Tagged<Map> map = read_only_roots().internalized_one_byte_string_map();
   const int size = SeqOneByteString::SizeFor(length);
-  const AllocationType allocation =
-      RefineAllocationTypeForInPlaceInternalizableString(
-          impl()->CanAllocateInReadOnlySpace() ? AllocationType::kReadOnly
-                                               : AllocationType::kOld,
-          map);
+  AllocationType allocation = impl()->CanAllocateInReadOnlySpace()
+                                  ? AllocationType::kReadOnly
+                                  : AllocationType::kOld;
+#ifdef __wasi__
+  if (allocation == AllocationType::kReadOnly &&
+      size > isolate()->heap()->AsHeap()->MaxRegularHeapObjectSize(allocation)) {
+    allocation = AllocationType::kOld;
+  }
+#endif
+  allocation =
+      RefineAllocationTypeForInPlaceInternalizableString(allocation, map);
   Tagged<HeapObject> result = AllocateRawWithImmortalMap(size, allocation, map);
   Tagged<SeqOneByteString> answer = Cast<SeqOneByteString>(result);
   DisallowGarbageCollection no_gc;

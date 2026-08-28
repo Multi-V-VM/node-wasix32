@@ -66,12 +66,13 @@ int uv_fs_event_stop(uv_fs_event_t* handle) {
 }
 
 void uv__io_poll(uv_loop_t* loop, int timeout) {
-  // Basic implementation - just sleep if timeout is positive
+  // Wasmer's WASI nanosleep can block indefinitely. Keep the event loop
+  // progressing with a bounded monotonic wait until poll_oneoff is wired up.
   if (timeout > 0) {
-    struct timespec ts;
-    ts.tv_sec = timeout / 1000;
-    ts.tv_nsec = (timeout % 1000) * 1000000;
-    nanosleep(&ts, NULL);
+    uint64_t deadline = uv__hrtime(UV_CLOCK_FAST) +
+                        (uint64_t) timeout * 1000000;
+    while (uv__hrtime(UV_CLOCK_FAST) < deadline) {
+    }
   }
 }
 

@@ -395,6 +395,7 @@ static ssize_t uv__fs_open(uv_fs_t* req) {
 }
 
 
+
 static ssize_t uv__preadv_or_pwritev_emul(int fd,
                                           const struct iovec* bufs,
                                           size_t nbufs,
@@ -2272,7 +2273,8 @@ void uv_fs_req_cleanup(uv_fs_t* req) {
   if (req->fs_type == UV_FS_SCANDIR && req->ptr != NULL)
     uv__fs_scandir_cleanup(req);
 
-  if (req->bufs != req->bufsml)
+  if (req->bufs != req->bufsml &&
+      (req->cb != NULL || req->fs_type == UV_FS_WRITE))
     uv__free(req->bufs);
   req->bufs = NULL;
 
@@ -2280,6 +2282,8 @@ void uv_fs_req_cleanup(uv_fs_t* req) {
     uv__free(req->ptr);
   req->ptr = NULL;
 }
+
+
 
 
 int uv_fs_copyfile(uv_loop_t* loop,

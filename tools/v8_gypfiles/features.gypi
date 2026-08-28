@@ -88,7 +88,7 @@
         'v8_enable_private_mapping_fork_optimization': 0,
       }],
 
-      ['OS in "aix os400"', {
+      ['OS in "aix os400" or target_arch=="wasm32"', {
         'v8_enable_leaptiering': 0,
       }, {
         'v8_enable_leaptiering': 1,

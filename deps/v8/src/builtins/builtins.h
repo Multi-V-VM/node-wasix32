@@ -292,7 +292,8 @@ class Builtins {
       DirectHandle<FunctionTemplateInfo> function,
       DirectHandle<Object> receiver,
       ZoneVector<const DirectHandle<Object>> args,
-      DirectHandle<HeapObject> new_target);
+      DirectHandle<HeapObject> new_target,
+      Address* raw_result_out = nullptr);
 
   static void Generate_Adaptor(MacroAssembler* masm, int formal_parameter_count,
                                Address builtin_address);
