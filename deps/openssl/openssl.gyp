@@ -53,7 +53,41 @@
           ]
         }],
         ['OS=="wasi"', {
-          'sources+': [ 'wasi_crypto_stubs.c' ],
+          'includes': ['./openssl_wasi.gypi'],
+          'sources+': [
+            '<@(openssl_wasi_sources)',
+          ],
+          'defines': [
+            # The checked-in tree does not contain the generated SM2 DER
+            # source. TLS and Node's crypto APIs do not require SM2 on WASI.
+            'OPENSSL_NO_SM2',
+            # WASI has no native async job/fiber backend.
+            'OPENSSL_NO_ASYNC',
+            'OPENSSL_NO_SCTP',
+            'OPENSSL_NO_DGRAM',
+            'OPENSSL_NO_DTLS',
+            'OPENSSL_NO_QUIC',
+            'OPENSSL_NO_DSO',
+            'DSO_NONE',
+            'OPENSSL_NO_THREAD_POOL',
+            'OPENSSL_NO_DEFAULT_THREAD_POOL',
+            'OPENSSL_NO_SECURE_MEMORY',
+            'OPENSSL_NO_POSIX_IO',
+            'OPENSSL_NO_SOCK',
+            'OPENSSL_NO_STDIO',
+            'OPENSSL_NO_THREADS',
+            'OPENSSL_NO_UI',
+            'OPENSSL_NO_ENGINE',
+            'OPENSSL_NO_DYNAMIC_ENGINE',
+            'OPENSSL_NO_COMP',
+            'OPENSSL_NO_ZLIB',
+            'OPENSSL_NO_WINSTORE',
+            'OPENSSL_NO_RC5',
+            'OPENSSL_NO_MD2',
+            'OPENSSL_NO_TS',
+            'OPENSSL_RAND_SEED_GETRANDOM',
+            'ASYNC_NULL',
+          ],
         }],
       ],
       'direct_dependent_settings': {

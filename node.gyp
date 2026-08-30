@@ -574,7 +574,15 @@
           # implements JavaScript calls with C++ recursion, so Node bootstrap
           # and parser recursion can otherwise overwrite static data before a
           # stack overflow is reported.
-          'ldflags': [ '-Wl,-z,stack-size=33554432' ],
+          'ldflags': [
+            '-Wl,-z,stack-size=33554432',
+            # wasi_runtime_stubs.cc contains weak OpenSSL fallbacks. Force the
+            # bundled archive into the link so its real implementations replace
+            # those fallbacks instead of being skipped as already satisfied.
+            '-Wl,--whole-archive',
+            '<(obj_dir)/deps/openssl/<(STATIC_LIB_PREFIX)openssl<(STATIC_LIB_SUFFIX)',
+            '-Wl,--no-whole-archive',
+          ],
         }],
         [ 'error_on_warn=="true"', {
           'cflags': ['-Werror'],

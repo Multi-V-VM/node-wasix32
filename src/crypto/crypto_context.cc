@@ -1130,7 +1130,7 @@ SecureContext::~SecureContext() {
 
 void SecureContext::New(const FunctionCallbackInfo<Value>& args) {
   Environment* env = Environment::GetCurrent(args);
-  new SecureContext(env, args.This());
+  auto* sc = new SecureContext(env, args.This());
 }
 
 void SecureContext::Init(const FunctionCallbackInfo<Value>& args) {

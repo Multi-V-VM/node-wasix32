@@ -10248,6 +10248,14 @@ Local<Number> v8::Number::New(Isolate* v8_isolate, double value) {
     // Introduce only canonical NaN value into the VM, to avoid signaling NaNs.
     value = std::numeric_limits<double>::quiet_NaN();
   }
+#ifdef __wasi__
+  // WASI Local<T> stores tagged values directly, so Smi::zero() is
+  // indistinguishable from an empty Local. Keep numeric zero heap allocated
+  // while crossing the public API boundary.
+  if (value == 0.0) {
+    return Utils::NumberToLocal(i_isolate->factory()->NewHeapNumber(value));
+  }
+#endif
   i::DirectHandle<i::Object> result = i_isolate->factory()->NewNumber(value);
   return Utils::NumberToLocal(result);
 }

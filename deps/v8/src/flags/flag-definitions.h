@@ -2072,7 +2072,7 @@ DEFINE_SIZE_T(min_semi_space_size, 0,
               "min size of a semi-space (in MBytes), the new space consists of "
               "two semi-spaces")
 #if V8_TARGET_ARCH_WASM32
-DEFINE_SIZE_T(max_semi_space_size, 2,
+DEFINE_SIZE_T(max_semi_space_size, 16,
 #else
 DEFINE_SIZE_T(max_semi_space_size, 0,
 #endif
@@ -2082,7 +2082,7 @@ DEFINE_INT(semi_space_growth_factor, 2, "factor by which to grow the new space")
 // Set minimum semi space growth factor
 DEFINE_MIN_VALUE_IMPLICATION(semi_space_growth_factor, 2)
 #if V8_TARGET_ARCH_WASM32
-DEFINE_SIZE_T(max_old_space_size, 64,
+DEFINE_SIZE_T(max_old_space_size, 512,
               "max size of the old space (in Mbytes)")
 #else
 DEFINE_SIZE_T(max_old_space_size, 0, "max size of the old space (in Mbytes)")
@@ -2093,7 +2093,12 @@ DEFINE_SIZE_T(
     "both max_semi_space_size and max_old_space_size take precedence. "
     "All three flags cannot be specified at the same time.")
 DEFINE_SIZE_T(initial_heap_size, 0, "initial size of the heap (in Mbytes)")
+#if V8_TARGET_ARCH_WASM32
+DEFINE_SIZE_T(initial_old_space_size, 256,
+              "initial old space size (in Mbytes)")
+#else
 DEFINE_SIZE_T(initial_old_space_size, 0, "initial old space size (in Mbytes)")
+#endif
 DEFINE_BOOL(gc_global, false, "always perform global GCs")
 
 // TODO(12950): The next three flags only have an effect if

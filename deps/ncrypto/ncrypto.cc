@@ -1,33 +1,5 @@
 #include "ncrypto.h"
 
-#ifdef __wasi__
-// Stub implementations for WASI - crypto operations not supported
-
-// Forward declare types that are used in the API
-typedef struct evp_cipher_st EVP_CIPHER;
-typedef struct ossl_provider_st OSSL_PROVIDER;
-typedef struct x509_st X509;
-
-extern "C" {
-const char* OBJ_nid2sn(int n) { return ""; }
-const EVP_CIPHER* EVP_get_cipherbyname(const char* name) { return nullptr; }
-
-// OpenSSL 3.0 provider stubs
-int OSSL_PROVIDER_available(void* libctx, const char* name) { return 0; }
-OSSL_PROVIDER* OSSL_PROVIDER_load(void* libctx, const char* name) { return nullptr; }
-int OSSL_PROVIDER_self_test(OSSL_PROVIDER* prov) { return 0; }
-int OSSL_PROVIDER_unload(OSSL_PROVIDER* prov) { return 1; }
-
-// X509 stubs
-int X509_check_ca(X509* x) { return 0; }
-int X509_check_issued(X509* issuer, X509* subject) { return -1; }
-int X509_check_host(X509* x, const char* name, size_t namelen, unsigned int flags, char** peername) { return -1; }
-int X509_check_email(X509* x, const char* address, size_t addresslen, unsigned int flags) { return -1; }
-int X509_check_ip_asc(X509* x, const char* address, unsigned int flags) { return -1; }
-}
-// Skip OpenSSL includes for WASI
-#else
-
 #include <openssl/asn1.h>
 #include <openssl/bn.h>
 #include <openssl/dh.h>
@@ -41,8 +13,6 @@ int X509_check_ip_asc(X509* x, const char* address, unsigned int flags) { return
 #if OPENSSL_VERSION_MAJOR >= 3
 #include <openssl/provider.h>
 #endif
-
-#endif // __wasi__
 
 // EVP_PKEY_CTX_set_dsa_paramgen_q_bits was added in OpenSSL 1.1.1e.
 #if OPENSSL_VERSION_NUMBER < 0x1010105fL
@@ -1453,11 +1423,19 @@ BIOPointer BIOPointer::New(const void* data, size_t len) {
 }
 
 BIOPointer BIOPointer::NewFile(const char* filename, const char* mode) {
+#ifdef OPENSSL_NO_STDIO
+  return {};
+#else
   return BIOPointer(BIO_new_file(filename, mode));
+#endif
 }
 
 BIOPointer BIOPointer::NewFp(FILE* fd, int close_flag) {
+#ifdef OPENSSL_NO_STDIO
+  return {};
+#else
   return BIOPointer(BIO_new_fp(fd, close_flag));
+#endif
 }
 
 BIOPointer BIOPointer::New(const BIGNUM* bn) {

@@ -330,6 +330,9 @@ static ssize_t sysctl_random(char *buf, size_t buflen)
  */
 static ssize_t syscall_random(void *buf, size_t buflen)
 {
+#  if defined(__wasi__)
+    return __wasi_random_get(buf, buflen) == 0 ? (ssize_t)buflen : -1;
+#  else
     /*
      * Note: 'buflen' equals the size of the buffer which is used by the
      * get_entropy() callback of the RAND_DRBG. It is roughly bounded by
@@ -399,6 +402,7 @@ static ssize_t syscall_random(void *buf, size_t buflen)
     errno = ENOSYS;
     return -1;
 #  endif
+#  endif /* defined(__wasi__) */
 }
 #  endif    /* defined(OPENSSL_RAND_SEED_GETRANDOM) */
 

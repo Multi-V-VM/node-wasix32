@@ -156,7 +156,7 @@ Handle<Code> FactoryBase<Impl>::NewCode(const NewCodeOptions& options) {
 
   wrapper->set_code(code);
   code->set_wrapper(*wrapper);
-#ifdef __wasi__
+#if 0  // Temporary wasm32 heap diagnostics disabled.
   if (code->wrapper() != *wrapper || !IsCodeWrapper(code->wrapper())) {
     std::fprintf(stderr,
                  "WASM32_BAD_CODE_WRAPPER_CREATE code=0x%x expected=0x%x "

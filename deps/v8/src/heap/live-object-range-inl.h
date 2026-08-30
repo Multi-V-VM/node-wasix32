@@ -102,7 +102,7 @@ bool LiveObjectRange::iterator::AdvanceToNextMarkedObject() {
       DCHECK(MapWord::IsMapOrForwarded(current_map_));
       current_size_ = ALIGN_TO_ALLOCATION_ALIGNMENT(
           current_object_->SizeFromMap(current_map_));
-#ifdef __wasi__
+#if 0  // Temporary wasm32 heap diagnostics disabled.
       if (!page_->ContainsLimit(object_address + current_size_)) {
         std::fprintf(stderr,
                      "WASM32_BAD_LIVE_OBJECT object=0x%x map=0x%x type=%d "

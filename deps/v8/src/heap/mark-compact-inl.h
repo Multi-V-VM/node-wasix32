@@ -110,7 +110,7 @@ void RootMarkingVisitor::MarkObjectByPointer(Root root, FullObjectSlot p) {
 #endif
   if (!IsHeapObject(object)) return;
   Tagged<HeapObject> heap_object = Cast<HeapObject>(object);
-#ifdef __wasi__
+#if 0  // Temporary wasm32 heap diagnostics disabled.
   MapWord raw_map_word = heap_object->map_word(kRelaxedLoad);
   Address map_word = raw_map_word.ptr();
   if ((map_word & kHeapObjectTagMask) == kHeapObjectTag &&

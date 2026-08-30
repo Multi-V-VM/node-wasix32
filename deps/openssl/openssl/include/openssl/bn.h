@@ -26,6 +26,10 @@
 # include <openssl/crypto.h>
 # include <openssl/bnerr.h>
 
+# if defined(__wasi__) && !defined(THIRTY_TWO_BIT)
+#  define THIRTY_TWO_BIT
+# endif
+
 #ifdef  __cplusplus
 extern "C" {
 #endif
@@ -175,7 +179,6 @@ void *BN_GENCB_get_arg(BN_GENCB *cb);
  *  (b) >=   55 |     >=   110 |         27 |         64 bit
  *  (b) >=    6 |     >=    12 |         34 |         64 bit
  */
-#define BN_ULONG unsigned long
 
 #  define BN_prime_checks_for_size(b) ((b) >= 3747 ?  3 : \
                                       (b) >=  1345 ?  4 : \

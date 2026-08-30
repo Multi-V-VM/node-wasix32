@@ -269,6 +269,16 @@ MaybeDirectHandle<Object> MicrotaskQueue::RunMicrotasksWasm(Isolate* isolate) {
         if (!exception.ToHandle(&reason)) {
           return MaybeDirectHandle<Object>();
         }
+#ifdef __wasi__
+        if (false && IsUndefined(*reason, roots)) {
+          std::fprintf(stderr,
+                       "WASM32_THENABLE_REJECT_UNDEFINED then=0x%x "
+                       "thenable=0x%x\n",
+                       static_cast<unsigned>((*then).ptr()),
+                       static_cast<unsigned>((*thenable).ptr()));
+          std::fflush(stderr);
+        }
+#endif
         DirectHandle<Object> reject_argument = reason;
         MaybeDirectHandle<Object> reject_exception;
         if (Execution::TryCall(
@@ -289,6 +299,30 @@ MaybeDirectHandle<Object> MicrotaskQueue::RunMicrotasksWasm(Isolate* isolate) {
 
       DirectHandle<Object> completion(reaction->argument(), isolate);
       Tagged<Object> handler_value = reaction->handler();
+#ifdef __wasi__
+      if (false && rejected && IsUndefined(*completion, roots)) {
+        int handler_builtin = -1;
+        if (IsJSFunction(handler_value)) {
+          Tagged<JSFunction> handler_function = Cast<JSFunction>(handler_value);
+          Tagged<SharedFunctionInfo> handler_shared =
+              handler_function->shared();
+          if (handler_shared->HasBuiltinId()) {
+            handler_builtin = static_cast<int>(handler_shared->builtin_id());
+          }
+        }
+        Tagged<HeapObject> diagnostic_promise_or_capability =
+            reaction->promise_or_capability();
+        std::fprintf(stderr,
+                     "WASM32_REACTION_UNDEFINED phase=input handler=0x%x "
+                     "builtin=%d promise=%d capability=%d\n",
+                     static_cast<unsigned>(handler_value.ptr()),
+                     handler_builtin,
+                     IsJSPromise(diagnostic_promise_or_capability) ? 1 : 0,
+                     IsPromiseCapability(diagnostic_promise_or_capability) ? 1
+                                                                          : 0);
+        std::fflush(stderr);
+      }
+#endif
       if (!IsUndefined(handler_value, roots)) {
         DirectHandle<Object> handler(handler_value, isolate);
         DirectHandle<Object> argument = completion;
@@ -334,6 +368,15 @@ MaybeDirectHandle<Object> MicrotaskQueue::RunMicrotasksWasm(Isolate* isolate) {
         }
       }
 
+#ifdef __wasi__
+      if (false && rejected && IsUndefined(*completion, roots)) {
+        std::fprintf(stderr,
+                     "WASM32_REACTION_UNDEFINED phase=settle handler=0x%x\n",
+                     static_cast<unsigned>(handler_value.ptr()));
+        std::fflush(stderr);
+      }
+#endif
+
       Tagged<HeapObject> promise_or_capability =
           reaction->promise_or_capability();
       if (IsJSPromise(promise_or_capability)) {
@@ -341,7 +384,7 @@ MaybeDirectHandle<Object> MicrotaskQueue::RunMicrotasksWasm(Isolate* isolate) {
             Cast<JSPromise>(promise_or_capability), isolate);
         if (rejected) {
 #ifdef __wasi__
-          if (IsUndefined(*completion, roots)) {
+          if (false && IsUndefined(*completion, roots)) {
             std::fprintf(stderr,
                          "WASM32_REJECT_UNDEFINED source=microtask "
                          "promise=0x%x handler=0x%x\n",

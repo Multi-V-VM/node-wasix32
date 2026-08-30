@@ -1189,6 +1189,7 @@ InitializeOncePerProcessInternal(const std::vector<std::string>& args,
     // In the case of FIPS builds we should make sure
     // the random source is properly initialized first.
 #if OPENSSL_VERSION_MAJOR >= 3
+#ifndef OPENSSL_NO_STDIO
     // Call OPENSSL_init_crypto to initialize OPENSSL_INIT_LOAD_CONFIG to
     // avoid the default behavior where errors raised during the parsing of the
     // OpenSSL configuration file are not propagated and cannot be detected.
@@ -1244,6 +1245,7 @@ InitializeOncePerProcessInternal(const std::vector<std::string>& args,
                                    GetOpenSSLErrorString());
       return result;
     }
+#endif  // !defined(OPENSSL_NO_STDIO)
 #else  // OPENSSL_VERSION_MAJOR < 3
     if (FIPS_mode()) {
       OPENSSL_init();

@@ -696,7 +696,6 @@ int bn_mul_mont(BN_ULONG* rp,
 void bn_correct_top_consttime(BIGNUM* a);
 BIGNUM* int_bn_mod_inverse(
     BIGNUM* in, const BIGNUM* a, const BIGNUM* n, BN_CTX* ctx, int* noinv);
-#define BN_BITS2 32
 
 static ossl_inline BIGNUM* bn_expand(BIGNUM* a, int bits) {
   if (bits > (INT_MAX - BN_BITS2 + 1)) return NULL;

@@ -6460,6 +6460,21 @@ void Isolate::FireCallCompletedCallbackInternal(
     MicrotaskQueue* microtask_queue) {
   DCHECK(thread_local_top()->CallDepthIsZero());
 
+#ifdef __wasi__
+  // The hand-written wasm32 JS entry does not establish an API CallDepthScope.
+  // An API call made while resuming an async function can therefore appear to
+  // be the outermost call. Do not recursively checkpoint or fire embedder
+  // callbacks; the checkpoint that is already running will do so on exit.
+  MicrotaskQueue* first_queue = default_microtask_queue();
+  if (first_queue) {
+    MicrotaskQueue* queue = first_queue;
+    do {
+      if (queue->IsRunningMicrotasks()) return;
+      queue = queue->next();
+    } while (queue && queue != first_queue);
+  }
+#endif
+
   bool perform_checkpoint =
       microtask_queue &&
       microtask_queue->microtasks_policy() == v8::MicrotasksPolicy::kAuto &&
