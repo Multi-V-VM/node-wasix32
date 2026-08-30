@@ -574,10 +574,10 @@ class CompilationStateImpl {
                        std::shared_ptr<Counters> async_counters,
                        WasmDetectedFeatures detected_features);
   ~CompilationStateImpl() {
-    if (baseline_compile_job_->IsValid()) {
+    if (baseline_compile_job_ && baseline_compile_job_->IsValid()) {
       baseline_compile_job_->CancelAndDetach();
     }
-    if (top_tier_compile_job_->IsValid()) {
+    if (top_tier_compile_job_ && top_tier_compile_job_->IsValid()) {
       top_tier_compile_job_->CancelAndDetach();
     }
   }
@@ -3580,6 +3580,12 @@ CompilationStateImpl::CompilationStateImpl(
 void CompilationStateImpl::InitCompileJob() {
   DCHECK_NULL(baseline_compile_job_);
   DCHECK_NULL(top_tier_compile_job_);
+#ifdef __wasi__
+  // WASI has no background worker threads. Keeping compilation synchronous
+  // also avoids crossing the C++ JobHandle virtual-call boundary, whose table
+  // entries are not usable in the wasm32 executable.
+  return;
+#else
   // Create the job, but don't spawn workers yet. This will happen on
   // {NotifyConcurrencyIncrease}.
   baseline_compile_job_ = V8::GetCurrentPlatform()->CreateJob(
@@ -3590,6 +3596,7 @@ void CompilationStateImpl::InitCompileJob() {
       TaskPriority::kUserVisible,
       std::make_unique<BackgroundCompileJob>(
           native_module_weak_, async_counters_, CompilationTier::kTopTier));
+#endif
 }
 
 void CompilationStateImpl::CancelCompilation(
@@ -3959,19 +3966,33 @@ void CompilationStateImpl::AddCallback(
 void CompilationStateImpl::CommitCompilationUnits(
     ZoneVector<WasmCompilationUnit> baseline_units,
     ZoneVector<WasmCompilationUnit> top_tier_units) {
-  ::v8::base::MutexGuard guard{&mutex_};
-  if (!baseline_units.empty() || !top_tier_units.empty()) {
-    compilation_unit_queues_.AddUnits(baseline_units, top_tier_units,
-                                      native_module_->module());
+  const bool has_baseline_units = !baseline_units.empty();
+  {
+    ::v8::base::MutexGuard guard{&mutex_};
+    if (has_baseline_units || !top_tier_units.empty()) {
+      compilation_unit_queues_.AddUnits(baseline_units, top_tier_units,
+                                        native_module_->module());
+    }
+#ifndef __wasi__
+    if (has_baseline_units) {
+      DCHECK(baseline_compile_job_->IsValid());
+      baseline_compile_job_->NotifyConcurrencyIncrease();
+    }
+    if (!top_tier_units.empty()) {
+      DCHECK(top_tier_compile_job_->IsValid());
+      top_tier_compile_job_->NotifyConcurrencyIncrease();
+    }
+#endif
   }
-  if (!baseline_units.empty()) {
-    DCHECK(baseline_compile_job_->IsValid());
-    baseline_compile_job_->NotifyConcurrencyIncrease();
+#ifdef __wasi__
+  // Async WebAssembly compilation does not call WaitForCompilationEvent.
+  // Consume baseline work here, after releasing mutex_, so both sync and async
+  // entry points publish the completion event without a background JobHandle.
+  if (has_baseline_units) {
+    ExecuteCompilationUnits(native_module_weak_, async_counters_.get(), nullptr,
+                            CompilationTier::kBaseline);
   }
-  if (!top_tier_units.empty()) {
-    DCHECK(top_tier_compile_job_->IsValid());
-    top_tier_compile_job_->NotifyConcurrencyIncrease();
-  }
+#endif
 }
 
 void CompilationStateImpl::CommitTopTierCompilationUnit(
@@ -3985,7 +4006,9 @@ void CompilationStateImpl::AddTopTierPriorityCompilationUnit(
   // We should not have a {CodeSpaceWriteScope} open at this point, as
   // {NotifyConcurrencyIncrease} can spawn new threads which could inherit PKU
   // permissions (which would be a security issue).
+#ifndef __wasi__
   top_tier_compile_job_->NotifyConcurrencyIncrease();
+#endif
 }
 
 CompilationUnitQueues::Queue* CompilationStateImpl::GetQueueForCompileTask(
@@ -4343,7 +4366,12 @@ void CompilationStateImpl::WaitForCompilationEvent(
     CompilationEvent expect_event) {
   switch (expect_event) {
     case CompilationEvent::kFinishedBaselineCompilation:
+#ifdef __wasi__
+      ExecuteCompilationUnits(native_module_weak_, async_counters_.get(),
+                              nullptr, CompilationTier::kBaseline);
+#else
       if (baseline_compile_job_->IsValid()) baseline_compile_job_->Join();
+#endif
       break;
     default:
       // Waiting on other CompilationEvent doesn't make sense.

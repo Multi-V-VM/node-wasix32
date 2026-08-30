@@ -137,7 +137,7 @@ void PreparseDataBuilder::ByteData::Finalize(Zone* zone) {
       zone->AllocateArray<uint8_t, RawPreparseData>(index_);
   memcpy(raw_zone_data, byte_data_->data(), index_);
   byte_data_->resize(0);
-  zone_byte_data_ = ZoneVector<uint8_t>(raw_zone_data, index_);
+  new (&zone_byte_data_) ZoneVector<uint8_t>(raw_zone_data, index_);
 #ifdef DEBUG
   is_finalized_ = true;
 #endif
@@ -259,7 +259,8 @@ void PreparseDataBuilder::FinalizeChildren(Zone* zone) {
   ZoneVector<PreparseDataBuilder*> children =
       CloneVector(zone, children_buffer_.ToConstVector());
   children_buffer_.Rewind();
-  children_ = children;
+  new (&children_)
+      ZoneVector<PreparseDataBuilder*>(std::move(children));
 #ifdef DEBUG
   finalized_children_ = true;
 #endif

@@ -1184,12 +1184,14 @@ void WebAssemblyInstantiateImpl(
   Local<Value> first_arg_value = info[0];
   i::DirectHandle<i::Object> first_arg =
       Utils::OpenDirectHandle(*first_arg_value);
+#ifndef __wasi__
   if (!IsJSObject(*first_arg)) {
     thrower.TypeError(
         "Argument 0 must be a buffer source or a WebAssembly.Module object");
     resolver->OnInstantiationFailed(thrower.Reify());
     return;
   }
+#endif
 
   // If info.Length < 2, this will be undefined - see FunctionCallbackInfo.
   Local<Value> ffi = info[1];

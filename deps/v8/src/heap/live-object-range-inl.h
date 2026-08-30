@@ -12,6 +12,8 @@
 #include "src/heap/page-metadata-inl.h"
 #include "src/objects/instance-type-inl.h"
 
+#include <cstdio>
+
 namespace v8::internal {
 
 LiveObjectRange::iterator::iterator() : cage_base_(kNullAddress) {}
@@ -51,6 +53,14 @@ void LiveObjectRange::iterator::AdvanceToNextValidObject() {
 }
 
 bool LiveObjectRange::iterator::AdvanceToNextMarkedObject() {
+  const Address previous_object_address =
+      current_object_.is_null() ? kNullAddress : current_object_.address();
+  const int previous_object_size = current_size_;
+  const Address previous_map =
+      current_object_.is_null() ? kNullAddress : current_map_.ptr();
+  const int previous_type =
+      current_object_.is_null() ? -1
+                                : static_cast<int>(current_map_->instance_type());
   // The following block moves the iterator to the next cell from the current
   // object. This means skipping all possibly set mark bits (in case of black
   // allocation).
@@ -92,6 +102,51 @@ bool LiveObjectRange::iterator::AdvanceToNextMarkedObject() {
       DCHECK(MapWord::IsMapOrForwarded(current_map_));
       current_size_ = ALIGN_TO_ALLOCATION_ALIGNMENT(
           current_object_->SizeFromMap(current_map_));
+#ifdef __wasi__
+      if (!page_->ContainsLimit(object_address + current_size_)) {
+        std::fprintf(stderr,
+                     "WASM32_BAD_LIVE_OBJECT object=0x%x map=0x%x type=%d "
+                     "size=%d page_start=0x%x page_end=0x%x "
+                     "previous=0x%x previous_map=0x%x previous_type=%d "
+                     "previous_size=%d\n",
+                     static_cast<unsigned>(object_address),
+                     static_cast<unsigned>(current_map_.ptr()),
+                     static_cast<int>(current_map_->instance_type()),
+                     current_size_, static_cast<unsigned>(page_->area_start()),
+                     static_cast<unsigned>(page_->area_end()),
+                     static_cast<unsigned>(previous_object_address),
+                     static_cast<unsigned>(previous_map), previous_type,
+                     previous_object_size);
+        std::fprintf(stderr, "WASM32_BAD_LIVE_WORDS");
+        for (int i = -48; i <= 16; ++i) {
+          const Address word_address = object_address + i * kTaggedSize;
+          if (word_address >= page_->area_start() &&
+              word_address + kTaggedSize <= page_->area_end()) {
+            std::fprintf(stderr, " %d:0x%x", i,
+                         static_cast<unsigned>(
+                             base::Memory<uint32_t>(word_address)));
+          }
+        }
+        std::fprintf(stderr, "\n");
+        std::fprintf(stderr, "WASM32_BAD_LIVE_MAPS");
+        for (int i = -48; i <= 16; ++i) {
+          const Address word_address = object_address + i * kTaggedSize;
+          if (word_address < page_->area_start() ||
+              word_address + kTaggedSize > page_->area_end()) {
+            continue;
+          }
+          const Address value = base::Memory<uint32_t>(word_address);
+          if ((value & kHeapObjectTagMask) == kHeapObjectTag &&
+              IsMap(Tagged<Object>(value))) {
+            std::fprintf(stderr, " %d:type=%d", i,
+                         static_cast<int>(
+                             Cast<Map>(Tagged<Object>(value))->instance_type()));
+          }
+        }
+        std::fprintf(stderr, "\n");
+        std::fflush(stderr);
+      }
+#endif
       CHECK(page_->ContainsLimit(object_address + current_size_));
       return true;
     }

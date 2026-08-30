@@ -1,7 +1,5 @@
 #include "module_wrap.h"
 
-#include <cstdio>
-
 #include "env.h"
 #include "memory_tracker-inl.h"
 #include "node_contextify.h"
@@ -19,10 +17,6 @@
 #endif
 
 #include <algorithm>
-
-#ifdef __wasi__
-extern "C" void V8WasiBeginScopeProxyTracking();
-#endif
 
 namespace node {
 namespace loader {
@@ -130,7 +124,9 @@ ModuleWrap* ModuleWrap::GetFromModule(Environment* env,
 
 Maybe<bool> ModuleWrap::CheckUnsettledTopLevelAwait() {
   Isolate* isolate = env()->isolate();
+#ifndef __wasi__
   Local<Context> context = env()->context();
+#endif
 
   // This must be invoked when the environment is shutting down, and the module
   // is kept alive by the module wrap via an internal field.
@@ -147,13 +143,16 @@ Maybe<bool> ModuleWrap::CheckUnsettledTopLevelAwait() {
     return Just(true);
   }
 
-  auto stalled_messages =
-      std::get<1>(module->GetStalledTopLevelAwaitMessages(isolate));
+  auto stalled = module->GetStalledTopLevelAwaitMessages(isolate);
+  auto& stalled_messages = std::get<1>(stalled);
   if (stalled_messages.empty()) {
     return Just(true);
   }
 
   if (env()->options()->warnings) {
+#ifdef __wasi__
+    FPrintF(stderr, "Warning: Detected unsettled top-level await\n");
+#else
     for (auto& message : stalled_messages) {
       std::string reason = "Warning: Detected unsettled top-level await at ";
       std::string info =
@@ -161,6 +160,7 @@ Maybe<bool> ModuleWrap::CheckUnsettledTopLevelAwait() {
       reason += info;
       FPrintF(stderr, "%s\n", reason);
     }
+#endif
   }
 
   return Just(false);
@@ -415,15 +415,6 @@ MaybeLocal<Module> ModuleWrap::CompileSourceTextModule(
   }
 
   Local<Module> module;
-#ifdef __wasi__
-  if (source_text->Length() > 1000000) {
-    V8WasiBeginScopeProxyTracking();
-  }
-  std::fprintf(stderr, "WASI_PARSE_ENTRY length=%d sp=0x%x\n",
-               source_text->Length(),
-               static_cast<unsigned>(reinterpret_cast<uintptr_t>(
-                   __builtin_frame_address(0))));
-#endif
   if (!ScriptCompiler::CompileModule(isolate, &source, options)
            .ToLocal(&module)) {
     return scope.EscapeMaybe(MaybeLocal<Module>());
@@ -663,7 +654,9 @@ void ModuleWrap::Evaluate(const FunctionCallbackInfo<Value>& args) {
   }
 
   CHECK(args[1]->IsBoolean());
+#ifndef __wasi__
   bool break_on_sigint = args[1]->IsTrue();
+#endif
 
   ShouldNotAbortOnUncaughtScope no_abort_scope(realm->env());
   TryCatchScope try_catch(realm->env());
@@ -695,14 +688,22 @@ void ModuleWrap::Evaluate(const FunctionCallbackInfo<Value>& args) {
       microtask_queue->PerformCheckpoint(isolate);
     return result;
   };
-  if (break_on_sigint && timeout != -1) {
+#ifdef __wasi__
+  // WASI cannot safely run the pthread-backed timeout and SIGINT watchdogs.
+  const bool use_timeout_watchdog = false;
+  const bool use_sigint_watchdog = false;
+#else
+  const bool use_timeout_watchdog = timeout != -1;
+  const bool use_sigint_watchdog = break_on_sigint;
+#endif
+  if (use_sigint_watchdog && use_timeout_watchdog) {
     Watchdog wd(isolate, timeout, &timed_out);
     SigintWatchdog swd(isolate, &received_signal);
     result = run();
-  } else if (break_on_sigint) {
+  } else if (use_sigint_watchdog) {
     SigintWatchdog swd(isolate, &received_signal);
     result = run();
-  } else if (timeout != -1) {
+  } else if (use_timeout_watchdog) {
     Watchdog wd(isolate, timeout, &timed_out);
     result = run();
   } else {

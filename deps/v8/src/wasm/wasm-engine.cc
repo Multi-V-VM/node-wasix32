@@ -802,7 +802,11 @@ void WasmEngine::AsyncCompile(
   int compilation_id = next_compilation_id_.fetch_add(1);
   TRACE_EVENT1("v8.wasm", "wasm.AsyncCompile", "id", compilation_id);
 
-  if (!v8_flags.wasm_async_compilation || v8_flags.wasm_jitless) {
+  if (!v8_flags.wasm_async_compilation || v8_flags.wasm_jitless
+#ifdef __wasi__
+      || true
+#endif
+  ) {
     // Asynchronous compilation disabled; fall back on synchronous compilation.
     ErrorThrower thrower(isolate, api_method_name_for_errors);
     MaybeDirectHandle<WasmModuleObject> module_object;
@@ -863,12 +867,14 @@ std::shared_ptr<StreamingDecoder> WasmEngine::StartStreamingCompilation(
   int compilation_id = next_compilation_id_.fetch_add(1);
   TRACE_EVENT1("v8.wasm", "wasm.StartStreamingCompilation", "id",
                compilation_id);
+#ifndef __wasi__
   if (v8_flags.wasm_async_compilation) {
     AsyncCompileJob* job = CreateAsyncCompileJob(
         isolate, enabled, std::move(compile_imports), {}, context,
         api_method_name, std::move(resolver), compilation_id);
     return job->CreateStreamingDecoder();
   }
+#endif
   return StreamingDecoder::CreateSyncStreamingDecoder(
       isolate, enabled, std::move(compile_imports), context, api_method_name,
       std::move(resolver));

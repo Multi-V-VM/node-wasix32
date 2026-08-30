@@ -9,6 +9,9 @@
 // Include the non-inl header before the rest of the headers.
 
 #include "src/base/emulated-virtual-address-subspace.h"
+#ifdef __wasi__
+#include "src/base/platform/memory.h"
+#endif
 #include "src/common/assert-scope.h"
 #include "src/utils/allocation.h"
 // Include VirtualAddressSpace definition for method calls
@@ -101,7 +104,14 @@ void SegmentedTable<Entry, size>::Initialize() {
   vas_ = root_space;
 #endif
 
+#ifdef __wasi__
+  // WASM32 pointers are linear-memory offsets. Do not read the base field
+  // through v8-platform-original.h: its VirtualAddressSpace layout is not the
+  // layout of the base::VirtualAddressSpace object returned by the stub.
+  base_ = nullptr;
+#else
   base_ = reinterpret_cast<Entry*>(vas_->base());
+#endif
 
   if constexpr (kUseContiguousMemory && kIsWriteProtected) {
     CHECK(ThreadIsolation::WriteProtectMemory(
@@ -156,13 +166,33 @@ template <typename Entry, size_t size>
 std::optional<std::pair<typename SegmentedTable<Entry, size>::Segment,
                         typename SegmentedTable<Entry, size>::FreelistHead>>
 SegmentedTable<Entry, size>::TryAllocateAndInitializeSegment() {
+#ifdef __wasi__
+  // wasi-libc's dlmalloc-backed posix_memalign can return an address beyond
+  // the grown linear memory for 64 KiB alignment. Overallocate with regular
+  // malloc and align manually, keeping the allocation pointer immediately
+  // before the aligned segment for FreeTableSegment().
+  constexpr size_t kAllocationSize =
+      2 * kSegmentSize + sizeof(void*);
+  void* allocation = base::Malloc(kAllocationSize);
+  Address start = 0;
+  if (allocation) {
+    Address raw = reinterpret_cast<Address>(allocation) + sizeof(void*);
+    start = (raw + kSegmentSize - 1) & ~(kSegmentSize - 1);
+    reinterpret_cast<void**>(start)[-1] = allocation;
+  }
+#else
   Address start =
       vas_->AllocatePages(VirtualAddressSpace::kNoHint, kSegmentSize,
                           kSegmentSize, PagePermissions::kReadWrite);
+#endif
   if (!start) {
     return {};
   }
+#ifdef __wasi__
+  uint32_t offset = static_cast<uint32_t>(start);
+#else
   uint32_t offset = static_cast<uint32_t>((start - vas_->base()));
+#endif
   Segment segment = Segment::At(offset);
 
   FreelistHead freelist = InitializeFreeList(segment);
@@ -172,8 +202,17 @@ SegmentedTable<Entry, size>::TryAllocateAndInitializeSegment() {
 
 template <typename Entry, size_t size>
 void SegmentedTable<Entry, size>::FreeTableSegment(Segment segment) {
+#ifdef __wasi__
+  Address segment_start = segment.offset();
+#else
   Address segment_start = vas_->base() + segment.offset();
+#endif
+#ifdef __wasi__
+  void* allocation = reinterpret_cast<void**>(segment_start)[-1];
+  base::Free(allocation);
+#else
   vas_->FreePages(segment_start, kSegmentSize);
+#endif
 }
 
 template <typename Entry, size_t size>

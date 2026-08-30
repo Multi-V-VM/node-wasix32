@@ -95,7 +95,13 @@ class Builtins {
   // Disassembler support.
   const char* Lookup(Address pc);
 
-#if !defined(V8_SHORT_BUILTIN_CALLS) || defined(V8_COMPRESS_POINTERS)
+#if defined(V8_TARGET_ARCH_WASM32)
+  // FinalizeBuiltinCodeObjects replaces the promoted builtin Code objects with
+  // mutable Code objects whose instruction starts are WASM entry points.  Keep
+  // the builtin table in the GC root set so those Code objects and their
+  // CodeWrappers remain live.
+  static constexpr bool kCodeObjectsAreInROSpace = false;
+#elif !defined(V8_SHORT_BUILTIN_CALLS) || defined(V8_COMPRESS_POINTERS)
   static constexpr bool kCodeObjectsAreInROSpace = true;
 #else
   static constexpr bool kCodeObjectsAreInROSpace = false;

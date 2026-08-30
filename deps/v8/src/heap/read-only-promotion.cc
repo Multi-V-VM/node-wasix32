@@ -466,6 +466,25 @@ class ReadOnlyPromotionImpl final : public AllStatic {
       VisitObject(isolate, dst, &v);
     }
 
+#ifdef __wasi__
+    for (auto [src, dst] : moves) {
+      if (!IsCode(dst)) continue;
+      Tagged<Code> code = Cast<Code>(dst);
+      Tagged<CodeWrapper> wrapper = code->wrapper();
+      if (!HeapLayout::InReadOnlySpace(wrapper)) {
+        std::fprintf(stderr,
+                     "WASM32_RO_CODE_WRAPPER src=0x%x dst=0x%x builtin=%d "
+                     "wrapper=0x%x wrapper_in_moves=%d\n",
+                     static_cast<unsigned>(src.ptr()),
+                     static_cast<unsigned>(dst.ptr()),
+                     static_cast<int>(code->builtin_id()),
+                     static_cast<unsigned>(wrapper.ptr()),
+                     moves.find(wrapper) != moves.end() ? 1 : 0);
+        std::fflush(stderr);
+      }
+    }
+#endif
+
 #ifdef V8_ENABLE_LEAPTIERING
     // Iterate all entries in the JSDispatchTable as they could contain
     // pointers to promoted Code objects.

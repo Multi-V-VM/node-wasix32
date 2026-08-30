@@ -6,6 +6,7 @@
 
 #include <algorithm>
 #include <cstddef>
+#include <cstdio>
 #include <optional>
 
 #include "src/api/api-inl.h"
@@ -339,6 +340,16 @@ MaybeDirectHandle<Object> MicrotaskQueue::RunMicrotasksWasm(Isolate* isolate) {
         DirectHandle<JSPromise> promise(
             Cast<JSPromise>(promise_or_capability), isolate);
         if (rejected) {
+#ifdef __wasi__
+          if (IsUndefined(*completion, roots)) {
+            std::fprintf(stderr,
+                         "WASM32_REJECT_UNDEFINED source=microtask "
+                         "promise=0x%x handler=0x%x\n",
+                         static_cast<unsigned>((*promise).ptr()),
+                         static_cast<unsigned>(handler_value.ptr()));
+            std::fflush(stderr);
+          }
+#endif
           JSPromise::Reject(promise, completion);
         } else {
           DirectHandle<Object> resolve_result;

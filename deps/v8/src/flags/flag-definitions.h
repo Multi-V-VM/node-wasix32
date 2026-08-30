@@ -809,7 +809,7 @@ DEFINE_STRING(
     "Select which native code sequence to use for wasm trace instruction: "
     "default or cpuid")
 
-#ifdef V8_JITLESS
+#if defined(V8_JITLESS) || defined(V8_TARGET_ARCH_WASM32)
 #define V8_JITLESS_BOOL true
 DEFINE_BOOL_READONLY(jitless, true,
                      "Disable runtime allocation of executable memory.")
@@ -817,7 +817,7 @@ DEFINE_BOOL_READONLY(jitless, true,
 #define V8_JITLESS_BOOL false
 DEFINE_BOOL(jitless, V8_LITE_MODE_BOOL,
             "Disable runtime allocation of executable memory.")
-#endif  // V8_JITLESS
+#endif  // V8_JITLESS || V8_TARGET_ARCH_WASM32
 
 // Jitless V8 has a few implications:
 // Field type tracking is only used by TurboFan.

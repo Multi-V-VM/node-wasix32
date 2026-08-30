@@ -48,10 +48,6 @@
 namespace node {
 namespace contextify {
 
-#ifdef __wasi__
-constexpr bool kTraceWasiContextify = false;
-#endif
-
 using errors::TryCatchScope;
 
 using v8::Array;
@@ -1321,47 +1317,7 @@ bool ContextifyScript::EvalMachine(Local<Context> context,
   bool timed_out = false;
   bool received_signal = false;
   auto run = [&]() {
-    static int wasm_eval_trace_count = 0;
-    const bool trace_eval =
-        kTraceWasiContextify && wasm_eval_trace_count < 16;
-#ifdef __wasi__
-    if (trace_eval) {
-      fprintf(stderr,
-              "ContextifyScript::EvalMachine before Run context=%p "
-              "script=%p\n",
-              *context,
-              *script);
-    }
-#endif
     MaybeLocal<Value> result = script->Run(context);
-#ifdef __wasi__
-    if (trace_eval) {
-      Local<Value> traced_result;
-      bool has_result = result.ToLocal(&traced_result);
-      fprintf(stderr,
-              "ContextifyScript::EvalMachine after Run has_result=%d "
-              "has_exception=%d terminated=%d",
-              has_result,
-              env->isolate()->HasPendingException(),
-              env->isolate()->IsExecutionTerminating());
-      if (has_result) {
-        fprintf(stderr,
-                " result=%p undef=%d null=%d num=%d str=%d bool=%d obj=%d "
-                "func=%d\n",
-                *traced_result,
-                traced_result->IsUndefined(),
-                traced_result->IsNull(),
-                traced_result->IsNumber(),
-                traced_result->IsString(),
-                traced_result->IsBoolean(),
-                traced_result->IsObject(),
-                traced_result->IsFunction());
-      } else {
-        fprintf(stderr, "\n");
-      }
-      wasm_eval_trace_count++;
-    }
-#endif
     if (!result.IsEmpty() && mtask_queue != nullptr)
       mtask_queue->PerformCheckpoint(env->isolate());
     return result;
@@ -1370,14 +1326,16 @@ bool ContextifyScript::EvalMachine(Local<Context> context,
   // creating the timeout watchdog traps before the script can run.
 #ifdef __wasi__
   const bool use_watchdog = false;
+  const bool use_sigint_watchdog = false;
 #else
   const bool use_watchdog = timeout != -1;
+  const bool use_sigint_watchdog = break_on_sigint;
 #endif
-  if (break_on_sigint && use_watchdog) {
+  if (use_sigint_watchdog && use_watchdog) {
     Watchdog wd(env->isolate(), timeout, &timed_out);
     SigintWatchdog swd(env->isolate(), &received_signal);
     result = run();
-  } else if (break_on_sigint) {
+  } else if (use_sigint_watchdog) {
     SigintWatchdog swd(env->isolate(), &received_signal);
     result = run();
   } else if (use_watchdog) {
@@ -1424,23 +1382,6 @@ bool ContextifyScript::EvalMachine(Local<Context> context,
   Local<Value> res;
   if (!result.ToLocal(&res)) return false;
 
-#ifdef __wasi__
-  static int wasm_eval_return_trace_count = 0;
-  if (kTraceWasiContextify && wasm_eval_return_trace_count < 16) {
-    fprintf(stderr,
-            "ContextifyScript::EvalMachine set return res=%p undef=%d "
-            "null=%d num=%d str=%d bool=%d obj=%d func=%d\n",
-            *res,
-            res->IsUndefined(),
-            res->IsNull(),
-            res->IsNumber(),
-            res->IsString(),
-            res->IsBoolean(),
-            res->IsObject(),
-            res->IsFunction());
-    wasm_eval_return_trace_count++;
-  }
-#endif
   args.GetReturnValue().Set(res);
   return true;
 }
@@ -1829,32 +1770,6 @@ static bool ShouldRetryAsESM(Realm* realm,
 
 static void CompileFunctionForCJSLoader(
     const FunctionCallbackInfo<Value>& args) {
-  static int wasm32_cjs_loader_trace_count = 0;
-  if (kTraceWasiContextify && wasm32_cjs_loader_trace_count < 8) {
-    Isolate* trace_isolate = args.GetIsolate();
-    fprintf(stderr,
-            "CompileFunctionForCJSLoader argc=%d\n",
-            args.Length());
-    for (int i = 0; i < args.Length() && i < 8; ++i) {
-      fprintf(stderr,
-              "  cjs_arg[%d]: undef=%d null=%d str=%d num=%d bool=%d true=%d "
-              "false=%d obj=%d abv=%d sym=%d func=%d boolean_value=%d\n",
-              i,
-              args[i]->IsUndefined(),
-              args[i]->IsNull(),
-              args[i]->IsString(),
-              args[i]->IsNumber(),
-              args[i]->IsBoolean(),
-              args[i]->IsTrue(),
-              args[i]->IsFalse(),
-              args[i]->IsObject(),
-              args[i]->IsArrayBufferView(),
-              args[i]->IsSymbol(),
-              args[i]->IsFunction(),
-              args[i]->BooleanValue(trace_isolate));
-    }
-    wasm32_cjs_loader_trace_count++;
-  }
   CHECK(args[0]->IsString());
   CHECK(args[1]->IsString());
   CHECK(args[2]->IsBoolean());

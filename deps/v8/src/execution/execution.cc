@@ -4,10 +4,6 @@
 
 #include "src/execution/execution.h"
 
-#ifdef __wasi__
-#include <cstdio>
-#endif
-
 #include "src/api/api-inl.h"
 #include "src/base/debug/stack_trace.h"
 #include "src/base/logging.h"
@@ -25,6 +21,12 @@
 
 namespace v8 {
 namespace internal {
+
+#if V8_TARGET_ARCH_WASM32
+extern "C" Address WasmJSEntry(Address root, Address new_target,
+                               Address target, Address receiver,
+                               intptr_t argc, Address** argv);
+#endif
 
 namespace {
 
@@ -414,8 +416,10 @@ V8_WARN_UNUSED_RESULT MaybeHandle<Object> Invoke(Isolate* isolate,
           Address root_register_value, Address new_target, Address target,
           Address receiver, intptr_t argc, Address** argv)>;
       // clang-format on
+#if !V8_TARGET_ARCH_WASM32
       JSEntryFunction stub_entry =
           JSEntryFunction::FromAddress(isolate, code->instruction_start());
+#endif
 
       Address orig_func = (*params.new_target).ptr();
       Address func = (*params.target).ptr();
@@ -450,48 +454,14 @@ V8_WARN_UNUSED_RESULT MaybeHandle<Object> Invoke(Isolate* isolate,
       SealHandleScope shs(isolate);
 
       RCS_SCOPE(isolate, RuntimeCallCounterId::kJS_Execution);
-#if defined(__wasi__) && defined(V8_WASM32_DEBUG_TRACE)
-      fprintf(stderr,
-              "Invoke callable before stub entry_code=0x%lx builtin=%d "
-              "entry=0x%lx root=0x%lx new=0x%lx target=0x%lx recv=0x%lx "
-              "argc=%d argv=0x%lx\n",
-              static_cast<unsigned long>(code->ptr()),
-              static_cast<int>(code->builtin_id()),
-              static_cast<unsigned long>(code->instruction_start()),
-              static_cast<unsigned long>(
-                  isolate->isolate_data()->isolate_root()),
-              static_cast<unsigned long>(orig_func),
-              static_cast<unsigned long>(func), static_cast<unsigned long>(recv),
-              argc, static_cast<unsigned long>(reinterpret_cast<Address>(argv)));
-      if (IsJSFunction(*params.target)) {
-        Tagged<JSFunction> target_function = Cast<JSFunction>(*params.target);
-        Tagged<Code> target_code = target_function->code(isolate);
-        fprintf(stderr,
-                "Invoke callable target_js function=0x%lx shared=0x%lx "
-                "context=0x%lx target_code=0x%lx target_builtin=%d "
-                "target_entry=0x%lx raw_cell=0x%lx\n",
-                static_cast<unsigned long>(target_function.ptr()),
-                static_cast<unsigned long>(target_function->shared().ptr()),
-                static_cast<unsigned long>(target_function->context().ptr()),
-                static_cast<unsigned long>(target_code.ptr()),
-                static_cast<int>(target_code->builtin_id()),
-                static_cast<unsigned long>(target_code->instruction_start()),
-                static_cast<unsigned long>(
-                    target_function->raw_feedback_cell().ptr()));
-      }
-      for (int i = 0; i < argc && i < 8; ++i) {
-        fprintf(stderr, "Invoke callable arg[%d]=0x%lx\n", i,
-                static_cast<unsigned long>((*params.args[i]).ptr()));
-      }
-      fflush(stderr);
-#endif
+#if V8_TARGET_ARCH_WASM32
+      value = Tagged<Object>(
+          WasmJSEntry(isolate->isolate_data()->isolate_root(), orig_func, func,
+                      recv, JSParameterCount(argc), argv));
+#else
       value = Tagged<Object>(
           stub_entry.Call(isolate->isolate_data()->isolate_root(), orig_func,
                           func, recv, JSParameterCount(argc), argv));
-#if defined(__wasi__) && defined(V8_WASM32_DEBUG_TRACE)
-      fprintf(stderr, "Invoke callable after stub value=0x%lx\n",
-              static_cast<unsigned long>(value.ptr()));
-      fflush(stderr);
 #endif
     } else {
       DCHECK_EQ(Execution::Target::kRunMicrotasks, params.execution_target);

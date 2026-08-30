@@ -15,46 +15,6 @@
 namespace v8 {
 namespace internal {
 
-#ifdef __wasi__
-namespace {
-
-struct WasiZoneRestoreRange {
-  const Zone* zone;
-  Address begin;
-  Address end;
-};
-
-constexpr size_t kMaxWasiZoneRestoreRanges = 65536;
-WasiZoneRestoreRange g_wasi_zone_restore_ranges[kMaxWasiZoneRestoreRanges];
-size_t g_wasi_zone_restore_range_count = 0;
-
-void RecordWasiZoneRestoreRange(const Zone* zone, Address begin, Address end) {
-  if (begin >= end ||
-      g_wasi_zone_restore_range_count >= kMaxWasiZoneRestoreRanges) {
-    return;
-  }
-  g_wasi_zone_restore_ranges[g_wasi_zone_restore_range_count++] =
-      {zone, begin, end};
-}
-
-}  // namespace
-
-extern "C" int V8WasiFindZoneRestoreRange(const Zone* zone, const void* ptr,
-                                           uintptr_t* begin,
-                                           uintptr_t* end) {
-  Address address = reinterpret_cast<Address>(ptr);
-  for (size_t i = g_wasi_zone_restore_range_count; i > 0; --i) {
-    const WasiZoneRestoreRange& range = g_wasi_zone_restore_ranges[i - 1];
-    if (range.zone == zone && address >= range.begin && address < range.end) {
-      *begin = range.begin;
-      *end = range.end;
-      return static_cast<int>(i);
-    }
-  }
-  return 0;
-}
-#endif
-
 namespace {
 
 #ifdef V8_USE_ADDRESS_SANITIZER
@@ -135,7 +95,7 @@ void Zone::Reset() {
   DCHECK_EQ(segment_bytes_allocated_, keep->total_size());
 }
 
-#if defined(DEBUG) || defined(__wasi__)
+#ifdef DEBUG
 bool Zone::Contains(const void* ptr) const {
   Address address = reinterpret_cast<Address>(ptr);
   for (Segment* segment = segment_head_; segment != nullptr;
@@ -256,11 +216,6 @@ ZoneSnapshot::ZoneSnapshot(const Zone* zone)
 }
 
 void ZoneSnapshot::Restore(Zone* zone) const {
-#ifdef __wasi__
-  Address restored_segment_end =
-      zone->segment_head_ == segment_head_ ? zone->position_ : limit_;
-  RecordWasiZoneRestoreRange(zone, position_, restored_segment_end);
-#endif
   // Release segments up to the stored segment_head_.
   Segment* current = zone->segment_head_;
   while (current != segment_head_) {
@@ -268,9 +223,6 @@ void ZoneSnapshot::Restore(Zone* zone) const {
     // was reset to an earlier snapshot already. We cannot move forward again.
     CHECK_NOT_NULL(current);
     Segment* next = current->next();
-#ifdef __wasi__
-    RecordWasiZoneRestoreRange(zone, current->start(), current->end());
-#endif
     zone->ReleaseSegment(current);
     current = next;
   }

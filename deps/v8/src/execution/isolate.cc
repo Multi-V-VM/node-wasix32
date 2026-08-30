@@ -7685,7 +7685,14 @@ void DefaultWasmAsyncResolvePromiseCallback(
     v8::Isolate* isolate, v8::Local<v8::Context> context,
     v8::Local<v8::Object> resolver, v8::Local<v8::Value> result,
     WasmAsyncSuccess success) {
-  // WASI: Simplified WASM async callback - no-op
+  MicrotasksScope microtasks_scope(context,
+                                   MicrotasksScope::kDoNotRunMicrotasks);
+  v8::Local<v8::Promise::Resolver> promise_resolver =
+      resolver.As<v8::Promise::Resolver>();
+  Maybe<bool> ret = success == WasmAsyncSuccess::kSuccess
+                        ? promise_resolver->Resolve(context, result)
+                        : promise_resolver->Reject(context, result);
+  CHECK(ret.IsJust() ? ret.FromJust() : isolate->IsExecutionTerminating());
 }
 #else
 void DefaultWasmAsyncResolvePromiseCallback(

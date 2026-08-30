@@ -301,6 +301,15 @@ FSReqBase* GetReqWrap(const v8::FunctionCallbackInfo<v8::Value>& args,
       return FSReqPromise<AliasedFloat64Array>::New(binding_data, use_bigint);
     }
   }
+#ifdef __wasi__
+  // Internal promise-mode fs calls can lose the private symbol while crossing
+  // the wasm32 generated-call boundary. They never carry a callback wrapper,
+  // so preserve promise semantics instead of passing null into AsyncCall.
+  if (use_bigint) {
+    return FSReqPromise<AliasedBigInt64Array>::New(binding_data, use_bigint);
+  }
+  return FSReqPromise<AliasedFloat64Array>::New(binding_data, use_bigint);
+#endif
   return nullptr;
 }
 

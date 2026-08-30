@@ -5995,6 +5995,14 @@ void JSDate::SetCachedFields(int64_t local_time_ms, DateCache* date_cache) {
 void JSMessageObject::InitializeSourcePositions(
     Isolate* isolate, DirectHandle<JSMessageObject> message) {
   DCHECK(!message->DidEnsureSourcePositionsAvailable());
+#ifdef __wasi__
+  // wasm32 diagnostics must not force source-position generation for large
+  // scripts. Mark the optional metadata initialized and keep it locationless.
+  message->set_start_position(0);
+  message->set_end_position(0);
+  message->set_shared_info(Smi::zero());
+  return;
+#endif
   Script::InitLineEnds(isolate, direct_handle(message->script(), isolate));
   if (message->shared_info() == Smi::FromInt(-1)) {
     message->set_shared_info(Smi::zero());
@@ -6058,6 +6066,12 @@ Tagged<String> JSMessageObject::GetSource() const {
 DirectHandle<String> JSMessageObject::GetSourceLine() const {
   Isolate* isolate = GetIsolate();
 
+#ifdef __wasi__
+  // Source line metadata is not reliable for large bundled scripts on wasm32.
+  // Keep diagnostics fail-safe; callers still report the resource and offset.
+  return isolate->factory()->empty_string();
+#endif
+
 #if V8_ENABLE_WEBASSEMBLY
   if (script()->type() == Script::Type::kWasm) {
     return isolate->factory()->empty_string();
@@ -6073,7 +6087,13 @@ DirectHandle<String> JSMessageObject::GetSourceLine() const {
     }
   }
 
-  Handle<String> src(Cast<String>(script()->source()), isolate);
+  Tagged<Object> source = script()->source();
+  if (!IsString(source)) return isolate->factory()->empty_string();
+  Handle<String> src(Cast<String>(source), isolate);
+  if (info.line_start < 0 || info.line_end < info.line_start ||
+      info.line_end > src->length()) {
+    return isolate->factory()->empty_string();
+  }
   return isolate->factory()->NewSubString(src, info.line_start, info.line_end);
 }
 

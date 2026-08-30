@@ -156,6 +156,18 @@ Handle<Code> FactoryBase<Impl>::NewCode(const NewCodeOptions& options) {
 
   wrapper->set_code(code);
   code->set_wrapper(*wrapper);
+#ifdef __wasi__
+  if (code->wrapper() != *wrapper || !IsCodeWrapper(code->wrapper())) {
+    std::fprintf(stderr,
+                 "WASM32_BAD_CODE_WRAPPER_CREATE code=0x%x expected=0x%x "
+                 "stored=0x%x offset=%d\n",
+                 static_cast<unsigned>(code.ptr()),
+                 static_cast<unsigned>((*wrapper).ptr()),
+                 static_cast<unsigned>(code->wrapper().ptr()),
+                 Code::kWrapperOffset);
+    std::fflush(stderr);
+  }
+#endif
 
   code->clear_padding();
   return handle(code, isolate());

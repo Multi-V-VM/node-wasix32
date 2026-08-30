@@ -63,6 +63,75 @@ template <typename THeapObjectSlot>
 void MarkingVisitorBase<ConcreteVisitor>::ProcessStrongHeapObject(
     Tagged<HeapObject> host, THeapObjectSlot slot,
     Tagged<HeapObject> heap_object) {
+#ifdef __wasi__
+  MapWord raw_map_word = heap_object->map_word(kRelaxedLoad);
+  Address map_word = raw_map_word.ptr();
+  if ((map_word & kHeapObjectTagMask) == kHeapObjectTag &&
+      !IsMap(Tagged<Object>(map_word))) {
+    std::fprintf(stderr,
+                 "WASM32_BAD_FIELD host=0x%x host_map=0x%x host_type=%d "
+                 "slot=0x%x offset=%d value=0x%x map=0x%x\n",
+                 static_cast<unsigned>(host.ptr()),
+                 static_cast<unsigned>(host->map().ptr()),
+                 static_cast<int>(host->map()->instance_type()),
+                 static_cast<unsigned>(slot.address()),
+                 static_cast<int>(slot.address() - host.address()),
+                 static_cast<unsigned>(heap_object.ptr()),
+                 static_cast<unsigned>(map_word));
+    std::fprintf(stderr, "WASM32_BAD_HOST_WORDS");
+    for (int i = 0; i < 12; ++i) {
+      std::fprintf(stderr, " %d:0x%x", i,
+                   static_cast<unsigned>(
+                       base::Memory<uint32_t>(host.address() + i * 4)));
+    }
+    std::fprintf(stderr, "\n");
+    if (IsCode(host)) {
+      Tagged<Code> code = Cast<Code>(host);
+      std::fprintf(stderr,
+                   "WASM32_BAD_CODE kind=%d builtin_id=%d instruction=0x%x "
+                   "size=%d\n",
+                   static_cast<int>(code->kind()),
+                   static_cast<int>(code->builtin_id()),
+                   static_cast<unsigned>(code->instruction_start()),
+                   code->instruction_size());
+    }
+    std::fflush(stderr);
+  }
+  if ((map_word & kHeapObjectTagMask) != kHeapObjectTag) {
+    Tagged<HeapObject> forwarded =
+        raw_map_word.ToForwardingAddress(heap_object);
+    PrintF("WASM32_STALE_SLOT host_young=%d old_young=%d new_young=%d "
+           "old_contains=%d old_contains_code=%d forwarded=0x%x "
+           "forwarded_map=0x%x\n",
+           HeapLayout::InYoungGeneration(host),
+           HeapLayout::InYoungGeneration(heap_object),
+           HeapLayout::InYoungGeneration(forwarded),
+           heap_->Contains(heap_object), heap_->ContainsCode(heap_object),
+           static_cast<unsigned>(forwarded.ptr()),
+           static_cast<unsigned>(forwarded->map().ptr()));
+    Address old_base = heap_object.address();
+    PrintF("WASM32_STALE_OLD_WORDS base=0x%x", static_cast<unsigned>(old_base));
+    for (int i = -4; i < 16; ++i) {
+      PrintF(" %d:0x%x", i,
+             static_cast<unsigned>(base::Memory<uint32_t>(old_base + i * 4)));
+    }
+    PrintF("\n");
+    Address host_base = host.address();
+    PrintF("WASM32_STALE_HOST_WORDS base=0x%x",
+           static_cast<unsigned>(host_base));
+    for (int i = 0; i < 12; ++i) {
+      PrintF(" %d:0x%x", i,
+             static_cast<unsigned>(base::Memory<uint32_t>(host_base + i * 4)));
+    }
+    PrintF("\n");
+    heap_->isolate()->PushParamsAndDie(
+        reinterpret_cast<void*>(host.ptr()),
+        reinterpret_cast<void*>(heap_object.ptr()),
+        reinterpret_cast<void*>(host->map().ptr()),
+        reinterpret_cast<void*>(slot.address()),
+        reinterpret_cast<void*>(map_word));
+  }
+#endif
   SynchronizePageAccess(heap_object);
   const auto target_worklist =
       MarkingHelper::ShouldMarkObject(heap_, heap_object);

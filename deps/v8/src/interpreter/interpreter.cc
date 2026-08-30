@@ -10,6 +10,9 @@
 #include "builtins-generated/bytecodes-builtins-list.h"
 #include "src/ast/prettyprinter.h"
 #include "src/ast/scopes.h"
+#if V8_TARGET_ARCH_WASM32
+#include "src/builtins/wasm32/builtins-wasm32-abi.h"
+#endif
 #include "src/codegen/compiler.h"
 #include "src/codegen/unoptimized-compilation-info.h"
 #include "src/common/globals.h"
@@ -369,6 +372,37 @@ void Interpreter::Initialize() {
 
     SetBytecodeHandler(bytecode, operand_scale, handler);
   });
+#ifdef __wasi__
+  // Generated handlers tail-dispatch to the next bytecode. Calls are executed
+  // by the C++ wasm32 fallback, so make their dispatch-table entries return to
+  // the outer interpreter loop instead of entering the generated call handler.
+  Address call_barrier =
+      reinterpret_cast<Address>(WasmBuiltinFuncref(Builtin::kIllegal));
+  CHECK_NE(call_barrier, kNullAddress);
+  constexpr Bytecode kCppCallBytecodes[] = {
+      Bytecode::kCallAnyReceiver,
+      Bytecode::kCallProperty,
+      Bytecode::kCallProperty0,
+      Bytecode::kCallProperty1,
+      Bytecode::kCallProperty2,
+      Bytecode::kCallUndefinedReceiver,
+      Bytecode::kCallUndefinedReceiver0,
+      Bytecode::kCallUndefinedReceiver1,
+      Bytecode::kCallUndefinedReceiver2,
+      Bytecode::kCallWithSpread,
+  };
+  constexpr OperandScale kOperandScales[] = {
+      OperandScale::kSingle,
+      OperandScale::kDouble,
+      OperandScale::kQuadruple,
+  };
+  for (Bytecode bytecode : kCppCallBytecodes) {
+    for (OperandScale operand_scale : kOperandScales) {
+      dispatch_table_[GetDispatchTableIndex(bytecode, operand_scale)] =
+          call_barrier;
+    }
+  }
+#endif
   DCHECK(IsDispatchTableInitialized());
 }
 

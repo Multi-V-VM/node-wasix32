@@ -45,17 +45,17 @@ static struct uv__queue slow_io_pending_wq;
 #ifdef __wasi__
 static struct uv__queue wasi_completed_wq;
 static int wasi_completed_wq_initialized;
-static uv_timer_t wasi_work_timer;
-static int wasi_work_timer_initialized;
-static int wasi_work_timer_active;
+static uv_idle_t wasi_work_idle;
+static int wasi_work_idle_initialized;
+static int wasi_work_idle_active;
 
 static void uv__work_done_wasi(void);
 
-static void uv__work_timer_cb(uv_timer_t* timer) {
+static void uv__work_idle_cb(uv_idle_t* idle) {
   uv__work_done_wasi();
   if (uv__queue_empty(&wasi_completed_wq)) {
-    uv_timer_stop(timer);
-    wasi_work_timer_active = 0;
+    uv_idle_stop(idle);
+    wasi_work_idle_active = 0;
   }
 }
 #endif
@@ -299,16 +299,15 @@ void uv__work_submit(uv_loop_t* loop,
     wasi_completed_wq_initialized = 1;
   }
   uv__queue_insert_tail(&wasi_completed_wq, &w->wq);
-  if (!wasi_work_timer_initialized) {
-    if (uv_timer_init(loop, &wasi_work_timer) != 0)
+  if (!wasi_work_idle_initialized) {
+    if (uv_idle_init(loop, &wasi_work_idle) != 0)
       abort();
-    uv_unref((uv_handle_t*) &wasi_work_timer);
-    wasi_work_timer_initialized = 1;
+    wasi_work_idle_initialized = 1;
   }
-  if (!wasi_work_timer_active) {
-    if (uv_timer_start(&wasi_work_timer, uv__work_timer_cb, 0, 1) != 0)
+  if (!wasi_work_idle_active) {
+    if (uv_idle_start(&wasi_work_idle, uv__work_idle_cb) != 0)
       abort();
-    wasi_work_timer_active = 1;
+    wasi_work_idle_active = 1;
   }
 #else
   uv_once(&once, init_once);

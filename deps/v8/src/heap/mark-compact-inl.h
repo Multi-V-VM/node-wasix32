@@ -110,6 +110,19 @@ void RootMarkingVisitor::MarkObjectByPointer(Root root, FullObjectSlot p) {
 #endif
   if (!IsHeapObject(object)) return;
   Tagged<HeapObject> heap_object = Cast<HeapObject>(object);
+#ifdef __wasi__
+  MapWord raw_map_word = heap_object->map_word(kRelaxedLoad);
+  Address map_word = raw_map_word.ptr();
+  if ((map_word & kHeapObjectTagMask) == kHeapObjectTag &&
+      !IsMap(Tagged<Object>(map_word))) {
+    std::fprintf(stderr,
+                 "WASM32_BAD_ROOT root=%d slot=0x%x value=0x%x map=0x%x\n",
+                 static_cast<int>(root), static_cast<unsigned>(p.address()),
+                 static_cast<unsigned>(heap_object.ptr()),
+                 static_cast<unsigned>(map_word));
+    std::fflush(stderr);
+  }
+#endif
   const auto target_worklist =
       MarkingHelper::ShouldMarkObject(collector_->heap(), heap_object);
   if (!target_worklist) {
