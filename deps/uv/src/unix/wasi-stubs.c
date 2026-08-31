@@ -28,6 +28,7 @@
 #include <time.h>
 #include <string.h>
 #include <errno.h>
+#include <poll.h>
 #include <sys/types.h>
 
 // Stub implementations for WASI - Only implement missing functions
@@ -66,14 +67,74 @@ int uv_fs_event_stop(uv_fs_event_t* handle) {
 }
 
 void uv__io_poll(uv_loop_t* loop, int timeout) {
-  // Wasmer's WASI nanosleep can block indefinitely. Keep the event loop
-  // progressing with a bounded monotonic wait until poll_oneoff is wired up.
-  if (timeout > 0) {
-    uint64_t deadline = uv__hrtime(UV_CLOCK_FAST) +
-                        (uint64_t) timeout * 1000000;
-    while (uv__hrtime(UV_CLOCK_FAST) < deadline) {
+  struct uv__queue* q;
+  struct pollfd* poll_fds;
+  uv__io_t** poll_watchers;
+  uv__io_t* w;
+  unsigned int fd;
+  unsigned int i;
+  unsigned int count;
+  int result;
+
+  while (!uv__queue_empty(&loop->watcher_queue)) {
+    q = uv__queue_head(&loop->watcher_queue);
+    uv__queue_remove(q);
+    uv__queue_init(q);
+    w = uv__queue_data(q, uv__io_t, watcher_queue);
+    w->events = w->pevents;
+  }
+
+  count = loop->nfds;
+  if (count == 0) {
+    if (timeout > 0) {
+      uint64_t deadline = uv__hrtime(UV_CLOCK_FAST) +
+                          (uint64_t) timeout * 1000000;
+      while (uv__hrtime(UV_CLOCK_FAST) < deadline) {
+      }
+    }
+    return;
+  }
+
+  poll_fds = uv__malloc(count * sizeof(*poll_fds));
+  poll_watchers = uv__malloc(count * sizeof(*poll_watchers));
+  if (poll_fds == NULL || poll_watchers == NULL)
+    abort();
+
+  i = 0;
+  for (fd = 0; fd < loop->nwatchers && i < count; fd++) {
+    w = loop->watchers[fd];
+    if (w == NULL || w->pevents == 0)
+      continue;
+    poll_fds[i].fd = w->fd;
+    poll_fds[i].events = w->pevents;
+    poll_fds[i].revents = 0;
+    poll_watchers[i] = w;
+    i++;
+  }
+  count = i;
+
+  result = poll(poll_fds, count, timeout);
+  SAVE_ERRNO(uv__update_time(loop));
+
+  if (result > 0) {
+    for (i = 0; i < count; i++) {
+      unsigned int events;
+
+      events = poll_fds[i].revents;
+      if (events == 0)
+        continue;
+      w = poll_watchers[i];
+      fd = poll_fds[i].fd;
+      if (fd >= loop->nwatchers || loop->watchers[fd] != w)
+        continue;
+      events &= w->pevents | POLLERR | POLLHUP | POLLNVAL;
+      if (events != 0)
+        w->cb(loop, w, events);
     }
   }
+
+  uv__free(poll_watchers);
+  uv__free(poll_fds);
 }
 
 void uv__platform_invalidate_fd(uv_loop_t* loop, int fd) {

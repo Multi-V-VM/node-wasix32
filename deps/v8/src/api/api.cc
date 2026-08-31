@@ -2917,6 +2917,18 @@ V8_WARN_UNUSED_RESULT MaybeLocal<Function> ScriptCompiler::CompileFunction(
     fflush(stderr);
     wasm_compile_function_trace_count++;
   }
+  if (has_exception) {
+    String::Utf8Value source_text(v8_context->GetIsolate(),
+                                  source->source_string);
+    const int prefix_length = static_cast<int>(
+        source_text.length() < 160 ? source_text.length() : 160);
+    fprintf(stderr,
+            "WASM32_COMPILE_FUNCTION_FAILURE argc=%zu source_length=%zu "
+            "prefix=%.*s\n",
+            arguments_count, source_text.length(), prefix_length,
+            *source_text);
+    fflush(stderr);
+  }
 #endif
   if (options & kConsumeCodeCache) {
     source->cached_data->rejected = cached_data->rejected();
@@ -3278,6 +3290,14 @@ ScriptOrigin Message::GetScriptOrigin() const {
 }
 
 void ScriptOrigin::VerifyHostDefinedOptions() const {
+#ifdef __wasi__
+  // WASI Local<T> stores tagged pointers directly rather than indirect handle
+  // slots. Script origins produced from internal Script objects are already
+  // type-checked by V8, while re-entering the public Data type predicates here
+  // interprets that direct representation as an indirect handle and can read
+  // outside linear memory while Node is decorating an exception.
+  return;
+#endif
   // TODO(cbruni, chromium:1244145): Remove checks once we allow arbitrary
   // host-defined options.
   if (host_defined_options_.IsEmpty()) return;
@@ -10524,6 +10544,23 @@ bool Isolate::HasPendingException() {
   return try_catch_handler && try_catch_handler->HasCaught();
 }
 
+#ifdef __wasi__
+void Isolate::ClearPendingException() {
+  i::Isolate* i_isolate = reinterpret_cast<i::Isolate*>(this);
+  if (i_isolate->has_exception()) i_isolate->clear_exception();
+  i_isolate->clear_pending_message();
+}
+
+void Isolate::ThrowError(const char* message) {
+  Local<String> text;
+  if (!String::NewFromUtf8(this, message).ToLocal(&text)) {
+    ThrowException(Local<Value>());
+    return;
+  }
+  ThrowException(Exception::Error(text));
+}
+#endif
+
 void Isolate::AddGCPrologueCallback(GCCallbackWithData callback, void* data,
                                     GCType gc_type) {
   i::Isolate* i_isolate = reinterpret_cast<i::Isolate*>(this);
@@ -13331,6 +13368,41 @@ v8::Local<v8::Context> Isolate::GetEnteredOrMicrotaskContext() {
       i_isolate->handle_scope_implementer()->LastEnteredContext();
   if (last.is_null()) return Local<Context>();
   return Utils::ToLocal(last);
+}
+
+v8::Local<Value> Isolate::ThrowException(v8::Local<Value> value) {
+  i::Isolate* i_isolate = reinterpret_cast<i::Isolate*>(this);
+  ENTER_V8_BASIC(i_isolate);
+  i_isolate->clear_internal_exception();
+  if (value.IsEmpty()) {
+    i_isolate->Throw(i::ReadOnlyRoots(i_isolate).undefined_value());
+  } else {
+    i_isolate->Throw(*Utils::OpenDirectHandle(*value));
+  }
+  return v8::Undefined(this);
+}
+
+bool Isolate::HasPendingException() {
+  i::Isolate* i_isolate = reinterpret_cast<i::Isolate*>(this);
+  if (i_isolate->has_exception()) return true;
+  v8::TryCatch* try_catch_handler =
+      i_isolate->thread_local_top()->try_catch_handler_;
+  return try_catch_handler && try_catch_handler->HasCaught();
+}
+
+void Isolate::ClearPendingException() {
+  i::Isolate* i_isolate = reinterpret_cast<i::Isolate*>(this);
+  if (i_isolate->has_exception()) i_isolate->clear_exception();
+  i_isolate->clear_pending_message();
+}
+
+void Isolate::ThrowError(const char* message) {
+  Local<String> text;
+  if (!String::NewFromUtf8(this, message).ToLocal(&text)) {
+    ThrowException(Local<Value>());
+    return;
+  }
+  ThrowException(Exception::Error(text));
 }
 
 // static

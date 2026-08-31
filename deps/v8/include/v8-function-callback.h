@@ -352,6 +352,12 @@ ReturnValue<T>::ReturnValue(internal::Address* slot) : value_(slot) {}
 
 template <typename T>
 void ReturnValue<T>::SetInternal(internal::Address value) {
+#ifdef __wasi__
+  if (value == internal::Internals::IntegralToSmi(0)) {
+    SetNonEmpty(Integer::New(GetIsolate(), 0));
+    return;
+  }
+#endif
 #if V8_STATIC_ROOTS_BOOL
   using I = internal::Internals;
   // Ensure that the upper 32-bits are not modified. Compiler should be

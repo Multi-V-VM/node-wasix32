@@ -78,7 +78,9 @@ static inline std::string GetOpenSSLVersion() {
     return "0.0.0";
   }
 
-  const size_t start = first_space + 1;
+  size_t start = first_space + 1;
+  while (version[start] == ' ') start++;
+  if (version[start] == '\0') return "0.0.0";
   const size_t len = search(&version[start], ' ');
   return std::string(version, start, len);
 }

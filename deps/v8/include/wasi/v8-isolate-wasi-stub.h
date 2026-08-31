@@ -582,10 +582,10 @@ class V8_EXPORT Isolate {
   void CountUsage(UseCounterFeature) {}
   void CountUsage(InvalidatedProtector) {}
   
-  // Exception handling stubs for WASI builds
-  bool HasPendingException() const { return pending_exception_; }
-  void ClearPendingException() { pending_exception_ = false; }
-  void ThrowError(const char* /*message*/) { pending_exception_ = true; }
+  // Exception handling is bridged to the real internal isolate in api.cc.
+  bool HasPendingException();
+  void ClearPendingException();
+  void ThrowError(const char* message);
   
   // Additional methods as needed
   void* GetData(uint32_t slot) { return nullptr; }
@@ -842,11 +842,7 @@ class V8_EXPORT Isolate {
     kUserBlocking = 2,
   };
   
-  // Exception handling
-  Local<Value> ThrowException(Local<Value> exception) {
-    pending_exception_ = true;
-    return exception;
-  }
+  Local<Value> ThrowException(Local<Value> exception);
   
   // Additional methods for Node.js
   // Declaration only - implementation in api.cc
@@ -892,9 +888,6 @@ class V8_EXPORT Isolate {
     // WASI stub - no-op
   }
  
- private:
-  bool pending_exception_ = false;
-
   // MessageErrorLevel type is provided via alias above (no redefinition)
 };
 

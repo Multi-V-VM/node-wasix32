@@ -367,7 +367,12 @@ clobber:
 
 
 static ssize_t uv__fs_open(uv_fs_t* req) {
-#ifdef O_CLOEXEC
+#if defined(__wasi__)
+  /* WASI file descriptors are not inherited through exec. Some WASIX
+   * runtimes reject F_SETFD/FD_CLOEXEC with EINVAL, so the fallback below
+   * would close a successfully opened descriptor and report a false error. */
+  return open(req->path, req->flags, req->mode);
+#elif defined(O_CLOEXEC)
   return open(req->path, req->flags | O_CLOEXEC, req->mode);
 #else  /* O_CLOEXEC */
   int r;
@@ -391,7 +396,7 @@ static ssize_t uv__fs_open(uv_fs_t* req) {
     uv_rwlock_rdunlock(&req->loop->cloexec_lock);
 
   return r;
-#endif  /* O_CLOEXEC */
+#endif  /* __wasi__ */
 }
 
 
