@@ -2917,18 +2917,6 @@ V8_WARN_UNUSED_RESULT MaybeLocal<Function> ScriptCompiler::CompileFunction(
     fflush(stderr);
     wasm_compile_function_trace_count++;
   }
-  if (has_exception) {
-    String::Utf8Value source_text(v8_context->GetIsolate(),
-                                  source->source_string);
-    const int prefix_length = static_cast<int>(
-        source_text.length() < 160 ? source_text.length() : 160);
-    fprintf(stderr,
-            "WASM32_COMPILE_FUNCTION_FAILURE argc=%zu source_length=%zu "
-            "prefix=%.*s\n",
-            arguments_count, source_text.length(), prefix_length,
-            *source_text);
-    fflush(stderr);
-  }
 #endif
   if (options & kConsumeCodeCache) {
     source->cached_data->rejected = cached_data->rejected();

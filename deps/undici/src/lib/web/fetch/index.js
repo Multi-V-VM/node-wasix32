@@ -188,7 +188,9 @@ function fetch (input, init = undefined) {
       // 3. Abort controller with requestObject’s signal’s abort reason.
       controller.abort(requestObject.signal.reason)
 
-      const realResponse = responseObject?.deref()
+      const realResponse = process.arch === 'wasm32'
+        ? responseObject
+        : responseObject?.deref()
 
       // 4. Abort the fetch() call with p, request, responseObject,
       //    and requestObject’s signal’s abort reason.
@@ -232,10 +234,15 @@ function fetch (input, init = undefined) {
 
     // 4. Set responseObject to the result of creating a Response object,
     // given response, "immutable", and relevantRealm.
-    responseObject = new WeakRef(fromInnerResponse(response, 'immutable'))
-
-    // 5. Resolve p with responseObject.
-    p.resolve(responseObject.deref())
+    if (process.arch === 'wasm32') {
+      // WeakRef#deref is not supported by the wasm32 interpreter and returns
+      // Smi zero. Keep the response strongly reachable for this request.
+      responseObject = fromInnerResponse(response, 'immutable')
+      p.resolve(responseObject)
+    } else {
+      responseObject = new WeakRef(fromInnerResponse(response, 'immutable'))
+      p.resolve(responseObject.deref())
+    }
     p = null
   }
 
@@ -950,8 +957,13 @@ function schemeFetch (fetchParams) {
     case 'https:': {
       // Return the result of running HTTP fetch given fetchParams.
 
-      return httpFetch(fetchParams)
-        .catch((err) => makeNetworkError(err))
+      const networkFetch = httpFetch(fetchParams)
+      // The WASM32 interpreter loses the receiver of this nested .catch()
+      // invocation. Returning the original Promise keeps the response object
+      // intact for mainFetch's await.
+      return process.arch === 'wasm32'
+        ? networkFetch
+        : networkFetch.catch((err) => makeNetworkError(err))
     }
     default: {
       return Promise.resolve(makeNetworkError('unknown scheme'))
@@ -1509,7 +1521,11 @@ async function httpNetworkOrCacheFetch (
   //    header if httpRequest’s header list contains that header’s name.
   //    TODO: https://github.com/whatwg/fetch/issues/1285#issuecomment-896560129
   if (!httpRequest.headersList.contains('accept-encoding', true)) {
-    if (urlHasHttpsScheme(requestCurrentURL(httpRequest))) {
+    if (process.arch === 'wasm32') {
+      // The WASM32 V8 bridge cannot safely initialize Node's native zlib
+      // streams from JavaScript options yet. Avoid negotiating compression.
+      httpRequest.headersList.append('accept-encoding', 'identity', true)
+    } else if (urlHasHttpsScheme(requestCurrentURL(httpRequest))) {
       httpRequest.headersList.append('accept-encoding', 'br, gzip, deflate', true)
     } else {
       httpRequest.headersList.append('accept-encoding', 'gzip, deflate', true)

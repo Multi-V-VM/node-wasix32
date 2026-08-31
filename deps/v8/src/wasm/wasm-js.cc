@@ -3674,6 +3674,11 @@ void WasmJs::Install(Isolate* isolate) {
   bool expose_wasm = !i::v8_flags.jitless ||
                      i::v8_flags.correctness_fuzzer_suppressions ||
                      i::v8_flags.wasm_jitless;
+#if V8_TARGET_ARCH_WASM32
+  // The host executable is itself WebAssembly, so Wasm code does not require
+  // allocating native executable memory in this configuration.
+  expose_wasm = true;
+#endif
   if (expose_wasm) {
     DirectHandle<String> WebAssembly_string = v8_str(isolate, "WebAssembly");
     JSObject::AddProperty(isolate, global, WebAssembly_string, webassembly,

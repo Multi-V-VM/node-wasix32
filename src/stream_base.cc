@@ -361,6 +361,14 @@ int StreamBase::WriteString(const FunctionCallbackInfo<Value>& args) {
   if (storage_size > INT_MAX)
     return UV_ENOBUFS;
 
+  // A zero-length write completes synchronously. In particular, do not pass
+  // an empty iovec to uv_try_write(), because the WASI socket implementation
+  // rejects it with EFAULT.
+  if (storage_size == 0) {
+    SetWriteResult(StreamWriteResult { false, 0, nullptr, 0, {} });
+    return 0;
+  }
+
   // Try writing immediately if write size isn't too big
   char stack_storage[16384];  // 16kb
   size_t data_size;

@@ -29,6 +29,7 @@
 #include <string.h>
 #include <errno.h>
 #include <poll.h>
+#include <sched.h>
 #include <sys/types.h>
 
 // Stub implementations for WASI - Only implement missing functions
@@ -87,11 +88,17 @@ void uv__io_poll(uv_loop_t* loop, int timeout) {
   count = loop->nfds;
   if (count == 0) {
     if (timeout > 0) {
-      uint64_t deadline = uv__hrtime(UV_CLOCK_FAST) +
-                          (uint64_t) timeout * 1000000;
-      while (uv__hrtime(UV_CLOCK_FAST) < deadline) {
-      }
+      /*
+       * Do not wait until the next timer deadline here. uv_check callbacks
+       * can create the first I/O watcher (Node uses this for native
+       * immediates), so a long wait would postpone the connect until after
+       * user timers have already fired. Yield briefly and let the next loop
+       * turn run the check phase.
+       */
+      struct timespec ts = {0, 1000000};
+      nanosleep(&ts, NULL);
     }
+    SAVE_ERRNO(uv__update_time(loop));
     return;
   }
 
@@ -113,7 +120,9 @@ void uv__io_poll(uv_loop_t* loop, int timeout) {
   }
   count = i;
 
-  result = poll(poll_fds, count, timeout);
+  result = poll(poll_fds, count, 0);
+  if (result == 0 && timeout != 0)
+    sched_yield();
   SAVE_ERRNO(uv__update_time(loop));
 
   if (result > 0) {
@@ -132,6 +141,7 @@ void uv__io_poll(uv_loop_t* loop, int timeout) {
         w->cb(loop, w, events);
     }
   }
+
 
   uv__free(poll_watchers);
   uv__free(poll_fds);

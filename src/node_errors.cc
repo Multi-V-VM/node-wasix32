@@ -100,10 +100,8 @@ static std::string GetErrorSource(Isolate* isolate,
   // required by V8's Message source-position accessors. Source decoration is
   // optional, so avoid consulting that metadata while retaining the original
   // exception and stack.
-  *added_exception_line = true;
-  return SPrintF("<wasi script position %d:%d>",
-                 message->GetStartPosition(),
-                 message->GetEndPosition());
+  *added_exception_line = false;
+  return std::string();
 #endif
   MaybeLocal<String> source_line_maybe = message->GetSourceLine(context);
   node::Utf8Value encoded_source(isolate, source_line_maybe.ToLocalChecked());

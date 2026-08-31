@@ -1287,21 +1287,6 @@ class ElementsAccessorBase : public InternalElementsAccessor {
 #endif
     // Non-dictionary elements can't have all-can-read accessors.
     size_t length = Subclass::GetMaxIndex(*object, *backing_store);
-#ifdef __wasi__
-    static int wasm_collect_indices_trace_count = 0;
-    if (wasm_collect_indices_trace_count < 200) {
-      fprintf(stderr,
-              "CollectElementIndicesImpl #%d kind=%d object=0x%x "
-              "elements=0x%x length=%zu filter=%d is_array=%d "
-              "object_map=0x%x elements_map=0x%x\n",
-              ++wasm_collect_indices_trace_count, static_cast<int>(kind()),
-              static_cast<unsigned>(object->ptr()),
-              static_cast<unsigned>(backing_store->ptr()), length,
-              static_cast<int>(keys->filter()), IsJSArray(*object),
-              static_cast<unsigned>(object->map()->ptr()),
-              static_cast<unsigned>(backing_store->map()->ptr()));
-    }
-#endif
     PropertyFilter filter = keys->filter();
     Isolate* isolate = keys->isolate();
     Factory* factory = isolate->factory();

@@ -537,15 +537,6 @@ Expression* Parser::NewV8Intrinsic(const AstRawString* name,
 
   if (!name->is_one_byte()) {
     // There are no two-byte named intrinsics.
-#ifdef __wasi__
-    fprintf(stderr,
-            "WASM32_BAD_INTRINSIC_2B pos=%d argc=%d len=%d native=%d "
-            "extension=%d first=0x%x\n",
-            pos, args.length(), name->length(),
-            flags().allow_natives_syntax(), ParsingExtension(),
-            name->length() == 0 ? 0 : name->raw_data()[0]);
-    fflush(stderr);
-#endif
     ReportMessage(MessageTemplate::kNotDefined, name);
     return FailureExpression();
   }
@@ -559,12 +550,6 @@ Expression* Parser::NewV8Intrinsic(const AstRawString* name,
   }
 
   if (function == nullptr) {
-#ifdef __wasi__
-    fprintf(stderr, "WASM32_BAD_INTRINSIC pos=%d argc=%d name=%.*s\n", pos,
-            args.length(), name->length(),
-            reinterpret_cast<const char*>(name->raw_data()));
-    fflush(stderr);
-#endif
     ReportMessage(MessageTemplate::kNotDefined, name);
     return FailureExpression();
   }

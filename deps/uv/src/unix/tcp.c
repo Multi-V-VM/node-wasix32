@@ -340,7 +340,9 @@ out:
   uv__queue_init(&req->queue);
   handle->connect_req = req;
 
-  uv__io_start(handle->loop, &handle->io_watcher, POLLOUT);
+  err = uv__io_start(handle->loop, &handle->io_watcher, POLLOUT);
+  if (err)
+    return err;
 
   if (handle->delayed_error)
     uv__io_feed(handle->loop, &handle->io_watcher);
