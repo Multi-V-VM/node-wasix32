@@ -451,16 +451,14 @@ class Parser : public AsyncWrap, public StreamListener {
       if (head_response.IsEmpty()) callback_scope.MarkAsFailed();
     }
 
-    int64_t val;
-
-    if (head_response.IsEmpty() || !head_response.ToLocalChecked()
-                                        ->IntegerValue(env()->context())
-                                        .To(&val)) {
+    if (head_response.IsEmpty() ||
+        !head_response.ToLocalChecked()->IsNumber()) {
       got_exception_ = true;
       return -1;
     }
 
-    return static_cast<int>(val);
+    return static_cast<int>(
+        head_response.ToLocalChecked().As<Number>()->Value());
   }
 
 

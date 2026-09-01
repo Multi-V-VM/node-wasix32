@@ -1814,18 +1814,17 @@ async function httpNetworkFetch (
     // 2. Otherwise, if body is non-null:
 
     //    1. Let processBodyChunk given bytes be these steps:
-    const processBodyChunk = async function * (bytes) {
+    const processBodyChunk = (bytes) => {
       // 1. If the ongoing fetch is terminated, then abort these steps.
       if (isCancelled(fetchParams)) {
-        return
+        return false
       }
 
       // 2. Run this step in parallel: transmit bytes.
-      yield bytes
-
       // 3. If fetchParams’s process request body is non-null, then run
       // fetchParams’s process request body given bytes’s length.
       fetchParams.processRequestBodyChunkLength?.(bytes.byteLength)
+      return true
     }
 
     // 2. Let processEndOfBody be these steps:
@@ -1859,16 +1858,40 @@ async function httpNetworkFetch (
 
     // 4. Incrementally read request’s body given processBodyChunk, processEndOfBody,
     // processBodyError, and fetchParams’s task destination.
-    requestBody = (async function * () {
-      try {
-        for await (const bytes of request.body.stream) {
-          yield * processBodyChunk(bytes)
+    if (request.body.source != null) {
+      requestBody = request.body.source
+      queueMicrotask(processEndOfBody)
+    } else {
+      const reader = request.body.stream.getReader()
+      let requestBodyDone = false
+      requestBody = {
+        [Symbol.asyncIterator] () {
+          return this
+        },
+        async next () {
+          if (requestBodyDone) {
+            return { done: true, value: undefined }
+          }
+          try {
+            const { done, value } = await reader.read()
+            if (done) {
+              requestBodyDone = true
+              processEndOfBody()
+              return { done: true, value: undefined }
+            }
+            if (!processBodyChunk(value)) {
+              requestBodyDone = true
+              return { done: true, value: undefined }
+            }
+            return { done: false, value }
+          } catch (err) {
+            requestBodyDone = true
+            processBodyError(err)
+            throw err
+          }
         }
-        processEndOfBody()
-      } catch (err) {
-        processBodyError(err)
       }
-    })()
+    }
   }
 
   try {

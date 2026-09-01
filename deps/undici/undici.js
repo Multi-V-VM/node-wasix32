@@ -6847,7 +6847,7 @@ var require_client_h1 = __commonJS({
           socket[kBlocking] = false;
           client[kResume]();
         }
-        return constants.ERROR.OK;
+        return pause ? constants.ERROR.PAUSED : constants.ERROR.OK;
       }
       /**
        * @param {Buffer} buf
@@ -7387,8 +7387,12 @@ upgrade: ${upgrade}\r
       }), "waitForDrain");
       socket.on("close", onDrain).on("drain", onDrain);
       const writer = new AsyncWriter({ abort, socket, request, contentLength, client, expectsPayload, header });
+      const iterator = body[Symbol.asyncIterator]();
       try {
-        for await (const chunk of body) {
+        for (; ; ) {
+          const { done, value: chunk } = await iterator.next();
+          if (done)
+            break;
           if (socket[kError]) {
             throw socket[kError];
           }
@@ -8122,8 +8126,12 @@ var require_client_h2 = __commonJS({
         }
       }), "waitForDrain");
       h2stream.on("close", onDrain).on("drain", onDrain);
+      const iterator = body[Symbol.asyncIterator]();
       try {
-        for await (const chunk of body) {
+        for (; ; ) {
+          const { done, value: chunk } = await iterator.next();
+          if (done)
+            break;
           if (socket[kError]) {
             throw socket[kError];
           }
@@ -11791,12 +11799,12 @@ var require_fetch = __commonJS({
       if (request.body == null && fetchParams.processRequestEndOfBody) {
         queueMicrotask(() => fetchParams.processRequestEndOfBody());
       } else if (request.body != null) {
-        const processBodyChunk = /* @__PURE__ */ __name(async function* (bytes) {
+        const processBodyChunk = /* @__PURE__ */ __name((bytes) => {
           if (isCancelled(fetchParams)) {
-            return;
+            return false;
           }
-          yield bytes;
           fetchParams.processRequestBodyChunkLength?.(bytes.byteLength);
+          return true;
         }, "processBodyChunk");
         const processEndOfBody = /* @__PURE__ */ __name(() => {
           if (isCancelled(fetchParams)) {
@@ -11816,16 +11824,40 @@ var require_fetch = __commonJS({
             fetchParams.controller.terminate(e);
           }
         }, "processBodyError");
-        requestBody = async function* () {
-          try {
-            for await (const bytes of request.body.stream) {
-              yield* processBodyChunk(bytes);
+        if (request.body.source != null) {
+          requestBody = request.body.source;
+          queueMicrotask(processEndOfBody);
+        } else {
+          const reader = request.body.stream.getReader();
+          let requestBodyDone = false;
+          requestBody = {
+            [Symbol.asyncIterator]() {
+              return this;
+            },
+            async next() {
+              if (requestBodyDone) {
+                return { done: true, value: void 0 };
+              }
+              try {
+                const { done, value } = await reader.read();
+                if (done) {
+                  requestBodyDone = true;
+                  processEndOfBody();
+                  return { done: true, value: void 0 };
+                }
+                if (!processBodyChunk(value)) {
+                  requestBodyDone = true;
+                  return { done: true, value: void 0 };
+                }
+                return { done: false, value };
+              } catch (err) {
+                requestBodyDone = true;
+                processBodyError(err);
+                throw err;
+              }
             }
-            processEndOfBody();
-          } catch (err) {
-            processBodyError(err);
-          }
-        }();
+          };
+        }
       }
       try {
         const { body, status, statusText, headersList, socket } = await dispatch({ body: requestBody });

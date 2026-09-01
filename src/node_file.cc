@@ -2148,7 +2148,16 @@ static void Open(const FunctionCallbackInfo<Value>& args) {
   CHECK_GE(argc, 3);
 
   BufferValue path(env->isolate(), args[0]);
-  CHECK_NOT_NULL(*path);
+  if (*path == nullptr) {
+    THROW_ERR_INVALID_ARG_TYPE(
+        env, "The \"path\" argument must be a string, Buffer, or URL.");
+#ifdef __wasi__
+    std::fprintf(stderr, "WASM32_FS_OPEN_THROW pending=%d\n",
+                 env->isolate()->HasPendingException() ? 1 : 0);
+    std::fflush(stderr);
+#endif
+    return;
+  }
   ToNamespacedPath(env, &path);
 
   CHECK(args[1]->IsInt32());
