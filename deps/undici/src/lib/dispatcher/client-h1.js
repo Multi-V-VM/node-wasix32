@@ -727,7 +727,7 @@ class Parser {
       client[kResume]()
     }
 
-    return pause ? constants.ERROR.PAUSED : 0
+    return constants.ERROR.OK
   }
 
   /**
@@ -744,7 +744,12 @@ class Parser {
     const request = client[kQueue][client[kRunningIdx]]
     assert(request)
 
-    assert(this.timeoutType === TIMEOUT_BODY)
+    if (this.timeoutType !== TIMEOUT_BODY) {
+      const bodyTimeout = request.bodyTimeout != null
+        ? request.bodyTimeout
+        : client[kBodyTimeout]
+      this.setTimeout(bodyTimeout, TIMEOUT_BODY)
+    }
     if (this.timeout) {
       // istanbul ignore else: only for jest
       if (this.timeout.refresh) {
@@ -1166,6 +1171,12 @@ function writeH1 (client, request) {
   }
 
   const socket = client[kSocket]
+  if (socket[kParser].timeoutType !== TIMEOUT_HEADERS) {
+    const headersTimeout = request.headersTimeout != null
+      ? request.headersTimeout
+      : client[kHeadersTimeout]
+    socket[kParser].setTimeout(headersTimeout, TIMEOUT_HEADERS)
+  }
 
   /**
    * @param {Error} [err]

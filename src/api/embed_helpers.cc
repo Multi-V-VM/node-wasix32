@@ -45,8 +45,7 @@ Maybe<ExitCode> SpinEventLoopInternal(Environment* env) {
     env->performance_state()->Mark(
         node::performance::NODE_PERFORMANCE_MILESTONE_LOOP_START);
     do {
-      if (env->is_stopping()) break;
-      uv_run(env->event_loop(), UV_RUN_DEFAULT);
+      if (env->is_stopping()) break;      uv_run(env->event_loop(), UV_RUN_DEFAULT);
       if (env->is_stopping()) break;
 
       platform->DrainTasks(isolate);

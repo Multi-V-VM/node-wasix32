@@ -431,8 +431,7 @@ int uv_run(uv_loop_t* loop, uv_run_mode mode) {
   int r;
   int can_sleep;
 
-  r = uv__loop_alive(loop);
-  if (!r)
+  r = uv__loop_alive(loop);  if (!r)
     uv__update_time(loop);
 
   /* Maintain backwards compatibility by processing timers before entering the
@@ -440,9 +439,7 @@ int uv_run(uv_loop_t* loop, uv_run_mode mode) {
    * once, which should be done after polling in order to maintain proper
    * execution order of the conceptual event loop. */
   if (mode == UV_RUN_DEFAULT && r != 0 && loop->stop_flag == 0) {
-    uv__update_time(loop);
-    uv__run_timers(loop);
-  }
+    uv__update_time(loop);    uv__run_timers(loop);  }
 
   while (r != 0 && loop->stop_flag == 0) {
     can_sleep =
@@ -458,9 +455,7 @@ int uv_run(uv_loop_t* loop, uv_run_mode mode) {
       timeout = uv__backend_timeout(loop);
 
     uv__metrics_inc_loop_count(loop);
-
     uv__io_poll(loop, timeout);
-
     /* Process immediate callbacks (e.g. write_cb) a small fixed number of
      * times to avoid loop starvation.*/
     for (r = 0; r < 8 && !uv__queue_empty(&loop->pending_queue); r++)

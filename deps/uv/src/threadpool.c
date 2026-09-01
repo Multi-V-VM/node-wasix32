@@ -42,24 +42,6 @@ static struct uv__queue wq;
 static struct uv__queue run_slow_work_message;
 static struct uv__queue slow_io_pending_wq;
 
-#ifdef __wasi__
-static struct uv__queue wasi_completed_wq;
-static int wasi_completed_wq_initialized;
-static uv_idle_t wasi_work_idle;
-static int wasi_work_idle_initialized;
-static int wasi_work_idle_active;
-
-static void uv__work_done_wasi(void);
-
-static void uv__work_idle_cb(uv_idle_t* idle) {
-  uv__work_done_wasi();
-  if (uv__queue_empty(&wasi_completed_wq)) {
-    uv_idle_stop(idle);
-    wasi_work_idle_active = 0;
-  }
-}
-#endif
-
 static unsigned int slow_work_thread_threshold(void) {
   return (nthreads + 1) / 2;
 }
@@ -293,22 +275,12 @@ void uv__work_submit(uv_loop_t* loop,
   w->done = done;
   uv__queue_init(&w->wq);
   work(w);
+
+  uv_mutex_lock(&loop->wq_mutex);
   w->work = NULL;
-  if (!wasi_completed_wq_initialized) {
-    uv__queue_init(&wasi_completed_wq);
-    wasi_completed_wq_initialized = 1;
-  }
-  uv__queue_insert_tail(&wasi_completed_wq, &w->wq);
-  if (!wasi_work_idle_initialized) {
-    if (uv_idle_init(loop, &wasi_work_idle) != 0)
-      abort();
-    wasi_work_idle_initialized = 1;
-  }
-  if (!wasi_work_idle_active) {
-    if (uv_idle_start(&wasi_work_idle, uv__work_idle_cb) != 0)
-      abort();
-    wasi_work_idle_active = 1;
-  }
+  uv__queue_insert_tail(&loop->wq, &w->wq);
+  uv_async_send(&loop->wq_async);
+  uv_mutex_unlock(&loop->wq_mutex);
 #else
   uv_once(&once, init_once);
   w->loop = loop;
@@ -317,31 +289,6 @@ void uv__work_submit(uv_loop_t* loop,
   post(&w->wq, kind);
 #endif
 }
-
-
-#ifdef __wasi__
-static void uv__work_done_wasi(void) {
-  struct uv__queue completed;
-  struct uv__queue* q;
-  struct uv__work* w;
-
-  if (!wasi_completed_wq_initialized)
-    return;
-
-  if (uv__queue_empty(&wasi_completed_wq))
-    return;
-
-  uv__queue_move(&wasi_completed_wq, &completed);
-  while (!uv__queue_empty(&completed)) {
-    q = uv__queue_head(&completed);
-    uv__queue_remove(q);
-    uv__queue_init(q);
-    w = container_of(q, struct uv__work, wq);
-    w->done(w, 0);
-  }
-}
-#endif
-
 
 /* TODO(bnoordhuis) teach libuv how to cancel file operations
  * that go through io_uring instead of the thread pool.
@@ -381,8 +328,7 @@ void uv__work_done(uv_async_t* handle) {
   int err;
   int nevents;
 
-  loop = container_of(handle, uv_loop_t, wq_async);
-  uv_mutex_lock(&loop->wq_mutex);
+  loop = container_of(handle, uv_loop_t, wq_async);  uv_mutex_lock(&loop->wq_mutex);
   uv__queue_move(&loop->wq, &wq);
   uv_mutex_unlock(&loop->wq_mutex);
 

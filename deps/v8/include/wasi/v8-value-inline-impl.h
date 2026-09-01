@@ -19,6 +19,16 @@ inline bool WasiHasStrongHeapObjectTag(internal::Address value) {
   return value > 1 && ((value & 1) == 1);
 }
 
+inline bool WasiTryGetSmiValue(const Value* value, int64_t* result) {
+  constexpr internal::Address kSmiTagMask = 1;
+  constexpr int kSmiTagSize = 1;
+  const internal::Address tagged = WasiTaggedValueFromApiValue(value);
+  if ((tagged & kSmiTagMask) != 0) return false;
+  *result = static_cast<int64_t>(static_cast<intptr_t>(tagged)) >>
+            kSmiTagSize;
+  return true;
+}
+
 inline int WasiOddballKindFromTaggedValue(internal::Address value) {
   static constexpr int kHeapObjectTag = 1;
   static constexpr int kHeapObjectMapOffset = 0;
@@ -64,23 +74,33 @@ inline bool Value::IsString() const {
 
 // Add missing Value methods that Node.js expects
 inline Maybe<int64_t> Value::IntegerValue(Local<Context> context) const {
-  // For WASI stub, return a default value
-  return Just<int64_t>(0);
+  int64_t value;
+  if (internal::WasiTryGetSmiValue(this, &value)) return Just(value);
+  return Nothing<int64_t>();
 }
 
 inline Maybe<int32_t> Value::Int32Value(Local<Context> context) const {
-  // For WASI stub, return a default value
-  return Just<int32_t>(0);
+  int64_t value;
+  if (internal::WasiTryGetSmiValue(this, &value)) {
+    return Just(static_cast<int32_t>(value));
+  }
+  return Nothing<int32_t>();
 }
 
 inline Maybe<uint32_t> Value::Uint32Value(Local<Context> context) const {
-  // For WASI stub, return a default value
-  return Just<uint32_t>(0);
+  int64_t value;
+  if (internal::WasiTryGetSmiValue(this, &value)) {
+    return Just(static_cast<uint32_t>(value));
+  }
+  return Nothing<uint32_t>();
 }
 
 inline Maybe<double> Value::NumberValue(Local<Context> context) const {
-  // For WASI stub, return a default value
-  return Just<double>(0.0);
+  int64_t value;
+  if (internal::WasiTryGetSmiValue(this, &value)) {
+    return Just(static_cast<double>(value));
+  }
+  return Nothing<double>();
 }
 
 // WASI stubs for Full* methods

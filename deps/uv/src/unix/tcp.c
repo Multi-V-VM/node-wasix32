@@ -344,8 +344,16 @@ out:
   if (err)
     return err;
 
+  /*
+   * WASIX connect(2) can complete synchronously but does not subsequently
+   * report POLLOUT. Feed the normal libuv completion path in that case.
+   */
+#if defined(__wasi__) || defined(UV_WASI_STUBS)
+  uv__io_feed(handle->loop, &handle->io_watcher);
+#else
   if (handle->delayed_error)
     uv__io_feed(handle->loop, &handle->io_watcher);
+#endif
 
   return 0;
 }

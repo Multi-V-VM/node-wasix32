@@ -6847,7 +6847,7 @@ var require_client_h1 = __commonJS({
           socket[kBlocking] = false;
           client[kResume]();
         }
-        return pause ? constants.ERROR.PAUSED : 0;
+        return constants.ERROR.OK;
       }
       /**
        * @param {Buffer} buf
@@ -6860,7 +6860,10 @@ var require_client_h1 = __commonJS({
         }
         const request = client[kQueue][client[kRunningIdx]];
         assert(request);
-        assert(this.timeoutType === TIMEOUT_BODY);
+        if (this.timeoutType !== TIMEOUT_BODY) {
+          const bodyTimeout = request.bodyTimeout != null ? request.bodyTimeout : client[kBodyTimeout];
+          this.setTimeout(bodyTimeout, TIMEOUT_BODY);
+        }
         if (this.timeout) {
           if (this.timeout.refresh) {
             this.timeout.refresh();
@@ -7147,6 +7150,10 @@ var require_client_h1 = __commonJS({
         process.emitWarning(new RequestContentLengthMismatchError());
       }
       const socket = client[kSocket];
+      if (socket[kParser].timeoutType !== TIMEOUT_HEADERS) {
+        const headersTimeout = request.headersTimeout != null ? request.headersTimeout : client[kHeadersTimeout];
+        socket[kParser].setTimeout(headersTimeout, TIMEOUT_HEADERS);
+      }
       const abort = /* @__PURE__ */ __name((err) => {
         if (request.aborted || request.completed) {
           return;
@@ -11825,8 +11832,44 @@ var require_fetch = __commonJS({
         if (socket) {
           response = makeResponse({ status, statusText, headersList, socket });
         } else {
-          const iterator = body[Symbol.asyncIterator]();
-          fetchParams.controller.next = () => iterator.next();
+          const bodyQueue = [];
+          let bodyDone = false;
+          let bodyError = null;
+          let pendingBodyRead = null;
+          body.on("data", (value) => {
+            const entry = { done: false, value };
+            if (pendingBodyRead) {
+              const { resolve } = pendingBodyRead;
+              pendingBodyRead = null;
+              resolve(entry);
+            } else {
+              bodyQueue.push(entry);
+            }
+          });
+          body.once("end", () => {
+            bodyDone = true;
+            if (pendingBodyRead) {
+              const { resolve } = pendingBodyRead;
+              pendingBodyRead = null;
+              resolve({ done: true, value: void 0 });
+            }
+          });
+          body.once("error", (error) => {
+            bodyError = error;
+            if (pendingBodyRead) {
+              const { reject } = pendingBodyRead;
+              pendingBodyRead = null;
+              reject(error);
+            }
+          });
+          fetchParams.controller.next = () => {
+            if (bodyQueue.length) return Promise.resolve(bodyQueue.shift());
+            if (bodyError) return Promise.reject(bodyError);
+            if (bodyDone) return Promise.resolve({ done: true, value: void 0 });
+            return new Promise((resolve, reject) => {
+              pendingBodyRead = { resolve, reject };
+            });
+          };
           response = makeResponse({ status, statusText, headersList });
         }
       } catch (err) {

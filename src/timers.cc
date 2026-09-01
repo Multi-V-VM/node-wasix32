@@ -7,10 +7,6 @@
 #include "v8.h"
 
 #include <cstdint>
-#ifdef __wasi__
-#include <stdio.h>
-#endif
-
 namespace node {
 namespace timers {
 
@@ -51,15 +47,13 @@ void BindingData::SlowScheduleTimer(const FunctionCallbackInfo<Value>& args) {
   int64_t duration;
   if (args[0]
           ->IntegerValue(args.GetIsolate()->GetCurrentContext())
-          .To(&duration)) {
-    ScheduleTimerImpl(Realm::GetBindingData<BindingData>(args), duration);
+          .To(&duration)) {    ScheduleTimerImpl(Realm::GetBindingData<BindingData>(args), duration);
   }
 }
 
 void BindingData::FastScheduleTimer(Local<Object> unused,
                                     Local<Object> receiver,
-                                    int64_t duration) {
-  ScheduleTimerImpl(FromJSObject<BindingData>(receiver), duration);
+                                    int64_t duration) {  ScheduleTimerImpl(FromJSObject<BindingData>(receiver), duration);
 }
 
 void BindingData::ScheduleTimerImpl(BindingData* data, int64_t duration) {

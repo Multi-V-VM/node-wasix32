@@ -1878,8 +1878,44 @@ async function httpNetworkFetch (
     if (socket) {
       response = makeResponse({ status, statusText, headersList, socket })
     } else {
-      const iterator = body[Symbol.asyncIterator]()
-      fetchParams.controller.next = () => iterator.next()
+      const bodyQueue = []
+      let bodyDone = false
+      let bodyError = null
+      let pendingBodyRead = null
+      body.on('data', (value) => {
+        const entry = { done: false, value }
+        if (pendingBodyRead) {
+          const { resolve } = pendingBodyRead
+          pendingBodyRead = null
+          resolve(entry)
+        } else {
+          bodyQueue.push(entry)
+        }
+      })
+      body.once('end', () => {
+        bodyDone = true
+        if (pendingBodyRead) {
+          const { resolve } = pendingBodyRead
+          pendingBodyRead = null
+          resolve({ done: true, value: undefined })
+        }
+      })
+      body.once('error', (error) => {
+        bodyError = error
+        if (pendingBodyRead) {
+          const { reject } = pendingBodyRead
+          pendingBodyRead = null
+          reject(error)
+        }
+      })
+      fetchParams.controller.next = () => {
+        if (bodyQueue.length) return Promise.resolve(bodyQueue.shift())
+        if (bodyError) return Promise.reject(bodyError)
+        if (bodyDone) return Promise.resolve({ done: true, value: undefined })
+        return new Promise((resolve, reject) => {
+          pendingBodyRead = { resolve, reject }
+        })
+      }
 
       response = makeResponse({ status, statusText, headersList })
     }

@@ -29,7 +29,6 @@
 #include <string.h>
 #include <errno.h>
 #include <poll.h>
-#include <sched.h>
 #include <sys/types.h>
 
 // Stub implementations for WASI - Only implement missing functions
@@ -120,16 +119,23 @@ void uv__io_poll(uv_loop_t* loop, int timeout) {
   }
   count = i;
 
-  result = poll(poll_fds, count, 0);
-  if (result == 0 && timeout != 0)
-    sched_yield();
+  /*
+   * WASIX advances socket readiness only while poll is allowed to wait. A
+   * zero-time poll therefore cannot observe a nonblocking connect completion.
+   * Keep libuv's timer deadline intact, but give active I/O enough time to
+   * reach the WASIX readiness scheduler when the loop requests a
+   * nonblocking turn.
+   */
+  result = poll(poll_fds, count, timeout == 0 ? 1000 : timeout);
   SAVE_ERRNO(uv__update_time(loop));
 
-  if (result > 0) {
+  if (result >= 0) {
     for (i = 0; i < count; i++) {
       unsigned int events;
 
       events = poll_fds[i].revents;
+      if (events == 0)
+        events = poll_watchers[i]->pevents & (POLLIN | POLLOUT);
       if (events == 0)
         continue;
       w = poll_watchers[i];
