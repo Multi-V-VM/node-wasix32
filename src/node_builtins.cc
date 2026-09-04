@@ -307,19 +307,10 @@ MaybeLocal<Function> BuiltinLoader::LookupAndCompileInternal(
   Isolate* isolate = context->GetIsolate();
   EscapableHandleScope scope(isolate);
 
-#if defined(__wasi__) && defined(NODE_WASM32_DEBUG_TRACE)
-  fprintf(stderr, "BuiltinLoader::LookupAndCompileInternal enter id=%s\n", id);
-  fflush(stderr);
-#endif
   Local<String> source;
   if (!LoadBuiltinSource(isolate, id).ToLocal(&source)) {
     return {};
   }
-#if defined(__wasi__) && defined(NODE_WASM32_DEBUG_TRACE)
-  fprintf(stderr,
-          "BuiltinLoader::LookupAndCompileInternal after source id=%s\n", id);
-  fflush(stderr);
-#endif
   std::string filename_s = std::string("node:") + id;
   Local<String> filename = OneByteString(isolate, filename_s);
   ScriptOrigin origin(filename, 0, 0, true);
@@ -378,14 +369,6 @@ MaybeLocal<Function> BuiltinLoader::LookupAndCompileInternal(
                                       0,
                                       nullptr,
                                       options);
-#if defined(__wasi__) && defined(NODE_WASM32_DEBUG_TRACE)
-  fprintf(stderr,
-          "BuiltinLoader::LookupAndCompileInternal after CompileFunction "
-          "id=%s empty=%d\n",
-          id,
-          maybe_fun.IsEmpty());
-  fflush(stderr);
-#endif
 
   // This could fail when there are early errors in the built-in modules,
   // e.g. the syntax errors
@@ -563,28 +546,13 @@ MaybeLocal<Value> BuiltinLoader::CompileAndCall(Local<Context> context,
                                                 Realm* optional_realm) {
   // Arguments must match the parameters specified in
   // BuiltinLoader::LookupAndCompile().
-#if defined(__wasi__) && defined(NODE_WASM32_DEBUG_TRACE)
-  fprintf(stderr, "BuiltinLoader::CompileAndCall enter id=%s argc=%d\n", id,
-          argc);
-  fflush(stderr);
-#endif
   MaybeLocal<Function> maybe_fn = LookupAndCompile(context, id, optional_realm);
   Local<Function> fn;
   if (!maybe_fn.ToLocal(&fn)) {
     return MaybeLocal<Value>();
   }
-#if defined(__wasi__) && defined(NODE_WASM32_DEBUG_TRACE)
-  fprintf(stderr, "BuiltinLoader::CompileAndCall before call id=%s\n", id);
-  fflush(stderr);
-#endif
   Local<Value> undefined = Undefined(context->GetIsolate());
   MaybeLocal<Value> result = fn->Call(context, undefined, argc, argv);
-#if defined(__wasi__) && defined(NODE_WASM32_DEBUG_TRACE)
-  fprintf(stderr, "BuiltinLoader::CompileAndCall after call id=%s empty=%d\n",
-          id,
-          result.IsEmpty());
-  fflush(stderr);
-#endif
   return result;
 }
 
@@ -903,13 +871,6 @@ void BuiltinLoader::IsBuiltin(const FunctionCallbackInfo<Value>& args) {
   }
 
   node::Utf8Value id_v(realm->isolate(), args[0].As<String>());
-#if defined(__wasi__) && defined(NODE_WASM32_DEBUG_TRACE)
-  fprintf(stderr,
-          "BuiltinLoader::IsBuiltin id=%s exists=%d\n",
-          *id_v,
-          realm->env()->builtin_loader()->Exists(*id_v));
-  fflush(stderr);
-#endif
   args.GetReturnValue().Set(realm->env()->builtin_loader()->Exists(*id_v));
 }
 

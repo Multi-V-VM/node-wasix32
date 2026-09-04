@@ -20,6 +20,13 @@
 #include "src/common/simd128.h"
 #include "src/logging/counters.h"
 #include "src/wasm/function-body-decoder-impl.h"
+
+// WASM32 cannot dispatch DrumBrake memory instructions through native builtin
+// code addresses. Use the portable handlers with explicit bounds checks.
+#if V8_TARGET_ARCH_WASM32 && !defined(V8_DRUMBRAKE_BOUNDS_CHECKS)
+#define V8_DRUMBRAKE_BOUNDS_CHECKS 1
+#endif
+
 #include "src/wasm/interpreter/instruction-handlers.h"
 #include "src/wasm/interpreter/wasm-interpreter-objects.h"
 #include "src/wasm/wasm-value.h"
@@ -34,7 +41,7 @@
 // #define DRUMBRAKE_ENABLE_PROFILING true
 //
 
-#ifdef V8_HOST_ARCH_ARM64
+#if defined(V8_HOST_ARCH_ARM64) || V8_TARGET_ARCH_WASM32
 #define VECTORCALL
 #elif !defined(__clang__)  // GCC or MSVC
 #define VECTORCALL
@@ -672,7 +679,7 @@ class V8_EXPORT_PRIVATE WasmInterpreter {
 typedef void(VECTORCALL PWasmOp)(const uint8_t* code, uint32_t* sp,
                                  WasmInterpreterRuntime* wasm_runtime,
                                  int64_t r0, double fp0);
-#ifdef __clang__
+#if defined(__clang__) && !V8_TARGET_ARCH_WASM32
 #define MUSTTAIL [[clang::musttail]]
 #else
 #define MUSTTAIL

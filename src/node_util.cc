@@ -579,11 +579,18 @@ void Initialize(Local<Object> target,
                   env->should_abort_on_uncaught_toggle().GetJSArray())
             .FromJust());
 
+#ifdef __wasi__
+  // The wasm32 interpreter can invoke ordinary API callbacks, but does not
+  // materialize Fast API functions. Expose the existing slow callback so
+  // internal/util's guessHandleType remains callable during bootstrap.
+  SetMethod(context, target, "guessHandleType", GuessHandleType);
+#else
   SetFastMethodNoSideEffect(context,
                             target,
                             "guessHandleType",
                             GuessHandleType,
                             &fast_guess_handle_type_);
+#endif
 }
 
 }  // namespace util

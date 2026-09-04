@@ -390,6 +390,7 @@ void Interpreter::Initialize() {
       Bytecode::kCallUndefinedReceiver1,
       Bytecode::kCallUndefinedReceiver2,
       Bytecode::kCallWithSpread,
+      Bytecode::kGetNamedProperty,
   };
   constexpr OperandScale kOperandScales[] = {
       OperandScale::kSingle,

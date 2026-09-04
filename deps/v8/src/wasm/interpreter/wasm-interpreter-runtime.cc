@@ -935,7 +935,11 @@ void WasmInterpreterRuntime::BeginExecution(
   // argument_values.
   HandleScope handle_scope(isolate_);  // Avoid leaking handles.
 
-  DirectHandle<ZoneVector<Object> ref_args(isolate_);
+#ifdef V8_ENABLE_DIRECT_HANDLE
+  DirectHandle<ZoneVector<Object>> ref_args(isolate_);
+#else
+  std::vector<DirectHandle<Object>> ref_args;
+#endif
   if (ref_args_count > 0) {
     ref_args.reserve(ref_args_count);
   }
@@ -2433,8 +2437,10 @@ WasmRef WasmInterpreterRuntime::WasmArrayNewSegment(uint32_t array_index,
   //    first_arg_addr -> | trusted_instance |
   //
   constexpr size_t kArgsLength = 5;
-  Address args[kArgsLength] = {rtt->ptr(), IntToSmi(length), IntToSmi(offset),
-                               IntToSmi(segment_index),
+  Address args[kArgsLength] = {rtt->ptr(),
+                               static_cast<Address>(IntToSmi(length)),
+                               static_cast<Address>(IntToSmi(offset)),
+                               static_cast<Address>(IntToSmi(segment_index)),
                                wasm_trusted_instance_data()->ptr()};
   Address* first_arg_addr = &args[kArgsLength - 1];
 
@@ -2467,9 +2473,11 @@ bool WasmInterpreterRuntime::WasmArrayInitSegment(uint32_t segment_index,
   //
   constexpr size_t kArgsLength = 6;
   Address args[kArgsLength] = {
-      IntToSmi(length),        IntToSmi(segment_offset),
-      IntToSmi(array_offset),  (*wasm_array).ptr(),
-      IntToSmi(segment_index), wasm_trusted_instance_data()->ptr()};
+      static_cast<Address>(IntToSmi(length)),
+      static_cast<Address>(IntToSmi(segment_offset)),
+      static_cast<Address>(IntToSmi(array_offset)), (*wasm_array).ptr(),
+      static_cast<Address>(IntToSmi(segment_index)),
+      wasm_trusted_instance_data()->ptr()};
   Address* first_arg_addr = &args[kArgsLength - 1];
 
   // A runtime function can throw, therefore we need to make sure that the
@@ -2496,8 +2504,10 @@ bool WasmInterpreterRuntime::WasmArrayCopy(WasmRef dest_wasm_array,
   //    first_arg_addr -> |   dest_array   |
   //
   constexpr size_t kArgsLength = 5;
-  Address args[kArgsLength] = {IntToSmi(length), IntToSmi(src_index),
-                               (*src_wasm_array).ptr(), IntToSmi(dest_index),
+  Address args[kArgsLength] = {static_cast<Address>(IntToSmi(length)),
+                               static_cast<Address>(IntToSmi(src_index)),
+                               (*src_wasm_array).ptr(),
+                               static_cast<Address>(IntToSmi(dest_index)),
                                (*dest_wasm_array).ptr()};
   Address* first_arg_addr = &args[kArgsLength - 1];
 
@@ -2520,7 +2530,8 @@ WasmRef WasmInterpreterRuntime::WasmJSToWasmObject(
   //
   constexpr size_t kArgsLength = 2;
   Address args[kArgsLength] = {
-      IntToSmi(value_type.raw_bit_field()), (*extern_ref).ptr()};
+      static_cast<Address>(IntToSmi(value_type.raw_bit_field())),
+      (*extern_ref).ptr()};
   Address* first_arg_addr = &args[kArgsLength - 1];
 
   // A runtime function can throw, therefore we need to make sure that the

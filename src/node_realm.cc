@@ -384,18 +384,9 @@ MaybeLocal<Value> PrincipalRealm::BootstrapRealm() {
 
   // Setup process.env proxy.
   Local<String> env_string = FIXED_ONE_BYTE_STRING(isolate_, "env");
+  Local<v8::ObjectTemplate> env_proxy_template =
+      isolate_data()->env_proxy_template();
   Local<Object> env_proxy;
-#if defined(__wasi__) && defined(NODE_WASM32_DEBUG_TRACE)
-  Local<v8::ObjectTemplate> env_proxy_template =
-      isolate_data()->env_proxy_template();
-  fprintf(stderr,
-          "BootstrapRealm: env_proxy_template=%p empty=%d\n",
-          static_cast<void*>(*env_proxy_template),
-          env_proxy_template.IsEmpty());
-#else
-  Local<v8::ObjectTemplate> env_proxy_template =
-      isolate_data()->env_proxy_template();
-#endif
   if (!env_proxy_template->NewInstance(context()).ToLocal(
           &env_proxy) ||
       process_object()->Set(context(), env_string, env_proxy).IsNothing()) {

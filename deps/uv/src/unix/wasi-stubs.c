@@ -122,11 +122,10 @@ void uv__io_poll(uv_loop_t* loop, int timeout) {
   /*
    * WASIX advances socket readiness only while poll is allowed to wait. A
    * zero-time poll therefore cannot observe a nonblocking connect completion.
-   * Keep libuv's timer deadline intact, but give active I/O enough time to
-   * reach the WASIX readiness scheduler when the loop requests a
-   * nonblocking turn.
+   * Yield for one millisecond so the WASIX readiness scheduler can run,
+   * without turning every nonblocking libuv turn into a one-second stall.
    */
-  result = poll(poll_fds, count, timeout == 0 ? 1000 : timeout);
+  result = poll(poll_fds, count, timeout == 0 ? 1 : timeout);
   SAVE_ERRNO(uv__update_time(loop));
 
   if (result >= 0) {
@@ -134,8 +133,6 @@ void uv__io_poll(uv_loop_t* loop, int timeout) {
       unsigned int events;
 
       events = poll_fds[i].revents;
-      if (events == 0)
-        events = poll_watchers[i]->pevents & (POLLIN | POLLOUT);
       if (events == 0)
         continue;
       w = poll_watchers[i];

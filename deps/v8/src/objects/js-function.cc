@@ -337,30 +337,9 @@ void JSFunction::RequestOptimization(Isolate* isolate, CodeKind target_kind,
 void JSFunction::SetInterruptBudget(
     Isolate* isolate, BudgetModification kind,
     std::optional<CodeKind> override_active_tier) {
-#if defined(__wasi__) && defined(V8_WASM32_DEBUG_TRACE)
-  fprintf(stderr,
-          "JSFunction::SetInterruptBudget enter function=0x%lx kind=%d "
-          "shared=0x%lx raw_cell=0x%lx\n",
-          static_cast<unsigned long>(ptr()), static_cast<int>(kind),
-          static_cast<unsigned long>(shared().ptr()),
-          static_cast<unsigned long>(raw_feedback_cell().ptr()));
-  fflush(stderr);
-#endif
   int32_t current = raw_feedback_cell()->interrupt_budget();
-#if defined(__wasi__) && defined(V8_WASM32_DEBUG_TRACE)
-  fprintf(stderr,
-          "JSFunction::SetInterruptBudget current=%d raw_value=0x%lx\n",
-          current,
-          static_cast<unsigned long>(raw_feedback_cell()->value().ptr()));
-  fflush(stderr);
-#endif
   int32_t new_budget =
       TieringManager::InterruptBudgetFor(isolate, *this, override_active_tier);
-#if defined(__wasi__) && defined(V8_WASM32_DEBUG_TRACE)
-  fprintf(stderr, "JSFunction::SetInterruptBudget new_budget=%d\n",
-          new_budget);
-  fflush(stderr);
-#endif
   switch (kind) {
     case BudgetModification::kRaise:
       new_budget = std::max(current, new_budget);

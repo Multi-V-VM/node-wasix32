@@ -93,6 +93,12 @@
       }, {
         'v8_enable_leaptiering': 1,
       }],
+      ['OS=="wasi" or target_arch=="wasm32"', {
+        # A wasm32 host cannot allocate executable code for nested Wasm.
+        'v8_enable_drumbrake': 1,
+      }, {
+        'v8_enable_drumbrake': 0,
+      }],
     ],
 
     # Variables from BUILD.gn
@@ -520,6 +526,9 @@
       }],
       ['v8_enable_webassembly==1', {
         'defines': ['V8_ENABLE_WEBASSEMBLY',],
+      }],
+      ['v8_enable_drumbrake==1', {
+        'defines': ['V8_ENABLE_DRUMBRAKE',],
       }],
       ['v8_dict_property_const_tracking==1', {
         'defines': ['V8_DICT_PROPERTY_CONST_TRACKING',],

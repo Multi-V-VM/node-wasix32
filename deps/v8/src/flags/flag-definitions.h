@@ -1980,8 +1980,13 @@ DEFINE_BOOL_READONLY(wasm_memory64_trap_handling, false,
 
 #ifdef V8_ENABLE_DRUMBRAKE
 // DrumBrake flags.
+#if V8_TARGET_ARCH_WASM32
+DEFINE_BOOL_READONLY(wasm_jitless, true,
+                     "Execute all wasm code in the Wasm interpreter")
+#else
 DEFINE_EXPERIMENTAL_FEATURE(wasm_jitless,
                             "Execute all wasm code in the Wasm interpreter")
+#endif
 DEFINE_BOOL(wasm_jitless_if_available_for_testing, false,
             "Enables the Wasm interpreter, for testing, but only if "
             "the 'v8_enable_drumbrake' flag is set.")

@@ -681,10 +681,6 @@ MaybeLocal<Object> GetPerContextExports(Local<Context> context,
   Local<Private> key = Private::ForApi(
       isolate,
       FIXED_ONE_BYTE_STRING(isolate, "node:per_context_binding_exports"));
-#if defined(__wasi__) && defined(NODE_WASM32_DEBUG_TRACE)
-  fprintf(stderr, "GetPerContextExports before SetPrivate\n");
-  fflush(stderr);
-#endif
   if (context->Global()->SetPrivate(context, key, exports).IsNothing()) {
     exports_store.erase(exports_key);
 #ifdef __wasi__
@@ -692,12 +688,6 @@ MaybeLocal<Object> GetPerContextExports(Local<Context> context,
 #endif
     return MaybeLocal<Object>();
   }
-#if defined(__wasi__) && defined(NODE_WASM32_DEBUG_TRACE)
-  fprintf(stderr, "GetPerContextExports after SetPrivate\n");
-  fflush(stderr);
-  fprintf(stderr, "GetPerContextExports before InitializePrimordials\n");
-  fflush(stderr);
-#endif
   if (InitializePrimordialsWithExports(context, isolate_data, exports)
           .IsNothing()) {
     exports_store.erase(exports_key);
@@ -706,10 +696,6 @@ MaybeLocal<Object> GetPerContextExports(Local<Context> context,
 #endif
     return MaybeLocal<Object>();
   }
-#if defined(__wasi__) && defined(NODE_WASM32_DEBUG_TRACE)
-  fprintf(stderr, "GetPerContextExports after InitializePrimordials\n");
-  fflush(stderr);
-#endif
   return handle_scope.Escape(exports);
 #else
   Local<Object> global = context->Global();
@@ -941,10 +927,6 @@ Maybe<void> InitializePrimordialsWithExports(Local<Context> context,
   // Run per-context JS files.
   Isolate* isolate = context->GetIsolate();
   Context::Scope context_scope(context);
-#if defined(__wasi__) && defined(NODE_WASM32_DEBUG_TRACE)
-  fprintf(stderr, "InitializePrimordialsWithExports enter\n");
-  fflush(stderr);
-#endif
   Local<String> primordials_string =
       FIXED_ONE_BYTE_STRING(isolate, "primordials");
   // Ensure that `InitializePrimordials` is called exactly once on a given
@@ -953,10 +935,6 @@ Maybe<void> InitializePrimordialsWithExports(Local<Context> context,
 
   Local<Object> primordials =
       Object::New(isolate, Null(isolate), nullptr, nullptr, 0);
-#if defined(__wasi__) && defined(NODE_WASM32_DEBUG_TRACE)
-  fprintf(stderr, "InitializePrimordialsWithExports after primordials object\n");
-  fflush(stderr);
-#endif
 #ifdef __wasi__
   PerContextPrimordialsForWasi()[PerContextExportsKey(context)].Reset(
       isolate, primordials);
@@ -969,39 +947,18 @@ Maybe<void> InitializePrimordialsWithExports(Local<Context> context,
           .IsNothing()) {
     return Nothing<void>();
   }
-#if defined(__wasi__) && defined(NODE_WASM32_DEBUG_TRACE)
-  fprintf(stderr, "InitializePrimordialsWithExports after DefineProperty\n");
-  fflush(stderr);
-#endif
 
   Local<Object> private_symbols;
-#if defined(__wasi__) && defined(NODE_WASM32_DEBUG_TRACE)
-  fprintf(stderr, "InitializePrimordialsWithExports before private symbols\n");
-  fflush(stderr);
-#endif
   if (!InitializePrivateSymbols(context, isolate_data)
            .ToLocal(&private_symbols)) {
     return Nothing<void>();
   }
-#if defined(__wasi__) && defined(NODE_WASM32_DEBUG_TRACE)
-  fprintf(stderr, "InitializePrimordialsWithExports after private symbols\n");
-  fflush(stderr);
-#endif
 
   Local<Object> per_isolate_symbols;
-#if defined(__wasi__) && defined(NODE_WASM32_DEBUG_TRACE)
-  fprintf(stderr,
-          "InitializePrimordialsWithExports before per-isolate symbols\n");
-  fflush(stderr);
-#endif
   if (!InitializePerIsolateSymbols(context, isolate_data)
            .ToLocal(&per_isolate_symbols)) {
     return Nothing<void>();
   }
-#if defined(__wasi__) && defined(NODE_WASM32_DEBUG_TRACE)
-  fprintf(stderr, "InitializePrimordialsWithExports after per-isolate symbols\n");
-  fflush(stderr);
-#endif
 
   static const char* context_files[] = {"internal/per_context/primordials",
                                         "internal/per_context/domexception",
@@ -1021,11 +978,6 @@ Maybe<void> InitializePrimordialsWithExports(Local<Context> context,
     Local<Value> arguments[] = {
         exports, primordials, private_symbols, per_isolate_symbols};
 
-#if defined(__wasi__) && defined(NODE_WASM32_DEBUG_TRACE)
-    fprintf(stderr, "InitializePrimordialsWithExports before module %s\n",
-            *module);
-    fflush(stderr);
-#endif
     if (builtin_loader
             .CompileAndCall(
                 context, *module, arraysize(arguments), arguments, nullptr)
@@ -1033,17 +985,8 @@ Maybe<void> InitializePrimordialsWithExports(Local<Context> context,
       // Execution failed during context creation.
       return Nothing<void>();
     }
-#if defined(__wasi__) && defined(NODE_WASM32_DEBUG_TRACE)
-    fprintf(stderr, "InitializePrimordialsWithExports after module %s\n",
-            *module);
-    fflush(stderr);
-#endif
   }
 
-#if defined(__wasi__) && defined(NODE_WASM32_DEBUG_TRACE)
-  fprintf(stderr, "InitializePrimordialsWithExports done\n");
-  fflush(stderr);
-#endif
   return JustVoid();
 }
 

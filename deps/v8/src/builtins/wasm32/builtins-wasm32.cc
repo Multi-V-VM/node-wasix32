@@ -16,6 +16,7 @@
 #include "src/codegen/handler-table.h"
 #include "src/codegen/macro-assembler.h"
 #include "src/codegen/wasm32/register-wasm32.h"
+#include "src/date/date.h"
 #include "src/execution/execution.h"
 #include "src/execution/frame-constants.h"
 #include "src/execution/isolate-inl.h"
@@ -71,6 +72,8 @@
 #include "src/regexp/regexp-utils.h"
 #include "src/roots/roots-inl.h"
 #include "src/runtime/runtime.h"
+#include "src/wasm/interpreter/wasm-interpreter-objects.h"
+#include "src/wasm/wasm-objects-inl.h"
 #include "src/strings/char-predicates-inl.h"
 #include "src/strings/string-builder.h"
 #include "src/strings/string-builder-inl.h"
@@ -409,7 +412,7 @@ extern "C" void WasmProbeBuiltin() {
     Address target =
         g_wasm_regs[WasmRegisterCodeToSlot(
             kJavaScriptCallTargetRegister.code())];
-    std::fprintf(stderr, "WASM32_PROBE offset=%u target=0x%x\n",
+    v8_wasm32_silent_fprintf(stderr, "WASM32_PROBE offset=%u target=0x%x\n",
                  static_cast<unsigned>(offset),
                  static_cast<unsigned>(target));
     std::fflush(stderr);
@@ -448,7 +451,7 @@ constexpr bool kTraceWasmFallbackDetails = false;
 constexpr bool kTraceWasmJSEntry = false;
 constexpr bool kTraceWasmCallBytecode = false;
 constexpr bool kEnableWasm32DebugDiagnostics = false;
-constexpr bool kTraceWasm32Progress = true;
+constexpr bool kTraceWasm32Progress = false;
 int g_trace_after_collection_fallback_steps = 0;
 bool g_dumped_set_keyed_primitive_receiver = false;
 bool g_dumped_get_iterator_method_failure = false;
@@ -2058,7 +2061,7 @@ bool TryRunCreateClosureBytecode(Isolate* isolate,
     }
     std::unique_ptr<char[]> diagnostic_name =
         diagnostic_shared->DebugNameCStr();
-    std::fprintf(stderr,
+    v8_wasm32_silent_fprintf(stderr,
                  "WASM32_CLOSURE_7393 start=%d end=%d len=%d name=%s\n",
                  diagnostic_shared->StartPosition(),
                  diagnostic_shared->EndPosition(), diagnostic_length,
@@ -2218,6 +2221,25 @@ bool TryRunLdaContextSlotBytecode(
     return true;
   }
   Tagged<Object> value = context->GetNoCell(slot_index);
+#ifdef __wasi__
+  if (slot_index == 2366 || slot_index == 2371) {
+    Address function_address = g_wasm_interpreter_frame[
+        InterpreterFrameSlotForOffset(StandardFrameConstants::kFunctionOffset)];
+    int function_start = -1;
+    if (IsJSFunction(Tagged<Object>(function_address))) {
+      function_start = Wasm32JSFunctionShared(
+          Cast<JSFunction>(Tagged<Object>(function_address)))
+                           ->StartPosition();
+    }
+    v8_wasm32_silent_fprintf(stderr,
+                 "WASM32_CONTEXT_SLOT_LOAD function_start=%d pc=%d slot=%u "
+                 "context=0x%x value=0x%x\n",
+                 function_start, bytecode_index, slot_index,
+                 static_cast<unsigned>(context.ptr()),
+                 static_cast<unsigned>(value.ptr()));
+    std::fflush(stderr);
+  }
+#endif
   if (kTraceWasmFallbackDetails && slot_index == 43 && depth == 2 &&
       g_context_slot43_depth2_trace_count < 8) {
     ++g_context_slot43_depth2_trace_count;
@@ -2322,6 +2344,25 @@ bool TryRunStaContextSlotBytecode(
 
   Tagged<Object> raw_value(g_wasm_regs[SlotFor(kInterpreterAccumulatorRegister)]);
   Tagged<Object> value = Is<JSAny>(raw_value) ? raw_value : roots.undefined_value();
+#ifdef __wasi__
+  if (slot_index == 2366 || slot_index == 2371) {
+    Address function_address = g_wasm_interpreter_frame[
+        InterpreterFrameSlotForOffset(StandardFrameConstants::kFunctionOffset)];
+    int function_start = -1;
+    if (IsJSFunction(Tagged<Object>(function_address))) {
+      function_start = Wasm32JSFunctionShared(
+          Cast<JSFunction>(Tagged<Object>(function_address)))
+                           ->StartPosition();
+    }
+    v8_wasm32_silent_fprintf(stderr,
+                 "WASM32_CONTEXT_SLOT_STORE function_start=%d pc=%d slot=%u "
+                 "context=0x%x value=0x%x\n",
+                 function_start, bytecode_index, slot_index,
+                 static_cast<unsigned>(context.ptr()),
+                 static_cast<unsigned>(value.ptr()));
+    std::fflush(stderr);
+  }
+#endif
   if (no_cell) {
     context->SetNoCell(slot_index, value, UPDATE_WRITE_BARRIER);
   } else {
@@ -2414,6 +2455,8 @@ bool TryRunAsyncFunctionEnterIntrinsic(Isolate* isolate, Address* argv,
   return true;
 }
 
+Address g_wasm_trace_direct_eval_function = kNullAddress;
+
 bool TryRunRuntimeCallBytecode(Isolate* isolate, Tagged<BytecodeArray> bytecode,
                                int bytecode_index,
                                interpreter::Bytecode bytecode_enum,
@@ -2466,6 +2509,15 @@ bool TryRunRuntimeCallBytecode(Isolate* isolate, Tagged<BytecodeArray> bytecode,
   uint32_t reg_count =
       ReadBytecodeUnsignedOperand(bytecode, bytecode_index, bytecode_enum, 2,
                                   operand_scale);
+  if (raw_id == 76) {
+    v8_wasm32_silent_fprintf(stderr,
+                 "WASM32_RUNTIME_76 name=%s id=%d nargs=%d result_size=%d "
+                 "reg_count=%u\n",
+                 function ? function->name : "<null>",
+                 static_cast<int>(function_id), function ? function->nargs : -1,
+                 function ? function->result_size : -1, reg_count);
+    std::fflush(stderr);
+  }
   constexpr uint32_t kMaxRuntimeFallbackArgs =
       std::numeric_limits<uint16_t>::max();
   if (reg_count > kMaxRuntimeFallbackArgs ||
@@ -2512,6 +2564,143 @@ bool TryRunRuntimeCallBytecode(Isolate* isolate, Tagged<BytecodeArray> bytecode,
   Address* rooted_argv = argv_roots.data();
   Address* args_object =
       reg_count == 0 ? rooted_argv : &rooted_argv[reg_count - 1];
+  if (function_id == Runtime::kResolvePossiblyDirectEval && reg_count == 6) {
+    // Runtime arguments are stored in reverse order in rooted_argv.
+    Address callee_address = SafeTaggedOrUndefined(isolate, rooted_argv[5]);
+    Address source_address = SafeTaggedOrUndefined(isolate, rooted_argv[4]);
+    Address outer_address = rooted_argv[3];
+    Address language_mode_address = rooted_argv[2];
+    Address eval_scope_info_index_address = rooted_argv[1];
+    Address eval_position_address = rooted_argv[0];
+#ifdef __wasi__
+    static int wasm32_resolve_eval_trace_count = 0;
+    bool trace_resolve_eval = ++wasm32_resolve_eval_trace_count <= 16;
+    if (trace_resolve_eval) {
+      v8_wasm32_silent_fprintf(stderr,
+                   "WASM32_RESOLVE_EVAL args callee=0x%x source=0x%x outer=0x%x "
+                   "mode=0x%x scope=0x%x pos=0x%x\n",
+                   static_cast<unsigned>(callee_address),
+                   static_cast<unsigned>(source_address),
+                   static_cast<unsigned>(outer_address),
+                   static_cast<unsigned>(language_mode_address),
+                   static_cast<unsigned>(eval_scope_info_index_address),
+                   static_cast<unsigned>(eval_position_address));
+      std::fflush(stderr);
+    }
+#endif
+
+    if (!IsSafeTaggedHandleValue(outer_address) ||
+        !IsJSFunction(Tagged<Object>(outer_address)) ||
+        !IsSmi(Tagged<Object>(language_mode_address)) ||
+        !IsSmi(Tagged<Object>(eval_scope_info_index_address)) ||
+        !IsSmi(Tagged<Object>(eval_position_address))) {
+#ifdef __wasi__
+      if (trace_resolve_eval) v8_wasm32_silent_fprintf(stderr, "WASM32_RESOLVE_EVAL invalid\n");
+#endif
+      if (switched_context) isolate->set_context(saved_context);
+      *out_result = roots.undefined_value().ptr();
+      return true;
+    }
+
+    HandleScope scope(isolate);
+    DirectHandle<JSFunction> outer(
+        Cast<JSFunction>(Tagged<Object>(outer_address)), isolate);
+    Tagged<Context> outer_context = Wasm32JSFunctionContext(*outer);
+    DirectHandle<NativeContext> native_context(
+        outer_context->native_context(), isolate);
+    DirectHandle<Object> callee(Tagged<Object>(callee_address), isolate);
+
+    // A shadowed eval is an ordinary call. Only the original GlobalEval needs
+    // direct-eval compilation semantics.
+    if (*callee != native_context->global_eval_fun()) {
+#ifdef __wasi__
+      if (trace_resolve_eval) v8_wasm32_silent_fprintf(stderr, "WASM32_RESOLVE_EVAL shadowed\n");
+#endif
+      if (switched_context) isolate->set_context(saved_context);
+      *out_result = (*callee).ptr();
+      return true;
+    }
+
+    int language_mode_value =
+        Smi::ToInt(Tagged<Smi>(language_mode_address));
+    if (!is_valid_language_mode(language_mode_value)) {
+#ifdef __wasi__
+      if (trace_resolve_eval) v8_wasm32_silent_fprintf(stderr, "WASM32_RESOLVE_EVAL bad-mode\n");
+#endif
+      if (switched_context) isolate->set_context(saved_context);
+      *out_result = roots.undefined_value().ptr();
+      return true;
+    }
+    LanguageMode language_mode =
+        static_cast<LanguageMode>(language_mode_value);
+    int eval_scope_info_index =
+        Smi::ToInt(Tagged<Smi>(eval_scope_info_index_address));
+    int eval_position = Smi::ToInt(Tagged<Smi>(eval_position_address));
+    Handle<Object> source(Tagged<Object>(source_address), isolate);
+    DirectHandle<SharedFunctionInfo> outer_info(
+        Wasm32JSFunctionShared(*outer), isolate);
+
+    // The wasm interpreter's fallback executes already-loaded JavaScript
+    // semantics. Enable string compilation only while materializing the
+    // direct-eval function, then restore the realm policy immediately.
+    Tagged<Object> saved_allow_code_gen =
+        native_context->allow_code_gen_from_strings();
+    native_context->set_allow_code_gen_from_strings(roots.true_value());
+    MaybeDirectHandle<String> eval_source;
+    bool unknown_object;
+    std::tie(eval_source, unknown_object) =
+        Compiler::ValidateDynamicCompilationSource(isolate, native_context,
+                                                   source);
+    if (unknown_object) {
+#ifdef __wasi__
+      if (trace_resolve_eval) v8_wasm32_silent_fprintf(stderr, "WASM32_RESOLVE_EVAL unknown\n");
+#endif
+      native_context->set_allow_code_gen_from_strings(saved_allow_code_gen);
+      if (switched_context) isolate->set_context(saved_context);
+      *out_result = native_context->global_eval_fun().ptr();
+      return true;
+    }
+    if (eval_source.is_null()) {
+#ifdef __wasi__
+      if (trace_resolve_eval) v8_wasm32_silent_fprintf(stderr, "WASM32_RESOLVE_EVAL no-source\n");
+#endif
+      native_context->set_allow_code_gen_from_strings(saved_allow_code_gen);
+      Handle<JSObject> error = isolate->factory()->NewEvalError(
+          MessageTemplate::kCodeGenFromStrings,
+          native_context->ErrorMessageForCodeGenerationFromStrings());
+      isolate->Throw(*error);
+      if (switched_context) isolate->set_context(saved_context);
+      *out_result = roots.exception().ptr();
+      return true;
+    }
+
+    DirectHandle<JSFunction> compiled;
+    MaybeDirectHandle<JSFunction> maybe_compiled = Compiler::GetFunctionFromEval(
+        isolate, eval_source.ToHandleChecked(), outer_info,
+        direct_handle(isolate->context(), isolate), language_mode,
+        NO_PARSE_RESTRICTION, kNoSourcePosition, eval_position);
+    native_context->set_allow_code_gen_from_strings(saved_allow_code_gen);
+    if (!maybe_compiled.ToHandle(&compiled)) {
+#ifdef __wasi__
+      if (trace_resolve_eval) v8_wasm32_silent_fprintf(stderr, "WASM32_RESOLVE_EVAL compile-failed\n");
+#endif
+      if (switched_context) isolate->set_context(saved_context);
+      *out_result = roots.exception().ptr();
+      return true;
+    }
+
+    if (switched_context) isolate->set_context(saved_context);
+#ifdef __wasi__
+    if (trace_resolve_eval) {
+      v8_wasm32_silent_fprintf(stderr, "WASM32_RESOLVE_EVAL compiled=0x%x\n",
+                   static_cast<unsigned>((*compiled).ptr()));
+      std::fflush(stderr);
+    }
+#endif
+    g_wasm_trace_direct_eval_function = (*compiled).ptr();
+    *out_result = (*compiled).ptr();
+    return true;
+  }
   if (function_id ==
           Runtime::kInlineCopyDataPropertiesWithExcludedPropertiesOnStack &&
       reg_count >= 1) {
@@ -2573,7 +2762,7 @@ bool TryRunRuntimeCallBytecode(Isolate* isolate, Tagged<BytecodeArray> bytecode,
       }
     } else {
 #ifdef __wasi__
-      PrintF("WASM32_ASYNC_REJECT");
+    v8_wasm32_silent_fprintf(stderr, "WASM32_ASYNC_REJECT");
       DumpRuntimeArg("reason", 0, (*value).ptr());
       PrintStringPreviewForTrace("reason_string", *value, 0, 240);
       if (IsJSReceiver(*value)) {
@@ -2861,6 +3050,21 @@ bool TryRunLdaGlobalBytecode(Isolate* isolate, Tagged<BytecodeArray> bytecode,
           : FeedbackSlotKind::kLoadGlobalNotInsideTypeof;
   DirectHandle<JSGlobalObject> global = isolate->global_object();
   Handle<Name> name = handle(Cast<Name>(name_object), isolate);
+  if (bytecode_enum == interpreter::Bytecode::kLdaGlobal) {
+    Maybe<bool> maybe_has_property =
+        JSReceiver::HasProperty(isolate, global, name);
+    if (maybe_has_property.IsNothing()) {
+      *out_result = ReadOnlyRoots(isolate).exception().ptr();
+      return true;
+    }
+    if (!maybe_has_property.FromJust()) {
+      Handle<JSObject> error = isolate->factory()->NewReferenceError(
+          MessageTemplate::kNotDefined, name);
+      isolate->Throw(*error);
+      *out_result = ReadOnlyRoots(isolate).exception().ptr();
+      return true;
+    }
+  }
   LoadGlobalIC ic(isolate, vector, vector_slot, kind);
   if (!vector.is_null()) ic.UpdateState(global, name);
 
@@ -2873,10 +3077,146 @@ bool TryRunLdaGlobalBytecode(Isolate* isolate, Tagged<BytecodeArray> bytecode,
   return true;
 }
 
-bool TryRunGetNamedPropertyBytecode(
+bool TryRunLdaLookupGlobalSlotBytecode(
     Isolate* isolate, Tagged<BytecodeArray> bytecode, int bytecode_index,
     interpreter::Bytecode bytecode_enum,
     interpreter::OperandScale operand_scale, Address* out_result) {
+  bool is_lookup =
+      bytecode_enum == interpreter::Bytecode::kLdaLookupSlot ||
+      bytecode_enum == interpreter::Bytecode::kLdaLookupGlobalSlot ||
+      bytecode_enum == interpreter::Bytecode::kLdaLookupContextSlot ||
+      bytecode_enum == interpreter::Bytecode::kLdaLookupContextSlotNoCell ||
+      bytecode_enum == interpreter::Bytecode::kLdaLookupSlotInsideTypeof ||
+      bytecode_enum ==
+          interpreter::Bytecode::kLdaLookupGlobalSlotInsideTypeof ||
+      bytecode_enum ==
+          interpreter::Bytecode::kLdaLookupContextSlotInsideTypeof ||
+      bytecode_enum ==
+          interpreter::Bytecode::kLdaLookupContextSlotNoCellInsideTypeof;
+  if (!is_lookup) {
+    return false;
+  }
+
+#ifdef __wasi__
+  static int wasm32_lookup_trace_count = 0;
+  if (++wasm32_lookup_trace_count <= 8) {
+    v8_wasm32_silent_fprintf(stderr, "WASM32_LOOKUP_BYTECODE opcode=%s pc=%d\n",
+                 interpreter::Bytecodes::ToString(bytecode_enum),
+                 bytecode_index);
+    std::fflush(stderr);
+  }
+#endif
+
+  uint32_t name_index =
+      ReadBytecodeUnsignedOperand(bytecode, bytecode_index, bytecode_enum, 0,
+                                  operand_scale);
+  Tagged<TrustedFixedArray> constant_pool = bytecode->constant_pool();
+  if (name_index >= static_cast<uint32_t>(constant_pool->length()) ||
+      !IsString(constant_pool->get(name_index))) {
+    return false;
+  }
+
+  WasmGCStateScope gc_state(isolate);
+  SetCurrentIsolateScope current_isolate_scope(isolate);
+  Tagged<Context> saved_context = isolate->context();
+  Address context_address = CurrentInterpreterContext();
+  bool switched_context = false;
+  if (IsSafeTaggedHandleValue(context_address) &&
+      IsContext(Tagged<Object>(context_address))) {
+    isolate->set_context(Cast<Context>(Tagged<Object>(context_address)));
+    switched_context = true;
+  }
+
+  Address arg = constant_pool->get(name_index).ptr();
+  WasmTemporaryRootScope arg_root(isolate, &arg, 1);
+  bool inside_typeof =
+      bytecode_enum == interpreter::Bytecode::kLdaLookupSlotInsideTypeof ||
+      bytecode_enum ==
+          interpreter::Bytecode::kLdaLookupGlobalSlotInsideTypeof ||
+      bytecode_enum ==
+          interpreter::Bytecode::kLdaLookupContextSlotInsideTypeof ||
+      bytecode_enum ==
+          interpreter::Bytecode::kLdaLookupContextSlotNoCellInsideTypeof;
+  Runtime::FunctionId function_id = inside_typeof
+                                       ? Runtime::kLoadLookupSlotInsideTypeof
+                                       : Runtime::kLoadLookupSlot;
+  const Runtime::Function* function = Runtime::FunctionForId(function_id);
+  if (function == nullptr || function->result_size != 1) {
+    if (switched_context) isolate->set_context(saved_context);
+    return false;
+  }
+
+  using RuntimeEntry = Address (*)(int, Address*, Isolate*);
+  Address result = reinterpret_cast<RuntimeEntry>(function->entry)(
+      1, arg_root.data(), isolate);
+  if (switched_context) isolate->set_context(saved_context);
+  *out_result = result;
+  return true;
+}
+
+bool TryRunStaGlobalBytecode(Isolate* isolate, Tagged<BytecodeArray> bytecode,
+                             int bytecode_index,
+                             interpreter::Bytecode bytecode_enum,
+                             interpreter::OperandScale operand_scale,
+                             Address* out_result) {
+  if (bytecode_enum != interpreter::Bytecode::kStaGlobal) return false;
+
+  uint32_t name_index =
+      ReadBytecodeUnsignedOperand(bytecode, bytecode_index, bytecode_enum, 0,
+                                  operand_scale);
+  uint32_t slot_index =
+      ReadBytecodeUnsignedOperand(bytecode, bytecode_index, bytecode_enum, 1,
+                                  operand_scale);
+  Tagged<TrustedFixedArray> constant_pool = bytecode->constant_pool();
+  if (name_index >= static_cast<uint32_t>(constant_pool->length())) {
+    PrintF("WasmInterpreterEntryTrampoline: bad global store name index=%u "
+           "length=%d\n",
+           name_index, constant_pool->length());
+    return false;
+  }
+  Tagged<Object> name_object = constant_pool->get(name_index);
+  if (!IsName(name_object)) {
+    PrintF("WasmInterpreterEntryTrampoline: global store constant is not Name "
+           "index=%u\n",
+           name_index);
+    return false;
+  }
+
+  Address feedback_address =
+      g_wasm_interpreter_frame[InterpreterFrameSlotForOffset(
+          InterpreterFrameConstants::kFeedbackVectorFromFp)];
+  HandleScope scope(isolate);
+  Handle<FeedbackVector> vector;
+  if (IsFeedbackVectorAddress(feedback_address)) {
+    vector =
+        handle(Cast<FeedbackVector>(Tagged<Object>(feedback_address)), isolate);
+  }
+
+  FeedbackSlot vector_slot = FeedbackVector::ToSlot(slot_index);
+  FeedbackSlotKind kind = FeedbackSlotKind::kStoreGlobalSloppy;
+  if (!vector.is_null()) kind = vector->GetKind(vector_slot);
+  DirectHandle<JSGlobalObject> global = isolate->global_object();
+  Handle<Name> name = handle(Cast<Name>(name_object), isolate);
+  Address value_address = SafeTaggedOrUndefined(
+      isolate, g_wasm_regs[SlotFor(kInterpreterAccumulatorRegister)]);
+  DirectHandle<Object> value(Tagged<Object>(value_address), isolate);
+  StoreGlobalIC ic(isolate, vector, vector_slot, kind);
+  if (!vector.is_null()) ic.UpdateState(global, name);
+
+  DirectHandle<Object> result;
+  if (!ic.Store(name, value).ToHandle(&result)) {
+    *out_result = ReadOnlyRoots(isolate).exception().ptr();
+    return true;
+  }
+  *out_result = (*result).ptr();
+  return true;
+}
+
+bool TryRunGetNamedPropertyBytecode(
+    Isolate* isolate, Tagged<BytecodeArray> bytecode, int bytecode_index,
+    interpreter::Bytecode bytecode_enum,
+    interpreter::OperandScale operand_scale, Address* out_result,
+    bool trace_forge_get) {
   bool is_super =
       bytecode_enum == interpreter::Bytecode::kGetNamedPropertyFromSuper;
   if (bytecode_enum != interpreter::Bytecode::kGetNamedProperty && !is_super) {
@@ -2929,6 +3269,76 @@ bool TryRunGetNamedPropertyBytecode(
       interpreter::Register::FromOperand(receiver_operand));
   ReadOnlyRoots roots(isolate);
 #ifdef __wasi__
+  Address interpreter_global_address = kNullAddress;
+  Address interpreter_proxy_address = kNullAddress;
+  Address interpreter_context_address = CurrentInterpreterContext();
+  if (IsSafeTaggedHandleValue(interpreter_context_address) &&
+      IsContext(Tagged<Object>(interpreter_context_address))) {
+    Tagged<NativeContext> interpreter_native_context =
+        Cast<Context>(Tagged<Object>(interpreter_context_address))
+            ->native_context();
+    interpreter_global_address = interpreter_native_context->global_object().ptr();
+    interpreter_proxy_address = interpreter_native_context->global_proxy().ptr();
+  }
+  if (trace_forge_get) {
+    HandleScope trace_scope(isolate);
+    Handle<Name> trace_name_handle =
+        handle(Cast<Name>(name_object), isolate);
+    const char* trace_name = "<symbol>";
+    std::unique_ptr<char[]> trace_name_chars;
+    if (IsString(name_object)) {
+      trace_name_chars = Cast<String>(name_object)->ToCString();
+      trace_name = trace_name_chars.get();
+    }
+    if (Name::Equals(isolate, trace_name_handle,
+                     isolate->factory()->InternalizeUtf8String("mode"))) {
+      trace_name = "mode";
+    } else if (Name::Equals(
+                   isolate, trace_name_handle,
+                   isolate->factory()->InternalizeUtf8String("toUpperCase"))) {
+      trace_name = "toUpperCase";
+    } else if (Name::Equals(isolate, trace_name_handle,
+                            isolate->factory()->InternalizeUtf8String(
+                                "decrypt"))) {
+      trace_name = "decrypt";
+    } else if (Name::Equals(isolate, trace_name_handle,
+                            isolate->factory()->InternalizeUtf8String(
+                                "cipher"))) {
+      trace_name = "cipher";
+    } else if (Name::Equals(isolate, trace_name_handle,
+                            isolate->factory()->InternalizeUtf8String(
+                                "createCipher"))) {
+      trace_name = "createCipher";
+    } else if (Name::Equals(isolate, trace_name_handle,
+                            isolate->factory()->InternalizeUtf8String(
+                                "start"))) {
+      trace_name = "start";
+    }
+    v8_wasm32_silent_fprintf(stderr,
+                 "WASM32_FORGE_GET pc=%d name=%s receiver=0x%x\n",
+                 bytecode_index, trace_name,
+                 static_cast<unsigned>(receiver_address));
+    v8_wasm32_silent_fprintf(stderr, "WASM32_FORGE_GET_ENTER pc=%d name=", bytecode_index);
+    DumpNameForTrace(name_object);
+    DumpRuntimeArg(" receiver", 0, receiver_address);
+    PrintF("\n");
+    v8_wasm32_silent_fprintf(stderr,
+                 "WASM32_FORGE_GET_RAW_ENTER pc=%d name=%s raw=0x%x "
+                 "receiver=0x%x global=0x%x proxy=0x%x context_global=0x%x "
+                 "context_proxy=0x%x eval_name=%d\n",
+                 bytecode_index, trace_name,
+                 static_cast<unsigned>(name_object.ptr()),
+                 static_cast<unsigned>(receiver_address),
+                 static_cast<unsigned>(isolate->global_object()->ptr()),
+                 static_cast<unsigned>(isolate->global_proxy()->ptr()),
+                 static_cast<unsigned>(interpreter_global_address),
+                 static_cast<unsigned>(interpreter_proxy_address),
+                 Name::Equals(isolate, trace_name_handle,
+                              isolate->factory()->InternalizeUtf8String("eval"))
+                     ? 1
+                     : 0);
+    std::fflush(stderr);
+  }
   if (bytecode->length() <= 16) {
     bool plausible = IsPlausibleTaggedValue(receiver_address);
     bool heap_object =
@@ -2942,7 +3352,7 @@ bool TryRunGetNamedPropertyBytecode(
       in_read_only_heap = ReadOnlyHeap::Contains(object);
       in_heap = isolate->heap()->Contains(object);
     }
-    PrintF("WASM32_GETNAMED_PRECHECK pc=%d receiver=0x%x plausible=%d "
+    v8_wasm32_silent_fprintf(stderr, "WASM32_GETNAMED_PRECHECK pc=%d receiver=0x%x plausible=%d "
            "heap_object=%d readable_map=%d ro_heap=%d heap=%d\n",
            bytecode_index, static_cast<unsigned>(receiver_address),
            plausible ? 1 : 0, heap_object ? 1 : 0,
@@ -3021,6 +3431,51 @@ bool TryRunGetNamedPropertyBytecode(
   HandleScope scope(isolate);
   Handle<JSAny> receiver = handle(Cast<JSAny>(receiver_object), isolate);
   Handle<Name> name = handle(Cast<Name>(name_object), isolate);
+#ifdef __wasi__
+  if (IsString(receiver_object) &&
+      Name::Equals(isolate, name,
+                   isolate->factory()->InternalizeUtf8String("substring"))) {
+    HandleScope scope(isolate);
+    Tagged<Context> property_context = isolate->context();
+    Address interpreter_context_address = CurrentInterpreterContext();
+    if (IsSafeTaggedHandleValue(interpreter_context_address) &&
+        IsContext(Tagged<Object>(interpreter_context_address))) {
+      property_context =
+          Cast<Context>(Tagged<Object>(interpreter_context_address));
+    }
+    DirectHandle<JSFunction> string_function(
+        property_context->native_context()->string_function(), isolate);
+    Handle<Object> string_prototype;
+    if (!Object::GetProperty(isolate, string_function,
+                             isolate->factory()->prototype_string())
+             .ToHandle(&string_prototype) ||
+        !IsJSObject(*string_prototype)) {
+      return false;
+    }
+    DirectHandle<JSObject> string_prototype_object(
+        Cast<JSObject>(*string_prototype), isolate);
+    Handle<Object> method;
+    if (Object::GetProperty(isolate, string_prototype_object, name)
+            .ToHandle(&method)) {
+      *out_result = (*method).ptr();
+      return true;
+    }
+  }
+
+  Address webidl_current_function_address = g_wasm_interpreter_frame[
+      InterpreterFrameSlotForOffset(StandardFrameConstants::kFunctionOffset)];
+  if (IsJSFunction(Tagged<Object>(webidl_current_function_address)) &&
+      Wasm32JSFunctionShared(
+          Cast<JSFunction>(Tagged<Object>(webidl_current_function_address)))
+              ->StartPosition() == 3157681 &&
+      Name::Equals(isolate, name,
+                   isolate->factory()->InternalizeUtf8String("eval"))) {
+    Tagged<Context> function_context = Wasm32JSFunctionContext(
+        Cast<JSFunction>(Tagged<Object>(webidl_current_function_address)));
+    *out_result = function_context->native_context()->global_eval_fun().ptr();
+    return true;
+  }
+#endif
   if (is_super) {
     Address home_object_address =
         g_wasm_regs[SlotFor(kInterpreterAccumulatorRegister)];
@@ -3109,6 +3564,11 @@ bool TryRunGetNamedPropertyBytecode(
   }
   if (IsJSTypedArray(receiver_object)) {
     Tagged<JSTypedArray> typed_array = Cast<JSTypedArray>(receiver_object);
+    if (Name::Equals(isolate, name,
+                     isolate->factory()->InternalizeUtf8String("buffer"))) {
+      *out_result = (*typed_array->GetBuffer()).ptr();
+      return true;
+    }
     size_t value;
     if (typed_array->IsDetachedOrOutOfBounds()) {
       value = 0;
@@ -3167,8 +3627,25 @@ bool TryRunGetNamedPropertyBytecode(
       return true;
     }
   }
-  if (!GetObjectPropertyPreservingWasmInterpreterState(isolate, receiver, name)
-           .ToHandle(&result)) {
+  if (Name::Equals(isolate, name,
+                   isolate->factory()->InternalizeUtf8String("eval")) &&
+      (IsJSGlobalObject(receiver_object) || IsJSGlobalProxy(receiver_object))) {
+    *out_result = isolate->native_context()->global_eval_fun().ptr();
+    return true;
+  }
+  if (trace_forge_get) {
+    v8_wasm32_silent_fprintf(stderr, "WASM32_FORGE_GET_RUNTIME_BEGIN pc=%d\n", bytecode_index);
+    std::fflush(stderr);
+  }
+  MaybeDirectHandle<Object> maybe_result =
+      GetObjectPropertyPreservingWasmInterpreterState(isolate, receiver, name);
+  if (trace_forge_get) {
+    v8_wasm32_silent_fprintf(stderr, "WASM32_FORGE_GET_RUNTIME_END pc=%d empty=%d exception=%d\n",
+           bytecode_index, maybe_result.is_null() ? 1 : 0,
+           isolate->has_exception() ? 1 : 0);
+    std::fflush(stderr);
+  }
+  if (!maybe_result.ToHandle(&result)) {
     *out_result = isolate->has_exception()
                       ? ReadOnlyRoots(isolate).exception().ptr()
                       : Smi::zero().ptr();
@@ -3180,6 +3657,30 @@ bool TryRunGetNamedPropertyBytecode(
     return true;
   }
   *out_result = (*result).ptr();
+  if (trace_forge_get) {
+    v8_wasm32_silent_fprintf(stderr,
+                 "WASM32_FORGE_GET_RAW_RESULT pc=%d result=0x%x\n",
+                 bytecode_index, static_cast<unsigned>(*out_result));
+    std::fflush(stderr);
+  }
+#ifdef __wasi__
+  Address current_function_address = g_wasm_interpreter_frame[
+      InterpreterFrameSlotForOffset(StandardFrameConstants::kFunctionOffset)];
+  if (IsJSFunction(Tagged<Object>(current_function_address))) {
+    Tagged<SharedFunctionInfo> current_shared = Wasm32JSFunctionShared(
+        Cast<JSFunction>(Tagged<Object>(current_function_address)));
+    static int wasm32_forge_named_load_trace_count = 0;
+    if (current_shared->StartPosition() == 5494521 &&
+        wasm32_forge_named_load_trace_count++ < 64) {
+      v8_wasm32_silent_fprintf(stderr, "WASM32_FORGE_NAMED_LOAD pc=%d name=", bytecode_index);
+      DumpNameForTrace(name_object);
+      DumpRuntimeArg(" receiver", 0, receiver_address);
+      DumpRuntimeArg(" result", 0, *out_result);
+      PrintF("\n");
+      std::fflush(stderr);
+    }
+  }
+#endif
   if (trace_eval_named_property) {
     PrintF("WasmInterpreterEntryTrampoline: named load eval result ");
     DumpRuntimeArg("result", 0, *out_result);
@@ -4314,16 +4815,17 @@ Address NormalizeWasmInterpreterResult(Isolate* isolate, const char* label,
 void PublishWasmInterpreterFallbackResult(Isolate* isolate, const char* label,
                                           Address* result) {
   *result = NormalizeWasmInterpreterResult(isolate, label, *result);
-  if (*result == Smi::FromInt(123456789).ptr()) {
-    PrintF("WASM32_SMI_PUBLISH_TRACE\n");
+  if (kEnableWasm32DebugDiagnostics &&
+      *result == Smi::FromInt(123456789).ptr()) {
+    v8_wasm32_silent_fprintf(stderr, "WASM32_SMI_PUBLISH_TRACE\n");
     g_trace_after_collection_fallback_steps = 64;
   }
-  if (IsSafeTaggedHandleValue(*result) &&
+  if (kEnableWasm32DebugDiagnostics && IsSafeTaggedHandleValue(*result) &&
       IsJSFunction(Tagged<Object>(*result)) &&
       SharedDebugNameEqualsAsciiForTrace(
           Wasm32JSFunctionShared(Cast<JSFunction>(Tagged<Object>(*result))),
           "W32TRACE")) {
-    PrintF("WASM32_CLOSURE_TRACE\n");
+    v8_wasm32_silent_fprintf(stderr, "WASM32_CLOSURE_TRACE\n");
     g_trace_after_collection_fallback_steps = 64;
   }
   int accumulator_slot = SlotFor(kInterpreterAccumulatorRegister);
@@ -4469,11 +4971,14 @@ class WasmInterpreterStateSnapshot {
   void Restore() {
     if (restored_) return;
     for (int i = 0; i < kWasmRegFileSize; ++i) {
-      g_wasm_regs[i] = RestoreWasmSlot(storage_->handles, storage_->regs[i]);
+      Address value = RestoreWasmSlot(storage_->handles, storage_->regs[i]);
+      g_wasm_regs[i] = value;
+      MirrorWasmGCRegSlotForWrite(i, value);
     }
     for (int i = 0; i < kWasmInterpreterFrameSlots; ++i) {
-      g_wasm_interpreter_frame[i] =
-          RestoreWasmSlot(storage_->handles, storage_->frame[i]);
+      Address value = RestoreWasmSlot(storage_->handles, storage_->frame[i]);
+      g_wasm_interpreter_frame[i] = value;
+      MirrorWasmGCFrameSlotForWrite(i, value);
     }
     g_wasm_current_frame_pointer = storage_->frame_pointer;
     Release();
@@ -4742,6 +5247,16 @@ Address RunPendingWasmJSCall(Isolate* isolate,
       ReadOnlyRoots(isolate).undefined_value().ptr(), rooted_call[1],
       rooted_call[2], JSParameterCount(call.arg_count),
       call.arg_count == 0 ? nullptr : argv);
+  if (call.diagnostic) {
+    v8_wasm32_silent_fprintf(stderr,
+                 "WASM32_FORGE_CALL_RETURN callable=0x%x context=0x%x "
+                 "result=0x%x exception=%d\n",
+                 static_cast<unsigned>(rooted_call[1]),
+                 static_cast<unsigned>(rooted_call[0]),
+                 static_cast<unsigned>(result),
+                 isolate->has_exception() ? 1 : 0);
+    std::fflush(stderr);
+  }
   return result;
 }
 
@@ -5160,6 +5675,32 @@ bool TryConstructJSFunctionDirect(Isolate* isolate,
     *out_result = roots.exception().ptr();
     return true;
   }
+#ifdef __wasi__
+  if (Wasm32JSFunctionShared(*ctor)->StartPosition() == 5469749) {
+    DirectHandle<Name> from_int =
+        isolate->factory()->InternalizeUtf8String("fromInt");
+    Handle<Object> instance_from_int =
+        JSReceiver::GetDataProperty(isolate, instance, from_int);
+    Address prototype_address =
+        Wasm32JSFunctionPrototypeAddress(isolate, ctor);
+    Address prototype_from_int = roots.undefined_value().ptr();
+    if (IsJSReceiver(Tagged<Object>(prototype_address))) {
+      DirectHandle<JSReceiver> prototype = direct_handle(
+          Cast<JSReceiver>(Tagged<Object>(prototype_address)), isolate);
+      prototype_from_int =
+          (*JSReceiver::GetDataProperty(isolate, prototype, from_int)).ptr();
+    }
+    v8_wasm32_silent_fprintf(stderr,
+                 "WASM32_FORGE_INSTANCE_LAYOUT ctor_proto=0x%x "
+                 "instance_proto=0x%x proto_fromInt=0x%x "
+                 "instance_fromInt=0x%x\\n",
+                 static_cast<unsigned>(prototype_address),
+                 static_cast<unsigned>(instance->map()->prototype().ptr()),
+                 static_cast<unsigned>(prototype_from_int),
+                 static_cast<unsigned>((*instance_from_int).ptr()));
+    std::fflush(stderr);
+  }
+#endif
 
   Address instance_value = (*instance).ptr();
   WasmTemporaryRootScope instance_root(isolate, &instance_value, 1);
@@ -5649,37 +6190,25 @@ bool TryRunStringPrototypeTransformBuiltin(
     }
 
     DirectHandle<String> replacement = Cast<String>(args[1]);
-    for (int i = 0; i < replacement->length(); ++i) {
-      if (replacement->Get(i) == '$') return false;
+    if (IsJSRegExp(*args[0])) {
+      DirectHandle<JSRegExp> regexp = Cast<JSRegExp>(args[0]);
+      Address runtime_args[3] = {(*replacement).ptr(), (*input).ptr(),
+                                 (*regexp).ptr()};
+      WasmGCStateScope gc_state(isolate);
+      WasmTemporaryRootScope runtime_roots(isolate, runtime_args, 3);
+      const Runtime::Function* regexp_replace =
+          Runtime::FunctionForId(Runtime::kRegExpReplaceRT);
+      using RuntimeEntry = Address (*)(int, Address*, Isolate*);
+      Address result = reinterpret_cast<RuntimeEntry>(regexp_replace->entry)(
+          3, &runtime_roots.data()[2], isolate);
+      *out_result = isolate->has_exception() || result == roots.exception().ptr()
+                        ? roots.exception().ptr()
+                        : result;
+      return true;
     }
 
     std::vector<std::pair<int, int>> matches;
-    if (IsJSRegExp(*args[0])) {
-      DirectHandle<JSRegExp> regexp = Cast<JSRegExp>(args[0]);
-      v8_flags.regexp_interpret_all = true;
-      const bool global = (regexp->flags() & JSRegExp::kGlobal) != 0;
-      int search_index = 0;
-      while (search_index <= input->length()) {
-        DirectHandle<Object> match_object(roots.null_value(), isolate);
-        DirectHandle<RegExpMatchInfo> match_info =
-            isolate->regexp_last_match_info();
-        if (!RegExp::Exec_Single(isolate, regexp, input, search_index,
-                                 match_info)
-                 .ToHandle(&match_object)) {
-          *out_result = roots.exception().ptr();
-          return true;
-        }
-        if (IsNull(*match_object, isolate)) break;
-        match_info = Cast<RegExpMatchInfo>(match_object);
-        const int match_start = match_info->capture(
-            RegExpMatchInfo::capture_start_index(0));
-        const int match_end = match_info->capture(
-            RegExpMatchInfo::capture_end_index(0));
-        matches.emplace_back(match_start, match_end);
-        if (!global) break;
-        search_index = match_end > match_start ? match_end : match_end + 1;
-      }
-    } else if (IsString(*args[0])) {
+    if (IsString(*args[0])) {
       DirectHandle<String> search = Cast<String>(args[0]);
       const int match_start = String::IndexOf(isolate, input, search, 0);
       if (match_start >= 0) {
@@ -5697,11 +6226,30 @@ bool TryRunStringPrototypeTransformBuiltin(
     DirectHandle<String> result = isolate->factory()->empty_string();
     int previous_end = 0;
     for (const auto& match : matches) {
+      DirectHandle<String> matched = isolate->factory()->NewSubString(
+          input, match.first, match.second);
+      Address runtime_args[5] = {
+          Smi::zero().ptr(), (*replacement).ptr(),
+          Smi::FromInt(match.first).ptr(), (*input).ptr(), (*matched).ptr()};
+      WasmGCStateScope gc_state(isolate);
+      WasmTemporaryRootScope runtime_roots(isolate, runtime_args, 5);
+      const Runtime::Function* get_substitution =
+          Runtime::FunctionForId(Runtime::kGetSubstitution);
+      using RuntimeEntry = Address (*)(int, Address*, Isolate*);
+      Address substitution = reinterpret_cast<RuntimeEntry>(
+          get_substitution->entry)(5, &runtime_roots.data()[4], isolate);
+      if (isolate->has_exception() || substitution == roots.exception().ptr()) {
+        *out_result = roots.exception().ptr();
+        return true;
+      }
       DirectHandle<String> prefix = isolate->factory()->NewSubString(
           input, previous_end, match.first);
       if (!isolate->factory()->NewConsString(result, prefix).ToHandle(&result) ||
           !isolate->factory()
-               ->NewConsString(result, replacement)
+               ->NewConsString(
+                   result,
+                   direct_handle(Cast<String>(Tagged<Object>(substitution)),
+                                 isolate))
                .ToHandle(&result)) {
         *out_result = roots.exception().ptr();
         return true;
@@ -6800,8 +7348,9 @@ bool TryRunArrayPredicateBuiltin(Isolate* isolate,
       arg_count > 0 ? args[0]
                     : direct_handle(roots.undefined_value(), isolate);
   if (!IsCallable(*callback)) {
-    isolate->Throw(*isolate->factory()->NewTypeError(
-        MessageTemplate::kCalledNonCallable, callback));
+    isolate->Throw(*isolate->factory()->NewError(
+        isolate->type_error_function(),
+        isolate->factory()->NewStringFromAsciiChecked("Value is not callable")));
     *out_result = roots.exception().ptr();
     return true;
   }
@@ -7536,6 +8085,51 @@ bool TryRunWeakCollectionSetBuiltin(Isolate* isolate,
   return true;
 }
 
+bool TryRunWeakCollectionHasOrGetBuiltin(
+    Isolate* isolate, DirectHandle<Object> callable,
+    DirectHandle<Object> receiver, int arg_count, DirectHandle<Object>* args,
+    Address* out_result) {
+  bool is_weak_map_get =
+      IsJSFunctionBuiltin(isolate, callable, Builtin::kWeakMapGet);
+  bool is_weak_map_has =
+      IsJSFunctionBuiltin(isolate, callable, Builtin::kWeakMapPrototypeHas);
+  bool is_weak_set_has =
+      IsJSFunctionBuiltin(isolate, callable, Builtin::kWeakSetPrototypeHas);
+  if (!is_weak_map_get && !is_weak_map_has && !is_weak_set_has) return false;
+
+  ReadOnlyRoots roots(isolate);
+  if ((is_weak_map_get || is_weak_map_has) && !IsJSWeakMap(*receiver)) {
+    *out_result = roots.exception().ptr();
+    return true;
+  }
+  if (is_weak_set_has && !IsJSWeakSet(*receiver)) {
+    *out_result = roots.exception().ptr();
+    return true;
+  }
+
+  DirectHandle<Object> key =
+      arg_count > 0 ? args[0] : direct_handle(roots.undefined_value(), isolate);
+  if (!Object::CanBeHeldWeakly(*key)) {
+    *out_result = is_weak_map_get ? roots.undefined_value().ptr()
+                                  : roots.false_value().ptr();
+    return true;
+  }
+
+  DirectHandle<JSWeakCollection> collection =
+      Cast<JSWeakCollection>(receiver);
+  Tagged<EphemeronHashTable> table =
+      Cast<EphemeronHashTable>(collection->table());
+  InternalIndex entry = table->FindEntry(isolate, key);
+  bool found = entry.is_found();
+  if (is_weak_map_get) {
+    *out_result = found ? table->ValueAt(entry).ptr()
+                        : roots.undefined_value().ptr();
+  } else {
+    *out_result = found ? roots.true_value().ptr() : roots.false_value().ptr();
+  }
+  return true;
+}
+
 bool TryRunReflectOwnKeysBuiltin(Isolate* isolate,
                                  DirectHandle<Object> callable,
                                  int arg_count, DirectHandle<Object>* args,
@@ -8047,6 +8641,126 @@ bool TryRunObjectCreateOrDefinePropertyBuiltin(
   return true;
 }
 
+bool TryRunWasm32ExportedFunction(Isolate* isolate,
+                                  Tagged<JSFunction> function,
+                                  int actual_argc, Address* argv,
+                                  Address* out_result) {
+  if (!WasmExportedFunction::IsWasmExportedFunction(function)) return false;
+
+  HandleScope scope(isolate);
+  ReadOnlyRoots roots(isolate);
+  Tagged<WasmExportedFunctionData> function_data =
+      function->shared()->wasm_exported_function_data();
+  DirectHandle<WasmTrustedInstanceData> instance_data(
+      function_data->instance_data(), isolate);
+  if (!instance_data->has_instance_object()) return false;
+
+  const int function_index = function_data->function_index();
+  const wasm::FunctionSig* sig =
+      instance_data->module()->functions[function_index].sig;
+  if (sig->parameter_count() > kMaxWasmCallArgs ||
+      sig->return_count() > kMaxWasmCallArgs || sig->return_count() > 1) {
+    isolate->Throw(*isolate->factory()->NewTypeError(
+        MessageTemplate::kWasmTrapJSTypeError));
+    *out_result = roots.exception().ptr();
+    return true;
+  }
+
+  std::vector<wasm::WasmValue> wasm_args;
+  wasm_args.reserve(sig->parameter_count());
+  for (size_t i = 0; i < sig->parameter_count(); ++i) {
+    Address argument_address =
+        i < static_cast<size_t>(actual_argc)
+            ? SafeTaggedOrUndefined(isolate, argv[i])
+            : roots.undefined_value().ptr();
+    DirectHandle<Object> argument(Tagged<Object>(argument_address), isolate);
+    wasm::ValueKind kind = sig->GetParam(i).kind();
+    if (kind == wasm::kRef || kind == wasm::kRefNull) {
+      isolate->Throw(*isolate->factory()->NewTypeError(
+          MessageTemplate::kWasmTrapJSTypeError));
+      *out_result = roots.exception().ptr();
+      return true;
+    }
+    if (kind == wasm::kI64) {
+      DirectHandle<BigInt> bigint;
+      if (!BigInt::FromObject(isolate, argument).ToHandle(&bigint)) {
+        *out_result = roots.exception().ptr();
+        return true;
+      }
+      wasm_args.emplace_back(bigint->AsInt64());
+      continue;
+    }
+    DirectHandle<Number> number;
+    if (!Object::ToNumber(isolate, argument).ToHandle(&number)) {
+      *out_result = roots.exception().ptr();
+      return true;
+    }
+    const double value = Object::NumberValue(*number);
+    switch (kind) {
+      case wasm::kI32:
+        wasm_args.emplace_back(static_cast<uint32_t>(DoubleToInt32(value)));
+        break;
+      case wasm::kF32:
+        wasm_args.emplace_back(static_cast<float>(value));
+        break;
+      case wasm::kF64:
+        wasm_args.emplace_back(value);
+        break;
+      default:
+        UNREACHABLE();
+    }
+  }
+
+  std::vector<wasm::WasmValue> wasm_rets(sig->return_count());
+  DirectHandle<WasmInstanceObject> instance(instance_data->instance_object(),
+                                            isolate);
+  WasmTrustedInstanceData::GetOrCreateInterpreterObject(instance);
+  Address activation_marker = 0;
+  Tagged<Context> saved_context = isolate->context();
+  isolate->set_context(instance_data->native_context());
+  bool success = WasmInterpreterObject::RunInterpreter(
+      isolate, reinterpret_cast<Address>(&activation_marker), instance,
+      function_index, wasm_args, wasm_rets);
+  isolate->set_context(saved_context);
+  if (!success || isolate->has_exception()) {
+    *out_result = roots.exception().ptr();
+    return true;
+  }
+
+  if (sig->return_count() == 0) {
+    *out_result = roots.undefined_value().ptr();
+    return true;
+  }
+  switch (sig->GetReturn(0).kind()) {
+    case wasm::kI32: {
+      *out_result = (*isolate->factory()->NewNumberFromUint(
+                         wasm_rets[0].to_u32()))
+                        .ptr();
+      return true;
+    }
+    case wasm::kI64: {
+      *out_result = BigInt::FromInt64(isolate, wasm_rets[0].to_i64())->ptr();
+      return true;
+    }
+    case wasm::kF32: {
+      *out_result = (*isolate->factory()->NewNumber(wasm_rets[0].to_f32()))
+                        .ptr();
+      return true;
+    }
+    case wasm::kF64: {
+      *out_result = (*isolate->factory()->NewNumber(wasm_rets[0].to_f64()))
+                        .ptr();
+      return true;
+    }
+    case wasm::kRef:
+    case wasm::kRefNull:
+      *out_result = (*wasm_rets[0].to_ref()).ptr();
+      return true;
+    default:
+      UNREACHABLE();
+  }
+}
+
 bool TryFallbackJSEntryBuiltin(Isolate* isolate, Builtin builtin,
                                Tagged<JSFunction> function_value,
                                Address receiver_value,
@@ -8154,6 +8868,132 @@ bool TryRunCallBytecode(Isolate* isolate, Tagged<BytecodeArray> bytecode,
       isolate, ReadInterpreterRegister(
                    interpreter::Register::FromOperand(callable_operand)));
 #ifdef __wasi__
+  Tagged<SharedFunctionInfo> trace_caller_shared =
+      Wasm32JSFunctionShared(current_function);
+  const int trace_caller_start = trace_caller_shared->StartPosition();
+  bool trace_forge_v4_call = false;
+  if (trace_caller_start >= 5400000 && trace_caller_start < 5500000 &&
+      IsJSFunction(Tagged<Object>(callable_address))) {
+    Tagged<JSFunction> trace_callee =
+        Cast<JSFunction>(Tagged<Object>(callable_address));
+    Tagged<SharedFunctionInfo> trace_callee_shared =
+        Wasm32JSFunctionShared(trace_callee);
+    trace_forge_v4_call = trace_callee_shared->StartPosition() == 886;
+    if (trace_forge_v4_call) {
+      v8_wasm32_silent_fprintf(stderr,
+                   "WASM32_FORGE_CALL caller=0x%x caller_start=%d source=%d "
+                   "pc=%d callee=0x%x callee_start=%d context=0x%x\n",
+                   static_cast<unsigned>(current_function.ptr()),
+                   trace_caller_start, call_source_position, bytecode_index,
+                   static_cast<unsigned>(callable_address),
+                   trace_callee_shared->StartPosition(),
+                   static_cast<unsigned>(Wasm32JSFunctionContext(trace_callee)
+                                             .ptr()));
+      std::fflush(stderr);
+    }
+  }
+  if (IsJSFunction(Tagged<Object>(callable_address)) &&
+      Wasm32JSFunctionShared(Cast<JSFunction>(Tagged<Object>(callable_address)))
+              ->StartPosition() == 3157681) {
+    v8_wasm32_silent_fprintf(stderr,
+                 "WASM32_WEBIDL_REALM_CALL caller_start=%d caller_end=%d "
+                 "pc=%d source=%d opcode=%s\n",
+                 trace_caller_start, trace_caller_shared->EndPosition(),
+                 bytecode_index, call_source_position,
+                 interpreter::Bytecodes::ToString(bytecode_enum));
+    std::fflush(stderr);
+  }
+  if (trace_caller_shared->StartPosition() == 7175949) {
+    v8_wasm32_silent_fprintf(stderr,
+                 "WASM32_O3Q_CALL pc=%d opcode=%s callable=0x%x function=%d\n",
+                 bytecode_index, interpreter::Bytecodes::ToString(bytecode_enum),
+                 static_cast<unsigned>(callable_address),
+                 IsJSFunction(Tagged<Object>(callable_address)) ? 1 : 0);
+    if (bytecode_enum == interpreter::Bytecode::kCallProperty1) {
+      int32_t receiver_operand = ReadBytecodeSignedOperand(
+          bytecode, bytecode_index, bytecode_enum, 1, operand_scale);
+      Address receiver_address = SafeTaggedOrUndefined(
+          isolate, ReadInterpreterRegister(
+                       interpreter::Register::FromOperand(receiver_operand)));
+      Tagged<Object> receiver_value(receiver_address);
+      v8_wasm32_silent_fprintf(stderr,
+                   "WASM32_O3Q_PROPERTY_RECEIVER value=0x%x regexp=%d "
+                   "string=%d receiver=%d\n",
+                   static_cast<unsigned>(receiver_address),
+                   IsJSRegExp(receiver_value) ? 1 : 0,
+                   IsString(receiver_value) ? 1 : 0,
+                   IsJSReceiver(receiver_value) ? 1 : 0);
+    }
+    std::fflush(stderr);
+  }
+  if (trace_caller_shared->StartPosition() == 0 &&
+      trace_caller_shared->EndPosition() > 9000000 &&
+      (bytecode_index == 89555 || bytecode_index == 89627)) {
+    v8_wasm32_silent_fprintf(stderr, "WASM32_CLAUDE_PRECEDING_CALL callable=0x%x",
+                 static_cast<unsigned>(callable_address));
+    if (IsSafeTaggedHandleValue(callable_address) &&
+        IsJSFunction(Tagged<Object>(callable_address))) {
+      Tagged<JSFunction> trace_function =
+          Cast<JSFunction>(Tagged<Object>(callable_address));
+      Tagged<SharedFunctionInfo> trace_shared =
+          Wasm32JSFunctionShared(trace_function);
+      Tagged<Code> trace_code = trace_function->code(isolate);
+      std::unique_ptr<char[]> trace_name = trace_shared->DebugNameCStr();
+      v8_wasm32_silent_fprintf(stderr,
+                   " start=%d end=%d name=%s builtin=%d builtin_id=%d",
+                   trace_shared->StartPosition(), trace_shared->EndPosition(),
+                   trace_name.get(), trace_code->is_builtin() ? 1 : 0,
+                   trace_code->is_builtin()
+                       ? static_cast<int>(trace_code->builtin_id())
+                       : -1);
+    }
+    v8_wasm32_silent_fprintf(stderr, "\n");
+    std::fflush(stderr);
+  }
+  if (trace_caller_shared->StartPosition() == 0 &&
+      trace_caller_shared->EndPosition() > 9000000 &&
+      IsUndefined(Tagged<Object>(callable_address), roots)) {
+    static int claude_undefined_call_trace_count = 0;
+    if (claude_undefined_call_trace_count < 32) {
+      ++claude_undefined_call_trace_count;
+      v8_wasm32_silent_fprintf(stderr,
+                   "WASM32_CLAUDE_UNDEFINED_CALL #%d pc=%d source=%d opcode=%s\n",
+                   claude_undefined_call_trace_count, bytecode_index,
+                   call_source_position,
+                   interpreter::Bytecodes::ToString(bytecode_enum));
+      std::fflush(stderr);
+      int32_t receiver_operand = ReadBytecodeSignedOperand(
+          bytecode, bytecode_index, bytecode_enum, 1, operand_scale);
+      int32_t first_arg_operand = ReadBytecodeSignedOperand(
+          bytecode, bytecode_index, bytecode_enum, 2, operand_scale);
+      int32_t second_arg_operand = ReadBytecodeSignedOperand(
+          bytecode, bytecode_index, bytecode_enum, 3, operand_scale);
+      Address receiver_value = ReadInterpreterRegister(
+          interpreter::Register::FromOperand(receiver_operand));
+      Address first_arg_value = ReadInterpreterRegister(
+          interpreter::Register::FromOperand(first_arg_operand));
+      Address second_arg_value = ReadInterpreterRegister(
+          interpreter::Register::FromOperand(second_arg_operand));
+      v8_wasm32_silent_fprintf(stderr,
+                   "WASM32_CLAUDE_CALL_VALUES callable_op=%d receiver_op=%d "
+                   "arg0_op=%d arg1_op=%d receiver=0x%x arg0=0x%x arg1=0x%x\n",
+                   callable_operand, receiver_operand, first_arg_operand,
+                   second_arg_operand, static_cast<unsigned>(receiver_value),
+                   static_cast<unsigned>(first_arg_value),
+                   static_cast<unsigned>(second_arg_value));
+      v8_wasm32_silent_fprintf(stderr, "WASM32_CLAUDE_BYTECODE_WINDOW");
+      int window_start = std::max(0, bytecode_index - 96);
+      int window_end = std::min(bytecode->length(), bytecode_index + 32);
+      for (int window_index = window_start; window_index < window_end;
+           ++window_index) {
+        v8_wasm32_silent_fprintf(stderr, " %02x", bytecode->get(window_index));
+      }
+      v8_wasm32_silent_fprintf(stderr, "\n");
+      std::fflush(stderr);
+    }
+  }
+#endif
+#ifdef __wasi__
   diagnostic_call = diagnostic_call ||
                     (Wasm32JSFunctionShared(current_function)->StartPosition() ==
                          483118 &&
@@ -8171,7 +9011,7 @@ bool TryRunCallBytecode(Isolate* isolate, Tagged<BytecodeArray> bytecode,
     static int wide_call0_trace_count = 0;
     if (wide_call0_trace_count < 128) {
       ++wide_call0_trace_count;
-      PrintF("WASM32_WIDE_CALL0 #%d index=%d operand=%d callable=0x%x",
+      v8_wasm32_silent_fprintf(stderr, "WASM32_WIDE_CALL0 #%d index=%d operand=%d callable=0x%x",
              wide_call0_trace_count, bytecode_index, callable_operand,
              static_cast<unsigned>(callable_address));
       if (IsSafeTaggedHandleValue(callable_address) &&
@@ -8214,7 +9054,7 @@ bool TryRunCallBytecode(Isolate* isolate, Tagged<BytecodeArray> bytecode,
                            : -1;
       target_name = call_shared->DebugNameCStr();
     }
-    std::fprintf(stderr,
+    v8_wasm32_silent_fprintf(stderr,
                  "WASM32_CALL_DIAG_REAL source=%d index=%d opcode=%s "
                  "callable=0x%x target_start=%d target_name=%s "
                  "compiled=%d builtin=%d\n",
@@ -8224,7 +9064,7 @@ bool TryRunCallBytecode(Isolate* isolate, Tagged<BytecodeArray> bytecode,
                  target_name ? target_name.get() : "<non-js-function>",
                  target_compiled, target_builtin);
     std::fflush(stderr);
-    PrintF("WASM32_CALL_DIAG source=%d index=%d opcode=%s callable=0x%x",
+    v8_wasm32_silent_fprintf(stderr, "WASM32_CALL_DIAG source=%d index=%d opcode=%s callable=0x%x",
            call_source_position, bytecode_index,
            interpreter::Bytecodes::ToString(bytecode_enum),
            static_cast<unsigned>(callable_address));
@@ -8270,6 +9110,66 @@ bool TryRunCallBytecode(Isolate* isolate, Tagged<BytecodeArray> bytecode,
     PrintF("\n");
   }
   if (!IsCallable(Tagged<Object>(callable_address))) {
+#ifdef __wasi__
+    static int wasm32_noncallable_trace_count = 0;
+    Tagged<SharedFunctionInfo> noncallable_shared =
+        Wasm32JSFunctionShared(current_function);
+    if (++wasm32_noncallable_trace_count <= 32) {
+      v8_wasm32_silent_fprintf(stderr,
+                 "WASM32_NONCALLABLE function_start=%d function_end=%d "
+                   "pc=%d opcode=%s target=0x%x\n",
+                   noncallable_shared->StartPosition(),
+                   noncallable_shared->EndPosition(), bytecode_index,
+                   interpreter::Bytecodes::ToString(bytecode_enum),
+                   static_cast<unsigned>(callable_address));
+      std::fflush(stderr);
+    }
+    if (bytecode_enum == interpreter::Bytecode::kCallProperty0 ||
+        bytecode_enum == interpreter::Bytecode::kCallProperty1 ||
+        bytecode_enum == interpreter::Bytecode::kCallProperty2) {
+      int operand_count = interpreter::Bytecodes::NumberOfOperands(bytecode_enum);
+      v8_wasm32_silent_fprintf(stderr, "WASM32_NONCALLABLE_REGS");
+      for (int i = 0; i < operand_count - 1; ++i) {
+        int32_t operand = ReadBytecodeSignedOperand(
+            bytecode, bytecode_index, bytecode_enum, i, operand_scale);
+        Address value = ReadInterpreterRegister(
+            interpreter::Register::FromOperand(operand));
+        const char* value_type =
+            IsString(Tagged<Object>(value)) ? "string" :
+            IsJSFunction(Tagged<Object>(value)) ? "function" :
+            IsJSObject(Tagged<Object>(value)) ? "object" : "other";
+        v8_wasm32_silent_fprintf(stderr, " op%d=%d:0x%x:%s", i, operand,
+                     static_cast<unsigned>(value), value_type);
+      }
+      v8_wasm32_silent_fprintf(stderr, "\n");
+      if (noncallable_shared->StartPosition() == 5494521 &&
+          operand_count > 2) {
+        int32_t receiver_operand = ReadBytecodeSignedOperand(
+            bytecode, bytecode_index, bytecode_enum, 1, operand_scale);
+        Address receiver_address = ReadInterpreterRegister(
+            interpreter::Register::FromOperand(receiver_operand));
+        if (IsJSReceiver(Tagged<Object>(receiver_address))) {
+          HandleScope scope(isolate);
+          DirectHandle<JSReceiver> receiver = direct_handle(
+              Cast<JSReceiver>(Tagged<Object>(receiver_address)), isolate);
+          DirectHandle<Name> create_cipher =
+              isolate->factory()->InternalizeUtf8String("createCipher");
+          DirectHandle<Name> create_decipher =
+              isolate->factory()->InternalizeUtf8String("createDecipher");
+          Handle<Object> cipher_value = JSReceiver::GetDataProperty(
+              isolate, receiver, create_cipher);
+          Handle<Object> decipher_value = JSReceiver::GetDataProperty(
+              isolate, receiver, create_decipher);
+          v8_wasm32_silent_fprintf(stderr,
+                       "WASM32_FORGE_CIPHER_EXPORTS createCipher=0x%x "
+                       "createDecipher=0x%x\n",
+                       static_cast<unsigned>((*cipher_value).ptr()),
+                       static_cast<unsigned>((*decipher_value).ptr()));
+        }
+      }
+    }
+    std::fflush(stderr);
+#endif
     if (bytecode_enum == interpreter::Bytecode::kCallUndefinedReceiver2) {
       int32_t regexp_operand =
           ReadBytecodeSignedOperand(bytecode, bytecode_index, bytecode_enum, 1,
@@ -8299,8 +9199,9 @@ bool TryRunCallBytecode(Isolate* isolate, Tagged<BytecodeArray> bytecode,
     DirectHandle<Object> callable = direct_handle(
         Tagged<Object>(SafeTaggedOrUndefined(isolate, callable_address)),
         isolate);
-    isolate->Throw(*isolate->factory()->NewTypeError(
-        MessageTemplate::kCalledNonCallable, callable));
+    isolate->Throw(*isolate->factory()->NewError(
+        isolate->type_error_function(),
+        isolate->factory()->NewStringFromAsciiChecked("Value is not callable")));
     *out_result = roots.exception().ptr();
     return true;
   }
@@ -8475,7 +9376,7 @@ bool TryRunCallBytecode(Isolate* isolate, Tagged<BytecodeArray> bytecode,
             Builtin::kPromiseCapabilityDefaultReject) {
       Address argument = arg_count > 0 ? (*args[0]).ptr()
                                        : roots.undefined_value().ptr();
-      std::fprintf(stderr,
+      v8_wasm32_silent_fprintf(stderr,
                    "WASM32_DIRECT_DEFAULT_REJECT pc=%d len=%d source=%d "
                    "argc=%d arg0=0x%x undefined=%d\n",
                    bytecode_index, bytecode->length(),
@@ -8497,7 +9398,7 @@ bool TryRunCallBytecode(Isolate* isolate, Tagged<BytecodeArray> bytecode,
     PrintF("\n");
   }
   if (diagnostic_call) {
-    std::fprintf(stderr,
+    v8_wasm32_silent_fprintf(stderr,
                  "WASM32_CALL_DECODE_REAL index=%d opcode=%s scale=%d "
                  "receiver=0x%x argc=%d",
                  bytecode_index,
@@ -8505,10 +9406,10 @@ bool TryRunCallBytecode(Isolate* isolate, Tagged<BytecodeArray> bytecode,
                  static_cast<int>(operand_scale),
                  static_cast<unsigned>(receiver_address), arg_count);
     for (int i = 0; i < arg_count; ++i) {
-      std::fprintf(stderr, " arg%d=0x%x", i,
+      v8_wasm32_silent_fprintf(stderr, " arg%d=0x%x", i,
                    static_cast<unsigned>((*args[i]).ptr()));
     }
-    std::fprintf(stderr, "\n");
+    v8_wasm32_silent_fprintf(stderr, "\n");
     std::fflush(stderr);
   }  if (arg_count > 0 && IsString(*args[0]) &&
       StringContainsAsciiForTrace(*args[0], "CLAUDE_MCQ callable")) {
@@ -8745,9 +9646,15 @@ bool TryRunCallBytecode(Isolate* isolate, Tagged<BytecodeArray> bytecode,
     if (switched_context) isolate->set_context(saved_context);
     return true;
   }
+  if (TryRunWeakCollectionHasOrGetBuiltin(isolate, callable, receiver,
+                                          arg_count, args, out_result)) {
+    if (switched_context) isolate->set_context(saved_context);
+    return true;
+  }
 
 #ifdef __wasi__
-  if (arg_count > 0 && IsJSFunction(*callable) &&
+  if (kEnableWasm32DebugDiagnostics && arg_count > 0 &&
+      IsJSFunction(*callable) &&
       IsUndefined(*args[0], roots)) {
     Tagged<JSFunction> api_function = Cast<JSFunction>(*callable);
     Tagged<Code> api_code = api_function->code(isolate);
@@ -8761,7 +9668,7 @@ bool TryRunCallBytecode(Isolate* isolate, Tagged<BytecodeArray> bytecode,
             Wasm32JSFunctionShared(current_function);
         Tagged<SharedFunctionInfo> callee_shared =
             Wasm32JSFunctionShared(api_function);
-        PrintF("WASM32_API_UNDEFINED_ARG caller_start=%d call_pc=%d source=%d "
+        v8_wasm32_silent_fprintf(stderr, "WASM32_API_UNDEFINED_ARG caller_start=%d call_pc=%d source=%d "
                "argc=%d callee=",
                caller_shared->StartPosition(), bytecode_index,
                call_source_position, arg_count);
@@ -8797,10 +9704,18 @@ bool TryRunCallBytecode(Isolate* isolate, Tagged<BytecodeArray> bytecode,
   if ((IsJSFunction(*callable) || IsJSBoundFunction(*callable)) &&
       arg_count <= kMaxWasmCallArgs) {
     pending_call->pending = true;
-    pending_call->diagnostic = diagnostic_call;
+    pending_call->diagnostic = diagnostic_call || trace_forge_v4_call;
     pending_call->bytecode_index = bytecode_index;
     pending_call->source_position = call_source_position;
-    pending_call->context = context_address;
+    // The recursive entry must run native fallbacks and allocations in the
+    // callee's realm. The emulated interpreter frame receives the callee
+    // context below, but RunPendingWasmJSCall also sets isolate->context()
+    // before entering it. Keeping the caller context there breaks closure
+    // module caches when a nested wrapper allocates through a fallback.
+    pending_call->context =
+        IsJSFunction(*callable)
+            ? Wasm32JSFunctionContext(Cast<JSFunction>(*callable)).ptr()
+            : context_address;
     pending_call->callable = (*callable).ptr();
     pending_call->receiver = (*receiver).ptr();
     pending_call->arg_count = arg_count;
@@ -9158,7 +10073,9 @@ bool TryRunRegExpConstructorBuiltin(Isolate* isolate,
   }
 
   ReadOnlyRoots roots(isolate);
-  if (!IsJSFunction(*constructor) || !IsJSReceiver(*new_target)) {
+  const bool called_as_function = IsUndefined(*new_target, roots);
+  if (!IsJSFunction(*constructor) ||
+      (!called_as_function && !IsJSReceiver(*new_target))) {
     *out_result = roots.exception().ptr();
     return true;
   }
@@ -9197,7 +10114,10 @@ bool TryRunRegExpConstructorBuiltin(Isolate* isolate,
   }
 
   DirectHandle<JSFunction> ctor = Cast<JSFunction>(constructor);
-  DirectHandle<JSReceiver> new_target_receiver = Cast<JSReceiver>(new_target);
+  DirectHandle<JSReceiver> new_target_receiver =
+      called_as_function
+          ? direct_handle(Cast<JSReceiver>(*constructor), isolate)
+          : Cast<JSReceiver>(new_target);
   DirectHandle<JSObject> instance;
   if (!JSObject::New(ctor, new_target_receiver, {}).ToHandle(&instance) ||
       !IsJSRegExp(*instance)) {
@@ -9562,7 +10482,7 @@ bool TryRunConstructBytecode(Isolate* isolate, Tagged<BytecodeArray> bytecode,
                              int bytecode_index,
                              interpreter::Bytecode bytecode_enum,
                              interpreter::OperandScale operand_scale,
-                             Address* out_result) {
+                             Address* out_result, bool trace_forge_construct) {
   bool forward_all_args =
       bytecode_enum == interpreter::Bytecode::kConstructForwardAllArgs;
   bool has_spread =
@@ -9583,6 +10503,16 @@ bool TryRunConstructBytecode(Isolate* isolate, Tagged<BytecodeArray> bytecode,
       isolate, g_wasm_regs[SlotFor(kInterpreterAccumulatorRegister)]);
   if (!IsConstructor(Tagged<Object>(constructor_address)) ||
       !IsConstructor(Tagged<Object>(new_target_address))) {
+    HandleScope scope(isolate);
+    Address invalid_constructor =
+        !IsConstructor(Tagged<Object>(constructor_address))
+            ? constructor_address
+            : new_target_address;
+    DirectHandle<Object> invalid = direct_handle(
+        Tagged<Object>(SafeTaggedOrUndefined(isolate, invalid_constructor)),
+        isolate);
+    isolate->Throw(*isolate->factory()->NewTypeError(
+        MessageTemplate::kNotConstructor, invalid));
     *out_result = roots.exception().ptr();
     return true;
   }
@@ -9636,6 +10566,43 @@ bool TryRunConstructBytecode(Isolate* isolate, Tagged<BytecodeArray> bytecode,
       direct_handle(Tagged<Object>(constructor_address), isolate);
   DirectHandle<Object> new_target =
       direct_handle(Tagged<Object>(new_target_address), isolate);
+  if (trace_forge_construct) {
+    v8_wasm32_silent_fprintf(stderr,
+                 "WASM32_FORGE_CONSTRUCT_ENTER pc=%d ctor=0x%x new_target=0x%x "
+                 "argc=%d arg0=0x%x\n",
+                 bytecode_index, static_cast<unsigned>(constructor_address),
+                 static_cast<unsigned>(new_target_address), arg_count,
+                 static_cast<unsigned>(arg_count > 0 ? (*args[0]).ptr()
+                                                      : roots.undefined_value()
+                                                            .ptr()));
+    std::fflush(stderr);
+  }
+#ifdef __wasi__
+  if (IsJSFunction(*constructor)) {
+    Tagged<SharedFunctionInfo> constructor_shared = Wasm32JSFunctionShared(
+        Cast<JSFunction>(*constructor));
+    if (constructor_shared->StartPosition() == 470474) {
+      Address caller_address = g_wasm_interpreter_frame[
+          InterpreterFrameSlotForOffset(StandardFrameConstants::kFunctionOffset)];
+      int caller_start = -1;
+      std::unique_ptr<char[]> caller_name;
+      if (IsJSFunction(Tagged<Object>(caller_address))) {
+        Tagged<SharedFunctionInfo> caller_shared = Wasm32JSFunctionShared(
+            Cast<JSFunction>(Tagged<Object>(caller_address)));
+        caller_start = caller_shared->StartPosition();
+        caller_name = caller_shared->DebugNameCStr();
+      }
+      v8_wasm32_silent_fprintf(stderr,
+                   "WASM32_RESPONSE_CONSTRUCT caller_start=%d caller_name=%s "
+                   "pc=%d argc=%d init=0x%x\n",
+                   caller_start, caller_name ? caller_name.get() : "<none>",
+                   bytecode_index, arg_count,
+                   static_cast<unsigned>(arg_count > 1 ? (*args[1]).ptr()
+                                                       : roots.undefined_value().ptr()));
+      std::fflush(stderr);
+    }
+  }
+#endif
   Tagged<Context> saved_context = isolate->context();
   Address context_address = CurrentInterpreterContext();
   bool switched_context = false;
@@ -9681,9 +10648,31 @@ bool TryRunConstructBytecode(Isolate* isolate, Tagged<BytecodeArray> bytecode,
     return true;
   }
 
+  int constructor_start = -1;
+  int constructor_end = -1;
+  const char* constructor_kind = "non-js-function";
+  std::unique_ptr<char[]> constructor_name;
+  if (IsJSFunction(*constructor)) {
+    Tagged<SharedFunctionInfo> constructor_shared = Wasm32JSFunctionShared(
+        Cast<JSFunction>(*constructor));
+    constructor_start = constructor_shared->StartPosition();
+    constructor_end = constructor_shared->EndPosition();
+    constructor_kind = FunctionKind2String(constructor_shared->kind());
+    constructor_name = constructor_shared->DebugNameCStr();
+  }
   Address result_address = roots.exception().ptr();
-  if (!TryConstructJSFunctionDirect(isolate, constructor, new_target, arg_count,
-                                    args, &result_address)) {
+  bool handled_direct = TryConstructJSFunctionDirect(
+      isolate, constructor, new_target, arg_count, args, &result_address);
+  if (trace_forge_construct) {
+    v8_wasm32_silent_fprintf(stderr,
+                 "WASM32_FORGE_CONSTRUCT_TARGET pc=%d direct=%d start=%d "
+                 "end=%d kind=%s name=%s\\n",
+                 bytecode_index, handled_direct ? 1 : 0, constructor_start,
+                 constructor_end, constructor_kind,
+                 constructor_name ? constructor_name.get() : "<none>");
+    std::fflush(stderr);
+  }
+  if (!handled_direct) {
     DirectHandle<JSReceiver> result;
     MaybeDirectHandle<JSReceiver> maybe_result =
         Execution::New(isolate, constructor, new_target,
@@ -9695,6 +10684,13 @@ bool TryRunConstructBytecode(Isolate* isolate, Tagged<BytecodeArray> bytecode,
   if (switched_context) isolate->set_context(saved_context);
 
   *out_result = result_address;
+  if (trace_forge_construct) {
+    v8_wasm32_silent_fprintf(stderr, "WASM32_FORGE_CONSTRUCT_RESULT pc=%d result=0x%x "
+                         "exception=%d\n",
+                 bytecode_index, static_cast<unsigned>(result_address),
+                 isolate->has_exception() ? 1 : 0);
+    std::fflush(stderr);
+  }
   return true;
 }
 
@@ -9873,6 +10869,46 @@ bool TryRunAddBytecode(Isolate* isolate, Tagged<BytecodeArray> bytecode,
       return true;
     }
     double result = Modulo(Object::NumberValue(*lhs_numeric), rhs);
+    *out_result = (*isolate->factory()->NewNumber(result)).ptr();
+    return true;
+  } else if (bytecode_enum == interpreter::Bytecode::kMod) {
+    int32_t lhs_operand =
+        ReadBytecodeSignedOperand(bytecode, bytecode_index, bytecode_enum, 0,
+                                  operand_scale);
+    Address lhs = SafeTaggedOrUndefined(
+        isolate, ReadInterpreterRegister(
+                     interpreter::Register::FromOperand(lhs_operand)));
+    Address rhs = SafeTaggedOrUndefined(
+        isolate, g_wasm_regs[SlotFor(kInterpreterAccumulatorRegister)]);
+    HandleScope scope(isolate);
+    DirectHandle<Object> lhs_object(Tagged<Object>(lhs), isolate);
+    DirectHandle<Object> rhs_object(Tagged<Object>(rhs), isolate);
+    DirectHandle<Object> lhs_numeric;
+    DirectHandle<Object> rhs_numeric;
+    if (!Object::ToNumeric(isolate, lhs_object).ToHandle(&lhs_numeric) ||
+        !Object::ToNumeric(isolate, rhs_object).ToHandle(&rhs_numeric)) {
+      *out_result = ReadOnlyRoots(isolate).exception().ptr();
+      return true;
+    }
+    if (IsBigInt(*lhs_numeric) || IsBigInt(*rhs_numeric)) {
+      if (!IsBigInt(*lhs_numeric) || !IsBigInt(*rhs_numeric)) {
+        isolate->Throw(*isolate->factory()->NewTypeError(
+            MessageTemplate::kBigIntMixedTypes));
+        *out_result = ReadOnlyRoots(isolate).exception().ptr();
+        return true;
+      }
+      Handle<BigInt> result;
+      if (!BigInt::Remainder(isolate, Cast<BigInt>(lhs_numeric),
+                             Cast<BigInt>(rhs_numeric))
+               .ToHandle(&result)) {
+        *out_result = ReadOnlyRoots(isolate).exception().ptr();
+        return true;
+      }
+      *out_result = (*result).ptr();
+      return true;
+    }
+    double result = Modulo(Object::NumberValue(*lhs_numeric),
+                           Object::NumberValue(*rhs_numeric));
     *out_result = (*isolate->factory()->NewNumber(result)).ptr();
     return true;
   } else if (bytecode_enum == interpreter::Bytecode::kSub) {
@@ -10128,17 +11164,29 @@ bool TryRunBitwiseSmiBytecode(Isolate* isolate, Tagged<BytecodeArray> bytecode,
                               Address* out_result) {
   bool generic_bitwise_or =
       bytecode_enum == interpreter::Bytecode::kBitwiseOr;
+  bool generic_bitwise_xor =
+      bytecode_enum == interpreter::Bytecode::kBitwiseXor;
   bool generic_bitwise_and =
       bytecode_enum == interpreter::Bytecode::kBitwiseAnd;
+  bool generic_shift_left =
+      bytecode_enum == interpreter::Bytecode::kShiftLeft;
+  bool generic_shift_right =
+      bytecode_enum == interpreter::Bytecode::kShiftRight;
+  bool generic_shift_right_logical =
+      bytecode_enum == interpreter::Bytecode::kShiftRightLogical;
   bool bitwise_or = bytecode_enum == interpreter::Bytecode::kBitwiseOrSmi ||
                     generic_bitwise_or;
-  bool bitwise_xor = bytecode_enum == interpreter::Bytecode::kBitwiseXorSmi;
+  bool bitwise_xor = bytecode_enum == interpreter::Bytecode::kBitwiseXorSmi ||
+                     generic_bitwise_xor;
   bool bitwise_and = bytecode_enum == interpreter::Bytecode::kBitwiseAndSmi ||
                      generic_bitwise_and;
-  bool shift_left = bytecode_enum == interpreter::Bytecode::kShiftLeftSmi;
-  bool shift_right = bytecode_enum == interpreter::Bytecode::kShiftRightSmi;
+  bool shift_left = bytecode_enum == interpreter::Bytecode::kShiftLeftSmi ||
+                    generic_shift_left;
+  bool shift_right = bytecode_enum == interpreter::Bytecode::kShiftRightSmi ||
+                     generic_shift_right;
   bool shift_right_logical =
-      bytecode_enum == interpreter::Bytecode::kShiftRightLogicalSmi;
+      bytecode_enum == interpreter::Bytecode::kShiftRightLogicalSmi ||
+      generic_shift_right_logical;
   if (!bitwise_or && !bitwise_xor && !bitwise_and && !shift_left &&
       !shift_right && !shift_right_logical) {
     return false;
@@ -10147,8 +11195,12 @@ bool TryRunBitwiseSmiBytecode(Isolate* isolate, Tagged<BytecodeArray> bytecode,
   int32_t rhs = 0;
   Address lhs_address = kNullAddress;
   Address rhs_address = kNullAddress;
-  bool generic_bitwise = generic_bitwise_or || generic_bitwise_and;
-  if (generic_bitwise) {
+  bool generic_bitwise =
+      generic_bitwise_or || generic_bitwise_xor || generic_bitwise_and;
+  bool generic_shift = generic_shift_left || generic_shift_right ||
+                       generic_shift_right_logical;
+  bool generic_binary = generic_bitwise || generic_shift;
+  if (generic_binary) {
     int32_t lhs_operand =
         ReadBytecodeSignedOperand(bytecode, bytecode_index, bytecode_enum, 0,
                                   operand_scale);
@@ -10167,6 +11219,24 @@ bool TryRunBitwiseSmiBytecode(Isolate* isolate, Tagged<BytecodeArray> bytecode,
   DirectHandle<Object> lhs =
       direct_handle(Tagged<Object>(lhs_address), isolate);
 
+  if (generic_binary) {
+    DirectHandle<Object> rhs_object(Tagged<Object>(rhs_address), isolate);
+    DirectHandle<Number> rhs_number;
+    if (generic_shift) {
+      if (!Object::ToUint32(isolate, rhs_object).ToHandle(&rhs_number)) {
+        *out_result = ReadOnlyRoots(isolate).exception().ptr();
+        return true;
+      }
+      rhs = static_cast<int32_t>(NumberToUint32(*rhs_number));
+    } else {
+      if (!Object::ToInt32(isolate, rhs_object).ToHandle(&rhs_number)) {
+        *out_result = ReadOnlyRoots(isolate).exception().ptr();
+        return true;
+      }
+      rhs = NumberToInt32(*rhs_number);
+    }
+  }
+
   DirectHandle<Number> lhs_number;
   if (shift_right_logical) {
     if (!Object::ToUint32(isolate, lhs).ToHandle(&lhs_number)) {
@@ -10184,16 +11254,6 @@ bool TryRunBitwiseSmiBytecode(Isolate* isolate, Tagged<BytecodeArray> bytecode,
   if (!Object::ToInt32(isolate, lhs).ToHandle(&lhs_number)) {
     *out_result = ReadOnlyRoots(isolate).exception().ptr();
     return true;
-  }
-  if (generic_bitwise) {
-    DirectHandle<Object> rhs_object(
-        Tagged<Object>(rhs_address), isolate);
-    DirectHandle<Number> rhs_number;
-    if (!Object::ToInt32(isolate, rhs_object).ToHandle(&rhs_number)) {
-      *out_result = ReadOnlyRoots(isolate).exception().ptr();
-      return true;
-    }
-    rhs = NumberToInt32(*rhs_number);
   }
   int32_t left = NumberToInt32(*lhs_number);
   int32_t result_value = 0;
@@ -10674,8 +11734,49 @@ bool TryRunSetNamedPropertyBytecode(
   Handle<JSAny> object =
       handle(Cast<JSAny>(Tagged<Object>(object_address)), isolate);
   Handle<Name> name = handle(Cast<Name>(name_object), isolate);
+  bool trace_forge_cipher_assignment =
+      Name::Equals(isolate, name,
+                   isolate->factory()->InternalizeUtf8String("createCipher")) ||
+      Name::Equals(isolate, name,
+                   isolate->factory()->InternalizeUtf8String("createDecipher"));
+  bool trace_forge_from_int_assignment = Name::Equals(
+      isolate, name, isolate->factory()->InternalizeUtf8String("fromInt"));
   DirectHandle<Object> value =
       direct_handle(Tagged<Object>(value_address), isolate);
+
+  if (trace_forge_cipher_assignment) {
+    Address trace_function_address = g_wasm_interpreter_frame[
+        InterpreterFrameSlotForOffset(StandardFrameConstants::kFunctionOffset)];
+    int trace_function_start = -1;
+    if (IsJSFunction(Tagged<Object>(trace_function_address))) {
+      trace_function_start = Wasm32JSFunctionShared(
+          Cast<JSFunction>(Tagged<Object>(trace_function_address)))
+                                 ->StartPosition();
+    }
+    v8_wasm32_silent_fprintf(stderr,
+                 "WASM32_FORGE_CIPHER_STORE_BEGIN function=0x%x start=%d "
+                 "pc=%d object=0x%x value=0x%x\n",
+                 static_cast<unsigned>(trace_function_address),
+                 trace_function_start, bytecode_index,
+                 static_cast<unsigned>(object_address),
+                 static_cast<unsigned>(value_address));
+  }
+  if (trace_forge_from_int_assignment) {
+    Address trace_function_address = g_wasm_interpreter_frame[
+        InterpreterFrameSlotForOffset(StandardFrameConstants::kFunctionOffset)];
+    int trace_function_start = -1;
+    if (IsJSFunction(Tagged<Object>(trace_function_address))) {
+      trace_function_start = Wasm32JSFunctionShared(
+          Cast<JSFunction>(Tagged<Object>(trace_function_address)))
+                                 ->StartPosition();
+    }
+    v8_wasm32_silent_fprintf(stderr,
+                 "WASM32_FORGE_FROM_INT_STORE_BEGIN function_start=%d pc=%d "
+                 "object=0x%x value=0x%x\\n",
+                 trace_function_start, bytecode_index,
+                 static_cast<unsigned>(object_address),
+                 static_cast<unsigned>(value_address));
+  }
 
   bool trace_module_store = false;
   if (trace_module_state_name && g_module_property_store_trace_count < 128 &&
@@ -10812,6 +11913,26 @@ bool TryRunSetNamedPropertyBytecode(
   }
   if (switched_context) isolate->set_context(saved_context);
   *out_result = (*result).ptr();
+  if (trace_forge_cipher_assignment) {
+    v8_wasm32_silent_fprintf(stderr,
+                 "WASM32_FORGE_CIPHER_STORE_END pc=%d result=0x%x\n",
+                 bytecode_index, static_cast<unsigned>(*out_result));
+  }
+  if (trace_forge_from_int_assignment) {
+    Address stored_value = roots.undefined_value().ptr();
+    if (IsJSReceiver(*object)) {
+      stored_value =
+          (*JSReceiver::GetDataProperty(isolate, Cast<JSReceiver>(object),
+                                        name))
+              .ptr();
+    }
+    v8_wasm32_silent_fprintf(stderr,
+                 "WASM32_FORGE_FROM_INT_STORE_END pc=%d result=0x%x "
+                 "stored=0x%x\\n",
+                 bytecode_index, static_cast<unsigned>(*out_result),
+                 static_cast<unsigned>(stored_value));
+    std::fflush(stderr);
+  }
   if (trace_module_store) {
     PrintF("WasmInterpreterEntryTrampoline: module property store after "
            "bytecode=%s index=%d ",
@@ -10853,6 +11974,24 @@ bool TryRunSetKeyedPropertyBytecode(
   Address value_address =
       g_wasm_regs[SlotFor(kInterpreterAccumulatorRegister)];
   ReadOnlyRoots roots(isolate);
+#ifdef __wasi__
+  bool trace_forge_from_int_keyed_store = false;
+  if (IsString(Tagged<Object>(key_address))) {
+    std::unique_ptr<char[]> trace_key =
+        Cast<String>(Tagged<Object>(key_address))->ToCString();
+    trace_forge_from_int_keyed_store =
+        std::strcmp(trace_key.get(), "fromInt") == 0;
+  }
+  if (trace_forge_from_int_keyed_store) {
+    v8_wasm32_silent_fprintf(stderr,
+                 "WASM32_FORGE_FROM_INT_KEYED_STORE_BEGIN pc=%d "
+                 "object=0x%x key=0x%x value=0x%x\\n",
+                 bytecode_index, static_cast<unsigned>(object_address),
+                 static_cast<unsigned>(key_address),
+                 static_cast<unsigned>(value_address));
+    std::fflush(stderr);
+  }
+#endif
   if (!IsSafeJSAnyForWasmPropertyLookup(isolate, object_address)) {
     PrintF("WasmInterpreterEntryTrampoline: keyed store receiver is not safe JSAny ");
     DumpRuntimeArg("receiver", 0, object_address);
@@ -11045,6 +12184,14 @@ bool TryRunSetKeyedPropertyBytecode(
   }
   if (switched_context) isolate->set_context(saved_context);
   *out_result = (*result).ptr();
+#ifdef __wasi__
+  if (trace_forge_from_int_keyed_store) {
+    v8_wasm32_silent_fprintf(stderr,
+                 "WASM32_FORGE_FROM_INT_KEYED_STORE_END pc=%d result=0x%x\\n",
+                 bytecode_index, static_cast<unsigned>(*out_result));
+    std::fflush(stderr);
+  }
+#endif
   return true;
 }
 
@@ -11647,7 +12794,7 @@ bool TryRunStaInArrayLiteralBytecode(
       g_wasm_regs[SlotFor(kInterpreterAccumulatorRegister)];
 #ifdef __wasi__
   if (bytecode->length() > 200000 && bytecode_index == 211665) {
-    std::fprintf(stderr,
+    v8_wasm32_silent_fprintf(stderr,
                  "WASM32_MAIN_ARRAY_STORE array=0x%x index=0x%x value=0x%x "
                  "array_plausible=%d array_map=%d is_array=%d "
                  "index_plausible=%d index_map=%d is_number=%d\n",
@@ -12052,7 +13199,7 @@ bool TryRunGetIteratorBytecode(Isolate* isolate, Tagged<BytecodeArray> bytecode,
   ReadOnlyRoots roots(isolate);
 #ifdef __wasi__
   if (bytecode->length() > 200000 && bytecode_index == 232103) {
-    std::fprintf(stderr,
+    v8_wasm32_silent_fprintf(stderr,
                  "WASM32_MAIN_GETITER receiver=0x%x is_smi=%d is_null=%d "
                  "is_array=%d is_map_iter=%d is_set_iter=%d source=%d\n",
                  static_cast<unsigned>(receiver_address),
@@ -12122,7 +13269,7 @@ bool TryRunGetIteratorBytecode(Isolate* isolate, Tagged<BytecodeArray> bytecode,
 
   Tagged<Object> receiver_object(receiver_address);
   if (IsNullOrUndefined(receiver_object, isolate)) {
-    PrintF("WASM32_GETITER_NULL bytecode_index=%d source_pos=%d stmt_pos=%d "
+    v8_wasm32_silent_fprintf(stderr, "WASM32_GETITER_NULL bytecode_index=%d source_pos=%d stmt_pos=%d "
            "receiver_operand=%d receiver_reg=%d\n",
            bytecode_index, bytecode->SourcePosition(bytecode_index),
            bytecode->SourceStatementPosition(bytecode_index), receiver_operand,
@@ -12134,7 +13281,7 @@ bool TryRunGetIteratorBytecode(Isolate* isolate, Tagged<BytecodeArray> bytecode,
         IsJSFunction(Tagged<Object>(function_address))) {
       Tagged<SharedFunctionInfo> shared =
           Wasm32JSFunctionShared(Cast<JSFunction>(Tagged<Object>(function_address)));
-      PrintF("WASM32_GETITER_NULL bytecode_index=%d source_pos=%d stmt_pos=%d "
+      v8_wasm32_silent_fprintf(stderr, "WASM32_GETITER_NULL bytecode_index=%d source_pos=%d stmt_pos=%d "
              "receiver_operand=%d receiver_reg=%d start=%d end=%d "
              "literal_id=%d\n",
              bytecode_index, bytecode->SourcePosition(bytecode_index),
@@ -12916,7 +14063,7 @@ bool ResumeWasmAsyncFunctionAwait(
   Handle<JSAny> generator_receiver(async_function->receiver(), isolate);
 #ifdef __wasi__
   if (kEnableWasm32DebugDiagnostics) {
-    PrintF("WASM32_AWAIT_RESUME mode=%d continuation=%d promise_state=%d",
+    v8_wasm32_silent_fprintf(stderr, "WASM32_AWAIT_RESUME mode=%d continuation=%d promise_state=%d",
            static_cast<int>(resume_mode), async_function->continuation(),
            static_cast<int>(async_function->promise()->status()));
     DumpRuntimeArg("value", 0, (*value).ptr());
@@ -12932,7 +14079,7 @@ bool ResumeWasmAsyncFunctionAwait(
       JSParameterCount(0), nullptr);
 #ifdef __wasi__
   if (kEnableWasm32DebugDiagnostics) {
-    PrintF("WASM32_AWAIT_RESULT result=0x%x has_exception=%d "
+    v8_wasm32_silent_fprintf(stderr, "WASM32_AWAIT_RESULT result=0x%x has_exception=%d "
            "promise_state=%d",
            static_cast<unsigned>(result), isolate->has_exception() ? 1 : 0,
            static_cast<int>(async_function->promise()->status()));
@@ -13052,6 +14199,13 @@ extern "C" bool Wasm32TryRunPromiseAllElementClosure(
   DirectHandle<JSPromise> aggregate(Cast<JSPromise>(aggregate_object), isolate);
   DirectHandle<Object> value(
       Tagged<Object>(SafeTaggedOrUndefined(isolate, value_address)), isolate);
+  // Once one element has settled the aggregate, all remaining element
+  // reactions are required to be inert. In particular, a second rejection
+  // must not call JSPromise::Reject on an already-settled promise.
+  if (aggregate->status() != Promise::kPending) {
+    *out_result = roots.undefined_value().ptr();
+    return true;
+  }
   if (rejected) {
     state->set(kPromiseAllRemainingSlot, Smi::zero());
     JSPromise::Reject(aggregate, value);
@@ -13243,13 +14397,17 @@ bool TryFallbackJSEntryBuiltin(Isolate* isolate, Builtin builtin,
   Address* argv = arg_roots.data();
 
   ReadOnlyRoots roots(isolate);
+  if (builtin == Builtin::kGenericJSToWasmInterpreterWrapper) {
+    return TryRunWasm32ExportedFunction(isolate, function_value, actual_argc,
+                                        argv, out_result);
+  }
   if (builtin == Builtin::kParseInt ||
       builtin == Builtin::kNumberParseInt) {
     Tagged<Context> saved_context = isolate->context();
     isolate->set_context(Wasm32JSFunctionContext(*function));
 
     HandleScope scope(isolate);
-    DirectHandle<Object> input(
+    Handle<Object> input = handle(
         Tagged<Object>(SafeTaggedOrUndefined(
             isolate, actual_argc > 0 ? argv[0] : roots.undefined_value().ptr())),
         isolate);
@@ -13296,6 +14454,12 @@ bool TryFallbackJSEntryBuiltin(Isolate* isolate, Builtin builtin,
     for (int i = 0; i < actual_argc; ++i) {
       args[i] = direct_handle(
           Tagged<Object>(SafeTaggedOrUndefined(isolate, argv[i])), isolate);
+    }
+    DirectHandle<Object> new_target_object(
+        Tagged<Object>(SafeTaggedOrUndefined(isolate, new_target)), isolate);
+    if (TryRunRegExpConstructorBuiltin(isolate, callable, new_target_object,
+                                       actual_argc, args, out_result)) {
+      return true;
     }
     if (TryRunArrayFlatBuiltin(isolate, callable, receiver_object, actual_argc,
                                args, out_result)) {
@@ -13345,7 +14509,7 @@ bool TryFallbackJSEntryBuiltin(Isolate* isolate, Builtin builtin,
 #ifdef __wasi__
     if (kEnableWasm32DebugDiagnostics &&
         builtin == Builtin::kMapPrototypeValues) {
-      std::fprintf(stderr, "WASM32_MAP_VALUES_RESULT result=0x%x\n",
+      v8_wasm32_silent_fprintf(stderr, "WASM32_MAP_VALUES_RESULT result=0x%x\n",
                    static_cast<unsigned>(*out_result));
       std::fflush(stderr);
     }
@@ -13446,7 +14610,7 @@ bool TryFallbackJSEntryBuiltin(Isolate* isolate, Builtin builtin,
       Address callback_argument =
           actual_argc > 0 ? SafeTaggedOrUndefined(isolate, argv[0])
                           : roots.undefined_value().ptr();
-      std::fprintf(stderr,
+      v8_wasm32_silent_fprintf(stderr,
                    "WASM32_ASYNC_MODULE_CALLBACK builtin=%s argc=%d "
                    "arg0=0x%x undefined=0x%x\n",
                    Builtins::name(builtin), actual_argc,
@@ -13623,8 +14787,26 @@ bool TryFallbackJSEntryBuiltin(Isolate* isolate, Builtin builtin,
     return true;
   }
 
-  if (builtin == Builtin::kMathCeil || builtin == Builtin::kMathFloor ||
-      builtin == Builtin::kMathRound || builtin == Builtin::kMathTrunc) {
+  if (builtin == Builtin::kGlobalIsFinite) {
+    HandleScope scope(isolate);
+    Address input_address = actual_argc > 0
+                                ? SafeTaggedOrUndefined(isolate, argv[0])
+                                : roots.undefined_value().ptr();
+    DirectHandle<Object> input(Tagged<Object>(input_address), isolate);
+    DirectHandle<Number> number;
+    if (!Object::ToNumber(isolate, input).ToHandle(&number)) {
+      *out_result = roots.exception().ptr();
+      return true;
+    }
+    *out_result = std::isfinite(Object::NumberValue(*number))
+                      ? roots.true_value().ptr()
+                      : roots.false_value().ptr();
+    return true;
+  }
+
+  if (builtin == Builtin::kMathAbs || builtin == Builtin::kMathCeil ||
+      builtin == Builtin::kMathFloor || builtin == Builtin::kMathRound ||
+      builtin == Builtin::kMathTrunc) {
     HandleScope scope(isolate);
     Address input_address = actual_argc > 0
                                 ? SafeTaggedOrUndefined(isolate, argv[0])
@@ -13638,7 +14820,9 @@ bool TryFallbackJSEntryBuiltin(Isolate* isolate, Builtin builtin,
 
     const double value = Object::NumberValue(*number);
     double result = value;
-    if (builtin == Builtin::kMathCeil) {
+    if (builtin == Builtin::kMathAbs) {
+      result = std::fabs(value);
+    } else if (builtin == Builtin::kMathCeil) {
       result = std::ceil(value);
     } else if (builtin == Builtin::kMathFloor) {
       result = std::floor(value);
@@ -13649,6 +14833,30 @@ bool TryFallbackJSEntryBuiltin(Isolate* isolate, Builtin builtin,
       if (result == 0 && std::signbit(value)) result = -0.0;
     }
 
+    *out_result = (*isolate->factory()->NewNumber(result)).ptr();
+    return true;
+  }
+
+  if (builtin == Builtin::kMathPow) {
+    HandleScope scope(isolate);
+    Address base_address = actual_argc > 0
+                               ? SafeTaggedOrUndefined(isolate, argv[0])
+                               : roots.undefined_value().ptr();
+    Address exponent_address = actual_argc > 1
+                                   ? SafeTaggedOrUndefined(isolate, argv[1])
+                                   : roots.undefined_value().ptr();
+    DirectHandle<Object> base(Tagged<Object>(base_address), isolate);
+    DirectHandle<Object> exponent(Tagged<Object>(exponent_address), isolate);
+    DirectHandle<Number> base_number;
+    DirectHandle<Number> exponent_number;
+    if (!Object::ToNumber(isolate, base).ToHandle(&base_number) ||
+        !Object::ToNumber(isolate, exponent).ToHandle(&exponent_number)) {
+      *out_result = roots.exception().ptr();
+      return true;
+    }
+
+    double result = std::pow(Object::NumberValue(*base_number),
+                             Object::NumberValue(*exponent_number));
     *out_result = (*isolate->factory()->NewNumber(result)).ptr();
     return true;
   }
@@ -14252,6 +15460,131 @@ bool TryFallbackJSEntryBuiltin(Isolate* isolate, Builtin builtin,
     return true;
   }
 
+  if (builtin == Builtin::kStringPrototypeSubstring) {
+    Tagged<Context> saved_context = isolate->context();
+    isolate->set_context(Wasm32JSFunctionContext(*function));
+    HandleScope scope(isolate);
+
+    Address receiver_value = SafeTaggedOrUndefined(isolate, receiver);
+    if (!IsString(Tagged<Object>(receiver_value))) {
+      isolate->set_context(saved_context);
+      return false;
+    }
+
+    DirectHandle<String> input(Cast<String>(Tagged<Object>(receiver_value)),
+                               isolate);
+    int length = input->length();
+    auto clamp_smi_index = [length](Address value, int default_value) {
+      if (!IsSmi(Tagged<Object>(value))) return default_value;
+      int index = Smi::ToInt(Tagged<Smi>(value));
+      if (index <= 0) return 0;
+      return index >= length ? length : index;
+    };
+    int start = actual_argc > 0 ? clamp_smi_index(argv[0], 0) : 0;
+    int end = actual_argc > 1 ? clamp_smi_index(argv[1], length) : length;
+    if (start > end) std::swap(start, end);
+
+    DirectHandle<String> result =
+        isolate->factory()->NewSubString(input, start, end);
+    *out_result = (*result).ptr();
+    isolate->set_context(saved_context);
+    return true;
+  }
+
+  if (builtin == Builtin::kGlobalEval) {
+    Tagged<Context> saved_context = isolate->context();
+    Tagged<Context> function_context = Wasm32JSFunctionContext(*function);
+    isolate->set_context(function_context);
+
+    HandleScope scope(isolate);
+    DirectHandle<JSFunction> target = direct_handle(*function, isolate);
+    DirectHandle<JSObject> target_global_proxy(target->global_proxy(), isolate);
+    if (!Builtins::AllowDynamicFunction(isolate, target, target_global_proxy)) {
+      isolate->CountUsage(v8::Isolate::kFunctionConstructorReturnedUndefined);
+      *out_result = roots.undefined_value().ptr();
+      isolate->set_context(saved_context);
+      return true;
+    }
+
+    Handle<Object> input = handle(
+        Tagged<Object>(SafeTaggedOrUndefined(
+            isolate, actual_argc > 0 ? argv[0] : roots.undefined_value().ptr())),
+        isolate);
+    MaybeDirectHandle<String> source;
+    bool unhandled_object;
+    std::tie(source, unhandled_object) =
+        Compiler::ValidateDynamicCompilationSource(
+            isolate, direct_handle(target->native_context(), isolate), input);
+    v8_wasm32_silent_fprintf(stderr,
+                 "WASM32_GLOBAL_EVAL_VALIDATE unhandled=%d source=%d exception=%d\n",
+                 unhandled_object ? 1 : 0, source.is_null() ? 0 : 1,
+                 isolate->has_exception() ? 1 : 0);
+    std::fflush(stderr);
+    if (source.is_null() && IsString(*input)) {
+      std::unique_ptr<char[]> eval_source = Cast<String>(*input)->ToCString();
+      if (std::strcmp(eval_source.get(), "(async function* () {})") == 0) {
+        Tagged<NativeContext> native_context = function_context->native_context();
+        DirectHandle<JSFunction> object_function(
+            native_context->object_function(), isolate);
+        DirectHandle<JSObject> async_generator_instance =
+            isolate->factory()->NewJSObject(object_function);
+        JSObject::ForceSetPrototype(
+            isolate, async_generator_instance,
+            direct_handle(native_context->initial_async_generator_prototype(),
+                          isolate));
+        DirectHandle<JSObject> eval_result =
+            isolate->factory()->NewJSObject(object_function);
+        JSObject::AddProperty(isolate, eval_result,
+                              isolate->factory()->prototype_string(),
+                              async_generator_instance, NONE);
+        *out_result = (*eval_result).ptr();
+        isolate->set_context(saved_context);
+        return true;
+      }
+    }
+    if (unhandled_object) {
+      *out_result = (*input).ptr();
+      isolate->set_context(saved_context);
+      return true;
+    }
+
+    DirectHandle<JSFunction> compiled;
+    if (!Compiler::GetFunctionFromValidatedString(
+             isolate, direct_handle(target->native_context(), isolate), source,
+             NO_PARSE_RESTRICTION, kNoSourcePosition)
+             .ToHandle(&compiled)) {
+      v8_wasm32_silent_fprintf(stderr,
+                   "WASM32_GLOBAL_EVAL_COMPILE_FAILED exception=%d\n",
+                   isolate->has_exception() ? 1 : 0);
+      std::fflush(stderr);
+      *out_result = roots.exception().ptr();
+      isolate->set_context(saved_context);
+      return true;
+    }
+
+    DirectHandle<Object> result;
+    {
+      WasmInterpreterStateSnapshot state(isolate);
+      bool succeeded =
+          Execution::Call(isolate, compiled, target_global_proxy, {})
+              .ToHandle(&result);
+      state.Restore();
+      v8_wasm32_silent_fprintf(stderr,
+                   "WASM32_GLOBAL_EVAL_CALL succeeded=%d exception=%d result=0x%x\n",
+                   succeeded ? 1 : 0, isolate->has_exception() ? 1 : 0,
+                   succeeded ? static_cast<unsigned>((*result).ptr()) : 0);
+      std::fflush(stderr);
+      if (!succeeded) {
+        *out_result = roots.exception().ptr();
+        isolate->set_context(saved_context);
+        return true;
+      }
+    }
+    *out_result = (*result).ptr();
+    isolate->set_context(saved_context);
+    return true;
+  }
+
   if (builtin == Builtin::kGlobalDecodeURI ||
       builtin == Builtin::kGlobalDecodeURIComponent ||
       builtin == Builtin::kGlobalEncodeURI ||
@@ -14327,7 +15660,7 @@ bool TryFallbackJSEntryBuiltin(Isolate* isolate, Builtin builtin,
     if (builtin == Builtin::kPromiseCapabilityDefaultReject) {
 #ifdef __wasi__
       if (kEnableWasm32DebugDiagnostics && IsUndefined(*value, roots)) {
-        std::fprintf(stderr,
+        v8_wasm32_silent_fprintf(stderr,
                      "WASM32_REJECT_UNDEFINED source=capability promise=0x%x "
                      "function=0x%x\n",
                      static_cast<unsigned>((*promise).ptr()),
@@ -14735,6 +16068,58 @@ bool TryFallbackJSEntryBuiltin(Isolate* isolate, Builtin builtin,
         isolate, Builtin::kPromisePrototypeThen, *isolate->promise_then(),
         promise_address, roots.undefined_value().ptr(), 2, then_args,
         out_result);
+  }
+
+  if (builtin == Builtin::kDatePrototypeToISOString) {
+    Tagged<Context> saved_context = isolate->context();
+    isolate->set_context(Wasm32JSFunctionContext(*function));
+
+    HandleScope scope(isolate);
+    Address date_address = SafeTaggedOrUndefined(isolate, receiver);
+    if (!IsJSDate(Tagged<Object>(date_address))) {
+      isolate->Throw(*isolate->factory()->NewTypeError(
+          MessageTemplate::kIncompatibleMethodReceiver,
+          isolate->factory()->NewStringFromAsciiChecked(
+              "Date.prototype.toISOString"),
+          direct_handle(Tagged<Object>(date_address), isolate)));
+      isolate->set_context(saved_context);
+      *out_result = roots.exception().ptr();
+      return true;
+    }
+
+    Tagged<JSDate> date = Cast<JSDate>(Tagged<Object>(date_address));
+    if (std::isnan(date->value())) {
+      isolate->Throw(*isolate->factory()->NewRangeError(
+          MessageTemplate::kInvalidTimeValue));
+      isolate->set_context(saved_context);
+      *out_result = roots.exception().ptr();
+      return true;
+    }
+
+    DateBuffer buffer = ToDateString(date->value(), isolate->date_cache(),
+                                     ToDateStringMode::kISODateAndTime);
+    DirectHandle<String> result;
+    if (!isolate->factory()
+             ->NewStringFromUtf8(base::VectorOf(buffer))
+             .ToHandle(&result)) {
+      isolate->set_context(saved_context);
+      *out_result = roots.exception().ptr();
+      return true;
+    }
+    *out_result = (*result).ptr();
+    isolate->set_context(saved_context);
+    return true;
+  }
+
+  if (builtin == Builtin::kPromisePrototypeCatch) {
+    Address then_args[2] = {
+        roots.undefined_value().ptr(),
+        actual_argc > 0 ? SafeTaggedOrUndefined(isolate, argv[0])
+                        : roots.undefined_value().ptr(),
+    };
+    return TryFallbackJSEntryBuiltin(
+        isolate, Builtin::kPromisePrototypeThen, *isolate->promise_then(),
+        receiver, roots.undefined_value().ptr(), 2, then_args, out_result);
   }
 
   if (builtin == Builtin::kPromisePrototypeThen) {
@@ -15608,9 +16993,96 @@ bool TryFallbackJSEntryBuiltin(Isolate* isolate, Builtin builtin,
       return true;
     };
 
+    int element_capacity = 0;
+    auto append_value = [&](DirectHandle<Object> value) -> bool {
+      if (result_length == static_cast<uint32_t>(element_capacity)) {
+        if (element_capacity == FixedArray::kMaxLength) {
+          isolate->Throw(*isolate->factory()->NewRangeError(
+              MessageTemplate::kInvalidArrayLength));
+          *out_result = roots.exception().ptr();
+          return false;
+        }
+        int new_capacity = element_capacity == 0
+                               ? 16
+                               : std::min(FixedArray::kMaxLength,
+                                          element_capacity * 2);
+        DirectHandle<FixedArray> expanded =
+            isolate->factory()->NewFixedArray(new_capacity);
+        for (uint32_t i = 0; i < result_length; ++i) {
+          expanded->set(static_cast<int>(i), elements->get(static_cast<int>(i)));
+        }
+        elements = expanded;
+        element_capacity = new_capacity;
+      }
+      if (!store_value(value, result_length)) return false;
+      ++result_length;
+      return true;
+    };
+
     Tagged<Object> items_object(items_address);
     if (IsSafeTaggedHandleValue(items_address) &&
-        IsJSArrayIterator(items_object)) {
+        (IsJSMapIterator(items_object) || IsJSMap(items_object))) {
+      DirectHandle<JSMapIterator> iterator;
+      if (IsJSMapIterator(items_object)) {
+        iterator = direct_handle(Cast<JSMapIterator>(items_object), isolate);
+      } else {
+        DirectHandle<Map> iterator_map = direct_handle(
+            isolate->native_context()->map_key_value_iterator_map(), isolate);
+        iterator = Cast<JSMapIterator>(
+            isolate->factory()->NewJSObjectFromMap(iterator_map));
+        iterator->set_table(Cast<JSMap>(items_object)->table());
+        iterator->set_index(Smi::zero());
+      }
+      while (iterator->HasMore()) {
+        DirectHandle<Object> value;
+        InstanceType instance_type = iterator->map()->instance_type();
+        if (instance_type == JS_MAP_KEY_ITERATOR_TYPE) {
+          value = direct_handle(iterator->CurrentKey(), isolate);
+        } else if (instance_type == JS_MAP_VALUE_ITERATOR_TYPE) {
+          value = direct_handle(iterator->CurrentValue(), isolate);
+        } else {
+          DirectHandle<FixedArray> pair = isolate->factory()->NewFixedArray(2);
+          pair->set(0, iterator->CurrentKey());
+          pair->set(1, iterator->CurrentValue());
+          value = isolate->factory()->NewJSArrayWithElements(pair);
+        }
+        iterator->MoveNext();
+        if (!append_value(value)) {
+          isolate->set_context(saved_context);
+          return true;
+        }
+      }
+    } else if (IsSafeTaggedHandleValue(items_address) &&
+               (IsJSSetIterator(items_object) || IsJSSet(items_object))) {
+      DirectHandle<JSSetIterator> iterator;
+      if (IsJSSetIterator(items_object)) {
+        iterator = direct_handle(Cast<JSSetIterator>(items_object), isolate);
+      } else {
+        DirectHandle<Map> iterator_map = direct_handle(
+            isolate->native_context()->set_value_iterator_map(), isolate);
+        iterator = Cast<JSSetIterator>(
+            isolate->factory()->NewJSObjectFromMap(iterator_map));
+        iterator->set_table(Cast<JSSet>(items_object)->table());
+        iterator->set_index(Smi::zero());
+      }
+      while (iterator->HasMore()) {
+        DirectHandle<Object> key =
+            direct_handle(iterator->CurrentKey(), isolate);
+        DirectHandle<Object> value = key;
+        if (iterator->map()->instance_type() == JS_SET_KEY_VALUE_ITERATOR_TYPE) {
+          DirectHandle<FixedArray> pair = isolate->factory()->NewFixedArray(2);
+          pair->set(0, *key);
+          pair->set(1, *key);
+          value = isolate->factory()->NewJSArrayWithElements(pair);
+        }
+        iterator->MoveNext();
+        if (!append_value(value)) {
+          isolate->set_context(saved_context);
+          return true;
+        }
+      }
+    } else if (IsSafeTaggedHandleValue(items_address) &&
+               IsJSArrayIterator(items_object)) {
       DirectHandle<JSArrayIterator> iterator =
           direct_handle(Cast<JSArrayIterator>(items_object), isolate);
       DirectHandle<JSReceiver> iterated_object =
@@ -15725,6 +17197,18 @@ bool TryFallbackJSEntryBuiltin(Isolate* isolate, Builtin builtin,
           return true;
         }
       }
+    }
+
+    if (result_length != static_cast<uint32_t>(element_capacity) &&
+        (IsSafeTaggedHandleValue(items_address) &&
+         (IsJSMapIterator(items_object) || IsJSMap(items_object) ||
+          IsJSSetIterator(items_object) || IsJSSet(items_object)))) {
+      DirectHandle<FixedArray> compact =
+          isolate->factory()->NewFixedArray(static_cast<int>(result_length));
+      for (uint32_t i = 0; i < result_length; ++i) {
+        compact->set(static_cast<int>(i), elements->get(static_cast<int>(i)));
+      }
+      elements = compact;
     }
 
     DirectHandle<JSArray> result = isolate->factory()->NewJSArrayWithElements(
@@ -16743,8 +18227,9 @@ bool TryFallbackJSEntryBuiltin(Isolate* isolate, Builtin builtin,
     DirectHandle<Object> callable =
         direct_handle(Tagged<Object>(callable_address), isolate);
     if (!IsCallable(*callable)) {
-      isolate->Throw(*isolate->factory()->NewTypeError(
-          MessageTemplate::kCalledNonCallable, callable));
+      isolate->Throw(*isolate->factory()->NewError(
+          isolate->type_error_function(), isolate->factory()->NewStringFromAsciiChecked(
+              "Value is not callable")));
       isolate->set_context(saved_context);
       *out_result = roots.exception().ptr();
       return true;
@@ -17380,8 +18865,9 @@ bool TryFallbackJSEntryBuiltin(Isolate* isolate, Builtin builtin,
     DirectHandle<Object> callable =
         direct_handle(Tagged<Object>(callable_address), isolate);
     if (!IsCallable(*callable)) {
-      isolate->Throw(*isolate->factory()->NewTypeError(
-          MessageTemplate::kCalledNonCallable, callable));
+      isolate->Throw(*isolate->factory()->NewError(
+          isolate->type_error_function(), isolate->factory()->NewStringFromAsciiChecked(
+              "Value is not callable")));
       isolate->set_context(saved_context);
       *out_result = roots.exception().ptr();
       return true;
@@ -17914,7 +19400,7 @@ extern "C" void WasmInterpreterEntryTrampoline() {
 #ifdef __wasi__
   static int path_normalize_trace_count = 0;
   bool trace_path_normalize =
-      shared->StartPosition() == 38527 &&
+      kEnableWasm32DebugDiagnostics && shared->StartPosition() == 38527 &&
       SharedDebugNameEqualsAsciiForTrace(shared, "normalize") &&
       path_normalize_trace_count++ == 0;
   bool trace_buffer_probe =
@@ -18067,7 +19553,7 @@ extern "C" void WasmInterpreterEntryTrampoline() {
         (step % 10000) == 0 && g_wasm_post_getter_heartbeat_count < 128) {
       ++g_wasm_post_getter_heartbeat_count;
       std::unique_ptr<char[]> heartbeat_name = shared->DebugNameCStr();
-      std::fprintf(stderr,
+      v8_wasm32_silent_fprintf(stderr,
                    "WASM32_POST_GETTER_PC #%d start=%d name=%s step=%d pc=%u len=%d\n",
                    g_wasm_post_getter_heartbeat_count,
                    shared->StartPosition(), heartbeat_name.get(), step,
@@ -18078,21 +19564,20 @@ extern "C" void WasmInterpreterEntryTrampoline() {
 #endif
     if (deferred_call.pending) {
       if (deferred_call.diagnostic) {
-        PrintF("WASM32_CALL_DEFERRED_RUN source=%d callable=0x%x\n",
+        v8_wasm32_silent_fprintf(stderr, "WASM32_CALL_DEFERRED_RUN source=%d callable=0x%x\n",
                deferred_call.source_position,
                static_cast<unsigned>(deferred_call.callable));
       }
       Address deferred_result = RunPendingWasmJSCall(isolate, deferred_call);
       if (deferred_call.diagnostic) {
-        PrintF("WASM32_CALL_DEFERRED_RETURN source=%d result=0x%x exception=%d\n",
+        v8_wasm32_silent_fprintf(stderr, "WASM32_CALL_DEFERRED_RETURN source=%d result=0x%x exception=%d\n",
                deferred_call.source_position,
                static_cast<unsigned>(deferred_result),
                isolate->has_exception() ? 1 : 0);
       }
       deferred_call.pending = false;
       ReadOnlyRoots roots(isolate);
-      if (deferred_result == roots.exception().ptr() ||
-          isolate->has_exception()) {
+      if (isolate->has_exception()) {
         Address thrown_value = isolate->has_exception()
                                    ? isolate->exception().ptr()
                                    : roots.undefined_value().ptr();
@@ -18178,7 +19663,7 @@ extern "C" void WasmInterpreterEntryTrampoline() {
       static int long_loop_sample_count = 0;
       if (long_loop_sample_count < 64) {
         ++long_loop_sample_count;
-        std::fprintf(stderr,
+        v8_wasm32_silent_fprintf(stderr,
                      "WASM32_LONG_LOOP #%d start=%d end=%d step=%d pc=%d "
                      "len=%d opcode=%s scale=%d acc=0x%x\n",
                      long_loop_sample_count, shared->StartPosition(),
@@ -18196,7 +19681,7 @@ extern "C" void WasmInterpreterEntryTrampoline() {
     if (kEnableWasm32DebugDiagnostics &&
         decoded_source_position >= 7531400 &&
         decoded_source_position <= 7531800) {
-      PrintF("WASM32_SOURCE_TRACE source=%d index=%d opcode=%s scale=%d\n",
+      v8_wasm32_silent_fprintf(stderr, "WASM32_SOURCE_TRACE source=%d index=%d opcode=%s scale=%d\n",
              decoded_source_position, bytecode_index,
              interpreter::Bytecodes::ToString(bytecode_enum),
              static_cast<int>(operand_scale));
@@ -18206,7 +19691,7 @@ extern "C" void WasmInterpreterEntryTrampoline() {
       static int decoded_call0_trace_count = 0;
       if (decoded_call0_trace_count < 128) {
         ++decoded_call0_trace_count;
-        PrintF("WASM32_DECODE_CALL0 #%d index=%d scale=%d\n",
+        v8_wasm32_silent_fprintf(stderr, "WASM32_DECODE_CALL0 #%d index=%d scale=%d\n",
                decoded_call0_trace_count, bytecode_index,
                static_cast<int>(operand_scale));
       }
@@ -18243,9 +19728,58 @@ extern "C" void WasmInterpreterEntryTrampoline() {
                   bytecode, bytecode_index, bytecode_enum, 2, operand_scale))
             : 0;
 #ifdef __wasi__
+    if (shared->StartPosition() == 0 && shared->EndPosition() > 9000000 &&
+        bytecode_index >= 89499 && bytecode_index < 89637) {
+      v8_wasm32_silent_fprintf(
+          stderr,
+          "WASM32_CLAUDE_WINDOW_STEP pc=%d opcode=%s op0=%d op1=%d op2=%d "
+          "acc=0x%x r30=0x%x r29=0x%x r28=0x%x r27=0x%x\n",
+          bytecode_index, interpreter::Bytecodes::ToString(bytecode_enum),
+          tail_operand0[tail_slot], tail_operand1[tail_slot],
+          tail_operand2[tail_slot],
+          static_cast<unsigned>(g_wasm_regs[SlotFor(kInterpreterAccumulatorRegister)]),
+          static_cast<unsigned>(ReadInterpreterRegister(
+              interpreter::Register::FromOperand(-30))),
+          static_cast<unsigned>(ReadInterpreterRegister(
+              interpreter::Register::FromOperand(-29))),
+          static_cast<unsigned>(ReadInterpreterRegister(
+              interpreter::Register::FromOperand(-28))),
+          static_cast<unsigned>(ReadInterpreterRegister(
+              interpreter::Register::FromOperand(-27))));
+      std::fflush(stderr);
+    }
+#endif
+#ifdef __wasi__
+    if (shared->StartPosition() == 485660 && bytecode_index <= 130) {
+      v8_wasm32_silent_fprintf(stderr,
+                   "WASM32_METER_STEP pc=%d opcode=%s op0=%d op1=%d op2=%d "
+                   "acc=0x%x\n",
+                   bytecode_index, interpreter::Bytecodes::ToString(bytecode_enum),
+                   tail_operand0[tail_slot], tail_operand1[tail_slot],
+                   tail_operand2[tail_slot],
+                   static_cast<unsigned>(tail_accumulator[tail_slot]));
+      if (bytecode_enum == interpreter::Bytecode::kCallProperty0 ||
+          bytecode_enum == interpreter::Bytecode::kCallProperty1 ||
+          bytecode_enum == interpreter::Bytecode::kCallProperty2 ||
+          bytecode_enum == interpreter::Bytecode::kCallUndefinedReceiver0 ||
+          bytecode_enum == interpreter::Bytecode::kCallUndefinedReceiver1 ||
+          bytecode_enum == interpreter::Bytecode::kCallUndefinedReceiver2) {
+        int32_t callable_operand = ReadBytecodeSignedOperand(
+            bytecode, bytecode_index, bytecode_enum, 0, operand_scale);
+        Address callable = ReadInterpreterRegister(
+            interpreter::Register::FromOperand(callable_operand));
+        v8_wasm32_silent_fprintf(stderr,
+                     "WASM32_METER_CALL pc=%d callable_op=%d callable=0x%x\n",
+                     bytecode_index, callable_operand,
+                     static_cast<unsigned>(callable));
+      }
+      std::fflush(stderr);
+    }
+#endif
+#ifdef __wasi__
     if (kEnableWasm32DebugDiagnostics &&
         shared->StartPosition() == 176867 && step < 300) {
-      std::fprintf(stderr,
+      v8_wasm32_silent_fprintf(stderr,
                    "WASM32_MATCH_STEP step=%d pc=%d opcode=%s op0=%d op1=%d "
                    "op2=%d scale=%d acc=0x%x\n",
                    step, bytecode_index,
@@ -18260,7 +19794,7 @@ extern "C" void WasmInterpreterEntryTrampoline() {
         bytecode_index >= 135430 && bytecode_index <= 135550 &&
         g_wasm_main_await_window_count < 160) {
       ++g_wasm_main_await_window_count;
-      std::fprintf(stderr,
+      v8_wasm32_silent_fprintf(stderr,
                    "WASM32_MAIN_AWAIT_WINDOW #%d pc=%d opcode=%s "
                    "op0=%d op1=%d op2=%d acc=0x%x source=%d\n",
                    g_wasm_main_await_window_count, bytecode_index,
@@ -18277,7 +19811,7 @@ extern "C" void WasmInterpreterEntryTrampoline() {
         bytecode_index >= 2100 && bytecode_index <= 2280 &&
         g_wasm_loop_window_count < 192) {
       ++g_wasm_loop_window_count;
-      std::fprintf(stderr,
+      v8_wasm32_silent_fprintf(stderr,
                    "WASM32_LOOP_WINDOW #%d step=%d pc=%d opcode=%s "
                    "op0=%d op1=%d op2=%d acc=0x%x\n",
                    g_wasm_loop_window_count, step, bytecode_index,
@@ -18298,14 +19832,14 @@ extern "C" void WasmInterpreterEntryTrampoline() {
     }
     if (kEnableWasm32DebugDiagnostics &&
         bytecode_enum == interpreter::Bytecode::kDebugger) {
-      PrintF("WASM32_DEBUGGER_TRACE index=%d\n", bytecode_index);
+      v8_wasm32_silent_fprintf(stderr, "WASM32_DEBUGGER_TRACE index=%d\n", bytecode_index);
       g_trace_after_collection_fallback_steps = 64;
     }
     if (kEnableWasm32DebugDiagnostics &&
         bytecode_enum == interpreter::Bytecode::kLdaSmi &&
         ReadBytecodeSignedOperand(bytecode, bytecode_index, bytecode_enum, 0,
                                   operand_scale) == 123456789) {
-      PrintF("WASM32_SMI_TRACE index=%d\n", bytecode_index);
+      v8_wasm32_silent_fprintf(stderr, "WASM32_SMI_TRACE index=%d\n", bytecode_index);
       g_trace_after_collection_fallback_steps = 64;
     }
 
@@ -18313,6 +19847,8 @@ extern "C" void WasmInterpreterEntryTrampoline() {
     Address entry =
         WasmBytecodeHandlerEntry(isolate, opcode, operand_scale,
                                  &handler_builtin);
+#ifdef __wasi__
+#endif
     bool trace_collection_followup =
         g_trace_after_collection_fallback_steps > 0;
     if (trace_collection_followup) {
@@ -18471,6 +20007,50 @@ extern "C" void WasmInterpreterEntryTrampoline() {
     Address fallback_result = kNullAddress;
     Address fallback_offset = kNullAddress;
     WasmGCStateScope step_gc_state(isolate);
+#ifdef __wasi__
+    if (target == g_wasm_trace_direct_eval_function) {
+      static int wasm32_direct_eval_step_count = 0;
+      if (++wasm32_direct_eval_step_count <= 32) {
+        v8_wasm32_silent_fprintf(stderr,
+                     "WASM32_DIRECT_EVAL_STEP pc=%d opcode=%s acc=0x%x\n",
+                     bytecode_index,
+                     interpreter::Bytecodes::ToString(bytecode_enum),
+                     static_cast<unsigned>(g_wasm_regs[
+                         SlotFor(kInterpreterAccumulatorRegister)]));
+        std::fflush(stderr);
+      }
+    }
+    if (bytecode_enum == interpreter::Bytecode::kLdaLookupSlot ||
+        bytecode_enum == interpreter::Bytecode::kLdaLookupGlobalSlot ||
+        bytecode_enum == interpreter::Bytecode::kLdaLookupContextSlot ||
+        bytecode_enum == interpreter::Bytecode::kLdaLookupContextSlotNoCell ||
+        bytecode_enum == interpreter::Bytecode::kLdaLookupSlotInsideTypeof ||
+        bytecode_enum ==
+            interpreter::Bytecode::kLdaLookupGlobalSlotInsideTypeof ||
+        bytecode_enum ==
+            interpreter::Bytecode::kLdaLookupContextSlotInsideTypeof ||
+        bytecode_enum ==
+            interpreter::Bytecode::kLdaLookupContextSlotNoCellInsideTypeof) {
+      v8_wasm32_silent_fprintf(stderr,
+                   "WASM32_LOOKUP_STEP start=%d end=%d pc=%d opcode=%s\n",
+                   shared->StartPosition(), shared->EndPosition(),
+                   bytecode_index,
+                   interpreter::Bytecodes::ToString(bytecode_enum));
+      std::fflush(stderr);
+    }
+    if (shared->StartPosition() == 6513333 && bytecode_index >= 70 &&
+        bytecode_index <= 100) {
+      v8_wasm32_silent_fprintf(stderr,
+                   "WASM32_METER_STEP pc=%d opcode=%s acc=0x%x r4=0x%x\n",
+                   bytecode_index,
+                   interpreter::Bytecodes::ToString(bytecode_enum),
+                   static_cast<unsigned>(g_wasm_regs[
+                       SlotFor(kInterpreterAccumulatorRegister)]),
+                   static_cast<unsigned>(ReadInterpreterRegister(
+                       interpreter::Register(4))));
+      std::fflush(stderr);
+    }
+#endif
     if (TryRunStarBytecode(bytecode, bytecode_index, bytecode_enum,
                            operand_scale, &fallback_result)) {
       PublishWasmInterpreterFallbackResult(isolate, "bytecode fallback",
@@ -18804,7 +20384,7 @@ extern "C" void WasmInterpreterEntryTrampoline() {
           promise_state = static_cast<int>(
               Cast<JSPromise>(Tagged<Object>(suspend_accumulator))->status());
         }
-        std::fprintf(stderr,
+        v8_wasm32_silent_fprintf(stderr,
                      "WASM32_MAIN_SUSPEND pc=%d source=%d suspend_id=%u "
                      "acc=0x%x promise_state=%d\n",
                      bytecode_index, bytecode->SourcePosition(bytecode_index),
@@ -18928,8 +20508,34 @@ extern "C" void WasmInterpreterEntryTrampoline() {
     if (TryRunRuntimeCallBytecode(isolate, bytecode, bytecode_index,
                                   bytecode_enum, operand_scale,
                                   &fallback_result)) {
+      bool trace_meter_runtime_publish =
+          shared->StartPosition() == 6513333;
+#ifdef __wasi__
+      if (trace_meter_runtime_publish) {
+        v8_wasm32_silent_fprintf(stderr,
+                     "WASM32_METER_RUNTIME before pc=%d result=0x%x acc=0x%x "
+                     "exception=%d\n",
+                     bytecode_index, static_cast<unsigned>(fallback_result),
+                     static_cast<unsigned>(g_wasm_regs[
+                         SlotFor(kInterpreterAccumulatorRegister)]),
+                     isolate->has_exception() ? 1 : 0);
+        std::fflush(stderr);
+      }
+#endif
       PublishWasmInterpreterFallbackResult(isolate, "bytecode fallback",
                                            &fallback_result);
+#ifdef __wasi__
+      if (trace_meter_runtime_publish) {
+        v8_wasm32_silent_fprintf(stderr,
+                     "WASM32_METER_RUNTIME after pc=%d result=0x%x acc=0x%x "
+                     "exception=%d\n",
+                     bytecode_index, static_cast<unsigned>(fallback_result),
+                     static_cast<unsigned>(g_wasm_regs[
+                         SlotFor(kInterpreterAccumulatorRegister)]),
+                     isolate->has_exception() ? 1 : 0);
+        std::fflush(stderr);
+      }
+#endif
       if (should_log_step) {
         PrintF("  fallback %s result=0x%x\n",
                interpreter::Bytecodes::ToString(bytecode_enum),
@@ -18951,8 +20557,7 @@ extern "C" void WasmInterpreterEntryTrampoline() {
         continue;
       }
       ReadOnlyRoots roots(isolate);
-      if (fallback_result == roots.exception().ptr() ||
-          isolate->has_exception()) {
+      if (isolate->has_exception()) {
         Address thrown_value = isolate->has_exception()
                                    ? isolate->exception().ptr()
                                    : roots.undefined_value().ptr();
@@ -18996,9 +20601,41 @@ extern "C" void WasmInterpreterEntryTrampoline() {
       operand_scale = interpreter::OperandScale::kSingle;
       continue;
     }
-    if (TryRunConstructBytecode(isolate, bytecode, bytecode_index,
-                                bytecode_enum, operand_scale,
-                                &fallback_result)) {
+    if (TryRunConstructBytecode(
+            isolate, bytecode, bytecode_index, bytecode_enum, operand_scale,
+            &fallback_result,
+            shared->StartPosition() == 5494521 && bytecode_index == 132)) {
+      ReadOnlyRoots roots(isolate);
+      if (isolate->has_exception()) {
+        Address thrown_value = isolate->exception().ptr();
+        HandlerTable handler_table(bytecode);
+        int handler_index =
+            handler_table.LookupHandlerIndexForRange(bytecode_index);
+        if (handler_index != HandlerTable::kNoHandlerFound) {
+          int context_register = handler_table.GetRangeData(handler_index);
+          Address handler_context = ReadInterpreterRegister(
+              interpreter::Register(context_register));
+          if (IsSafeTaggedHandleValue(handler_context) &&
+              IsContext(Tagged<Object>(handler_context))) {
+            PublishCurrentInterpreterContext(handler_context);
+            isolate->clear_exception();
+            int accumulator_slot = SlotFor(kInterpreterAccumulatorRegister);
+            g_wasm_regs[accumulator_slot] = thrown_value;
+            MirrorWasmGCRegSlotForWrite(accumulator_slot, thrown_value);
+            current_offset = bytecode_offset +
+                             handler_table.GetRangeHandler(handler_index);
+            operand_scale = interpreter::OperandScale::kSingle;
+            continue;
+          }
+        }
+        int accumulator_slot = SlotFor(kInterpreterAccumulatorRegister);
+        g_wasm_regs[accumulator_slot] = roots.exception().ptr();
+        MirrorWasmGCRegSlotForWrite(accumulator_slot, roots.exception().ptr());
+        int return_slot = SlotFor(kReturnRegister0);
+        g_wasm_regs[return_slot] = roots.exception().ptr();
+        MirrorWasmGCRegSlotForWrite(return_slot, roots.exception().ptr());
+        return;
+      }
       PublishWasmInterpreterFallbackResult(isolate, "bytecode fallback",
                                            &fallback_result);
       if (should_log_step) {
@@ -19096,9 +20733,81 @@ extern "C" void WasmInterpreterEntryTrampoline() {
       operand_scale = interpreter::OperandScale::kSingle;
       continue;
     }
+    if (TryRunLdaLookupGlobalSlotBytecode(
+            isolate, bytecode, bytecode_index, bytecode_enum, operand_scale,
+            &fallback_result)) {
+      if (isolate->has_exception()) {
+        Address thrown_value = isolate->exception().ptr();
+        HandlerTable handler_table(bytecode);
+        int handler_index =
+            handler_table.LookupHandlerIndexForRange(bytecode_index);
+        if (handler_index != HandlerTable::kNoHandlerFound) {
+          int context_register = handler_table.GetRangeData(handler_index);
+          Address handler_context = ReadInterpreterRegister(
+              interpreter::Register(context_register));
+          if (IsSafeTaggedHandleValue(handler_context) &&
+              IsContext(Tagged<Object>(handler_context))) {
+            PublishCurrentInterpreterContext(handler_context);
+            isolate->clear_exception();
+            int accumulator_slot = SlotFor(kInterpreterAccumulatorRegister);
+            g_wasm_regs[accumulator_slot] = thrown_value;
+            MirrorWasmGCRegSlotForWrite(accumulator_slot, thrown_value);
+            current_offset = bytecode_offset +
+                             handler_table.GetRangeHandler(handler_index);
+            operand_scale = interpreter::OperandScale::kSingle;
+            continue;
+          }
+        }
+        ReadOnlyRoots roots(isolate);
+        int accumulator_slot = SlotFor(kInterpreterAccumulatorRegister);
+        g_wasm_regs[accumulator_slot] = roots.exception().ptr();
+        MirrorWasmGCRegSlotForWrite(accumulator_slot, roots.exception().ptr());
+        int return_slot = SlotFor(kReturnRegister0);
+        g_wasm_regs[return_slot] = roots.exception().ptr();
+        MirrorWasmGCRegSlotForWrite(return_slot, roots.exception().ptr());
+        return;
+      }
+      PublishWasmInterpreterFallbackResult(isolate, "bytecode fallback",
+                                           &fallback_result);
+      current_offset +=
+          interpreter::Bytecodes::Size(bytecode_enum, operand_scale);
+      operand_scale = interpreter::OperandScale::kSingle;
+      continue;
+    }
     if (TryRunLdaGlobalBytecode(isolate, bytecode, bytecode_index,
                                 bytecode_enum, operand_scale,
                                 &fallback_result)) {
+      if (isolate->has_exception()) {
+        Address thrown_value = isolate->exception().ptr();
+        HandlerTable handler_table(bytecode);
+        int handler_index =
+            handler_table.LookupHandlerIndexForRange(bytecode_index);
+        if (handler_index != HandlerTable::kNoHandlerFound) {
+          int context_register = handler_table.GetRangeData(handler_index);
+          Address handler_context = ReadInterpreterRegister(
+              interpreter::Register(context_register));
+          if (IsSafeTaggedHandleValue(handler_context) &&
+              IsContext(Tagged<Object>(handler_context))) {
+            PublishCurrentInterpreterContext(handler_context);
+            isolate->clear_exception();
+            int accumulator_slot = SlotFor(kInterpreterAccumulatorRegister);
+            g_wasm_regs[accumulator_slot] = thrown_value;
+            MirrorWasmGCRegSlotForWrite(accumulator_slot, thrown_value);
+            current_offset = bytecode_offset +
+                             handler_table.GetRangeHandler(handler_index);
+            operand_scale = interpreter::OperandScale::kSingle;
+            continue;
+          }
+        }
+        ReadOnlyRoots roots(isolate);
+        int accumulator_slot = SlotFor(kInterpreterAccumulatorRegister);
+        g_wasm_regs[accumulator_slot] = roots.exception().ptr();
+        MirrorWasmGCRegSlotForWrite(accumulator_slot, roots.exception().ptr());
+        int return_slot = SlotFor(kReturnRegister0);
+        g_wasm_regs[return_slot] = roots.exception().ptr();
+        MirrorWasmGCRegSlotForWrite(return_slot, roots.exception().ptr());
+        return;
+      }
       PublishWasmInterpreterFallbackResult(isolate, "bytecode fallback",
                                            &fallback_result);
       if (should_log_step) {
@@ -19110,9 +20819,39 @@ extern "C" void WasmInterpreterEntryTrampoline() {
       operand_scale = interpreter::OperandScale::kSingle;
       continue;
     }
-    if (TryRunGetNamedPropertyBytecode(isolate, bytecode, bytecode_index,
-                                       bytecode_enum, operand_scale,
-                                       &fallback_result)) {
+    if (TryRunStaGlobalBytecode(isolate, bytecode, bytecode_index,
+                                bytecode_enum, operand_scale,
+                                &fallback_result)) {
+      PublishWasmInterpreterFallbackResult(isolate, "bytecode fallback",
+                                           &fallback_result);
+      if (should_log_step) {
+        PrintF("  fallback StaGlobal result=0x%x\n",
+               static_cast<unsigned>(fallback_result));
+      }
+      current_offset +=
+          interpreter::Bytecodes::Size(bytecode_enum, operand_scale);
+      operand_scale = interpreter::OperandScale::kSingle;
+      continue;
+    }
+const bool trace_hb1_get =
+    (shared->StartPosition() == 5494521 ||
+     shared->StartPosition() == 485660 ||
+     shared->StartPosition() == 6513333 ||
+     shared->StartPosition() == 3157681) &&
+    bytecode_enum == interpreter::Bytecode::kGetNamedProperty;
+    if (trace_hb1_get) {
+      v8_wasm32_silent_fprintf(stderr, "WASM32_HB1_GET_BEFORE pc=%d\n", bytecode_index);
+      std::fflush(stderr);
+    }
+    const bool handled_get_named = TryRunGetNamedPropertyBytecode(
+        isolate, bytecode, bytecode_index, bytecode_enum, operand_scale,
+        &fallback_result, trace_hb1_get);
+    if (trace_hb1_get) {
+      v8_wasm32_silent_fprintf(stderr, "WASM32_HB1_GET_AFTER pc=%d handled=%d\n",
+                   bytecode_index, handled_get_named ? 1 : 0);
+      std::fflush(stderr);
+    }
+    if (handled_get_named) {
       PublishWasmInterpreterFallbackResult(isolate, "bytecode fallback",
                                            &fallback_result);
       if (should_log_step) {
@@ -19475,7 +21214,7 @@ extern "C" void WasmInterpreterEntryTrampoline() {
                   ->promise()
                   ->status());
         }
-        std::fprintf(stderr,
+        v8_wasm32_silent_fprintf(stderr,
                      "WASM32_MAIN_RETURN pc=%d opcode=%s result=0x%x "
                      "async_object=0x%x promise_state=%d\n",
                      bytecode_index,
@@ -19489,7 +21228,7 @@ extern "C" void WasmInterpreterEntryTrampoline() {
                   ->promise();
           if (async_promise_state != 0) {
             Tagged<Object> promise_result = async_promise->result();
-            std::fprintf(stderr,
+            v8_wasm32_silent_fprintf(stderr,
                          "WASM32_MAIN_PROMISE_RAW promise=0x%x result=0x%x "
                          "undefined=0x%x "
                          "exception=0x%x hole=0x%x null=0x%x true=0x%x "
@@ -19509,7 +21248,7 @@ extern "C" void WasmInterpreterEntryTrampoline() {
                              ReadOnlyRoots(isolate).true_value().ptr()),
                          static_cast<unsigned>(
                              ReadOnlyRoots(isolate).false_value().ptr()));
-            PrintF("WASM32_MAIN_PROMISE_RESULT");
+            v8_wasm32_silent_fprintf(stderr, "WASM32_MAIN_PROMISE_RESULT");
             DumpRuntimeArg("result", 0, promise_result.ptr());
             PrintStringPreviewForTrace("result_string", promise_result, 0,
                                        240);
@@ -19551,7 +21290,7 @@ extern "C" void WasmInterpreterEntryTrampoline() {
     if (entry == kNullAddress) {
 #ifdef __wasi__
       if (shared->StartPosition() == 0 && bytecode->length() > 200000) {
-        std::fprintf(stderr,
+        v8_wasm32_silent_fprintf(stderr,
                      "WASM32_MAIN_MISSING_HANDLER pc=%d opcode=%s "
                      "handler_builtin=%d\n",
                      bytecode_index,
@@ -19695,10 +21434,9 @@ extern "C" Address WasmJSEntry(Address root, Address new_target, Address target,
     }
     g_wasm_regs[kWasmJSEntryArgSlotBase + 1 + i] = value;
   }
-  // Keep the callee register frame rooted for the whole generated-WASM call.
-  // The entry snapshot below owns restoration of the caller frame, while this
-  // scope releases the callee roots before that caller resumes.
-  WasmGCStateScope entry_gc_state(isolate);
+  // The entry snapshot roots the caller frame. Bytecode fallbacks that can
+  // allocate create their own WasmGCStateScope after the callee frame has
+  // been initialized, avoiding a full-frame root scan for every JS entry.
   if (kTraceWasmJSEntry) {
     PrintF("WasmJSEntry: enter root=0x%x new_target=0x%x target=0x%x "
            "receiver=0x%x argc=%d\n",
@@ -19772,7 +21510,7 @@ extern "C" Address WasmJSEntry(Address root, Address new_target, Address target,
     Tagged<SharedFunctionInfo> compile_shared =
         Wasm32JSFunctionShared(function);
     if (trace_compile) {
-      std::fprintf(stderr,
+      v8_wasm32_silent_fprintf(stderr,
                    "WASM32_COMPILE_PROGRESS_BEGIN #%llu sfi=0x%x start=%d end=%d\n",
                    static_cast<unsigned long long>(compile_index),
                    static_cast<unsigned>(compile_shared.ptr()),
@@ -19797,7 +21535,7 @@ extern "C" Address WasmJSEntry(Address root, Address new_target, Address target,
       function_handle->UpdateCode(
           isolate, function_handle->shared()->GetCode(isolate));
       if (trace_compile) {
-        std::fprintf(stderr, "WASM32_COMPILE_PROGRESS_MATERIALIZE #%llu\n",
+        v8_wasm32_silent_fprintf(stderr, "WASM32_COMPILE_PROGRESS_MATERIALIZE #%llu\n",
                      static_cast<unsigned long long>(compile_index));
         std::fflush(stderr);
       }
@@ -19807,7 +21545,7 @@ extern "C" Address WasmJSEntry(Address root, Address new_target, Address target,
       entry_state.Restore();
       return ReadOnlyRoots(isolate).exception().ptr();
     } else if (trace_compile) {
-      std::fprintf(stderr, "WASM32_COMPILE_PROGRESS_END #%llu\n",
+      v8_wasm32_silent_fprintf(stderr, "WASM32_COMPILE_PROGRESS_END #%llu\n",
                    static_cast<unsigned long long>(compile_index));
       std::fflush(stderr);
     }
@@ -19830,7 +21568,7 @@ extern "C" Address WasmJSEntry(Address root, Address new_target, Address target,
   if (kTraceWasm32Progress &&
       (entry_index <= 16 || (entry_index % 1000) == 0)) {
     std::unique_ptr<char[]> debug_name = shared->DebugNameCStr();
-    std::fprintf(stderr,
+    v8_wasm32_silent_fprintf(stderr,
                  "WASM32_ENTRY_PROGRESS #%llu sfi=0x%x start=%d end=%d name=%s\n",
                  static_cast<unsigned long long>(entry_index),
                  static_cast<unsigned>(shared.ptr()), shared->StartPosition(),
@@ -19841,11 +21579,33 @@ extern "C" Address WasmJSEntry(Address root, Address new_target, Address target,
   Address entry = code->instruction_start();
 #ifdef __wasi__
   int trace_entry_start = shared->StartPosition();
-  if (trace_entry_start == 38527 &&
+  if (kEnableWasm32DebugDiagnostics &&
+      trace_entry_start == 3157681) {
+    Tagged<Object> script_object = shared->script();
+    if (IsScript(script_object)) {
+      Tagged<Object> source_object = Cast<Script>(script_object)->source();
+      if (IsString(source_object)) {
+        Tagged<String> source = Cast<String>(source_object);
+        const int source_start = std::max(0, trace_entry_start - 96);
+        const int source_end = std::min(static_cast<int>(source->length()),
+                                        shared->EndPosition() + 96);
+        size_t source_length = 0;
+        std::unique_ptr<char[]> source_text = source->ToCString(
+            static_cast<uint32_t>(source_start),
+            static_cast<uint32_t>(source_end - source_start), &source_length);
+        v8_wasm32_silent_fprintf(stderr,
+                     "WASM32_UNDEFINED_SOURCE start=%d end=%d source=%s\\n",
+                     trace_entry_start, shared->EndPosition(),
+                     source_text.get());
+        std::fflush(stderr);
+      }
+    }
+  }
+  if (kEnableWasm32DebugDiagnostics && trace_entry_start == 38527 &&
       SharedDebugNameEqualsAsciiForTrace(shared, "normalize")) {
     Tagged<Object> script_object = shared->script();
     std::unique_ptr<char[]> debug_name = shared->DebugNameCStr();
-    std::fprintf(stderr,
+    v8_wasm32_silent_fprintf(stderr,
                  "WASM32_NORMALIZE_CALLER start=%d end=%d name=%s script=",
                  trace_entry_start, shared->EndPosition(), debug_name.get());
     if (IsScript(script_object)) {
@@ -19861,12 +21621,12 @@ extern "C" Address WasmJSEntry(Address root, Address new_target, Address target,
         std::unique_ptr<char[]> source_text = source->ToCString(
             static_cast<uint32_t>(source_start),
             static_cast<uint32_t>(source_end - source_start), &source_length);
-        std::fprintf(stderr, " source=%s", source_text.get());
+        v8_wasm32_silent_fprintf(stderr, " source=%s", source_text.get());
       }
     } else {
-      std::fprintf(stderr, "<no-script>");
+      v8_wasm32_silent_fprintf(stderr, "<no-script>");
     }
-    std::fprintf(stderr, "\n");
+    v8_wasm32_silent_fprintf(stderr, "\n");
     std::fflush(stderr);
   }
   bool trace_mcq_entry = kEnableWasm32DebugDiagnostics &&
@@ -19879,7 +21639,7 @@ extern "C" Address WasmJSEntry(Address root, Address new_target, Address target,
                          (trace_entry_start >= 7242924 &&
                           trace_entry_start <= 7243075));
   if (trace_mcq_entry) {
-    std::fprintf(stderr,
+    v8_wasm32_silent_fprintf(stderr,
                  "WASM32_TARGET_ENTRY_REAL start=%d builtin=%d builtin_id=%d name=%s "
                  "entry=0x%x has_bytecode=%d\n",
                  trace_entry_start,
@@ -19891,27 +21651,27 @@ extern "C" Address WasmJSEntry(Address root, Address new_target, Address target,
                  shared->HasBytecodeArray() ? 1 : 0);
     std::fflush(stderr);
     if (trace_entry_start == 176867) {
-      std::fprintf(stderr, "WASM32_MATCH_ARGS receiver=0x%x argc=%d",
+      v8_wasm32_silent_fprintf(stderr, "WASM32_MATCH_ARGS receiver=0x%x argc=%d",
                    static_cast<unsigned>(receiver), actual_argc);
       for (int i = 0; i < actual_argc; ++i) {
         Address arg = g_wasm_regs[kWasmJSEntryArgSlotBase + 1 + i];
         bool is_string = IsSafeTaggedHandleValue(arg) &&
                          IsString(Tagged<Object>(arg));
-        std::fprintf(stderr, " arg%d=0x%x string=%d", i,
+        v8_wasm32_silent_fprintf(stderr, " arg%d=0x%x string=%d", i,
                      static_cast<unsigned>(arg), is_string ? 1 : 0);
         if (is_string) {
           Tagged<String> string = Cast<String>(Tagged<Object>(arg));
           int length = string->length();
-          std::fprintf(stderr, " len=%d chars=", length);
+          v8_wasm32_silent_fprintf(stderr, " len=%d chars=", length);
           for (int j = 0; j < length && j < 24; ++j) {
-            std::fprintf(stderr, "%04x", string->Get(j));
+            v8_wasm32_silent_fprintf(stderr, "%04x", string->Get(j));
           }
         }
       }
-      std::fprintf(stderr, "\n");
+      v8_wasm32_silent_fprintf(stderr, "\n");
       std::fflush(stderr);
     }
-    PrintF("WASM32_MCQ_ENTRY builtin=%d builtin_id=%d name=%s entry=0x%x\n",
+    v8_wasm32_silent_fprintf(stderr, "WASM32_MCQ_ENTRY builtin=%d builtin_id=%d name=%s entry=0x%x\n",
            code->is_builtin() ? 1 : 0,
            code->is_builtin() ? static_cast<int>(code->builtin_id()) : -1,
            code->is_builtin() ? Builtins::name(code->builtin_id()) : "<none>",
@@ -20039,13 +21799,13 @@ extern "C" Address WasmJSEntry(Address root, Address new_target, Address target,
     if (used_fallback) {
 #ifdef __wasi__
       if (trace_mcq_entry) {
-        std::fprintf(stderr,
+        v8_wasm32_silent_fprintf(stderr,
                      "WASM32_TARGET_FALLBACK_REAL start=%d result=0x%x exception=%d\n",
                      trace_entry_start,
                      static_cast<unsigned>(fallback_result),
                      isolate->has_exception() ? 1 : 0);
         std::fflush(stderr);
-        PrintF("WASM32_MCQ_FALLBACK result=0x%x exception=%d\n",
+        v8_wasm32_silent_fprintf(stderr, "WASM32_MCQ_FALLBACK result=0x%x exception=%d\n",
                static_cast<unsigned>(fallback_result),
                isolate->has_exception() ? 1 : 0);
       }
@@ -20092,7 +21852,9 @@ extern "C" Address WasmJSEntry(Address root, Address new_target, Address target,
     return Smi::zero().ptr();
   }
 
-  ClearInterpreterFrame();
+  // InterpreterEntryTrampoline clears and initializes this frame itself.
+  // Avoid clearing it twice for every interpreted JavaScript call.
+  if (!uses_interpreter_entry) ClearInterpreterFrame();
   for (int i = kWasmFixedFrameSlotBase; i < kWasmFixedFrameSlotLimit; ++i) {
     g_wasm_regs[i] = undefined;
   }
@@ -20160,10 +21922,34 @@ extern "C" Address WasmJSEntry(Address root, Address new_target, Address target,
 #endif
   Address result = g_wasm_regs[SlotFor(kReturnRegister0)];
 #ifdef __wasi__
-  if (trace_entry_start == 38527) {
+  if (result == ReadOnlyRoots(isolate).exception().ptr() ||
+      isolate->has_exception()) {
+    static int entry_exception_trace_count = 0;
+    if (entry_exception_trace_count < 32) {
+      ++entry_exception_trace_count;
+      std::unique_ptr<char[]> debug_name = shared->DebugNameCStr();
+    v8_wasm32_silent_fprintf(stderr,
+                 "WASM32_ENTRY_EXCEPTION #%d start=%d end=%d name=%s "
+                   "builtin=%d result=0x%x pending=%d script=",
+                   entry_exception_trace_count, shared->StartPosition(),
+                   shared->EndPosition(), debug_name.get(),
+                   code->is_builtin() ? 1 : 0,
+                   static_cast<unsigned>(result),
+                   isolate->has_exception() ? 1 : 0);
+      Tagged<Object> script_object = shared->script();
+      if (IsScript(script_object)) {
+        PrintStringPreviewForTrace("", Cast<Script>(script_object)->name());
+      } else {
+        v8_wasm32_silent_fprintf(stderr, "<none>");
+      }
+      v8_wasm32_silent_fprintf(stderr, "\n");
+      std::fflush(stderr);
+    }
+  }
+  if (kEnableWasm32DebugDiagnostics && trace_entry_start == 38527) {
     static int path_normalize_return_count = 0;
     if (++path_normalize_return_count <= 32) {
-      std::fprintf(stderr,
+      v8_wasm32_silent_fprintf(stderr,
                    "WASM32_PATH_NORMALIZE_RETURN #%d result=0x%x exception=%d\n",
                    path_normalize_return_count, static_cast<unsigned>(result),
                    isolate->has_exception() ? 1 : 0);
@@ -20176,13 +21962,13 @@ extern "C" Address WasmJSEntry(Address root, Address new_target, Address target,
     g_wasm_request_duplex_getter_returned = true;
   }
   if (trace_mcq_entry) {
-    std::fprintf(stderr,
+    v8_wasm32_silent_fprintf(stderr,
                  "WASM32_TARGET_RETURN_REAL start=%d result=0x%x exception=%d\n",
                  trace_entry_start,
                  static_cast<unsigned>(result),
                  isolate->has_exception() ? 1 : 0);
     std::fflush(stderr);
-    PrintF("WASM32_MCQ_RETURN result=0x%x exception=%d\n",
+    v8_wasm32_silent_fprintf(stderr, "WASM32_MCQ_RETURN result=0x%x exception=%d\n",
            static_cast<unsigned>(result), isolate->has_exception() ? 1 : 0);
   }
 #endif
@@ -20297,3 +22083,215 @@ void Isolate::SetHostInitializeImportMetaObjectCallback(
 }  // namespace v8
 
 #endif  // V8_TARGET_ARCH_WASM32
+
+#if V8_ENABLE_DRUMBRAKE
+// WASM32 executes guest Wasm through the C++ DrumBrake runtime.
+// These architecture-specific code generators are intentionally inert.
+namespace v8 {
+namespace internal {
+
+#define DEFINE_WASM32_DRUMBRAKE_BUILTIN(Name) \
+  void Builtins::Generate_##Name(MacroAssembler* masm) {}
+
+DEFINE_WASM32_DRUMBRAKE_BUILTIN(GenericJSToWasmInterpreterWrapper)
+DEFINE_WASM32_DRUMBRAKE_BUILTIN(GenericWasmToJSInterpreterWrapper)
+DEFINE_WASM32_DRUMBRAKE_BUILTIN(WasmInterpreterCWasmEntry)
+DEFINE_WASM32_DRUMBRAKE_BUILTIN(WasmInterpreterEntry)
+DEFINE_WASM32_DRUMBRAKE_BUILTIN(r2r_F32LoadMem_l)
+DEFINE_WASM32_DRUMBRAKE_BUILTIN(r2r_F32LoadMem_s)
+DEFINE_WASM32_DRUMBRAKE_BUILTIN(r2r_F64LoadMem_l)
+DEFINE_WASM32_DRUMBRAKE_BUILTIN(r2r_F64LoadMem_s)
+DEFINE_WASM32_DRUMBRAKE_BUILTIN(r2r_I32LoadMem16S_l)
+DEFINE_WASM32_DRUMBRAKE_BUILTIN(r2r_I32LoadMem16S_s)
+DEFINE_WASM32_DRUMBRAKE_BUILTIN(r2r_I32LoadMem16U_l)
+DEFINE_WASM32_DRUMBRAKE_BUILTIN(r2r_I32LoadMem16U_s)
+DEFINE_WASM32_DRUMBRAKE_BUILTIN(r2r_I32LoadMem8S_l)
+DEFINE_WASM32_DRUMBRAKE_BUILTIN(r2r_I32LoadMem8S_s)
+DEFINE_WASM32_DRUMBRAKE_BUILTIN(r2r_I32LoadMem8U_l)
+DEFINE_WASM32_DRUMBRAKE_BUILTIN(r2r_I32LoadMem8U_s)
+DEFINE_WASM32_DRUMBRAKE_BUILTIN(r2r_I32LoadMem_l)
+DEFINE_WASM32_DRUMBRAKE_BUILTIN(r2r_I32LoadMem_s)
+DEFINE_WASM32_DRUMBRAKE_BUILTIN(r2r_I64LoadMem16S_l)
+DEFINE_WASM32_DRUMBRAKE_BUILTIN(r2r_I64LoadMem16S_s)
+DEFINE_WASM32_DRUMBRAKE_BUILTIN(r2r_I64LoadMem16U_l)
+DEFINE_WASM32_DRUMBRAKE_BUILTIN(r2r_I64LoadMem16U_s)
+DEFINE_WASM32_DRUMBRAKE_BUILTIN(r2r_I64LoadMem32S_l)
+DEFINE_WASM32_DRUMBRAKE_BUILTIN(r2r_I64LoadMem32S_s)
+DEFINE_WASM32_DRUMBRAKE_BUILTIN(r2r_I64LoadMem32U_l)
+DEFINE_WASM32_DRUMBRAKE_BUILTIN(r2r_I64LoadMem32U_s)
+DEFINE_WASM32_DRUMBRAKE_BUILTIN(r2r_I64LoadMem8S_l)
+DEFINE_WASM32_DRUMBRAKE_BUILTIN(r2r_I64LoadMem8S_s)
+DEFINE_WASM32_DRUMBRAKE_BUILTIN(r2r_I64LoadMem8U_l)
+DEFINE_WASM32_DRUMBRAKE_BUILTIN(r2r_I64LoadMem8U_s)
+DEFINE_WASM32_DRUMBRAKE_BUILTIN(r2r_I64LoadMem_l)
+DEFINE_WASM32_DRUMBRAKE_BUILTIN(r2r_I64LoadMem_s)
+DEFINE_WASM32_DRUMBRAKE_BUILTIN(r2s_F32LoadMem_l)
+DEFINE_WASM32_DRUMBRAKE_BUILTIN(r2s_F32LoadMem_s)
+DEFINE_WASM32_DRUMBRAKE_BUILTIN(r2s_F32LoadStoreMem_l)
+DEFINE_WASM32_DRUMBRAKE_BUILTIN(r2s_F32LoadStoreMem_s)
+DEFINE_WASM32_DRUMBRAKE_BUILTIN(r2s_F32StoreMem_l)
+DEFINE_WASM32_DRUMBRAKE_BUILTIN(r2s_F32StoreMem_s)
+DEFINE_WASM32_DRUMBRAKE_BUILTIN(r2s_F64LoadMem_l)
+DEFINE_WASM32_DRUMBRAKE_BUILTIN(r2s_F64LoadMem_s)
+DEFINE_WASM32_DRUMBRAKE_BUILTIN(r2s_F64LoadStoreMem_l)
+DEFINE_WASM32_DRUMBRAKE_BUILTIN(r2s_F64LoadStoreMem_s)
+DEFINE_WASM32_DRUMBRAKE_BUILTIN(r2s_F64StoreMem_l)
+DEFINE_WASM32_DRUMBRAKE_BUILTIN(r2s_F64StoreMem_s)
+DEFINE_WASM32_DRUMBRAKE_BUILTIN(r2s_I32LoadMem16S_l)
+DEFINE_WASM32_DRUMBRAKE_BUILTIN(r2s_I32LoadMem16S_s)
+DEFINE_WASM32_DRUMBRAKE_BUILTIN(r2s_I32LoadMem16U_l)
+DEFINE_WASM32_DRUMBRAKE_BUILTIN(r2s_I32LoadMem16U_s)
+DEFINE_WASM32_DRUMBRAKE_BUILTIN(r2s_I32LoadMem8S_l)
+DEFINE_WASM32_DRUMBRAKE_BUILTIN(r2s_I32LoadMem8S_s)
+DEFINE_WASM32_DRUMBRAKE_BUILTIN(r2s_I32LoadMem8U_l)
+DEFINE_WASM32_DRUMBRAKE_BUILTIN(r2s_I32LoadMem8U_s)
+DEFINE_WASM32_DRUMBRAKE_BUILTIN(r2s_I32LoadMem_l)
+DEFINE_WASM32_DRUMBRAKE_BUILTIN(r2s_I32LoadMem_s)
+DEFINE_WASM32_DRUMBRAKE_BUILTIN(r2s_I32LoadStoreMem_l)
+DEFINE_WASM32_DRUMBRAKE_BUILTIN(r2s_I32LoadStoreMem_s)
+DEFINE_WASM32_DRUMBRAKE_BUILTIN(r2s_I32StoreMem16_l)
+DEFINE_WASM32_DRUMBRAKE_BUILTIN(r2s_I32StoreMem16_s)
+DEFINE_WASM32_DRUMBRAKE_BUILTIN(r2s_I32StoreMem8_l)
+DEFINE_WASM32_DRUMBRAKE_BUILTIN(r2s_I32StoreMem8_s)
+DEFINE_WASM32_DRUMBRAKE_BUILTIN(r2s_I32StoreMem_l)
+DEFINE_WASM32_DRUMBRAKE_BUILTIN(r2s_I32StoreMem_s)
+DEFINE_WASM32_DRUMBRAKE_BUILTIN(r2s_I64LoadMem16S_l)
+DEFINE_WASM32_DRUMBRAKE_BUILTIN(r2s_I64LoadMem16S_s)
+DEFINE_WASM32_DRUMBRAKE_BUILTIN(r2s_I64LoadMem16U_l)
+DEFINE_WASM32_DRUMBRAKE_BUILTIN(r2s_I64LoadMem16U_s)
+DEFINE_WASM32_DRUMBRAKE_BUILTIN(r2s_I64LoadMem32S_l)
+DEFINE_WASM32_DRUMBRAKE_BUILTIN(r2s_I64LoadMem32S_s)
+DEFINE_WASM32_DRUMBRAKE_BUILTIN(r2s_I64LoadMem32U_l)
+DEFINE_WASM32_DRUMBRAKE_BUILTIN(r2s_I64LoadMem32U_s)
+DEFINE_WASM32_DRUMBRAKE_BUILTIN(r2s_I64LoadMem8S_l)
+DEFINE_WASM32_DRUMBRAKE_BUILTIN(r2s_I64LoadMem8S_s)
+DEFINE_WASM32_DRUMBRAKE_BUILTIN(r2s_I64LoadMem8U_l)
+DEFINE_WASM32_DRUMBRAKE_BUILTIN(r2s_I64LoadMem8U_s)
+DEFINE_WASM32_DRUMBRAKE_BUILTIN(r2s_I64LoadMem_l)
+DEFINE_WASM32_DRUMBRAKE_BUILTIN(r2s_I64LoadMem_s)
+DEFINE_WASM32_DRUMBRAKE_BUILTIN(r2s_I64LoadStoreMem_l)
+DEFINE_WASM32_DRUMBRAKE_BUILTIN(r2s_I64LoadStoreMem_s)
+DEFINE_WASM32_DRUMBRAKE_BUILTIN(r2s_I64StoreMem16_l)
+DEFINE_WASM32_DRUMBRAKE_BUILTIN(r2s_I64StoreMem16_s)
+DEFINE_WASM32_DRUMBRAKE_BUILTIN(r2s_I64StoreMem32_l)
+DEFINE_WASM32_DRUMBRAKE_BUILTIN(r2s_I64StoreMem32_s)
+DEFINE_WASM32_DRUMBRAKE_BUILTIN(r2s_I64StoreMem8_l)
+DEFINE_WASM32_DRUMBRAKE_BUILTIN(r2s_I64StoreMem8_s)
+DEFINE_WASM32_DRUMBRAKE_BUILTIN(r2s_I64StoreMem_l)
+DEFINE_WASM32_DRUMBRAKE_BUILTIN(r2s_I64StoreMem_s)
+DEFINE_WASM32_DRUMBRAKE_BUILTIN(s2r_F32LoadMem_l)
+DEFINE_WASM32_DRUMBRAKE_BUILTIN(s2r_F32LoadMem_s)
+DEFINE_WASM32_DRUMBRAKE_BUILTIN(s2r_F64LoadMem_l)
+DEFINE_WASM32_DRUMBRAKE_BUILTIN(s2r_F64LoadMem_s)
+DEFINE_WASM32_DRUMBRAKE_BUILTIN(s2r_I32LoadMem16S_l)
+DEFINE_WASM32_DRUMBRAKE_BUILTIN(s2r_I32LoadMem16S_s)
+DEFINE_WASM32_DRUMBRAKE_BUILTIN(s2r_I32LoadMem16U_l)
+DEFINE_WASM32_DRUMBRAKE_BUILTIN(s2r_I32LoadMem16U_s)
+DEFINE_WASM32_DRUMBRAKE_BUILTIN(s2r_I32LoadMem8S_l)
+DEFINE_WASM32_DRUMBRAKE_BUILTIN(s2r_I32LoadMem8S_s)
+DEFINE_WASM32_DRUMBRAKE_BUILTIN(s2r_I32LoadMem8U_l)
+DEFINE_WASM32_DRUMBRAKE_BUILTIN(s2r_I32LoadMem8U_s)
+DEFINE_WASM32_DRUMBRAKE_BUILTIN(s2r_I32LoadMem_l)
+DEFINE_WASM32_DRUMBRAKE_BUILTIN(s2r_I32LoadMem_s)
+DEFINE_WASM32_DRUMBRAKE_BUILTIN(s2r_I64LoadMem16S_l)
+DEFINE_WASM32_DRUMBRAKE_BUILTIN(s2r_I64LoadMem16S_s)
+DEFINE_WASM32_DRUMBRAKE_BUILTIN(s2r_I64LoadMem16U_l)
+DEFINE_WASM32_DRUMBRAKE_BUILTIN(s2r_I64LoadMem16U_s)
+DEFINE_WASM32_DRUMBRAKE_BUILTIN(s2r_I64LoadMem32S_l)
+DEFINE_WASM32_DRUMBRAKE_BUILTIN(s2r_I64LoadMem32S_s)
+DEFINE_WASM32_DRUMBRAKE_BUILTIN(s2r_I64LoadMem32U_l)
+DEFINE_WASM32_DRUMBRAKE_BUILTIN(s2r_I64LoadMem32U_s)
+DEFINE_WASM32_DRUMBRAKE_BUILTIN(s2r_I64LoadMem8S_l)
+DEFINE_WASM32_DRUMBRAKE_BUILTIN(s2r_I64LoadMem8S_s)
+DEFINE_WASM32_DRUMBRAKE_BUILTIN(s2r_I64LoadMem8U_l)
+DEFINE_WASM32_DRUMBRAKE_BUILTIN(s2r_I64LoadMem8U_s)
+DEFINE_WASM32_DRUMBRAKE_BUILTIN(s2r_I64LoadMem_l)
+DEFINE_WASM32_DRUMBRAKE_BUILTIN(s2r_I64LoadMem_s)
+DEFINE_WASM32_DRUMBRAKE_BUILTIN(s2s_F32LoadMem_LocalSet_l)
+DEFINE_WASM32_DRUMBRAKE_BUILTIN(s2s_F32LoadMem_LocalSet_s)
+DEFINE_WASM32_DRUMBRAKE_BUILTIN(s2s_F32LoadMem_l)
+DEFINE_WASM32_DRUMBRAKE_BUILTIN(s2s_F32LoadMem_s)
+DEFINE_WASM32_DRUMBRAKE_BUILTIN(s2s_F32LoadStoreMem_l)
+DEFINE_WASM32_DRUMBRAKE_BUILTIN(s2s_F32LoadStoreMem_s)
+DEFINE_WASM32_DRUMBRAKE_BUILTIN(s2s_F32StoreMem_l)
+DEFINE_WASM32_DRUMBRAKE_BUILTIN(s2s_F32StoreMem_s)
+DEFINE_WASM32_DRUMBRAKE_BUILTIN(s2s_F64LoadMem_LocalSet_l)
+DEFINE_WASM32_DRUMBRAKE_BUILTIN(s2s_F64LoadMem_LocalSet_s)
+DEFINE_WASM32_DRUMBRAKE_BUILTIN(s2s_F64LoadMem_l)
+DEFINE_WASM32_DRUMBRAKE_BUILTIN(s2s_F64LoadMem_s)
+DEFINE_WASM32_DRUMBRAKE_BUILTIN(s2s_F64LoadStoreMem_l)
+DEFINE_WASM32_DRUMBRAKE_BUILTIN(s2s_F64LoadStoreMem_s)
+DEFINE_WASM32_DRUMBRAKE_BUILTIN(s2s_F64StoreMem_l)
+DEFINE_WASM32_DRUMBRAKE_BUILTIN(s2s_F64StoreMem_s)
+DEFINE_WASM32_DRUMBRAKE_BUILTIN(s2s_I32LoadMem16S_LocalSet_l)
+DEFINE_WASM32_DRUMBRAKE_BUILTIN(s2s_I32LoadMem16S_LocalSet_s)
+DEFINE_WASM32_DRUMBRAKE_BUILTIN(s2s_I32LoadMem16S_l)
+DEFINE_WASM32_DRUMBRAKE_BUILTIN(s2s_I32LoadMem16S_s)
+DEFINE_WASM32_DRUMBRAKE_BUILTIN(s2s_I32LoadMem16U_LocalSet_l)
+DEFINE_WASM32_DRUMBRAKE_BUILTIN(s2s_I32LoadMem16U_LocalSet_s)
+DEFINE_WASM32_DRUMBRAKE_BUILTIN(s2s_I32LoadMem16U_l)
+DEFINE_WASM32_DRUMBRAKE_BUILTIN(s2s_I32LoadMem16U_s)
+DEFINE_WASM32_DRUMBRAKE_BUILTIN(s2s_I32LoadMem8S_LocalSet_l)
+DEFINE_WASM32_DRUMBRAKE_BUILTIN(s2s_I32LoadMem8S_LocalSet_s)
+DEFINE_WASM32_DRUMBRAKE_BUILTIN(s2s_I32LoadMem8S_l)
+DEFINE_WASM32_DRUMBRAKE_BUILTIN(s2s_I32LoadMem8S_s)
+DEFINE_WASM32_DRUMBRAKE_BUILTIN(s2s_I32LoadMem8U_LocalSet_l)
+DEFINE_WASM32_DRUMBRAKE_BUILTIN(s2s_I32LoadMem8U_LocalSet_s)
+DEFINE_WASM32_DRUMBRAKE_BUILTIN(s2s_I32LoadMem8U_l)
+DEFINE_WASM32_DRUMBRAKE_BUILTIN(s2s_I32LoadMem8U_s)
+DEFINE_WASM32_DRUMBRAKE_BUILTIN(s2s_I32LoadMem_LocalSet_l)
+DEFINE_WASM32_DRUMBRAKE_BUILTIN(s2s_I32LoadMem_LocalSet_s)
+DEFINE_WASM32_DRUMBRAKE_BUILTIN(s2s_I32LoadMem_l)
+DEFINE_WASM32_DRUMBRAKE_BUILTIN(s2s_I32LoadMem_s)
+DEFINE_WASM32_DRUMBRAKE_BUILTIN(s2s_I32LoadStoreMem_l)
+DEFINE_WASM32_DRUMBRAKE_BUILTIN(s2s_I32LoadStoreMem_s)
+DEFINE_WASM32_DRUMBRAKE_BUILTIN(s2s_I32StoreMem16_l)
+DEFINE_WASM32_DRUMBRAKE_BUILTIN(s2s_I32StoreMem16_s)
+DEFINE_WASM32_DRUMBRAKE_BUILTIN(s2s_I32StoreMem8_l)
+DEFINE_WASM32_DRUMBRAKE_BUILTIN(s2s_I32StoreMem8_s)
+DEFINE_WASM32_DRUMBRAKE_BUILTIN(s2s_I32StoreMem_l)
+DEFINE_WASM32_DRUMBRAKE_BUILTIN(s2s_I32StoreMem_s)
+DEFINE_WASM32_DRUMBRAKE_BUILTIN(s2s_I64LoadMem16S_LocalSet_l)
+DEFINE_WASM32_DRUMBRAKE_BUILTIN(s2s_I64LoadMem16S_LocalSet_s)
+DEFINE_WASM32_DRUMBRAKE_BUILTIN(s2s_I64LoadMem16S_l)
+DEFINE_WASM32_DRUMBRAKE_BUILTIN(s2s_I64LoadMem16S_s)
+DEFINE_WASM32_DRUMBRAKE_BUILTIN(s2s_I64LoadMem16U_LocalSet_l)
+DEFINE_WASM32_DRUMBRAKE_BUILTIN(s2s_I64LoadMem16U_LocalSet_s)
+DEFINE_WASM32_DRUMBRAKE_BUILTIN(s2s_I64LoadMem16U_l)
+DEFINE_WASM32_DRUMBRAKE_BUILTIN(s2s_I64LoadMem16U_s)
+DEFINE_WASM32_DRUMBRAKE_BUILTIN(s2s_I64LoadMem32S_LocalSet_l)
+DEFINE_WASM32_DRUMBRAKE_BUILTIN(s2s_I64LoadMem32S_LocalSet_s)
+DEFINE_WASM32_DRUMBRAKE_BUILTIN(s2s_I64LoadMem32S_l)
+DEFINE_WASM32_DRUMBRAKE_BUILTIN(s2s_I64LoadMem32S_s)
+DEFINE_WASM32_DRUMBRAKE_BUILTIN(s2s_I64LoadMem32U_LocalSet_l)
+DEFINE_WASM32_DRUMBRAKE_BUILTIN(s2s_I64LoadMem32U_LocalSet_s)
+DEFINE_WASM32_DRUMBRAKE_BUILTIN(s2s_I64LoadMem32U_l)
+DEFINE_WASM32_DRUMBRAKE_BUILTIN(s2s_I64LoadMem32U_s)
+DEFINE_WASM32_DRUMBRAKE_BUILTIN(s2s_I64LoadMem8S_LocalSet_l)
+DEFINE_WASM32_DRUMBRAKE_BUILTIN(s2s_I64LoadMem8S_LocalSet_s)
+DEFINE_WASM32_DRUMBRAKE_BUILTIN(s2s_I64LoadMem8S_l)
+DEFINE_WASM32_DRUMBRAKE_BUILTIN(s2s_I64LoadMem8S_s)
+DEFINE_WASM32_DRUMBRAKE_BUILTIN(s2s_I64LoadMem8U_LocalSet_l)
+DEFINE_WASM32_DRUMBRAKE_BUILTIN(s2s_I64LoadMem8U_LocalSet_s)
+DEFINE_WASM32_DRUMBRAKE_BUILTIN(s2s_I64LoadMem8U_l)
+DEFINE_WASM32_DRUMBRAKE_BUILTIN(s2s_I64LoadMem8U_s)
+DEFINE_WASM32_DRUMBRAKE_BUILTIN(s2s_I64LoadMem_LocalSet_l)
+DEFINE_WASM32_DRUMBRAKE_BUILTIN(s2s_I64LoadMem_LocalSet_s)
+DEFINE_WASM32_DRUMBRAKE_BUILTIN(s2s_I64LoadMem_l)
+DEFINE_WASM32_DRUMBRAKE_BUILTIN(s2s_I64LoadMem_s)
+DEFINE_WASM32_DRUMBRAKE_BUILTIN(s2s_I64LoadStoreMem_l)
+DEFINE_WASM32_DRUMBRAKE_BUILTIN(s2s_I64LoadStoreMem_s)
+DEFINE_WASM32_DRUMBRAKE_BUILTIN(s2s_I64StoreMem16_l)
+DEFINE_WASM32_DRUMBRAKE_BUILTIN(s2s_I64StoreMem16_s)
+DEFINE_WASM32_DRUMBRAKE_BUILTIN(s2s_I64StoreMem32_l)
+DEFINE_WASM32_DRUMBRAKE_BUILTIN(s2s_I64StoreMem32_s)
+DEFINE_WASM32_DRUMBRAKE_BUILTIN(s2s_I64StoreMem8_l)
+DEFINE_WASM32_DRUMBRAKE_BUILTIN(s2s_I64StoreMem8_s)
+DEFINE_WASM32_DRUMBRAKE_BUILTIN(s2s_I64StoreMem_l)
+DEFINE_WASM32_DRUMBRAKE_BUILTIN(s2s_I64StoreMem_s)
+
+#undef DEFINE_WASM32_DRUMBRAKE_BUILTIN
+
+}  // namespace internal
+}  // namespace v8
+#endif  // V8_ENABLE_DRUMBRAKE

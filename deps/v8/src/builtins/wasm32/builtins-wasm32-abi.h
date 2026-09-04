@@ -39,7 +39,10 @@ constexpr int kWasmCallSaveSlotBase = 896;
 constexpr int kWasmCallSaveSlotCount = 64;
 constexpr int kWasmCallReturnSlotBase = 960;
 
-constexpr int kWasmInterpreterFrameSlots = 4096;
+// The frame pointer is centered at slot 1024. Keep an equal-sized positive
+// range for parameters and frame metadata without scanning 4096 slots at
+// every recursive JavaScript entry.
+constexpr int kWasmInterpreterFrameSlots = 2048;
 constexpr int kWasmInterpreterFrameFpSlot = 1024;
 extern "C" Address g_wasm_interpreter_frame[kWasmInterpreterFrameSlots];
 extern "C" Address g_wasm_current_frame_pointer;

@@ -6685,8 +6685,9 @@ class Handlers : public HandlersBase {
   INSTRUCTION_HANDLER_FUNC s2s_RefArrayFill(
       const uint8_t* code, uint32_t* sp, WasmInterpreterRuntime* wasm_runtime,
       int64_t r0, double fp0) {
-    // DrumBrake currently only works with pointer compression.
-    static_assert(COMPRESS_POINTERS_BOOL);
+#if !COMPRESS_POINTERS_BOOL
+    TRAP(TrapReason::kTrapUnreachable)
+#else
 
     uint32_t size = pop<uint32_t>(sp, code, wasm_runtime);
     WasmRef value = pop<WasmRef>(sp, code, wasm_runtime);
@@ -6714,6 +6715,7 @@ class Handlers : public HandlersBase {
     }
 
     NextOp();
+#endif
   }
 
   INSTRUCTION_HANDLER_FUNC s2s_RefI31(const uint8_t* code, uint32_t* sp,
@@ -6722,7 +6724,7 @@ class Handlers : public HandlersBase {
     uint32_t value = pop<int32_t>(sp, code, wasm_runtime);
 
     // Truncate high bit.
-    Tagged<Smi> smi(Internals::IntToSmi(value & 0x7fffffff));
+    Tagged<Smi> smi(Smi::FromInt(static_cast<int>(value & 0x7fffffff)));
     push<WasmRef>(sp, code, wasm_runtime,
                   handle(smi, wasm_runtime->GetIsolate()));
 
@@ -7436,9 +7438,10 @@ WasmBytecodeGenerator::WasmBytecodeGenerator(uint32_t function_index,
 
 size_t WasmBytecodeGenerator::Simd128Hash::operator()(
     const Simd128& s128) const {
-  static_assert(sizeof(size_t) == sizeof(uint64_t));
   const int64x2 s = s128.to_i64x2();
-  return s.val[0] ^ s.val[1];
+  uint64_t hash = static_cast<uint64_t>(s.val[0]) ^
+                  static_cast<uint64_t>(s.val[1]);
+  return static_cast<size_t>(hash ^ (hash >> 32));
 }
 
 // Look if the slot that hold the value at {stack_index} is being shared with

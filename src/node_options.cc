@@ -1599,13 +1599,6 @@ void GetCLIOptionsValues(const FunctionCallbackInfo<Value>& args) {
     }
     if (value.IsEmpty()) {
 #ifdef __wasi__
-#ifdef NODE_WASM32_DEBUG_TRACE
-      fprintf(stderr,
-              "GetCLIOptionsValues: empty value for %s type=%d, using "
-              "undefined\n",
-              item.first.c_str(),
-              static_cast<int>(option_info.type));
-#endif
       value = undefined_value;
 #else
       CHECK(!value.IsEmpty());
