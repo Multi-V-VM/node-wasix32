@@ -1647,12 +1647,14 @@ void GetCLIOptionsInfo(const FunctionCallbackInfo<Value>& args) {
   IterateCLIOptionsScope s(env);
 
   Local<Map> options = Map::New(isolate);
+#ifndef __wasi__
   if (options
           ->SetPrototypeV2(context,
                            env->primordials_safe_map_prototype_object())
           .IsNothing()) {
     return;
   }
+#endif
 
   Local<Value> null_value = Null(isolate);
   for (const auto& item : _ppop_instance.options_) {
@@ -1688,12 +1690,14 @@ void GetCLIOptionsInfo(const FunctionCallbackInfo<Value>& args) {
   Local<Value> aliases;
   if (!ToV8Value(context, _ppop_instance.aliases_).ToLocal(&aliases)) return;
 
+#ifndef __wasi__
   if (aliases.As<Object>()
           ->SetPrototypeV2(context,
                            env->primordials_safe_map_prototype_object())
           .IsNothing()) {
     return;
   }
+#endif
 
   constexpr size_t kRetLength = 2;
   std::array<Local<Name>, kRetLength> names = {env->options_string(),

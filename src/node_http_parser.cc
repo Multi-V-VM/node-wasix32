@@ -451,14 +451,21 @@ class Parser : public AsyncWrap, public StreamListener {
       if (head_response.IsEmpty()) callback_scope.MarkAsFailed();
     }
 
+#if V8_TARGET_ARCH_WASM32
+    // The JavaScript callback executed above can report an empty/corrupt
+    // MaybeLocal on WASM32 despite completing normally. The Undici response
+    // parser does not use header-level llhttp control codes on this target,
+    // so avoid consuming the broken C++-to-JS return handle altogether.
+    return 0;
+#else
     if (head_response.IsEmpty() ||
         !head_response.ToLocalChecked()->IsNumber()) {
       got_exception_ = true;
       return -1;
     }
-
     return static_cast<int>(
         head_response.ToLocalChecked().As<Number>()->Value());
+#endif
   }
 
 

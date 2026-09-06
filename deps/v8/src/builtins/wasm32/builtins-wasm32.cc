@@ -52,6 +52,7 @@
 #include "src/objects/js-weak-refs-inl.h"
 #ifdef V8_INTL_SUPPORT
 #include "src/objects/intl-objects.h"
+#include "src/objects/js-segmenter.h"
 #endif
 #include "src/objects/keys.h"
 #include "src/objects/lookup-inl.h"
@@ -68,6 +69,7 @@
 #include "src/objects/source-text-module.h"
 #include "src/objects/tagged-index.h"
 #include "src/numbers/conversions.h"
+#include "src/numbers/math-random.h"
 #include "src/regexp/regexp.h"
 #include "src/regexp/regexp-utils.h"
 #include "src/roots/roots-inl.h"
@@ -75,6 +77,7 @@
 #include "src/wasm/interpreter/wasm-interpreter-objects.h"
 #include "src/wasm/wasm-objects-inl.h"
 #include "src/strings/char-predicates-inl.h"
+#include "src/strings/unicode.h"
 #include "src/strings/string-builder.h"
 #include "src/strings/string-builder-inl.h"
 #include "src/strings/uri.h"
@@ -84,6 +87,7 @@
 #include <cstring>
 #include <cstdio>
 #include <cmath>
+#include <limits>
 #include <vector>
 
 namespace v8 {
@@ -784,6 +788,8 @@ struct WasmGCStateStorage {
   Address original_frame[kWasmInterpreterFrameSlots];
   bool active_regs[kWasmRegFileSize];
   bool active_frame[kWasmInterpreterFrameSlots];
+  int frame_begin;
+  int frame_end;
   Heap* registered_heap;
   StrongRootsEntry* regs_entry;
   StrongRootsEntry* frame_entry;
@@ -804,6 +810,9 @@ void PrepareWasmGCRootMirrorValue(Address value, bool* active,
   *active = IsSafeTaggedRootValue(isolate, value);
   *mirror_value = *active ? value : ReadOnlyRoots(isolate).undefined_value().ptr();
 }
+
+bool TryGetActiveWasmInterpreterFrameRange(Isolate* isolate, int* begin,
+                                           int* end);
 
 void MirrorWasmGCRegSlotForWrite(int slot, Address value) {
   if (slot < 0 || slot >= kWasmRegFileSize || g_wasm_gc_state_depth == 0) {
@@ -832,6 +841,7 @@ void MirrorWasmGCFrameSlotForWrite(int slot, Address value) {
   PrepareWasmGCRootMirrorValue(value, &active, &mirror_value);
   for (int depth = 0; depth < g_wasm_gc_state_depth; ++depth) {
     WasmGCStateStorage* storage = &g_wasm_gc_state[depth];
+    if (slot < storage->frame_begin || slot >= storage->frame_end) continue;
     storage->original_frame[slot] = value;
     storage->active_frame[slot] = active;
     storage->frame[slot] = mirror_value;
@@ -849,20 +859,25 @@ class WasmGCStateScope {
     depth_ = g_wasm_gc_state_depth++;
     storage_ = &g_wasm_gc_state[depth_];
     Heap* heap = isolate_->heap();
+    Address undefined = ReadOnlyRoots(isolate).undefined_value().ptr();
     if (storage_->registered_heap != heap) {
       storage_->registered_heap = heap;
       storage_->regs_entry = nullptr;
       storage_->frame_entry = nullptr;
+      for (Address& value : storage_->frame) value = undefined;
     }
 
-    Address undefined = ReadOnlyRoots(isolate).undefined_value().ptr();
     for (int i = 0; i < kWasmRegFileSize; ++i) {
       Address value = g_wasm_regs[i];
       storage_->original_regs[i] = value;
       storage_->active_regs[i] = IsSafeTaggedRootValue(isolate, value);
       storage_->regs[i] = storage_->active_regs[i] ? value : undefined;
     }
-    for (int i = 0; i < kWasmInterpreterFrameSlots; ++i) {
+    storage_->frame_begin = 0;
+    storage_->frame_end = kWasmInterpreterFrameSlots;
+    TryGetActiveWasmInterpreterFrameRange(isolate_, &storage_->frame_begin,
+                                          &storage_->frame_end);
+    for (int i = storage_->frame_begin; i < storage_->frame_end; ++i) {
       Address value = g_wasm_interpreter_frame[i];
       storage_->original_frame[i] = value;
       storage_->active_frame[i] = IsSafeTaggedRootValue(isolate, value);
@@ -891,7 +906,7 @@ class WasmGCStateScope {
         g_wasm_regs[i] = storage_->regs[i];
       }
     }
-    for (int i = 0; i < kWasmInterpreterFrameSlots; ++i) {
+    for (int i = storage_->frame_begin; i < storage_->frame_end; ++i) {
       if (storage_->active_frame[i] &&
           g_wasm_interpreter_frame[i] == storage_->original_frame[i]) {
         g_wasm_interpreter_frame[i] = storage_->frame[i];
@@ -899,7 +914,9 @@ class WasmGCStateScope {
     }
     Address undefined = ReadOnlyRoots(isolate_).undefined_value().ptr();
     for (Address& value : storage_->regs) value = undefined;
-    for (Address& value : storage_->frame) value = undefined;
+    for (int i = storage_->frame_begin; i < storage_->frame_end; ++i) {
+      storage_->frame[i] = undefined;
+    }
     if (g_wasm_gc_state_depth != depth_ + 1) {
       FATAL("wasm32 GC root state restore out of order");
     }
@@ -2061,7 +2078,7 @@ bool TryRunCreateClosureBytecode(Isolate* isolate,
     }
     std::unique_ptr<char[]> diagnostic_name =
         diagnostic_shared->DebugNameCStr();
-    v8_wasm32_silent_fprintf(stderr,
+    std::fprintf(stderr,
                  "WASM32_CLOSURE_7393 start=%d end=%d len=%d name=%s\n",
                  diagnostic_shared->StartPosition(),
                  diagnostic_shared->EndPosition(), diagnostic_length,
@@ -2457,11 +2474,280 @@ bool TryRunAsyncFunctionEnterIntrinsic(Isolate* isolate, Address* argv,
 
 Address g_wasm_trace_direct_eval_function = kNullAddress;
 
+bool TakeAsyncGeneratorRequest(
+    Isolate* isolate, DirectHandle<JSAsyncGeneratorObject> generator,
+    DirectHandle<AsyncGeneratorRequest>* out_request) {
+  ReadOnlyRoots roots(isolate);
+  Tagged<HeapObject> head = generator->queue();
+  if (IsUndefined(head, roots) || !IsAsyncGeneratorRequest(head)) {
+    return false;
+  }
+  DirectHandle<AsyncGeneratorRequest> request(
+      Cast<AsyncGeneratorRequest>(head), isolate);
+  generator->set_queue(Cast<HeapObject>(request->next()));
+  request->set_next(roots.undefined_value());
+  *out_request = request;
+  return true;
+}
+
+bool SettleAsyncGeneratorRequest(
+    Isolate* isolate, DirectHandle<JSAsyncGeneratorObject> generator,
+    DirectHandle<Object> value, bool done, bool rejected) {
+  DirectHandle<AsyncGeneratorRequest> request;
+  if (!TakeAsyncGeneratorRequest(isolate, generator, &request)) return false;
+
+  DirectHandle<JSPromise> promise(request->promise(), isolate);
+  if (rejected) {
+    JSPromise::Reject(promise, value, false);
+    return true;
+  }
+
+  DirectHandle<Object> iterator_result =
+      isolate->factory()->NewJSIteratorResult(value, done);
+  DirectHandle<Object> resolve_result;
+  return JSPromise::Resolve(promise, iterator_result)
+      .ToHandle(&resolve_result);
+}
+
+bool ResumeAsyncGeneratorRequest(
+    Isolate* isolate, DirectHandle<JSAsyncGeneratorObject> generator) {
+  ReadOnlyRoots roots(isolate);
+  Tagged<HeapObject> head = generator->queue();
+  if (IsUndefined(head, roots) || !IsAsyncGeneratorRequest(head)) return true;
+
+  const int continuation = generator->continuation();
+  if (continuation == JSGeneratorObject::kGeneratorExecuting) return true;
+
+  DirectHandle<AsyncGeneratorRequest> request(
+      Cast<AsyncGeneratorRequest>(head), isolate);
+  DirectHandle<Object> request_value(request->value(), isolate);
+  const int resume_mode = request->resume_mode();
+  if (continuation == JSGeneratorObject::kGeneratorClosed) {
+    const bool rejected =
+        resume_mode == JSGeneratorObject::ResumeMode::kThrow;
+    return SettleAsyncGeneratorRequest(isolate, generator, request_value,
+                                       true, rejected);
+  }
+
+  generator->set_input_or_debug_pos(*request_value);
+  generator->set_resume_mode(
+      static_cast<JSGeneratorObject::ResumeMode>(resume_mode));
+  DirectHandle<JSFunction> target(generator->function(), isolate);
+  DirectHandle<JSAny> generator_receiver(generator->receiver(), isolate);
+  Address root = g_wasm_regs[kWasmRegRoot];
+  if (root == kNullAddress) root = g_wasm_regs[SlotFor(kRootRegister)];
+  Address result = WasmJSEntry(root, generator->ptr(), target->ptr(),
+                               (*generator_receiver).ptr(),
+                               JSParameterCount(0), nullptr);
+  if (isolate->has_exception() || result == roots.exception().ptr()) {
+    DirectHandle<Object> exception(
+        isolate->has_exception() ? isolate->exception() : roots.undefined_value(),
+        isolate);
+    if (isolate->has_exception()) {
+      isolate->clear_exception();
+      isolate->clear_pending_message();
+    }
+    generator->set_continuation(JSGeneratorObject::kGeneratorClosed);
+    return SettleAsyncGeneratorRequest(isolate, generator, exception, true,
+                                       true);
+  }
+  return true;
+}
+
+bool ScheduleAsyncGeneratorAwait(
+    Isolate* isolate, DirectHandle<JSAsyncGeneratorObject> generator,
+    DirectHandle<Object> value, bool yield, Address* out_result) {
+  ReadOnlyRoots roots(isolate);
+  DirectHandle<JSPromise> awaited;
+  if (IsJSPromise(*value)) {
+    awaited = direct_handle(Cast<JSPromise>(*value), isolate);
+  } else {
+    awaited = isolate->factory()->NewJSPromise();
+    DirectHandle<Object> resolve_result;
+    if (!JSPromise::Resolve(awaited, value).ToHandle(&resolve_result)) {
+      *out_result = roots.exception().ptr();
+      return false;
+    }
+  }
+
+  DirectHandle<NativeContext> native_context = isolate->native_context();
+  DirectHandle<Context> closure_context = isolate->factory()->NewBuiltinContext(
+      native_context, Context::MIN_CONTEXT_EXTENDED_SLOTS);
+  closure_context->set_extension(*generator);
+  DirectHandle<SharedFunctionInfo> resolve_info =
+      yield
+          ? isolate->factory()
+                ->async_generator_yield_with_await_resolve_closure_shared_fun()
+          : isolate->factory()
+                ->async_generator_await_resolve_closure_shared_fun();
+  DirectHandle<SharedFunctionInfo> reject_info =
+      isolate->factory()->async_generator_await_reject_closure_shared_fun();
+  DirectHandle<JSFunction> on_resolve =
+      Factory::JSFunctionBuilder{isolate, resolve_info, closure_context}.Build();
+  DirectHandle<JSFunction> on_reject =
+      Factory::JSFunctionBuilder{isolate, reject_info, closure_context}.Build();
+  DirectHandle<Object> then_args[] = {on_resolve, on_reject};
+  if (Execution::CallBuiltin(isolate, isolate->promise_then(), awaited,
+                             base::VectorOf(then_args))
+          .is_null()) {
+    *out_result = roots.exception().ptr();
+    return false;
+  }
+
+  generator->set_is_awaiting(1);
+  *out_result = roots.undefined_value().ptr();
+  return true;
+}
+
+bool ResumeAsyncGeneratorAwait(
+    Isolate* isolate, Tagged<JSFunction> function, Address value_address,
+    JSGeneratorObject::ResumeMode resume_mode, bool resolve_yield,
+    Address* out_result) {
+  ReadOnlyRoots roots(isolate);
+  Tagged<Context> context = Wasm32JSFunctionContext(function);
+  Tagged<Object> extension = context->extension();
+  if (!IsJSAsyncGeneratorObject(extension)) return false;
+
+  HandleScope scope(isolate);
+  DirectHandle<JSAsyncGeneratorObject> generator(
+      Cast<JSAsyncGeneratorObject>(extension), isolate);
+  DirectHandle<Object> value(
+      Tagged<Object>(SafeTaggedOrUndefined(isolate, value_address)), isolate);
+  generator->set_is_awaiting(0);
+  if (resolve_yield) {
+    if (!SettleAsyncGeneratorRequest(isolate, generator, value, false, false) ||
+        !ResumeAsyncGeneratorRequest(isolate, generator)) {
+      *out_result = roots.exception().ptr();
+      return true;
+    }
+    *out_result = roots.undefined_value().ptr();
+    return true;
+  }
+
+  generator->set_input_or_debug_pos(*value);
+  generator->set_resume_mode(resume_mode);
+  DirectHandle<JSFunction> target(generator->function(), isolate);
+  DirectHandle<JSAny> generator_receiver(generator->receiver(), isolate);
+  Address root = g_wasm_regs[kWasmRegRoot];
+  if (root == kNullAddress) root = g_wasm_regs[SlotFor(kRootRegister)];
+  Address result = WasmJSEntry(root, generator->ptr(), target->ptr(),
+                               (*generator_receiver).ptr(),
+                               JSParameterCount(0), nullptr);
+  if (isolate->has_exception() || result == roots.exception().ptr()) {
+    DirectHandle<Object> exception(
+        isolate->has_exception() ? isolate->exception() : roots.undefined_value(),
+        isolate);
+    if (isolate->has_exception()) {
+      isolate->clear_exception();
+      isolate->clear_pending_message();
+    }
+    generator->set_continuation(JSGeneratorObject::kGeneratorClosed);
+    if (!SettleAsyncGeneratorRequest(isolate, generator, exception, true,
+                                     true)) {
+      *out_result = roots.exception().ptr();
+      return true;
+    }
+  }
+  *out_result = roots.undefined_value().ptr();
+  return true;
+}
+
+bool TryRunAsyncGeneratorIntrinsic(Isolate* isolate,
+                                   Runtime::FunctionId function_id,
+                                   uint32_t reg_count, Address* rooted_argv,
+                                   Address* out_result) {
+  ReadOnlyRoots roots(isolate);
+  bool await = function_id == Runtime::kAsyncGeneratorAwait ||
+               function_id == Runtime::kInlineAsyncGeneratorAwait;
+  bool yield = function_id == Runtime::kAsyncGeneratorYieldWithAwait ||
+               function_id == Runtime::kInlineAsyncGeneratorYieldWithAwait;
+  bool resolve = function_id == Runtime::kAsyncGeneratorResolve ||
+                 function_id == Runtime::kInlineAsyncGeneratorResolve;
+  bool reject = function_id == Runtime::kAsyncGeneratorReject ||
+                function_id == Runtime::kInlineAsyncGeneratorReject;
+  if (!await && !yield && !resolve && !reject) return false;
+  const uint32_t expected_args = resolve ? 3 : 2;
+  if (reg_count != expected_args) return false;
+
+  Address generator_address = rooted_argv[expected_args - 1];
+  Address value_address = rooted_argv[expected_args - 2];
+  if (!IsSafeTaggedHandleValue(generator_address) ||
+      !IsJSAsyncGeneratorObject(Tagged<Object>(generator_address))) {
+    *out_result = roots.exception().ptr();
+    return true;
+  }
+
+  DirectHandle<JSAsyncGeneratorObject> generator(
+      Cast<JSAsyncGeneratorObject>(Tagged<Object>(generator_address)), isolate);
+  DirectHandle<Object> value(
+      Tagged<Object>(SafeTaggedOrUndefined(isolate, value_address)), isolate);
+  if (await || yield) {
+    ScheduleAsyncGeneratorAwait(isolate, generator, value, yield, out_result);
+  } else if (resolve) {
+    bool done = Object::BooleanValue(
+        Tagged<Object>(SafeTaggedOrUndefined(isolate, rooted_argv[0])),
+        isolate);
+    if (!SettleAsyncGeneratorRequest(isolate, generator, value, done, false)) {
+      *out_result = roots.exception().ptr();
+      return true;
+    }
+  } else if (!SettleAsyncGeneratorRequest(isolate, generator, value, true,
+                                            true)) {
+    *out_result = roots.exception().ptr();
+    return true;
+  }
+
+  *out_result = roots.undefined_value().ptr();
+  return true;
+}
+
 bool TryRunRuntimeCallBytecode(Isolate* isolate, Tagged<BytecodeArray> bytecode,
                                int bytecode_index,
                                interpreter::Bytecode bytecode_enum,
                                interpreter::OperandScale operand_scale,
                                Address* out_result) {
+  if (bytecode_enum == interpreter::Bytecode::kCallJSRuntime) {
+    uint32_t context_slot = ReadBytecodeUnsignedOperand(
+        bytecode, bytecode_index, bytecode_enum, 0, operand_scale);
+    if (context_slot != Context::REFLECT_APPLY_INDEX) return false;
+
+    uint32_t reg_count = ReadBytecodeUnsignedOperand(
+        bytecode, bytecode_index, bytecode_enum, 2, operand_scale);
+    if (reg_count != 3) return false;
+    int32_t first_arg_operand = ReadBytecodeSignedOperand(
+        bytecode, bytecode_index, bytecode_enum, 1, operand_scale);
+
+    Address reflect_args[3];
+    for (int index = 0; index < 3; ++index) {
+      reflect_args[index] = SafeRuntimeArgOrUndefined(
+          isolate, ReadInterpreterRegister(
+                       RegisterFromListOperand(first_arg_operand, index)));
+    }
+
+    ReadOnlyRoots roots(isolate);
+    Tagged<Context> saved_context = isolate->context();
+    Address context_address = CurrentInterpreterContext();
+    bool switched_context = false;
+    if (IsSafeTaggedHandleValue(context_address) &&
+        IsContext(Tagged<Object>(context_address))) {
+      isolate->set_context(Cast<Context>(Tagged<Object>(context_address)));
+      switched_context = true;
+    }
+
+    Address call_values[4] = {
+        isolate->native_context()->reflect_apply().ptr(), reflect_args[0],
+        reflect_args[1], reflect_args[2]};
+    WasmTemporaryRootScope call_roots(isolate, call_values, 4);
+    Address* rooted_call = call_roots.data();
+    Address* argv[3] = {&rooted_call[1], &rooted_call[2], &rooted_call[3]};
+    Address root = g_wasm_regs[kWasmRegRoot];
+    if (root == kNullAddress) root = isolate->isolate_data()->isolate_root();
+    *out_result = WasmJSEntry(root, roots.undefined_value().ptr(),
+                              rooted_call[0], roots.undefined_value().ptr(),
+                              JSParameterCount(3), argv);
+    if (switched_context) isolate->set_context(saved_context);
+    return true;
+  }
   if (bytecode_enum != interpreter::Bytecode::kCallRuntime &&
       bytecode_enum != interpreter::Bytecode::kInvokeIntrinsic) {
     return false;
@@ -2494,6 +2780,8 @@ bool TryRunRuntimeCallBytecode(Isolate* isolate, Tagged<BytecodeArray> bytecode,
       invokes_generator_resume_mode ||
       function_id == Runtime::kInlineGeneratorGetResumeMode ||
       function_id == Runtime::kGeneratorGetResumeMode;
+  bool is_generator_close = function_id == Runtime::kInlineGeneratorClose ||
+                            function_id == Runtime::kGeneratorClose;
   const Runtime::Function* function = Runtime::FunctionForId(function_id);
   ReadOnlyRoots roots(isolate);
   if ((function == nullptr || function->result_size != 1) &&
@@ -2564,6 +2852,26 @@ bool TryRunRuntimeCallBytecode(Isolate* isolate, Tagged<BytecodeArray> bytecode,
   Address* rooted_argv = argv_roots.data();
   Address* args_object =
       reg_count == 0 ? rooted_argv : &rooted_argv[reg_count - 1];
+  if (is_generator_close && reg_count == 1) {
+    Address generator_address = rooted_argv[0];
+    if (IsSafeTaggedHandleValue(generator_address) &&
+        (IsJSGeneratorObject(Tagged<Object>(generator_address)) ||
+         IsJSAsyncFunctionObject(Tagged<Object>(generator_address)) ||
+         IsJSAsyncGeneratorObject(Tagged<Object>(generator_address)))) {
+      Cast<JSGeneratorObject>(Tagged<Object>(generator_address))
+          ->set_continuation(JSGeneratorObject::kGeneratorClosed);
+      *out_result = roots.undefined_value().ptr();
+    } else {
+      *out_result = roots.exception().ptr();
+    }
+    if (switched_context) isolate->set_context(saved_context);
+    return true;
+  }
+  if (TryRunAsyncGeneratorIntrinsic(isolate, function_id, reg_count,
+                                    rooted_argv, out_result)) {
+    if (switched_context) isolate->set_context(saved_context);
+    return true;
+  }
   if (function_id == Runtime::kResolvePossiblyDirectEval && reg_count == 6) {
     // Runtime arguments are stored in reverse order in rooted_argv.
     Address callee_address = SafeTaggedOrUndefined(isolate, rooted_argv[5]);
@@ -3534,6 +3842,25 @@ bool TryRunGetNamedPropertyBytecode(
       return true;
     }
   }
+  if (IsJSFunction(receiver_object) &&
+      Name::Equals(isolate, name, isolate->factory()->length_string())) {
+    DirectHandle<JSFunction> function =
+        handle(Cast<JSFunction>(receiver_object), isolate);
+    DirectHandle<AccessorInfo> function_length_accessor =
+        isolate->factory()->function_length_accessor();
+    LookupIterator length_lookup(isolate, function,
+                                 isolate->factory()->length_string(), function,
+                                 LookupIterator::OWN);
+    if (length_lookup.state() == LookupIterator::ACCESSOR &&
+        length_lookup.GetAccessors().is_identical_to(
+            function_length_accessor)) {
+      // API getter return storage uses zero as its "unset" sentinel in the
+      // WASM32 interpreter bridge. The default Function.length accessor can
+      // validly return Smi(0), so read the same internal value directly.
+      *out_result = Smi::FromInt(function->length()).ptr();
+      return true;
+    }
+  }
   if (IsJSArray(receiver_object) &&
       Name::Equals(isolate, name, isolate->factory()->length_string())) {
     *out_result = Cast<JSArray>(receiver_object)->length().ptr();
@@ -3541,19 +3868,38 @@ bool TryRunGetNamedPropertyBytecode(
   }
   if (Name::Equals(isolate, name, isolate->factory()->size_string())) {
     if (IsJSMap(receiver_object)) {
-      *out_result =
-          Smi::FromInt(Cast<OrderedHashMap>(
-                           Cast<JSMap>(receiver_object)->table())
-                           ->NumberOfElements())
-              .ptr();
+      Tagged<Object> table = Cast<JSMap>(receiver_object)->table();
+#ifdef __wasi__
+      if (kEnableWasm32DebugDiagnostics && IsOrderedHashMap(table)) {
+        static int map_named_size_trace_count = 0;
+        if (map_named_size_trace_count++ < 8) {
+          Tagged<OrderedHashMap> hash_table = Cast<OrderedHashMap>(table);
+          std::fprintf(stderr,
+                       "WASM32_MAP_SIZE_NAMED receiver=0x%x table=0x%x "
+                       "length=%d elements=%d deleted=%d buckets=%d\\n",
+                       static_cast<unsigned>(receiver_object.ptr()),
+                       static_cast<unsigned>(table.ptr()), hash_table->length(),
+                       hash_table->NumberOfElements(),
+                       hash_table->NumberOfDeletedElements(),
+                       hash_table->NumberOfBuckets());
+          std::fflush(stderr);
+        }
+      }
+#endif
+      int size = (table == roots.empty_ordered_hash_map() ||
+                  table == roots.empty_ordered_hash_set())
+                     ? 0
+                     : Cast<OrderedHashMap>(table)->NumberOfElements();
+      *out_result = Smi::FromInt(size).ptr();
       return true;
     }
     if (IsJSSet(receiver_object)) {
-      *out_result =
-          Smi::FromInt(Cast<OrderedHashSet>(
-                           Cast<JSSet>(receiver_object)->table())
-                           ->NumberOfElements())
-              .ptr();
+      Tagged<Object> table = Cast<JSSet>(receiver_object)->table();
+      int size = (table == roots.empty_ordered_hash_map() ||
+                  table == roots.empty_ordered_hash_set())
+                     ? 0
+                     : Cast<OrderedHashSet>(table)->NumberOfElements();
+      *out_result = Smi::FromInt(size).ptr();
       return true;
     }
   }
@@ -4836,6 +5182,33 @@ void PublishWasmInterpreterFallbackResult(Isolate* isolate, const char* label,
   MirrorWasmGCRegSlotForWrite(return_slot, *result);
 }
 
+bool TryDispatchWasmInterpreterException(Isolate* isolate,
+                                         Tagged<BytecodeArray> bytecode,
+                                         int bytecode_index,
+                                         Address* thrown_value,
+                                         int* handler_offset) {
+  if (!isolate->has_exception()) return false;
+
+  HandlerTable handler_table(bytecode);
+  int handler_index =
+      handler_table.LookupHandlerIndexForRange(bytecode_index);
+  if (handler_index == HandlerTable::kNoHandlerFound) return false;
+
+  int context_register = handler_table.GetRangeData(handler_index);
+  Address handler_context =
+      ReadInterpreterRegister(interpreter::Register(context_register));
+  if (!IsSafeTaggedHandleValue(handler_context) ||
+      !IsContext(Tagged<Object>(handler_context))) {
+    return false;
+  }
+
+  *thrown_value = isolate->exception().ptr();
+  PublishCurrentInterpreterContext(handler_context);
+  isolate->clear_exception();
+  *handler_offset = handler_table.GetRangeHandler(handler_index);
+  return true;
+}
+
 interpreter::Register RegisterFromListOperand(int32_t first_operand,
                                               int index) {
   return interpreter::Register::FromOperand(first_operand - index);
@@ -4853,8 +5226,16 @@ void SaveWasmSlot(Isolate* isolate, Address value, Address* handles,
                   int* handle_count, WasmSlotSnapshot* snapshot) {
   snapshot->raw = value;
   snapshot->handle_index = -1;
+  // Most of the generously-sized emulated frame is zero, and integer
+  // bytecode values are Smis. They are restored verbatim and cannot move, so
+  // avoid an expensive heap-membership probe for either case. Non-Smi tagged
+  // values still use the strong-root handle below and are updated on a moving
+  // collection before the caller state is restored.
+  if (value == kNullAddress || HAS_SMI_TAG(value) ||
+      IsKnownReadOnlyRootValue(isolate, value)) {
+    return;
+  }
   if (!IsSafeTaggedRootValue(isolate, value)) return;
-  if (HAS_SMI_TAG(value)) return;
 
   int index = *handle_count;
   DCHECK_LT(index, kWasmRegFileSize + kWasmInterpreterFrameSlots);
@@ -4878,6 +5259,8 @@ struct WasmInterpreterSnapshotStorage {
   int handle_count;
   WasmSlotSnapshot regs[kWasmRegFileSize];
   WasmSlotSnapshot frame[kWasmInterpreterFrameSlots];
+  int frame_begin;
+  int frame_end;
   Address frame_pointer;
 };
 
@@ -4889,6 +5272,56 @@ bool g_wasm_request_duplex_getter_returned = false;
 int g_wasm_post_getter_heartbeat_count = 0;
 int g_wasm_loop_window_count = 0;
 int g_wasm_main_await_window_count = 0;
+
+bool TryGetActiveWasmInterpreterFrameRange(Isolate* isolate, int* begin,
+                                           int* end) {
+  const int bytecode_slot =
+      kWasmInterpreterFrameFpSlot +
+      InterpreterFrameConstants::kBytecodeArrayFromFp / kSystemPointerSize;
+  const int argc_slot =
+      kWasmInterpreterFrameFpSlot +
+      StandardFrameConstants::kArgCOffset / kSystemPointerSize;
+  if (bytecode_slot < 0 || bytecode_slot >= kWasmInterpreterFrameSlots ||
+      argc_slot < 0 || argc_slot >= kWasmInterpreterFrameSlots) {
+    return false;
+  }
+
+  Address bytecode_value = g_wasm_interpreter_frame[bytecode_slot];
+  if (!IsSafeTaggedHandleValue(bytecode_value) ||
+      !IsBytecodeArray(Tagged<Object>(bytecode_value))) {
+    return false;
+  }
+  Tagged<BytecodeArray> bytecode =
+      Cast<BytecodeArray>(Tagged<Object>(bytecode_value));
+  const int register_count = bytecode->register_count();
+  const Address argc_value = g_wasm_interpreter_frame[argc_slot];
+  if (argc_value < kJSArgcReceiverSlots ||
+      argc_value > kWasmMaxOutgoingArgSlots) {
+    return false;
+  }
+
+  const int frame_parameter_count = std::max(
+      static_cast<int>(bytecode->parameter_count()),
+      static_cast<int>(argc_value));
+  if (register_count < 0 || frame_parameter_count < 1) return false;
+
+  const int first_offset =
+      InterpreterFrameConstants::kRegisterFileFromFp -
+      (register_count > 0 ? register_count - 1 : 0) * kSystemPointerSize;
+  const int last_offset = CommonFrameConstants::kFixedFrameSizeAboveFp +
+                          (frame_parameter_count - 1) * kSystemPointerSize;
+  const int first =
+      kWasmInterpreterFrameFpSlot + first_offset / kSystemPointerSize;
+  const int last =
+      kWasmInterpreterFrameFpSlot + last_offset / kSystemPointerSize;
+  if (first < 0 || first > last || last >= kWasmInterpreterFrameSlots) {
+    return false;
+  }
+
+  *begin = first;
+  *end = last + 1;
+  return true;
+}
 
 class WasmJSEntryDepthScope {
  public:
@@ -4939,12 +5372,12 @@ class WasmInterpreterStateSnapshot {
     depth_ = g_wasm_interpreter_snapshot_depth++;
     storage_ = &g_wasm_interpreter_snapshots[depth_];
     Heap* heap = isolate_->heap();
+    Address undefined = ReadOnlyRoots(isolate_).undefined_value().ptr();
     if (storage_->registered_heap != heap) {
       storage_->registered_heap = heap;
       storage_->roots_entry = nullptr;
+      for (Address& handle : storage_->handles) handle = undefined;
     }
-    Address undefined = ReadOnlyRoots(isolate_).undefined_value().ptr();
-    for (Address& handle : storage_->handles) handle = undefined;
     if (storage_->roots_entry == nullptr) {
       storage_->roots_entry = heap->RegisterStrongRoots(
           "wasm32-interpreter-snapshot",
@@ -4953,12 +5386,16 @@ class WasmInterpreterStateSnapshot {
                          kWasmRegFileSize + kWasmInterpreterFrameSlots));
     }
     storage_->handle_count = 0;
+    storage_->frame_begin = 0;
+    storage_->frame_end = kWasmInterpreterFrameSlots;
+    TryGetActiveWasmInterpreterFrameRange(isolate_, &storage_->frame_begin,
+                                          &storage_->frame_end);
     storage_->frame_pointer = g_wasm_current_frame_pointer;
     for (int i = 0; i < kWasmRegFileSize; ++i) {
       SaveWasmSlot(isolate_, g_wasm_regs[i], storage_->handles,
                    &storage_->handle_count, &storage_->regs[i]);
     }
-    for (int i = 0; i < kWasmInterpreterFrameSlots; ++i) {
+    for (int i = storage_->frame_begin; i < storage_->frame_end; ++i) {
       SaveWasmSlot(isolate_, g_wasm_interpreter_frame[i], storage_->handles,
                    &storage_->handle_count, &storage_->frame[i]);
     }
@@ -4973,12 +5410,31 @@ class WasmInterpreterStateSnapshot {
     for (int i = 0; i < kWasmRegFileSize; ++i) {
       Address value = RestoreWasmSlot(storage_->handles, storage_->regs[i]);
       g_wasm_regs[i] = value;
-      MirrorWasmGCRegSlotForWrite(i, value);
+      if (storage_->regs[i].handle_index >= 0) {
+        MirrorWasmGCRegSlotForWrite(i, value);
+      }
     }
-    for (int i = 0; i < kWasmInterpreterFrameSlots; ++i) {
+    // The callee's frame is still installed here. Clear only its active
+    // range, then restore the caller range below. Each interpreter entry
+    // initializes its active registers before use, so clearing the full
+    // fixed-size backing array on every nested JS call is unnecessary.
+    int callee_frame_begin = 0;
+    int callee_frame_end = kWasmInterpreterFrameSlots;
+    if (TryGetActiveWasmInterpreterFrameRange(isolate_, &callee_frame_begin,
+                                              &callee_frame_end)) {
+      for (int i = callee_frame_begin; i < callee_frame_end; ++i) {
+        g_wasm_interpreter_frame[i] = 0;
+      }
+    } else {
+      std::memset(g_wasm_interpreter_frame, 0,
+                  sizeof(g_wasm_interpreter_frame));
+    }
+    for (int i = storage_->frame_begin; i < storage_->frame_end; ++i) {
       Address value = RestoreWasmSlot(storage_->handles, storage_->frame[i]);
       g_wasm_interpreter_frame[i] = value;
-      MirrorWasmGCFrameSlotForWrite(i, value);
+      if (storage_->frame[i].handle_index >= 0) {
+        MirrorWasmGCFrameSlotForWrite(i, value);
+      }
     }
     g_wasm_current_frame_pointer = storage_->frame_pointer;
     Release();
@@ -5110,6 +5566,277 @@ bool AddSpreadCallArguments(Isolate* isolate, DirectHandle<Object>* args,
   }
 }
 
+size_t Wasm32CapRelativeTypedArrayIndex(double relative, size_t length) {
+  DCHECK(!std::isnan(relative));
+  const double maximum = static_cast<double>(length);
+  return static_cast<size_t>(relative < 0
+                                 ? std::max<double>(relative + maximum, 0)
+                                 : std::min<double>(relative, maximum));
+}
+
+bool TryRunArrayBufferPrototypeSliceBuiltin(
+    Isolate* isolate, DirectHandle<Object> callable,
+    DirectHandle<Object> receiver, int arg_count, DirectHandle<Object>* args,
+    Address* out_result) {
+  if (!IsJSFunctionBuiltin(isolate, callable,
+                           Builtin::kArrayBufferPrototypeSlice)) {
+    return false;
+  }
+
+  ReadOnlyRoots roots(isolate);
+  if (!IsJSArrayBuffer(*receiver) || Cast<JSArrayBuffer>(*receiver)->is_shared()) {
+    isolate->Throw(*isolate->factory()->NewTypeError(
+        MessageTemplate::kIncompatibleMethodReceiver,
+        isolate->factory()->NewStringFromAsciiChecked(
+            "ArrayBuffer.prototype.slice"),
+        receiver));
+    *out_result = roots.exception().ptr();
+    return true;
+  }
+
+  DirectHandle<JSArrayBuffer> source = Cast<JSArrayBuffer>(receiver);
+  if (source->was_detached()) {
+    isolate->Throw(*isolate->factory()->NewTypeError(
+        MessageTemplate::kDetachedOperation,
+        isolate->factory()->NewStringFromAsciiChecked(
+            "ArrayBuffer.prototype.slice")));
+    *out_result = roots.exception().ptr();
+    return true;
+  }
+
+  const size_t source_length = source->GetByteLength();
+  DirectHandle<Object> start =
+      arg_count > 0 ? args[0] : direct_handle(roots.undefined_value(), isolate);
+  DirectHandle<Object> end =
+      arg_count > 1 ? args[1] : direct_handle(roots.undefined_value(), isolate);
+  double relative_start = 0;
+  if (!Object::IntegerValue(isolate, start).To(&relative_start)) {
+    *out_result = roots.exception().ptr();
+    return true;
+  }
+  const size_t first =
+      Wasm32CapRelativeTypedArrayIndex(relative_start, source_length);
+  size_t final = source_length;
+  if (!IsUndefined(*end, isolate)) {
+    double relative_end = 0;
+    if (!Object::IntegerValue(isolate, end).To(&relative_end)) {
+      *out_result = roots.exception().ptr();
+      return true;
+    }
+    final = Wasm32CapRelativeTypedArrayIndex(relative_end, source_length);
+  }
+  const size_t new_length = final > first ? final - first : 0;
+
+  WasmGCStateScope gc_state(isolate);
+  SetCurrentIsolateScope current_isolate_scope(isolate);
+  DirectHandle<JSArrayBuffer> result;
+  if (!isolate->factory()
+           ->NewJSArrayBufferAndBackingStore(new_length,
+                                             InitializedFlag::kZeroInitialized)
+           .ToHandle(&result)) {
+    *out_result = roots.exception().ptr();
+    return true;
+  }
+  if (new_length != 0) {
+    uint8_t* from = reinterpret_cast<uint8_t*>(source->backing_store()) + first;
+    uint8_t* to = reinterpret_cast<uint8_t*>(result->backing_store());
+    CopyBytes(to, from, new_length);
+  }
+  *out_result = (*result).ptr();
+  return true;
+}
+
+bool TryRunContinuationPreservedEmbedderDataBuiltin(
+    Isolate* isolate, DirectHandle<Object> callable, int arg_count,
+    DirectHandle<Object>* args, Address* out_result) {
+  if (IsJSFunctionBuiltin(isolate, callable,
+                          Builtin::kGetContinuationPreservedEmbedderData)) {
+    *out_result = isolate->isolate_data()
+                      ->continuation_preserved_embedder_data()
+                      .ptr();
+    return true;
+  }
+  if (!IsJSFunctionBuiltin(isolate, callable,
+                           Builtin::kSetContinuationPreservedEmbedderData)) {
+    return false;
+  }
+  ReadOnlyRoots roots(isolate);
+  Tagged<Object> data =
+      arg_count > 0 ? *args[0] : roots.undefined_value();
+  isolate->isolate_data()->set_continuation_preserved_embedder_data(data);
+  *out_result = roots.undefined_value().ptr();
+  return true;
+}
+
+bool TryRunTypedArrayPrototypeSubArrayBuiltin(
+    Isolate* isolate, DirectHandle<Object> callable,
+    DirectHandle<Object> receiver, int arg_count,
+    DirectHandle<Object>* args, Address* out_result) {
+  if (!IsJSFunctionBuiltin(isolate, callable,
+                           Builtin::kTypedArrayPrototypeSubArray)) {
+    return false;
+  }
+
+  ReadOnlyRoots roots(isolate);
+  if (!IsJSTypedArray(*receiver)) {
+    *out_result = roots.exception().ptr();
+    return true;
+  }
+
+  DirectHandle<JSTypedArray> source = Cast<JSTypedArray>(receiver);
+  const size_t source_length =
+      source->IsDetachedOrOutOfBounds() ? 0 : source->GetLength();
+  size_t begin = 0;
+  size_t end = source_length;
+  double relative_index = 0;
+  if (arg_count > 0 && !IsUndefined(*args[0], isolate)) {
+    if (!Object::IntegerValue(isolate, args[0]).To(&relative_index)) {
+      *out_result = roots.exception().ptr();
+      return true;
+    }
+    begin = Wasm32CapRelativeTypedArrayIndex(relative_index, source_length);
+  }
+  if (arg_count > 1 && !IsUndefined(*args[1], isolate)) {
+    if (!Object::IntegerValue(isolate, args[1]).To(&relative_index)) {
+      *out_result = roots.exception().ptr();
+      return true;
+    }
+    end = Wasm32CapRelativeTypedArrayIndex(relative_index, source_length);
+  }
+  const size_t length = end > begin ? end - begin : 0;
+
+  ExternalArrayType array_type;
+  size_t element_size = 0;
+  Factory::TypeAndSizeForElementsKind(source->GetElementsKind(), &array_type,
+                                      &element_size);
+  if (element_size == 0 ||
+      begin > (std::numeric_limits<size_t>::max() - source->byte_offset()) /
+                  element_size) {
+    *out_result = roots.exception().ptr();
+    return true;
+  }
+  const size_t byte_offset = source->byte_offset() + begin * element_size;
+  DirectHandle<JSArrayBuffer> buffer = source->GetBuffer();
+  if (byte_offset > buffer->byte_length() ||
+      length > (buffer->byte_length() - byte_offset) / element_size) {
+    *out_result = roots.exception().ptr();
+    return true;
+  }
+
+  // Node's FastBuffer inherits this builtin. Preserve the source prototype so
+  // Buffer#subarray remains a Buffer while sharing its original backing store.
+  DirectHandle<Object> source_prototype =
+      direct_handle(source->map()->prototype(), isolate);
+  WasmGCStateScope gc_state(isolate);
+  SetCurrentIsolateScope current_isolate_scope(isolate);
+  DirectHandle<JSTypedArray> result = isolate->factory()->NewJSTypedArray(
+      array_type, buffer, byte_offset, length);
+  if (IsJSReceiver(*source_prototype) &&
+      JSObject::SetPrototype(isolate, result, source_prototype, false,
+                             kDontThrow)
+          .IsNothing()) {
+    *out_result = roots.exception().ptr();
+    return true;
+  }
+  *out_result = (*result).ptr();
+  return true;
+}
+
+bool TryRunTypedArrayPrototypeSliceBuiltin(
+    Isolate* isolate, DirectHandle<Object> callable,
+    DirectHandle<Object> receiver, int arg_count,
+    DirectHandle<Object>* args, Address* out_result) {
+  if (!IsJSFunctionBuiltin(isolate, callable,
+                           Builtin::kTypedArrayPrototypeSlice)) {
+    return false;
+  }
+
+  ReadOnlyRoots roots(isolate);
+  if (!IsJSTypedArray(*receiver)) {
+    isolate->Throw(*isolate->factory()->NewTypeError(
+        MessageTemplate::kIncompatibleMethodReceiver,
+        isolate->factory()->NewStringFromAsciiChecked(
+            "%TypedArray%.prototype.slice"),
+        receiver));
+    *out_result = roots.exception().ptr();
+    return true;
+  }
+
+  DirectHandle<JSTypedArray> source = Cast<JSTypedArray>(receiver);
+  if (source->IsDetachedOrOutOfBounds()) {
+    isolate->Throw(*isolate->factory()->NewTypeError(
+        MessageTemplate::kDetachedOperation,
+        isolate->factory()->NewStringFromAsciiChecked(
+            "%TypedArray%.prototype.slice")));
+    *out_result = roots.exception().ptr();
+    return true;
+  }
+
+  const size_t source_length = source->GetLength();
+  size_t begin = 0;
+  size_t end = source_length;
+  double relative_index = 0;
+  if (arg_count > 0 && !IsUndefined(*args[0], isolate)) {
+    if (!Object::IntegerValue(isolate, args[0]).To(&relative_index)) {
+      *out_result = roots.exception().ptr();
+      return true;
+    }
+    begin = Wasm32CapRelativeTypedArrayIndex(relative_index, source_length);
+  }
+  if (arg_count > 1 && !IsUndefined(*args[1], isolate)) {
+    if (!Object::IntegerValue(isolate, args[1]).To(&relative_index)) {
+      *out_result = roots.exception().ptr();
+      return true;
+    }
+    end = Wasm32CapRelativeTypedArrayIndex(relative_index, source_length);
+  }
+  const size_t length = end > begin ? end - begin : 0;
+
+  ExternalArrayType array_type;
+  size_t element_size = 0;
+  Factory::TypeAndSizeForElementsKind(source->GetElementsKind(), &array_type,
+                                      &element_size);
+  if (element_size == 0 ||
+      length > std::numeric_limits<size_t>::max() / element_size) {
+    isolate->Throw(*isolate->factory()->NewRangeError(
+        MessageTemplate::kArrayBufferAllocationFailed));
+    *out_result = roots.exception().ptr();
+    return true;
+  }
+  const size_t byte_length = length * element_size;
+  DirectHandle<Object> source_prototype =
+      direct_handle(source->map()->prototype(), isolate);
+
+  WasmGCStateScope gc_state(isolate);
+  SetCurrentIsolateScope current_isolate_scope(isolate);
+  DirectHandle<JSArrayBuffer> buffer;
+  if (!isolate->factory()
+           ->NewJSArrayBufferAndBackingStore(
+               byte_length, InitializedFlag::kZeroInitialized)
+           .ToHandle(&buffer)) {
+    *out_result = roots.exception().ptr();
+    return true;
+  }
+  DirectHandle<JSTypedArray> result = isolate->factory()->NewJSTypedArray(
+      array_type, buffer, 0, length);
+  if (byte_length != 0) {
+    const uint8_t* from = static_cast<const uint8_t*>(source->DataPtr()) +
+                          begin * element_size;
+    uint8_t* to = static_cast<uint8_t*>(result->DataPtr());
+    CopyBytes(to, from, byte_length);
+  }
+  if (IsJSReceiver(*source_prototype) &&
+      JSObject::SetPrototype(isolate, result, source_prototype, false,
+                             kDontThrow)
+          .IsNothing()) {
+    *out_result = roots.exception().ptr();
+    return true;
+  }
+
+  *out_result = (*result).ptr();
+  return true;
+}
+
 bool TryRunTypedArrayPrototypeSetBuiltin(Isolate* isolate,
                                          DirectHandle<Object> callable,
                                          DirectHandle<Object> receiver,
@@ -5219,10 +5946,11 @@ Address RunPendingWasmJSCall(Isolate* isolate,
   DCHECK(call.pending);
   DCHECK_LE(call.arg_count, kMaxWasmCallArgs);
 
-  // The previous bytecode iteration has already released its GC state scope.
-  // Preserve the complete outer interpreter state while WasmJSEntry snapshots
-  // and clears the global register file for the recursive call.
-  WasmGCStateScope call_gc_state(isolate);
+  // WasmJSEntry snapshots the complete outer interpreter state before it
+  // clears the global register file. The temporary roots below protect all
+  // values during the small, allocation-free handoff to that entry; a second
+  // WasmGCStateScope here duplicated its full-frame root scan for every JS
+  // call and delayed release of the caller state unnecessarily.
   Address call_values[3] = {call.context, call.callable, call.receiver};
   Address arg_values[kMaxWasmCallArgs];
   for (int i = 0; i < call.arg_count; ++i) arg_values[i] = call.args[i];
@@ -5735,6 +6463,13 @@ bool IsJSFunctionBuiltin(Isolate* isolate, DirectHandle<Object> callable,
   if (code->is_builtin() && code->builtin_id() == builtin) return true;
   Tagged<SharedFunctionInfo> shared = Wasm32JSFunctionShared(function);
   return shared->HasBuiltinId() && shared->builtin_id() == builtin;
+}
+
+bool Wasm32IsEmptyOrderedHashCollection(Isolate* isolate,
+                                        Tagged<Object> table) {
+  ReadOnlyRoots roots(isolate);
+  return table == roots.empty_ordered_hash_map() ||
+         table == roots.empty_ordered_hash_set();
 }
 
 bool TryRunReflectConstructBuiltin(Isolate* isolate,
@@ -6397,6 +7132,190 @@ bool TryRunStringPrototypeTransformBuiltin(
   return true;
 }
 
+bool TryRunStringPrototypeReplaceAllBuiltin(
+    Isolate* isolate, DirectHandle<Object> callable,
+    DirectHandle<Object> receiver, int arg_count, DirectHandle<Object>* args,
+    Address* out_result) {
+  if (!IsJSFunctionBuiltin(isolate, callable,
+                           Builtin::kStringPrototypeReplaceAll)) {
+    return false;
+  }
+
+  ReadOnlyRoots roots(isolate);
+  if (IsNullOrUndefined(*receiver, isolate)) {
+    isolate->Throw(*isolate->factory()->NewTypeError(
+        MessageTemplate::kCalledOnNullOrUndefined,
+        isolate->factory()->NewStringFromAsciiChecked(
+            "String.prototype.replaceAll")));
+    *out_result = roots.exception().ptr();
+    return true;
+  }
+
+  DirectHandle<String> input;
+  if (!Object::ToString(isolate, receiver).ToHandle(&input)) {
+    *out_result = roots.exception().ptr();
+    return true;
+  }
+  DirectHandle<Object> search_value =
+      arg_count > 0 ? args[0] : direct_handle(roots.undefined_value(), isolate);
+  if (IsJSRegExp(*search_value)) return false;
+  DirectHandle<String> search;
+  if (!Object::ToString(isolate, search_value).ToHandle(&search)) {
+    *out_result = roots.exception().ptr();
+    return true;
+  }
+
+  DirectHandle<Object> replacement_value =
+      arg_count > 1 ? args[1] : direct_handle(roots.undefined_value(), isolate);
+  const bool replacement_is_callable = IsCallable(*replacement_value);
+  DirectHandle<String> replacement;
+  if (!replacement_is_callable &&
+      !Object::ToString(isolate, replacement_value).ToHandle(&replacement)) {
+    *out_result = roots.exception().ptr();
+    return true;
+  }
+
+  std::vector<int> matches;
+  const int search_length = search->length();
+  const int advance = search_length == 0 ? 1 : search_length;
+  for (int position = String::IndexOf(isolate, input, search, 0);
+       position >= 0 && position <= input->length();) {
+    matches.push_back(position);
+    if (position > input->length() - advance) break;
+    position = String::IndexOf(isolate, input, search, position + advance);
+  }
+
+  DirectHandle<String> result = isolate->factory()->empty_string();
+  int previous_end = 0;
+  for (int position : matches) {
+    DirectHandle<String> insertion;
+    if (replacement_is_callable) {
+      DirectHandle<Object> callback_args[3] = {
+          search, isolate->factory()->NewNumberFromInt(position), input};
+      WasmInterpreterStateSnapshot state(isolate);
+      Address callback_result = roots.exception().ptr();
+      bool direct_call = TryCallJSFunctionDirect(
+          isolate, replacement_value,
+          direct_handle(roots.undefined_value(), isolate), 3, callback_args,
+          &callback_result);
+      MaybeHandle<Object> maybe_result;
+      if (!direct_call) {
+        maybe_result = Execution::Call(
+            isolate, replacement_value,
+            direct_handle(roots.undefined_value(), isolate),
+            ZoneVector<const DirectHandle<Object>>(callback_args, 3));
+      }
+      state.Restore();
+
+      DirectHandle<Object> callback_value;
+      if (direct_call) {
+        if (IsException(Tagged<Object>(callback_result), isolate)) {
+          *out_result = callback_result;
+          return true;
+        }
+        callback_value =
+            direct_handle(Tagged<Object>(callback_result), isolate);
+      } else if (!maybe_result.ToHandle(&callback_value)) {
+        *out_result = roots.exception().ptr();
+        return true;
+      }
+      if (!Object::ToString(isolate, callback_value).ToHandle(&insertion)) {
+        *out_result = roots.exception().ptr();
+        return true;
+      }
+    } else {
+      DirectHandle<String> matched = isolate->factory()->NewSubString(
+          input, position, position + search_length);
+      Address runtime_args[5] = {
+          Smi::zero().ptr(), (*replacement).ptr(),
+          Smi::FromInt(position).ptr(), (*input).ptr(), (*matched).ptr()};
+      WasmGCStateScope gc_state(isolate);
+      WasmTemporaryRootScope runtime_roots(isolate, runtime_args, 5);
+      const Runtime::Function* get_substitution =
+          Runtime::FunctionForId(Runtime::kGetSubstitution);
+      using RuntimeEntry = Address (*)(int, Address*, Isolate*);
+      Address substitution = reinterpret_cast<RuntimeEntry>(
+          get_substitution->entry)(5, &runtime_roots.data()[4], isolate);
+      if (isolate->has_exception() || substitution == roots.exception().ptr()) {
+        *out_result = roots.exception().ptr();
+        return true;
+      }
+      insertion = direct_handle(Cast<String>(Tagged<Object>(substitution)),
+                                isolate);
+    }
+
+    DirectHandle<String> prefix =
+        isolate->factory()->NewSubString(input, previous_end, position);
+    if (!isolate->factory()->NewConsString(result, prefix).ToHandle(&result) ||
+        !isolate->factory()->NewConsString(result, insertion).ToHandle(
+            &result)) {
+      *out_result = roots.exception().ptr();
+      return true;
+    }
+    previous_end = position + search_length;
+  }
+
+  DirectHandle<String> suffix =
+      isolate->factory()->NewSubString(input, previous_end, input->length());
+  if (!isolate->factory()->NewConsString(result, suffix).ToHandle(&result)) {
+    *out_result = roots.exception().ptr();
+    return true;
+  }
+  *out_result = (*result).ptr();
+  return true;
+}
+
+bool TryRunStringPrototypeCodePointAtBuiltin(
+    Isolate* isolate, DirectHandle<Object> callable,
+    DirectHandle<Object> receiver, int arg_count, DirectHandle<Object> arg0,
+    Address* out_result) {
+  if (!IsJSFunctionBuiltin(isolate, callable,
+                           Builtin::kStringPrototypeCodePointAt)) {
+    return false;
+  }
+
+  ReadOnlyRoots roots(isolate);
+  DirectHandle<String> input;
+  if (!Object::ToString(isolate, receiver).ToHandle(&input)) {
+    *out_result = roots.exception().ptr();
+    return true;
+  }
+
+  DirectHandle<Object> position =
+      arg_count > 0 ? arg0 : direct_handle(roots.undefined_value(), isolate);
+  int index = 0;
+  if (!IsUndefined(*position, isolate)) {
+    DirectHandle<Number> number;
+    if (!Object::ToInteger(isolate, position).ToHandle(&number)) {
+      *out_result = roots.exception().ptr();
+      return true;
+    }
+    double numeric_index = Object::NumberValue(*number);
+    if (numeric_index < 0 || numeric_index >= input->length()) {
+      *out_result = roots.undefined_value().ptr();
+      return true;
+    }
+    index = static_cast<int>(numeric_index);
+  }
+
+  if (index < 0 || index >= input->length()) {
+    *out_result = roots.undefined_value().ptr();
+    return true;
+  }
+
+  int first = input->Get(index);
+  int code_point = first;
+  if (unibrow::Utf16::IsLeadSurrogate(first) && index + 1 < input->length()) {
+    int second = input->Get(index + 1);
+    if (unibrow::Utf16::IsTrailSurrogate(second)) {
+      code_point = unibrow::Utf16::CombineSurrogatePair(first, second);
+    }
+  }
+
+  *out_result = (*isolate->factory()->NewNumber(code_point)).ptr();
+  return true;
+}
+
 bool TryReadRelativeSmiIndex(DirectHandle<Object> value, uint32_t length,
                              uint32_t* out_index) {
   if (!IsSmi(*value)) return false;
@@ -6476,6 +7395,130 @@ bool TryRunStringPrototypeSliceBuiltin(Isolate* isolate,
   DirectHandle<Object> arg1 = arg_count > 1 ? args[1] : undefined;
   return TryRunStringPrototypeSliceBuiltinWithArgs(
       isolate, callable, receiver, arg_count, arg0, arg1, out_result);
+}
+
+bool TryRunStringPrototypeSubstrBuiltin(Isolate* isolate,
+                                        DirectHandle<Object> callable,
+                                        DirectHandle<Object> receiver,
+                                        int arg_count,
+                                        DirectHandle<Object>* args,
+                                        Address* out_result) {
+  if (!IsJSFunctionBuiltin(isolate, callable,
+                           Builtin::kStringPrototypeSubstr)) {
+    return false;
+  }
+
+  ReadOnlyRoots roots(isolate);
+  DirectHandle<String> input;
+  if (!Object::ToString(isolate, receiver).ToHandle(&input)) {
+    *out_result = roots.exception().ptr();
+    return true;
+  }
+  const int length = input->length();
+  DirectHandle<Object> start_argument =
+      arg_count > 0 ? args[0] : direct_handle(roots.undefined_value(), isolate);
+  DirectHandle<Object> start_number;
+  if (!IsUndefined(*start_argument, isolate) &&
+      !Object::ToInteger(isolate, start_argument).ToHandle(&start_number)) {
+    *out_result = roots.exception().ptr();
+    return true;
+  }
+
+  int start = 0;
+  if (!IsUndefined(*start_argument, isolate)) {
+    double relative_start = Object::NumberValue(*start_number);
+    if (relative_start <= -static_cast<double>(length)) {
+      start = 0;
+    } else if (relative_start >= static_cast<double>(length)) {
+      start = length;
+    } else if (relative_start < 0) {
+      start = length + static_cast<int>(relative_start);
+    } else {
+      start = static_cast<int>(relative_start);
+    }
+  }
+
+  int result_length = length - start;
+  DirectHandle<Object> length_argument =
+      arg_count > 1 ? args[1] : direct_handle(roots.undefined_value(), isolate);
+  if (!IsUndefined(*length_argument, isolate)) {
+    DirectHandle<Object> length_number;
+    if (!Object::ToInteger(isolate, length_argument).ToHandle(&length_number)) {
+      *out_result = roots.exception().ptr();
+      return true;
+    }
+    double requested_length = Object::NumberValue(*length_number);
+    if (requested_length <= 0) {
+      result_length = 0;
+    } else if (requested_length < static_cast<double>(result_length)) {
+      result_length = static_cast<int>(requested_length);
+    }
+  }
+
+  DirectHandle<String> result =
+      result_length == 0
+          ? isolate->factory()->empty_string()
+          : isolate->factory()->NewProperSubString(input, start,
+                                                    start + result_length);
+  *out_result = (*result).ptr();
+  return true;
+}
+
+bool TryRunErrorCaptureStackTraceBuiltin(Isolate* isolate,
+                                         DirectHandle<Object> callable,
+                                         int arg_count,
+                                         DirectHandle<Object>* args,
+                                         Address* out_result) {
+  if (!IsJSFunctionBuiltin(isolate, callable,
+                           Builtin::kErrorCaptureStackTrace)) {
+    return false;
+  }
+
+  ReadOnlyRoots roots(isolate);
+  DirectHandle<Object> object_argument =
+      arg_count > 0 ? args[0] : direct_handle(roots.undefined_value(), isolate);
+  if (!IsJSObject(*object_argument)) {
+    isolate->Throw(*isolate->factory()->NewTypeError(
+        MessageTemplate::kInvalidArgument, object_argument));
+    *out_result = roots.exception().ptr();
+    return true;
+  }
+
+  Handle<Object> caller =
+      arg_count > 1 ? handle(*args[1], isolate)
+                    : handle(roots.undefined_value(), isolate);
+  FrameSkipMode mode = IsJSFunction(*caller) ? SKIP_UNTIL_SEEN : SKIP_FIRST;
+  Handle<Object> ignored;
+  if (!ErrorUtils::CaptureStackTrace(isolate, Cast<JSObject>(object_argument),
+                                     mode, caller)
+           .ToHandle(&ignored)) {
+    *out_result = roots.exception().ptr();
+    return true;
+  }
+  *out_result = roots.undefined_value().ptr();
+  return true;
+}
+
+bool TryRunMathRandomBuiltin(Isolate* isolate, DirectHandle<Object> callable,
+                             Address* out_result) {
+  if (!IsJSFunctionBuiltin(isolate, callable, Builtin::kMathRandom)) {
+    return false;
+  }
+
+  HandleScope scope(isolate);
+  DirectHandle<NativeContext> native_context = isolate->native_context();
+  Tagged<Smi> index = native_context->math_random_index();
+  if (index == Smi::zero()) {
+    MathRandom::RefillCache(isolate, (*native_context).ptr());
+    index = native_context->math_random_index();
+  }
+  int cache_index = Smi::ToInt(index) - 1;
+  native_context->set_math_random_index(Smi::FromInt(cache_index));
+  Tagged<FixedDoubleArray> cache =
+      Cast<FixedDoubleArray>(native_context->math_random_cache());
+  *out_result =
+      (*isolate->factory()->NewNumber(cache->get_scalar(cache_index))).ptr();
+  return true;
 }
 
 bool TryRunStringPrototypeConcatBuiltin(Isolate* isolate,
@@ -6830,6 +7873,83 @@ bool TryRunArrayShiftBuiltin(Isolate* isolate, DirectHandle<Object> callable,
   return true;
 }
 
+bool TryRunArrayPopBuiltin(Isolate* isolate, DirectHandle<Object> callable,
+                           DirectHandle<Object> receiver,
+                           Address* out_result) {
+  if (!IsJSFunctionBuiltin(isolate, callable, Builtin::kArrayPrototypePop) &&
+      !IsJSFunctionBuiltin(isolate, callable, Builtin::kArrayPop)) {
+    return false;
+  }
+
+  ReadOnlyRoots roots(isolate);
+  DirectHandle<JSReceiver> object;
+  if (!Object::ToObject(isolate, receiver, "Array.prototype.pop")
+           .ToHandle(&object)) {
+    *out_result = roots.exception().ptr();
+    return true;
+  }
+
+  DirectHandle<Object> length_object;
+  if (!Object::GetLengthFromArrayLike(isolate, object)
+           .ToHandle(&length_object)) {
+    *out_result = roots.exception().ptr();
+    return true;
+  }
+  double raw_length = Object::NumberValue(*length_object);
+  if (raw_length < 0 || raw_length > JSObject::kMaxElementIndex) {
+    return false;
+  }
+  uint32_t length = static_cast<uint32_t>(raw_length);
+  DirectHandle<JSAny> object_any = Cast<JSAny>(object);
+
+  auto set_length = [&](uint32_t value) {
+    if (IsJSArray(*object)) {
+      return JSArray::SetLength(isolate, Cast<JSArray>(object), value)
+          .IsJust();
+    }
+    DirectHandle<Object> length_value =
+        isolate->factory()->NewNumberFromUint(value);
+    DirectHandle<Object> ignored;
+    return Object::SetProperty(isolate, object_any,
+                               isolate->factory()->length_string(),
+                               length_value, StoreOrigin::kMaybeKeyed,
+                               Just(ShouldThrow::kThrowOnError))
+        .ToHandle(&ignored);
+  };
+
+  if (length == 0) {
+    if (!set_length(0)) {
+      *out_result = roots.exception().ptr();
+      return true;
+    }
+    *out_result = roots.undefined_value().ptr();
+    return true;
+  }
+
+  uint32_t index = length - 1;
+  DirectHandle<Object> last;
+  if (!JSReceiver::GetElement(isolate, object, index).ToHandle(&last)) {
+    *out_result = roots.exception().ptr();
+    return true;
+  }
+
+  PropertyKey last_key(isolate, index);
+  Maybe<bool> maybe_deleted = JSReceiver::DeletePropertyOrElement(
+      isolate, object, last_key, LanguageMode::kStrict);
+  if (maybe_deleted.IsNothing()) {
+    *out_result = roots.exception().ptr();
+    return true;
+  }
+
+  if (!set_length(index)) {
+    *out_result = roots.exception().ptr();
+    return true;
+  }
+
+  *out_result = (*last).ptr();
+  return true;
+}
+
 bool TryRunArrayUnshiftBuiltin(Isolate* isolate, DirectHandle<Object> callable,
                                DirectHandle<Object> receiver, int arg_count,
                                DirectHandle<Object>* args,
@@ -7029,6 +8149,56 @@ bool TryRunArrayForEachBuiltin(Isolate* isolate, DirectHandle<Object> callable,
   return true;
 }
 
+bool TryRunArrayAtBuiltin(Isolate* isolate, DirectHandle<Object> callable,
+                          DirectHandle<Object> receiver, int arg_count,
+                          DirectHandle<Object>* args, Address* out_result) {
+  if (!IsJSFunctionBuiltin(isolate, callable,
+                           Builtin::kArrayPrototypeAt)) {
+    return false;
+  }
+
+  ReadOnlyRoots roots(isolate);
+  DirectHandle<JSReceiver> object;
+  if (!Object::ToObject(isolate, receiver, "Array.prototype.at")
+           .ToHandle(&object)) {
+    *out_result = roots.exception().ptr();
+    return true;
+  }
+  DirectHandle<Object> length_object;
+  if (!Object::GetLengthFromArrayLike(isolate, object)
+           .ToHandle(&length_object)) {
+    *out_result = roots.exception().ptr();
+    return true;
+  }
+
+  DirectHandle<Object> index =
+      arg_count > 0 ? args[0]
+                    : direct_handle(roots.undefined_value(), isolate);
+  double relative_index = 0;
+  if (!Object::IntegerValue(isolate, index).To(&relative_index)) {
+    *out_result = roots.exception().ptr();
+    return true;
+  }
+  const double length = Object::NumberValue(*length_object);
+  const double resolved_index =
+      relative_index >= 0 ? relative_index : length + relative_index;
+  if (resolved_index < 0 || resolved_index >= length ||
+      resolved_index > std::numeric_limits<uint32_t>::max()) {
+    *out_result = roots.undefined_value().ptr();
+    return true;
+  }
+
+  DirectHandle<Object> result;
+  if (!JSReceiver::GetElement(isolate, object,
+                              static_cast<uint32_t>(resolved_index))
+           .ToHandle(&result)) {
+    *out_result = roots.exception().ptr();
+    return true;
+  }
+  *out_result = (*result).ptr();
+  return true;
+}
+
 bool TryRunArraySliceBuiltin(Isolate* isolate, DirectHandle<Object> callable,
                              DirectHandle<Object> receiver, int arg_count,
                              DirectHandle<Object>* args,
@@ -7116,6 +8286,149 @@ bool TryRunArraySliceBuiltin(Isolate* isolate, DirectHandle<Object> callable,
 
   DirectHandle<JSArray> result = isolate->factory()->NewJSArrayWithElements(
       elements, HOLEY_ELEMENTS, result_length);
+  *out_result = (*result).ptr();
+  return true;
+}
+
+bool TryRunArrayFlatMapBuiltin(Isolate* isolate, DirectHandle<Object> callable,
+                               DirectHandle<Object> receiver, int arg_count,
+                               DirectHandle<Object>* args,
+                               Address* out_result) {
+  if (!IsJSFunctionBuiltin(isolate, callable,
+                           Builtin::kArrayPrototypeFlatMap)) {
+    return false;
+  }
+
+  ReadOnlyRoots roots(isolate);
+  if (arg_count == 0 || !IsCallable(*args[0])) {
+    isolate->Throw(*isolate->factory()->NewError(
+        isolate->type_error_function(),
+        isolate->factory()->NewStringFromAsciiChecked(
+            "Array.prototype.flatMap callback is not callable")));
+    *out_result = roots.exception().ptr();
+    return true;
+  }
+
+  DirectHandle<JSReceiver> object;
+  if (!Object::ToObject(isolate, receiver, "Array.prototype.flatMap")
+           .ToHandle(&object)) {
+    *out_result = roots.exception().ptr();
+    return true;
+  }
+
+  DirectHandle<Object> length_object;
+  if (!Object::GetLengthFromArrayLike(isolate, object).ToHandle(&length_object)) {
+    *out_result = roots.exception().ptr();
+    return true;
+  }
+  double raw_length = Object::NumberValue(*length_object);
+  if (raw_length < 0 || raw_length > FixedArray::kMaxLength) {
+    *out_result = roots.exception().ptr();
+    return true;
+  }
+  uint32_t length = static_cast<uint32_t>(raw_length);
+
+  DirectHandle<JSReceiver> protected_object = object;
+  DirectHandle<Object> protected_callback = args[0];
+  DirectHandle<Object> protected_this =
+      arg_count > 1 ? args[1] : direct_handle(roots.undefined_value(), isolate);
+  DirectHandle<JSArray> result = isolate->factory()->NewJSArray(0);
+  uint32_t result_length = 0;
+  auto append_result = [&](DirectHandle<Object> value) {
+    if (result_length == 0xffffffffu) {
+      isolate->Throw(*isolate->factory()->NewError(
+          isolate->type_error_function(),
+          isolate->factory()->NewStringFromAsciiChecked(
+              "Array.prototype.flatMap result is too large")));
+      *out_result = roots.exception().ptr();
+      return false;
+    }
+    if (JSObject::AddDataElement(isolate, result, result_length, value, NONE)
+            .IsNothing()) {
+      *out_result = roots.exception().ptr();
+      return false;
+    }
+    ++result_length;
+    return true;
+  };
+
+  for (uint32_t index = 0; index < length; ++index) {
+    HandleScope iteration_scope(isolate);
+    DirectHandle<JSReceiver> current_object = protected_object;
+    Maybe<bool> maybe_has_element =
+        JSReceiver::HasElement(isolate, current_object, index);
+    if (maybe_has_element.IsNothing()) {
+      *out_result = roots.exception().ptr();
+      return true;
+    }
+    if (!maybe_has_element.FromJust()) continue;
+
+    DirectHandle<Object> element;
+    if (!JSReceiver::GetElement(isolate, current_object, index)
+             .ToHandle(&element)) {
+      *out_result = roots.exception().ptr();
+      return true;
+    }
+
+    DirectHandle<Object> callback_args[3];
+    callback_args[0] = element;
+    callback_args[1] = isolate->factory()->NewNumberFromUint(index);
+    callback_args[2] = current_object;
+
+    WasmInterpreterStateSnapshot state(isolate);
+    DirectHandle<Object> callback = protected_callback;
+    DirectHandle<Object> this_arg = protected_this;
+    Address callback_result = roots.exception().ptr();
+    bool direct_call = TryCallJSFunctionDirect(isolate, callback, this_arg, 3,
+                                               callback_args,
+                                               &callback_result);
+    MaybeHandle<Object> maybe_result;
+    DirectHandle<Object> callback_value;
+    if (direct_call) {
+      if (IsException(Tagged<Object>(callback_result), isolate)) {
+        state.Restore();
+        *out_result = callback_result;
+        return true;
+      }
+      callback_value = direct_handle(Tagged<Object>(callback_result), isolate);
+    } else {
+      maybe_result = Execution::Call(
+          isolate, callback, this_arg,
+          ZoneVector<const DirectHandle<Object>>(callback_args, 3));
+      if (!maybe_result.ToHandle(&callback_value)) {
+        state.Restore();
+        *out_result = roots.exception().ptr();
+        return true;
+      }
+    }
+    state.Restore();
+
+    if (IsJSArray(*callback_value)) {
+      DirectHandle<JSArray> mapped_array = Cast<JSArray>(callback_value);
+      uint32_t mapped_length = static_cast<uint32_t>(
+          Object::NumberValue(mapped_array->length()));
+      for (uint32_t mapped_index = 0; mapped_index < mapped_length;
+           ++mapped_index) {
+        Maybe<bool> maybe_has_mapped =
+            JSReceiver::HasElement(isolate, mapped_array, mapped_index);
+        if (maybe_has_mapped.IsNothing()) {
+          *out_result = roots.exception().ptr();
+          return true;
+        }
+        if (!maybe_has_mapped.FromJust()) continue;
+        DirectHandle<Object> mapped_element;
+        if (!JSReceiver::GetElement(isolate, mapped_array, mapped_index)
+                 .ToHandle(&mapped_element)) {
+          *out_result = roots.exception().ptr();
+          return true;
+        }
+        if (!append_result(mapped_element)) return true;
+      }
+    } else {
+      if (!append_result(callback_value)) return true;
+    }
+  }
+
   *out_result = (*result).ptr();
   return true;
 }
@@ -7231,6 +8544,17 @@ bool TryRunArrayFilterBuiltin(Isolate* isolate, DirectHandle<Object> callable,
   DirectHandle<JSArray> result = isolate->factory()->NewJSArrayWithElements(
       elements, PACKED_ELEMENTS, result_length);
   *out_result = (*result).ptr();
+#ifdef __wasi__
+  if (kEnableWasm32DebugDiagnostics &&
+      (length > 10000 || result_length > 10000)) {
+    std::fprintf(stderr,
+                 "WASM32_LARGE_ARRAY_FILTER receiver=0x%x input_length=%u "
+                 "result_length=%d result=0x%x\n",
+                 static_cast<unsigned>((*object).ptr()), length, result_length,
+                 static_cast<unsigned>(*out_result));
+    std::fflush(stderr);
+  }
+#endif
   if (kTraceWasmFallbackDetails) {
     PrintF("WasmInterpreterEntryTrampoline: fallback ArrayFilter "
            "length=%u result_length=%d result=0x%x\n",
@@ -7935,6 +9259,72 @@ bool TryRunMapPrototypeSetBuiltin(Isolate* isolate,
   return true;
 }
 
+bool TryRunSetPrototypeDeleteBuiltin(
+    Isolate* isolate, DirectHandle<Object> callable,
+    DirectHandle<Object> receiver, int arg_count, DirectHandle<Object>* args,
+    Address* out_result) {
+  if (!IsJSFunctionBuiltin(isolate, callable, Builtin::kSetPrototypeDelete)) {
+    return false;
+  }
+
+  ReadOnlyRoots roots(isolate);
+  if (!IsJSSet(*receiver)) {
+    isolate->Throw(*isolate->factory()->NewTypeError(
+        MessageTemplate::kIncompatibleMethodReceiver,
+        isolate->factory()->NewStringFromAsciiChecked("Set.prototype.delete"),
+        receiver));
+    *out_result = roots.exception().ptr();
+    return true;
+  }
+
+  DirectHandle<Object> key =
+      arg_count > 0 ? args[0] : direct_handle(roots.undefined_value(), isolate);
+  key = NormalizeCollectionKey(isolate, key);
+
+  bool deleted = false;
+  Tagged<Object> raw_table = Cast<JSSet>(*receiver)->table();
+  if (!Wasm32IsEmptyOrderedHashCollection(isolate, raw_table) &&
+      IsOrderedHashSet(raw_table)) {
+    deleted = OrderedHashSet::Delete(isolate, Cast<OrderedHashSet>(raw_table),
+                                     *key);
+  }
+  *out_result = deleted ? roots.true_value().ptr() : roots.false_value().ptr();
+  return true;
+}
+
+bool TryRunMapPrototypeDeleteBuiltin(
+    Isolate* isolate, DirectHandle<Object> callable,
+    DirectHandle<Object> receiver, int arg_count, DirectHandle<Object>* args,
+    Address* out_result) {
+  if (!IsJSFunctionBuiltin(isolate, callable, Builtin::kMapPrototypeDelete)) {
+    return false;
+  }
+
+  ReadOnlyRoots roots(isolate);
+  if (!IsJSMap(*receiver)) {
+    isolate->Throw(*isolate->factory()->NewTypeError(
+        MessageTemplate::kIncompatibleMethodReceiver,
+        isolate->factory()->NewStringFromAsciiChecked("Map.prototype.delete"),
+        receiver));
+    *out_result = roots.exception().ptr();
+    return true;
+  }
+
+  DirectHandle<Object> key =
+      arg_count > 0 ? args[0] : direct_handle(roots.undefined_value(), isolate);
+  key = NormalizeCollectionKey(isolate, key);
+
+  bool deleted = false;
+  Tagged<Object> raw_table = Cast<JSMap>(*receiver)->table();
+  if (!Wasm32IsEmptyOrderedHashCollection(isolate, raw_table) &&
+      IsOrderedHashMap(raw_table)) {
+    deleted = OrderedHashMap::Delete(isolate, Cast<OrderedHashMap>(raw_table),
+                                     *key);
+  }
+  *out_result = deleted ? roots.true_value().ptr() : roots.false_value().ptr();
+  return true;
+}
+
 bool TryRunSetPrototypeHasBuiltin(Isolate* isolate,
                                   DirectHandle<Object> callable,
                                   DirectHandle<Object> receiver,
@@ -7996,7 +9386,8 @@ bool TryRunMapPrototypeHasOrGetBuiltin(Isolate* isolate,
   bool found = false;
   Tagged<Object> value = roots.undefined_value();
   Tagged<Object> raw_table = Cast<JSMap>(*receiver)->table();
-  if (IsOrderedHashMap(raw_table)) {
+  if (!Wasm32IsEmptyOrderedHashCollection(isolate, raw_table) &&
+      IsOrderedHashMap(raw_table)) {
     Tagged<OrderedHashMap> table = Cast<OrderedHashMap>(raw_table);
     InternalIndex entry = table->FindEntry(isolate, *key);
     found = entry.is_found();
@@ -8417,6 +9808,119 @@ bool TryRunArrayIteratorPrototypeNextBuiltin(Isolate* isolate,
   return true;
 }
 
+bool TryRunCollectionForEachCallback(
+    Isolate* isolate, DirectHandle<Object> callback,
+    DirectHandle<Object> this_arg, DirectHandle<Object> value,
+    DirectHandle<Object> key, DirectHandle<Object> collection,
+    Address* out_result) {
+  ReadOnlyRoots roots(isolate);
+  DirectHandle<Object> callback_args[3] = {value, key, collection};
+  WasmInterpreterStateSnapshot state(isolate);
+  Address callback_result = roots.exception().ptr();
+  bool direct_call = TryCallJSFunctionDirect(isolate, callback, this_arg, 3,
+                                             callback_args, &callback_result);
+  MaybeHandle<Object> maybe_result;
+  if (!direct_call) {
+    maybe_result = Execution::Call(
+        isolate, callback, this_arg,
+        ZoneVector<const DirectHandle<Object>>(callback_args, 3));
+  }
+  state.Restore();
+  DirectHandle<Object> ignored;
+  if (!direct_call && !maybe_result.ToHandle(&ignored)) {
+    *out_result = roots.exception().ptr();
+    return false;
+  }
+  if (direct_call && IsException(Tagged<Object>(callback_result), isolate)) {
+    *out_result = callback_result;
+    return false;
+  }
+  return true;
+}
+
+bool TryRunCollectionForEachBuiltin(Isolate* isolate,
+                                    DirectHandle<Object> callable,
+                                    DirectHandle<Object> receiver,
+                                    int arg_count,
+                                    DirectHandle<Object>* args,
+                                    Address* out_result) {
+  if (!IsJSFunction(*callable)) return false;
+  Tagged<Code> code = Cast<JSFunction>(*callable)->code(isolate);
+  if (!code->is_builtin()) return false;
+  Builtin builtin = code->builtin_id();
+  const bool is_set = builtin == Builtin::kSetPrototypeForEach;
+  const bool is_map = builtin == Builtin::kMapPrototypeForEach;
+  if (!is_set && !is_map) return false;
+
+  ReadOnlyRoots roots(isolate);
+  if ((is_set && !IsJSSet(*receiver)) || (is_map && !IsJSMap(*receiver))) {
+    const char* method_name =
+        is_set ? "Set.prototype.forEach" : "Map.prototype.forEach";
+    isolate->Throw(*isolate->factory()->NewTypeError(
+        MessageTemplate::kIncompatibleMethodReceiver,
+        isolate->factory()->NewStringFromAsciiChecked(method_name), receiver));
+    *out_result = roots.exception().ptr();
+    return true;
+  }
+  if (arg_count == 0 || !IsCallable(*args[0])) {
+    isolate->Throw(*isolate->factory()->NewError(
+        isolate->type_error_function(),
+        isolate->factory()->NewStringFromAsciiChecked(
+            is_set ? "Set.prototype.forEach callback is not callable"
+                   : "Map.prototype.forEach callback is not callable")));
+    *out_result = roots.exception().ptr();
+    return true;
+  }
+
+  DirectHandle<Object> callback = args[0];
+  DirectHandle<Object> this_arg =
+      arg_count > 1 ? args[1] : direct_handle(roots.undefined_value(), isolate);
+  if (is_set) {
+    DirectHandle<JSSet> set = Cast<JSSet>(receiver);
+    DirectHandle<Map> iterator_map = direct_handle(
+        isolate->native_context()->set_value_iterator_map(), isolate);
+    DirectHandle<JSSetIterator> iterator = Cast<JSSetIterator>(
+        isolate->factory()->NewJSObjectFromMap(iterator_map));
+    iterator->set_table(set->table());
+    iterator->set_index(Smi::zero());
+    while (!Wasm32IsEmptyOrderedHashCollection(isolate, iterator->table()) &&
+           iterator->HasMore()) {
+      HandleScope iteration_scope(isolate);
+      DirectHandle<JSSetIterator> current_iterator = iterator;
+      DirectHandle<Object> value(
+          current_iterator->CurrentKey(), isolate);
+      if (!TryRunCollectionForEachCallback(
+              isolate, callback, this_arg, value, value, set, out_result)) {
+        return true;
+      }
+      current_iterator->MoveNext();
+    }
+  } else {
+    DirectHandle<JSMap> map = Cast<JSMap>(receiver);
+    DirectHandle<Map> iterator_map = direct_handle(
+        isolate->native_context()->map_value_iterator_map(), isolate);
+    DirectHandle<JSMapIterator> iterator = Cast<JSMapIterator>(
+        isolate->factory()->NewJSObjectFromMap(iterator_map));
+    iterator->set_table(map->table());
+    iterator->set_index(Smi::zero());
+    while (!Wasm32IsEmptyOrderedHashCollection(isolate, iterator->table()) &&
+           iterator->HasMore()) {
+      HandleScope iteration_scope(isolate);
+      DirectHandle<JSMapIterator> current_iterator = iterator;
+      DirectHandle<Object> key(current_iterator->CurrentKey(), isolate);
+      DirectHandle<Object> value(current_iterator->CurrentValue(), isolate);
+      if (!TryRunCollectionForEachCallback(
+              isolate, callback, this_arg, value, key, map, out_result)) {
+        return true;
+      }
+      current_iterator->MoveNext();
+    }
+  }
+
+  *out_result = roots.undefined_value().ptr();
+  return true;
+}
+
 bool TryRunCollectionClearOrGetSizeBuiltin(Isolate* isolate,
                                            DirectHandle<Object> callable,
                                            DirectHandle<Object> receiver,
@@ -8460,11 +9964,29 @@ bool TryRunCollectionClearOrGetSizeBuiltin(Isolate* isolate,
     return true;
   }
 
-  int size = is_map
-                 ? Cast<OrderedHashMap>(Cast<JSMap>(*receiver)->table())
-                       ->NumberOfElements()
-                 : Cast<OrderedHashSet>(Cast<JSSet>(*receiver)->table())
-                       ->NumberOfElements();
+  Tagged<Object> table = is_map ? Cast<JSMap>(*receiver)->table()
+                                : Cast<JSSet>(*receiver)->table();
+#ifdef __wasi__
+  if (kEnableWasm32DebugDiagnostics && is_map && IsOrderedHashMap(table)) {
+    static int map_builtin_size_trace_count = 0;
+    if (map_builtin_size_trace_count++ < 8) {
+      Tagged<OrderedHashMap> hash_table = Cast<OrderedHashMap>(table);
+      std::fprintf(stderr,
+                   "WASM32_MAP_SIZE_BUILTIN receiver=0x%x table=0x%x "
+                   "length=%d elements=%d deleted=%d buckets=%d\\n",
+                   static_cast<unsigned>((*receiver).ptr()),
+                   static_cast<unsigned>(table.ptr()), hash_table->length(),
+                   hash_table->NumberOfElements(),
+                   hash_table->NumberOfDeletedElements(),
+                   hash_table->NumberOfBuckets());
+      std::fflush(stderr);
+    }
+  }
+#endif
+  int size = Wasm32IsEmptyOrderedHashCollection(isolate, table)
+                 ? 0
+                 : is_map ? Cast<OrderedHashMap>(table)->NumberOfElements()
+                          : Cast<OrderedHashSet>(table)->NumberOfElements();
   *out_result = Smi::FromInt(size).ptr();
   return true;
 }
@@ -8485,7 +10007,27 @@ bool TryRunMapIteratorPrototypeNextBuiltin(Isolate* isolate,
   }
 
   DirectHandle<JSMapIterator> iterator = Cast<JSMapIterator>(receiver);
-  bool done = !iterator->HasMore();
+#ifdef __wasi__
+  if (kEnableWasm32DebugDiagnostics && IsOrderedHashMap(iterator->table())) {
+    static int map_iterator_next_trace_count = 0;
+    if (map_iterator_next_trace_count++ < 8) {
+      Tagged<OrderedHashMap> hash_table =
+          Cast<OrderedHashMap>(iterator->table());
+      std::fprintf(stderr,
+                   "WASM32_MAP_NEXT iterator=0x%x table=0x%x index=0x%x "
+                   "length=%d elements=%d deleted=%d buckets=%d\\n",
+                   static_cast<unsigned>((*iterator).ptr()),
+                   static_cast<unsigned>(hash_table.ptr()),
+                   static_cast<unsigned>(iterator->index().ptr()),
+                   hash_table->length(), hash_table->NumberOfElements(),
+                   hash_table->NumberOfDeletedElements(),
+                   hash_table->NumberOfBuckets());
+      std::fflush(stderr);
+    }
+  }
+#endif
+  bool done = Wasm32IsEmptyOrderedHashCollection(isolate, iterator->table()) ||
+              !iterator->HasMore();
   DirectHandle<Object> value = isolate->factory()->undefined_value();
   if (!done) {
     DirectHandle<Object> key(iterator->CurrentKey(), isolate);
@@ -8526,7 +10068,8 @@ bool TryRunSetIteratorPrototypeNextBuiltin(Isolate* isolate,
   }
 
   DirectHandle<JSSetIterator> iterator = Cast<JSSetIterator>(receiver);
-  bool done = !iterator->HasMore();
+  bool done = Wasm32IsEmptyOrderedHashCollection(isolate, iterator->table()) ||
+              !iterator->HasMore();
   DirectHandle<Object> value = isolate->factory()->undefined_value();
   if (!done) {
     DirectHandle<Object> current_value(iterator->CurrentKey(), isolate);
@@ -8584,12 +10127,177 @@ bool TryRunObjectPrototypeHasOwnPropertyBuiltin(
   return true;
 }
 
+bool TryRunObjectPrototypeGetProtoBuiltin(
+    Isolate* isolate, DirectHandle<Object> callable,
+    DirectHandle<Object> receiver, int arg_count,
+    DirectHandle<Object>* args, Address* out_result) {
+  if (!IsJSFunctionBuiltin(isolate, callable,
+                           Builtin::kObjectPrototypeGetProto)) {
+    return false;
+  }
+
+  ReadOnlyRoots roots(isolate);
+  DirectHandle<JSReceiver> object;
+  if (!Object::ToObject(isolate, receiver, "Object.prototype.__proto__")
+           .ToHandle(&object)) {
+    *out_result = roots.exception().ptr();
+    return true;
+  }
+
+  DirectHandle<JSPrototype> prototype;
+  if (!JSReceiver::GetPrototype(isolate, object).ToHandle(&prototype)) {
+    *out_result = roots.exception().ptr();
+    return true;
+  }
+  *out_result = (*prototype).ptr();
+  return true;
+}
+
+bool TryRunStrictPoisonPillThrowerBuiltin(
+    Isolate* isolate, DirectHandle<Object> callable,
+    DirectHandle<Object> receiver, int arg_count,
+    DirectHandle<Object>* args, Address* out_result) {
+  if (!IsJSFunctionBuiltin(isolate, callable,
+                           Builtin::kStrictPoisonPillThrower)) {
+    return false;
+  }
+
+  isolate->Throw(*isolate->factory()->NewTypeError(
+      MessageTemplate::kStrictPoisonPill));
+  *out_result = ReadOnlyRoots(isolate).exception().ptr();
+  return true;
+}
+
+bool TryRunObjectPrototypeSetProtoBuiltin(
+    Isolate* isolate, DirectHandle<Object> callable,
+    DirectHandle<Object> receiver, int arg_count,
+    DirectHandle<Object>* args, Address* out_result) {
+  if (!IsJSFunctionBuiltin(isolate, callable,
+                           Builtin::kObjectPrototypeSetProto)) {
+    return false;
+  }
+
+  ReadOnlyRoots roots(isolate);
+  if (IsNullOrUndefined(*receiver, isolate)) {
+    isolate->Throw(*isolate->factory()->NewTypeError(
+        MessageTemplate::kCalledOnNullOrUndefined,
+        isolate->factory()->NewStringFromAsciiChecked(
+            "set Object.prototype.__proto__")));
+    *out_result = roots.exception().ptr();
+    return true;
+  }
+
+  DirectHandle<Object> proto =
+      arg_count > 0 ? args[0]
+                    : direct_handle(roots.undefined_value(), isolate);
+  if (!IsNull(*proto, isolate) && !IsJSReceiver(*proto)) {
+    *out_result = roots.undefined_value().ptr();
+    return true;
+  }
+  if (!IsJSReceiver(*receiver)) {
+    *out_result = roots.undefined_value().ptr();
+    return true;
+  }
+
+  Maybe<bool> result = JSReceiver::SetPrototype(
+      isolate, Cast<JSReceiver>(receiver), proto, true, kThrowOnError);
+  *out_result = result.IsNothing() ? roots.exception().ptr()
+                                    : roots.undefined_value().ptr();
+  return true;
+}
+
 bool TryRunArrayConstructorBuiltin(Isolate* isolate,
                                    DirectHandle<Object> constructor,
                                    DirectHandle<Object> new_target,
                                    int arg_count,
                                    DirectHandle<Object>* args,
                                    Address* out_result);
+
+bool TryRunTypedArrayFromBuiltin(Isolate* isolate,
+                                 DirectHandle<Object> callable,
+                                 DirectHandle<Object> receiver,
+                                 int arg_count,
+                                 DirectHandle<Object>* args,
+                                 Address* out_result);
+
+bool TryRunGlobalIsNaNBuiltin(Isolate* isolate,
+                              DirectHandle<Object> callable,
+                              int arg_count, DirectHandle<Object>* args,
+                              Address* out_result) {
+  if (!IsJSFunctionBuiltin(isolate, callable, Builtin::kGlobalIsNaN)) {
+    return false;
+  }
+
+  ReadOnlyRoots roots(isolate);
+  DirectHandle<Object> input =
+      arg_count > 0 ? args[0] : direct_handle(roots.undefined_value(), isolate);
+  DirectHandle<Number> number;
+  if (!Object::ToNumber(isolate, input).ToHandle(&number)) {
+    *out_result = roots.exception().ptr();
+    return true;
+  }
+  *out_result = isolate->heap()
+                    ->ToBoolean(std::isnan(Object::NumberValue(*number)))
+                    .ptr();
+  return true;
+}
+
+bool TryRunNumberParseFloatBuiltin(Isolate* isolate,
+                                   DirectHandle<Object> callable,
+                                   int arg_count,
+                                   DirectHandle<Object>* args,
+                                   Address* out_result) {
+  if (!IsJSFunctionBuiltin(isolate, callable, Builtin::kNumberParseFloat)) {
+    return false;
+  }
+
+  ReadOnlyRoots roots(isolate);
+  DirectHandle<Object> input =
+      arg_count > 0 ? args[0] : direct_handle(roots.undefined_value(), isolate);
+  if (IsNumber(*input)) {
+    const double value = Object::NumberValue(*input);
+    *out_result = value == 0 ? Smi::zero().ptr() : (*input).ptr();
+    return true;
+  }
+
+  DirectHandle<String> subject;
+  if (!Object::ToString(isolate, input).ToHandle(&subject)) {
+    *out_result = roots.exception().ptr();
+    return true;
+  }
+  const double value = StringToDouble(
+      isolate, subject, ALLOW_TRAILING_JUNK,
+      std::numeric_limits<double>::quiet_NaN());
+  *out_result = (*isolate->factory()->NewNumber(value)).ptr();
+  return true;
+}
+
+bool TryRunObjectIsFrozenBuiltin(Isolate* isolate,
+                                 DirectHandle<Object> callable,
+                                 int arg_count,
+                                 DirectHandle<Object>* args,
+                                 Address* out_result) {
+  if (!IsJSFunctionBuiltin(isolate, callable, Builtin::kObjectIsFrozen)) {
+    return false;
+  }
+
+  ReadOnlyRoots roots(isolate);
+  DirectHandle<Object> target =
+      arg_count > 0 ? args[0] : direct_handle(roots.undefined_value(), isolate);
+  if (!IsJSReceiver(*target)) {
+    *out_result = roots.true_value().ptr();
+    return true;
+  }
+
+  Maybe<bool> frozen =
+      JSReceiver::TestIntegrityLevel(isolate, Cast<JSReceiver>(target), FROZEN);
+  if (frozen.IsNothing()) {
+    *out_result = roots.exception().ptr();
+    return true;
+  }
+  *out_result = isolate->heap()->ToBoolean(frozen.FromJust()).ptr();
+  return true;
+}
 
 bool TryRunObjectCreateOrDefinePropertyBuiltin(
     Isolate* isolate, DirectHandle<Object> callable, int arg_count,
@@ -8766,6 +10474,337 @@ bool TryFallbackJSEntryBuiltin(Isolate* isolate, Builtin builtin,
                                Address receiver_value,
                                Address new_target_value, int actual_argc,
                                Address* argv_values, Address* out_result);
+
+bool TryRunArraySpliceBuiltin(Isolate* isolate, DirectHandle<Object> callable,
+                              DirectHandle<Object> receiver, int arg_count,
+                              DirectHandle<Object>* args,
+                              Address* out_result) {
+  if (!IsJSFunctionBuiltin(isolate, callable,
+                           Builtin::kArrayPrototypeSplice)) {
+    return false;
+  }
+
+  ReadOnlyRoots roots(isolate);
+  DirectHandle<JSReceiver> object;
+  if (!Object::ToObject(isolate, receiver, "Array.prototype.splice")
+           .ToHandle(&object)) {
+    *out_result = roots.exception().ptr();
+    return true;
+  }
+  DirectHandle<Object> length_object;
+  if (!Object::GetLengthFromArrayLike(isolate, object)
+           .ToHandle(&length_object)) {
+    *out_result = roots.exception().ptr();
+    return true;
+  }
+  double raw_length = Object::NumberValue(*length_object);
+  if (raw_length < 0 || raw_length > JSObject::kMaxElementIndex) {
+    return false;
+  }
+  uint32_t length = static_cast<uint32_t>(raw_length);
+  DirectHandle<JSAny> object_any = Cast<JSAny>(object);
+
+  auto relative_index = [&](DirectHandle<Object> value, uint32_t default_value,
+                            uint32_t* result) {
+    if (value.is_null()) {
+      *result = default_value;
+      return true;
+    }
+    DirectHandle<Number> number;
+    if (!Object::ToInteger(isolate, value).ToHandle(&number)) return false;
+    double relative = Object::NumberValue(*number);
+    if (relative < 0) {
+      double from_end = static_cast<double>(length) + relative;
+      *result = from_end <= 0 ? 0 : static_cast<uint32_t>(from_end);
+    } else {
+      *result = relative >= length ? length : static_cast<uint32_t>(relative);
+    }
+    return true;
+  };
+
+  uint32_t start = 0;
+  if (arg_count > 0 && !relative_index(args[0], 0, &start)) {
+    *out_result = roots.exception().ptr();
+    return true;
+  }
+
+  uint32_t delete_count = 0;
+  if (arg_count == 1) {
+    delete_count = length - start;
+  } else if (arg_count > 1) {
+    DirectHandle<Number> number;
+    if (!Object::ToInteger(isolate, args[1]).ToHandle(&number)) {
+      *out_result = roots.exception().ptr();
+      return true;
+    }
+    double requested = Object::NumberValue(*number);
+    if (requested > 0) {
+      delete_count = requested >= length - start
+                         ? length - start
+                         : static_cast<uint32_t>(requested);
+    }
+  }
+
+  const uint32_t insert_count =
+      arg_count > 2 ? static_cast<uint32_t>(arg_count - 2) : 0;
+  const uint64_t new_length64 = static_cast<uint64_t>(length) - delete_count +
+                                insert_count;
+  if (new_length64 > JSObject::kMaxElementIndex) {
+    *out_result = roots.exception().ptr();
+    return true;
+  }
+  const uint32_t new_length = static_cast<uint32_t>(new_length64);
+
+  DirectHandle<FixedArray> removed_elements;
+  if (!isolate->factory()
+           ->TryNewFixedArray(static_cast<int>(delete_count))
+           .ToHandle(&removed_elements)) {
+    *out_result = roots.exception().ptr();
+    return true;
+  }
+  for (uint32_t index = 0; index < delete_count; ++index) {
+    uint32_t source = start + index;
+    Maybe<bool> maybe_has = JSReceiver::HasElement(isolate, object, source);
+    if (maybe_has.IsNothing()) {
+      *out_result = roots.exception().ptr();
+      return true;
+    }
+    if (!maybe_has.FromJust()) continue;
+    DirectHandle<Object> element;
+    if (!JSReceiver::GetElement(isolate, object, source).ToHandle(&element)) {
+      *out_result = roots.exception().ptr();
+      return true;
+    }
+    removed_elements->set(static_cast<int>(index), *element);
+  }
+
+  auto move_or_delete = [&](uint32_t from, uint32_t to) {
+    Maybe<bool> maybe_has = JSReceiver::HasElement(isolate, object, from);
+    if (maybe_has.IsNothing()) {
+      return false;
+    }
+    if (maybe_has.FromJust()) {
+      DirectHandle<Object> element;
+      if (!JSReceiver::GetElement(isolate, object, from).ToHandle(&element)) {
+        return false;
+      }
+      DirectHandle<Object> ignored;
+      if (!Object::SetElement(isolate, object_any, to, element,
+                              ShouldThrow::kThrowOnError)
+               .ToHandle(&ignored)) {
+        return false;
+      }
+    } else {
+      PropertyKey key(isolate, to);
+      Maybe<bool> maybe_deleted = JSReceiver::DeletePropertyOrElement(
+          isolate, object, key, LanguageMode::kStrict);
+      if (maybe_deleted.IsNothing()) {
+        return false;
+      }
+    }
+    return true;
+  };
+
+  if (insert_count < delete_count) {
+    for (uint32_t from = start; from < length - delete_count; ++from) {
+      if (!move_or_delete(from + delete_count, from + insert_count)) {
+        *out_result = roots.exception().ptr();
+        return true;
+      }
+    }
+    for (uint32_t index = length; index > new_length; --index) {
+      PropertyKey key(isolate, index - 1);
+      Maybe<bool> maybe_deleted = JSReceiver::DeletePropertyOrElement(
+          isolate, object, key, LanguageMode::kStrict);
+      if (maybe_deleted.IsNothing()) {
+        *out_result = roots.exception().ptr();
+        return true;
+      }
+    }
+  } else if (insert_count > delete_count) {
+    for (uint32_t index = length; index > start + delete_count; --index) {
+      if (!move_or_delete(index - 1, index - 1 + insert_count - delete_count)) {
+        *out_result = roots.exception().ptr();
+        return true;
+      }
+    }
+  }
+
+  for (uint32_t index = 0; index < insert_count; ++index) {
+    DirectHandle<Object> ignored;
+    if (!Object::SetElement(isolate, object_any, start + index, args[index + 2],
+                            ShouldThrow::kThrowOnError)
+             .ToHandle(&ignored)) {
+      *out_result = roots.exception().ptr();
+      return true;
+    }
+  }
+
+  if (IsJSArray(*object)) {
+    if (JSArray::SetLength(isolate, Cast<JSArray>(object), new_length)
+            .IsNothing()) {
+      *out_result = roots.exception().ptr();
+      return true;
+    }
+  } else {
+    DirectHandle<Object> ignored;
+    if (!Object::SetProperty(
+             isolate, object_any, isolate->factory()->length_string(),
+             isolate->factory()->NewNumberFromUint(new_length),
+             StoreOrigin::kMaybeKeyed, Just(ShouldThrow::kThrowOnError))
+             .ToHandle(&ignored)) {
+      *out_result = roots.exception().ptr();
+      return true;
+    }
+  }
+
+  DirectHandle<JSArray> removed = isolate->factory()->NewJSArrayWithElements(
+      removed_elements, HOLEY_ELEMENTS, static_cast<int>(delete_count));
+  *out_result = (*removed).ptr();
+  return true;
+}
+
+bool TryRunWasm32SharedBuiltinFallbacks(
+    Isolate* isolate, DirectHandle<Object> callable,
+    DirectHandle<Object> receiver, int arg_count,
+    DirectHandle<Object>* args, Address* out_result) {
+  if (TryRunArrayConstructorBuiltin(isolate, callable, callable, arg_count,
+                                    args, out_result) ||
+      TryRunObjectPrototypeHasOwnPropertyBuiltin(
+          isolate, callable, receiver, arg_count, args, out_result) ||
+      TryRunObjectPrototypeGetProtoBuiltin(isolate, callable, receiver,
+                                           arg_count, args, out_result) ||
+      TryRunStrictPoisonPillThrowerBuiltin(isolate, callable, receiver,
+                                           arg_count, args, out_result) ||
+      TryRunObjectPrototypeSetProtoBuiltin(isolate, callable, receiver,
+                                           arg_count, args, out_result)) {
+    return true;
+  }
+
+  if (arg_count > 0 &&
+      (TryRunArrayShiftBuiltin(isolate, receiver, args[0], out_result) ||
+       TryRunArrayUnshiftBuiltin(isolate, receiver, args[0], arg_count - 1,
+                                 args + 1, out_result))) {
+    return true;
+  }
+
+  if (TryRunArrayForEachBuiltin(isolate, callable, receiver, arg_count, args,
+                                out_result) ||
+      TryRunArrayAtBuiltin(isolate, callable, receiver, arg_count, args,
+                           out_result) ||
+      TryRunArraySliceBuiltin(isolate, callable, receiver, arg_count, args,
+                              out_result) ||
+      TryRunArraySpliceBuiltin(isolate, callable, receiver, arg_count, args,
+                               out_result) ||
+      TryRunArrayShiftBuiltin(isolate, callable, receiver, out_result) ||
+      TryRunArrayPopBuiltin(isolate, callable, receiver, out_result) ||
+      TryRunArrayUnshiftBuiltin(isolate, callable, receiver, arg_count, args,
+                                out_result) ||
+      TryRunArrayFlatMapBuiltin(isolate, callable, receiver, arg_count, args,
+                                out_result) ||
+      TryRunArrayFilterBuiltin(isolate, callable, receiver, arg_count, args,
+                               out_result) ||
+      TryRunArrayFindBuiltin(isolate, callable, receiver, arg_count, args,
+                             out_result) ||
+      TryRunArrayPredicateBuiltin(isolate, callable, receiver, arg_count,
+                                  args, out_result) ||
+      TryRunArrayConcatBuiltin(isolate, callable, receiver, arg_count, args,
+                               out_result) ||
+      TryRunArrayMapBuiltin(isolate, callable, receiver, arg_count, args,
+                            out_result) ||
+      TryRunArrayReduceBuiltin(isolate, callable, receiver, arg_count, args,
+                               out_result) ||
+      TryRunContinuationPreservedEmbedderDataBuiltin(isolate, callable,
+                                                     arg_count, args,
+                                                     out_result) ||
+      TryRunArrayBufferPrototypeSliceBuiltin(isolate, callable, receiver,
+                                             arg_count, args, out_result) ||
+      TryRunTypedArrayPrototypeSubArrayBuiltin(isolate, callable, receiver,
+                                               arg_count, args, out_result) ||
+      TryRunTypedArrayPrototypeSliceBuiltin(isolate, callable, receiver,
+                                            arg_count, args, out_result) ||
+      TryRunTypedArrayPrototypeSetBuiltin(isolate, callable, receiver,
+                                          arg_count, args, out_result) ||
+      TryRunTypedArrayFromBuiltin(isolate, callable, receiver, arg_count,
+                                  args, out_result) ||
+      TryRunReflectOwnKeysBuiltin(isolate, callable, arg_count, args,
+                                  out_result) ||
+      TryRunReflectGetBuiltin(isolate, callable, arg_count, args,
+                              out_result) ||
+      TryRunReflectGetPrototypeOfBuiltin(isolate, callable, arg_count, args,
+                                         out_result) ||
+      TryRunReflectGetOwnPropertyDescriptorBuiltin(isolate, callable,
+                                                   arg_count, args,
+                                                   out_result) ||
+      TryRunReflectConstructBuiltin(isolate, callable, arg_count, args,
+                                    out_result) ||
+      TryRunGlobalIsNaNBuiltin(isolate, callable, arg_count, args,
+                               out_result) ||
+      TryRunNumberParseFloatBuiltin(isolate, callable, arg_count, args,
+                                    out_result) ||
+      TryRunObjectIsFrozenBuiltin(isolate, callable, arg_count, args,
+                                  out_result) ||
+      TryRunObjectCreateOrDefinePropertyBuiltin(isolate, callable, arg_count,
+                                                args, out_result) ||
+      TryRunCollectionForEachBuiltin(isolate, callable, receiver, arg_count,
+                                     args, out_result) ||
+      TryRunCollectionClearOrGetSizeBuiltin(isolate, callable, receiver,
+                                            out_result) ||
+      TryRunArrayIteratorPrototypeNextBuiltin(isolate, callable, receiver,
+                                              out_result) ||
+      TryRunMapIteratorPrototypeNextBuiltin(isolate, callable, receiver,
+                                            out_result) ||
+      TryRunSetIteratorPrototypeNextBuiltin(isolate, callable, receiver,
+                                            out_result) ||
+      TryRunStringPrototypeToStringBuiltin(isolate, callable, receiver,
+                                           out_result)) {
+    return true;
+  }
+
+  ReadOnlyRoots roots(isolate);
+  DirectHandle<Object> char_code_arg =
+      arg_count > 0 ? args[0]
+                    : direct_handle(roots.undefined_value(), isolate);
+  if (TryRunStringPrototypeCharCodeAtBuiltin(isolate, callable, receiver,
+                                             arg_count, char_code_arg,
+                                             out_result) ||
+      TryRunStringPrototypeCodePointAtBuiltin(
+          isolate, callable, receiver, arg_count, char_code_arg, out_result) ||
+      TryRunStringPrototypeReplaceAllBuiltin(isolate, callable, receiver,
+                                             arg_count, args, out_result) ||
+      TryRunStringPrototypeTransformBuiltin(isolate, callable, receiver,
+                                            arg_count, args, out_result) ||
+      TryRunStringPrototypeSliceBuiltin(isolate, callable, receiver, arg_count,
+                                        args, out_result) ||
+      TryRunStringPrototypeSubstrBuiltin(isolate, callable, receiver,
+                                         arg_count, args, out_result) ||
+      TryRunErrorCaptureStackTraceBuiltin(isolate, callable, arg_count, args,
+                                          out_result) ||
+      TryRunMathRandomBuiltin(isolate, callable, out_result) ||
+      TryRunStringPrototypeConcatBuiltin(isolate, callable, receiver,
+                                         arg_count, args, out_result) ||
+      TryRunStringPadEndOrRepeatBuiltin(isolate, callable, receiver, arg_count,
+                                        args, out_result) ||
+      TryRunSetPrototypeDeleteBuiltin(isolate, callable, receiver, arg_count,
+                                      args, out_result) ||
+      TryRunMapPrototypeDeleteBuiltin(isolate, callable, receiver, arg_count,
+                                      args, out_result) ||
+      TryRunSetPrototypeHasBuiltin(isolate, callable, receiver, arg_count,
+                                   args, out_result) ||
+      TryRunMapPrototypeHasOrGetBuiltin(isolate, callable, receiver, arg_count,
+                                        args, out_result) ||
+      TryRunMapPrototypeSetBuiltin(isolate, callable, receiver, arg_count,
+                                   args, out_result) ||
+      TryRunSetPrototypeAddBuiltin(isolate, callable, receiver, arg_count,
+                                   args, out_result) ||
+      TryRunWeakCollectionSetBuiltin(isolate, callable, receiver, arg_count,
+                                     args, out_result) ||
+      TryRunWeakCollectionHasOrGetBuiltin(isolate, callable, receiver,
+                                          arg_count, args, out_result)) {
+    return true;
+  }
+  return false;
+}
 
 bool TryRunCallBytecode(Isolate* isolate, Tagged<BytecodeArray> bytecode,
                         int bytecode_index,
@@ -9114,14 +11153,14 @@ bool TryRunCallBytecode(Isolate* isolate, Tagged<BytecodeArray> bytecode,
     static int wasm32_noncallable_trace_count = 0;
     Tagged<SharedFunctionInfo> noncallable_shared =
         Wasm32JSFunctionShared(current_function);
-    if (++wasm32_noncallable_trace_count <= 32) {
-      v8_wasm32_silent_fprintf(stderr,
-                 "WASM32_NONCALLABLE function_start=%d function_end=%d "
-                   "pc=%d opcode=%s target=0x%x\n",
-                   noncallable_shared->StartPosition(),
-                   noncallable_shared->EndPosition(), bytecode_index,
-                   interpreter::Bytecodes::ToString(bytecode_enum),
-                   static_cast<unsigned>(callable_address));
+  if (++wasm32_noncallable_trace_count <= 32) {
+    v8_wasm32_silent_fprintf(stderr,
+             "WASM32_NONCALLABLE function_start=%d function_end=%d "
+               "pc=%d opcode=%s target=0x%x\n",
+               noncallable_shared->StartPosition(),
+               noncallable_shared->EndPosition(), bytecode_index,
+               interpreter::Bytecodes::ToString(bytecode_enum),
+               static_cast<unsigned>(callable_address));
       std::fflush(stderr);
     }
     if (bytecode_enum == interpreter::Bytecode::kCallProperty0 ||
@@ -9369,6 +11408,135 @@ bool TryRunCallBytecode(Isolate* isolate, Tagged<BytecodeArray> bytecode,
 #ifdef __wasi__
   if (kEnableWasm32DebugDiagnostics &&
       IsJSFunction(Tagged<Object>(callable_address))) {
+    Tagged<SharedFunctionInfo> callee_shared = Wasm32JSFunctionShared(
+        Cast<JSFunction>(Tagged<Object>(callable_address)));
+    if (callee_shared->StartPosition() == 9119092) {
+      Tagged<SharedFunctionInfo> caller_shared =
+          Wasm32JSFunctionShared(current_function);
+      std::unique_ptr<char[]> caller_name = caller_shared->DebugNameCStr();
+      Address arg0 = arg_count > 0 ? (*args[0]).ptr()
+                                   : roots.undefined_value().ptr();
+      int arg0_length = -1;
+      int arg0_elements_length = -1;
+      if (IsJSArray(Tagged<Object>(arg0))) {
+        Tagged<JSArray> array = Cast<JSArray>(Tagged<Object>(arg0));
+        if (IsSmi(array->length())) {
+          arg0_length = Smi::ToInt(array->length());
+        }
+        if (IsFixedArray(array->elements())) {
+          arg0_elements_length =
+              Cast<FixedArray>(array->elements())->length();
+        }
+      }
+      std::fprintf(
+          stderr,
+          "WASM32_CPB_CALL caller_start=%d caller_end=%d caller_name=%s "
+          "pc=%d source=%d argc=%d arg0=0x%x array=%d length=%d "
+          "elements_length=%d\\n",
+          caller_shared->StartPosition(), caller_shared->EndPosition(),
+          caller_name ? caller_name.get() : "<none>", bytecode_index,
+          call_source_position, arg_count, static_cast<unsigned>(arg0),
+          IsJSArray(Tagged<Object>(arg0)) ? 1 : 0, arg0_length,
+          arg0_elements_length);
+      if (IsJSArray(Tagged<Object>(arg0)) &&
+          IsFixedArray(Cast<JSArray>(Tagged<Object>(arg0))->elements())) {
+        Tagged<FixedArray> elements = Cast<FixedArray>(
+            Cast<JSArray>(Tagged<Object>(arg0))->elements());
+        std::fprintf(stderr, "WASM32_CPB_ELEMENTS");
+        int sample_count = std::min(8, elements->length());
+        for (int i = 0; i < sample_count; ++i) {
+          Tagged<Object> value = elements->get(i);
+          std::fprintf(stderr, " first%d=0x%x/hole%d/undef%d/recv%d", i,
+                       static_cast<unsigned>(value.ptr()),
+                       IsTheHole(value, roots) ? 1 : 0,
+                       IsUndefined(value, roots) ? 1 : 0,
+                       IsJSReceiver(value) ? 1 : 0);
+        }
+        for (int i = std::max(0, elements->length() - sample_count);
+             i < elements->length(); ++i) {
+          Tagged<Object> value = elements->get(i);
+          std::fprintf(stderr, " last%d=0x%x/hole%d/undef%d/recv%d", i,
+                       static_cast<unsigned>(value.ptr()),
+                       IsTheHole(value, roots) ? 1 : 0,
+                       IsUndefined(value, roots) ? 1 : 0,
+                       IsJSReceiver(value) ? 1 : 0);
+        }
+        std::fprintf(stderr, "\\n");
+      }
+      std::fflush(stderr);
+    }
+    if (callee_shared->StartPosition() == 9119338) {
+      static bool traced_y5b_call = false;
+      if (!traced_y5b_call) {
+        traced_y5b_call = true;
+        Tagged<SharedFunctionInfo> caller_shared =
+            Wasm32JSFunctionShared(current_function);
+        std::unique_ptr<char[]> caller_name = caller_shared->DebugNameCStr();
+        Address arg1 = arg_count > 1 ? (*args[1]).ptr()
+                                     : roots.undefined_value().ptr();
+        int arg1_length = -1;
+        int arg1_elements_length = -1;
+        if (IsJSArray(Tagged<Object>(arg1))) {
+          Tagged<JSArray> array = Cast<JSArray>(Tagged<Object>(arg1));
+          if (IsSmi(array->length())) {
+            arg1_length = Smi::ToInt(array->length());
+          }
+          if (IsFixedArray(array->elements())) {
+            arg1_elements_length =
+                Cast<FixedArray>(array->elements())->length();
+          }
+        }
+        std::fprintf(
+            stderr,
+            "WASM32_Y5B_CALL caller_start=%d caller_end=%d caller_name=%s "
+            "pc=%d source=%d argc=%d arg1=0x%x array=%d length=%d "
+            "elements_length=%d\\n",
+            caller_shared->StartPosition(), caller_shared->EndPosition(),
+            caller_name ? caller_name.get() : "<none>", bytecode_index,
+            call_source_position, arg_count, static_cast<unsigned>(arg1),
+            IsJSArray(Tagged<Object>(arg1)) ? 1 : 0, arg1_length,
+            arg1_elements_length);
+        int window_start = std::max(0, bytecode_index - 96);
+        int window_end = std::min(bytecode->length(), bytecode_index + 24);
+        interpreter::OperandScale dump_scale =
+            interpreter::OperandScale::kSingle;
+        for (int index = 0; index < bytecode->length();) {
+          interpreter::Bytecode dump_bytecode =
+              interpreter::Bytecodes::FromByte(bytecode->get(index));
+          int dump_size =
+              interpreter::Bytecodes::Size(dump_bytecode, dump_scale);
+          if (index >= window_start && index <= window_end) {
+            std::fprintf(stderr, "WASM32_Y5B_BC pc=%d opcode=%s scale=%d",
+                         index,
+                         interpreter::Bytecodes::ToString(dump_bytecode),
+                         static_cast<int>(dump_scale));
+            int operand_count =
+                interpreter::Bytecodes::NumberOfOperands(dump_bytecode);
+            for (int operand_index = 0; operand_index < operand_count;
+                 ++operand_index) {
+              std::fprintf(
+                  stderr, " op%d=%d", operand_index,
+                  ReadBytecodeSignedOperand(bytecode, index, dump_bytecode,
+                                            operand_index, dump_scale));
+            }
+            std::fprintf(stderr, "\\n");
+          }
+          if (interpreter::Bytecodes::IsPrefixScalingBytecode(dump_bytecode)) {
+            dump_scale = interpreter::Bytecodes::PrefixBytecodeToOperandScale(
+                dump_bytecode);
+            index += interpreter::Bytecodes::Size(
+                dump_bytecode, interpreter::OperandScale::kSingle);
+            continue;
+          }
+          dump_scale = interpreter::OperandScale::kSingle;
+          index += dump_size;
+        }
+        std::fflush(stderr);
+      }
+    }
+  }
+  if (kEnableWasm32DebugDiagnostics &&
+      IsJSFunction(Tagged<Object>(callable_address))) {
     Tagged<SharedFunctionInfo> diagnostic_shared = Wasm32JSFunctionShared(
         Cast<JSFunction>(Tagged<Object>(callable_address)));
     if (diagnostic_shared->HasBuiltinId() &&
@@ -9429,6 +11597,12 @@ bool TryRunCallBytecode(Isolate* isolate, Tagged<BytecodeArray> bytecode,
     switched_context = true;
   }
 
+  if (TryRunWasm32SharedBuiltinFallbacks(isolate, callable, receiver,
+                                          arg_count, args, out_result)) {
+    if (switched_context) isolate->set_context(saved_context);
+    return true;
+  }
+
   if (TryRunArrayConstructorBuiltin(isolate, callable, callable, arg_count,
                                     args, out_result)) {
     if (switched_context) isolate->set_context(saved_context);
@@ -9436,6 +11610,11 @@ bool TryRunCallBytecode(Isolate* isolate, Tagged<BytecodeArray> bytecode,
   }
 
   if (TryRunObjectPrototypeHasOwnPropertyBuiltin(
+          isolate, callable, receiver, arg_count, args, out_result)) {
+    if (switched_context) isolate->set_context(saved_context);
+    return true;
+  }
+  if (TryRunObjectPrototypeSetProtoBuiltin(
           isolate, callable, receiver, arg_count, args, out_result)) {
     if (switched_context) isolate->set_context(saved_context);
     return true;
@@ -9458,12 +11637,21 @@ bool TryRunCallBytecode(Isolate* isolate, Tagged<BytecodeArray> bytecode,
     if (switched_context) isolate->set_context(saved_context);
     return true;
   }
+  if (TryRunArrayAtBuiltin(isolate, callable, receiver, arg_count, args,
+                           out_result)) {
+    if (switched_context) isolate->set_context(saved_context);
+    return true;
+  }
   if (TryRunArraySliceBuiltin(isolate, callable, receiver, arg_count, args,
                               out_result)) {
     if (switched_context) isolate->set_context(saved_context);
     return true;
   }
   if (TryRunArrayShiftBuiltin(isolate, callable, receiver, out_result)) {
+    if (switched_context) isolate->set_context(saved_context);
+    return true;
+  }
+  if (TryRunArrayPopBuiltin(isolate, callable, receiver, out_result)) {
     if (switched_context) isolate->set_context(saved_context);
     return true;
   }
@@ -9499,6 +11687,21 @@ bool TryRunCallBytecode(Isolate* isolate, Tagged<BytecodeArray> bytecode,
   }
   if (TryRunArrayReduceBuiltin(isolate, callable, receiver, arg_count, args,
                                out_result)) {
+    if (switched_context) isolate->set_context(saved_context);
+    return true;
+  }
+  if (TryRunArrayBufferPrototypeSliceBuiltin(
+          isolate, callable, receiver, arg_count, args, out_result)) {
+    if (switched_context) isolate->set_context(saved_context);
+    return true;
+  }
+  if (TryRunTypedArrayPrototypeSubArrayBuiltin(
+          isolate, callable, receiver, arg_count, args, out_result)) {
+    if (switched_context) isolate->set_context(saved_context);
+    return true;
+  }
+  if (TryRunTypedArrayPrototypeSliceBuiltin(
+          isolate, callable, receiver, arg_count, args, out_result)) {
     if (switched_context) isolate->set_context(saved_context);
     return true;
   }
@@ -9637,6 +11840,20 @@ bool TryRunCallBytecode(Isolate* isolate, Tagged<BytecodeArray> bytecode,
     if (switched_context) isolate->set_context(saved_context);
     return true;
   }
+  if (TryRunSetPrototypeDeleteBuiltin(isolate, callable, receiver, arg_count,
+                                      args, out_result)) {
+    if (trace_collection_call) {
+      PrintF("TryRunCallBytecode: SetPrototypeDelete fallback returned 0x%x\n",
+             static_cast<unsigned>(*out_result));
+    }
+    if (switched_context) isolate->set_context(saved_context);
+    return true;
+  }
+  if (TryRunMapPrototypeDeleteBuiltin(isolate, callable, receiver, arg_count,
+                                      args, out_result)) {
+    if (switched_context) isolate->set_context(saved_context);
+    return true;
+  }
   if (TryRunWeakCollectionSetBuiltin(isolate, callable, receiver, arg_count,
                                      args, out_result)) {
     if (trace_collection_call) {
@@ -9767,6 +11984,26 @@ bool TryRunCollectionConstructorBuiltin(Isolate* isolate,
       IsJSFunctionBuiltin(isolate, constructor, Builtin::kWeakMapConstructor);
   bool is_weak_set =
       IsJSFunctionBuiltin(isolate, constructor, Builtin::kWeakSetConstructor);
+#ifdef __wasi__
+  if (kEnableWasm32DebugDiagnostics && IsJSFunction(*constructor)) {
+    static int collection_constructor_trace_count = 0;
+    if (collection_constructor_trace_count++ < 8) {
+      Tagged<JSFunction> function = Cast<JSFunction>(*constructor);
+      Tagged<Code> code = function->code(isolate);
+      Tagged<SharedFunctionInfo> shared = Wasm32JSFunctionShared(function);
+      std::unique_ptr<char[]> name = shared->DebugNameCStr();
+      std::fprintf(
+          stderr,
+          "WASM32_COLLECTION_CONSTRUCT name=%s code_builtin=%d "
+          "shared_builtin=%d is_map=%d is_set=%d\\n",
+          name ? name.get() : "<none>",
+          code->is_builtin() ? static_cast<int>(code->builtin_id()) : -1,
+          shared->HasBuiltinId() ? static_cast<int>(shared->builtin_id()) : -1,
+          is_map ? 1 : 0, is_set ? 1 : 0);
+      std::fflush(stderr);
+    }
+  }
+#endif
   if (!is_set && !is_map && !is_weak_map && !is_weak_set) return false;
 
   ReadOnlyRoots roots(isolate);
@@ -9860,6 +12097,28 @@ bool TryRunCollectionConstructorBuiltin(Isolate* isolate,
     }
     DirectHandle<JSMap> map = Cast<JSMap>(instance);
     JSMap::Initialize(map, isolate);
+#ifdef __wasi__
+    if (kEnableWasm32DebugDiagnostics) {
+      static int map_initialize_trace_count = 0;
+      if (map_initialize_trace_count++ < 8) {
+        Tagged<Object> table_object = map->table();
+        if (IsOrderedHashMap(table_object)) {
+          Tagged<OrderedHashMap> table = Cast<OrderedHashMap>(table_object);
+          std::fprintf(
+              stderr,
+              "WASM32_MAP_INITIALIZE table=0x%x length=%d elements=%d "
+              "deleted=%d buckets=%d slot0=0x%x slot1=0x%x slot2=0x%x\\n",
+              static_cast<unsigned>(table.ptr()), table->length(),
+              table->NumberOfElements(), table->NumberOfDeletedElements(),
+              table->NumberOfBuckets(),
+              static_cast<unsigned>(table->get(0).ptr()),
+              static_cast<unsigned>(table->get(1).ptr()),
+              static_cast<unsigned>(table->get(2).ptr()));
+          std::fflush(stderr);
+        }
+      }
+    }
+#endif
     if (IsUndefined(*iterable, roots) || IsNull(*iterable, roots)) {
       *out_result = (*map).ptr();
       return true;
@@ -10294,7 +12553,11 @@ bool TryRunTypedArrayConstructorBuiltin(Isolate* isolate,
   if (IsUndefined(*source, isolate)) {
     length = 0;
   } else if (IsNumber(*source)) {
-    if (!Object::ToIntegerIndex(*source, &length)) return false;
+    if (std::isnan(Object::NumberValue(*source))) {
+      length = 0;
+    } else if (!Object::ToIntegerIndex(*source, &length)) {
+      return false;
+    }
   } else if (IsJSArrayBuffer(*source)) {
     buffer = Cast<JSArrayBuffer>(source);
     if (arg_count > 1 && !IsUndefined(*args[1], isolate) &&
@@ -10399,6 +12662,128 @@ bool TryRunTypedArrayConstructorBuiltin(Isolate* isolate,
   return true;
 }
 
+bool TryRunTypedArrayFromBuiltin(Isolate* isolate,
+                                 DirectHandle<Object> callable,
+                                 DirectHandle<Object> receiver,
+                                 int arg_count,
+                                 DirectHandle<Object>* args,
+                                 Address* out_result) {
+  if (!IsJSFunctionBuiltin(isolate, callable, Builtin::kTypedArrayFrom) ||
+      !IsJSFunction(*receiver)) {
+    return false;
+  }
+
+  ReadOnlyRoots roots(isolate);
+  DirectHandle<Object> source =
+      arg_count > 0 ? args[0] : direct_handle(roots.undefined_value(), isolate);
+  DirectHandle<JSReceiver> source_object;
+  if (!Object::ToObject(isolate, source).ToHandle(&source_object)) {
+    *out_result = roots.exception().ptr();
+    return true;
+  }
+
+  DirectHandle<Object> length_object;
+  if (!Object::GetLengthFromArrayLike(isolate, source_object)
+           .ToHandle(&length_object)) {
+    *out_result = roots.exception().ptr();
+    return true;
+  }
+  size_t length = 0;
+  if (!Object::ToIntegerIndex(*length_object, &length) ||
+      length > static_cast<size_t>(kMaxInt)) {
+    *out_result = roots.exception().ptr();
+    return true;
+  }
+
+  DirectHandle<Object> length_argument =
+      isolate->factory()->NewNumberFromUint(static_cast<uint32_t>(length));
+  DirectHandle<Object> constructor_args[] = {length_argument};
+  Address result_address = roots.exception().ptr();
+  if (!TryRunTypedArrayConstructorBuiltin(isolate, receiver, receiver, 1,
+                                          constructor_args, &result_address)) {
+    return false;
+  }
+  if (IsException(Tagged<Object>(result_address), isolate)) {
+    *out_result = result_address;
+    return true;
+  }
+  DirectHandle<JSTypedArray> target(
+      Cast<JSTypedArray>(Tagged<Object>(result_address)), isolate);
+
+  DirectHandle<Object> map_function =
+      arg_count > 1 ? args[1] : direct_handle(roots.undefined_value(), isolate);
+  bool mapping = !IsUndefined(*map_function, isolate);
+  if (mapping && !IsCallable(*map_function)) {
+    isolate->Throw(*isolate->factory()->NewTypeError(
+        MessageTemplate::kCalledNonCallable, map_function));
+    *out_result = roots.exception().ptr();
+    return true;
+  }
+
+  if (!mapping) {
+    if (length > 0) {
+      Address copy_args[3] = {
+          Smi::FromInt(static_cast<int>(length)).ptr(), (*source_object).ptr(),
+          (*target).ptr()};
+      WasmTemporaryRootScope copy_roots(isolate, copy_args, 3);
+      Runtime_TypedArrayCopyElements(3, &copy_roots.data()[2], isolate);
+      if (isolate->has_exception()) {
+        *out_result = roots.exception().ptr();
+        return true;
+      }
+    }
+    *out_result = (*target).ptr();
+    return true;
+  }
+
+  DirectHandle<Object> this_arg =
+      arg_count > 2 ? args[2] : direct_handle(roots.undefined_value(), isolate);
+  for (uint32_t index = 0; index < length; ++index) {
+    DirectHandle<Object> element;
+    if (!Object::GetElement(isolate, source_object, index).ToHandle(&element)) {
+      *out_result = roots.exception().ptr();
+      return true;
+    }
+
+    DirectHandle<Object> callback_args[2] = {
+        element, isolate->factory()->NewNumberFromUint(index)};
+    WasmInterpreterStateSnapshot state(isolate);
+    Address callback_result = roots.exception().ptr();
+    bool direct_call = TryCallJSFunctionDirect(
+        isolate, map_function, this_arg, 2, callback_args, &callback_result);
+    MaybeHandle<Object> maybe_result;
+    if (!direct_call) {
+      maybe_result = Execution::Call(
+          isolate, map_function, this_arg,
+          ZoneVector<const DirectHandle<Object>>(callback_args, 2));
+    }
+    state.Restore();
+
+    DirectHandle<Object> mapped;
+    if (direct_call) {
+      if (IsException(Tagged<Object>(callback_result), isolate)) {
+        *out_result = callback_result;
+        return true;
+      }
+      mapped = direct_handle(Tagged<Object>(callback_result), isolate);
+    } else if (!maybe_result.ToHandle(&mapped)) {
+      *out_result = roots.exception().ptr();
+      return true;
+    }
+
+    DirectHandle<Object> ignored;
+    if (!Object::SetElement(isolate, target, index, mapped,
+                            ShouldThrow::kThrowOnError)
+             .ToHandle(&ignored)) {
+      *out_result = roots.exception().ptr();
+      return true;
+    }
+  }
+
+  *out_result = (*target).ptr();
+  return true;
+}
+
 bool TryRunArrayBufferConstructorBuiltin(Isolate* isolate,
                                          DirectHandle<Object> constructor,
                                          DirectHandle<Object> new_target,
@@ -10476,6 +12861,266 @@ bool TryRunArrayBufferConstructorBuiltin(Isolate* isolate,
 
   *out_result = (*buffer).ptr();
   return true;
+}
+
+bool TryRunDateConstructorBuiltin(
+    Isolate* isolate, DirectHandle<Object> constructor,
+    DirectHandle<Object> new_target, int arg_count,
+    DirectHandle<Object>* args, Address* out_result) {
+  if (!IsJSFunctionBuiltin(isolate, constructor, Builtin::kDateConstructor)) {
+    return false;
+  }
+
+  ReadOnlyRoots roots(isolate);
+  DirectHandle<JSFunction> target = Cast<JSFunction>(constructor);
+  if (IsUndefined(*new_target, isolate)) {
+    const double time_value =
+        static_cast<double>(JSDate::CurrentTimeValue(isolate));
+    DateBuffer buffer = ToDateString(time_value, isolate->date_cache(),
+                                     ToDateStringMode::kLocalDateAndTime);
+    DirectHandle<String> result;
+    if (!isolate->factory()->NewStringFromUtf8(base::VectorOf(buffer))
+             .ToHandle(&result)) {
+      *out_result = roots.exception().ptr();
+      return true;
+    }
+    *out_result = (*result).ptr();
+    return true;
+  }
+
+  if (!IsJSReceiver(*new_target)) {
+    isolate->Throw(*isolate->factory()->NewTypeError(
+        MessageTemplate::kConstructorNotFunction,
+        isolate->factory()->NewStringFromAsciiChecked("Date")));
+    *out_result = roots.exception().ptr();
+    return true;
+  }
+
+  double time_value;
+  if (arg_count == 0) {
+    time_value = static_cast<double>(JSDate::CurrentTimeValue(isolate));
+  } else if (arg_count == 1) {
+    DirectHandle<Object> value = args[0];
+    if (IsJSDate(*value)) {
+      time_value = Cast<JSDate>(value)->value();
+    } else {
+      if (!Object::ToPrimitive(isolate, value).ToHandle(&value)) {
+        *out_result = roots.exception().ptr();
+        return true;
+      }
+      if (IsString(*value)) {
+        time_value = ParseDateTimeString(isolate, Cast<String>(value));
+      } else {
+        DirectHandle<Number> number;
+        if (!Object::ToNumber(isolate, value).ToHandle(&number)) {
+          *out_result = roots.exception().ptr();
+          return true;
+        }
+        time_value = Object::NumberValue(*number);
+      }
+    }
+  } else {
+    auto to_number = [&](DirectHandle<Object> value, double* result) {
+      DirectHandle<Number> number;
+      if (!Object::ToNumber(isolate, value).ToHandle(&number)) return false;
+      *result = Object::NumberValue(*number);
+      return true;
+    };
+
+    double year;
+    double month;
+    double date = 1;
+    double hours = 0;
+    double minutes = 0;
+    double seconds = 0;
+    double milliseconds = 0;
+    if (!to_number(args[0], &year) || !to_number(args[1], &month) ||
+        (arg_count >= 3 && !to_number(args[2], &date)) ||
+        (arg_count >= 4 && !to_number(args[3], &hours)) ||
+        (arg_count >= 5 && !to_number(args[4], &minutes)) ||
+        (arg_count >= 6 && !to_number(args[5], &seconds)) ||
+        (arg_count >= 7 && !to_number(args[6], &milliseconds))) {
+      *out_result = roots.exception().ptr();
+      return true;
+    }
+    if (!std::isnan(year)) {
+      const double normalized_year = DoubleToInteger(year);
+      if (0.0 <= normalized_year && normalized_year <= 99.0) {
+        year = 1900.0 + normalized_year;
+      }
+    }
+    time_value = MakeDate(MakeDay(year, month, date),
+                          MakeTime(hours, minutes, seconds, milliseconds));
+    if (time_value >= -DateCache::kMaxTimeBeforeUTCInMs &&
+        time_value <= DateCache::kMaxTimeBeforeUTCInMs) {
+      time_value =
+          isolate->date_cache()->ToUTC(static_cast<int64_t>(time_value));
+    } else {
+      time_value = std::numeric_limits<double>::quiet_NaN();
+    }
+  }
+
+  DirectHandle<JSDate> result;
+  if (!JSDate::New(target, Cast<JSReceiver>(new_target), time_value)
+           .ToHandle(&result)) {
+    *out_result = roots.exception().ptr();
+    return true;
+  }
+  *out_result = (*result).ptr();
+  return true;
+}
+
+bool TryRunDataViewConstructorBuiltin(Isolate* isolate,
+                                      DirectHandle<Object> constructor,
+                                      DirectHandle<Object> new_target,
+                                      int arg_count,
+                                      DirectHandle<Object>* args,
+                                      Address* out_result) {
+  if (!IsJSFunction(*constructor) ||
+      *constructor != isolate->native_context()->data_view_fun()) {
+    return false;
+  }
+
+  ReadOnlyRoots roots(isolate);
+  if (!IsJSReceiver(*new_target)) {
+    if (IsUndefined(*new_target, isolate)) {
+      isolate->Throw(*isolate->factory()->NewTypeError(
+          MessageTemplate::kConstructorNotFunction,
+          isolate->factory()->NewStringFromAsciiChecked("DataView")));
+      *out_result = roots.exception().ptr();
+      return true;
+    }
+    return false;
+  }
+
+  DirectHandle<Object> buffer_argument =
+      arg_count > 0 ? args[0] : direct_handle(roots.undefined_value(), isolate);
+  if (!IsJSArrayBuffer(*buffer_argument)) {
+    isolate->Throw(*isolate->factory()->NewTypeError(
+        MessageTemplate::kDataViewNotArrayBuffer));
+    *out_result = roots.exception().ptr();
+    return true;
+  }
+  DirectHandle<JSArrayBuffer> buffer = Cast<JSArrayBuffer>(buffer_argument);
+
+  DirectHandle<Object> offset_argument =
+      arg_count > 1 ? args[1] : direct_handle(roots.undefined_value(), isolate);
+  DirectHandle<Object> offset_index;
+  if (!Object::ToIndex(isolate, offset_argument, MessageTemplate::kInvalidOffset)
+           .ToHandle(&offset_index)) {
+    *out_result = roots.exception().ptr();
+    return true;
+  }
+  size_t byte_offset = static_cast<size_t>(Object::NumberValue(*offset_index));
+
+  if (buffer->was_detached()) {
+    isolate->Throw(*isolate->factory()->NewTypeError(
+        MessageTemplate::kDetachedOperation,
+        isolate->factory()->NewStringFromAsciiChecked("DataView constructor")));
+    *out_result = roots.exception().ptr();
+    return true;
+  }
+  size_t buffer_byte_length = buffer->GetByteLength();
+  if (byte_offset > buffer_byte_length) {
+    isolate->Throw(*isolate->factory()->NewRangeError(
+        MessageTemplate::kInvalidOffset, offset_index));
+    *out_result = roots.exception().ptr();
+    return true;
+  }
+
+  DirectHandle<Object> length_argument =
+      arg_count > 2 ? args[2] : direct_handle(roots.undefined_value(), isolate);
+  size_t byte_length;
+  bool length_tracking = false;
+  if (IsUndefined(*length_argument, isolate)) {
+    byte_length = buffer_byte_length - byte_offset;
+    length_tracking = buffer->is_resizable_by_js();
+  } else {
+    DirectHandle<Object> length_index;
+    if (!Object::ToIndex(isolate, length_argument,
+                         MessageTemplate::kInvalidDataViewLength)
+             .ToHandle(&length_index)) {
+      *out_result = roots.exception().ptr();
+      return true;
+    }
+    byte_length = static_cast<size_t>(Object::NumberValue(*length_index));
+    if (byte_length > buffer_byte_length - byte_offset) {
+      isolate->Throw(*isolate->factory()->NewRangeError(
+          MessageTemplate::kInvalidDataViewLength, length_index));
+      *out_result = roots.exception().ptr();
+      return true;
+    }
+  }
+
+  Handle<JSDataViewOrRabGsabDataView> data_view =
+      isolate->factory()->NewJSDataViewOrRabGsabDataView(
+          buffer, byte_offset, byte_length, length_tracking);
+  if (IsJSFunction(*new_target) && *new_target != *constructor) {
+    DirectHandle<JSFunction> derived = Cast<JSFunction>(new_target);
+    Address prototype_address =
+        Wasm32JSFunctionPrototypeAddress(isolate, derived);
+    if (IsSafeTaggedHandleValue(prototype_address) &&
+        IsJSReceiver(Tagged<Object>(prototype_address)) &&
+        JSObject::SetPrototype(
+            isolate, data_view,
+            direct_handle(Tagged<Object>(prototype_address), isolate), false,
+            kDontThrow)
+            .IsNothing()) {
+      *out_result = roots.exception().ptr();
+      return true;
+    }
+  }
+
+  *out_result = (*data_view).ptr();
+  return true;
+}
+
+bool TryRunSegmenterConstructorBuiltin(Isolate* isolate,
+                                       DirectHandle<Object> constructor,
+                                       DirectHandle<Object> new_target,
+                                       int arg_count,
+                                       DirectHandle<Object>* args,
+                                       Address* out_result) {
+#ifdef V8_INTL_SUPPORT
+  if (!IsJSFunctionBuiltin(isolate, constructor,
+                           Builtin::kSegmenterConstructor)) {
+    return false;
+  }
+
+  ReadOnlyRoots roots(isolate);
+  if (!IsJSReceiver(*new_target)) {
+    if (IsUndefined(*new_target, isolate)) {
+      isolate->Throw(*isolate->factory()->NewTypeError(
+          MessageTemplate::kConstructorNotFunction,
+          isolate->factory()->NewStringFromAsciiChecked("Intl.Segmenter")));
+      *out_result = roots.exception().ptr();
+      return true;
+    }
+    return false;
+  }
+
+  DirectHandle<JSFunction> target = Cast<JSFunction>(constructor);
+  DirectHandle<JSReceiver> constructor_new_target = Cast<JSReceiver>(new_target);
+  DirectHandle<Map> map;
+  if (!JSFunction::GetDerivedMap(isolate, target, constructor_new_target)
+           .ToHandle(&map)) {
+    *out_result = roots.exception().ptr();
+    return true;
+  }
+  DirectHandle<Object> locales =
+      arg_count > 0 ? args[0] : direct_handle(roots.undefined_value(), isolate);
+  DirectHandle<Object> options =
+      arg_count > 1 ? args[1] : direct_handle(roots.undefined_value(), isolate);
+  DirectHandle<JSSegmenter> segmenter;
+  if (!JSSegmenter::New(isolate, map, locales, options).ToHandle(&segmenter)) {
+    *out_result = roots.exception().ptr();
+    return true;
+  }
+  *out_result = (*segmenter).ptr();
+  return true;
+#else
+  return false;
+#endif
 }
 
 bool TryRunConstructBytecode(Isolate* isolate, Tagged<BytecodeArray> bytecode,
@@ -10620,6 +13265,24 @@ bool TryRunConstructBytecode(Isolate* isolate, Tagged<BytecodeArray> bytecode,
 
   if (TryRunArrayBufferConstructorBuiltin(isolate, constructor, new_target,
                                           arg_count, args, out_result)) {
+    if (switched_context) isolate->set_context(saved_context);
+    return true;
+  }
+
+  if (TryRunDateConstructorBuiltin(isolate, constructor, new_target,
+                                   arg_count, args, out_result)) {
+    if (switched_context) isolate->set_context(saved_context);
+    return true;
+  }
+
+  if (TryRunDataViewConstructorBuiltin(isolate, constructor, new_target,
+                                       arg_count, args, out_result)) {
+    if (switched_context) isolate->set_context(saved_context);
+    return true;
+  }
+
+  if (TryRunSegmenterConstructorBuiltin(isolate, constructor, new_target,
+                                        arg_count, args, out_result)) {
     if (switched_context) isolate->set_context(saved_context);
     return true;
   }
@@ -11655,6 +14318,181 @@ bool TryRunJumpBytecode(Isolate* isolate, Tagged<BytecodeArray> bytecode,
   return true;
 }
 
+bool TryRunNonAllocatingBytecodeFastPath(
+    Isolate* isolate, Tagged<BytecodeArray> bytecode, int bytecode_index,
+    interpreter::Bytecode bytecode_enum,
+    interpreter::OperandScale operand_scale, Address current_offset,
+    Address* out_result, Address* out_next_offset) {
+  // These operations do not allocate, invoke JavaScript, or enter a runtime
+  // builtin. Handling them before the per-bytecode GC state scope avoids
+  // scanning the complete emulated register and frame storage for the hot
+  // load/store/jump path.
+  if (TryRunStarBytecode(bytecode, bytecode_index, bytecode_enum,
+                         operand_scale, out_result)) {
+    return true;
+  }
+  if (TryRunMovBytecode(bytecode, bytecode_index, bytecode_enum,
+                        operand_scale, out_result)) {
+    return true;
+  }
+  if (TryRunContextStackBytecode(bytecode, bytecode_index, bytecode_enum,
+                                 operand_scale, out_result)) {
+    return true;
+  }
+  if (TryRunLdarBytecode(bytecode, bytecode_index, bytecode_enum,
+                         operand_scale, out_result)) {
+    return true;
+  }
+  if (TryRunLdaConstantBytecode(isolate, bytecode, bytecode_index,
+                                bytecode_enum, operand_scale, out_result)) {
+    return true;
+  }
+  {
+    ReadOnlyRoots roots(isolate);
+    switch (bytecode_enum) {
+      case interpreter::Bytecode::kLdaZero:
+        *out_result = Smi::zero().ptr();
+        return true;
+      case interpreter::Bytecode::kLdaSmi:
+        *out_result = Smi::FromInt(ReadBytecodeSignedOperand(
+            bytecode, bytecode_index, bytecode_enum, 0, operand_scale))
+                          .ptr();
+        return true;
+      case interpreter::Bytecode::kLdaUndefined:
+        *out_result = roots.undefined_value().ptr();
+        return true;
+      case interpreter::Bytecode::kLdaNull:
+        *out_result = roots.null_value().ptr();
+        return true;
+      case interpreter::Bytecode::kLdaTheHole:
+        *out_result = roots.the_hole_value().ptr();
+        return true;
+      case interpreter::Bytecode::kLdaTrue:
+        *out_result = roots.true_value().ptr();
+        return true;
+      case interpreter::Bytecode::kLdaFalse:
+        *out_result = roots.false_value().ptr();
+        return true;
+      case interpreter::Bytecode::kTestReferenceEqual: {
+        int32_t operand = ReadBytecodeSignedOperand(
+            bytecode, bytecode_index, bytecode_enum, 0, operand_scale);
+        Address lhs =
+            ReadInterpreterRegister(interpreter::Register::FromOperand(operand));
+        Address rhs =
+            g_wasm_regs[SlotFor(kInterpreterAccumulatorRegister)];
+        *out_result = lhs == rhs ? roots.true_value().ptr()
+                                  : roots.false_value().ptr();
+        return true;
+      }
+      case interpreter::Bytecode::kTestNull:
+        *out_result =
+            g_wasm_regs[SlotFor(kInterpreterAccumulatorRegister)] ==
+                    roots.null_value().ptr()
+                ? roots.true_value().ptr()
+                : roots.false_value().ptr();
+        return true;
+      case interpreter::Bytecode::kTestUndefined:
+        *out_result =
+            g_wasm_regs[SlotFor(kInterpreterAccumulatorRegister)] ==
+                    roots.undefined_value().ptr()
+                ? roots.true_value().ptr()
+                : roots.false_value().ptr();
+        return true;
+      default:
+        break;
+    }
+  }
+  switch (bytecode_enum) {
+    case interpreter::Bytecode::kLdaContextSlotNoCell:
+    case interpreter::Bytecode::kLdaImmutableContextSlot:
+    case interpreter::Bytecode::kLdaCurrentContextSlotNoCell:
+    case interpreter::Bytecode::kLdaImmutableCurrentContextSlot:
+      return TryRunLdaContextSlotBytecode(isolate, bytecode, bytecode_index,
+                                          bytecode_enum, operand_scale,
+                                          out_result);
+    case interpreter::Bytecode::kStaContextSlotNoCell:
+    case interpreter::Bytecode::kStaCurrentContextSlotNoCell:
+      return TryRunStaContextSlotBytecode(isolate, bytecode, bytecode_index,
+                                          bytecode_enum, operand_scale,
+                                          out_result);
+    default:
+      break;
+  }
+  if (bytecode_enum == interpreter::Bytecode::kAddSmi) {
+    Address lhs_address =
+        g_wasm_regs[SlotFor(kInterpreterAccumulatorRegister)];
+    if (!IsSmi(Tagged<Object>(lhs_address))) return false;
+    const int64_t sum =
+        static_cast<int64_t>(Smi::ToInt(Tagged<Smi>(lhs_address))) +
+        ReadBytecodeSignedOperand(bytecode, bytecode_index, bytecode_enum, 0,
+                                  operand_scale);
+    if (sum < Smi::kMinValue || sum > Smi::kMaxValue) return false;
+    *out_result = Smi::FromInt(static_cast<int>(sum)).ptr();
+    return true;
+  }
+  if (bytecode_enum == interpreter::Bytecode::kInc ||
+      bytecode_enum == interpreter::Bytecode::kDec) {
+    Address input = g_wasm_regs[SlotFor(kInterpreterAccumulatorRegister)];
+    if (!IsSmi(Tagged<Object>(input))) return false;
+    const int64_t result =
+        static_cast<int64_t>(Smi::ToInt(Tagged<Smi>(input))) +
+        (bytecode_enum == interpreter::Bytecode::kInc ? 1 : -1);
+    if (result < Smi::kMinValue || result > Smi::kMaxValue) return false;
+    *out_result = Smi::FromInt(static_cast<int>(result)).ptr();
+    return true;
+  }
+  switch (bytecode_enum) {
+    case interpreter::Bytecode::kTestEqual:
+    case interpreter::Bytecode::kTestEqualStrict:
+    case interpreter::Bytecode::kTestLessThan:
+    case interpreter::Bytecode::kTestGreaterThan:
+    case interpreter::Bytecode::kTestLessThanOrEqual:
+    case interpreter::Bytecode::kTestGreaterThanOrEqual:
+      break;
+    default:
+      if (!interpreter::Bytecodes::IsJump(bytecode_enum)) return false;
+      return TryRunJumpBytecode(isolate, bytecode, bytecode_index,
+                                bytecode_enum, operand_scale, current_offset,
+                                out_next_offset);
+  }
+
+  int32_t lhs_operand =
+      ReadBytecodeSignedOperand(bytecode, bytecode_index, bytecode_enum, 0,
+                                operand_scale);
+  Address lhs = ReadInterpreterRegister(
+      interpreter::Register::FromOperand(lhs_operand));
+  Address rhs = g_wasm_regs[SlotFor(kInterpreterAccumulatorRegister)];
+  if (!IsSmi(Tagged<Object>(lhs)) || !IsSmi(Tagged<Object>(rhs))) {
+    return false;
+  }
+  const int lhs_value = Smi::ToInt(Tagged<Smi>(lhs));
+  const int rhs_value = Smi::ToInt(Tagged<Smi>(rhs));
+  bool comparison = false;
+  switch (bytecode_enum) {
+    case interpreter::Bytecode::kTestEqual:
+    case interpreter::Bytecode::kTestEqualStrict:
+      comparison = lhs_value == rhs_value;
+      break;
+    case interpreter::Bytecode::kTestLessThan:
+      comparison = lhs_value < rhs_value;
+      break;
+    case interpreter::Bytecode::kTestGreaterThan:
+      comparison = lhs_value > rhs_value;
+      break;
+    case interpreter::Bytecode::kTestLessThanOrEqual:
+      comparison = lhs_value <= rhs_value;
+      break;
+    case interpreter::Bytecode::kTestGreaterThanOrEqual:
+      comparison = lhs_value >= rhs_value;
+      break;
+    default:
+      UNREACHABLE();
+  }
+  ReadOnlyRoots roots(isolate);
+  *out_result = comparison ? roots.true_value().ptr() : roots.false_value().ptr();
+  return true;
+}
+
 bool TryRunSetNamedPropertyBytecode(
     Isolate* isolate, Tagged<BytecodeArray> bytecode, int bytecode_index,
     interpreter::Bytecode bytecode_enum,
@@ -11702,6 +14540,16 @@ bool TryRunSetNamedPropertyBytecode(
   Address value_address =
       g_wasm_regs[SlotFor(kInterpreterAccumulatorRegister)];
   ReadOnlyRoots roots(isolate);
+#ifdef __wasi__
+  bool trace_all_agents_store = false;
+  if (kEnableWasm32DebugDiagnostics) {
+    HandleScope trace_scope(isolate);
+    Handle<Name> trace_name = handle(Cast<Name>(name_object), isolate);
+    trace_all_agents_store = Name::Equals(
+        isolate, trace_name,
+        isolate->factory()->InternalizeUtf8String("allAgents"));
+  }
+#endif
   if (trace_reflect_own_keys_name) {
     PrintF("WasmInterpreterEntryTrampoline: named store trace before "
            "bytecode=%s index=%d object_operand=%d name=",
@@ -11726,6 +14574,30 @@ bool TryRunSetNamedPropertyBytecode(
   if (!IsSafeTaggedRootValue(isolate, value_address)) {
     value_address = roots.undefined_value().ptr();
   }
+#ifdef __wasi__
+  if (trace_all_agents_store) {
+    static int all_agents_store_trace_count = 0;
+    if (all_agents_store_trace_count < 32) {
+      ++all_agents_store_trace_count;
+      const bool is_array = IsJSArray(Tagged<Object>(value_address));
+      Address length = is_array
+                           ? Cast<JSArray>(Tagged<Object>(value_address))
+                                 ->length()
+                                 .ptr()
+                           : 0;
+      std::fprintf(stderr,
+                   "WASM32_ALL_AGENTS_STORE #%d opcode=%s pc=%d source=%d "
+                   "object=0x%x value=0x%x array=%d length=0x%x\n",
+                   all_agents_store_trace_count,
+                   interpreter::Bytecodes::ToString(bytecode_enum),
+                   bytecode_index, bytecode->SourcePosition(bytecode_index),
+                   static_cast<unsigned>(object_address),
+                   static_cast<unsigned>(value_address), is_array ? 1 : 0,
+                   static_cast<unsigned>(length));
+      std::fflush(stderr);
+    }
+  }
+#endif
 
   HandleScope scope(isolate);
   WasmGCStateScope gc_state(isolate);
@@ -12517,6 +15389,31 @@ bool TryRunCreateArrayLiteralBytecode(
       feedback_address,
   };
   *out_result = Runtime_CreateArrayLiteral(4, &args[3], isolate);
+#ifdef __wasi__
+  if (kEnableWasm32DebugDiagnostics &&
+      IsJSArray(Tagged<Object>(*out_result))) {
+    Tagged<JSArray> result = Cast<JSArray>(Tagged<Object>(*out_result));
+    Tagged<Number> result_length = result->length();
+    if (IsSmi(result_length) &&
+        Smi::ToInt(Cast<Smi>(result_length)) > 10000) {
+      Tagged<ArrayBoilerplateDescription> description =
+          Cast<ArrayBoilerplateDescription>(elements_object);
+      Tagged<FixedArrayBase> constant_elements =
+          description->constant_elements(isolate);
+      std::fprintf(
+          stderr,
+          "WASM32_LARGE_ARRAY_LITERAL_RESULT pc=%d source=%d scale=%d "
+          "elements_index=%u literal_index=%u flags=%u feedback=0x%x "
+          "boilerplate_elements=%d result=0x%x result_length=%d\n",
+          bytecode_index, bytecode->SourcePosition(bytecode_index),
+          static_cast<int>(operand_scale), elements_index, literal_index, flags,
+          static_cast<unsigned>(feedback_address), constant_elements->length(),
+          static_cast<unsigned>(*out_result),
+          Smi::ToInt(Cast<Smi>(result_length)));
+      std::fflush(stderr);
+    }
+  }
+#endif
   return true;
 }
 
@@ -12843,6 +15740,31 @@ bool TryRunStaInArrayLiteralBytecode(
   if (!IsSafeTaggedRootValue(isolate, value_address)) {
     value_address = ReadOnlyRoots(isolate).undefined_value().ptr();
   }
+#ifdef __wasi__
+  if (kEnableWasm32DebugDiagnostics &&
+      IsSmi(Tagged<Object>(index_address))) {
+    int index = Smi::ToInt(Tagged<Smi>(index_address));
+    if (index > 10000) {
+      static int large_array_literal_store_trace_count = 0;
+      if (large_array_literal_store_trace_count < 16) {
+        ++large_array_literal_store_trace_count;
+        Tagged<JSArray> trace_array =
+            Cast<JSArray>(Tagged<Object>(array_address));
+        std::fprintf(
+            stderr,
+            "WASM32_LARGE_ARRAY_LITERAL_STORE #%d pc=%d source=%d "
+            "array=0x%x old_length=0x%x index=%d value=0x%x "
+            "array_operand=%d index_operand=%d\n",
+            large_array_literal_store_trace_count, bytecode_index,
+            bytecode->SourcePosition(bytecode_index),
+            static_cast<unsigned>(array_address),
+            static_cast<unsigned>(trace_array->length().ptr()), index,
+            static_cast<unsigned>(value_address), array_operand, index_operand);
+        std::fflush(stderr);
+      }
+    }
+  }
+#endif
 
   Address feedback_address =
       g_wasm_interpreter_frame[InterpreterFrameSlotForOffset(
@@ -13962,6 +16884,7 @@ bool TryRunGeneratorResumeBuiltin(Isolate* isolate, Builtin builtin,
                                   Address receiver, int actual_argc,
                                   Address* argv, Address* out_result) {
   JSGeneratorObject::ResumeMode resume_mode;
+  bool async_generator_resume = false;
   switch (builtin) {
     case Builtin::kGeneratorPrototypeNext:
     case Builtin::kAsyncModuleEvaluate:
@@ -13972,6 +16895,18 @@ bool TryRunGeneratorResumeBuiltin(Isolate* isolate, Builtin builtin,
       break;
     case Builtin::kGeneratorPrototypeThrow:
       resume_mode = JSGeneratorObject::ResumeMode::kThrow;
+      break;
+    case Builtin::kAsyncGeneratorPrototypeNext:
+      resume_mode = JSGeneratorObject::ResumeMode::kNext;
+      async_generator_resume = true;
+      break;
+    case Builtin::kAsyncGeneratorPrototypeReturn:
+      resume_mode = JSGeneratorObject::ResumeMode::kReturn;
+      async_generator_resume = true;
+      break;
+    case Builtin::kAsyncGeneratorPrototypeThrow:
+      resume_mode = JSGeneratorObject::ResumeMode::kThrow;
+      async_generator_resume = true;
       break;
     default:
       return false;
@@ -13993,6 +16928,44 @@ bool TryRunGeneratorResumeBuiltin(Isolate* isolate, Builtin builtin,
       actual_argc > 0 ? SafeTaggedOrUndefined(isolate, argv[0])
                       : roots.undefined_value().ptr();
   Handle<Object> value(Tagged<Object>(value_address), isolate);
+
+  if (async_generator_resume) {
+    if (!IsJSAsyncGeneratorObject(*generator)) return false;
+    DirectHandle<JSAsyncGeneratorObject> async_generator(
+        Cast<JSAsyncGeneratorObject>(*generator), isolate);
+    DirectHandle<JSPromise> promise = isolate->factory()->NewJSPromise();
+    DirectHandle<AsyncGeneratorRequest> request = Cast<AsyncGeneratorRequest>(
+        isolate->factory()->NewStruct(ASYNC_GENERATOR_REQUEST_TYPE));
+    request->set_next(roots.undefined_value());
+    request->set_resume_mode(static_cast<int>(resume_mode));
+    request->set_value(*value);
+    request->set_promise(*promise);
+
+    Tagged<HeapObject> queue = async_generator->queue();
+    if (IsUndefined(queue, roots)) {
+      async_generator->set_queue(*request);
+    } else {
+      if (!IsAsyncGeneratorRequest(queue)) return false;
+      DirectHandle<AsyncGeneratorRequest> tail(
+          Cast<AsyncGeneratorRequest>(queue), isolate);
+      for (int i = 0; i < 65536; ++i) {
+        Tagged<Union<AsyncGeneratorRequest, Undefined>> next = tail->next();
+        if (IsUndefined(next, roots)) {
+          tail->set_next(*request);
+          break;
+        }
+        if (!IsAsyncGeneratorRequest(next)) return false;
+        tail = direct_handle(Cast<AsyncGeneratorRequest>(next), isolate);
+      }
+    }
+
+    if (!ResumeAsyncGeneratorRequest(isolate, async_generator)) {
+      *out_result = roots.exception().ptr();
+      return true;
+    }
+    *out_result = (*promise).ptr();
+    return true;
+  }
 
   int continuation = generator->continuation();
   if (continuation == JSGeneratorObject::kGeneratorClosed) {
@@ -14257,6 +17230,31 @@ bool TryRunAsyncFunctionAwaitClosureBuiltin(
                                       resume_mode, out_result);
 }
 
+bool TryRunAsyncGeneratorAwaitClosureBuiltin(
+    Isolate* isolate, Builtin builtin, Tagged<JSFunction> function,
+    int actual_argc, Address* argv, Address* out_result) {
+  JSGeneratorObject::ResumeMode resume_mode;
+  bool resolve_yield = false;
+  switch (builtin) {
+    case Builtin::kAsyncGeneratorAwaitResolveClosure:
+      resume_mode = JSGeneratorObject::ResumeMode::kNext;
+      break;
+    case Builtin::kAsyncGeneratorAwaitRejectClosure:
+      resume_mode = JSGeneratorObject::ResumeMode::kRethrow;
+      break;
+    case Builtin::kAsyncGeneratorYieldWithAwaitResolveClosure:
+      resume_mode = JSGeneratorObject::ResumeMode::kNext;
+      resolve_yield = true;
+      break;
+    default:
+      return false;
+  }
+  Address value_address =
+      actual_argc > 0 ? argv[0] : ReadOnlyRoots(isolate).undefined_value().ptr();
+  return ResumeAsyncGeneratorAwait(isolate, function, value_address, resume_mode,
+                                   resolve_yield, out_result);
+}
+
 bool TryRunArrayFlatBuiltin(Isolate* isolate, DirectHandle<Object> callable,
                             DirectHandle<Object> receiver, int arg_count,
                             DirectHandle<Object>* args,
@@ -14401,6 +17399,350 @@ bool TryFallbackJSEntryBuiltin(Isolate* isolate, Builtin builtin,
     return TryRunWasm32ExportedFunction(isolate, function_value, actual_argc,
                                         argv, out_result);
   }
+  if (builtin == Builtin::kErrorPrototypeToString) {
+    Tagged<Context> saved_context = isolate->context();
+    isolate->set_context(Wasm32JSFunctionContext(*function));
+    DirectHandle<Object> receiver_object(
+        Tagged<Object>(SafeTaggedOrUndefined(isolate, receiver)), isolate);
+    DirectHandle<String> result;
+    if (!ErrorUtils::ToString(isolate, receiver_object).ToHandle(&result)) {
+      *out_result = roots.exception().ptr();
+    } else {
+      *out_result = (*result).ptr();
+    }
+    isolate->set_context(saved_context);
+    return true;
+  }
+  {
+    DirectHandle<Object> callable(*function, isolate);
+    DirectHandle<Object> receiver_object(
+        Tagged<Object>(SafeTaggedOrUndefined(isolate, receiver)), isolate);
+    DirectHandle<Object> args[kMaxWasmCallArgs];
+    for (int i = 0; i < actual_argc; ++i) {
+      args[i] = direct_handle(
+          Tagged<Object>(SafeTaggedOrUndefined(isolate, argv[i])), isolate);
+    }
+    Tagged<Context> saved_context = isolate->context();
+    isolate->set_context(Wasm32JSFunctionContext(*function));
+    bool handled = TryRunWasm32SharedBuiltinFallbacks(
+        isolate, callable, receiver_object, actual_argc, args, out_result);
+    isolate->set_context(saved_context);
+    if (handled) return true;
+  }
+  if (builtin == Builtin::kDateConstructor) {
+    Tagged<Context> saved_context = isolate->context();
+    isolate->set_context(Wasm32JSFunctionContext(*function));
+    DirectHandle<Object> constructor(*function, isolate);
+    DirectHandle<Object> constructor_new_target(
+        Tagged<Object>(SafeTaggedOrUndefined(isolate, new_target)), isolate);
+    DirectHandle<Object> args[kMaxWasmCallArgs];
+    for (int i = 0; i < actual_argc; ++i) {
+      args[i] = direct_handle(
+          Tagged<Object>(SafeTaggedOrUndefined(isolate, argv[i])), isolate);
+    }
+    bool handled = TryRunDateConstructorBuiltin(
+        isolate, constructor, constructor_new_target, actual_argc, args,
+        out_result);
+    isolate->set_context(saved_context);
+    if (handled) return true;
+  }
+  if (builtin == Builtin::kObjectConstructor) {
+    Tagged<Context> saved_context = isolate->context();
+    Tagged<Context> function_context = Wasm32JSFunctionContext(*function);
+    isolate->set_context(function_context);
+
+    Address new_target_address = SafeTaggedOrUndefined(isolate, new_target);
+    if (new_target_address == roots.undefined_value().ptr() ||
+        new_target_address == (*function).ptr()) {
+      if (actual_argc == 0) {
+        DirectHandle<JSObject> object =
+            isolate->factory()->NewJSObject(isolate->object_function());
+        *out_result = (*object).ptr();
+        isolate->set_context(saved_context);
+        return true;
+      }
+
+      DirectHandle<Object> value = direct_handle(
+          Tagged<Object>(SafeTaggedOrUndefined(isolate, argv[0])), isolate);
+      if (IsUndefined(*value, isolate) || IsNull(*value)) {
+        DirectHandle<JSObject> object =
+            isolate->factory()->NewJSObject(isolate->object_function());
+        *out_result = (*object).ptr();
+        isolate->set_context(saved_context);
+        return true;
+      }
+
+      DirectHandle<JSReceiver> object;
+      if (!Object::ToObject(isolate, value, "Object").ToHandle(&object)) {
+        *out_result = roots.exception().ptr();
+      } else {
+        *out_result = (*object).ptr();
+      }
+      isolate->set_context(saved_context);
+      return true;
+    }
+
+    if (!IsJSReceiver(Tagged<Object>(new_target_address))) {
+      isolate->set_context(saved_context);
+      return false;
+    }
+    DirectHandle<JSReceiver> constructor_new_target = direct_handle(
+        Cast<JSReceiver>(Tagged<Object>(new_target_address)), isolate);
+    DirectHandle<Map> map;
+    if (!JSFunction::GetDerivedMap(isolate, function, constructor_new_target)
+             .ToHandle(&map)) {
+      *out_result = roots.exception().ptr();
+      isolate->set_context(saved_context);
+      return true;
+    }
+    DirectHandle<JSObject> object =
+        isolate->factory()->NewFastOrSlowJSObjectFromMap(map);
+    *out_result = (*object).ptr();
+    isolate->set_context(saved_context);
+    return true;
+  }
+  if (builtin == Builtin::kTypedArrayConstructor) {
+    HandleScope scope(isolate);
+    DirectHandle<Object> constructor(*function, isolate);
+    DirectHandle<Object> new_target_object(
+        Tagged<Object>(SafeTaggedOrUndefined(isolate, new_target)), isolate);
+    DirectHandle<Object> args[kMaxWasmCallArgs];
+    for (int i = 0; i < actual_argc; ++i) {
+      args[i] = direct_handle(
+          Tagged<Object>(SafeTaggedOrUndefined(isolate, argv[i])), isolate);
+    }
+    Tagged<Context> saved_context = isolate->context();
+    isolate->set_context(Wasm32JSFunctionContext(*function));
+    bool handled = TryRunTypedArrayConstructorBuiltin(
+        isolate, constructor, new_target_object, actual_argc, args, out_result);
+    isolate->set_context(saved_context);
+    if (handled) return true;
+  }
+  if (builtin == Builtin::kDataViewConstructor) {
+    HandleScope scope(isolate);
+    DirectHandle<Object> constructor(*function, isolate);
+    DirectHandle<Object> new_target_object(
+        Tagged<Object>(SafeTaggedOrUndefined(isolate, new_target)), isolate);
+    DirectHandle<Object> args[kMaxWasmCallArgs];
+    for (int i = 0; i < actual_argc; ++i) {
+      args[i] = direct_handle(
+          Tagged<Object>(SafeTaggedOrUndefined(isolate, argv[i])), isolate);
+    }
+    Tagged<Context> saved_context = isolate->context();
+    isolate->set_context(Wasm32JSFunctionContext(*function));
+    bool handled = TryRunDataViewConstructorBuiltin(
+        isolate, constructor, new_target_object, actual_argc, args, out_result);
+    isolate->set_context(saved_context);
+    if (handled) return true;
+  }
+  if (builtin == Builtin::kSegmenterConstructor) {
+    HandleScope scope(isolate);
+    DirectHandle<Object> constructor(*function, isolate);
+    DirectHandle<Object> new_target_object(
+        Tagged<Object>(SafeTaggedOrUndefined(isolate, new_target)), isolate);
+    DirectHandle<Object> args[kMaxWasmCallArgs];
+    for (int i = 0; i < actual_argc; ++i) {
+      args[i] = direct_handle(
+          Tagged<Object>(SafeTaggedOrUndefined(isolate, argv[i])), isolate);
+    }
+    Tagged<Context> saved_context = isolate->context();
+    isolate->set_context(Wasm32JSFunctionContext(*function));
+    bool handled = TryRunSegmenterConstructorBuiltin(
+        isolate, constructor, new_target_object, actual_argc, args, out_result);
+    isolate->set_context(saved_context);
+    if (handled) return true;
+  }
+  if (builtin == Builtin::kReflectDeleteProperty) {
+    HandleScope scope(isolate);
+    Tagged<Object> target_address(SafeTaggedOrUndefined(
+        isolate, actual_argc > 0 ? argv[0] : roots.undefined_value().ptr()));
+    if (!IsJSReceiver(target_address)) {
+      isolate->Throw(*isolate->factory()->NewError(
+          isolate->type_error_function(),
+          isolate->factory()->NewStringFromAsciiChecked(
+              "Reflect.deleteProperty target is not an object")));
+      *out_result = roots.exception().ptr();
+      return true;
+    }
+    DirectHandle<JSReceiver> target =
+        direct_handle(Cast<JSReceiver>(target_address), isolate);
+    DirectHandle<Object> key(
+        Tagged<Object>(SafeTaggedOrUndefined(
+            isolate, actual_argc > 1 ? argv[1] : roots.undefined_value().ptr())),
+        isolate);
+    PropertyKey property_key(isolate, key);
+    if (isolate->has_exception()) {
+      *out_result = roots.exception().ptr();
+      return true;
+    }
+    Maybe<bool> deleted = JSReceiver::DeletePropertyOrElement(
+        isolate, target, property_key, LanguageMode::kSloppy);
+    if (deleted.IsNothing()) {
+      *out_result = roots.exception().ptr();
+      return true;
+    }
+    *out_result = deleted.FromJust() ? roots.true_value().ptr()
+                                     : roots.false_value().ptr();
+    return true;
+  }
+  if (builtin == Builtin::kStringPrototypeLastIndexOf) {
+    HandleScope scope(isolate);
+    DirectHandle<Object> receiver_object(
+        Tagged<Object>(SafeTaggedOrUndefined(isolate, receiver)), isolate);
+    DirectHandle<Object> search(
+        Tagged<Object>(SafeTaggedOrUndefined(
+            isolate, actual_argc > 0 ? argv[0] : roots.undefined_value().ptr())),
+        isolate);
+    DirectHandle<Object> position(
+        Tagged<Object>(SafeTaggedOrUndefined(
+            isolate, actual_argc > 1 ? argv[1] : roots.undefined_value().ptr())),
+        isolate);
+    *out_result = String::LastIndexOf(isolate, receiver_object, search,
+                                      position)
+                      .ptr();
+    return true;
+  }
+  if (builtin == Builtin::kStringFromCharCode) {
+    HandleScope scope(isolate);
+    std::vector<base::uc16> characters;
+    characters.reserve(actual_argc);
+    for (int i = 0; i < actual_argc; ++i) {
+      DirectHandle<Object> input(
+          Tagged<Object>(SafeTaggedOrUndefined(isolate, argv[i])), isolate);
+      DirectHandle<Number> number;
+      if (!Object::ToNumber(isolate, input).ToHandle(&number)) {
+        *out_result = roots.exception().ptr();
+        return true;
+      }
+      characters.push_back(static_cast<base::uc16>(
+          DoubleToUint32(Object::NumberValue(*number)) & 0xffff));
+    }
+    DirectHandle<String> result;
+    if (!isolate->factory()
+             ->NewStringFromTwoByte(base::Vector<const base::uc16>(
+                 characters.data(), characters.size()))
+             .ToHandle(&result)) {
+      *out_result = roots.exception().ptr();
+      return true;
+    }
+    *out_result = (*result).ptr();
+    return true;
+  }
+  if (builtin == Builtin::kObjectIs) {
+    Tagged<Object> left(SafeTaggedOrUndefined(
+        isolate, actual_argc > 0 ? argv[0] : roots.undefined_value().ptr()));
+    Tagged<Object> right(SafeTaggedOrUndefined(
+        isolate, actual_argc > 1 ? argv[1] : roots.undefined_value().ptr()));
+    *out_result = Object::SameValue(left, right) ? roots.true_value().ptr()
+                                                  : roots.false_value().ptr();
+    return true;
+  }
+  if (builtin == Builtin::kObjectFromEntries) {
+    HandleScope scope(isolate);
+    DirectHandle<Object> input(
+        Tagged<Object>(SafeTaggedOrUndefined(
+            isolate, actual_argc > 0 ? argv[0] : roots.undefined_value().ptr())),
+        isolate);
+    DirectHandle<JSReceiver> entries;
+    if (!Object::ToObject(isolate, input, "Object.fromEntries")
+             .ToHandle(&entries)) {
+      *out_result = roots.exception().ptr();
+      return true;
+    }
+    DirectHandle<Object> length_object;
+    if (!Object::GetLengthFromArrayLike(isolate, entries)
+             .ToHandle(&length_object)) {
+      *out_result = roots.exception().ptr();
+      return true;
+    }
+    double raw_length = Object::NumberValue(*length_object);
+    if (raw_length < 0 || raw_length > JSObject::kMaxElementIndex) {
+      return false;
+    }
+    uint32_t length = static_cast<uint32_t>(raw_length);
+    DirectHandle<JSObject> result =
+        isolate->factory()->NewJSObject(isolate->object_function());
+    DirectHandle<JSAny> result_any = Cast<JSAny>(result);
+    for (uint32_t i = 0; i < length; ++i) {
+      DirectHandle<Object> entry;
+      if (!JSReceiver::GetElement(isolate, entries, i).ToHandle(&entry)) {
+        *out_result = roots.exception().ptr();
+        return true;
+      }
+      DirectHandle<JSReceiver> pair;
+      if (!Object::ToObject(isolate, entry, "Object.fromEntries entry")
+               .ToHandle(&pair)) {
+        *out_result = roots.exception().ptr();
+        return true;
+      }
+      DirectHandle<Object> key;
+      DirectHandle<Object> value;
+      if (!JSReceiver::GetElement(isolate, pair, 0).ToHandle(&key) ||
+          !JSReceiver::GetElement(isolate, pair, 1).ToHandle(&value)) {
+        *out_result = roots.exception().ptr();
+        return true;
+      }
+      DirectHandle<Object> property_key;
+      if (!Object::ToPropertyKey(isolate, key).ToHandle(&property_key)) {
+        *out_result = roots.exception().ptr();
+        return true;
+      }
+      DirectHandle<Name> property_name = Cast<Name>(property_key);
+      DirectHandle<Object> ignored;
+      if (!Object::SetProperty(isolate, result_any, property_name, value,
+                               StoreOrigin::kMaybeKeyed,
+                               Just(ShouldThrow::kThrowOnError))
+               .ToHandle(&ignored)) {
+        *out_result = roots.exception().ptr();
+        return true;
+      }
+    }
+    *out_result = (*result).ptr();
+    return true;
+  }
+  if (builtin == Builtin::kFinalizationRegistryConstructor) {
+    HandleScope scope(isolate);
+    Address new_target_address = SafeTaggedOrUndefined(isolate, new_target);
+    if (!IsSafeTaggedHandleValue(new_target_address) ||
+        !IsJSReceiver(Tagged<Object>(new_target_address))) {
+      return false;
+    }
+    DirectHandle<JSReceiver> constructor_new_target = direct_handle(
+        Cast<JSReceiver>(Tagged<Object>(new_target_address)), isolate);
+    DirectHandle<Map> map;
+    if (!JSFunction::GetDerivedMap(isolate, function, constructor_new_target)
+             .ToHandle(&map)) {
+      *out_result = roots.exception().ptr();
+      return true;
+    }
+    DirectHandle<JSFinalizationRegistry> registry =
+        Cast<JSFinalizationRegistry>(
+            isolate->factory()->NewFastOrSlowJSObjectFromMap(map));
+    Tagged<Context> function_context = Wasm32JSFunctionContext(*function);
+    Tagged<Object> cleanup(SafeTaggedOrUndefined(
+        isolate, actual_argc > 0 ? argv[0] : roots.undefined_value().ptr()));
+    if (!IsJSFunction(cleanup)) return false;
+    registry->set_native_context(function_context->native_context());
+    registry->set_cleanup(Cast<JSFunction>(cleanup));
+    registry->set_flags(0);
+    *out_result = (*registry).ptr();
+    return true;
+  }
+  if (builtin == Builtin::kFinalizationRegistryRegister) {
+    *out_result = roots.undefined_value().ptr();
+    return true;
+  }
+  if (builtin == Builtin::kFinalizationRegistryUnregister) {
+    *out_result = roots.false_value().ptr();
+    return true;
+  }
+  if (builtin == Builtin::kReturnReceiver) {
+    // %IteratorPrototype% and %AsyncIteratorPrototype% use this builtin for
+    // their @@iterator methods. Returning the receiver preserves an iterator
+    // object's identity without entering an unimplemented generated builtin.
+    *out_result = SafeTaggedOrUndefined(isolate, receiver);
+    return true;
+  }
   if (builtin == Builtin::kParseInt ||
       builtin == Builtin::kNumberParseInt) {
     Tagged<Context> saved_context = isolate->context();
@@ -14440,6 +17782,95 @@ bool TryFallbackJSEntryBuiltin(Isolate* isolate, Builtin builtin,
     isolate->set_context(saved_context);
     return true;
   }
+  if (builtin == Builtin::kObjectHasOwn) {
+    DirectHandle<Object> object_value =
+        actual_argc > 0
+            ? direct_handle(
+                  Tagged<Object>(SafeTaggedOrUndefined(isolate, argv[0])),
+                  isolate)
+            : direct_handle(roots.undefined_value(), isolate);
+    DirectHandle<Object> key_value =
+        actual_argc > 1
+            ? direct_handle(
+                  Tagged<Object>(SafeTaggedOrUndefined(isolate, argv[1])),
+                  isolate)
+            : direct_handle(roots.undefined_value(), isolate);
+    DirectHandle<JSReceiver> object;
+    if (!Object::ToObject(isolate, object_value, "Object.hasOwn")
+             .ToHandle(&object)) {
+      *out_result = roots.exception().ptr();
+      return true;
+    }
+    DirectHandle<Name> key;
+    if (!Object::ToName(isolate, key_value).ToHandle(&key)) {
+      *out_result = roots.exception().ptr();
+      return true;
+    }
+    Maybe<bool> result = JSReceiver::HasOwnProperty(isolate, object, key);
+    if (result.IsNothing()) {
+      *out_result = roots.exception().ptr();
+      return true;
+    }
+    *out_result = (*isolate->factory()->ToBoolean(result.FromJust())).ptr();
+    return true;
+  }
+
+  if (builtin == Builtin::kRegExpPrototypeFlagsGetter) {
+    Tagged<Object> receiver_value(
+        SafeTaggedOrUndefined(isolate, receiver));
+    if (!IsJSRegExp(receiver_value)) return false;
+    DirectHandle<String> flags = JSRegExp::StringFromFlags(
+        isolate, Cast<JSRegExp>(receiver_value)->flags());
+    *out_result = (*flags).ptr();
+    return true;
+  }
+
+  if (builtin == Builtin::kRegExpPrototypeToString) {
+    Tagged<Object> receiver_value(
+        SafeTaggedOrUndefined(isolate, receiver));
+    if (!IsJSReceiver(receiver_value)) return false;
+
+    DirectHandle<JSReceiver> regexp =
+        direct_handle(Cast<JSReceiver>(receiver_value), isolate);
+    DirectHandle<Object> source_value;
+    if (!JSReceiver::GetProperty(isolate, regexp,
+                                 isolate->factory()->source_string())
+             .ToHandle(&source_value)) {
+      *out_result = roots.exception().ptr();
+      return true;
+    }
+    DirectHandle<String> source;
+    if (!Object::ToString(isolate, source_value).ToHandle(&source)) {
+      *out_result = roots.exception().ptr();
+      return true;
+    }
+
+    DirectHandle<Object> flags_value;
+    if (!JSReceiver::GetProperty(isolate, regexp,
+                                 isolate->factory()->flags_string())
+             .ToHandle(&flags_value)) {
+      *out_result = roots.exception().ptr();
+      return true;
+    }
+    DirectHandle<String> flags;
+    if (!Object::ToString(isolate, flags_value).ToHandle(&flags)) {
+      *out_result = roots.exception().ptr();
+      return true;
+    }
+
+    DirectHandle<String> slash =
+        isolate->factory()->NewStringFromAsciiChecked("/");
+    DirectHandle<String> result;
+    if (!isolate->factory()->NewConsString(slash, source).ToHandle(&result) ||
+        !isolate->factory()->NewConsString(result, slash).ToHandle(&result) ||
+        !isolate->factory()->NewConsString(result, flags).ToHandle(&result)) {
+      *out_result = roots.exception().ptr();
+      return true;
+    }
+    *out_result = (*result).ptr();
+    return true;
+  }
+
   if (builtin == Builtin::kRegExpPrototypeSourceGetter) {
     Tagged<Object> receiver_object(SafeTaggedOrUndefined(isolate, receiver));
     if (!IsJSRegExp(receiver_object)) return false;
@@ -14565,7 +17996,11 @@ bool TryFallbackJSEntryBuiltin(Isolate* isolate, Builtin builtin,
       return true;
     }
     if (IsJSFunctionBuiltin(isolate, target,
-                            Builtin::kTypedArrayPrototypeSet)) {
+                            Builtin::kArrayBufferPrototypeSlice) ||
+        IsJSFunctionBuiltin(isolate, target,
+                            Builtin::kTypedArrayPrototypeSet) ||
+        IsJSFunctionBuiltin(isolate, target,
+                            Builtin::kTypedArrayPrototypeSubArray)) {
       DirectHandle<Object> call_args[kMaxWasmCallArgs];
       int call_argc = actual_argc - 1;
       if (call_argc > kMaxWasmCallArgs) return false;
@@ -14573,6 +18008,16 @@ bool TryFallbackJSEntryBuiltin(Isolate* isolate, Builtin builtin,
         call_args[i] = direct_handle(
             Tagged<Object>(SafeTaggedOrUndefined(isolate, argv[i + 1])),
             isolate);
+      }
+      if (TryRunArrayBufferPrototypeSliceBuiltin(
+              isolate, target, target_receiver, call_argc, call_args,
+              out_result)) {
+        return true;
+      }
+      if (TryRunTypedArrayPrototypeSubArrayBuiltin(
+              isolate, target, target_receiver, call_argc, call_args,
+              out_result)) {
+        return true;
       }
       return TryRunTypedArrayPrototypeSetBuiltin(
           isolate, target, target_receiver, call_argc, call_args, out_result);
@@ -14600,6 +18045,10 @@ bool TryFallbackJSEntryBuiltin(Isolate* isolate, Builtin builtin,
     return true;
   }
   if (TryRunAsyncFunctionAwaitClosureBuiltin(
+          isolate, builtin, *function, actual_argc, argv, out_result)) {
+    return true;
+  }
+  if (TryRunAsyncGeneratorAwaitClosureBuiltin(
           isolate, builtin, *function, actual_argc, argv, out_result)) {
     return true;
   }
@@ -15017,6 +18466,64 @@ bool TryFallbackJSEntryBuiltin(Isolate* isolate, Builtin builtin,
     return true;
   }
 
+  if (builtin == Builtin::kNumberPrototypeToFixed) {
+    HandleScope scope(isolate);
+    Tagged<Object> value(SafeTaggedOrUndefined(isolate, receiver));
+    if (IsJSPrimitiveWrapper(value)) {
+      value = Cast<JSPrimitiveWrapper>(value)->value();
+    }
+    if (!IsNumber(value)) {
+      isolate->Throw(*isolate->factory()->NewTypeError(
+          MessageTemplate::kNotGeneric,
+          isolate->factory()->NewStringFromAsciiChecked(
+              "Number.prototype.toFixed"),
+          isolate->factory()->Number_string()));
+      *out_result = roots.exception().ptr();
+      return true;
+    }
+
+    DirectHandle<Object> fraction_digits =
+        actual_argc > 0
+            ? direct_handle(
+                  Tagged<Object>(SafeTaggedOrUndefined(isolate, argv[0])),
+                  isolate)
+            : direct_handle(roots.undefined_value(), isolate);
+    double fraction_digits_number = 0;
+    if (!Object::IntegerValue(isolate, fraction_digits)
+             .To(&fraction_digits_number)) {
+      *out_result = roots.exception().ptr();
+      return true;
+    }
+    if (fraction_digits_number < 0.0 ||
+        fraction_digits_number > kMaxFractionDigits) {
+      isolate->Throw(*isolate->factory()->NewRangeError(
+          MessageTemplate::kNumberFormatRange,
+          isolate->factory()->NewStringFromAsciiChecked(
+              "toFixed() digits")));
+      *out_result = roots.exception().ptr();
+      return true;
+    }
+
+    double number_value = Object::NumberValue(value);
+    if (std::isnan(number_value)) {
+      *out_result = roots.NaN_string().ptr();
+      return true;
+    }
+    if (std::isinf(number_value)) {
+      *out_result = number_value < 0.0 ? roots.minus_Infinity_string().ptr()
+                                      : roots.Infinity_string().ptr();
+      return true;
+    }
+
+    char chars[kDoubleToFixedMaxChars];
+    ZoneVector<char> buffer = base::ArrayVector(chars);
+    std::string_view formatted = DoubleToFixedStringView(
+        number_value, static_cast<int>(fraction_digits_number), buffer);
+    *out_result =
+        (*isolate->factory()->NewStringFromAsciiChecked(formatted)).ptr();
+    return true;
+  }
+
   if (builtin == Builtin::kNumberPrototypeToString) {
     Tagged<Object> value(SafeTaggedOrUndefined(isolate, receiver));
     if (IsJSPrimitiveWrapper(value)) {
@@ -15245,6 +18752,20 @@ bool TryFallbackJSEntryBuiltin(Isolate* isolate, Builtin builtin,
         Tagged<Object>(SafeTaggedOrUndefined(isolate, receiver)), isolate);
     bool handled = TryRunArrayShiftBuiltin(isolate, callable, receiver_object,
                                            out_result);
+    isolate->set_context(saved_context);
+    return handled;
+  }
+
+  if (builtin == Builtin::kArrayPrototypePop || builtin == Builtin::kArrayPop) {
+    Tagged<Context> saved_context = isolate->context();
+    isolate->set_context(Wasm32JSFunctionContext(*function));
+
+    HandleScope scope(isolate);
+    DirectHandle<Object> callable = direct_handle(*function, isolate);
+    DirectHandle<Object> receiver_object(
+        Tagged<Object>(SafeTaggedOrUndefined(isolate, receiver)), isolate);
+    bool handled =
+        TryRunArrayPopBuiltin(isolate, callable, receiver_object, out_result);
     isolate->set_context(saved_context);
     return handled;
   }
@@ -15680,6 +19201,110 @@ bool TryFallbackJSEntryBuiltin(Isolate* isolate, Builtin builtin,
     return true;
   }
 
+  if (builtin == Builtin::kPromiseRace) {
+    Tagged<Context> saved_context = isolate->context();
+    isolate->set_context(Wasm32JSFunctionContext(*function));
+    HandleScope scope(isolate);
+    DirectHandle<Object> iterable =
+        actual_argc > 0
+            ? direct_handle(
+                  Tagged<Object>(SafeTaggedOrUndefined(isolate, argv[0])),
+                  isolate)
+            : direct_handle(roots.undefined_value(), isolate);
+    if (!IsJSArray(*iterable)) {
+      isolate->Throw(*isolate->factory()->NewTypeError(
+          MessageTemplate::kNotIterable, iterable));
+      isolate->set_context(saved_context);
+      *out_result = roots.exception().ptr();
+      return true;
+    }
+
+    DirectHandle<JSArray> input = Cast<JSArray>(iterable);
+    uint32_t length = 0;
+    if (!Object::ToArrayLength(input->length(), &length)) {
+      isolate->set_context(saved_context);
+      *out_result = roots.exception().ptr();
+      return true;
+    }
+
+    Handle<JSPromise> aggregate = isolate->factory()->NewJSPromise();
+    DirectHandle<NativeContext> native_context = isolate->native_context();
+    DirectHandle<Context> resolving_context =
+        isolate->factory()->NewBuiltinContext(
+            native_context, PromiseBuiltins::kPromiseContextLength);
+    resolving_context->SetNoCell(PromiseBuiltins::kPromiseSlot, *aggregate);
+    resolving_context->SetNoCell(PromiseBuiltins::kAlreadyResolvedSlot,
+                                 roots.false_value());
+    resolving_context->SetNoCell(PromiseBuiltins::kDebugEventSlot,
+                                 roots.false_value());
+    Handle<JSFunction> resolve =
+        Factory::JSFunctionBuilder{
+            isolate,
+            isolate->factory()
+                ->promise_capability_default_resolve_shared_fun(),
+            resolving_context}
+            .Build();
+    Handle<JSFunction> reject =
+        Factory::JSFunctionBuilder{
+            isolate,
+            isolate->factory()
+                ->promise_capability_default_reject_shared_fun(),
+            resolving_context}
+            .Build();
+
+    for (uint32_t i = 0; i < length; ++i) {
+      DirectHandle<Object> element;
+      if (!JSReceiver::GetElement(isolate, input, i).ToHandle(&element)) {
+        isolate->set_context(saved_context);
+        *out_result = roots.exception().ptr();
+        return true;
+      }
+      if (IsJSPromise(*element)) {
+        DirectHandle<JSPromise> promise = Cast<JSPromise>(element);
+        if (promise->status() == Promise::kPending) {
+          DirectHandle<Object> then_args[] = {resolve, reject};
+          if (Execution::CallBuiltin(isolate, isolate->promise_then(), promise,
+                                     base::VectorOf(then_args))
+                  .is_null()) {
+            isolate->set_context(saved_context);
+            *out_result = roots.exception().ptr();
+            return true;
+          }
+          continue;
+        }
+        element = direct_handle(promise->reactions_or_result(), isolate);
+        resolving_context->SetNoCell(PromiseBuiltins::kAlreadyResolvedSlot,
+                                     roots.true_value());
+        if (promise->status() == Promise::kRejected) {
+          JSPromise::Reject(aggregate, element);
+        } else {
+          DirectHandle<Object> resolve_result;
+          if (!JSPromise::Resolve(aggregate, element)
+                   .ToHandle(&resolve_result)) {
+            isolate->set_context(saved_context);
+            *out_result = roots.exception().ptr();
+            return true;
+          }
+        }
+        break;
+      }
+
+      resolving_context->SetNoCell(PromiseBuiltins::kAlreadyResolvedSlot,
+                                   roots.true_value());
+      DirectHandle<Object> resolve_result;
+      if (!JSPromise::Resolve(aggregate, element).ToHandle(&resolve_result)) {
+        isolate->set_context(saved_context);
+        *out_result = roots.exception().ptr();
+        return true;
+      }
+      break;
+    }
+
+    *out_result = (*aggregate).ptr();
+    isolate->set_context(saved_context);
+    return true;
+  }
+
   if (builtin == Builtin::kPromiseAll) {
     Tagged<Context> saved_context = isolate->context();
     isolate->set_context(Wasm32JSFunctionContext(*function));
@@ -15786,6 +19411,134 @@ bool TryFallbackJSEntryBuiltin(Isolate* isolate, Builtin builtin,
     return true;
   }
 
+  if (builtin == Builtin::kAsyncIteratorValueUnwrap) {
+    Tagged<Context> saved_context = isolate->context();
+    Tagged<Context> function_context = Wasm32JSFunctionContext(*function);
+    isolate->set_context(function_context);
+    HandleScope scope(isolate);
+
+    DirectHandle<Object> value =
+        actual_argc > 0
+            ? direct_handle(
+                  Tagged<Object>(SafeTaggedOrUndefined(isolate, argv[0])),
+                  isolate)
+            : direct_handle(roots.undefined_value(), isolate);
+    Tagged<Object> done =
+        function_context->GetNoCell(Context::MIN_CONTEXT_SLOTS);
+    DirectHandle<JSIteratorResult> result =
+        isolate->factory()->NewJSIteratorResult(
+            value, Object::BooleanValue(done, isolate));
+    *out_result = (*result).ptr();
+    isolate->set_context(saved_context);
+    return true;
+  }
+
+  if (builtin == Builtin::kAsyncFromSyncIteratorPrototypeNext) {
+    Tagged<Context> saved_context = isolate->context();
+    isolate->set_context(Wasm32JSFunctionContext(*function));
+    HandleScope scope(isolate);
+
+    auto reject_current_exception = [&]() {
+      DirectHandle<Object> reason(isolate->exception(), isolate);
+      isolate->clear_exception();
+      isolate->clear_pending_message();
+      Handle<JSPromise> rejected = isolate->factory()->NewJSPromise();
+      JSPromise::Reject(rejected, reason, false);
+      *out_result = (*rejected).ptr();
+      isolate->set_context(saved_context);
+      return true;
+    };
+
+    Address iterator_address = SafeTaggedOrUndefined(isolate, receiver);
+    if (!IsJSAsyncFromSyncIterator(Tagged<Object>(iterator_address))) {
+      isolate->Throw(*isolate->factory()->NewTypeError(
+          MessageTemplate::kIncompatibleMethodReceiver,
+          isolate->factory()->NewStringFromAsciiChecked(
+              "[Async-from-Sync Iterator].prototype.next"),
+          direct_handle(Tagged<Object>(iterator_address), isolate)));
+      return reject_current_exception();
+    }
+
+    DirectHandle<JSAsyncFromSyncIterator> async_iterator(
+        Cast<JSAsyncFromSyncIterator>(Tagged<Object>(iterator_address)),
+        isolate);
+    DirectHandle<JSReceiver> sync_iterator(async_iterator->sync_iterator(),
+                                           isolate);
+    DirectHandle<Object> next_method(async_iterator->next(), isolate);
+
+    Address method_arg = roots.undefined_value().ptr();
+    Address* method_argv[1] = {&method_arg};
+    int method_argc = 0;
+    if (actual_argc > 0) {
+      method_arg = SafeTaggedOrUndefined(isolate, argv[0]);
+      method_argc = 1;
+    }
+    Address iter_result_address = WasmJSEntry(
+        isolate->isolate_data()->isolate_root(),
+        roots.undefined_value().ptr(), (*next_method).ptr(),
+        (*sync_iterator).ptr(), JSParameterCount(method_argc), method_argv);
+    if (isolate->has_exception() ||
+        IsException(Tagged<Object>(iter_result_address), isolate)) {
+      return reject_current_exception();
+    }
+    if (!IsJSReceiver(Tagged<Object>(iter_result_address))) {
+      isolate->Throw(*isolate->factory()->NewTypeError(
+          MessageTemplate::kIteratorResultNotAnObject,
+          direct_handle(Tagged<Object>(iter_result_address), isolate)));
+      return reject_current_exception();
+    }
+
+    DirectHandle<JSReceiver> iter_result(
+        Cast<JSReceiver>(Tagged<Object>(iter_result_address)), isolate);
+    DirectHandle<Object> value;
+    if (!Object::GetProperty(isolate, iter_result,
+                             isolate->factory()->value_string())
+             .ToHandle(&value)) {
+      return reject_current_exception();
+    }
+    DirectHandle<Object> done_value;
+    if (!Object::GetProperty(isolate, iter_result,
+                             isolate->factory()->done_string())
+             .ToHandle(&done_value)) {
+      return reject_current_exception();
+    }
+    bool done = Object::BooleanValue(*done_value, isolate);
+
+    Handle<JSPromise> value_wrapper = isolate->factory()->NewJSPromise();
+    DirectHandle<Object> resolve_result;
+    if (!JSPromise::Resolve(value_wrapper, value).ToHandle(&resolve_result)) {
+      return reject_current_exception();
+    }
+
+    constexpr int kDoneSlot = Context::MIN_CONTEXT_SLOTS;
+    constexpr int kValueUnwrapContextLength = kDoneSlot + 1;
+    DirectHandle<NativeContext> native_context = isolate->native_context();
+    DirectHandle<Context> unwrap_context =
+        isolate->factory()->NewBuiltinContext(native_context,
+                                              kValueUnwrapContextLength);
+    if (done) {
+      unwrap_context->SetNoCell(kDoneSlot, roots.true_value());
+    } else {
+      unwrap_context->SetNoCell(kDoneSlot, roots.false_value());
+    }
+    DirectHandle<JSFunction> unwrap = Factory::JSFunctionBuilder{
+        isolate, isolate->factory()->async_iterator_value_unwrap_shared_fun(),
+        unwrap_context}
+                                          .Build();
+    DirectHandle<Object> then_args[] = {unwrap,
+                                        isolate->factory()->undefined_value()};
+    DirectHandle<Object> then_result;
+    if (!Execution::CallBuiltin(isolate, isolate->promise_then(), value_wrapper,
+                                base::VectorOf(then_args))
+             .ToHandle(&then_result)) {
+      return reject_current_exception();
+    }
+
+    *out_result = (*then_result).ptr();
+    isolate->set_context(saved_context);
+    return true;
+  }
+
   if (builtin == Builtin::kPromiseConstructor) {
     Tagged<Context> saved_context = isolate->context();
     Tagged<Context> function_context = Wasm32JSFunctionContext(*function);
@@ -15806,8 +19559,53 @@ bool TryFallbackJSEntryBuiltin(Isolate* isolate, Builtin builtin,
       return true;
     }
 
-    Handle<JSPromise> promise = isolate->factory()->NewJSPromise();
     DirectHandle<NativeContext> native_context = isolate->native_context();
+    Address new_target_address = SafeTaggedOrUndefined(isolate, new_target);
+    if (IsUndefined(Tagged<Object>(new_target_address), isolate)) {
+      isolate->Throw(*isolate->factory()->NewTypeError(
+          MessageTemplate::kPromiseNewTargetUndefined));
+      isolate->set_context(saved_context);
+      *out_result = roots.exception().ptr();
+      return true;
+    }
+    if (!IsJSReceiver(Tagged<Object>(new_target_address))) {
+      isolate->Throw(*isolate->factory()->NewTypeError(
+          MessageTemplate::kNotConstructor,
+          direct_handle(Tagged<Object>(new_target_address), isolate)));
+      isolate->set_context(saved_context);
+      *out_result = roots.exception().ptr();
+      return true;
+    }
+
+    DirectHandle<JSFunction> promise_function(
+        native_context->promise_function(), isolate);
+    Handle<JSPromise> promise;
+    if (Tagged<Object>(new_target_address) == *promise_function) {
+      promise = isolate->factory()->NewJSPromise();
+    } else {
+      DirectHandle<JSReceiver> promise_new_target(
+          Cast<JSReceiver>(Tagged<Object>(new_target_address)), isolate);
+      Handle<JSObject> promise_object;
+      if (!JSObject::New(promise_function, promise_new_target, {})
+               .ToHandle(&promise_object)) {
+        isolate->set_context(saved_context);
+        *out_result = roots.exception().ptr();
+        return true;
+      }
+      promise = Cast<JSPromise>(promise_object);
+      {
+        DisallowGarbageCollection no_gc;
+        Tagged<JSPromise> raw_promise = *promise;
+        raw_promise->set_reactions_or_result(Smi::zero(), SKIP_WRITE_BARRIER);
+        raw_promise->set_flags(0);
+        for (int i = 0; i < raw_promise->GetEmbedderFieldCount(); ++i) {
+          raw_promise->SetEmbedderField(i, Smi::zero());
+        }
+      }
+      isolate->RunAllPromiseHooks(PromiseHookType::kInit, promise,
+                                  isolate->factory()->undefined_value());
+    }
+
     DirectHandle<Context> resolving_context =
         isolate->factory()->NewBuiltinContext(
             native_context, PromiseBuiltins::kPromiseContextLength);
@@ -16068,6 +19866,202 @@ bool TryFallbackJSEntryBuiltin(Isolate* isolate, Builtin builtin,
         isolate, Builtin::kPromisePrototypeThen, *isolate->promise_then(),
         promise_address, roots.undefined_value().ptr(), 2, then_args,
         out_result);
+  }
+
+  if (builtin == Builtin::kDatePrototypeToPrimitive) {
+    Tagged<Context> saved_context = isolate->context();
+    isolate->set_context(Wasm32JSFunctionContext(*function));
+    Address receiver_address = SafeTaggedOrUndefined(isolate, receiver);
+    if (!IsJSReceiver(Tagged<Object>(receiver_address))) {
+      DirectHandle<Object> invalid_receiver(
+          Tagged<Object>(receiver_address), isolate);
+      isolate->Throw(*isolate->factory()->NewTypeError(
+          MessageTemplate::kIncompatibleMethodReceiver,
+          isolate->factory()->NewStringFromAsciiChecked(
+              "Date.prototype [ @@toPrimitive ]"),
+          invalid_receiver));
+      isolate->set_context(saved_context);
+      *out_result = roots.exception().ptr();
+      return true;
+    }
+
+    DirectHandle<Object> hint =
+        actual_argc > 0
+            ? direct_handle(
+                  Tagged<Object>(SafeTaggedOrUndefined(isolate, argv[0])),
+                  isolate)
+            : direct_handle(roots.undefined_value(), isolate);
+    bool number_hint =
+        IsString(*hint) &&
+        String::Equals(isolate, Cast<String>(hint),
+                       isolate->factory()->number_string());
+    bool string_hint =
+        IsString(*hint) &&
+        (String::Equals(isolate, Cast<String>(hint),
+                        isolate->factory()->string_string()) ||
+         String::Equals(isolate, Cast<String>(hint),
+                        isolate->factory()->default_string()));
+    if (!number_hint && !string_hint) {
+      isolate->Throw(*isolate->factory()->NewTypeError(
+          MessageTemplate::kInvalidHint, hint));
+      isolate->set_context(saved_context);
+      *out_result = roots.exception().ptr();
+      return true;
+    }
+
+    if (IsJSDate(Tagged<Object>(receiver_address))) {
+      const double value =
+          Cast<JSDate>(Tagged<Object>(receiver_address))->value();
+      if (number_hint) {
+        DirectHandle<Number> result = isolate->factory()->NewNumber(value);
+        *out_result = (*result).ptr();
+      } else {
+        DateBuffer buffer = ToDateString(
+            value, isolate->date_cache(),
+            ToDateStringMode::kLocalDateAndTime);
+        DirectHandle<String> result;
+        if (!isolate->factory()
+                 ->NewStringFromUtf8(base::VectorOf(buffer))
+                 .ToHandle(&result)) {
+          isolate->set_context(saved_context);
+          *out_result = roots.exception().ptr();
+          return true;
+        }
+        *out_result = (*result).ptr();
+      }
+      isolate->set_context(saved_context);
+      return true;
+    }
+
+    DirectHandle<Object> result;
+    if (!JSReceiver::OrdinaryToPrimitive<DirectHandle>(
+             isolate,
+             direct_handle(
+                 Cast<JSReceiver>(Tagged<Object>(receiver_address)), isolate),
+             number_hint ? OrdinaryToPrimitiveHint::kNumber
+                         : OrdinaryToPrimitiveHint::kString)
+             .ToHandle(&result)) {
+      *out_result = roots.exception().ptr();
+    } else {
+      *out_result = (*result).ptr();
+    }
+    isolate->set_context(saved_context);
+    return true;
+  }
+
+  int date_field_index = -1;
+  const char* date_method_name = nullptr;
+  switch (builtin) {
+    case Builtin::kDatePrototypeGetDate:
+      date_field_index = JSDate::kDay;
+      date_method_name = "Date.prototype.getDate";
+      break;
+    case Builtin::kDatePrototypeGetDay:
+      date_field_index = JSDate::kWeekday;
+      date_method_name = "Date.prototype.getDay";
+      break;
+    case Builtin::kDatePrototypeGetFullYear:
+      date_field_index = JSDate::kYear;
+      date_method_name = "Date.prototype.getFullYear";
+      break;
+    case Builtin::kDatePrototypeGetHours:
+      date_field_index = JSDate::kHour;
+      date_method_name = "Date.prototype.getHours";
+      break;
+    case Builtin::kDatePrototypeGetMilliseconds:
+      date_field_index = JSDate::kMillisecond;
+      date_method_name = "Date.prototype.getMilliseconds";
+      break;
+    case Builtin::kDatePrototypeGetMinutes:
+      date_field_index = JSDate::kMinute;
+      date_method_name = "Date.prototype.getMinutes";
+      break;
+    case Builtin::kDatePrototypeGetMonth:
+      date_field_index = JSDate::kMonth;
+      date_method_name = "Date.prototype.getMonth";
+      break;
+    case Builtin::kDatePrototypeGetSeconds:
+      date_field_index = JSDate::kSecond;
+      date_method_name = "Date.prototype.getSeconds";
+      break;
+    case Builtin::kDatePrototypeGetTimezoneOffset:
+      date_field_index = JSDate::kTimezoneOffset;
+      date_method_name = "Date.prototype.getTimezoneOffset";
+      break;
+    case Builtin::kDatePrototypeGetUTCDate:
+      date_field_index = JSDate::kDayUTC;
+      date_method_name = "Date.prototype.getUTCDate";
+      break;
+    case Builtin::kDatePrototypeGetUTCDay:
+      date_field_index = JSDate::kWeekdayUTC;
+      date_method_name = "Date.prototype.getUTCDay";
+      break;
+    case Builtin::kDatePrototypeGetUTCFullYear:
+      date_field_index = JSDate::kYearUTC;
+      date_method_name = "Date.prototype.getUTCFullYear";
+      break;
+    case Builtin::kDatePrototypeGetUTCHours:
+      date_field_index = JSDate::kHourUTC;
+      date_method_name = "Date.prototype.getUTCHours";
+      break;
+    case Builtin::kDatePrototypeGetUTCMilliseconds:
+      date_field_index = JSDate::kMillisecondUTC;
+      date_method_name = "Date.prototype.getUTCMilliseconds";
+      break;
+    case Builtin::kDatePrototypeGetUTCMinutes:
+      date_field_index = JSDate::kMinuteUTC;
+      date_method_name = "Date.prototype.getUTCMinutes";
+      break;
+    case Builtin::kDatePrototypeGetUTCMonth:
+      date_field_index = JSDate::kMonthUTC;
+      date_method_name = "Date.prototype.getUTCMonth";
+      break;
+    case Builtin::kDatePrototypeGetUTCSeconds:
+      date_field_index = JSDate::kSecondUTC;
+      date_method_name = "Date.prototype.getUTCSeconds";
+      break;
+    default:
+      break;
+  }
+
+  if (date_field_index >= 0) {
+    Tagged<Context> saved_context = isolate->context();
+    isolate->set_context(Wasm32JSFunctionContext(*function));
+    Address date_address = SafeTaggedOrUndefined(isolate, receiver);
+    if (!IsJSDate(Tagged<Object>(date_address))) {
+      isolate->Throw(*isolate->factory()->NewTypeError(
+          MessageTemplate::kIncompatibleMethodReceiver,
+          isolate->factory()->NewStringFromAsciiChecked(date_method_name),
+          direct_handle(Tagged<Object>(date_address), isolate)));
+      isolate->set_context(saved_context);
+      *out_result = roots.exception().ptr();
+      return true;
+    }
+    *out_result = JSDate::GetField(
+        isolate, date_address, Smi::FromInt(date_field_index).ptr());
+    isolate->set_context(saved_context);
+    return true;
+  }
+
+  if (builtin == Builtin::kDatePrototypeGetTime) {
+    Tagged<Context> saved_context = isolate->context();
+    isolate->set_context(Wasm32JSFunctionContext(*function));
+    Address date_address = SafeTaggedOrUndefined(isolate, receiver);
+    if (!IsJSDate(Tagged<Object>(date_address))) {
+      isolate->Throw(*isolate->factory()->NewTypeError(
+          MessageTemplate::kIncompatibleMethodReceiver,
+          isolate->factory()->NewStringFromAsciiChecked(
+              "Date.prototype.getTime"),
+          direct_handle(Tagged<Object>(date_address), isolate)));
+      isolate->set_context(saved_context);
+      *out_result = roots.exception().ptr();
+      return true;
+    }
+    DirectHandle<Number> result = isolate->factory()->NewNumber(
+        Cast<JSDate>(Tagged<Object>(date_address))->value());
+    *out_result = (*result).ptr();
+    isolate->set_context(saved_context);
+    return true;
   }
 
   if (builtin == Builtin::kDatePrototypeToISOString) {
@@ -16957,6 +20951,7 @@ bool TryFallbackJSEntryBuiltin(Isolate* isolate, Builtin builtin,
         direct_handle(Tagged<Object>(this_arg_address), isolate);
     DirectHandle<FixedArray> elements;
     uint32_t result_length = 0;
+    bool dynamic_elements = false;
 
     auto store_value = [&](DirectHandle<Object> value, uint32_t index) -> bool {
       DirectHandle<Object> mapped = value;
@@ -17022,6 +21017,7 @@ bool TryFallbackJSEntryBuiltin(Isolate* isolate, Builtin builtin,
     Tagged<Object> items_object(items_address);
     if (IsSafeTaggedHandleValue(items_address) &&
         (IsJSMapIterator(items_object) || IsJSMap(items_object))) {
+      dynamic_elements = true;
       DirectHandle<JSMapIterator> iterator;
       if (IsJSMapIterator(items_object)) {
         iterator = direct_handle(Cast<JSMapIterator>(items_object), isolate);
@@ -17033,7 +21029,8 @@ bool TryFallbackJSEntryBuiltin(Isolate* isolate, Builtin builtin,
         iterator->set_table(Cast<JSMap>(items_object)->table());
         iterator->set_index(Smi::zero());
       }
-      while (iterator->HasMore()) {
+      while (!Wasm32IsEmptyOrderedHashCollection(isolate, iterator->table()) &&
+             iterator->HasMore()) {
         DirectHandle<Object> value;
         InstanceType instance_type = iterator->map()->instance_type();
         if (instance_type == JS_MAP_KEY_ITERATOR_TYPE) {
@@ -17054,6 +21051,7 @@ bool TryFallbackJSEntryBuiltin(Isolate* isolate, Builtin builtin,
       }
     } else if (IsSafeTaggedHandleValue(items_address) &&
                (IsJSSetIterator(items_object) || IsJSSet(items_object))) {
+      dynamic_elements = true;
       DirectHandle<JSSetIterator> iterator;
       if (IsJSSetIterator(items_object)) {
         iterator = direct_handle(Cast<JSSetIterator>(items_object), isolate);
@@ -17065,7 +21063,8 @@ bool TryFallbackJSEntryBuiltin(Isolate* isolate, Builtin builtin,
         iterator->set_table(Cast<JSSet>(items_object)->table());
         iterator->set_index(Smi::zero());
       }
-      while (iterator->HasMore()) {
+      while (!Wasm32IsEmptyOrderedHashCollection(isolate, iterator->table()) &&
+             iterator->HasMore()) {
         DirectHandle<Object> key =
             direct_handle(iterator->CurrentKey(), isolate);
         DirectHandle<Object> value = key;
@@ -17167,6 +21166,102 @@ bool TryFallbackJSEntryBuiltin(Isolate* isolate, Builtin builtin,
         *out_result = roots.exception().ptr();
         return true;
       }
+
+      DirectHandle<Object> iterator_method;
+      if (!Object::GetProperty(isolate, object, isolate->factory()->iterator_symbol())
+               .ToHandle(&iterator_method)) {
+        isolate->set_context(saved_context);
+        *out_result = roots.exception().ptr();
+        return true;
+      }
+
+      if (!IsNullOrUndefined(*iterator_method, isolate)) {
+        auto call_no_args = [&](DirectHandle<Object> callable,
+                                DirectHandle<Object> receiver,
+                                DirectHandle<Object>* result) -> bool {
+          DirectHandle<Object> no_args[1];
+          WasmInterpreterStateSnapshot state(isolate);
+          Address direct_result = roots.exception().ptr();
+          bool direct_call = TryCallJSFunctionDirect(
+              isolate, callable, receiver, 0, no_args, &direct_result);
+          MaybeHandle<Object> maybe_result;
+          if (direct_call) {
+            if (IsException(Tagged<Object>(direct_result), isolate)) {
+              state.Restore();
+              *out_result = direct_result;
+              return false;
+            }
+            *result = direct_handle(Tagged<Object>(direct_result), isolate);
+          } else if (!Execution::Call(
+                          isolate, callable, receiver,
+                          ZoneVector<const DirectHandle<Object>>(no_args, 0))
+                          .ToHandle(result)) {
+            state.Restore();
+            *out_result = roots.exception().ptr();
+            return false;
+          }
+          state.Restore();
+          return true;
+        };
+
+        DirectHandle<Object> iterator_value;
+        if (!call_no_args(iterator_method, object, &iterator_value)) {
+          isolate->set_context(saved_context);
+          return true;
+        }
+        DirectHandle<JSReceiver> iterator;
+        if (!Object::ToObject(isolate, iterator_value, "Array.from")
+                 .ToHandle(&iterator)) {
+          isolate->set_context(saved_context);
+          *out_result = roots.exception().ptr();
+          return true;
+        }
+
+        dynamic_elements = true;
+        for (;;) {
+          DirectHandle<Object> next_method;
+          if (!Object::GetProperty(isolate, iterator,
+                                   isolate->factory()->next_string())
+                   .ToHandle(&next_method)) {
+            isolate->set_context(saved_context);
+            *out_result = roots.exception().ptr();
+            return true;
+          }
+          DirectHandle<Object> step_value;
+          if (!call_no_args(next_method, iterator, &step_value)) {
+            isolate->set_context(saved_context);
+            return true;
+          }
+          DirectHandle<JSReceiver> step;
+          if (!Object::ToObject(isolate, step_value, "Array.from")
+                   .ToHandle(&step)) {
+            isolate->set_context(saved_context);
+            *out_result = roots.exception().ptr();
+            return true;
+          }
+          DirectHandle<Object> done;
+          if (!Object::GetProperty(isolate, step,
+                                   isolate->factory()->done_string())
+                   .ToHandle(&done)) {
+            isolate->set_context(saved_context);
+            *out_result = roots.exception().ptr();
+            return true;
+          }
+          if (Object::BooleanValue(*done, isolate)) break;
+
+          DirectHandle<Object> value;
+          if (!Object::GetProperty(isolate, step,
+                                   isolate->factory()->value_string())
+                   .ToHandle(&value) ||
+              !append_value(value)) {
+            isolate->set_context(saved_context);
+            if (!isolate->has_exception()) {
+              *out_result = roots.exception().ptr();
+            }
+            return true;
+          }
+        }
+      } else {
       DirectHandle<Object> length_object;
       if (!Object::GetLengthFromArrayLike(isolate, object)
                .ToHandle(&length_object)) {
@@ -17197,12 +21292,11 @@ bool TryFallbackJSEntryBuiltin(Isolate* isolate, Builtin builtin,
           return true;
         }
       }
+      }
     }
 
-    if (result_length != static_cast<uint32_t>(element_capacity) &&
-        (IsSafeTaggedHandleValue(items_address) &&
-         (IsJSMapIterator(items_object) || IsJSMap(items_object) ||
-          IsJSSetIterator(items_object) || IsJSSet(items_object)))) {
+    if (dynamic_elements &&
+        result_length != static_cast<uint32_t>(element_capacity)) {
       DirectHandle<FixedArray> compact =
           isolate->factory()->NewFixedArray(static_cast<int>(result_length));
       for (uint32_t i = 0; i < result_length; ++i) {
@@ -17539,6 +21633,16 @@ bool TryFallbackJSEntryBuiltin(Isolate* isolate, Builtin builtin,
     }
 
     double length = Object::NumberValue(*raw_length_number);
+    // Setting an unchanged zero length through the generic property path on a
+    // wasm32 JSArray corrupts its tagged length field.  Array.prototype.push
+    // with no arguments cannot add elements, so return the observed length
+    // without redundantly writing it back.  Keep the generic-object path below
+    // because a user-defined length setter is observable there.
+    if (actual_argc == 0 && IsJSArray(*object)) {
+      *out_result = (*raw_length_number).ptr();
+      isolate->set_context(saved_context);
+      return true;
+    }
     if (actual_argc > kMaxSafeInteger - length) {
       isolate->Throw(*isolate->factory()->NewTypeError(
           MessageTemplate::kPushPastSafeLength,
@@ -18257,15 +22361,27 @@ bool TryFallbackJSEntryBuiltin(Isolate* isolate, Builtin builtin,
     if (TryRunObjectPrototypeHasOwnPropertyBuiltin(
             isolate, callable, this_arg, call_arg_count, call_args_data,
             out_result) ||
+        TryRunObjectPrototypeGetProtoBuiltin(
+            isolate, callable, this_arg, call_arg_count, call_args_data,
+            out_result) ||
+        TryRunStrictPoisonPillThrowerBuiltin(
+            isolate, callable, this_arg, call_arg_count, call_args_data,
+            out_result) ||
+        TryRunObjectPrototypeSetProtoBuiltin(
+            isolate, callable, this_arg, call_arg_count, call_args_data,
+            out_result) ||
         TryRunArraySliceBuiltin(isolate, callable, this_arg, call_arg_count,
                                 call_args_data, out_result) ||
         TryRunArrayShiftBuiltin(isolate, callable, this_arg, out_result) ||
+        TryRunArrayPopBuiltin(isolate, callable, this_arg, out_result) ||
         TryRunArrayUnshiftBuiltin(isolate, callable, this_arg, call_arg_count,
                                   call_args_data, out_result) ||
         TryRunArrayForEachBuiltin(isolate, callable, this_arg, call_arg_count,
                                   call_args_data, out_result) ||
         TryRunArrayFilterBuiltin(isolate, callable, this_arg, call_arg_count,
                                  call_args_data, out_result) ||
+        TryRunArrayFlatMapBuiltin(isolate, callable, this_arg, call_arg_count,
+                                  call_args_data, out_result) ||
         TryRunArrayFindBuiltin(isolate, callable, this_arg, call_arg_count,
                                call_args_data, out_result) ||
         TryRunArrayPredicateBuiltin(isolate, callable, this_arg, call_arg_count,
@@ -19659,11 +23775,11 @@ extern "C" void WasmInterpreterEntryTrampoline() {
         interpreter::Bytecodes::FromByte(opcode);
 #ifdef __wasi__
     if (kEnableWasm32DebugDiagnostics && step > 0 &&
-        (step % 1000000) == 0) {
+        (step % 100000) == 0) {
       static int long_loop_sample_count = 0;
       if (long_loop_sample_count < 64) {
         ++long_loop_sample_count;
-        v8_wasm32_silent_fprintf(stderr,
+        std::fprintf(stderr,
                      "WASM32_LONG_LOOP #%d start=%d end=%d step=%d pc=%d "
                      "len=%d opcode=%s scale=%d acc=0x%x\n",
                      long_loop_sample_count, shared->StartPosition(),
@@ -19727,6 +23843,366 @@ extern "C" void WasmInterpreterEntryTrampoline() {
             ? static_cast<int>(ReadBytecodeUnsignedOperand(
                   bytecode, bytecode_index, bytecode_enum, 2, operand_scale))
             : 0;
+#ifdef __wasi__
+    if (kEnableWasm32DebugDiagnostics && bytecode_index == 0 &&
+        shared->StartPosition() == 7473699) {
+      static bool dumped_ad1_bytecode = false;
+      if (!dumped_ad1_bytecode) {
+        dumped_ad1_bytecode = true;
+        interpreter::OperandScale dump_scale =
+            interpreter::OperandScale::kSingle;
+        for (int index = 0; index < bytecode->length();) {
+          interpreter::Bytecode dump_bytecode =
+              interpreter::Bytecodes::FromByte(bytecode->get(index));
+          int dump_size =
+              interpreter::Bytecodes::Size(dump_bytecode, dump_scale);
+          std::fprintf(stderr, "WASM32_AD1_BC pc=%d opcode=%s scale=%d", index,
+                       interpreter::Bytecodes::ToString(dump_bytecode),
+                       static_cast<int>(dump_scale));
+          int operand_count =
+              interpreter::Bytecodes::NumberOfOperands(dump_bytecode);
+          for (int operand_index = 0; operand_index < operand_count;
+               ++operand_index) {
+            std::fprintf(
+                stderr, " op%d=%d", operand_index,
+                ReadBytecodeSignedOperand(bytecode, index, dump_bytecode,
+                                          operand_index, dump_scale));
+          }
+          std::fprintf(stderr, "\\n");
+          if (interpreter::Bytecodes::IsPrefixScalingBytecode(dump_bytecode)) {
+            dump_scale = interpreter::Bytecodes::PrefixBytecodeToOperandScale(
+                dump_bytecode);
+            index += interpreter::Bytecodes::Size(
+                dump_bytecode, interpreter::OperandScale::kSingle);
+            continue;
+          }
+          dump_scale = interpreter::OperandScale::kSingle;
+          index += dump_size;
+        }
+        std::fflush(stderr);
+      }
+    }
+    if (kEnableWasm32DebugDiagnostics &&
+        shared->StartPosition() == 8317568 &&
+        (bytecode_index == 285 || bytecode_index == 288 ||
+         bytecode_index == 290)) {
+      Address accumulator =
+          g_wasm_regs[SlotFor(kInterpreterAccumulatorRegister)];
+      Address scratch = ReadInterpreterRegister(
+          interpreter::Register::FromOperand(-27));
+      auto print_array = [&](const char* label, Address value) {
+        int length = -1;
+        int elements_length = -1;
+        if (IsJSArray(Tagged<Object>(value))) {
+          Tagged<JSArray> array = Cast<JSArray>(Tagged<Object>(value));
+          if (IsSmi(array->length())) length = Smi::ToInt(array->length());
+          if (IsFixedArray(array->elements())) {
+            elements_length = Cast<FixedArray>(array->elements())->length();
+          }
+        }
+        std::fprintf(stderr,
+                     " %s=0x%x/function%d/array%d/length%d/elements%d",
+                     label, static_cast<unsigned>(value),
+                     IsJSFunction(Tagged<Object>(value)) ? 1 : 0,
+                     IsJSArray(Tagged<Object>(value)) ? 1 : 0, length,
+                     elements_length);
+        if (IsJSFunction(Tagged<Object>(value))) {
+          Tagged<SharedFunctionInfo> value_shared = Wasm32JSFunctionShared(
+              Cast<JSFunction>(Tagged<Object>(value)));
+          std::unique_ptr<char[]> value_name = value_shared->DebugNameCStr();
+          std::fprintf(stderr, "/start%d/name%s",
+                       value_shared->StartPosition(),
+                       value_name ? value_name.get() : "<none>");
+        }
+      };
+      std::fprintf(stderr, "WASM32_AD1_BOUNDARY pc=%d opcode=%s",
+                   bytecode_index,
+                   interpreter::Bytecodes::ToString(bytecode_enum));
+      print_array("acc", accumulator);
+      print_array("r-27", scratch);
+      std::fprintf(stderr, "\\n");
+      std::fflush(stderr);
+    }
+    if (kEnableWasm32DebugDiagnostics &&
+        shared->StartPosition() == 7473699 &&
+        (bytecode_index == 2 || bytecode_index == 17 ||
+         bytecode_index == 92 || bytecode_index == 163 ||
+         bytecode_index == 168 || bytecode_index == 171 ||
+         bytecode_index == 172 || bytecode_index == 242 ||
+         bytecode_index == 313 || bytecode_index == 315)) {
+      static int ad1_boundary_counts[316] = {};
+      if (ad1_boundary_counts[bytecode_index]++ < 4) {
+        auto print_array = [&](const char* label, Address value) {
+          int length = -1;
+          int elements_length = -1;
+          if (IsJSArray(Tagged<Object>(value))) {
+            Tagged<JSArray> array = Cast<JSArray>(Tagged<Object>(value));
+            if (IsSmi(array->length())) length = Smi::ToInt(array->length());
+            if (IsFixedArray(array->elements())) {
+              elements_length = Cast<FixedArray>(array->elements())->length();
+            }
+          }
+          std::fprintf(stderr, " %s=0x%x/array%d/length%d/elements%d", label,
+                       static_cast<unsigned>(value),
+                       IsJSArray(Tagged<Object>(value)) ? 1 : 0, length,
+                       elements_length);
+        };
+        std::fprintf(stderr, "WASM32_AD1_STATE pc=%d opcode=%s",
+                     bytecode_index,
+                     interpreter::Bytecodes::ToString(bytecode_enum));
+        print_array("acc",
+                    g_wasm_regs[SlotFor(kInterpreterAccumulatorRegister)]);
+        print_array("r0", ReadInterpreterRegister(
+                              interpreter::Register::FromOperand(-7)));
+        print_array("iter", ReadInterpreterRegister(
+                                interpreter::Register::FromOperand(-17)));
+        std::fprintf(stderr, "\\n");
+        std::fflush(stderr);
+      }
+    }
+    if (kEnableWasm32DebugDiagnostics &&
+        shared->StartPosition() == 9119092 &&
+        (bytecode_index == 0 || bytecode_index == 4 ||
+         bytecode_index == 10 || bytecode_index == 14 ||
+         bytecode_index == 30)) {
+      static int claude_agents_iterator_trace_count = 0;
+      if (claude_agents_iterator_trace_count < 12) {
+        ++claude_agents_iterator_trace_count;
+        if (bytecode_index == 0) {
+          uint32_t name_index = ReadBytecodeUnsignedOperand(
+              bytecode, bytecode_index, bytecode_enum, 0, operand_scale);
+          Tagged<Object> name_object =
+              name_index < static_cast<uint32_t>(bytecode->constant_pool()->length())
+                  ? bytecode->constant_pool()->get(name_index)
+                  : ReadOnlyRoots(isolate).undefined_value();
+          std::unique_ptr<char[]> name;
+          const char* name_chars = "<non-string>";
+          if (IsString(name_object)) {
+            name = Cast<String>(name_object)->ToCString();
+            name_chars = name.get();
+          }
+          std::fprintf(stderr,
+                       "WASM32_CLAUDE_AGENTS_GLOBAL #%d pc=%d "
+                       "name_index=%u name=%s\n",
+                       claude_agents_iterator_trace_count, bytecode_index,
+                       name_index, name_chars);
+          std::fflush(stderr);
+        } else if (bytecode_index == 4) {
+          int32_t constructor_operand = ReadBytecodeSignedOperand(
+              bytecode, bytecode_index, bytecode_enum, 0, operand_scale);
+          int32_t first_arg_operand = ReadBytecodeSignedOperand(
+              bytecode, bytecode_index, bytecode_enum, 1, operand_scale);
+          uint32_t arg_count = ReadBytecodeUnsignedOperand(
+              bytecode, bytecode_index, bytecode_enum, 2, operand_scale);
+          Address constructor = ReadInterpreterRegister(
+              interpreter::Register::FromOperand(constructor_operand));
+          std::unique_ptr<char[]> name;
+          const char* name_chars = "<non-function>";
+          if (IsSafeTaggedHandleValue(constructor) &&
+              IsJSFunction(Tagged<Object>(constructor))) {
+            Tagged<Object> function_name =
+                Cast<JSFunction>(Tagged<Object>(constructor))->shared()->Name();
+            if (IsString(function_name)) {
+              name = Cast<String>(function_name)->ToCString();
+              name_chars = name.get();
+            }
+          }
+          std::fprintf(stderr,
+                       "WASM32_CLAUDE_AGENTS_CONSTRUCT #%d pc=%d "
+                       "ctor=0x%x name=%s argc=%u first_arg_operand=%d\n",
+                       claude_agents_iterator_trace_count, bytecode_index,
+                       static_cast<unsigned>(constructor), name_chars,
+                       arg_count, first_arg_operand);
+          std::fflush(stderr);
+        } else {
+        Address value = tail_accumulator[tail_slot];
+        const char* phase = "iterator";
+        if (bytecode_index == 10) {
+          int32_t operand = ReadBytecodeSignedOperand(
+              bytecode, bytecode_index, bytecode_enum, 0, operand_scale);
+          value = ReadInterpreterRegister(
+              interpreter::Register::FromOperand(operand));
+          phase = "iterable";
+        } else if (bytecode_index == 30) {
+          int32_t operand = ReadBytecodeSignedOperand(
+              bytecode, bytecode_index, bytecode_enum, 1, operand_scale);
+          value = ReadInterpreterRegister(
+              interpreter::Register::FromOperand(operand));
+          phase = "next";
+        }
+        const bool safe = IsSafeTaggedHandleValue(value);
+        const bool is_array = safe && IsJSArray(Tagged<Object>(value));
+        const bool is_array_iterator =
+            safe && IsJSArrayIterator(Tagged<Object>(value));
+        Address length = 0;
+        int elements_length = -1;
+        Address next_index = 0;
+        Address iterated = 0;
+        if (is_array) {
+          Tagged<JSArray> array = Cast<JSArray>(Tagged<Object>(value));
+          length = array->length().ptr();
+          elements_length = array->elements()->length();
+        }
+        if (is_array_iterator) {
+          Tagged<JSArrayIterator> iterator =
+              Cast<JSArrayIterator>(Tagged<Object>(value));
+          next_index = iterator->next_index().ptr();
+          iterated = iterator->iterated_object().ptr();
+          if (IsJSArray(Tagged<Object>(iterated))) {
+            length = Cast<JSArray>(Tagged<Object>(iterated))->length().ptr();
+          }
+        }
+        std::fprintf(
+            stderr,
+            "WASM32_CLAUDE_AGENTS_ITER #%d phase=%s pc=%d value=0x%x "
+            "array=%d array_iterator=%d map_iterator=%d set_iterator=%d "
+            "string=%d length=0x%x elements_length=%d next_index=0x%x "
+            "iterated=0x%x\n",
+            claude_agents_iterator_trace_count, phase, bytecode_index,
+            static_cast<unsigned>(value), is_array ? 1 : 0,
+            is_array_iterator ? 1 : 0,
+            safe && IsJSMapIterator(Tagged<Object>(value)) ? 1 : 0,
+            safe && IsJSSetIterator(Tagged<Object>(value)) ? 1 : 0,
+            safe && IsString(Tagged<Object>(value)) ? 1 : 0,
+            static_cast<unsigned>(length), elements_length,
+            static_cast<unsigned>(next_index), static_cast<unsigned>(iterated));
+        std::fflush(stderr);
+        }
+      }
+    }
+#endif
+#ifdef __wasi__
+    if (kEnableWasm32DebugDiagnostics &&
+        bytecode_enum == interpreter::Bytecode::kGetIterator) {
+      static int claude_agent_loader_iterator_trace_count = 0;
+      int32_t operand = ReadBytecodeSignedOperand(
+          bytecode, bytecode_index, bytecode_enum, 0, operand_scale);
+      Address iterable = ReadInterpreterRegister(
+          interpreter::Register::FromOperand(operand));
+      const bool safe = IsSafeTaggedHandleValue(iterable);
+      const bool is_array = safe && IsJSArray(Tagged<Object>(iterable));
+      int length = 0;
+      if (is_array) {
+        Tagged<Number> array_length =
+            Cast<JSArray>(Tagged<Object>(iterable))->length();
+        if (IsSmi(array_length)) {
+          length = Smi::ToInt(Cast<Smi>(array_length));
+        }
+      }
+      if (length > 10000 && claude_agent_loader_iterator_trace_count < 24) {
+        ++claude_agent_loader_iterator_trace_count;
+        std::fprintf(stderr,
+                     "WASM32_LARGE_ARRAY_GETITER #%d start=%d end=%d pc=%d "
+                     "source=%d iterable=0x%x array=%d length=0x%x\n",
+                     claude_agent_loader_iterator_trace_count,
+                     shared->StartPosition(), shared->EndPosition(),
+                     bytecode_index,
+                     decoded_source_position, static_cast<unsigned>(iterable),
+                     is_array ? 1 : 0, static_cast<unsigned>(length));
+        std::fflush(stderr);
+      }
+    }
+#endif
+#ifdef __wasi__
+    if (kEnableWasm32DebugDiagnostics &&
+        bytecode_enum == interpreter::Bytecode::kCreateArrayFromIterable) {
+      Address iterable =
+          g_wasm_regs[SlotFor(kInterpreterAccumulatorRegister)];
+      if (IsSafeTaggedHandleValue(iterable) &&
+          IsJSArray(Tagged<Object>(iterable))) {
+        Tagged<Number> length =
+            Cast<JSArray>(Tagged<Object>(iterable))->length();
+        if (IsSmi(length) && Smi::ToInt(Cast<Smi>(length)) > 10000) {
+          static int large_create_array_from_iterable_trace_count = 0;
+          if (large_create_array_from_iterable_trace_count < 16) {
+            ++large_create_array_from_iterable_trace_count;
+            std::unique_ptr<char[]> name = shared->DebugNameCStr();
+            std::fprintf(
+                stderr,
+                "WASM32_LARGE_CREATE_ARRAY_FROM_ITERABLE #%d start=%d "
+                "end=%d name=%s pc=%d source=%d iterable=0x%x length=%d\n",
+                large_create_array_from_iterable_trace_count,
+                shared->StartPosition(), shared->EndPosition(), name.get(),
+                bytecode_index, decoded_source_position,
+                static_cast<unsigned>(iterable),
+                Smi::ToInt(Cast<Smi>(length)));
+            std::fflush(stderr);
+          }
+        }
+      }
+    }
+#endif
+#ifdef __wasi__
+    if (kEnableWasm32DebugDiagnostics &&
+        bytecode_enum == interpreter::Bytecode::kCreateArrayLiteral) {
+      uint32_t elements_index = ReadBytecodeUnsignedOperand(
+          bytecode, bytecode_index, bytecode_enum, 0, operand_scale);
+      Tagged<TrustedFixedArray> constants = bytecode->constant_pool();
+      if (elements_index < static_cast<uint32_t>(constants->length()) &&
+          IsArrayBoilerplateDescription(constants->get(elements_index))) {
+        Tagged<ArrayBoilerplateDescription> description =
+            Cast<ArrayBoilerplateDescription>(constants->get(elements_index));
+        int element_count = description->constant_elements(isolate)->length();
+        if (element_count > 10000) {
+          static int large_array_literal_dispatch_trace_count = 0;
+          if (large_array_literal_dispatch_trace_count < 16) {
+            ++large_array_literal_dispatch_trace_count;
+            std::unique_ptr<char[]> name = shared->DebugNameCStr();
+            std::fprintf(
+                stderr,
+                "WASM32_LARGE_ARRAY_LITERAL_DISPATCH #%d start=%d end=%d "
+                "name=%s pc=%d source=%d scale=%d elements_index=%u "
+                "elements=%d\n",
+                large_array_literal_dispatch_trace_count,
+                shared->StartPosition(), shared->EndPosition(), name.get(),
+                bytecode_index, decoded_source_position,
+                static_cast<int>(operand_scale), elements_index,
+                element_count);
+            std::fflush(stderr);
+          }
+        }
+      }
+    }
+#endif
+#ifdef __wasi__
+    if (kEnableWasm32DebugDiagnostics &&
+        bytecode_enum == interpreter::Bytecode::kStaInArrayLiteral) {
+      int32_t array_operand = ReadBytecodeSignedOperand(
+          bytecode, bytecode_index, bytecode_enum, 0, operand_scale);
+      int32_t index_operand = ReadBytecodeSignedOperand(
+          bytecode, bytecode_index, bytecode_enum, 1, operand_scale);
+      Address array_address = ReadInterpreterRegister(
+          interpreter::Register::FromOperand(array_operand));
+      Address index_address = ReadInterpreterRegister(
+          interpreter::Register::FromOperand(index_operand));
+      if (IsSmi(Tagged<Object>(index_address)) &&
+          Smi::ToInt(Tagged<Smi>(index_address)) > 10000) {
+        static int large_array_literal_handler_trace_count = 0;
+        if (large_array_literal_handler_trace_count < 16) {
+          ++large_array_literal_handler_trace_count;
+          const bool is_array = IsSafeTaggedHandleValue(array_address) &&
+                                IsJSArray(Tagged<Object>(array_address));
+          Address old_length = is_array
+                                   ? Cast<JSArray>(Tagged<Object>(array_address))
+                                         ->length()
+                                         .ptr()
+                                   : 0;
+          std::fprintf(
+              stderr,
+              "WASM32_LARGE_ARRAY_HANDLER_STORE #%d start=%d end=%d pc=%d "
+              "source=%d array=0x%x old_length=0x%x index=%d "
+              "array_operand=%d index_operand=%d\n",
+              large_array_literal_handler_trace_count, shared->StartPosition(),
+              shared->EndPosition(), bytecode_index, decoded_source_position,
+              static_cast<unsigned>(array_address),
+              static_cast<unsigned>(old_length),
+              Smi::ToInt(Tagged<Smi>(index_address)), array_operand,
+              index_operand);
+          std::fflush(stderr);
+        }
+      }
+    }
+#endif
 #ifdef __wasi__
     if (shared->StartPosition() == 0 && shared->EndPosition() > 9000000 &&
         bytecode_index >= 89499 && bytecode_index < 89637) {
@@ -19841,6 +24317,22 @@ extern "C" void WasmInterpreterEntryTrampoline() {
                                   operand_scale) == 123456789) {
       v8_wasm32_silent_fprintf(stderr, "WASM32_SMI_TRACE index=%d\n", bytecode_index);
       g_trace_after_collection_fallback_steps = 64;
+    }
+
+    Address fast_result = kNullAddress;
+    Address fast_offset = kNullAddress;
+    if (TryRunNonAllocatingBytecodeFastPath(
+            isolate, bytecode, bytecode_index, bytecode_enum, operand_scale,
+            current_offset, &fast_result, &fast_offset)) {
+      if (interpreter::Bytecodes::IsJump(bytecode_enum)) {
+        current_offset = fast_offset;
+      } else {
+        PublishWasmInterpreterFallbackResult(isolate, "bytecode fast path",
+                                             &fast_result);
+        current_offset += bytecode_size;
+      }
+      operand_scale = interpreter::OperandScale::kSingle;
+      continue;
     }
 
     Builtin handler_builtin = Builtin::kIllegal;
@@ -20852,6 +25344,28 @@ const bool trace_hb1_get =
       std::fflush(stderr);
     }
     if (handled_get_named) {
+      if (isolate->has_exception()) {
+        Address thrown_value;
+        int handler_offset;
+        if (TryDispatchWasmInterpreterException(
+                isolate, bytecode, bytecode_index, &thrown_value,
+                &handler_offset)) {
+          int accumulator_slot = SlotFor(kInterpreterAccumulatorRegister);
+          g_wasm_regs[accumulator_slot] = thrown_value;
+          MirrorWasmGCRegSlotForWrite(accumulator_slot, thrown_value);
+          current_offset = bytecode_offset + handler_offset;
+          operand_scale = interpreter::OperandScale::kSingle;
+          continue;
+        }
+        int accumulator_slot = SlotFor(kInterpreterAccumulatorRegister);
+        Address exception = ReadOnlyRoots(isolate).exception().ptr();
+        g_wasm_regs[accumulator_slot] = exception;
+        MirrorWasmGCRegSlotForWrite(accumulator_slot, exception);
+        int return_slot = SlotFor(kReturnRegister0);
+        g_wasm_regs[return_slot] = exception;
+        MirrorWasmGCRegSlotForWrite(return_slot, exception);
+        return;
+      }
       PublishWasmInterpreterFallbackResult(isolate, "bytecode fallback",
                                            &fallback_result);
       if (should_log_step) {
@@ -20866,6 +25380,28 @@ const bool trace_hb1_get =
     if (TryRunGetKeyedPropertyBytecode(isolate, bytecode, bytecode_index,
                                        bytecode_enum, operand_scale,
                                        &fallback_result)) {
+      if (isolate->has_exception()) {
+        Address thrown_value;
+        int handler_offset;
+        if (TryDispatchWasmInterpreterException(
+                isolate, bytecode, bytecode_index, &thrown_value,
+                &handler_offset)) {
+          int accumulator_slot = SlotFor(kInterpreterAccumulatorRegister);
+          g_wasm_regs[accumulator_slot] = thrown_value;
+          MirrorWasmGCRegSlotForWrite(accumulator_slot, thrown_value);
+          current_offset = bytecode_offset + handler_offset;
+          operand_scale = interpreter::OperandScale::kSingle;
+          continue;
+        }
+        int accumulator_slot = SlotFor(kInterpreterAccumulatorRegister);
+        Address exception = ReadOnlyRoots(isolate).exception().ptr();
+        g_wasm_regs[accumulator_slot] = exception;
+        MirrorWasmGCRegSlotForWrite(accumulator_slot, exception);
+        int return_slot = SlotFor(kReturnRegister0);
+        g_wasm_regs[return_slot] = exception;
+        MirrorWasmGCRegSlotForWrite(return_slot, exception);
+        return;
+      }
       PublishWasmInterpreterFallbackResult(isolate, "bytecode fallback",
                                            &fallback_result);
       if (should_log_step) {
@@ -21423,6 +25959,60 @@ extern "C" Address WasmJSEntry(Address root, Address new_target, Address target,
   }
   SetCurrentIsolateScope current_isolate_scope(isolate);
   WasmInterpreterStateSnapshot entry_state(isolate);
+#ifdef __wasi__
+  if (kEnableWasm32DebugDiagnostics &&
+      IsJSFunction(Tagged<Object>(target))) {
+    Tagged<SharedFunctionInfo> entry_shared =
+        Wasm32JSFunctionShared(Cast<JSFunction>(Tagged<Object>(target)));
+    if (entry_shared->StartPosition() == 9119338) {
+      static bool traced_y5b_entry = false;
+      if (!traced_y5b_entry) {
+        traced_y5b_entry = true;
+        Address caller_address = g_wasm_interpreter_frame[
+            InterpreterFrameSlotForOffset(
+                StandardFrameConstants::kFunctionOffset)];
+        int caller_start = -1;
+        int caller_end = -1;
+        std::unique_ptr<char[]> caller_name;
+        if (IsSafeTaggedHandleValue(caller_address) &&
+            IsJSFunction(Tagged<Object>(caller_address))) {
+          Tagged<SharedFunctionInfo> caller_shared = Wasm32JSFunctionShared(
+              Cast<JSFunction>(Tagged<Object>(caller_address)));
+          caller_start = caller_shared->StartPosition();
+          caller_end = caller_shared->EndPosition();
+          caller_name = caller_shared->DebugNameCStr();
+        }
+        Address arg1 = ReadOnlyRoots(isolate).undefined_value().ptr();
+        if (actual_argc > 1 && argv != nullptr && argv[1] != nullptr) {
+          arg1 = *argv[1];
+        }
+        int arg1_length = -1;
+        int arg1_elements_length = -1;
+        if (IsJSArray(Tagged<Object>(arg1))) {
+          Tagged<JSArray> array = Cast<JSArray>(Tagged<Object>(arg1));
+          if (IsSmi(array->length())) {
+            arg1_length = Smi::ToInt(array->length());
+          }
+          if (IsFixedArray(array->elements())) {
+            arg1_elements_length =
+                Cast<FixedArray>(array->elements())->length();
+          }
+        }
+        std::fprintf(stderr,
+                     "WASM32_Y5B_ENTRY caller_start=%d caller_end=%d "
+                     "caller_name=%s argc=%d arg1=0x%x array=%d length=%d "
+                     "elements_length=%d\\n",
+                     caller_start, caller_end,
+                     caller_name ? caller_name.get() : "<none>", actual_argc,
+                     static_cast<unsigned>(arg1),
+                     IsJSArray(Tagged<Object>(arg1)) ? 1 : 0, arg1_length,
+                     arg1_elements_length);
+        DumpCurrentInterpreterBytecodeForTrace("Y5B_ENTRY_CALLER");
+        std::fflush(stderr);
+      }
+    }
+  }
+#endif
   ClearEntrypointRegisterFile();
   g_wasm_regs[kWasmRegRoot] = root;
   Address undefined = ReadOnlyRoots(isolate).undefined_value().ptr();
@@ -21568,7 +26158,7 @@ extern "C" Address WasmJSEntry(Address root, Address new_target, Address target,
   if (kTraceWasm32Progress &&
       (entry_index <= 16 || (entry_index % 1000) == 0)) {
     std::unique_ptr<char[]> debug_name = shared->DebugNameCStr();
-    v8_wasm32_silent_fprintf(stderr,
+    std::fprintf(stderr,
                  "WASM32_ENTRY_PROGRESS #%llu sfi=0x%x start=%d end=%d name=%s\n",
                  static_cast<unsigned long long>(entry_index),
                  static_cast<unsigned>(shared.ptr()), shared->StartPosition(),
@@ -21579,6 +26169,19 @@ extern "C" Address WasmJSEntry(Address root, Address new_target, Address target,
   Address entry = code->instruction_start();
 #ifdef __wasi__
   int trace_entry_start = shared->StartPosition();
+  if (kEnableWasm32DebugDiagnostics && trace_entry_start == 7473699) {
+    std::unique_ptr<char[]> debug_name = shared->DebugNameCStr();
+    std::fprintf(stderr,
+                 "WASM32_AD1_ENTRY start=%d end=%d name=%s builtin=%d "
+                 "builtin_id=%d entry=0x%x bytecode=%d\\n",
+                 trace_entry_start, shared->EndPosition(),
+                 debug_name ? debug_name.get() : "<none>",
+                 code->is_builtin() ? 1 : 0,
+                 code->is_builtin() ? static_cast<int>(code->builtin_id()) : -1,
+                 static_cast<unsigned>(entry),
+                 shared->HasBytecodeArray() ? 1 : 0);
+    std::fflush(stderr);
+  }
   if (kEnableWasm32DebugDiagnostics &&
       trace_entry_start == 3157681) {
     Tagged<Object> script_object = shared->script();
@@ -21790,7 +26393,11 @@ extern "C" Address WasmJSEntry(Address root, Address new_target, Address target,
         builtin == Builtin::kInterpreterEntryTrampolineForProfiling;
     Address fallback_result = kNullAddress;
     bool used_fallback = false;
-    {
+    // The fallback dispatcher has no InterpreterEntryTrampoline case, but it
+    // establishes handle and temporary-root scopes before it can return false.
+    // Normal JavaScript functions take this interpreter path, so do not pay
+    // that per-entry root-scan cost for a dispatch that cannot handle them.
+    if (!uses_interpreter_entry) {
       WasmGCStateScope gc_state(isolate);
       used_fallback = TryFallbackJSEntryBuiltin(
           isolate, builtin, function, receiver, new_target, actual_argc,
@@ -21821,8 +26428,11 @@ extern "C" Address WasmJSEntry(Address root, Address new_target, Address target,
                static_cast<int>(builtin), Builtins::name(builtin),
                static_cast<unsigned>(entry));
       }
+      isolate->Throw(*isolate->factory()->NewError(
+          isolate->type_error_function(),
+          isolate->factory()->NewStringFromAsciiChecked(Builtins::name(builtin))));
       entry_state.Restore();
-      return Smi::zero().ptr();
+      return ReadOnlyRoots(isolate).exception().ptr();
     }
     entry = reinterpret_cast<Address>(fn);
   }
@@ -21839,50 +26449,54 @@ extern "C" Address WasmJSEntry(Address root, Address new_target, Address target,
     return Smi::zero().ptr();
   }
 
-  constexpr int kWasmFixedFrameSlotLimit = kWasmStackSlotBase - 1;
-  int last_argument_offset =
-      CommonFrameConstants::kFixedFrameSizeAboveFp +
-      actual_argc * kSystemPointerSize;
-  if (kWasmFixedFrameSlotBase + StandardFrameConstants::kFixedSlotCountFromFp >=
-          kWasmFixedFrameSlotLimit ||
-      GeneratedFrameSlotForOffset(last_argument_offset) >=
-          kWasmOutgoingArgSlotBase ||
-      actual_argc + 1 > kWasmMaxOutgoingArgSlots) {
-    entry_state.Restore();
-    return Smi::zero().ptr();
-  }
+  if (!uses_interpreter_entry) {
+    constexpr int kWasmFixedFrameSlotLimit = kWasmStackSlotBase - 1;
+    int last_argument_offset =
+        CommonFrameConstants::kFixedFrameSizeAboveFp +
+        actual_argc * kSystemPointerSize;
+    if (kWasmFixedFrameSlotBase +
+                StandardFrameConstants::kFixedSlotCountFromFp >=
+            kWasmFixedFrameSlotLimit ||
+        GeneratedFrameSlotForOffset(last_argument_offset) >=
+            kWasmOutgoingArgSlotBase ||
+        actual_argc + 1 > kWasmMaxOutgoingArgSlots) {
+      entry_state.Restore();
+      return Smi::zero().ptr();
+    }
 
-  // InterpreterEntryTrampoline clears and initializes this frame itself.
-  // Avoid clearing it twice for every interpreted JavaScript call.
-  if (!uses_interpreter_entry) ClearInterpreterFrame();
-  for (int i = kWasmFixedFrameSlotBase; i < kWasmFixedFrameSlotLimit; ++i) {
-    g_wasm_regs[i] = undefined;
-  }
-  StoreInterpreterFrameOffset(CommonFrameConstants::kCallerFPOffset, 0);
-  StoreInterpreterFrameOffset(CommonFrameConstants::kCallerPCOffset, 0);
-  StoreInterpreterFrameOffset(StandardFrameConstants::kContextOffset,
+    ClearInterpreterFrame();
+    for (int i = kWasmFixedFrameSlotBase; i < kWasmFixedFrameSlotLimit;
+         ++i) {
+      g_wasm_regs[i] = undefined;
+    }
+    StoreInterpreterFrameOffset(CommonFrameConstants::kCallerFPOffset, 0);
+    StoreInterpreterFrameOffset(CommonFrameConstants::kCallerPCOffset, 0);
+    StoreInterpreterFrameOffset(StandardFrameConstants::kContextOffset,
+                                function_context.ptr());
+    StoreInterpreterFrameOffset(StandardFrameConstants::kFunctionOffset,
+                                target);
+    StoreInterpreterFrameOffset(StandardFrameConstants::kArgCOffset,
+                                static_cast<Address>(argc));
+    StoreGeneratedFrameOffset(CommonFrameConstants::kCallerFPOffset, 0);
+    StoreGeneratedFrameOffset(CommonFrameConstants::kCallerPCOffset, 0);
+    StoreGeneratedFrameOffset(StandardFrameConstants::kContextOffset,
                               function_context.ptr());
-  StoreInterpreterFrameOffset(StandardFrameConstants::kFunctionOffset, target);
-  StoreInterpreterFrameOffset(StandardFrameConstants::kArgCOffset,
+    StoreGeneratedFrameOffset(StandardFrameConstants::kFunctionOffset,
+                              target);
+    StoreGeneratedFrameOffset(StandardFrameConstants::kArgCOffset,
                               static_cast<Address>(argc));
-  StoreGeneratedFrameOffset(CommonFrameConstants::kCallerFPOffset, 0);
-  StoreGeneratedFrameOffset(CommonFrameConstants::kCallerPCOffset, 0);
-  StoreGeneratedFrameOffset(StandardFrameConstants::kContextOffset,
-                            function_context.ptr());
-  StoreGeneratedFrameOffset(StandardFrameConstants::kFunctionOffset, target);
-  StoreGeneratedFrameOffset(StandardFrameConstants::kArgCOffset,
-                            static_cast<Address>(argc));
 
-  StoreInterpreterFrameOffset(CommonFrameConstants::kFixedFrameSizeAboveFp,
+    StoreInterpreterFrameOffset(
+        CommonFrameConstants::kFixedFrameSizeAboveFp, receiver);
+    StoreGeneratedFrameOffset(CommonFrameConstants::kFixedFrameSizeAboveFp,
                               receiver);
-  StoreGeneratedFrameOffset(CommonFrameConstants::kFixedFrameSizeAboveFp,
-                            receiver);
-  for (int i = 0; i < actual_argc; ++i) {
-    Address value = g_wasm_regs[kWasmJSEntryArgSlotBase + 1 + i];
-    int offset = CommonFrameConstants::kFixedFrameSizeAboveFp +
-                 (i + 1) * kSystemPointerSize;
-    StoreInterpreterFrameOffset(offset, value);
-    StoreGeneratedFrameOffset(offset, value);
+    for (int i = 0; i < actual_argc; ++i) {
+      Address value = g_wasm_regs[kWasmJSEntryArgSlotBase + 1 + i];
+      int offset = CommonFrameConstants::kFixedFrameSizeAboveFp +
+                   (i + 1) * kSystemPointerSize;
+      StoreInterpreterFrameOffset(offset, value);
+      StoreGeneratedFrameOffset(offset, value);
+    }
   }
 
   g_wasm_regs[SlotFor(kRootRegister)] = root;
@@ -21891,8 +26505,10 @@ extern "C" Address WasmJSEntry(Address root, Address new_target, Address target,
   g_wasm_regs[SlotFor(kJavaScriptCallNewTargetRegister)] = new_target;
   g_wasm_regs[SlotFor(kJavaScriptCallArgCountRegister)] =
       static_cast<Address>(argc);
-  g_wasm_regs[SlotFor(kJavaScriptCallCodeStartRegister)] = entry;
-  g_wasm_regs[SlotFor(kJavaScriptCallDispatchHandleRegister)] = 0;
+  if (!uses_interpreter_entry) {
+    g_wasm_regs[SlotFor(kJavaScriptCallCodeStartRegister)] = entry;
+    g_wasm_regs[SlotFor(kJavaScriptCallDispatchHandleRegister)] = 0;
+  }
   if (kTraceWasmJSEntry) {
     PrintF("WasmJSEntry: frame slots");
     DumpRuntimeArg("ctx_slot", 0,
@@ -21922,6 +26538,26 @@ extern "C" Address WasmJSEntry(Address root, Address new_target, Address target,
 #endif
   Address result = g_wasm_regs[SlotFor(kReturnRegister0)];
 #ifdef __wasi__
+  if (kEnableWasm32DebugDiagnostics && trace_entry_start == 7473699) {
+    int result_length = -1;
+    int result_elements_length = -1;
+    if (IsJSArray(Tagged<Object>(result))) {
+      Tagged<JSArray> array = Cast<JSArray>(Tagged<Object>(result));
+      if (IsSmi(array->length())) {
+        result_length = Smi::ToInt(array->length());
+      }
+      if (IsFixedArray(array->elements())) {
+        result_elements_length = Cast<FixedArray>(array->elements())->length();
+      }
+    }
+    std::fprintf(stderr,
+                 "WASM32_AD1_RETURN result=0x%x array=%d length=%d "
+                 "elements_length=%d exception=%d\\n",
+                 static_cast<unsigned>(result),
+                 IsJSArray(Tagged<Object>(result)) ? 1 : 0, result_length,
+                 result_elements_length, isolate->has_exception() ? 1 : 0);
+    std::fflush(stderr);
+  }
   if (result == ReadOnlyRoots(isolate).exception().ptr() ||
       isolate->has_exception()) {
     static int entry_exception_trace_count = 0;
@@ -21940,9 +26576,9 @@ extern "C" Address WasmJSEntry(Address root, Address new_target, Address target,
       if (IsScript(script_object)) {
         PrintStringPreviewForTrace("", Cast<Script>(script_object)->name());
       } else {
-        v8_wasm32_silent_fprintf(stderr, "<none>");
+      v8_wasm32_silent_fprintf(stderr, "<none>");
       }
-      v8_wasm32_silent_fprintf(stderr, "\n");
+    v8_wasm32_silent_fprintf(stderr, "\n");
       std::fflush(stderr);
     }
   }
@@ -21972,10 +26608,14 @@ extern "C" Address WasmJSEntry(Address root, Address new_target, Address target,
            static_cast<unsigned>(result), isolate->has_exception() ? 1 : 0);
   }
 #endif
+  // A raw Smi(0) is indistinguishable from the null direct-handle sentinel at
+  // the C++ API boundary. Recursive interpreter calls opt in to preserving
+  // their raw tagged result; external entries receive a numeric zero object
+  // that preserves Number semantics without becoming an empty MaybeLocal.
   if (!preserve_tagged_result && result == Smi::zero().ptr() &&
       !isolate->has_exception()) {
     HandleScope result_scope(isolate);
-    result = (*isolate->factory()->NewHeapNumber(0.0)).ptr();
+    result = isolate->factory()->NewHeapNumber(0.0)->ptr();
   }
   if (entry_depth_scope.outermost()) g_wasm_last_js_entry_result = result;
   entry_state.Restore();
@@ -21989,11 +26629,6 @@ extern "C" Address WasmJSEntry(Address root, Address new_target, Address target,
            static_cast<unsigned>(result));
   }
   return result;
-}
-
-extern "C" int64_t Wasm32LastJSEntrySmiResult() {
-  Tagged<Object> result(g_wasm_last_js_entry_result);
-  return IsSmi(result) ? Smi::ToInt(Cast<Smi>(result)) : 0;
 }
 
 extern "C" Address WasmRunScriptEntryForApi(Address root, Address target,

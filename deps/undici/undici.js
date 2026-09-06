@@ -9394,12 +9394,19 @@ var require_headers = __commonJS({
       sortedMap;
       headersMap;
       constructor(init) {
+        this.headersMap = new Map();
         if (init instanceof _HeadersList) {
-          this.headersMap = new Map(init.headersMap);
+          for (const [name, value] of init.headersMap) {
+            this.headersMap.set(name, value);
+          }
           this.sortedMap = init.sortedMap;
           this.cookies = init.cookies === null ? null : [...init.cookies];
         } else {
-          this.headersMap = new Map(init);
+          if (init != null) {
+            for (const [name, value] of init) {
+              this.headersMap.set(name, value);
+            }
+          }
           this.sortedMap = null;
         }
       }
@@ -10844,7 +10851,11 @@ var require_request2 = __commonJS({
     }
     __name(makeRequest, "makeRequest");
     function cloneRequest(request) {
-      const newRequest = makeRequest({ ...request, body: null });
+      const newRequest = makeRequest({
+        ...request,
+        headersList: request.headersList,
+        body: null
+      });
       if (request.body != null) {
         newRequest.body = cloneBody(newRequest, request.body);
       }

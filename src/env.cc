@@ -44,10 +44,6 @@
 
 namespace node {
 
-#ifdef __wasi__
-extern "C" int64_t Wasm32LastJSEntrySmiResult();
-#endif
-
 using errors::TryCatchScope;
 using v8::Array;
 using v8::ArrayBuffer;
@@ -1520,8 +1516,7 @@ void Environment::RunTimers(uv_timer_t* handle) {
   // code becomes invalid and needs to be rewritten. Otherwise catastrophic
   // timers corruption will occur and all timers behaviour will become
   // entirely unpredictable.
-  if (ret.IsEmpty())
-    return;
+  if (ret.IsEmpty()) return;
 
   // To allow for less JS-C++ boundary crossing, the value returned from JS
   // serves a few purposes:
@@ -1532,9 +1527,6 @@ void Environment::RunTimers(uv_timer_t* handle) {
   //    and there are no timers that are refed.
   int64_t expiry_ms =
       ret.ToLocalChecked()->IntegerValue(env->context()).FromJust();
-#ifdef __wasi__
-  if (expiry_ms == 0) expiry_ms = Wasm32LastJSEntrySmiResult();
-#endif
 
   auto* h = reinterpret_cast<uv_handle_t*>(handle);
 
