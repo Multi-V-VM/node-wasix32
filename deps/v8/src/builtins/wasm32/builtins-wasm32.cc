@@ -27206,18 +27206,6 @@ extern "C" Address WasmJSEntry(Address root, Address new_target, Address target,
 #endif
   Tagged<Code> code = function->code(isolate);
   Tagged<SharedFunctionInfo> shared = Wasm32JSFunctionShared(function);
-  static uint64_t entry_count = 0;
-  const uint64_t entry_index = ++entry_count;
-  if (kTraceWasm32Progress &&
-      (entry_index <= 16 || (entry_index % 1000) == 0)) {
-    std::unique_ptr<char[]> debug_name = shared->DebugNameCStr();
-    std::fprintf(stderr,
-                 "WASM32_ENTRY_PROGRESS #%llu sfi=0x%x start=%d end=%d name=%s\n",
-                 static_cast<unsigned long long>(entry_index),
-                 static_cast<unsigned>(shared.ptr()), shared->StartPosition(),
-                 shared->EndPosition(), debug_name.get());
-    std::fflush(stderr);
-  }
   Tagged<Context> function_context = Wasm32JSFunctionContext(function);
   Address entry = code->instruction_start();
 #ifdef __wasi__
