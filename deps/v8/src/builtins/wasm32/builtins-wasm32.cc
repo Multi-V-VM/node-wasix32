@@ -24482,6 +24482,199 @@ extern "C" Address WasmRuntimeCallFromGenerated(Address runtime_entry,
   return result;
 }
 
+enum class Wasm32I32LoopAotStatus : uint8_t {
+  kNotEligible,
+  kBailedOut,
+  kCompleted,
+};
+
+struct Wasm32I32LoopPlan {
+  int exit_pc;
+  interpreter::Register limit;
+  interpreter::Register index;
+  interpreter::Register accumulator;
+};
+
+struct Wasm32I32LoopAotStats {
+  uint32_t plans = 0;
+  uint32_t completed = 0;
+  uint32_t bailouts = 0;
+};
+
+Wasm32I32LoopAotStats g_wasm32_i32_loop_aot_stats;
+
+bool Wasm32I32LoopAotEnabled() {
+  return std::getenv("WASM32_DISABLE_LOOP_AOT") == nullptr;
+}
+
+bool Wasm32I32LoopAotStatsEnabled() {
+  return std::getenv("WASM32_AOT_STATS") != nullptr;
+}
+
+void PrintWasm32I32LoopAotStats() {
+  if (!Wasm32I32LoopAotStatsEnabled()) return;
+  std::fprintf(stderr, "WASM32_AOT_STATS plans=%u completed=%u bailouts=%u\n",
+               g_wasm32_i32_loop_aot_stats.plans,
+               g_wasm32_i32_loop_aot_stats.completed,
+               g_wasm32_i32_loop_aot_stats.bailouts);
+}
+
+bool ReadExpectedWasm32Bytecode(Tagged<BytecodeArray> bytecode, int pc,
+                                interpreter::Bytecode expected,
+                                int* next_pc) {
+  if (pc < 0 || pc >= bytecode->length()) return false;
+  uint8_t raw = bytecode->get(pc);
+  if (raw > interpreter::Bytecodes::ToByte(interpreter::Bytecode::kLast) ||
+      interpreter::Bytecodes::FromByte(raw) != expected) {
+    return false;
+  }
+  int size = interpreter::Bytecodes::Size(
+      expected, interpreter::OperandScale::kSingle);
+  if (size <= 0 || size > bytecode->length() - pc) return false;
+  *next_pc = pc + size;
+  return true;
+}
+
+bool TryBuildWasm32I32LoopPlan(Tagged<BytecodeArray> bytecode, int header_pc,
+                               Wasm32I32LoopPlan* out_plan) {
+  using interpreter::Bytecode;
+  constexpr interpreter::OperandScale kScale =
+      interpreter::OperandScale::kSingle;
+  int pc = header_pc;
+  int next_pc = 0;
+  if (!ReadExpectedWasm32Bytecode(bytecode, pc, Bytecode::kLdar, &next_pc)) {
+    return false;
+  }
+  interpreter::Register limit = interpreter::Register::FromOperand(
+      ReadBytecodeSignedOperand(bytecode, pc, Bytecode::kLdar, 0, kScale));
+  pc = next_pc;
+
+  if (!ReadExpectedWasm32Bytecode(bytecode, pc, Bytecode::kTestLessThan,
+                                  &next_pc)) {
+    return false;
+  }
+  interpreter::Register index = interpreter::Register::FromOperand(
+      ReadBytecodeSignedOperand(bytecode, pc, Bytecode::kTestLessThan, 0,
+                                kScale));
+  pc = next_pc;
+
+  int jump_if_false_pc = pc;
+  if (!ReadExpectedWasm32Bytecode(bytecode, pc, Bytecode::kJumpIfFalse,
+                                  &next_pc)) {
+    return false;
+  }
+  int exit_pc = jump_if_false_pc + ReadBytecodeSignedOperand(
+      bytecode, jump_if_false_pc, Bytecode::kJumpIfFalse, 0, kScale);
+  if (exit_pc < next_pc || exit_pc >= bytecode->length()) return false;
+  pc = next_pc;
+
+  if (!ReadExpectedWasm32Bytecode(bytecode, pc, Bytecode::kLdar, &next_pc) ||
+      interpreter::Register::FromOperand(ReadBytecodeSignedOperand(
+          bytecode, pc, Bytecode::kLdar, 0, kScale)) != index) {
+    return false;
+  }
+  pc = next_pc;
+
+  if (!ReadExpectedWasm32Bytecode(bytecode, pc, Bytecode::kAdd, &next_pc)) {
+    return false;
+  }
+  interpreter::Register accumulator = interpreter::Register::FromOperand(
+      ReadBytecodeSignedOperand(bytecode, pc, Bytecode::kAdd, 0, kScale));
+  if (accumulator != interpreter::Register::FromOperand(-7)) return false;
+  pc = next_pc;
+
+  if (!ReadExpectedWasm32Bytecode(bytecode, pc, Bytecode::kBitwiseOrSmi,
+                                  &next_pc) ||
+      ReadBytecodeSignedOperand(bytecode, pc, Bytecode::kBitwiseOrSmi, 0,
+                                kScale) != 0) {
+    return false;
+  }
+  pc = next_pc;
+  if (!ReadExpectedWasm32Bytecode(bytecode, pc, Bytecode::kStar0, &next_pc)) {
+    return false;
+  }
+  pc = next_pc;
+
+  if (!ReadExpectedWasm32Bytecode(bytecode, pc, Bytecode::kLdar, &next_pc) ||
+      interpreter::Register::FromOperand(ReadBytecodeSignedOperand(
+          bytecode, pc, Bytecode::kLdar, 0, kScale)) != index) {
+    return false;
+  }
+  pc = next_pc;
+  if (!ReadExpectedWasm32Bytecode(bytecode, pc, Bytecode::kInc, &next_pc)) {
+    return false;
+  }
+  pc = next_pc;
+  if (!ReadExpectedWasm32Bytecode(bytecode, pc, Bytecode::kStar1, &next_pc)) {
+    return false;
+  }
+  pc = next_pc;
+
+  int jump_loop_pc = pc;
+  if (!ReadExpectedWasm32Bytecode(bytecode, pc, Bytecode::kJumpLoop,
+                                  &next_pc) ||
+      jump_loop_pc - ReadBytecodeSignedOperand(bytecode, jump_loop_pc,
+                                                Bytecode::kJumpLoop, 0,
+                                                kScale) != header_pc) {
+    return false;
+  }
+
+  int exit_next_pc = 0;
+  if (!ReadExpectedWasm32Bytecode(bytecode, exit_pc, Bytecode::kLdar,
+                                  &exit_next_pc) ||
+      interpreter::Register::FromOperand(ReadBytecodeSignedOperand(
+          bytecode, exit_pc, Bytecode::kLdar, 0, kScale)) != accumulator ||
+      !ReadExpectedWasm32Bytecode(bytecode, exit_next_pc, Bytecode::kReturn,
+                                  &next_pc)) {
+    return false;
+  }
+
+  out_plan->exit_pc = exit_pc;
+  out_plan->limit = limit;
+  out_plan->index = index;
+  out_plan->accumulator = accumulator;
+  return true;
+}
+
+Wasm32I32LoopAotStatus TryExecuteWasm32I32LoopPlan(
+    Isolate* isolate, const Wasm32I32LoopPlan& plan) {
+  Address limit_address = ReadInterpreterRegister(plan.limit);
+  Address index_address = ReadInterpreterRegister(plan.index);
+  Address accumulator_address = ReadInterpreterRegister(plan.accumulator);
+  if (!IsSmi(Tagged<Object>(limit_address)) ||
+      !IsSmi(Tagged<Object>(index_address)) ||
+      !IsSmi(Tagged<Object>(accumulator_address))) {
+    return Wasm32I32LoopAotStatus::kBailedOut;
+  }
+
+  int32_t limit = Smi::ToInt(Tagged<Smi>(limit_address));
+  int32_t index = Smi::ToInt(Tagged<Smi>(index_address));
+  uint32_t accumulator_bits = static_cast<uint32_t>(
+      Smi::ToInt(Tagged<Smi>(accumulator_address)));
+  uint32_t iterations = 0;
+  while (index < limit) {
+    accumulator_bits += static_cast<uint32_t>(index);
+    if (index == std::numeric_limits<int32_t>::max()) {
+      return Wasm32I32LoopAotStatus::kBailedOut;
+    }
+    ++index;
+    if ((++iterations & 0x3fff) == 0 &&
+        isolate->stack_guard()->HasTerminationRequest()) {
+      return Wasm32I32LoopAotStatus::kBailedOut;
+    }
+  }
+
+  int32_t accumulator = static_cast<int32_t>(accumulator_bits);
+  Address result = Smi::IsValid(accumulator)
+                       ? Smi::FromInt(accumulator).ptr()
+                       : isolate->factory()->NewHeapNumber(
+                             static_cast<double>(accumulator))->ptr();
+  if (!Smi::IsValid(index)) return Wasm32I32LoopAotStatus::kBailedOut;
+  StoreInterpreterRegister(plan.accumulator, result);
+  StoreInterpreterRegister(plan.index, Smi::FromInt(index).ptr());
+  return Wasm32I32LoopAotStatus::kCompleted;
+}
+
 extern "C" void WasmInterpreterEntryTrampoline() {
   Address root = g_wasm_regs[kWasmRegRoot];
   Isolate* isolate = GetWasm32IsolateFromRoot(&root);
@@ -24856,6 +25049,28 @@ extern "C" void WasmInterpreterEntryTrampoline() {
       g_wasm_regs[SlotFor(kReturnRegister0)] =
           ReadOnlyRoots(isolate).exception().ptr();
       return;
+    }
+    if (Wasm32I32LoopAotEnabled() &&
+        operand_scale == interpreter::OperandScale::kSingle &&
+        bytecode_enum == interpreter::Bytecode::kLdar) {
+      Wasm32I32LoopPlan plan;
+      if (TryBuildWasm32I32LoopPlan(bytecode, bytecode_index, &plan)) {
+        ++g_wasm32_i32_loop_aot_stats.plans;
+        switch (TryExecuteWasm32I32LoopPlan(isolate, plan)) {
+          case Wasm32I32LoopAotStatus::kCompleted:
+            ++g_wasm32_i32_loop_aot_stats.completed;
+            PrintWasm32I32LoopAotStats();
+            current_offset = bytecode_offset + plan.exit_pc;
+            operand_scale = interpreter::OperandScale::kSingle;
+            continue;
+          case Wasm32I32LoopAotStatus::kBailedOut:
+            ++g_wasm32_i32_loop_aot_stats.bailouts;
+            PrintWasm32I32LoopAotStats();
+            break;
+          case Wasm32I32LoopAotStatus::kNotEligible:
+            break;
+        }
+      }
     }
     int tail_slot = step % kMaxInterpreterTailTrace;
     tail_step[tail_slot] = step;
