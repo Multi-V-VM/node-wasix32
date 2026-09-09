@@ -744,8 +744,8 @@ bool IsKnownJSAnyReadOnlyRootValue(Isolate* isolate, Address value) {
 }
 
 bool IsSafeTaggedRootValue(Isolate* isolate, Address value) {
-  if (IsKnownReadOnlyRootValue(isolate, value)) return true;
   if (HAS_SMI_TAG(value)) return true;
+  if (IsKnownReadOnlyRootValue(isolate, value)) return true;
   if (!IsReadableTaggedHeapObject(value,
                                   HeapObject::kMapOffset + sizeof(Address))) {
     return false;
@@ -878,7 +878,8 @@ class WasmGCStateScope {
     for (int i = 0; i < kWasmRegFileSize; ++i) {
       Address value = g_wasm_regs[i];
       storage_->original_regs[i] = value;
-      storage_->active_regs[i] = IsSafeTaggedRootValue(isolate, value);
+      storage_->active_regs[i] =
+          HAS_SMI_TAG(value) || IsSafeTaggedRootValue(isolate, value);
       storage_->regs[i] = storage_->active_regs[i] ? value : undefined;
     }
     storage_->frame_begin = 0;
@@ -888,7 +889,8 @@ class WasmGCStateScope {
     for (int i = storage_->frame_begin; i < storage_->frame_end; ++i) {
       Address value = g_wasm_interpreter_frame[i];
       storage_->original_frame[i] = value;
-      storage_->active_frame[i] = IsSafeTaggedRootValue(isolate, value);
+      storage_->active_frame[i] =
+          HAS_SMI_TAG(value) || IsSafeTaggedRootValue(isolate, value);
       storage_->frame[i] = storage_->active_frame[i] ? value : undefined;
     }
 
@@ -908,21 +910,19 @@ class WasmGCStateScope {
 
   void Restore() {
     if (restored_) return;
+    Address undefined = ReadOnlyRoots(isolate_).undefined_value().ptr();
     for (int i = 0; i < kWasmRegFileSize; ++i) {
       if (storage_->active_regs[i] &&
           g_wasm_regs[i] == storage_->original_regs[i]) {
         g_wasm_regs[i] = storage_->regs[i];
       }
+      storage_->regs[i] = undefined;
     }
     for (int i = storage_->frame_begin; i < storage_->frame_end; ++i) {
       if (storage_->active_frame[i] &&
           g_wasm_interpreter_frame[i] == storage_->original_frame[i]) {
         g_wasm_interpreter_frame[i] = storage_->frame[i];
       }
-    }
-    Address undefined = ReadOnlyRoots(isolate_).undefined_value().ptr();
-    for (Address& value : storage_->regs) value = undefined;
-    for (int i = storage_->frame_begin; i < storage_->frame_end; ++i) {
       storage_->frame[i] = undefined;
     }
     if (g_wasm_gc_state_depth != depth_ + 1) {
