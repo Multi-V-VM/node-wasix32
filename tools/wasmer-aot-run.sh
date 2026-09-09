@@ -18,7 +18,8 @@ esac
 
 mkdir -p -- "$cache_dir"
 runtime_env=()
-for name in WASM32_AOT_STATS WASM32_AOT_BENCHMARK WASM32_DISABLE_LOOP_AOT; do
+for name in WASM32_AOT_STATS WASM32_AOT_BENCHMARK WASM32_DISABLE_LOOP_AOT \
+            WASM32_SMI_FAST_PATH_STATS; do
   if [[ -v $name ]]; then
     runtime_env+=(--env "$name=${!name}")
   fi

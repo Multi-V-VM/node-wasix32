@@ -11279,7 +11279,13 @@ bool TryRunCallBytecode(Isolate* isolate, Tagged<BytecodeArray> bytecode,
   if (!is_supported_call) return false;
 
   ReadOnlyRoots roots(isolate);
-  int call_source_position = bytecode->SourcePosition(bytecode_index);
+  // Source-position tables are scanned linearly. Do not scan them for
+  // diagnostics on every call when tracing is disabled.
+  int call_source_position =
+      (kEnableWasm32DebugDiagnostics || kTraceWasmFallbackDetails ||
+       kTraceWasmCallBytecode || g_trace_after_collection_fallback_steps > 0)
+          ? bytecode->SourcePosition(bytecode_index)
+          : -1;
   bool diagnostic_call = call_source_position >= 7531400 &&
                          call_source_position <= 7531800;
   bool trace_collection_call = g_trace_after_collection_fallback_steps > 0;
@@ -11475,7 +11481,8 @@ bool TryRunCallBytecode(Isolate* isolate, Tagged<BytecodeArray> bytecode,
     }
   }
 #endif
-  if (IsSafeTaggedHandleValue(callable_address) &&
+  if (kEnableWasm32DebugDiagnostics &&
+      IsSafeTaggedHandleValue(callable_address) &&
       IsJSFunction(Tagged<Object>(callable_address))) {
     Tagged<SharedFunctionInfo> diagnostic_shared = Wasm32JSFunctionShared(
         Cast<JSFunction>(Tagged<Object>(callable_address)));
@@ -14829,6 +14836,170 @@ bool TryRunJumpBytecode(Isolate* isolate, Tagged<BytecodeArray> bytecode,
   return true;
 }
 
+void RecordWasm32SmiFastPath(const char* operation, uint32_t bit) {
+  static const bool enabled =
+      std::getenv("WASM32_SMI_FAST_PATH_STATS") != nullptr;
+  static uint32_t reported_operations = 0;
+  if (!enabled || (reported_operations & bit) != 0) return;
+  reported_operations |= bit;
+  std::fprintf(stderr, "WASM32_SMI_FAST_PATH operation=%s\n", operation);
+}
+
+bool TryRunSmiBinaryBytecodeFastPath(
+    Tagged<BytecodeArray> bytecode, int bytecode_index,
+    interpreter::Bytecode bytecode_enum,
+    interpreter::OperandScale operand_scale, Address* out_result) {
+  enum Operation : uint8_t {
+    kAdd,
+    kSub,
+    kMul,
+    kBitwiseOr,
+    kBitwiseXor,
+    kBitwiseAnd,
+    kShiftLeft,
+    kShiftRight,
+    kShiftRightLogical,
+  };
+
+  Operation operation;
+  bool immediate = false;
+  switch (bytecode_enum) {
+    case interpreter::Bytecode::kAdd:
+      operation = kAdd;
+      break;
+    case interpreter::Bytecode::kAddSmi:
+      operation = kAdd;
+      immediate = true;
+      break;
+    case interpreter::Bytecode::kSub:
+      operation = kSub;
+      break;
+    case interpreter::Bytecode::kSubSmi:
+      operation = kSub;
+      immediate = true;
+      break;
+    case interpreter::Bytecode::kMul:
+      operation = kMul;
+      break;
+    case interpreter::Bytecode::kMulSmi:
+      operation = kMul;
+      immediate = true;
+      break;
+    case interpreter::Bytecode::kBitwiseOr:
+      operation = kBitwiseOr;
+      break;
+    case interpreter::Bytecode::kBitwiseOrSmi:
+      operation = kBitwiseOr;
+      immediate = true;
+      break;
+    case interpreter::Bytecode::kBitwiseXor:
+      operation = kBitwiseXor;
+      break;
+    case interpreter::Bytecode::kBitwiseXorSmi:
+      operation = kBitwiseXor;
+      immediate = true;
+      break;
+    case interpreter::Bytecode::kBitwiseAnd:
+      operation = kBitwiseAnd;
+      break;
+    case interpreter::Bytecode::kBitwiseAndSmi:
+      operation = kBitwiseAnd;
+      immediate = true;
+      break;
+    case interpreter::Bytecode::kShiftLeft:
+      operation = kShiftLeft;
+      break;
+    case interpreter::Bytecode::kShiftLeftSmi:
+      operation = kShiftLeft;
+      immediate = true;
+      break;
+    case interpreter::Bytecode::kShiftRight:
+      operation = kShiftRight;
+      break;
+    case interpreter::Bytecode::kShiftRightSmi:
+      operation = kShiftRight;
+      immediate = true;
+      break;
+    case interpreter::Bytecode::kShiftRightLogical:
+      operation = kShiftRightLogical;
+      break;
+    case interpreter::Bytecode::kShiftRightLogicalSmi:
+      operation = kShiftRightLogical;
+      immediate = true;
+      break;
+    default:
+      return false;
+  }
+
+  Address lhs_address;
+  int rhs_value;
+  if (immediate) {
+    lhs_address = g_wasm_regs[SlotFor(kInterpreterAccumulatorRegister)];
+    rhs_value = ReadBytecodeSignedOperand(
+        bytecode, bytecode_index, bytecode_enum, 0, operand_scale);
+  } else {
+    int32_t lhs_operand = ReadBytecodeSignedOperand(
+        bytecode, bytecode_index, bytecode_enum, 0, operand_scale);
+    lhs_address = ReadInterpreterRegister(
+        interpreter::Register::FromOperand(lhs_operand));
+    Address rhs_address =
+        g_wasm_regs[SlotFor(kInterpreterAccumulatorRegister)];
+    if (!IsSmi(Tagged<Object>(rhs_address))) return false;
+    rhs_value = Smi::ToInt(Tagged<Smi>(rhs_address));
+  }
+
+  if (!IsSmi(Tagged<Object>(lhs_address))) return false;
+  const int lhs_value = Smi::ToInt(Tagged<Smi>(lhs_address));
+  int64_t result = 0;
+  const char* operation_name = "bitwise";
+  uint32_t operation_bit = 1u << 3;
+
+  switch (operation) {
+    case kAdd:
+      result = static_cast<int64_t>(lhs_value) + rhs_value;
+      operation_name = "add";
+      operation_bit = 1u << 0;
+      break;
+    case kSub:
+      result = static_cast<int64_t>(lhs_value) - rhs_value;
+      operation_name = "sub";
+      operation_bit = 1u << 1;
+      break;
+    case kMul:
+      result = static_cast<int64_t>(lhs_value) * rhs_value;
+      if (result == 0 && ((lhs_value < 0) != (rhs_value < 0))) return false;
+      operation_name = "mul";
+      operation_bit = 1u << 2;
+      break;
+    case kBitwiseOr:
+      result = lhs_value | rhs_value;
+      break;
+    case kBitwiseXor:
+      result = lhs_value ^ rhs_value;
+      break;
+    case kBitwiseAnd:
+      result = lhs_value & rhs_value;
+      break;
+    case kShiftLeft:
+      result = static_cast<int32_t>(
+          static_cast<uint32_t>(lhs_value)
+          << (static_cast<uint32_t>(rhs_value) & 0x1f));
+      break;
+    case kShiftRight:
+      result = lhs_value >> (static_cast<uint32_t>(rhs_value) & 0x1f);
+      break;
+    case kShiftRightLogical:
+      result = static_cast<uint32_t>(lhs_value) >>
+               (static_cast<uint32_t>(rhs_value) & 0x1f);
+      break;
+  }
+
+  if (result < Smi::kMinValue || result > Smi::kMaxValue) return false;
+  *out_result = Smi::FromInt(static_cast<int>(result)).ptr();
+  RecordWasm32SmiFastPath(operation_name, operation_bit);
+  return true;
+}
+
 bool TryRunNonAllocatingBytecodeFastPath(
     Isolate* isolate, Tagged<BytecodeArray> bytecode, int bytecode_index,
     interpreter::Bytecode bytecode_enum,
@@ -14929,16 +15100,8 @@ bool TryRunNonAllocatingBytecodeFastPath(
     default:
       break;
   }
-  if (bytecode_enum == interpreter::Bytecode::kAddSmi) {
-    Address lhs_address =
-        g_wasm_regs[SlotFor(kInterpreterAccumulatorRegister)];
-    if (!IsSmi(Tagged<Object>(lhs_address))) return false;
-    const int64_t sum =
-        static_cast<int64_t>(Smi::ToInt(Tagged<Smi>(lhs_address))) +
-        ReadBytecodeSignedOperand(bytecode, bytecode_index, bytecode_enum, 0,
-                                  operand_scale);
-    if (sum < Smi::kMinValue || sum > Smi::kMaxValue) return false;
-    *out_result = Smi::FromInt(static_cast<int>(sum)).ptr();
+  if (TryRunSmiBinaryBytecodeFastPath(bytecode, bytecode_index, bytecode_enum,
+                                      operand_scale, out_result)) {
     return true;
   }
   if (bytecode_enum == interpreter::Bytecode::kInc ||
@@ -25024,7 +25187,9 @@ extern "C" void WasmInterpreterEntryTrampoline() {
       }
     }
 #endif
-    int decoded_source_position = bytecode->SourcePosition(bytecode_index);
+    int decoded_source_position = kEnableWasm32DebugDiagnostics
+                                      ? bytecode->SourcePosition(bytecode_index)
+                                      : -1;
     if (kEnableWasm32DebugDiagnostics &&
         decoded_source_position >= 7531400 &&
         decoded_source_position <= 7531800) {
@@ -25050,9 +25215,9 @@ extern "C" void WasmInterpreterEntryTrampoline() {
           ReadOnlyRoots(isolate).exception().ptr();
       return;
     }
-    if (Wasm32I32LoopAotEnabled() &&
+    if (bytecode_enum == interpreter::Bytecode::kLdar &&
         operand_scale == interpreter::OperandScale::kSingle &&
-        bytecode_enum == interpreter::Bytecode::kLdar) {
+        Wasm32I32LoopAotEnabled()) {
       Wasm32I32LoopPlan plan;
       if (TryBuildWasm32I32LoopPlan(bytecode, bytecode_index, &plan)) {
         ++g_wasm32_i32_loop_aot_stats.plans;
@@ -25073,6 +25238,10 @@ extern "C" void WasmInterpreterEntryTrampoline() {
       }
     }
     int tail_slot = step % kMaxInterpreterTailTrace;
+    // Tail operands and register snapshots are diagnostic data, not execution
+    // state. Avoid decoding and recording them on the release dispatch path.
+    if (kEnableWasm32DebugDiagnostics || kTraceWasmInterpreterSteps ||
+        kTraceWasmFallbackDetails) {
     tail_step[tail_slot] = step;
     tail_index[tail_slot] = bytecode_index;
     tail_opcode[tail_slot] = opcode;
@@ -25096,6 +25265,7 @@ extern "C" void WasmInterpreterEntryTrampoline() {
             ? static_cast<int>(ReadBytecodeUnsignedOperand(
                   bytecode, bytecode_index, bytecode_enum, 2, operand_scale))
             : 0;
+    }
 #ifdef __wasi__
     if (kEnableWasm32DebugDiagnostics && bytecode_index == 0 &&
         shared->StartPosition() == 7473699) {
@@ -25457,7 +25627,8 @@ extern "C" void WasmInterpreterEntryTrampoline() {
     }
 #endif
 #ifdef __wasi__
-    if (shared->StartPosition() == 0 && shared->EndPosition() > 9000000 &&
+    if (kEnableWasm32DebugDiagnostics &&
+        shared->StartPosition() == 0 && shared->EndPosition() > 9000000 &&
         bytecode_index >= 89499 && bytecode_index < 89637) {
       v8_wasm32_silent_fprintf(
           stderr,
@@ -25479,7 +25650,8 @@ extern "C" void WasmInterpreterEntryTrampoline() {
     }
 #endif
 #ifdef __wasi__
-    if (shared->StartPosition() == 485660 && bytecode_index <= 130) {
+    if (kEnableWasm32DebugDiagnostics &&
+        shared->StartPosition() == 485660 && bytecode_index <= 130) {
       v8_wasm32_silent_fprintf(stderr,
                    "WASM32_METER_STEP pc=%d opcode=%s op0=%d op1=%d op2=%d "
                    "acc=0x%x\n",
@@ -27182,6 +27354,8 @@ const bool trace_hb1_get =
         ReadInterpreterRegister(interpreter::Register::FromParameterIndex(i)));
   }
   PrintF("\n");
+  if (kEnableWasm32DebugDiagnostics || kTraceWasmInterpreterSteps ||
+      kTraceWasmFallbackDetails) {
   for (int i = 0; i < kMaxInterpreterTailTrace; ++i) {
     int slot = (kMaxInterpreterSteps + i) % kMaxInterpreterTailTrace;
     PrintF("  tail step=%d index=%d opcode=0x%x(%s) operands=%d,%d,%d "
@@ -27191,6 +27365,7 @@ const bool trace_hb1_get =
            interpreter::Bytecodes::ToString(tail_bytecode[slot]),
            tail_operand0[slot], tail_operand1[slot], tail_operand2[slot],
            static_cast<unsigned>(tail_accumulator[slot]));
+  }
   }
   for (int i = 0; i < register_count; ++i) {
     DumpRuntimeArg("  overflow local", i,
