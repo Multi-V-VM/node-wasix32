@@ -502,10 +502,8 @@
       'toolsets': [ 'host' ],
       'type': 'executable',
       'dependencies': [ 'icutools' ],
-      # Always use stub for cross-compilation
       'sources': [
-        'icupkg_wasi_stub.cpp',
-        'no-op.cc',
+        '<(icu_path)/source/tools/icupkg/icupkg.cpp',
       ],
       'cflags': [ '-fno-exceptions', '-fno-rtti' ],
       'cflags_cc': [ '-fno-exceptions', '-fno-rtti' ],

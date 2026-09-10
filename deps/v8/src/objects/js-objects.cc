@@ -3597,7 +3597,7 @@ bool TryFastAddDataProperty(Isolate* isolate, DirectHandle<JSObject> object,
                             DirectHandle<Name> name, DirectHandle<Object> value,
                             PropertyAttributes attributes) {
   DCHECK(IsUniqueName(*name));
-#if defined(__wasi__)
+#if defined(__wasi__) && defined(V8_WASM32_TRACE_OBJECT_LAYOUT)
   std::fprintf(stderr,
                "TryFastAddDataProperty enter object=0x%lx map=0x%lx "
                "name=0x%lx value=0x%lx attrs=%d\n",
@@ -3611,7 +3611,7 @@ bool TryFastAddDataProperty(Isolate* isolate, DirectHandle<JSObject> object,
   Tagged<Map> map =
       TransitionsAccessor(isolate, object->map())
           .SearchTransition(*name, PropertyKind::kData, attributes);
-#if defined(__wasi__)
+#if defined(__wasi__) && defined(V8_WASM32_TRACE_OBJECT_LAYOUT)
   std::fprintf(stderr, "TryFastAddDataProperty after SearchTransition map=0x%lx\n",
                static_cast<unsigned long>(map.ptr()));
   std::fflush(stderr);
@@ -3626,7 +3626,7 @@ bool TryFastAddDataProperty(Isolate* isolate, DirectHandle<JSObject> object,
   }
 
   InternalIndex descriptor = new_map->LastAdded();
-#if defined(__wasi__)
+#if defined(__wasi__) && defined(V8_WASM32_TRACE_OBJECT_LAYOUT)
   std::fprintf(stderr,
                "TryFastAddDataProperty before Prepare descriptor=%d "
                "new_map=0x%lx own=%d inst_desc=0x%lx\n",
@@ -3638,7 +3638,7 @@ bool TryFastAddDataProperty(Isolate* isolate, DirectHandle<JSObject> object,
 #endif
   new_map = Map::PrepareForDataProperty(isolate, new_map, descriptor,
                                         PropertyConstness::kConst, value);
-#if defined(__wasi__)
+#if defined(__wasi__) && defined(V8_WASM32_TRACE_OBJECT_LAYOUT)
   std::fprintf(stderr,
                "TryFastAddDataProperty after Prepare new_map=0x%lx own=%d\n",
                static_cast<unsigned long>((*new_map).ptr()),
@@ -3646,7 +3646,7 @@ bool TryFastAddDataProperty(Isolate* isolate, DirectHandle<JSObject> object,
   std::fflush(stderr);
 #endif
   JSObject::MigrateToMap(isolate, object, new_map);
-#if defined(__wasi__)
+#if defined(__wasi__) && defined(V8_WASM32_TRACE_OBJECT_LAYOUT)
   std::fprintf(stderr,
                "TryFastAddDataProperty after Migrate object_map=0x%lx "
                "properties=0x%lx\n",
@@ -3656,13 +3656,13 @@ bool TryFastAddDataProperty(Isolate* isolate, DirectHandle<JSObject> object,
 #endif
   // TODO(leszeks): Avoid re-loading the property details, which we already
   // loaded in PrepareForDataProperty.
-#if defined(__wasi__)
+#if defined(__wasi__) && defined(V8_WASM32_TRACE_OBJECT_LAYOUT)
   std::fprintf(stderr, "TryFastAddDataProperty before GetDetails\n");
   std::fflush(stderr);
 #endif
   PropertyDetails details =
       new_map->instance_descriptors()->GetDetails(descriptor);
-#if defined(__wasi__)
+#if defined(__wasi__) && defined(V8_WASM32_TRACE_OBJECT_LAYOUT)
   FieldIndex field_index = FieldIndex::ForDetails(object->map(), details);
   int property_array_length = -1;
   Tagged<PropertyArray> properties = object->property_array();
@@ -3712,7 +3712,7 @@ void JSObject::AddProperty(Isolate* isolate, DirectHandle<JSObject> object,
   DCHECK(!it.IsFound());
   DCHECK(object->map()->is_extensible() || name->IsPrivate());
 #endif
-#if defined(__wasi__)
+#if defined(__wasi__) && defined(V8_WASM32_TRACE_OBJECT_LAYOUT)
   std::fprintf(stderr,
                "JSObject::AddProperty before Object::AddDataProperty object=0x%lx "
                "map=0x%lx name=0x%lx value=0x%lx attrs=%d state=%d\n",
@@ -3727,7 +3727,7 @@ void JSObject::AddProperty(Isolate* isolate, DirectHandle<JSObject> object,
                                 Just(ShouldThrow::kThrowOnError),
                                 StoreOrigin::kNamed)
             .IsJust());
-#if defined(__wasi__)
+#if defined(__wasi__) && defined(V8_WASM32_TRACE_OBJECT_LAYOUT)
   std::fprintf(stderr,
                "JSObject::AddProperty after Object::AddDataProperty object=0x%lx "
                "map=0x%lx name=0x%lx state=%d\n",
@@ -5329,7 +5329,7 @@ Maybe<bool> JSObject::SetPrototype(Isolate* isolate,
                                    DirectHandle<Object> value_obj,
                                    bool from_javascript,
                                    ShouldThrow should_throw) {
-#if defined(__wasi__)
+#if defined(__wasi__) && defined(V8_WASM32_TRACE_OBJECT_LAYOUT)
   std::fprintf(stderr,
                "JSObject::SetPrototype entry object=0x%zx value_obj=0x%zx "
                "from_js=%d should_throw=%d\n",
@@ -5357,7 +5357,7 @@ Maybe<bool> JSObject::SetPrototype(Isolate* isolate,
   // SpiderMonkey behaves this way.
   DirectHandle<JSPrototype> value;
   if (!TryCast(value_obj, &value)) return Just(true);
-#if defined(__wasi__)
+#if defined(__wasi__) && defined(V8_WASM32_TRACE_OBJECT_LAYOUT)
   std::fprintf(stderr,
                "JSObject::SetPrototype cast value=0x%zx object_map=0x%zx "
                "current_proto=0x%zx\n",
@@ -5415,7 +5415,7 @@ Maybe<bool> JSObject::SetPrototype(Isolate* isolate,
   // prevented.  It is sufficient to validate that the receiver is not in the
   // new prototype chain.
   if (Tagged<JSReceiver> receiver; TryCast<JSReceiver>(*value, &receiver)) {
-#if defined(__wasi__)
+#if defined(__wasi__) && defined(V8_WASM32_TRACE_OBJECT_LAYOUT)
     std::fprintf(stderr,
                  "JSObject::SetPrototype cycle-check receiver=0x%zx "
                  "target_object=0x%zx\n",
@@ -5425,7 +5425,7 @@ Maybe<bool> JSObject::SetPrototype(Isolate* isolate,
 #endif
     for (PrototypeIterator iter(isolate, receiver, kStartAtReceiver);
          !iter.IsAtEnd(); iter.Advance()) {
-#if defined(__wasi__)
+#if defined(__wasi__) && defined(V8_WASM32_TRACE_OBJECT_LAYOUT)
       Tagged<JSReceiver> current = iter.GetCurrent<JSReceiver>();
       std::fprintf(stderr,
                    "JSObject::SetPrototype cycle current=0x%zx "
@@ -5995,6 +5995,14 @@ void JSDate::SetCachedFields(int64_t local_time_ms, DateCache* date_cache) {
 void JSMessageObject::InitializeSourcePositions(
     Isolate* isolate, DirectHandle<JSMessageObject> message) {
   DCHECK(!message->DidEnsureSourcePositionsAvailable());
+#ifdef __wasi__
+  // wasm32 diagnostics must not force source-position generation for large
+  // scripts. Mark the optional metadata initialized and keep it locationless.
+  message->set_start_position(0);
+  message->set_end_position(0);
+  message->set_shared_info(Smi::zero());
+  return;
+#endif
   Script::InitLineEnds(isolate, direct_handle(message->script(), isolate));
   if (message->shared_info() == Smi::FromInt(-1)) {
     message->set_shared_info(Smi::zero());
@@ -6058,6 +6066,12 @@ Tagged<String> JSMessageObject::GetSource() const {
 DirectHandle<String> JSMessageObject::GetSourceLine() const {
   Isolate* isolate = GetIsolate();
 
+#ifdef __wasi__
+  // Source line metadata is not reliable for large bundled scripts on wasm32.
+  // Keep diagnostics fail-safe; callers still report the resource and offset.
+  return isolate->factory()->empty_string();
+#endif
+
 #if V8_ENABLE_WEBASSEMBLY
   if (script()->type() == Script::Type::kWasm) {
     return isolate->factory()->empty_string();
@@ -6073,7 +6087,13 @@ DirectHandle<String> JSMessageObject::GetSourceLine() const {
     }
   }
 
-  Handle<String> src(Cast<String>(script()->source()), isolate);
+  Tagged<Object> source = script()->source();
+  if (!IsString(source)) return isolate->factory()->empty_string();
+  Handle<String> src(Cast<String>(source), isolate);
+  if (info.line_start < 0 || info.line_end < info.line_start ||
+      info.line_end > src->length()) {
+    return isolate->factory()->empty_string();
+  }
   return isolate->factory()->NewSubString(src, info.line_start, info.line_end);
 }
 

@@ -6,20 +6,40 @@
 
 #include <algorithm>
 #include <cstddef>
+#include <cstdio>
 #include <optional>
 
 #include "src/api/api-inl.h"
 #include "src/base/logging.h"
+#include "src/builtins/builtins-promise.h"
+#include "src/execution/execution.h"
 #include "src/execution/isolate.h"
 #include "src/handles/handles-inl.h"
 #include "src/heap/factory-inl.h"
+#include "src/objects/js-function-inl.h"
+#include "src/objects/js-promise-inl.h"
 #include "src/objects/microtask-inl.h"
+#include "src/objects/promise-inl.h"
 #include "src/objects/visitors.h"
 #include "src/roots/roots-inl.h"
 #include "src/tracing/trace-event.h"
 
 namespace v8 {
 namespace internal {
+
+#ifdef __wasi__
+extern "C" Address WasmJSEntry(Address root, Address new_target,
+                               Address target, Address receiver, intptr_t argc,
+                               Address** argv);
+extern "C" bool Wasm32TryResumeAsyncFunctionAwait(
+    Isolate* isolate, Address handler_address, Address value_address,
+    bool rejected, Address* out_result);
+extern "C" Address Wasm32CallMicrotaskFunction(Isolate* isolate,
+                                                Address callable_address);
+extern "C" bool Wasm32TryRunPromiseAllElementClosure(
+    Isolate* isolate, Address handler_address, Address value_address,
+    bool rejected, Address* out_result);
+#endif
 
 const size_t MicrotaskQueue::kRingBufferOffset =
     OFFSET_OF(MicrotaskQueue, ring_buffer_);
@@ -150,6 +170,271 @@ class SetIsRunningMicrotasks {
 };
 
 }  // namespace
+
+#ifdef __wasi__
+MaybeDirectHandle<Object> MicrotaskQueue::RunMicrotasksWasm(Isolate* isolate) {
+  ReadOnlyRoots roots(isolate);
+  while (size_ != 0) {
+    HandleScope task_scope(isolate);
+    Tagged<Microtask> raw_task = get(0);
+    --size_;
+    start_ = (start_ + 1) & (capacity_ - 1);
+    DirectHandle<Microtask> task(raw_task, isolate);
+
+    if (IsCallableTask(*task)) {
+      DirectHandle<CallableTask> callable_task = Cast<CallableTask>(task);
+      SaveContext save_context(isolate);
+      isolate->set_context(callable_task->context());
+      DirectHandle<Object> callable(callable_task->callable(), isolate);
+      MaybeDirectHandle<Object> exception;
+      if (IsJSBoundFunction(*callable) &&
+          Cast<JSBoundFunction>(*callable)->bound_arguments()->length() == 0) {
+        DirectHandle<JSBoundFunction> bound = Cast<JSBoundFunction>(callable);
+        DirectHandle<Object> target(bound->bound_target_function(), isolate);
+        DirectHandle<Object> receiver(bound->bound_this(), isolate);
+        DirectHandle<Object> callback;
+        bool has_callback = false;
+        if (IsJSReceiver(*receiver)) {
+          DirectHandle<Name> callback_name =
+              isolate->factory()->InternalizeUtf8String("callback");
+          has_callback = Object::GetProperty(
+                             isolate, Cast<JSReceiver>(receiver), callback_name)
+                             .ToHandle(&callback) &&
+                         IsCallable(*callback);
+        }
+        if (has_callback) {
+          Address call_result =
+              Wasm32CallMicrotaskFunction(isolate, (*callback).ptr());
+          if (call_result == roots.exception().ptr() ||
+              isolate->has_exception()) {
+            isolate->ReportPendingMessages(true);
+            isolate->clear_exception();
+            isolate->clear_pending_message();
+          }
+        } else {
+          Execution::TryCall(isolate, target, receiver, {},
+                             Execution::MessageHandling::kReport, &exception);
+        }
+      } else {
+        Execution::TryCall(isolate, callable,
+                           isolate->factory()->undefined_value(), {},
+                           Execution::MessageHandling::kReport, &exception);
+      }
+    } else if (IsCallbackTask(*task)) {
+      DirectHandle<CallbackTask> callback_task = Cast<CallbackTask>(task);
+      MicrotaskCallback callback =
+          ToCData<MicrotaskCallback, kMicrotaskCallbackTag>(
+              isolate, callback_task->callback());
+      void* data = ToCData<void*, kMicrotaskCallbackDataTag>(
+              isolate, callback_task->data());
+      callback(data);
+    } else if (IsPromiseResolveThenableJobTask(*task)) {
+      DirectHandle<PromiseResolveThenableJobTask> thenable_job =
+          Cast<PromiseResolveThenableJobTask>(task);
+      SaveContext save_context(isolate);
+      isolate->set_context(thenable_job->context());
+
+      DirectHandle<JSPromise> promise(thenable_job->promise_to_resolve(),
+                                      isolate);
+      DirectHandle<Context> resolving_context =
+          isolate->factory()->NewBuiltinContext(
+              isolate->native_context(),
+              PromiseBuiltins::kPromiseContextLength);
+      resolving_context->SetNoCell(PromiseBuiltins::kPromiseSlot, *promise);
+      resolving_context->SetNoCell(PromiseBuiltins::kAlreadyResolvedSlot,
+                                   roots.false_value());
+      resolving_context->SetNoCell(PromiseBuiltins::kDebugEventSlot,
+                                   roots.true_value());
+
+      DirectHandle<SharedFunctionInfo> resolve_info =
+          isolate->factory()->promise_capability_default_resolve_shared_fun();
+      DirectHandle<SharedFunctionInfo> reject_info =
+          isolate->factory()->promise_capability_default_reject_shared_fun();
+      Handle<JSFunction> resolve =
+          Factory::JSFunctionBuilder{isolate, resolve_info, resolving_context}
+              .Build();
+      Handle<JSFunction> reject =
+          Factory::JSFunctionBuilder{isolate, reject_info, resolving_context}
+              .Build();
+
+      DirectHandle<Object> then(thenable_job->then(), isolate);
+      DirectHandle<Object> thenable(thenable_job->thenable(), isolate);
+      DirectHandle<Object> arguments[] = {resolve, reject};
+      MaybeDirectHandle<Object> exception;
+      if (Execution::TryCall(isolate, then, thenable, {arguments, 2},
+                             Execution::MessageHandling::kKeepPending,
+                             &exception)
+              .is_null()) {
+        DirectHandle<Object> reason;
+        if (!exception.ToHandle(&reason)) {
+          return MaybeDirectHandle<Object>();
+        }
+#ifdef __wasi__
+        if (false && IsUndefined(*reason, roots)) {
+          std::fprintf(stderr,
+                       "WASM32_THENABLE_REJECT_UNDEFINED then=0x%x "
+                       "thenable=0x%x\n",
+                       static_cast<unsigned>((*then).ptr()),
+                       static_cast<unsigned>((*thenable).ptr()));
+          std::fflush(stderr);
+        }
+#endif
+        DirectHandle<Object> reject_argument = reason;
+        MaybeDirectHandle<Object> reject_exception;
+        if (Execution::TryCall(
+                isolate, reject, isolate->factory()->undefined_value(),
+                {&reject_argument, 1}, Execution::MessageHandling::kKeepPending,
+                &reject_exception)
+                .is_null()) {
+          return MaybeDirectHandle<Object>();
+        }
+      }
+    } else if (IsPromiseFulfillReactionJobTask(*task) ||
+               IsPromiseRejectReactionJobTask(*task)) {
+      bool rejected = IsPromiseRejectReactionJobTask(*task);
+      DirectHandle<PromiseReactionJobTask> reaction =
+          Cast<PromiseReactionJobTask>(task);
+      SaveContext save_context(isolate);
+      isolate->set_context(reaction->context());
+
+      DirectHandle<Object> completion(reaction->argument(), isolate);
+      Tagged<Object> handler_value = reaction->handler();
+#ifdef __wasi__
+      if (false && rejected && IsUndefined(*completion, roots)) {
+        int handler_builtin = -1;
+        if (IsJSFunction(handler_value)) {
+          Tagged<JSFunction> handler_function = Cast<JSFunction>(handler_value);
+          Tagged<SharedFunctionInfo> handler_shared =
+              handler_function->shared();
+          if (handler_shared->HasBuiltinId()) {
+            handler_builtin = static_cast<int>(handler_shared->builtin_id());
+          }
+        }
+        Tagged<HeapObject> diagnostic_promise_or_capability =
+            reaction->promise_or_capability();
+        std::fprintf(stderr,
+                     "WASM32_REACTION_UNDEFINED phase=input handler=0x%x "
+                     "builtin=%d promise=%d capability=%d\n",
+                     static_cast<unsigned>(handler_value.ptr()),
+                     handler_builtin,
+                     IsJSPromise(diagnostic_promise_or_capability) ? 1 : 0,
+                     IsPromiseCapability(diagnostic_promise_or_capability) ? 1
+                                                                          : 0);
+        std::fflush(stderr);
+      }
+#endif
+      if (!IsUndefined(handler_value, roots)) {
+        DirectHandle<Object> handler(handler_value, isolate);
+        DirectHandle<Object> argument = completion;
+        MaybeDirectHandle<Object> exception;
+        MaybeDirectHandle<Object> call_result;
+        bool handled_await_closure = false;
+        if (IsJSFunction(*handler)) {
+          Address call_value = roots.undefined_value().ptr();
+          handled_await_closure = Wasm32TryRunPromiseAllElementClosure(
+              isolate, (*handler).ptr(), (*argument).ptr(), rejected,
+              &call_value);
+          if (!handled_await_closure) {
+            handled_await_closure = Wasm32TryResumeAsyncFunctionAwait(
+                isolate, (*handler).ptr(), (*argument).ptr(), rejected,
+                &call_value);
+          }
+          if (handled_await_closure) {
+            if (call_value == roots.exception().ptr() ||
+                isolate->has_exception()) {
+              if (isolate->has_exception()) {
+                exception = direct_handle(isolate->exception(), isolate);
+                isolate->clear_exception();
+                isolate->clear_pending_message();
+              }
+            } else {
+              call_result = isolate->factory()->undefined_value();
+            }
+          }
+        }
+        if (!handled_await_closure) {
+          call_result = Execution::TryCall(
+              isolate, handler, isolate->factory()->undefined_value(),
+              {&argument, 1}, Execution::MessageHandling::kKeepPending,
+              &exception);
+        }
+        if (!call_result.ToHandle(&completion)) {
+          if (!exception.ToHandle(&completion)) {
+            return MaybeDirectHandle<Object>();
+          }
+          rejected = true;
+        } else {
+          rejected = false;
+        }
+      }
+
+#ifdef __wasi__
+      if (false && rejected && IsUndefined(*completion, roots)) {
+        std::fprintf(stderr,
+                     "WASM32_REACTION_UNDEFINED phase=settle handler=0x%x\n",
+                     static_cast<unsigned>(handler_value.ptr()));
+        std::fflush(stderr);
+      }
+#endif
+
+      Tagged<HeapObject> promise_or_capability =
+          reaction->promise_or_capability();
+      if (IsJSPromise(promise_or_capability)) {
+        DirectHandle<JSPromise> promise(
+            Cast<JSPromise>(promise_or_capability), isolate);
+        if (rejected) {
+#ifdef __wasi__
+          if (false && IsUndefined(*completion, roots)) {
+            std::fprintf(stderr,
+                         "WASM32_REJECT_UNDEFINED source=microtask "
+                         "promise=0x%x handler=0x%x\n",
+                         static_cast<unsigned>((*promise).ptr()),
+                         static_cast<unsigned>(handler_value.ptr()));
+            std::fflush(stderr);
+          }
+#endif
+          JSPromise::Reject(promise, completion);
+        } else {
+          DirectHandle<Object> resolve_result;
+          if (!JSPromise::Resolve(promise, completion)
+                   .ToHandle(&resolve_result)) {
+            return MaybeDirectHandle<Object>();
+          }
+        }
+      } else if (IsPromiseCapability(promise_or_capability)) {
+        DirectHandle<PromiseCapability> capability(
+            Cast<PromiseCapability>(promise_or_capability), isolate);
+        DirectHandle<Object> settle(
+            rejected ? capability->reject() : capability->resolve(), isolate);
+        DirectHandle<Object> argument = completion;
+        MaybeDirectHandle<Object> exception;
+        if (Execution::TryCall(
+                isolate, settle, isolate->factory()->undefined_value(),
+                {&argument, 1}, Execution::MessageHandling::kKeepPending,
+                &exception)
+                .is_null()) {
+          return MaybeDirectHandle<Object>();
+        }
+      } else if (rejected) {
+        isolate->Throw(*completion);
+        isolate->ReportPendingMessages(true);
+        isolate->clear_exception();
+      }
+    } else {
+      isolate->Throw(*isolate->factory()->NewTypeError(
+          MessageTemplate::kNotCallable, task));
+      return MaybeDirectHandle<Object>();
+    }
+
+    ++finished_microtask_count_;
+    if (isolate->is_execution_terminating()) {
+      return MaybeDirectHandle<Object>();
+    }
+  }
+
+  return isolate->factory()->undefined_value();
+}
+#endif
 
 int MicrotaskQueue::RunMicrotasks(Isolate* isolate) {
   SetIsRunningMicrotasks scope(&is_running_microtasks_);

@@ -337,30 +337,9 @@ void JSFunction::RequestOptimization(Isolate* isolate, CodeKind target_kind,
 void JSFunction::SetInterruptBudget(
     Isolate* isolate, BudgetModification kind,
     std::optional<CodeKind> override_active_tier) {
-#ifdef __wasi__
-  fprintf(stderr,
-          "JSFunction::SetInterruptBudget enter function=0x%lx kind=%d "
-          "shared=0x%lx raw_cell=0x%lx\n",
-          static_cast<unsigned long>(ptr()), static_cast<int>(kind),
-          static_cast<unsigned long>(shared().ptr()),
-          static_cast<unsigned long>(raw_feedback_cell().ptr()));
-  fflush(stderr);
-#endif
   int32_t current = raw_feedback_cell()->interrupt_budget();
-#ifdef __wasi__
-  fprintf(stderr,
-          "JSFunction::SetInterruptBudget current=%d raw_value=0x%lx\n",
-          current,
-          static_cast<unsigned long>(raw_feedback_cell()->value().ptr()));
-  fflush(stderr);
-#endif
   int32_t new_budget =
       TieringManager::InterruptBudgetFor(isolate, *this, override_active_tier);
-#ifdef __wasi__
-  fprintf(stderr, "JSFunction::SetInterruptBudget new_budget=%d\n",
-          new_budget);
-  fflush(stderr);
-#endif
   switch (kind) {
     case BudgetModification::kRaise:
       new_budget = std::max(current, new_budget);
@@ -1191,26 +1170,6 @@ bool FastInitializeDerivedMap(Isolate* isolate,
 
   int pre_allocated = constructor_initial_map->GetInObjectProperties() -
                       constructor_initial_map->UnusedPropertyFields();
-#ifdef __wasi__
-  fprintf(stderr,
-          "FastInitializeDerivedMap new_target=%p constructor=%p "
-          "initial_map=%p type=%d is_js_object_map=%d expected=%d "
-          "embedder=%d instance_size=%d in_object=%d pre_allocated=%d "
-          "initial_in_object=%d initial_unused=%d\n",
-          reinterpret_cast<void*>(new_target->ptr()),
-          reinterpret_cast<void*>(constructor->ptr()),
-          reinterpret_cast<void*>(constructor_initial_map->ptr()),
-          static_cast<int>(instance_type),
-          IsJSObjectMap(*constructor_initial_map),
-          expected_nof_properties,
-          embedder_fields,
-          instance_size,
-          in_object_properties,
-          pre_allocated,
-          constructor_initial_map->GetInObjectProperties(),
-          constructor_initial_map->UnusedPropertyFields());
-  fflush(stderr);
-#endif
   CHECK_LE(constructor_initial_map->UsedInstanceSize(), instance_size);
   int unused_property_fields = in_object_properties - pre_allocated;
   DirectHandle<Map> map =

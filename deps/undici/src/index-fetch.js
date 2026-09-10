@@ -5,6 +5,12 @@ const EnvHttpProxyAgent = require('./lib/dispatcher/env-http-proxy-agent')
 const fetchImpl = require('./lib/web/fetch').fetch
 
 module.exports.fetch = function fetch (resource, init = undefined) {
+  if (process.arch === 'wasm32') {
+    // The WASM32 interpreter's Promise catch wrapper does not preserve the
+    // receiver across the nested call. The underlying fetch already returns
+    // the specification Promise, so avoid the stack-trace-only wrapper.
+    return fetchImpl(resource, init)
+  }
   return fetchImpl(resource, init).catch((err) => {
     if (err && typeof err === 'object') {
       Error.captureStackTrace(err)

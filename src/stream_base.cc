@@ -361,6 +361,14 @@ int StreamBase::WriteString(const FunctionCallbackInfo<Value>& args) {
   if (storage_size > INT_MAX)
     return UV_ENOBUFS;
 
+  // A zero-length write completes synchronously. In particular, do not pass
+  // an empty iovec to uv_try_write(), because the WASI socket implementation
+  // rejects it with EFAULT.
+  if (storage_size == 0) {
+    SetWriteResult(StreamWriteResult { false, 0, nullptr, 0, {} });
+    return 0;
+  }
+
   // Try writing immediately if write size isn't too big
   char stack_storage[16384];  // 16kb
   size_t data_size;
@@ -546,23 +554,7 @@ void StreamBase::AddMethods(IsolateData* isolate_data,
       static_cast<PropertyAttribute>(ReadOnly | DontDelete | DontEnum);
   Local<Signature> sig = Signature::New(isolate, t);
 #ifdef __wasi__
-  static int wasm_stream_base_add_methods_trace_count = 0;
-  auto trace_add_methods = [&](const char* stage) {
-    if (wasm_stream_base_add_methods_trace_count >= 80) return;
-    Isolate* current_isolate = Isolate::TryGetCurrent();
-    fprintf(stderr,
-            "StreamBase::AddMethods %s #%d isolate_data=%p isolate=%p "
-            "current=%p tmpl=%p sig=%p\n",
-            stage,
-            wasm_stream_base_add_methods_trace_count + 1,
-            static_cast<void*>(isolate_data),
-            static_cast<void*>(isolate),
-            static_cast<void*>(current_isolate),
-            t.IsEmpty() ? nullptr : reinterpret_cast<void*>(*t),
-            sig.IsEmpty() ? nullptr : reinterpret_cast<void*>(*sig));
-    fflush(stderr);
-    wasm_stream_base_add_methods_trace_count++;
-  };
+  auto trace_add_methods = [&](const char*) {};
   auto refresh_isolate = [&]() {
     isolate = isolate_data->isolate();
     if (isolate == nullptr) {

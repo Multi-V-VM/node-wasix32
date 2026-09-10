@@ -235,11 +235,6 @@ void CompileJSLinkageCodeStubBuiltin(Isolate* isolate, Builtin builtin,
                                      CodeAssemblerInstaller installer, int argc,
                                      const char* name, int finalize_order,
                                      BuiltinCompilationScheduler& scheduler) {
-#ifdef __wasi__
-  fprintf(stderr, "wasm32 compiling JS builtin %s (%d)\n", name,
-          Builtins::ToInt(builtin));
-  fflush(stderr);
-#endif
   // TODO(nicohartmann): Remove this once `BuildWithTurboshaftAssemblerJS` has
   // an actual use.
   USE(&BuildWithTurboshaftAssemblerJS);
@@ -279,11 +274,6 @@ void CompileCSLinkageCodeStubBuiltin(Isolate* isolate, Builtin builtin,
                                      CallDescriptors::Key interface_descriptor,
                                      const char* name, int finalize_order,
                                      BuiltinCompilationScheduler& scheduler) {
-#ifdef __wasi__
-  fprintf(stderr, "wasm32 compiling CS builtin %s (%d)\n", name,
-          Builtins::ToInt(builtin));
-  fflush(stderr);
-#endif
   // TODO(nicohartmann): Remove this once `BuildWithTurboshaftAssemblerCS` has
   // an actual use.
   USE(&BuildWithTurboshaftAssemblerCS);
@@ -302,11 +292,6 @@ void CompileBytecodeHandler(
     BuiltinCompilationScheduler& scheduler) {
   DCHECK(interpreter::Bytecodes::BytecodeHasHandler(bytecode, operand_scale));
   const char* name = Builtins::name(builtin);
-#ifdef __wasi__
-  fprintf(stderr, "wasm32 compiling BCH builtin %s (%d)\n", name,
-          Builtins::ToInt(builtin));
-  fflush(stderr);
-#endif
   auto generator = [bytecode,
                     operand_scale](compiler::CodeAssemblerState* state) {
     interpreter::GenerateBytecodeHandler(state, bytecode, operand_scale);
@@ -545,9 +530,6 @@ void SetupIsolateDelegate::SetupBuiltinsInternal(Isolate* isolate) {
     Tagged<Code> code = builtins->code(builtin);
     code->SetInstructionStartForOffHeapBuiltin(
         isolate, reinterpret_cast<Address>(fnptr));
-    fprintf(stderr, "wasm builtin %d instruction_start=%p\n",
-            Builtins::ToInt(builtin), (void*)code->instruction_start());
-    fflush(stderr);
   }
 #endif
 

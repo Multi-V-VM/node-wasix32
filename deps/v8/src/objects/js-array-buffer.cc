@@ -304,22 +304,6 @@ Handle<JSArrayBuffer> JSTypedArray::GetBuffer() {
   DCHECK(IsTypedArrayOrRabGsabTypedArrayElementsKind(self->GetElementsKind()));
   Handle<JSArrayBuffer> array_buffer(Cast<JSArrayBuffer>(self->buffer()),
                                      isolate);
-#ifdef __wasi__
-  fprintf(stderr,
-          "JSTypedArray::GetBuffer self=0x%lx is_on_heap=%d len=%zu "
-          "byte_len=%zu base=0x%lx smi0=0x%lx ext=0x%lx buffer=0x%lx "
-          "buffer_len=%zu\n",
-          static_cast<unsigned long>(self->ptr()),
-          self->is_on_heap() ? 1 : 0,
-          self->GetLength(),
-          self->GetByteLength(),
-          static_cast<unsigned long>(self->base_pointer().ptr()),
-          static_cast<unsigned long>(Smi::zero().ptr()),
-          static_cast<unsigned long>(self->external_pointer()),
-          static_cast<unsigned long>(array_buffer->ptr()),
-          array_buffer->GetByteLength());
-  fflush(stderr);
-#endif
   if (!is_on_heap()) {
     // Already is off heap, so return the existing buffer.
     return array_buffer;

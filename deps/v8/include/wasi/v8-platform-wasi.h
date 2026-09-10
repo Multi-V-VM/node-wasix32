@@ -20,7 +20,7 @@ constexpr size_t WASI_GB = 1024 * 1024 * 1024;
 #ifndef DCHECK
 #define DCHECK(condition) ((void)0)
 #endif
-#ifndef DCHECK_GE  
+#ifndef DCHECK_GE
 #define DCHECK_GE(a, b) ((void)0)
 #endif
 #ifndef DCHECK_GT
@@ -48,32 +48,34 @@ constexpr size_t WASI_GB = 1024 * 1024 * 1024;
 #define UNREACHABLE() ((void)0)
 #endif
 
-// Forward declarations  
+// Forward declarations
 namespace v8 {
 namespace base {
-  
-  // Atomic types for WASI
-  using Atomic32 = int32_t;
-}
+
+// Atomic types for WASI
+using Atomic32 = int32_t;
+}  // namespace base
 
 // V8 internal namespace constants for WASI
 namespace internal {
 #ifndef V8_WASI_SMI_CONSTANTS_DEFINED
-  constexpr int kSmiTagSize = 1;
-  constexpr int kSmiShiftSize = 0;
-  constexpr int kSmiValueSize = 31;
+constexpr int kSmiTagSize = 1;
+constexpr int kSmiShiftSize = 0;
+constexpr int kSmiValueSize = 31;
 #endif
 #ifndef V8_WASI_CORE_SIZES_DEFINED
-  constexpr int kSystemPointerSize = sizeof(void*);
-  constexpr int kTaggedSize = sizeof(void*);
-  using ExternalPointer_t = uintptr_t;
-  using CppHeapPointer_t = uintptr_t;
-  using IndirectPointerHandle = uint32_t;
+constexpr int kSystemPointerSize = sizeof(void*);
+constexpr int kTaggedSize = sizeof(void*);
+using ExternalPointer_t = uintptr_t;
+using CppHeapPointer_t = uintptr_t;
+using IndirectPointerHandle = uint32_t;
 #endif
-}
-}
+}  // namespace internal
+}  // namespace v8
 // Forward-declare TaskPriority before use in interfaces below
-namespace v8 { enum class TaskPriority; }
+namespace v8 {
+enum class TaskPriority : uint8_t;
+}
 // Do not forward-declare or define libc++ internals in std:: on WASI.
 // Creating or declaring std::* inside this header can accidentally happen
 // while nested in other namespaces (e.g. namespace v8), leading to v8::std
@@ -142,7 +144,6 @@ namespace tracing {
 // Tracing types provided by libplatform headers; no WASI stubs here.
 }  // namespace tracing
 }  // namespace platform
-
 
 }  // namespace v8
 

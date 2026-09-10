@@ -569,6 +569,21 @@
       'msvs_disabled_warnings!': [4244],
 
       'conditions': [
+        [ 'OS=="wasi"', {
+          # The wasm-ld default is only 64 KiB. The wasm32 V8 interpreter
+          # implements JavaScript calls with C++ recursion, so Node bootstrap
+          # and parser recursion can otherwise overwrite static data before a
+          # stack overflow is reported.
+          'ldflags': [
+            '-Wl,-z,stack-size=33554432',
+            # wasi_runtime_stubs.cc contains weak OpenSSL fallbacks. Force the
+            # bundled archive into the link so its real implementations replace
+            # those fallbacks instead of being skipped as already satisfied.
+            '-Wl,--whole-archive',
+            '<(obj_dir)/deps/openssl/<(STATIC_LIB_PREFIX)openssl<(STATIC_LIB_SUFFIX)',
+            '-Wl,--no-whole-archive',
+          ],
+        }],
         [ 'error_on_warn=="true"', {
           'cflags': ['-Werror'],
           'xcode_settings': {
@@ -757,9 +772,24 @@
                       'outputs': [
                         '<(SHARED_INTERMEDIATE_DIR)/node_snapshot.cc',
                       ],
-                      'action': [
-                        '<@(_inputs)',
-                        '<@(_outputs)',
+                      'conditions': [
+                        ['OS=="wasi"', {
+                          'action': [
+                            'wasmer',
+                            'run',
+                            '--quiet',
+                            '--mapdir',
+                            '<(PRODUCT_DIR):<(PRODUCT_DIR)',
+                            '<(node_mksnapshot_exec)',
+                            '--',
+                            '<@(_outputs)',
+                          ],
+                        }, {
+                          'action': [
+                            '<@(_inputs)',
+                            '<@(_outputs)',
+                          ],
+                        }],
                       ],
                     }],
                   ],
@@ -779,7 +809,8 @@
             '<(obj_dir)/<(node_text_start_object_path)'
           ]
         }],
-        ['node_wasm32_generated_builtins=="true"', {
+        ['node_use_node_snapshot=="true" and '
+         'node_wasm32_generated_builtins=="true"', {
           'ldflags+': [
             '<(SHARED_INTERMEDIATE_DIR)/wasm32_generated_builtins.o',
           ],
@@ -1453,6 +1484,9 @@
       },
 
       'conditions': [
+        ['OS=="wasi"', {
+          'ldflags': [ '-Wl,-z,stack-size=33554432' ],
+        }],
         ['node_write_snapshot_as_array_literals=="true"', {
           'defines': [ 'NODE_MKSNAPSHOT_USE_ARRAY_LITERALS=1' ],
         }],

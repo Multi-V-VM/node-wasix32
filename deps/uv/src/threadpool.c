@@ -268,13 +268,27 @@ void uv__work_submit(uv_loop_t* loop,
                      enum uv__work_kind kind,
                      void (*work)(struct uv__work* w),
                      void (*done)(struct uv__work* w, int status)) {
+#ifdef __wasi__
+  (void) kind;
+  w->loop = loop;
+  w->work = work;
+  w->done = done;
+  uv__queue_init(&w->wq);
+  work(w);
+
+  uv_mutex_lock(&loop->wq_mutex);
+  w->work = NULL;
+  uv__queue_insert_tail(&loop->wq, &w->wq);
+  uv_async_send(&loop->wq_async);
+  uv_mutex_unlock(&loop->wq_mutex);
+#else
   uv_once(&once, init_once);
   w->loop = loop;
   w->work = work;
   w->done = done;
   post(&w->wq, kind);
+#endif
 }
-
 
 /* TODO(bnoordhuis) teach libuv how to cancel file operations
  * that go through io_uring instead of the thread pool.
@@ -314,8 +328,7 @@ void uv__work_done(uv_async_t* handle) {
   int err;
   int nevents;
 
-  loop = container_of(handle, uv_loop_t, wq_async);
-  uv_mutex_lock(&loop->wq_mutex);
+  loop = container_of(handle, uv_loop_t, wq_async);  uv_mutex_lock(&loop->wq_mutex);
   uv__queue_move(&loop->wq, &wq);
   uv_mutex_unlock(&loop->wq_mutex);
 

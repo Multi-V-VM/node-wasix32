@@ -1157,19 +1157,6 @@ void CreateWorkerPerContextProperties(Local<Object> target,
                                       void* priv) {
   Environment* env = Environment::GetCurrent(context);
   Isolate* isolate = context->GetIsolate();
-#ifdef __wasi__
-  fprintf(stderr,
-          "CreateWorkerPerContextProperties enter env=%p env_isolate=%p "
-          "context=%p isolate=%p target=%p main=%d owns=%d\n",
-          static_cast<void*>(env),
-          static_cast<void*>(env->isolate()),
-          *context,
-          static_cast<void*>(isolate),
-          *target,
-          env->is_main_thread(),
-          env->owns_process_state());
-#endif
-
   target
       ->Set(context,
             env->thread_id_string(),

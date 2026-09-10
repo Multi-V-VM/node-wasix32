@@ -164,26 +164,10 @@ Local<FunctionTemplate> HandleWrap::GetConstructorTemplate(
   Local<FunctionTemplate> tmpl = isolate_data->handle_wrap_ctor_template();
   if (tmpl.IsEmpty()) {
 #ifdef __wasi__
-    static int wasm_handle_wrap_ctor_trace_count = 0;
     auto trace_handle_wrap_ctor = [&](const char* stage,
                                       Isolate* isolate,
                                       Local<FunctionTemplate> current_tmpl =
-                                          Local<FunctionTemplate>()) {
-      if (wasm_handle_wrap_ctor_trace_count >= 80) return;
-      fprintf(stderr,
-              "HandleWrap::GetConstructorTemplate %s #%d isolate_data=%p "
-              "isolate=%p current=%p tmpl=%p\n",
-              stage,
-              wasm_handle_wrap_ctor_trace_count + 1,
-              static_cast<void*>(isolate_data),
-              static_cast<void*>(isolate),
-              static_cast<void*>(Isolate::TryGetCurrent()),
-              current_tmpl.IsEmpty()
-                  ? nullptr
-                  : reinterpret_cast<void*>(*current_tmpl));
-      fflush(stderr);
-      wasm_handle_wrap_ctor_trace_count++;
-    };
+                                          Local<FunctionTemplate>()) {};
 #endif
     Isolate* isolate = isolate_data->isolate();
 #ifdef __wasi__

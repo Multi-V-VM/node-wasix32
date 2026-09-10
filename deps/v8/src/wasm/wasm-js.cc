@@ -1184,12 +1184,14 @@ void WebAssemblyInstantiateImpl(
   Local<Value> first_arg_value = info[0];
   i::DirectHandle<i::Object> first_arg =
       Utils::OpenDirectHandle(*first_arg_value);
+#ifndef __wasi__
   if (!IsJSObject(*first_arg)) {
     thrower.TypeError(
         "Argument 0 must be a buffer source or a WebAssembly.Module object");
     resolver->OnInstantiationFailed(thrower.Reify());
     return;
   }
+#endif
 
   // If info.Length < 2, this will be undefined - see FunctionCallbackInfo.
   Local<Value> ffi = info[1];
@@ -3672,6 +3674,11 @@ void WasmJs::Install(Isolate* isolate) {
   bool expose_wasm = !i::v8_flags.jitless ||
                      i::v8_flags.correctness_fuzzer_suppressions ||
                      i::v8_flags.wasm_jitless;
+#if V8_TARGET_ARCH_WASM32
+  // The host executable is itself WebAssembly, so Wasm code does not require
+  // allocating native executable memory in this configuration.
+  expose_wasm = true;
+#endif
   if (expose_wasm) {
     DirectHandle<String> WebAssembly_string = v8_str(isolate, "WebAssembly");
     JSObject::AddProperty(isolate, global, WebAssembly_string, webassembly,

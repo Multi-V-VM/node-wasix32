@@ -292,22 +292,6 @@ MaybeHandle<JSObject> InstantiateObject(Isolate* isolate,
                                         DirectHandle<JSReceiver> new_target,
                                         bool is_prototype) {
   RCS_SCOPE(isolate, RuntimeCallCounterId::kInstantiateObject);
-#ifdef __wasi__
-  static int wasm32_instantiate_object_trace_count = 0;
-  Tagged<Object> wasm32_constructor_info = info->constructor();
-  fprintf(stderr,
-          "ApiNatives::InstantiateObject enter #%d info=0x%x is_proto=%d "
-          "new_target_null=%d ctor=0x%x ctor_undef=%d cache=%d "
-          "props=0x%x accessors=0x%x embedder=%d immutable=%d\n",
-          wasm32_instantiate_object_trace_count++,
-          static_cast<unsigned>(info->ptr()), is_prototype,
-          new_target.is_null(),
-          static_cast<unsigned>(wasm32_constructor_info.ptr()),
-          IsUndefined(wasm32_constructor_info, isolate), info->is_cacheable(),
-          static_cast<unsigned>(info->property_list().ptr()),
-          static_cast<unsigned>(info->property_accessors().ptr()),
-          info->embedder_field_count(), info->immutable_proto());
-#endif
   DirectHandle<JSFunction> constructor;
   bool should_cache = info->is_cacheable();
   if (!new_target.is_null()) {
@@ -340,23 +324,6 @@ MaybeHandle<JSObject> InstantiateObject(Isolate* isolate,
           Cast<FunctionTemplateInfo>(maybe_constructor_info), isolate);
       DirectHandle<JSFunction> tmp_constructor;
 #ifdef __wasi__
-      Tagged<Object> wasm32_instance_template =
-          cons_templ->GetInstanceTemplate();
-      fprintf(stderr,
-              "ApiNatives::InstantiateObject ctor_templ=0x%x has_cb=%d "
-              "cb=0x%x data=0x%x inst=0x%x inst_undef=%d proto=0x%x "
-              "proto_undef=%d parent=0x%x parent_undef=%d\n",
-              static_cast<unsigned>(cons_templ->ptr()),
-              cons_templ->has_callback(isolate),
-              static_cast<unsigned>(cons_templ->callback(isolate)),
-              static_cast<unsigned>(cons_templ->callback_data(kAcquireLoad)
-                                        .ptr()),
-              static_cast<unsigned>(wasm32_instance_template.ptr()),
-              IsUndefined(wasm32_instance_template, isolate),
-              static_cast<unsigned>(cons_templ->GetPrototypeTemplate().ptr()),
-              IsUndefined(cons_templ->GetPrototypeTemplate(), isolate),
-              static_cast<unsigned>(cons_templ->GetParentTemplate().ptr()),
-              IsUndefined(cons_templ->GetParentTemplate(), isolate));
       if (!cons_templ->has_callback(isolate) &&
           IsUndefined(cons_templ->GetInstanceTemplate(), isolate)) {
         constructor = isolate->object_function();

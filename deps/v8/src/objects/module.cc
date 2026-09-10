@@ -240,7 +240,9 @@ bool Module::PrepareInstantiate(
   DCHECK_NE(module->status(), kLinking);
   if (module->status() >= kPreLinking) return true;
   module->SetStatus(kPreLinking);
+#ifndef __wasi__
   STACK_CHECK(isolate, false);
+#endif
 
   if (IsSourceTextModule(*module)) {
     return SourceTextModule::PrepareInstantiate(
@@ -258,7 +260,9 @@ bool Module::FinishInstantiate(Isolate* isolate, Handle<Module> module,
   DCHECK_NE(module->status(), kEvaluating);
   if (module->status() >= kLinking) return true;
   DCHECK_EQ(module->status(), kPreLinking);
+#ifndef __wasi__
   STACK_CHECK(isolate, false);
+#endif
 
   if (IsSourceTextModule(*module)) {
     return SourceTextModule::FinishInstantiate(

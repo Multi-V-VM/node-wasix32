@@ -330,8 +330,18 @@ inline ::v8::Array::CallbackResult PushItemToVector(uint32_t index,
                             ::v8::Local<::v8::Array> js_array,
                             std::vector<::v8::Global<::v8::Value>>* out) {
 #ifdef __wasi__
-  // WASI stub implementation
-  return ::v8::Just(false);
+  uint32_t count = js_array->Length();
+  out->clear();
+  out->reserve(count);
+  for (uint32_t i = 0; i < count; ++i) {
+    ::v8::Local<::v8::Value> value;
+    if (!js_array->Get(context, i).ToLocal(&value)) {
+      out->clear();
+      return ::v8::Nothing<bool>();
+    }
+    out->emplace_back(context->GetIsolate(), value);
+  }
+  return ::v8::Just(true);
 #else
   uint32_t count = js_array->Length();
   out->reserve(count);

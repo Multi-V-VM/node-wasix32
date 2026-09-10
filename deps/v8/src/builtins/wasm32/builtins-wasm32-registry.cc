@@ -49,7 +49,9 @@ extern "C" void RegisterWasmBuiltinById(int builtin_id, void* fnptr) {
 
 void* WasmBuiltinFuncref(Builtin builtin) {
   EnsureRegistered();
-  return Table()[Builtins::ToInt(builtin)];
+  int id = Builtins::ToInt(builtin);
+  if (id < 0 || id >= Builtins::kBuiltinCount) return nullptr;
+  return Table()[id];
 }
 
 Address WasmBuiltinEntryOr(Builtin builtin, Address fallback_entry) {

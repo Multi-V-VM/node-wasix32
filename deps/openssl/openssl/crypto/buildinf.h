@@ -5,13 +5,18 @@
 #ifndef OPENSSL_BUILDINF_H
 #define OPENSSL_BUILDINF_H
 
-#define PLATFORM "platform: darwin-x86_64"
+#define PLATFORM "platform: wasi-wasm32"
 #define DATE "built on: " __DATE__ " " __TIME__
-#define CFLAGS "-fPIC -pthread -O3 -fno-omit-frame-pointer -Wall"
-#define CPPFLAGS ""
+static const char compiler_flags[] = "compiler: clang for wasi-wasm32";
 
-#define OPENSSLDIR "/etc/ssl"
-#define MODULESDIR "/usr/lib/openssl-modules"
-#define ENGINESDIR "/dev/null"
+#ifndef OPENSSLDIR
+# define OPENSSLDIR "/etc/ssl"
+#endif
+#ifndef MODULESDIR
+# define MODULESDIR "/usr/lib/openssl-modules"
+#endif
+#ifndef ENGINESDIR
+# define ENGINESDIR "/dev/null"
+#endif
 
 #endif /* OPENSSL_BUILDINF_H */

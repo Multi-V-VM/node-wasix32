@@ -5257,9 +5257,6 @@ void Isolate::TearDownEmbeddedBlob() {
 }
 
 bool Isolate::InitWithoutSnapshot() {
-  // Unconditional debug for WASI troubleshooting
-  fprintf(stderr, "Isolate::InitWithoutSnapshot called\n");
-  fflush(stderr);
   return Init(nullptr, nullptr, nullptr, false);
 }
 
@@ -5466,11 +5463,6 @@ void Isolate::VerifyStaticRoots() {
 bool Isolate::Init(SnapshotData* startup_snapshot_data,
                    SnapshotData* read_only_snapshot_data,
                    SnapshotData* shared_heap_snapshot_data, bool can_rehash) {
-  // Unconditional debug for WASI troubleshooting
-  fprintf(stderr, "Isolate::Init ENTER: startup=%p ro=%p shared=%p\n",
-          (void*)startup_snapshot_data, (void*)read_only_snapshot_data,
-          (void*)shared_heap_snapshot_data);
-  fflush(stderr);
   TRACE_ISOLATE(init);
 
 #ifdef V8_COMPRESS_POINTERS_IN_SHARED_CAGE
@@ -5751,14 +5743,9 @@ bool Isolate::Init(SnapshotData* startup_snapshot_data,
 
   if (!v8_flags.inline_new) heap_.DisableInlineAllocation();
 
-  // Unconditional debug for WASI troubleshooting
-  fprintf(stderr, "Isolate::Init: before SetupHeap, create_heap_objects=%d\n", create_heap_objects);
-  fflush(stderr);
   if (!setup_delegate_->SetupHeap(this, create_heap_objects)) {
     V8::FatalProcessOutOfMemory(this, "heap object creation");
   }
-  fprintf(stderr, "Isolate::Init: after SetupHeap\n");
-  fflush(stderr);
 
   if (create_heap_objects) {
     // Terminate the startup and shared heap object caches so we can iterate.
@@ -6472,6 +6459,21 @@ void Isolate::RemoveCallCompletedCallback(CallCompletedCallback callback) {
 void Isolate::FireCallCompletedCallbackInternal(
     MicrotaskQueue* microtask_queue) {
   DCHECK(thread_local_top()->CallDepthIsZero());
+
+#ifdef __wasi__
+  // The hand-written wasm32 JS entry does not establish an API CallDepthScope.
+  // An API call made while resuming an async function can therefore appear to
+  // be the outermost call. Do not recursively checkpoint or fire embedder
+  // callbacks; the checkpoint that is already running will do so on exit.
+  MicrotaskQueue* first_queue = default_microtask_queue();
+  if (first_queue) {
+    MicrotaskQueue* queue = first_queue;
+    do {
+      if (queue->IsRunningMicrotasks()) return;
+      queue = queue->next();
+    } while (queue && queue != first_queue);
+  }
+#endif
 
   bool perform_checkpoint =
       microtask_queue &&
@@ -7698,7 +7700,14 @@ void DefaultWasmAsyncResolvePromiseCallback(
     v8::Isolate* isolate, v8::Local<v8::Context> context,
     v8::Local<v8::Object> resolver, v8::Local<v8::Value> result,
     WasmAsyncSuccess success) {
-  // WASI: Simplified WASM async callback - no-op
+  MicrotasksScope microtasks_scope(context,
+                                   MicrotasksScope::kDoNotRunMicrotasks);
+  v8::Local<v8::Promise::Resolver> promise_resolver =
+      resolver.As<v8::Promise::Resolver>();
+  Maybe<bool> ret = success == WasmAsyncSuccess::kSuccess
+                        ? promise_resolver->Resolve(context, result)
+                        : promise_resolver->Reject(context, result);
+  CHECK(ret.IsJust() ? ret.FromJust() : isolate->IsExecutionTerminating());
 }
 #else
 void DefaultWasmAsyncResolvePromiseCallback(

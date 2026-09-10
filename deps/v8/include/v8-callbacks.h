@@ -21,8 +21,8 @@
 #ifndef __wasi__
 #include "v8-promise.h"  // Ensure Promise::Resolver is visible for non-WASI
 #endif
-#include "v8-maybe-local.h"   // NOLINT(build/include_directory)
-#include "v8config.h"         // NOLINT(build/include_directory)
+#include "v8-maybe-local.h"  // NOLINT(build/include_directory)
+#include "v8config.h"        // NOLINT(build/include_directory)
 
 #if defined(V8_OS_WIN)
 struct _EXCEPTION_POINTERS;
@@ -30,8 +30,10 @@ struct _EXCEPTION_POINTERS;
 
 namespace v8 {
 
-template <typename T> class FunctionCallbackInfo;
-template <typename T> class MaybeLocal;  // forward decl for early use
+template <typename T>
+class FunctionCallbackInfo;
+template <typename T>
+class MaybeLocal;  // forward decl for early use
 // Ensure MaybeLocal is available even if the include order prevents
 // v8-maybe-local.h from providing it yet.
 #ifndef INCLUDE_V8_MAYBE_LOCAL_H_
@@ -187,6 +189,7 @@ using JitCodeEventHandler = void (*)(const JitCodeEvent* event);
  * result in the allocation of objects.
  * TODO(v8:12612): Deprecate kGCTypeMinorMarkSweep after updating blink.
  */
+#ifndef V8_WASI_GC_CALLBACK_TYPES_DEFINED
 enum GCType {
   kGCTypeScavenge = 1 << 0,
   kGCTypeMinorMarkSweep = 1 << 1,
@@ -197,6 +200,7 @@ enum GCType {
                kGCTypeMarkSweepCompact | kGCTypeIncrementalMarking |
                kGCTypeProcessWeakCallbacks
 };
+#endif
 
 /**
  * GCCallbackFlags is used to notify additional information about the GC
@@ -212,6 +216,7 @@ enum GCType {
  *   - kGCCallbackScheduleIdleGarbageCollection: The GC callback is called to
  *     trigger an idle garbage collection.
  */
+#ifndef V8_WASI_GC_CALLBACK_TYPES_DEFINED
 enum GCCallbackFlags {
   kNoGCCallbackFlags = 0,
   kGCCallbackFlagConstructRetainedObjectInfos = 1 << 1,
@@ -221,6 +226,7 @@ enum GCCallbackFlags {
   kGCCallbackFlagCollectAllExternalMemory = 1 << 5,
   kGCCallbackScheduleIdleGarbageCollection = 1 << 6,
 };
+#endif
 
 using GCCallback = void (*)(GCType type, GCCallbackFlags flags);
 
@@ -354,9 +360,11 @@ enum class WasmAsyncSuccess { kSuccess, kFail };
 
 // --- Callback called when async WebAssembly operations finish ---
 #ifdef __wasi__
-using WasmAsyncResolvePromiseCallback = void (*)(
-    Isolate* isolate, Local<Context> context, Local<Object> resolver,
-    Local<Value> result, WasmAsyncSuccess success);
+using WasmAsyncResolvePromiseCallback = void (*)(Isolate* isolate,
+                                                 Local<Context> context,
+                                                 Local<Object> resolver,
+                                                 Local<Value> result,
+                                                 WasmAsyncSuccess success);
 #else
 using WasmAsyncResolvePromiseCallback = void (*)(
     Isolate* isolate, Local<Context> context, Local<Promise::Resolver> resolver,
@@ -563,6 +571,5 @@ using FilterETWSessionByURL2Callback = FilterETWSessionByURLResult (*)(
 #endif  // V8_OS_WIN
 
 }  // namespace v8
-
 
 #endif  // INCLUDE_V8_ISOLATE_CALLBACKS_H_

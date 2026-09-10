@@ -1743,6 +1743,11 @@ void DatabaseSync::LoadExtension(const FunctionCallbackInfo<Value>& args) {
   DatabaseSync* db;
   ASSIGN_OR_RETURN_UNWRAP(&db, args.This());
   Environment* env = Environment::GetCurrent(args);
+#ifdef __wasi__
+  THROW_ERR_INVALID_STATE(
+      env->isolate(), "SQLite extension loading is unavailable on WASI.");
+  return;
+#else
   THROW_AND_RETURN_ON_BAD_STATE(
       env, db->connection_ == nullptr, "database is not open");
   THROW_AND_RETURN_ON_BAD_STATE(
@@ -1773,6 +1778,7 @@ void DatabaseSync::LoadExtension(const FunctionCallbackInfo<Value>& args) {
   if (r != SQLITE_OK) {
     isolate->ThrowException(ERR_LOAD_SQLITE_EXTENSION(isolate, errmsg));
   }
+#endif
 }
 
 StatementSync::StatementSync(Environment* env,

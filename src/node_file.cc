@@ -1079,7 +1079,11 @@ static void InternalModuleStat(const FunctionCallbackInfo<Value>& args) {
   }
   uv_fs_req_cleanup(&req);
 
+#ifdef __wasi__
+  args.GetReturnValue().SetNonEmpty(v8::Integer::New(env->isolate(), rc));
+#else
   args.GetReturnValue().Set(rc);
+#endif
 }
 
 constexpr bool is_uv_error_except_no_entry(int result) {
@@ -2144,7 +2148,11 @@ static void Open(const FunctionCallbackInfo<Value>& args) {
   CHECK_GE(argc, 3);
 
   BufferValue path(env->isolate(), args[0]);
-  CHECK_NOT_NULL(*path);
+  if (*path == nullptr) {
+    THROW_ERR_INVALID_ARG_TYPE(
+        env, "The \"path\" argument must be a string, Buffer, or URL.");
+    return;
+  }
   ToNamespacedPath(env, &path);
 
   CHECK(args[1]->IsInt32());
@@ -4019,15 +4027,6 @@ static void CreatePerContextProperties(Local<Object> target,
   if (realm == nullptr) {
     Local<Context> target_context = target->GetCreationContextChecked();
     realm = Realm::GetCurrent(target_context);
-    fprintf(stderr,
-            "fs::CreatePerContextProperties fallback target=%p context=%p "
-            "target_context=%p realm=%p priv=%p\n",
-            *target,
-            *context,
-            *target_context,
-            static_cast<void*>(realm),
-            priv);
-    fflush(stderr);
   }
 #endif
   CHECK_NOT_NULL(realm);

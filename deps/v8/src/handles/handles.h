@@ -11,8 +11,8 @@
 #include <type_traits>
 #include <vector>
 
-#include "src/base/hashing.h"
 #include "include/v8-internal.h"
+#include "src/base/hashing.h"
 #include "src/base/macros.h"
 #include "src/base/small-vector.h"
 #include "src/base/vector.h"
@@ -72,7 +72,8 @@ class ZoneAllocationPolicy;
 
 // Tag type for constructors that skip checks
 // Note: This is also defined in v8-handle-base.h for WASI builds
-#if !defined(__wasi__) && !defined(V8_USING_WASI_SHIMS)
+#if !defined(__wasi__) && !defined(V8_USING_WASI_SHIMS) && \
+    !defined(V8_TARGET_ARCH_WASM32)
 struct no_checking_tag {};
 #endif
 
@@ -81,9 +82,11 @@ struct no_checking_tag {};
 template <typename Iterator, typename ValueType>
 class WrappedIterator {
  public:
-  using iterator_category = typename std::iterator_traits<Iterator>::iterator_category;
+  using iterator_category =
+      typename std::iterator_traits<Iterator>::iterator_category;
   using value_type = ValueType;
-  using difference_type = typename std::iterator_traits<Iterator>::difference_type;
+  using difference_type =
+      typename std::iterator_traits<Iterator>::difference_type;
   using pointer = value_type*;
   using reference = value_type&;
 
@@ -95,27 +98,61 @@ class WrappedIterator {
   pointer operator->() const { return reinterpret_cast<pointer>(&*it_); }
 
   // Increment/decrement operators
-  WrappedIterator& operator++() { ++it_; return *this; }
-  WrappedIterator operator++(int) { WrappedIterator tmp(*this); ++it_; return tmp; }
-  WrappedIterator& operator--() { --it_; return *this; }
-  WrappedIterator operator--(int) { WrappedIterator tmp(*this); --it_; return tmp; }
+  WrappedIterator& operator++() {
+    ++it_;
+    return *this;
+  }
+  WrappedIterator operator++(int) {
+    WrappedIterator tmp(*this);
+    ++it_;
+    return tmp;
+  }
+  WrappedIterator& operator--() {
+    --it_;
+    return *this;
+  }
+  WrappedIterator operator--(int) {
+    WrappedIterator tmp(*this);
+    --it_;
+    return tmp;
+  }
 
   // Arithmetic operators
-  WrappedIterator operator+(difference_type n) const { return WrappedIterator(it_ + n); }
-  WrappedIterator operator-(difference_type n) const { return WrappedIterator(it_ - n); }
-  WrappedIterator& operator+=(difference_type n) { it_ += n; return *this; }
-  WrappedIterator& operator-=(difference_type n) { it_ -= n; return *this; }
+  WrappedIterator operator+(difference_type n) const {
+    return WrappedIterator(it_ + n);
+  }
+  WrappedIterator operator-(difference_type n) const {
+    return WrappedIterator(it_ - n);
+  }
+  WrappedIterator& operator+=(difference_type n) {
+    it_ += n;
+    return *this;
+  }
+  WrappedIterator& operator-=(difference_type n) {
+    it_ -= n;
+    return *this;
+  }
 
   // Difference operator
-  difference_type operator-(const WrappedIterator& other) const { return it_ - other.it_; }
+  difference_type operator-(const WrappedIterator& other) const {
+    return it_ - other.it_;
+  }
 
   // Comparison operators
-  bool operator==(const WrappedIterator& other) const { return it_ == other.it_; }
-  bool operator!=(const WrappedIterator& other) const { return it_ != other.it_; }
+  bool operator==(const WrappedIterator& other) const {
+    return it_ == other.it_;
+  }
+  bool operator!=(const WrappedIterator& other) const {
+    return it_ != other.it_;
+  }
   bool operator<(const WrappedIterator& other) const { return it_ < other.it_; }
   bool operator>(const WrappedIterator& other) const { return it_ > other.it_; }
-  bool operator<=(const WrappedIterator& other) const { return it_ <= other.it_; }
-  bool operator>=(const WrappedIterator& other) const { return it_ >= other.it_; }
+  bool operator<=(const WrappedIterator& other) const {
+    return it_ <= other.it_;
+  }
+  bool operator>=(const WrappedIterator& other) const {
+    return it_ >= other.it_;
+  }
 
   // Access to underlying iterator
   Iterator base() const { return it_; }
@@ -1011,7 +1048,8 @@ class DirectHandleVector {
     return iterator(backing_.insert(pos.base(), init.begin(), init.end()));
   }
 
-  DirectHandle<ZoneVector<T>>& operator=(std::initializer_list<value_type> init) {
+  DirectHandle<ZoneVector<T>>& operator=(
+      std::initializer_list<value_type> init) {
     backing_.clear();
     backing_.reserve(init.size());
     backing_.insert(backing_.end(), init.begin(), init.end());
@@ -1029,7 +1067,9 @@ class DirectHandleVector {
   void clear() noexcept { backing_.clear(); }
   void resize(size_t n) { backing_.resize(n); }
   void resize(size_t n, const value_type& value) { backing_.resize(n, value); }
-  void swap(DirectHandle<ZoneVector<T>>& other) { backing_.swap(other.backing_); }
+  void swap(DirectHandle<ZoneVector<T>>& other) {
+    backing_.swap(other.backing_);
+  }
 
   friend bool operator==(const DirectHandle<ZoneVector<T>>& x,
                          const DirectHandle<ZoneVector<T>>& y) {
@@ -1124,7 +1164,7 @@ class DirectHandleSmallVector {
   }
   template <typename IsolateT>
   explicit V8_INLINE DirectHandleSmallVector(IsolateT* isolate,
-      ZoneVector<const value_type> init)
+                                             ZoneVector<const value_type> init)
       : backing_() {
     if (init.size() == 0) return;
     backing_.reserve(init.size());

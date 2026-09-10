@@ -408,7 +408,7 @@
             '<(V8_ROOT)/src/builtins/s390/builtins-s390.cc',
           ],
         }],
-        ['v8_target_arch=="wasm32" or (v8_target_arch=="ia32" and OS=="wasi")', {
+        ['target_arch=="wasm32" or v8_target_arch=="wasm32" or OS=="wasi"', {
           'sources': [
             '<(V8_ROOT)/src/builtins/wasm32/builtins-wasm32.cc',
             '<(V8_ROOT)/src/builtins/wasm32/builtins-wasm32-registry.cc',
@@ -431,10 +431,12 @@
       'type': 'static_library',
       'toolsets': ['target'],
       'sources': [
-        '<(V8_ROOT)/src/init/setup-isolate-deserialize.cc',
+        '<(V8_ROOT)/src/init/setup-isolate-full.cc',
+        '<(V8_ROOT)/src/snapshot/embedded/embedded-empty.cc',
+        '<(V8_ROOT)/src/snapshot/snapshot-empty.cc',
       ],
       'conditions': [
-        ['v8_target_arch=="wasm32" or (v8_target_arch=="ia32" and OS=="wasi")', {
+        ['target_arch=="wasm32" or v8_target_arch=="wasm32" or OS=="wasi"', {
           # For WASM32, use setup-isolate-full.cc which can create heap objects from scratch
           # since we don't have a compatible 32-bit snapshot.
           # Also use empty embedded blob and snapshot since x86-64 builtins won't work on WASM32.
@@ -447,7 +449,78 @@
             '<(V8_ROOT)/src/snapshot/embedded/embedded-empty.cc',
             '<(V8_ROOT)/src/snapshot/snapshot-empty.cc',
           ],
-          'actions': [],
+        }, {
+          'actions': [
+            {
+              'action_name': 'run_mksnapshot',
+              'message': 'generating: >@(_outputs)',
+              'variables': {
+                'mksnapshot_flags': [
+                  '--turbo_instruction_scheduling',
+                  '--stress-turbo-late-spilling',
+                  # In cross builds, the snapshot may be generated for both the host and
+                  # target toolchains. The same host binary is used to generate both.
+                  '--target_os=<(OS)',
+                  '--target_arch=<(v8_target_arch)',
+                  '--startup_src', '<(INTERMEDIATE_DIR)/snapshot.cc',
+                  '--embedded_variant', 'Default',
+                  '--embedded_src', '<(INTERMEDIATE_DIR)/embedded.S',
+                ],
+              },
+              'inputs': [
+                '<(mksnapshot_exec)',
+              ],
+              'outputs': [
+                '<(INTERMEDIATE_DIR)/snapshot.cc',
+                '<(INTERMEDIATE_DIR)/embedded.S',
+              ],
+              'process_outputs_as_sources': 1,
+              'conditions': [
+                ['v8_random_seed', {
+                  'variables': {
+                    'mksnapshot_flags': ['--random-seed', '<(v8_random_seed)'],
+                  },
+                }],
+                ['v8_os_page_size', {
+                  'variables': {
+                    'mksnapshot_flags': ['--v8_os_page_size', '<(v8_os_page_size)'],
+                  },
+                }],
+                ['v8_embed_script != ""', {
+                  'inputs': ['<(v8_embed_script)'],
+                  'variables': {
+                    'mksnapshot_flags': ['<(v8_embed_script)'],
+                  },
+                }],
+                ['v8_enable_snapshot_code_comments', {
+                  'variables': {
+                    'mksnapshot_flags': ['--code-comments'],
+                  },
+                }],
+                ['v8_enable_concurrent_mksnapshot == 1', {
+                  'variables': {
+                    'mksnapshot_flags': [
+                      '--concurrent-builtin-generation',
+                      '--concurrent-turbofan-max-threads=0',
+                    ],
+                  },
+                }],
+                ['v8_enable_snapshot_native_code_counters', {
+                  'variables': {
+                    'mksnapshot_flags': ['--native-code-counters'],
+                  },
+                }, {
+                  'variables': {
+                    'mksnapshot_flags': ['--no-native-code-counters'],
+                  },
+                }],
+              ],
+              'action': [
+                '>@(_inputs)',
+                '>@(mksnapshot_flags)',
+              ],
+            },
+          ],
         }],
       ],
       'xcode_settings': {
@@ -455,82 +528,6 @@
         # Refs: https://github.com/nodejs/node/pull/26685
         'GCC_GENERATE_DEBUGGING_SYMBOLS': 'NO',
       },
-      'actions': [
-        {
-          'action_name': 'run_mksnapshot',
-          'message': 'generating: >@(_outputs)',
-          'variables': {
-            'mksnapshot_flags': [
-              '--turbo_instruction_scheduling',
-              '--stress-turbo-late-spilling',
-              # In cross builds, the snapshot may be generated for both the host and
-              # target toolchains.  The same host binary is used to generate both, so
-              # mksnapshot needs to know which target OS to use at runtime.  It's weird,
-              # but the target OS is really <(OS).
-              '--target_os=<(OS)',
-              '--target_arch=<(v8_target_arch)',
-              '--startup_src', '<(INTERMEDIATE_DIR)/snapshot.cc',
-              '--embedded_variant', 'Default',
-              '--embedded_src', '<(INTERMEDIATE_DIR)/embedded.S',
-            ],
-          },
-          'inputs': [
-            '<(mksnapshot_exec)',
-          ],
-          'outputs': [
-            '<(INTERMEDIATE_DIR)/snapshot.cc',
-            '<(INTERMEDIATE_DIR)/embedded.S',
-          ],
-          'process_outputs_as_sources': 1,
-          'conditions': [
-            ['v8_random_seed', {
-              'variables': {
-                'mksnapshot_flags': ['--random-seed', '<(v8_random_seed)'],
-              },
-            }],
-            ['v8_os_page_size', {
-              'variables': {
-                'mksnapshot_flags': ['--v8_os_page_size', '<(v8_os_page_size)'],
-              },
-            }],
-            ['v8_embed_script != ""', {
-              'inputs': ['<(v8_embed_script)'],
-              'variables': {
-                'mksnapshot_flags': ['<(v8_embed_script)'],
-              },
-            }],
-            ['v8_enable_snapshot_code_comments', {
-              'variables': {
-                'mksnapshot_flags': ['--code-comments'],
-              },
-            }],
-            ['v8_enable_concurrent_mksnapshot == 1', {
-              'variables': {
-                'mksnapshot_flags': [
-                  '--concurrent-builtin-generation',
-                  # Use all the cores for concurrent builtin generation.
-                  '--concurrent-turbofan-max-threads=0',
-                ],
-              },
-            }],
-            ['v8_enable_snapshot_native_code_counters', {
-              'variables': {
-                'mksnapshot_flags': ['--native-code-counters'],
-              },
-            }, {
-               # --native-code-counters is the default in debug mode so make sure we can
-               # unset it.
-               'variables': {
-                 'mksnapshot_flags': ['--no-native-code-counters'],
-               },
-             }],
-          ],
-          'action': [
-            '>@(_inputs)',
-            '>@(mksnapshot_flags)',
-          ],
-        },
-      ],
       'conditions': [
         ['want_separate_host_toolset', {
           'dependencies': [
@@ -560,6 +557,15 @@
             'abseil.gyp:abseil',
             'fp16',
           ]
+        }],
+        ['v8_target_arch=="wasm32" or (v8_target_arch=="ia32" and OS=="wasi")', {
+          'conditions': [
+            ['want_separate_host_toolset', {
+              'dependencies!': ['mksnapshot#host'],
+            }, {
+              'dependencies!': ['mksnapshot'],
+            }],
+          ],
         }],
         ['OS=="win" and clang==1', {
           'actions': [
@@ -1210,6 +1216,14 @@
             '<!@pymod_do_main(GN-scraper "<(V8_ROOT)/BUILD.gn"  "\\"v8_base_without_compiler.*?v8_enable_webassembly.*?sources \\+= ")',
           ],
         }],
+          ['v8_enable_drumbrake==1', {
+            'sources': [
+            '<(V8_ROOT)/src/wasm/interpreter/wasm-interpreter-objects.cc',
+            '<(V8_ROOT)/src/wasm/interpreter/wasm-interpreter-runtime.cc',
+            '<(V8_ROOT)/src/wasm/interpreter/wasm-interpreter-simd.cc',
+            '<(V8_ROOT)/src/wasm/interpreter/wasm-interpreter.cc',
+          ],
+        }],
         ['v8_enable_heap_snapshot_verify==1', {
           'sources': [
             '<!@pymod_do_main(GN-scraper "<(V8_ROOT)/BUILD.gn"  "\\"v8_base_without_compiler.*?v8_enable_heap_snapshot_verify.*?sources \\+= ")',
@@ -1589,6 +1603,11 @@
               '-lrt'
             ],
           },
+        }],
+        ['OS=="wasi"', {
+          'sources': [
+            '<(V8_ROOT)/src/base/debug/stack_trace_posix.cc',
+          ],
         }],
         ['OS in "aix os400"', {
           'variables': {

@@ -709,13 +709,13 @@ void Map::ReplaceDescriptors(Isolate* isolate,
 Tagged<Map> Map::FindRootMap(PtrComprCageBase cage_base) const {
   DisallowGarbageCollection no_gc;
   Tagged<Map> result = *this;
-#if defined(__wasi__)
+#if defined(__wasi__) && defined(V8_WASM32_TRACE_OBJECT_LAYOUT)
   std::fprintf(stderr, "Map::FindRootMap enter this=0x%zx\n",
                static_cast<size_t>(result.ptr()));
   std::fflush(stderr);
 #endif
   while (true) {
-#if defined(__wasi__)
+#if defined(__wasi__) && defined(V8_WASM32_TRACE_OBJECT_LAYOUT)
     Tagged<Object> raw_back =
         result->constructor_or_back_pointer(cage_base, kRelaxedLoad);
     std::fprintf(stderr,
@@ -735,14 +735,14 @@ Tagged<Map> Map::FindRootMap(PtrComprCageBase cage_base) const {
       DCHECK_LE(result->NumberOfOwnDescriptors(),
                 result->instance_descriptors(cage_base, kRelaxedLoad)
                     ->number_of_descriptors());
-#if defined(__wasi__)
+#if defined(__wasi__) && defined(V8_WASM32_TRACE_OBJECT_LAYOUT)
       std::fprintf(stderr, "Map::FindRootMap return result=0x%zx\n",
                    static_cast<size_t>(result.ptr()));
       std::fflush(stderr);
 #endif
       return result;
     }
-#if defined(__wasi__)
+#if defined(__wasi__) && defined(V8_WASM32_TRACE_OBJECT_LAYOUT)
     std::fprintf(stderr, "Map::FindRootMap parent result=0x%zx parent=0x%zx\n",
                  static_cast<size_t>(result.ptr()),
                  static_cast<size_t>(parent.ptr()));
@@ -1605,7 +1605,7 @@ Handle<Map> Map::CopyReplaceDescriptors(
     DirectHandle<DescriptorArray> descriptors, TransitionFlag flag,
     MaybeDirectHandle<Name> maybe_name, const char* reason,
     TransitionKindFlag transition_kind) {
-#if defined(__wasi__)
+#if defined(__wasi__) && defined(V8_WASM32_TRACE_OBJECT_LAYOUT)
   std::fprintf(stderr,
                "Map::CopyReplaceDescriptors enter map=0x%lx desc=0x%lx "
                "nof=%d all=%d flag=%d reason=%s transition_kind=%d\n",
@@ -1619,7 +1619,7 @@ Handle<Map> Map::CopyReplaceDescriptors(
   DCHECK(descriptors->IsSortedNoDuplicates());
 
   Handle<Map> result = CopyDropDescriptors(isolate, map);
-#if defined(__wasi__)
+#if defined(__wasi__) && defined(V8_WASM32_TRACE_OBJECT_LAYOUT)
   std::fprintf(stderr,
                "Map::CopyReplaceDescriptors after CopyDrop result=0x%lx\n",
                static_cast<unsigned long>((*result).ptr()));
@@ -1638,7 +1638,7 @@ Handle<Map> Map::CopyReplaceDescriptors(
   } else {
     if (flag == INSERT_TRANSITION &&
         TransitionsAccessor::CanHaveMoreTransitions(isolate, map)) {
-#if defined(__wasi__)
+#if defined(__wasi__) && defined(V8_WASM32_TRACE_OBJECT_LAYOUT)
       std::fprintf(stderr,
                    "Map::CopyReplaceDescriptors before Initialize/Connect\n");
       std::fflush(stderr);
@@ -1648,7 +1648,7 @@ Handle<Map> Map::CopyReplaceDescriptors(
       DCHECK(!maybe_name.is_null());
       ConnectTransition(isolate, map, result, name, transition_kind);
       is_connected = true;
-#if defined(__wasi__)
+#if defined(__wasi__) && defined(V8_WASM32_TRACE_OBJECT_LAYOUT)
       std::fprintf(stderr, "Map::CopyReplaceDescriptors after Connect\n");
       std::fflush(stderr);
 #endif
@@ -1660,13 +1660,13 @@ Handle<Map> Map::CopyReplaceDescriptors(
       // is allowed to happen lazily.
       DCHECK_IMPLIES(transition_kind == PROTOTYPE_TRANSITION,
                      IsUndefined(map->GetBackPointer()));
-#if defined(__wasi__)
+#if defined(__wasi__) && defined(V8_WASM32_TRACE_OBJECT_LAYOUT)
       std::fprintf(stderr,
                    "Map::CopyReplaceDescriptors before Initialize bootstrap\n");
       std::fflush(stderr);
 #endif
       result->InitializeDescriptors(isolate, *descriptors);
-#if defined(__wasi__)
+#if defined(__wasi__) && defined(V8_WASM32_TRACE_OBJECT_LAYOUT)
       std::fprintf(stderr,
                    "Map::CopyReplaceDescriptors after Initialize bootstrap\n");
       std::fflush(stderr);
@@ -1674,19 +1674,19 @@ Handle<Map> Map::CopyReplaceDescriptors(
     } else {
       DCHECK_IMPLIES(transition_kind == PROTOTYPE_TRANSITION,
                      !v8_flags.move_prototype_transitions_first);
-#if defined(__wasi__)
+#if defined(__wasi__) && defined(V8_WASM32_TRACE_OBJECT_LAYOUT)
       std::fprintf(stderr,
                    "Map::CopyReplaceDescriptors before GeneralizeAllFields\n");
       std::fflush(stderr);
 #endif
       descriptors->GeneralizeAllFields(transition_kind == PROTOTYPE_TRANSITION);
-#if defined(__wasi__)
+#if defined(__wasi__) && defined(V8_WASM32_TRACE_OBJECT_LAYOUT)
       std::fprintf(stderr,
                    "Map::CopyReplaceDescriptors after GeneralizeAllFields\n");
       std::fflush(stderr);
 #endif
       result->InitializeDescriptors(isolate, *descriptors);
-#if defined(__wasi__)
+#if defined(__wasi__) && defined(V8_WASM32_TRACE_OBJECT_LAYOUT)
       std::fprintf(stderr,
                    "Map::CopyReplaceDescriptors after Initialize generalized\n");
       std::fflush(stderr);
@@ -1698,7 +1698,7 @@ Handle<Map> Map::CopyReplaceDescriptors(
         MapEvent("ReplaceDescriptors", map, result, reason,
                  maybe_name.is_null() ? DirectHandle<HeapObject>() : name));
   }
-#if defined(__wasi__)
+#if defined(__wasi__) && defined(V8_WASM32_TRACE_OBJECT_LAYOUT)
   std::fprintf(stderr,
                "Map::CopyReplaceDescriptors return result=0x%lx connected=%d\n",
                static_cast<unsigned long>((*result).ptr()),
@@ -2285,7 +2285,7 @@ Handle<Map> Map::CopyAddDescriptor(Isolate* isolate, DirectHandle<Map> map,
                                    TransitionFlag flag) {
   DirectHandle<DescriptorArray> descriptors(map->instance_descriptors(isolate),
                                             isolate);
-#if defined(__wasi__)
+#if defined(__wasi__) && defined(V8_WASM32_TRACE_OBJECT_LAYOUT)
   Tagged<Name> debug_key = *descriptor->GetKey();
   Tagged<MaybeObject> debug_value = *descriptor->GetValue();
   std::fprintf(stderr,
@@ -2311,7 +2311,7 @@ Handle<Map> Map::CopyAddDescriptor(Isolate* isolate, DirectHandle<Map> map,
   int nof = map->NumberOfOwnDescriptors();
   DirectHandle<DescriptorArray> new_descriptors =
       DescriptorArray::CopyUpTo(isolate, descriptors, nof, 1);
-#if defined(__wasi__)
+#if defined(__wasi__) && defined(V8_WASM32_TRACE_OBJECT_LAYOUT)
   std::fprintf(stderr,
                "Map::CopyAddDescriptor after CopyUpTo new_desc=0x%lx n=%d "
                "all=%d nof=%d\n",
@@ -2321,7 +2321,7 @@ Handle<Map> Map::CopyAddDescriptor(Isolate* isolate, DirectHandle<Map> map,
   std::fflush(stderr);
 #endif
   new_descriptors->Append(descriptor);
-#if defined(__wasi__)
+#if defined(__wasi__) && defined(V8_WASM32_TRACE_OBJECT_LAYOUT)
   std::fprintf(stderr,
                "Map::CopyAddDescriptor after Append new_desc=0x%lx n=%d all=%d\n",
                static_cast<unsigned long>((*new_descriptors).ptr()),

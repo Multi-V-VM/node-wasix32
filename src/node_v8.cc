@@ -668,17 +668,9 @@ void Initialize(Local<Object> target,
                 Local<Value> unused,
                 Local<Context> context,
                 void* priv) {
-#ifdef __wasi__
-#define WASI_V8_INIT_TRACE(label)                                              \
-  do {                                                                         \
-    fprintf(stderr, "node_v8::Initialize %s\n", label);                       \
-    fflush(stderr);                                                            \
-  } while (0)
-#else
 #define WASI_V8_INIT_TRACE(label)                                              \
   do {                                                                         \
   } while (0)
-#endif
   WASI_V8_INIT_TRACE("begin");
   Realm* realm = Realm::GetCurrent(context);
   Environment* env = realm->env();

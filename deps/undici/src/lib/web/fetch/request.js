@@ -932,7 +932,14 @@ function cloneRequest (request) {
   // To clone a request request, run these steps:
 
   // 1. Let newRequest be a copy of request, except for its body.
-  const newRequest = makeRequest({ ...request, body: null })
+  // The WASM32 bridge can omit fields while expanding this internal record.
+  // Preserve the header list explicitly so a fetch clone retains the request
+  // headers supplied by the caller.
+  const newRequest = makeRequest({
+    ...request,
+    headersList: request.headersList,
+    body: null
+  })
 
   // 2. If request’s body is non-null, set newRequest’s body to the
   // result of cloning request’s body.

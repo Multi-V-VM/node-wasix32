@@ -935,7 +935,11 @@ void WasmInterpreterRuntime::BeginExecution(
   // argument_values.
   HandleScope handle_scope(isolate_);  // Avoid leaking handles.
 
-  DirectHandle<ZoneVector<Object> ref_args(isolate_);
+#ifdef V8_ENABLE_DIRECT_HANDLE
+  DirectHandle<ZoneVector<Object>> ref_args(isolate_);
+#else
+  std::vector<DirectHandle<Object>> ref_args;
+#endif
   if (ref_args_count > 0) {
     ref_args.reserve(ref_args_count);
   }
@@ -2180,6 +2184,134 @@ void WasmInterpreterRuntime::CallWasmToJSBuiltin(
     return;
   }
 
+#if V8_TARGET_ARCH_WASM32
+  // WASM32 has no machine-code GenericWasmToJSInterpreterWrapper. Calling its
+  // placeholder builtin as a WasmToJSCallSig function corrupts the nested
+  // Wasm import path. Marshal the import directly through Execution::Call and
+  // reuse the packed buffer expected by CallExternalJSFunction.
+  {
+    ClearThreadInWasmScope clear_wasm_flag(isolate_);
+    std::vector<DirectHandle<Object>> args;
+    args.reserve(sig->parameter_count());
+    Address cursor = packed_args;
+    for (size_t i = 0; i < sig->parameter_count(); ++i) {
+      switch (sig->GetParam(i).kind()) {
+        case kI32:
+          args.push_back(isolate_->factory()->NewNumberFromInt(
+              base::ReadUnalignedValue<int32_t>(cursor)));
+          cursor += sizeof(int32_t);
+          break;
+        case kI64:
+          args.push_back(BigInt::FromInt64(
+              isolate_, base::ReadUnalignedValue<int64_t>(cursor)));
+          cursor += sizeof(int64_t);
+          break;
+        case kF32:
+          args.push_back(isolate_->factory()->NewNumber(
+              base::ReadUnalignedValue<float>(cursor)));
+          cursor += sizeof(float);
+          break;
+        case kF64:
+          args.push_back(isolate_->factory()->NewNumber(
+              base::ReadUnalignedValue<double>(cursor)));
+          cursor += sizeof(double);
+          break;
+        case kRef:
+        case kRefNull: {
+          DirectHandle<Object> ref =
+              base::ReadUnalignedValue<WasmRef>(cursor);
+          args.push_back(WasmToJSObject(ref));
+          cursor += sizeof(WasmRef);
+          break;
+        }
+        case kS128:
+        default:
+          UNREACHABLE();
+      }
+    }
+
+    DirectHandle<Object> call_result;
+    if (!Execution::Call(
+             isolate_, callable, isolate_->factory()->undefined_value(),
+             base::Vector<DirectHandle<Object>>(args.data(), args.size()))
+             .ToHandle(&call_result)) {
+      return;
+    }
+
+    cursor = packed_args;
+    for (size_t i = 0; i < sig->return_count(); ++i) {
+      DirectHandle<Object> result_value = call_result;
+      if (sig->return_count() > 1) {
+        if (!IsJSReceiver(*call_result)) {
+          isolate_->Throw(*isolate_->factory()->NewTypeError(
+              MessageTemplate::kWasmTrapJSTypeError));
+          return;
+        }
+        if (!JSReceiver::GetElement(isolate_, Cast<JSReceiver>(call_result), i)
+                 .ToHandle(&result_value)) {
+          return;
+        }
+      }
+
+      switch (sig->GetReturn(i).kind()) {
+        case kI32: {
+          DirectHandle<Object> number;
+          if (!Object::ToInt32(isolate_, result_value).ToHandle(&number)) {
+            return;
+          }
+          base::WriteUnalignedValue<int32_t>(
+              cursor, static_cast<int32_t>(Object::NumberValue(*number)));
+          cursor += sizeof(int32_t);
+          break;
+        }
+        case kI64: {
+          DirectHandle<BigInt> bigint;
+          if (!BigInt::FromObject(isolate_, result_value).ToHandle(&bigint)) {
+            return;
+          }
+          base::WriteUnalignedValue<int64_t>(cursor, bigint->AsInt64());
+          cursor += sizeof(int64_t);
+          break;
+        }
+        case kF32: {
+          DirectHandle<Number> number;
+          if (!Object::ToNumber(isolate_, result_value).ToHandle(&number)) {
+            return;
+          }
+          base::WriteUnalignedValue<float>(
+              cursor, static_cast<float>(Object::NumberValue(*number)));
+          cursor += sizeof(float);
+          break;
+        }
+        case kF64: {
+          DirectHandle<Number> number;
+          if (!Object::ToNumber(isolate_, result_value).ToHandle(&number)) {
+            return;
+          }
+          base::WriteUnalignedValue<double>(cursor,
+                                            Object::NumberValue(*number));
+          cursor += sizeof(double);
+          break;
+        }
+        case kRef:
+        case kRefNull: {
+          DirectHandle<Object> ref = JSToWasmObject(result_value,
+                                                      sig->GetReturn(i));
+          if (isolate_->has_exception()) return;
+          base::WriteUnalignedValue<WasmRef>(cursor, ref);
+          cursor += sizeof(WasmRef);
+          break;
+        }
+        case kS128:
+        default:
+          UNREACHABLE();
+      }
+    }
+    current_thread_->Run();
+    return;
+  }
+#endif  // V8_TARGET_ARCH_WASM32
+
   // Save and restore context around invocation and block the
   // allocation of handles without explicit handle scopes.
   SaveContext save(isolate);
@@ -2433,8 +2565,10 @@ WasmRef WasmInterpreterRuntime::WasmArrayNewSegment(uint32_t array_index,
   //    first_arg_addr -> | trusted_instance |
   //
   constexpr size_t kArgsLength = 5;
-  Address args[kArgsLength] = {rtt->ptr(), IntToSmi(length), IntToSmi(offset),
-                               IntToSmi(segment_index),
+  Address args[kArgsLength] = {rtt->ptr(),
+                               static_cast<Address>(IntToSmi(length)),
+                               static_cast<Address>(IntToSmi(offset)),
+                               static_cast<Address>(IntToSmi(segment_index)),
                                wasm_trusted_instance_data()->ptr()};
   Address* first_arg_addr = &args[kArgsLength - 1];
 
@@ -2467,9 +2601,11 @@ bool WasmInterpreterRuntime::WasmArrayInitSegment(uint32_t segment_index,
   //
   constexpr size_t kArgsLength = 6;
   Address args[kArgsLength] = {
-      IntToSmi(length),        IntToSmi(segment_offset),
-      IntToSmi(array_offset),  (*wasm_array).ptr(),
-      IntToSmi(segment_index), wasm_trusted_instance_data()->ptr()};
+      static_cast<Address>(IntToSmi(length)),
+      static_cast<Address>(IntToSmi(segment_offset)),
+      static_cast<Address>(IntToSmi(array_offset)), (*wasm_array).ptr(),
+      static_cast<Address>(IntToSmi(segment_index)),
+      wasm_trusted_instance_data()->ptr()};
   Address* first_arg_addr = &args[kArgsLength - 1];
 
   // A runtime function can throw, therefore we need to make sure that the
@@ -2496,8 +2632,10 @@ bool WasmInterpreterRuntime::WasmArrayCopy(WasmRef dest_wasm_array,
   //    first_arg_addr -> |   dest_array   |
   //
   constexpr size_t kArgsLength = 5;
-  Address args[kArgsLength] = {IntToSmi(length), IntToSmi(src_index),
-                               (*src_wasm_array).ptr(), IntToSmi(dest_index),
+  Address args[kArgsLength] = {static_cast<Address>(IntToSmi(length)),
+                               static_cast<Address>(IntToSmi(src_index)),
+                               (*src_wasm_array).ptr(),
+                               static_cast<Address>(IntToSmi(dest_index)),
                                (*dest_wasm_array).ptr()};
   Address* first_arg_addr = &args[kArgsLength - 1];
 
@@ -2520,7 +2658,8 @@ WasmRef WasmInterpreterRuntime::WasmJSToWasmObject(
   //
   constexpr size_t kArgsLength = 2;
   Address args[kArgsLength] = {
-      IntToSmi(value_type.raw_bit_field()), (*extern_ref).ptr()};
+      static_cast<Address>(IntToSmi(value_type.raw_bit_field())),
+      (*extern_ref).ptr()};
   Address* first_arg_addr = &args[kArgsLength - 1];
 
   // A runtime function can throw, therefore we need to make sure that the

@@ -57,39 +57,16 @@ BindingData::BindingData(Realm* realm,
           realm->isolate(),
           kEncodeIntoResultsLength,
           MAYBE_FIELD_PTR(info, encode_into_results_buffer)) {
-#ifdef __wasi__
-  fprintf(stderr,
-          "encoding::BindingData ctor body info=%p object=%p\n",
-          static_cast<void*>(info),
-          reinterpret_cast<void*>(*object));
-  fflush(stderr);
-#endif
   if (info == nullptr) {
-#ifdef __wasi__
-    fprintf(stderr, "encoding::BindingData before encodeIntoResults set\n");
-    fflush(stderr);
-#endif
     object
         ->Set(realm->context(),
               FIXED_ONE_BYTE_STRING(realm->isolate(), "encodeIntoResults"),
               encode_into_results_buffer_.GetJSArray())
         .Check();
-#ifdef __wasi__
-    fprintf(stderr, "encoding::BindingData after encodeIntoResults set\n");
-    fflush(stderr);
-#endif
   } else {
     encode_into_results_buffer_.Deserialize(realm->context());
   }
-#ifdef __wasi__
-  fprintf(stderr, "encoding::BindingData before buffer MakeWeak\n");
-  fflush(stderr);
-#endif
   encode_into_results_buffer_.MakeWeak();
-#ifdef __wasi__
-  fprintf(stderr, "encoding::BindingData after buffer MakeWeak\n");
-  fflush(stderr);
-#endif
 }
 
 bool BindingData::PrepareForSerialization(Local<Context> context,
@@ -269,19 +246,7 @@ void BindingData::CreatePerContextProperties(Local<Object> target,
                                              Local<Context> context,
                                              void* priv) {
   Realm* realm = Realm::GetCurrent(context);
-#ifdef __wasi__
-  fprintf(stderr,
-          "encoding::CreatePerContextProperties before AddBindingData "
-          "target=%p realm=%p\n",
-          reinterpret_cast<void*>(*target),
-          static_cast<void*>(realm));
-  fflush(stderr);
-#endif
   realm->AddBindingData<BindingData>(target);
-#ifdef __wasi__
-  fprintf(stderr, "encoding::CreatePerContextProperties after AddBindingData\n");
-  fflush(stderr);
-#endif
 }
 
 void BindingData::RegisterTimerExternalReferences(

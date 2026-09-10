@@ -543,35 +543,8 @@ void BindingData::CreatePerContextProperties(Local<Object> target,
                                              void* priv) {
   Realm* realm = Realm::GetCurrent(context);
 #ifdef __wasi__
-  uint32_t fields = context.IsEmpty()
-                        ? 0
-                        : context->GetNumberOfEmbedderDataFields();
-  void* slot_realm =
-      context.IsEmpty() || fields <= ContextEmbedderIndex::kRealm
-          ? nullptr
-          : context->GetAlignedPointerFromEmbedderData(
-                ContextEmbedderIndex::kRealm);
-  void* slot_tag =
-      context.IsEmpty() || fields <= ContextEmbedderIndex::kContextTag
-          ? nullptr
-          : context->GetAlignedPointerFromEmbedderData(
-                ContextEmbedderIndex::kContextTag);
   Local<Context> target_context = target->GetCreationContextChecked();
   Realm* target_realm = Realm::GetCurrent(target_context);
-  fprintf(stderr,
-          "URL::CreatePerContextProperties target=%p context=%p fields=%u "
-          "slot_realm=%p slot_tag=%p realm=%p target_context=%p "
-          "target_realm=%p priv=%p\n",
-          *target,
-          *context,
-          fields,
-          slot_realm,
-          slot_tag,
-          static_cast<void*>(realm),
-          *target_context,
-          static_cast<void*>(target_realm),
-          priv);
-  fflush(stderr);
   if (realm == nullptr) {
     realm = target_realm;
   }

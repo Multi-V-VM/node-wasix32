@@ -271,8 +271,8 @@ static node_module* modlist_linked;
 static thread_local node_module* thread_local_modpending;
 using InternalBindingCache =
     std::unordered_map<std::string, v8::Global<v8::Object>>;
-static std::unordered_map<Realm*, InternalBindingCache>
-    per_realm_internal_binding_cache;
+static auto* const per_realm_internal_binding_cache =
+    new std::unordered_map<Realm*, InternalBindingCache>();
 
 // This is set by node::Init() which is used by embedders
 bool node_is_initialized = false;
@@ -721,7 +721,7 @@ void GetInternalBinding(const FunctionCallbackInfo<Value>& args) {
   std::string module_name(*module_v, module_v.length());
   Local<Object> exports;
 
-  auto& cache = per_realm_internal_binding_cache[realm];
+  auto& cache = (*per_realm_internal_binding_cache)[realm];
   auto cache_it = cache.find(module_name);
   if (cache_it != cache.end()) {
     exports = cache_it->second.Get(isolate);

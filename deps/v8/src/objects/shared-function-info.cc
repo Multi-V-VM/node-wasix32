@@ -187,7 +187,7 @@ void SharedFunctionInfo::SetScript(IsolateForSandbox isolate,
                                    bool reset_preparsed_scope_data) {
   DisallowGarbageCollection no_gc;
 
-#if defined(__wasi__)
+#if defined(__wasi__) && defined(V8_WASM32_TRACE_OBJECT_LAYOUT)
   std::fprintf(stderr,
                "SFI::SetScript enter self=0x%lx script_object=0x%lx "
                "function_literal_id=%d reset=%d\n",
@@ -197,12 +197,12 @@ void SharedFunctionInfo::SetScript(IsolateForSandbox isolate,
   std::fflush(stderr);
 #endif
 
-#if defined(__wasi__)
+#if defined(__wasi__) && defined(V8_WASM32_TRACE_OBJECT_LAYOUT)
   std::fprintf(stderr, "SFI::SetScript before initial script load\n");
   std::fflush(stderr);
 #endif
   if (script() == script_object) return;
-#if defined(__wasi__)
+#if defined(__wasi__) && defined(V8_WASM32_TRACE_OBJECT_LAYOUT)
   Tagged<HeapObject> current_script_for_log = script();
   std::fprintf(stderr, "SFI::SetScript after initial script load current=0x%lx\n",
                static_cast<unsigned long>(current_script_for_log.ptr()));
@@ -218,19 +218,19 @@ void SharedFunctionInfo::SetScript(IsolateForSandbox isolate,
   // This is okay because the gc-time processing of these lists can tolerate
   // duplicates.
   if (IsScript(script_object)) {
-#if defined(__wasi__)
+#if defined(__wasi__) && defined(V8_WASM32_TRACE_OBJECT_LAYOUT)
     std::fprintf(stderr, "SFI::SetScript script_object is Script\n");
     std::fflush(stderr);
 #endif
     DCHECK(!IsScript(script()));
     Tagged<Script> script = Cast<Script>(script_object);
-#if defined(__wasi__)
+#if defined(__wasi__) && defined(V8_WASM32_TRACE_OBJECT_LAYOUT)
     std::fprintf(stderr, "SFI::SetScript before script->infos script=0x%lx\n",
                  static_cast<unsigned long>(script.ptr()));
     std::fflush(stderr);
 #endif
     Tagged<WeakFixedArray> list = script->infos();
-#if defined(__wasi__)
+#if defined(__wasi__) && defined(V8_WASM32_TRACE_OBJECT_LAYOUT)
     std::fprintf(stderr,
                  "SFI::SetScript before list set list=0x%lx length=%d index=%d\n",
                  static_cast<unsigned long>(list.ptr()), list->length(),
@@ -246,12 +246,12 @@ void SharedFunctionInfo::SetScript(IsolateForSandbox isolate,
     }
 #endif
     list->set(function_literal_id, MakeWeak(Tagged(*this)));
-#if defined(__wasi__)
+#if defined(__wasi__) && defined(V8_WASM32_TRACE_OBJECT_LAYOUT)
     std::fprintf(stderr, "SFI::SetScript after list set\n");
     std::fflush(stderr);
 #endif
   } else {
-#if defined(__wasi__)
+#if defined(__wasi__) && defined(V8_WASM32_TRACE_OBJECT_LAYOUT)
     std::fprintf(stderr, "SFI::SetScript script_object is not Script\n");
     std::fflush(stderr);
 #endif
@@ -273,12 +273,12 @@ void SharedFunctionInfo::SetScript(IsolateForSandbox isolate,
   }
 
   // Finally set new script.
-#if defined(__wasi__)
+#if defined(__wasi__) && defined(V8_WASM32_TRACE_OBJECT_LAYOUT)
   std::fprintf(stderr, "SFI::SetScript before final set_script\n");
   std::fflush(stderr);
 #endif
   set_script(script_object, kReleaseStore);
-#if defined(__wasi__)
+#if defined(__wasi__) && defined(V8_WASM32_TRACE_OBJECT_LAYOUT)
   std::fprintf(stderr, "SFI::SetScript after final set_script\n");
   std::fflush(stderr);
 #endif

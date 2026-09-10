@@ -23,6 +23,8 @@ class Object;
 class RootVisitor;
 template <typename T>
 class Tagged;
+template <typename T>
+class MaybeDirectHandle;
 
 class V8_EXPORT_PRIVATE MicrotaskQueue final : public v8::MicrotaskQueue {
  public:
@@ -64,6 +66,9 @@ class V8_EXPORT_PRIVATE MicrotaskQueue final : public v8::MicrotaskQueue {
   // Returns -1 if the execution is terminating, otherwise, returns the number
   // of microtasks that ran in this round.
   int RunMicrotasks(Isolate* isolate);
+#ifdef __wasi__
+  MaybeDirectHandle<Object> RunMicrotasksWasm(Isolate* isolate);
+#endif
 
   // Iterate all pending Microtasks in this queue as strong roots, so that
   // builtins can update the queue directly without the write barrier.

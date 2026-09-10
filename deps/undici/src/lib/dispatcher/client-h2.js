@@ -763,9 +763,12 @@ async function writeIterable (abort, h2stream, body, client, request, socket, co
     .on('close', onDrain)
     .on('drain', onDrain)
 
+  const iterator = body[Symbol.asyncIterator]()
   try {
     // It's up to the user to somehow abort the async iterable.
-    for await (const chunk of body) {
+    for (;;) {
+      const { done, value: chunk } = await iterator.next()
+      if (done) break
       if (socket[kError]) {
         throw socket[kError]
       }

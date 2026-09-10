@@ -131,9 +131,12 @@ class V8_EXPORT Platform {
 #ifdef __wasi__
     class WASIJobHandle : public JobHandle {
      public:
+      void NotifyConcurrencyIncrease() override {}
       void Join() override {}
       void Cancel() override {}
+      void CancelAndDetach() override {}
       bool IsActive() override { return false; }
+      bool IsValid() override { return false; }
     };
     return std::make_unique<WASIJobHandle>();
 #else

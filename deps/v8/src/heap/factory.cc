@@ -3175,7 +3175,7 @@ void Factory::InitializeJSObjectFromMap(Tagged<JSObject> obj,
 void Factory::InitializeJSObjectBody(Tagged<JSObject> obj, Tagged<Map> map,
                                      int start_offset) {
   DisallowGarbageCollection no_gc;
-#if defined(__wasi__)
+#if defined(__wasi__) && defined(V8_WASM32_TRACE_OBJECT_LAYOUT)
   std::fprintf(stderr,
                "Factory::InitializeJSObjectBody enter obj=0x%zx map=0x%zx "
                "start=%d inst_size=%d raw_back=0x%zx nof=%d counter=%d "
@@ -3202,7 +3202,7 @@ void Factory::InitializeJSObjectBody(Tagged<JSObject> obj, Tagged<Map> map,
   // In case of Array subclassing the |map| could already be transitioned
   // to different elements kind from the initial map on which we track slack.
   bool in_progress = map->IsInobjectSlackTrackingInProgress();
-#if defined(__wasi__)
+#if defined(__wasi__) && defined(V8_WASM32_TRACE_OBJECT_LAYOUT)
   std::fprintf(stderr,
                "Factory::InitializeJSObjectBody before body obj=0x%zx "
                "map=0x%zx in_progress=%d\n",
@@ -3214,7 +3214,7 @@ void Factory::InitializeJSObjectBody(Tagged<JSObject> obj, Tagged<Map> map,
                       ReadOnlyRoots(isolate()).one_pointer_filler_map_word(),
                       *undefined_value());
   if (in_progress) {
-#if defined(__wasi__)
+#if defined(__wasi__) && defined(V8_WASM32_TRACE_OBJECT_LAYOUT)
     std::fprintf(stderr,
                  "Factory::InitializeJSObjectBody before FindRootMap "
                  "map=0x%zx\n",
@@ -3229,7 +3229,7 @@ Handle<JSObject> Factory::NewJSObjectFromMap(
     DirectHandle<Map> map, AllocationType allocation,
     DirectHandle<AllocationSite> allocation_site,
     NewJSObjectType new_js_object_type) {
-#ifdef __wasi__
+#if defined(__wasi__) && defined(V8_WASM32_TRACE_OBJECT_LAYOUT)
   {
     Tagged<Object> raw_map(*map);
     PtrComprCageBase cage_base(isolate());
@@ -3794,24 +3794,6 @@ Handle<JSTypedArray> Factory::NewJSTypedArray(
   DisallowGarbageCollection no_gc;
   raw->set_length(length);
   raw->SetOffHeapDataPtr(isolate(), buffer->backing_store(), byte_offset);
-#ifdef __wasi__
-  fprintf(stderr,
-          "Factory::NewJSTypedArray raw=0x%lx type=%d length=%zu "
-          "byte_length=%zu offset=%zu buffer=0x%lx buffer_len=%zu "
-          "base=0x%lx smi0=0x%lx ext=0x%lx is_on_heap=%d\n",
-          static_cast<unsigned long>(raw.ptr()),
-          static_cast<int>(type),
-          length,
-          byte_length,
-          byte_offset,
-          static_cast<unsigned long>(buffer->ptr()),
-          buffer->GetByteLength(),
-          static_cast<unsigned long>(raw->base_pointer().ptr()),
-          static_cast<unsigned long>(Smi::zero().ptr()),
-          static_cast<unsigned long>(raw->external_pointer()),
-          raw->is_on_heap() ? 1 : 0);
-  fflush(stderr);
-#endif
   raw->set_is_length_tracking(is_length_tracking);
   raw->set_is_backed_by_rab(is_backed_by_rab);
   return typed_array;
@@ -3862,6 +3844,19 @@ MaybeDirectHandle<JSBoundFunction> Factory::NewJSBoundFunction(
     DirectHandle<JSReceiver> target_function, DirectHandle<JSAny> bound_this,
     base::Vector<DirectHandle<Object>> bound_args,
     DirectHandle<JSPrototype> prototype) {
+#ifdef __wasi__
+  DirectHandleVector<Object> wasm_roots(isolate());
+  wasm_roots.reserve(4 + bound_args.length());
+  wasm_roots.push_back(target_function);
+  wasm_roots.push_back(bound_this);
+  wasm_roots.push_back(prototype);
+  for (DirectHandle<Object> argument : bound_args) {
+    wasm_roots.push_back(argument);
+  }
+  target_function = Cast<JSReceiver>(wasm_roots[0]);
+  bound_this = Cast<JSAny>(wasm_roots[1]);
+  prototype = Cast<JSPrototype>(wasm_roots[2]);
+#endif
   DCHECK(IsCallable(*target_function));
   static_assert(Code::kMaxArguments <= FixedArray::kMaxLength);
   if (bound_args.length() >= Code::kMaxArguments) {
@@ -3879,9 +3874,19 @@ MaybeDirectHandle<JSBoundFunction> Factory::NewJSBoundFunction(
   } else {
     bound_arguments = NewFixedArray(bound_args.length());
     for (int i = 0; i < bound_args.length(); ++i) {
+#ifdef __wasi__
+      bound_arguments->set(i, *wasm_roots[3 + i]);
+#else
       bound_arguments->set(i, *bound_args[i]);
+#endif
     }
   }
+#ifdef __wasi__
+  wasm_roots.push_back(bound_arguments);
+  const int bound_arguments_index = 3 + bound_args.length();
+  target_function = Cast<JSReceiver>(wasm_roots[0]);
+  prototype = Cast<JSPrototype>(wasm_roots[2]);
+#endif
 
   // Setup the map for the JSBoundFunction instance.
   DirectHandle<Map> map =
@@ -3892,11 +3897,19 @@ MaybeDirectHandle<JSBoundFunction> Factory::NewJSBoundFunction(
     map = Map::TransitionRootMapToPrototypeForNewObject(isolate(), map,
                                                         prototype);
   }
+#ifdef __wasi__
+  target_function = Cast<JSReceiver>(wasm_roots[0]);
+#endif
   DCHECK_EQ(IsConstructor(*target_function), map->is_constructor());
 
   // Setup the JSBoundFunction instance.
   DirectHandle<JSBoundFunction> result =
       Cast<JSBoundFunction>(NewJSObjectFromMap(map, AllocationType::kYoung));
+#ifdef __wasi__
+  target_function = Cast<JSReceiver>(wasm_roots[0]);
+  bound_this = Cast<JSAny>(wasm_roots[1]);
+  bound_arguments = Cast<FixedArray>(wasm_roots[bound_arguments_index]);
+#endif
   DisallowGarbageCollection no_gc;
   Tagged<JSBoundFunction> raw = *result;
   raw->set_bound_target_function(Cast<JSCallable>(*target_function),
@@ -4926,7 +4939,7 @@ Handle<JSFunction> Factory::JSFunctionBuilder::BuildRaw(
                         isolate_);
   }
   DCHECK(InstanceTypeChecker::IsJSFunction(*map));
-#if defined(__wasi__)
+#if defined(__wasi__) && defined(V8_WASM32_TRACE_OBJECT_LAYOUT)
   std::fprintf(stderr,
                "JSFunctionBuilder::BuildRaw map=0x%zx sfi=0x%zx context=0x%zx "
                "raw_back=0x%zx nof=%d counter=%d inst_size=%d type=%u\n",

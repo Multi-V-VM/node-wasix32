@@ -209,20 +209,10 @@ class DescriptorArray
 
   // Layout of descriptor.
   // Naming is consistent with Dictionary classes for easy templating.
-#ifdef __wasi__
-  // Torque emits DescriptorEntry as three tagged-size slots in the 64-bit
-  // object layout even for this wasm32 build: key/details/value at 0/8/16.
-  // Keep the handwritten descriptor helpers in the same byte layout.
-  static const int kEntryKeyIndex = 0;
-  static const int kEntryDetailsIndex = 2;
-  static const int kEntryValueIndex = 4;
-  static const int kEntrySize = 6;
-#else
   static const int kEntryKeyIndex = 0;
   static const int kEntryDetailsIndex = 1;
   static const int kEntryValueIndex = 2;
   static const int kEntrySize = 3;
-#endif
 
   static const int kEntryKeyOffset = kEntryKeyIndex * kTaggedSize;
   static const int kEntryDetailsOffset = kEntryDetailsIndex * kTaggedSize;

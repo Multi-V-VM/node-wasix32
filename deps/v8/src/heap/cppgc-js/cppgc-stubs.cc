@@ -109,9 +109,23 @@ MicrotasksScope::MicrotasksScope(Local<Context> context, Type type)
 // String::Utf8Value stubs
 String::Utf8Value::Utf8Value(Isolate* v8_isolate, Local<v8::Value> obj,
                              WriteOptions options)
-    : str_(nullptr), length_(0) {}
+    : str_(nullptr), length_(0) {
+  if (obj.IsEmpty()) return;
 
-String::Utf8Value::~Utf8Value() {}
+  Local<Context> context = v8_isolate->GetCurrentContext();
+  Local<String> str;
+  if (!obj->ToString(context).ToLocal(&str)) return;
+
+  length_ = str->Utf8LengthV2(v8_isolate);
+  str_ = new char[length_ + 1];
+  int flags = String::WriteFlags::kNullTerminate;
+  if (options & REPLACE_INVALID_UTF8) {
+    flags |= String::WriteFlags::kReplaceInvalidUtf8;
+  }
+  str->WriteUtf8V2(v8_isolate, str_, length_ + 1, flags);
+}
+
+String::Utf8Value::~Utf8Value() { delete[] str_; }
 
 // Value stubs
 bool Value::IsTrue() const {

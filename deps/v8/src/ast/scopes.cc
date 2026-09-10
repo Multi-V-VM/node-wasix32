@@ -24,6 +24,7 @@
 namespace v8 {
 namespace internal {
 
+
 // ----------------------------------------------------------------------------
 // Implementation of LocalsMap
 //
@@ -2757,7 +2758,8 @@ template <typename IsolateT>
 void DeclarationScope::AllocateScopeInfos(ParseInfo* parse_info,
                                           DirectHandle<Script> script,
                                           IsolateT* isolate) {
-  DeclarationScope* scope = parse_info->literal()->scope();
+  FunctionLiteral* literal = parse_info->literal();
+  DeclarationScope* scope = literal->scope();
 
   // No one else should have allocated a scope info for this scope yet.
   DCHECK(scope->scope_info_.is_null());

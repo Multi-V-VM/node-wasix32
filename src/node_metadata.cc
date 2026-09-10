@@ -78,7 +78,9 @@ static inline std::string GetOpenSSLVersion() {
     return "0.0.0";
   }
 
-  const size_t start = first_space + 1;
+  size_t start = first_space + 1;
+  while (version[start] == ' ') start++;
+  if (version[start] == '\0') return "0.0.0";
   const size_t len = search(&version[start], ' ');
   return std::string(version, start, len);
 }
@@ -189,6 +191,11 @@ Metadata::Release::Release() : name(NODE_RELEASE) {
 #define STRINGIFY(x) #x
 #define TOSTRING(x) STRINGIFY(x)
 
-Metadata::Metadata() : arch(TOSTRING(NODE_ARCH)), platform(TOSTRING(NODE_PLATFORM)) {}
+Metadata::Metadata()
+#ifdef __wasi__
+    : arch(NODE_ARCH), platform(NODE_PLATFORM) {}
+#else
+    : arch(TOSTRING(NODE_ARCH)), platform(TOSTRING(NODE_PLATFORM)) {}
+#endif
 
 }  // namespace node

@@ -16,13 +16,17 @@ void CppgcMixin::Wrap(T* ptr, Realm* realm, v8::Local<v8::Object> obj) {
   // Create TracedReference and then Reset it with the object
   ptr->traced_reference_ = v8::TracedReference<v8::Object>();
   ptr->traced_reference_.Reset(isolate, obj);
+#ifndef __wasi__
   // Note that ptr must be of concrete type T in Wrap.
   v8::Object::Wrap<v8::CppHeapPointerTag::kDefaultTag>(isolate, obj, ptr);
+#endif
   // Keep the layout consistent with BaseObjects.
   obj->SetAlignedPointerInInternalField(
       kEmbedderType, realm->isolate_data()->embedder_id_for_cppgc());
   obj->SetAlignedPointerInInternalField(kSlot, ptr);
+#ifndef __wasi__
   realm->TrackCppgcWrapper(ptr);
+#endif
 }
 
 template <typename T>

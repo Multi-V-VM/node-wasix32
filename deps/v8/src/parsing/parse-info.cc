@@ -133,6 +133,7 @@ void UnoptimizedCompileFlags::SetFlagsForToplevelCompile(
     bool is_user_javascript, LanguageMode language_mode, REPLMode repl_mode,
     ScriptType type, bool lazy) {
   set_is_toplevel(true);
+  set_is_user_javascript(is_user_javascript);
   set_allow_lazy_parsing(lazy);
   set_allow_lazy_compile(lazy);
   set_outer_language_mode(
@@ -148,6 +149,7 @@ void UnoptimizedCompileFlags::SetFlagsForFunctionFromScript(
     Tagged<Script> script) {
   DCHECK_EQ(script_id(), script->id());
 
+  set_is_user_javascript(script->IsUserJavaScript());
   set_is_eval(script->compilation_type() == Script::CompilationType::kEval);
   set_is_module(script->origin_options().IsModule());
   DCHECK_IMPLIES(is_eval(), !is_module());

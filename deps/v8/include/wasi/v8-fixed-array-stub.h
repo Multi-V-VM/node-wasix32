@@ -13,12 +13,8 @@ namespace v8 {
 #define V8_FIXED_ARRAY_DEFINED
 class FixedArray : public Data {
  public:
-  int Length() const { return 0; }
-  // Return Local<Data> for compatibility with V8 API
-  Local<Data> Get(Local<Context> context, int index) const {
-    (void)context; (void)index;
-    return Local<Data>();
-  }
+  int Length() const;
+  Local<Data> Get(Local<Context> context, int index) const;
   V8_INLINE static FixedArray* Cast(Data* data) {
     return reinterpret_cast<FixedArray*>(data);
   }

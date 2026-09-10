@@ -340,37 +340,10 @@ void Accessors::FunctionPrototypeGetter(
   i::Isolate* isolate = reinterpret_cast<i::Isolate*>(info.GetIsolate());
   RCS_SCOPE(isolate, RuntimeCallCounterId::kFunctionPrototypeGetter);
   HandleScope scope(isolate);
-#ifdef __wasi__
-  DirectHandle<Object> holder_object = Utils::OpenDirectHandle(*info.Holder());
-  DirectHandle<Object> this_object = Utils::OpenDirectHandle(*info.This());
-  fprintf(stderr,
-          "FunctionPrototypeGetter enter name=%p this=%p holder=%p "
-          "holder_is_js_function=%d this_is_js_function=%d\n",
-          *name,
-          *info.This(),
-          *info.Holder(),
-          IsJSFunction(*holder_object),
-          IsJSFunction(*this_object));
-  if (IsHeapObject(*holder_object)) {
-    Tagged<Map> holder_map = Cast<HeapObject>(*holder_object)->map();
-    fprintf(stderr,
-            "FunctionPrototypeGetter holder_map=%p holder_type=%d\n",
-            reinterpret_cast<void*>(holder_map.ptr()),
-            static_cast<int>(holder_map->instance_type()));
-  }
-  fflush(stderr);
-#endif
   DirectHandle<JSFunction> function =
       Cast<JSFunction>(Utils::OpenDirectHandle(*info.Holder()));
   DCHECK(function->has_prototype_property());
   DirectHandle<Object> result = GetFunctionPrototype(isolate, function);
-#ifdef __wasi__
-  fprintf(stderr,
-          "FunctionPrototypeGetter result=%p has_prototype=%d\n",
-          *result,
-          function->has_prototype());
-  fflush(stderr);
-#endif
   info.GetReturnValue().Set(Utils::ToLocal(result));
 }
 

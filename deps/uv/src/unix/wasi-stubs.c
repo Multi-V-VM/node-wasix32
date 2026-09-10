@@ -28,6 +28,7 @@
 #include <time.h>
 #include <string.h>
 #include <errno.h>
+#include <poll.h>
 #include <sys/types.h>
 
 // Stub implementations for WASI - Only implement missing functions
@@ -66,13 +67,87 @@ int uv_fs_event_stop(uv_fs_event_t* handle) {
 }
 
 void uv__io_poll(uv_loop_t* loop, int timeout) {
-  // Basic implementation - just sleep if timeout is positive
-  if (timeout > 0) {
-    struct timespec ts;
-    ts.tv_sec = timeout / 1000;
-    ts.tv_nsec = (timeout % 1000) * 1000000;
-    nanosleep(&ts, NULL);
+  struct uv__queue* q;
+  struct pollfd* poll_fds;
+  uv__io_t** poll_watchers;
+  uv__io_t* w;
+  unsigned int fd;
+  unsigned int i;
+  unsigned int count;
+  int result;
+
+  while (!uv__queue_empty(&loop->watcher_queue)) {
+    q = uv__queue_head(&loop->watcher_queue);
+    uv__queue_remove(q);
+    uv__queue_init(q);
+    w = uv__queue_data(q, uv__io_t, watcher_queue);
+    w->events = w->pevents;
   }
+
+  count = loop->nfds;
+  if (count == 0) {
+    if (timeout > 0) {
+      /*
+       * Do not wait until the next timer deadline here. uv_check callbacks
+       * can create the first I/O watcher (Node uses this for native
+       * immediates), so a long wait would postpone the connect until after
+       * user timers have already fired. Yield briefly and let the next loop
+       * turn run the check phase.
+       */
+      struct timespec ts = {0, 1000000};
+      nanosleep(&ts, NULL);
+    }
+    SAVE_ERRNO(uv__update_time(loop));
+    return;
+  }
+
+  poll_fds = uv__malloc(count * sizeof(*poll_fds));
+  poll_watchers = uv__malloc(count * sizeof(*poll_watchers));
+  if (poll_fds == NULL || poll_watchers == NULL)
+    abort();
+
+  i = 0;
+  for (fd = 0; fd < loop->nwatchers && i < count; fd++) {
+    w = loop->watchers[fd];
+    if (w == NULL || w->pevents == 0)
+      continue;
+    poll_fds[i].fd = w->fd;
+    poll_fds[i].events = w->pevents;
+    poll_fds[i].revents = 0;
+    poll_watchers[i] = w;
+    i++;
+  }
+  count = i;
+
+  /*
+   * WASIX advances socket readiness only while poll is allowed to wait. A
+   * zero-time poll therefore cannot observe a nonblocking connect completion.
+   * Yield for one millisecond so the WASIX readiness scheduler can run,
+   * without turning every nonblocking libuv turn into a one-second stall.
+   */
+  result = poll(poll_fds, count, timeout == 0 ? 1 : timeout);
+  SAVE_ERRNO(uv__update_time(loop));
+
+  if (result >= 0) {
+    for (i = 0; i < count; i++) {
+      unsigned int events;
+
+      events = poll_fds[i].revents;
+      if (events == 0)
+        continue;
+      w = poll_watchers[i];
+      fd = poll_fds[i].fd;
+      if (fd >= loop->nwatchers || loop->watchers[fd] != w)
+        continue;
+      events &= w->pevents | POLLERR | POLLHUP | POLLNVAL;
+      if (events != 0)
+        w->cb(loop, w, events);
+    }
+  }
+
+
+  uv__free(poll_watchers);
+  uv__free(poll_fds);
 }
 
 void uv__platform_invalidate_fd(uv_loop_t* loop, int fd) {

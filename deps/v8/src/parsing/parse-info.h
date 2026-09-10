@@ -41,6 +41,7 @@ class Zone;
 // The flags for a parse + unoptimized compile operation.
 #define FLAG_FIELDS(V, _)                                       \
   V(is_toplevel, bool, 1, _)                                    \
+  V(is_user_javascript, bool, 1, _)                             \
   V(is_eager, bool, 1, _)                                       \
   V(is_eval, bool, 1, _)                                        \
   V(is_reparse, bool, 1, _)                                     \

@@ -52,7 +52,7 @@ void TransitionsAccessor::InsertHelper(Isolate* isolate, DirectHandle<Map> map,
   Encoding encoding = GetEncoding(isolate, map);
   DCHECK_NE(kPrototypeInfo, encoding);
   ReadOnlyRoots roots(isolate);
-#ifdef __wasi__
+#if defined(__wasi__) && defined(V8_WASM32_TRACE_OBJECT_LAYOUT)
   std::fprintf(stderr,
                "Transitions::InsertHelper enter map=0x%lx target=0x%lx "
                "name=0x%lx encoding=%d flag=%d\n",
@@ -64,7 +64,7 @@ void TransitionsAccessor::InsertHelper(Isolate* isolate, DirectHandle<Map> map,
   std::fflush(stderr);
 #endif
   (*target)->SetBackPointer(*map);
-#ifdef __wasi__
+#if defined(__wasi__) && defined(V8_WASM32_TRACE_OBJECT_LAYOUT)
   std::fprintf(stderr,
                "Transitions::InsertHelper after backpointer map=0x%lx "
                "target=0x%lx encoding=%d\n",
@@ -77,12 +77,12 @@ void TransitionsAccessor::InsertHelper(Isolate* isolate, DirectHandle<Map> map,
   // If the map doesn't have any transitions at all yet, install the new one.
   if (encoding == kUninitialized || encoding == kMigrationTarget) {
     if (flag == SIMPLE_PROPERTY_TRANSITION) {
-#ifdef __wasi__
+#if defined(__wasi__) && defined(V8_WASM32_TRACE_OBJECT_LAYOUT)
       std::fprintf(stderr, "Transitions::InsertHelper replace weak simple\n");
       std::fflush(stderr);
 #endif
       ReplaceTransitions(isolate, map, MakeWeak(*target));
-#ifdef __wasi__
+#if defined(__wasi__) && defined(V8_WASM32_TRACE_OBJECT_LAYOUT)
       std::fprintf(stderr, "Transitions::InsertHelper after replace weak simple\n");
       std::fflush(stderr);
 #endif
@@ -98,7 +98,7 @@ void TransitionsAccessor::InsertHelper(Isolate* isolate, DirectHandle<Map> map,
   }
 
   if (encoding == kWeakRef) {
-#ifdef __wasi__
+#if defined(__wasi__) && defined(V8_WASM32_TRACE_OBJECT_LAYOUT)
     std::fprintf(stderr, "Transitions::InsertHelper weakref branch\n");
     std::fflush(stderr);
 #endif
@@ -167,7 +167,7 @@ void TransitionsAccessor::InsertHelper(Isolate* isolate, DirectHandle<Map> map,
 
   // At this point, we know that the map has a full TransitionArray.
   DCHECK_EQ(kFullTransitionArray, encoding);
-#ifdef __wasi__
+#if defined(__wasi__) && defined(V8_WASM32_TRACE_OBJECT_LAYOUT)
   std::fprintf(stderr, "Transitions::InsertHelper full array branch\n");
   std::fflush(stderr);
 #endif
@@ -185,7 +185,7 @@ void TransitionsAccessor::InsertHelper(Isolate* isolate, DirectHandle<Map> map,
     DisallowGarbageCollection no_gc;
     Tagged<TransitionArray> array = GetTransitionArray(isolate, map);
     number_of_transitions = array->number_of_transitions();
-#ifdef __wasi__
+#if defined(__wasi__) && defined(V8_WASM32_TRACE_OBJECT_LAYOUT)
     std::fprintf(stderr,
                  "Transitions::InsertHelper array=0x%lx number=%d cap=%d\n",
                  static_cast<unsigned long>(array.ptr()),

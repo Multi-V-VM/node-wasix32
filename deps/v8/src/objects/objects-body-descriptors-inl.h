@@ -136,9 +136,11 @@ class JSAPIObjectWithEmbedderSlotsOrJSSpecialObjectBodyDescriptor
     static_assert(JSAPIObjectWithEmbedderSlots::kCppHeapWrappableOffsetEnd +
                       1 ==
                   JSAPIObjectWithEmbedderSlots::kHeaderSize);
+#ifndef __wasi__
     v->VisitCppHeapPointer(
         obj, obj->RawCppHeapPointerField(
                  JSAPIObjectWithEmbedderSlots::kCppHeapWrappableOffset));
+#endif
   }
 
   template <typename ConcreteType, typename ObjectVisitor>

@@ -367,7 +367,12 @@ clobber:
 
 
 static ssize_t uv__fs_open(uv_fs_t* req) {
-#ifdef O_CLOEXEC
+#if defined(__wasi__)
+  /* WASI file descriptors are not inherited through exec. Some WASIX
+   * runtimes reject F_SETFD/FD_CLOEXEC with EINVAL, so the fallback below
+   * would close a successfully opened descriptor and report a false error. */
+  return open(req->path, req->flags, req->mode);
+#elif defined(O_CLOEXEC)
   return open(req->path, req->flags | O_CLOEXEC, req->mode);
 #else  /* O_CLOEXEC */
   int r;
@@ -391,8 +396,9 @@ static ssize_t uv__fs_open(uv_fs_t* req) {
     uv_rwlock_rdunlock(&req->loop->cloexec_lock);
 
   return r;
-#endif  /* O_CLOEXEC */
+#endif  /* __wasi__ */
 }
+
 
 
 static ssize_t uv__preadv_or_pwritev_emul(int fd,
@@ -1513,14 +1519,15 @@ static void uv__to_stat(struct stat* src, uv_stat_t* dst) {
 #endif
 }
 
-
 static int uv__fs_statx(int fd,
                         const char* path,
                         int is_fstat,
                         int is_lstat,
                         uv_stat_t* buf) {
   STATIC_ASSERT(UV_ENOSYS != -1);
-#ifdef __linux__
+#if defined(__wasi__)
+  return UV_ENOSYS;
+#elif defined(__linux__)
   static _Atomic int no_statx;
   struct uv__statx statxbuf;
   int dirfd;
@@ -2271,7 +2278,8 @@ void uv_fs_req_cleanup(uv_fs_t* req) {
   if (req->fs_type == UV_FS_SCANDIR && req->ptr != NULL)
     uv__fs_scandir_cleanup(req);
 
-  if (req->bufs != req->bufsml)
+  if (req->bufs != req->bufsml &&
+      (req->cb != NULL || req->fs_type == UV_FS_WRITE))
     uv__free(req->bufs);
   req->bufs = NULL;
 
@@ -2279,6 +2287,8 @@ void uv_fs_req_cleanup(uv_fs_t* req) {
     uv__free(req->ptr);
   req->ptr = NULL;
 }
+
+
 
 
 int uv_fs_copyfile(uv_loop_t* loop,

@@ -57,7 +57,7 @@ template <bool is_construct>
 V8_WARN_UNUSED_RESULT MaybeHandle<Object> HandleApiCallHelper(
     Isolate* isolate, DirectHandle<HeapObject> new_target,
     DirectHandle<FunctionTemplateInfo> fun_data, DirectHandle<Object> receiver,
-    Address* argv, int argc) {
+    Address* argv, int argc, Address* raw_result_out = nullptr) {
   Handle<JSReceiver> js_receiver;
   if (is_construct) {
     DCHECK(IsTheHole(*receiver, isolate));
@@ -105,19 +105,26 @@ V8_WARN_UNUSED_RESULT MaybeHandle<Object> HandleApiCallHelper(
 
     RETURN_EXCEPTION_IF_EXCEPTION(isolate);
     if (result.is_null()) {
-      if (is_construct) return js_receiver;
-      return isolate->factory()->undefined_value();
+      DirectHandle<Object> empty_result =
+          is_construct
+              ? DirectHandle<Object>(js_receiver)
+              : DirectHandle<Object>(isolate->factory()->undefined_value());
+      if (raw_result_out != nullptr) *raw_result_out = (*empty_result).ptr();
+      return indirect_handle(empty_result, isolate);
     }
     // Rebox the result.
     {
       DisallowGarbageCollection no_gc;
       Tagged<Object> raw_result = *result;
       DCHECK(Is<JSAny>(raw_result));
-      if (!is_construct || IsJSReceiver(raw_result))
+      if (!is_construct || IsJSReceiver(raw_result)) {
+        if (raw_result_out != nullptr) *raw_result_out = raw_result.ptr();
         return handle(raw_result, isolate);
+      }
     }
   }
 
+  if (raw_result_out != nullptr) *raw_result_out = js_receiver->ptr();
   return js_receiver;
 }
 
@@ -166,7 +173,7 @@ MaybeHandle<Object> Builtins::InvokeApiFunction(
     Isolate* isolate, bool is_construct,
     DirectHandle<FunctionTemplateInfo> function, DirectHandle<Object> receiver,
     ZoneVector<const DirectHandle<Object>> args,
-    DirectHandle<HeapObject> new_target) {
+    DirectHandle<HeapObject> new_target, Address* raw_result_out) {
   RCS_SCOPE(isolate, RuntimeCallCounterId::kInvokeApiFunction);
 
   // Do proper receiver conversion for non-strict mode api functions.
@@ -189,10 +196,10 @@ MaybeHandle<Object> Builtins::InvokeApiFunction(
   RelocatableArguments arguments(isolate, argv.size(), argv.data());
   if (is_construct) {
     return HandleApiCallHelper<true>(isolate, new_target, function, receiver,
-                                     argv.data() + 1, argc);
+                                     argv.data() + 1, argc, raw_result_out);
   }
   return HandleApiCallHelper<false>(isolate, new_target, function, receiver,
-                                    argv.data() + 1, argc);
+                                    argv.data() + 1, argc, raw_result_out);
 }
 
 // Helper function to handle calls to non-function objects created through the

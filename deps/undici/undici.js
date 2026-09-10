@@ -6330,8 +6330,13 @@ var require_client_h1 = __commonJS({
     var EMPTY_BUF = Buffer.alloc(0);
     var FastBuffer = Buffer[Symbol.species];
     var removeAllListeners = util.removeAllListeners;
+    var useNativeLlhttp = process.arch === "wasm32";
+    var { HTTPParser } = useNativeLlhttp ? require("_http_common") : {};
     var extractBody;
     async function lazyllhttp() {
+      if (useNativeLlhttp) {
+        return { native: true };
+      }
       const llhttpWasmData = process.env.JEST_WORKER_ID ? require_llhttp_wasm() : void 0;
       let mod;
       try {
@@ -6446,9 +6451,10 @@ var require_client_h1 = __commonJS({
          * @param {import('net').Socket} socket
          * @param {*} llhttp
          */
-      constructor(client, socket, { exports: exports3 }) {
-        this.llhttp = exports3;
-        this.ptr = this.llhttp.llhttp_alloc(constants.TYPE.RESPONSE);
+      constructor(client, socket, llhttp) {
+        this.nativeParser = llhttp.native ? new HTTPParser() : null;
+        this.llhttp = this.nativeParser ? null : llhttp.exports;
+        this.ptr = this.nativeParser || this.llhttp.llhttp_alloc(constants.TYPE.RESPONSE);
         this.client = client;
         this.socket = socket;
         this.timeout = null;
@@ -6468,6 +6474,9 @@ var require_client_h1 = __commonJS({
         this.contentLength = "";
         this.connection = "";
         this.maxResponseSize = client[kMaxResponseSize];
+        if (this.nativeParser) {
+          this.initializeNativeParser();
+        }
       }
       setTimeout(delay, type) {
         if (delay !== this.timeoutValue || type & USE_FAST_TIMER ^ this.timeoutType & USE_FAST_TIMER) {
@@ -6497,7 +6506,11 @@ var require_client_h1 = __commonJS({
         }
         assert(this.ptr != null);
         assert(currentParser === null);
-        this.llhttp.llhttp_resume(this.ptr);
+        if (this.nativeParser) {
+          this.nativeParser.resume();
+        } else {
+          this.llhttp.llhttp_resume(this.ptr);
+        }
         assert(this.timeoutType === TIMEOUT_BODY);
         if (this.timeout) {
           if (this.timeout.refresh) {
@@ -6525,6 +6538,24 @@ var require_client_h1 = __commonJS({
         assert(this.ptr != null);
         assert(!this.paused);
         const { socket, llhttp } = this;
+        if (this.nativeParser) {
+          try {
+            const ret = this.nativeParser.execute(chunk);
+            if (ret instanceof Error) {
+              const data = chunk.subarray(ret.bytesParsed || 0);
+              if (this.upgrade) {
+                this.onUpgrade(data);
+              } else if (this.paused) {
+                if (data.length) socket.unshift(data);
+              } else {
+                throw ret;
+              }
+            }
+          } catch (err) {
+            util.destroy(socket, err);
+          }
+          return;
+        }
         if (chunk.length > currentBufferSize) {
           if (currentBufferPtr) {
             llhttp.free(currentBufferPtr);
@@ -6569,7 +6600,11 @@ var require_client_h1 = __commonJS({
       destroy() {
         assert(currentParser === null);
         assert(this.ptr != null);
-        this.llhttp.llhttp_free(this.ptr);
+        if (this.nativeParser) {
+          this.nativeParser.close();
+        } else {
+          this.llhttp.llhttp_free(this.ptr);
+        }
         this.ptr = null;
         this.timeout && timers.clearTimeout(this.timeout);
         this.timeout = null;
@@ -6584,6 +6619,52 @@ var require_client_h1 = __commonJS({
       onStatus(buf) {
         this.statusText = buf.toString();
         return 0;
+      }
+      initializeNativeParser() {
+        const parser = this.nativeParser;
+        parser.initialize(HTTPParser.RESPONSE, {}, 0, 0);
+        parser[HTTPParser.kOnMessageBegin] = () => this.onMessageBegin();
+        parser[HTTPParser.kOnHeaders] = (headers) => this.onNativeHeaders(headers);
+        parser[HTTPParser.kOnHeadersComplete] = (versionMajor, versionMinor, headers, method, url, statusCode, statusMessage, upgrade, shouldKeepAlive) => {
+          this.onNativeHeaders(headers);
+          this.statusText = statusMessage;
+          const result = this.onHeadersComplete(statusCode, upgrade, shouldKeepAlive);
+          if (result === constants.ERROR.PAUSED) {
+            this.paused = true;
+            parser.pause();
+            return 0;
+          }
+          return result;
+        };
+        parser[HTTPParser.kOnBody] = (body) => {
+          if (this.onBody(body) === constants.ERROR.PAUSED) {
+            this.paused = true;
+            parser.pause();
+          }
+        };
+        parser[HTTPParser.kOnMessageComplete] = () => {
+          if (this.onMessageComplete() === constants.ERROR.PAUSED) {
+            this.paused = true;
+            parser.pause();
+          }
+        };
+      }
+      onNativeHeaders(headers) {
+        if (!headers) return;
+        for (let i = 0; i < headers.length; i += 2) {
+          const key = headers[i];
+          const value = headers[i + 1];
+          this.headers.push(key, value);
+          const headerName = key.toLowerCase();
+          if (headerName === "keep-alive") {
+            this.keepAlive += value;
+          } else if (headerName === "connection") {
+            this.connection += value;
+          } else if (headerName === "content-length") {
+            this.contentLength += value;
+          }
+          this.trackHeader(key.length + value.length);
+        }
       }
       /**
        * @returns {0|-1}
@@ -6766,7 +6847,7 @@ var require_client_h1 = __commonJS({
           socket[kBlocking] = false;
           client[kResume]();
         }
-        return pause ? constants.ERROR.PAUSED : 0;
+        return pause ? constants.ERROR.PAUSED : constants.ERROR.OK;
       }
       /**
        * @param {Buffer} buf
@@ -6779,7 +6860,10 @@ var require_client_h1 = __commonJS({
         }
         const request = client[kQueue][client[kRunningIdx]];
         assert(request);
-        assert(this.timeoutType === TIMEOUT_BODY);
+        if (this.timeoutType !== TIMEOUT_BODY) {
+          const bodyTimeout = request.bodyTimeout != null ? request.bodyTimeout : client[kBodyTimeout];
+          this.setTimeout(bodyTimeout, TIMEOUT_BODY);
+        }
         if (this.timeout) {
           if (this.timeout.refresh) {
             this.timeout.refresh();
@@ -7066,6 +7150,10 @@ var require_client_h1 = __commonJS({
         process.emitWarning(new RequestContentLengthMismatchError());
       }
       const socket = client[kSocket];
+      if (socket[kParser].timeoutType !== TIMEOUT_HEADERS) {
+        const headersTimeout = request.headersTimeout != null ? request.headersTimeout : client[kHeadersTimeout];
+        socket[kParser].setTimeout(headersTimeout, TIMEOUT_HEADERS);
+      }
       const abort = /* @__PURE__ */ __name((err) => {
         if (request.aborted || request.completed) {
           return;
@@ -7299,8 +7387,12 @@ upgrade: ${upgrade}\r
       }), "waitForDrain");
       socket.on("close", onDrain).on("drain", onDrain);
       const writer = new AsyncWriter({ abort, socket, request, contentLength, client, expectsPayload, header });
+      const iterator = body[Symbol.asyncIterator]();
       try {
-        for await (const chunk of body) {
+        for (; ; ) {
+          const { done, value: chunk } = await iterator.next();
+          if (done)
+            break;
           if (socket[kError]) {
             throw socket[kError];
           }
@@ -8034,8 +8126,12 @@ var require_client_h2 = __commonJS({
         }
       }), "waitForDrain");
       h2stream.on("close", onDrain).on("drain", onDrain);
+      const iterator = body[Symbol.asyncIterator]();
       try {
-        for await (const chunk of body) {
+        for (; ; ) {
+          const { done, value: chunk } = await iterator.next();
+          if (done)
+            break;
           if (socket[kError]) {
             throw socket[kError];
           }
@@ -9298,12 +9394,19 @@ var require_headers = __commonJS({
       sortedMap;
       headersMap;
       constructor(init) {
+        this.headersMap = new Map();
         if (init instanceof _HeadersList) {
-          this.headersMap = new Map(init.headersMap);
+          for (const [name, value] of init.headersMap) {
+            this.headersMap.set(name, value);
+          }
           this.sortedMap = init.sortedMap;
           this.cookies = init.cookies === null ? null : [...init.cookies];
         } else {
-          this.headersMap = new Map(init);
+          if (init != null) {
+            for (const [name, value] of init) {
+              this.headersMap.set(name, value);
+            }
+          }
           this.sortedMap = null;
         }
       }
@@ -10748,7 +10851,11 @@ var require_request2 = __commonJS({
     }
     __name(makeRequest, "makeRequest");
     function cloneRequest(request) {
-      const newRequest = makeRequest({ ...request, body: null });
+      const newRequest = makeRequest({
+        ...request,
+        headersList: request.headersList,
+        body: null
+      });
       if (request.body != null) {
         newRequest.body = cloneBody(newRequest, request.body);
       }
@@ -11029,7 +11136,7 @@ var require_fetch = __commonJS({
           locallyAborted = true;
           assert(controller != null);
           controller.abort(requestObject.signal.reason);
-          const realResponse = responseObject?.deref();
+          const realResponse = process.arch === "wasm32" ? responseObject : responseObject?.deref();
           abortFetch(p, request, realResponse, requestObject.signal.reason);
         }
       );
@@ -11045,8 +11152,13 @@ var require_fetch = __commonJS({
           p.reject(new TypeError("fetch failed", { cause: response.error }));
           return;
         }
-        responseObject = new WeakRef(fromInnerResponse(response, "immutable"));
-        p.resolve(responseObject.deref());
+        if (process.arch === "wasm32") {
+          responseObject = fromInnerResponse(response, "immutable");
+          p.resolve(responseObject);
+        } else {
+          responseObject = new WeakRef(fromInnerResponse(response, "immutable"));
+          p.resolve(responseObject.deref());
+        }
         p = null;
       }, "processResponse");
       controller = fetching({
@@ -11368,7 +11480,8 @@ var require_fetch = __commonJS({
         }
         case "http:":
         case "https:": {
-          return httpFetch(fetchParams).catch((err) => makeNetworkError(err));
+          const networkFetch = httpFetch(fetchParams);
+          return process.arch === "wasm32" ? networkFetch : networkFetch.catch((err) => makeNetworkError(err));
         }
         default: {
           return Promise.resolve(makeNetworkError("unknown scheme"));
@@ -11600,7 +11713,9 @@ var require_fetch = __commonJS({
         httpRequest.headersList.append("accept-encoding", "identity", true);
       }
       if (!httpRequest.headersList.contains("accept-encoding", true)) {
-        if (urlHasHttpsScheme(requestCurrentURL(httpRequest))) {
+        if (process.arch === "wasm32") {
+          httpRequest.headersList.append("accept-encoding", "identity", true);
+        } else if (urlHasHttpsScheme(requestCurrentURL(httpRequest))) {
           httpRequest.headersList.append("accept-encoding", "br, gzip, deflate", true);
         } else {
           httpRequest.headersList.append("accept-encoding", "gzip, deflate", true);
@@ -11695,12 +11810,12 @@ var require_fetch = __commonJS({
       if (request.body == null && fetchParams.processRequestEndOfBody) {
         queueMicrotask(() => fetchParams.processRequestEndOfBody());
       } else if (request.body != null) {
-        const processBodyChunk = /* @__PURE__ */ __name(async function* (bytes) {
+        const processBodyChunk = /* @__PURE__ */ __name((bytes) => {
           if (isCancelled(fetchParams)) {
-            return;
+            return false;
           }
-          yield bytes;
           fetchParams.processRequestBodyChunkLength?.(bytes.byteLength);
+          return true;
         }, "processBodyChunk");
         const processEndOfBody = /* @__PURE__ */ __name(() => {
           if (isCancelled(fetchParams)) {
@@ -11720,24 +11835,84 @@ var require_fetch = __commonJS({
             fetchParams.controller.terminate(e);
           }
         }, "processBodyError");
-        requestBody = async function* () {
-          try {
-            for await (const bytes of request.body.stream) {
-              yield* processBodyChunk(bytes);
+        if (request.body.source != null) {
+          requestBody = request.body.source;
+          queueMicrotask(processEndOfBody);
+        } else {
+          const reader = request.body.stream.getReader();
+          let requestBodyDone = false;
+          requestBody = {
+            [Symbol.asyncIterator]() {
+              return this;
+            },
+            async next() {
+              if (requestBodyDone) {
+                return { done: true, value: void 0 };
+              }
+              try {
+                const { done, value } = await reader.read();
+                if (done) {
+                  requestBodyDone = true;
+                  processEndOfBody();
+                  return { done: true, value: void 0 };
+                }
+                if (!processBodyChunk(value)) {
+                  requestBodyDone = true;
+                  return { done: true, value: void 0 };
+                }
+                return { done: false, value };
+              } catch (err) {
+                requestBodyDone = true;
+                processBodyError(err);
+                throw err;
+              }
             }
-            processEndOfBody();
-          } catch (err) {
-            processBodyError(err);
-          }
-        }();
+          };
+        }
       }
       try {
         const { body, status, statusText, headersList, socket } = await dispatch({ body: requestBody });
         if (socket) {
           response = makeResponse({ status, statusText, headersList, socket });
         } else {
-          const iterator = body[Symbol.asyncIterator]();
-          fetchParams.controller.next = () => iterator.next();
+          const bodyQueue = [];
+          let bodyDone = false;
+          let bodyError = null;
+          let pendingBodyRead = null;
+          body.on("data", (value) => {
+            const entry = { done: false, value };
+            if (pendingBodyRead) {
+              const { resolve } = pendingBodyRead;
+              pendingBodyRead = null;
+              resolve(entry);
+            } else {
+              bodyQueue.push(entry);
+            }
+          });
+          body.once("end", () => {
+            bodyDone = true;
+            if (pendingBodyRead) {
+              const { resolve } = pendingBodyRead;
+              pendingBodyRead = null;
+              resolve({ done: true, value: void 0 });
+            }
+          });
+          body.once("error", (error) => {
+            bodyError = error;
+            if (pendingBodyRead) {
+              const { reject } = pendingBodyRead;
+              pendingBodyRead = null;
+              reject(error);
+            }
+          });
+          fetchParams.controller.next = () => {
+            if (bodyQueue.length) return Promise.resolve(bodyQueue.shift());
+            if (bodyError) return Promise.reject(bodyError);
+            if (bodyDone) return Promise.resolve({ done: true, value: void 0 });
+            return new Promise((resolve, reject) => {
+              pendingBodyRead = { resolve, reject };
+            });
+          };
           response = makeResponse({ status, statusText, headersList });
         }
       } catch (err) {
@@ -15477,6 +15652,9 @@ var { getGlobalDispatcher, setGlobalDispatcher } = require_global2();
 var EnvHttpProxyAgent = require_env_http_proxy_agent();
 var fetchImpl = require_fetch().fetch;
 module.exports.fetch = /* @__PURE__ */ __name(function fetch(resource, init = void 0) {
+  if (process.arch === "wasm32") {
+    return fetchImpl(resource, init);
+  }
   return fetchImpl(resource, init).catch((err) => {
     if (err && typeof err === "object") {
       Error.captureStackTrace(err);

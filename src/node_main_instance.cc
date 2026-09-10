@@ -143,19 +143,11 @@ NodeMainInstance::CreateMainEnvironment(ExitCode* exit_code) {
     crypto::InitCryptoOnce(isolate_);
 #endif  // HAVE_OPENSSL
   } else {
-    fprintf(stderr, "CreateMainEnvironment: before NewContext\n");
     context = NewContext(isolate_);
-    fprintf(stderr,
-            "CreateMainEnvironment: after NewContext context=%p empty=%d\n",
-            static_cast<void*>(*context),
-            context.IsEmpty());
     CHECK(!context.IsEmpty());
     Context::Scope context_scope(context);
-    fprintf(stderr, "CreateMainEnvironment: before CreateEnvironment\n");
     env.reset(
         CreateEnvironment(isolate_data_.get(), context, args_, exec_args_));
-    fprintf(stderr, "CreateMainEnvironment: after CreateEnvironment env=%p\n",
-            static_cast<void*>(env.get()));
   }
 
   return env;

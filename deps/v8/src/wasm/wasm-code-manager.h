@@ -511,7 +511,7 @@ class V8_EXPORT_PRIVATE WasmCode final {
   using KindField = base::BitField<uint8_t, 0, 2>;
 #else   // !V8_ENABLE_DRUMBRAKE
   // We have an additional kind: Wasm interpreter.
-  using KindField = base::BitField<uint8_t, Kind, 0, 3>;
+  using KindField = base::BitField<Kind, 0, 3, uint8_t>;
 #endif  // !V8_ENABLE_DRUMBRAKE
   using ExecutionTierField = KindField::Next<ExecutionTier, 2>;
   using ForDebuggingField = ExecutionTierField::Next<ForDebugging, 2>;

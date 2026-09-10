@@ -226,7 +226,7 @@ inline bool WasmBytecode::HasRefOrSimdArgs(const FunctionSig* sig) {
 
 inline uint32_t WasmBytecode::JSToWasmWrapperPackedArraySize(
     const FunctionSig* sig) {
-  static_assert(kSystemPointerSize == 8);
+  static_assert(kSystemPointerSize == 8 || V8_TARGET_ARCH_WASM32);
 
   uint32_t args_size = 0;
   size_t args_count = static_cast<uint32_t>(sig->parameter_count());

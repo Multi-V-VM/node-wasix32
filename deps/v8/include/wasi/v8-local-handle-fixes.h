@@ -51,7 +51,7 @@ void ReturnValue<T>::Set(const Local<S> handle) {
   static_assert(std::is_void<S>::value || std::is_base_of<T, S>::value,
                 "type check");
   if (!handle.IsEmpty()) {
-    SetInternal(handle.ptr());
+    SetInternal(ToInternalAddress(handle));
   }
 }
 

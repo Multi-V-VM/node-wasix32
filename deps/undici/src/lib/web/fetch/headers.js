@@ -198,12 +198,23 @@ class HeadersList {
   headersMap
 
   constructor (init) {
+    this.headersMap = new Map()
+
     if (init instanceof HeadersList) {
-      this.headersMap = new Map(init.headersMap)
+      // The WASM32 JavaScript bridge does not implement Map's iterable
+      // constructor path. Copy the header map explicitly so Request cloning
+      // retains its user-supplied headers.
+      for (const [name, value] of init.headersMap) {
+        this.headersMap.set(name, value)
+      }
       this.sortedMap = init.sortedMap
       this.cookies = init.cookies === null ? null : [...init.cookies]
     } else {
-      this.headersMap = new Map(init)
+      if (init != null) {
+        for (const [name, value] of init) {
+          this.headersMap.set(name, value)
+        }
+      }
       this.sortedMap = null
     }
   }

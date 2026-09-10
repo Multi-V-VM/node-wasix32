@@ -124,7 +124,9 @@ ModuleWrap* ModuleWrap::GetFromModule(Environment* env,
 
 Maybe<bool> ModuleWrap::CheckUnsettledTopLevelAwait() {
   Isolate* isolate = env()->isolate();
+#ifndef __wasi__
   Local<Context> context = env()->context();
+#endif
 
   // This must be invoked when the environment is shutting down, and the module
   // is kept alive by the module wrap via an internal field.
@@ -141,13 +143,16 @@ Maybe<bool> ModuleWrap::CheckUnsettledTopLevelAwait() {
     return Just(true);
   }
 
-  auto stalled_messages =
-      std::get<1>(module->GetStalledTopLevelAwaitMessages(isolate));
+  auto stalled = module->GetStalledTopLevelAwaitMessages(isolate);
+  auto& stalled_messages = std::get<1>(stalled);
   if (stalled_messages.empty()) {
     return Just(true);
   }
 
   if (env()->options()->warnings) {
+#ifdef __wasi__
+    FPrintF(stderr, "Warning: Detected unsettled top-level await\n");
+#else
     for (auto& message : stalled_messages) {
       std::string reason = "Warning: Detected unsettled top-level await at ";
       std::string info =
@@ -155,6 +160,7 @@ Maybe<bool> ModuleWrap::CheckUnsettledTopLevelAwait() {
       reason += info;
       FPrintF(stderr, "%s\n", reason);
     }
+#endif
   }
 
   return Just(false);
@@ -503,9 +509,18 @@ void ModuleWrap::GetModuleRequests(const FunctionCallbackInfo<Value>& args) {
   ASSIGN_OR_RETURN_UNWRAP(&obj, that);
 
   Local<Module> module = obj->module_.Get(isolate);
-  args.GetReturnValue().Set(createModuleRequestsContainer(
-      realm, isolate, module->GetModuleRequests()));
+  Local<Array> result = createModuleRequestsContainer(
+      realm, isolate, module->GetModuleRequests());
+  args.GetReturnValue().Set(result);
 }
+
+#ifdef __wasi__
+static Local<String> WasmResolveCacheKey(Isolate* isolate,
+                                         const std::string& specifier) {
+  std::string name = "node:module_wrap.resolve:" + specifier;
+  return String::NewFromUtf8(isolate, name.c_str()).ToLocalChecked();
+}
+#endif
 
 // moduleWrap.link(specifiers, moduleWraps)
 void ModuleWrap::Link(const FunctionCallbackInfo<Value>& args) {
@@ -522,6 +537,7 @@ void ModuleWrap::Link(const FunctionCallbackInfo<Value>& args) {
   Local<Array> modules = args[1].As<Array>();
   CHECK_EQ(specifiers->Length(), modules->Length());
 
+#ifndef __wasi__
   std::vector<Global<Value>> specifiers_buffer;
   if (FromV8Array(context, specifiers, &specifiers_buffer).IsNothing()) {
     return;
@@ -530,19 +546,48 @@ void ModuleWrap::Link(const FunctionCallbackInfo<Value>& args) {
   if (FromV8Array(context, modules, &modules_buffer).IsNothing()) {
     return;
   }
+#endif
 
   for (uint32_t i = 0; i < specifiers->Length(); i++) {
+#ifdef __wasi__
+    Local<Value> specifier_value;
+    Local<Value> module_value;
+    bool specifier_ok =
+        specifiers->Get(context, i).ToLocal(&specifier_value);
+    bool module_ok = modules->Get(context, i).ToLocal(&module_value);
+    if (!specifier_ok || !module_ok || !specifier_value->IsString() ||
+        !module_value->IsObject()) {
+      return;
+    }
+    Local<String> specifier_str = specifier_value.As<String>();
+    Local<Object> module_object = module_value.As<Object>();
+#else
     Local<String> specifier_str =
         specifiers_buffer[i].Get(isolate).As<String>();
     Local<Object> module_object = modules_buffer[i].Get(isolate).As<Object>();
+#endif
 
+#ifdef __wasi__
+    ModuleWrap* module_wrap;
+    ASSIGN_OR_RETURN_UNWRAP(&module_wrap, module_object);
+    USE(module_wrap);
+#else
     CHECK(
         realm->isolate_data()->module_wrap_constructor_template()->HasInstance(
             module_object));
+#endif
 
     Utf8Value specifier(isolate, specifier_str);
-    dependent->resolve_cache_[specifier.ToString()].Reset(isolate,
-                                                          module_object);
+    std::string specifier_key = specifier.ToString();
+#ifdef __wasi__
+    Local<String> cache_key = WasmResolveCacheKey(isolate, specifier_key);
+    if (dependent->object()->Set(context, cache_key, module_object).IsNothing()) {
+      return;
+    }
+    dependent->resolve_cache_.try_emplace(specifier_key);
+#else
+    dependent->resolve_cache_[specifier_key].Reset(isolate, module_object);
+#endif
   }
 }
 
@@ -554,10 +599,24 @@ void ModuleWrap::Instantiate(const FunctionCallbackInfo<Value>& args) {
   Local<Context> context = obj->context();
   Local<Module> module = obj->module_.Get(isolate);
   TryCatchScope try_catch(realm->env());
-  USE(module->InstantiateModule(
-      context, ResolveModuleCallback, ResolveSourceCallback));
+  Maybe<bool> instantiate_result = module->InstantiateModule(
+      context, ResolveModuleCallback, ResolveSourceCallback);
+#ifdef __wasi__
+  if (instantiate_result.IsNothing() && !try_catch.HasCaught()) {
+    THROW_ERR_VM_MODULE_LINK_FAILURE(
+        realm->env(), "module instantiation failed without an exception");
+  }
+#else
+  USE(instantiate_result);
+#endif
 
   // clear resolve cache on instantiate
+#ifdef __wasi__
+  for (const auto& entry : obj->resolve_cache_) {
+    USE(obj->object()->Delete(context,
+                              WasmResolveCacheKey(isolate, entry.first)));
+  }
+#endif
   obj->resolve_cache_.clear();
 
   if (try_catch.HasCaught() && !try_catch.HasTerminated()) {
@@ -595,10 +654,30 @@ void ModuleWrap::Evaluate(const FunctionCallbackInfo<Value>& args) {
   }
 
   CHECK(args[1]->IsBoolean());
+#ifndef __wasi__
   bool break_on_sigint = args[1]->IsTrue();
+#endif
 
   ShouldNotAbortOnUncaughtScope no_abort_scope(realm->env());
   TryCatchScope try_catch(realm->env());
+
+#ifdef __wasi__
+  if (module->GetStatus() == Module::Status::kUninstantiated) {
+    Maybe<bool> instantiate_result = module->InstantiateModule(
+        context, ResolveModuleCallback, ResolveSourceCallback);
+    for (const auto& entry : obj->resolve_cache_) {
+      USE(obj->object()->Delete(context,
+                                WasmResolveCacheKey(isolate, entry.first)));
+    }
+    obj->resolve_cache_.clear();
+    if (instantiate_result.IsNothing() || !instantiate_result.FromJust()) {
+      if (try_catch.HasCaught() && !try_catch.HasTerminated()) {
+        try_catch.ReThrow();
+      }
+      return;
+    }
+  }
+#endif
 
   bool timed_out = false;
   bool received_signal = false;
@@ -609,14 +688,22 @@ void ModuleWrap::Evaluate(const FunctionCallbackInfo<Value>& args) {
       microtask_queue->PerformCheckpoint(isolate);
     return result;
   };
-  if (break_on_sigint && timeout != -1) {
+#ifdef __wasi__
+  // WASI cannot safely run the pthread-backed timeout and SIGINT watchdogs.
+  const bool use_timeout_watchdog = false;
+  const bool use_sigint_watchdog = false;
+#else
+  const bool use_timeout_watchdog = timeout != -1;
+  const bool use_sigint_watchdog = break_on_sigint;
+#endif
+  if (use_sigint_watchdog && use_timeout_watchdog) {
     Watchdog wd(isolate, timeout, &timed_out);
     SigintWatchdog swd(isolate, &received_signal);
     result = run();
-  } else if (break_on_sigint) {
+  } else if (use_sigint_watchdog) {
     SigintWatchdog swd(isolate, &received_signal);
     result = run();
-  } else if (timeout != -1) {
+  } else if (use_timeout_watchdog) {
     Watchdog wd(isolate, timeout, &timed_out);
     result = run();
   } else {
@@ -626,7 +713,6 @@ void ModuleWrap::Evaluate(const FunctionCallbackInfo<Value>& args) {
   if (result.IsEmpty()) {
     CHECK(try_catch.HasCaught());
   }
-
   // Convert the termination exception into a regular exception.
   if (timed_out || received_signal) {
     if (!realm->env()->is_main_thread() && realm->env()->is_stopping()) return;
@@ -667,8 +753,14 @@ void ModuleWrap::InstantiateSync(const FunctionCallbackInfo<Value>& args) {
     USE(module->InstantiateModule(
         context, ResolveModuleCallback, ResolveSourceCallback));
 
-    // clear resolve cache on instantiate
-    obj->resolve_cache_.clear();
+  // clear resolve cache on instantiate
+#ifdef __wasi__
+  for (const auto& entry : obj->resolve_cache_) {
+    USE(obj->object()->Delete(context,
+                              WasmResolveCacheKey(isolate, entry.first)));
+  }
+#endif
+  obj->resolve_cache_.clear();
 
     if (try_catch.HasCaught() && !try_catch.HasTerminated()) {
       CHECK(!try_catch.Message().IsEmpty());
@@ -911,12 +1003,45 @@ MaybeLocal<Module> ModuleWrap::ResolveModuleCallback(
     return MaybeLocal<Module>();
   }
 
-  if (dependent->resolve_cache_.count(specifier_std) != 1) {
+#ifdef __wasi__
+  std::string cache_specifier = specifier_std;
+  if (dependent->resolve_cache_.count(cache_specifier) != 1) {
+    std::string alternate_specifier;
+    if (cache_specifier.starts_with("node:")) {
+      alternate_specifier = cache_specifier.substr(5);
+    } else {
+      alternate_specifier = "node:" + cache_specifier;
+    }
+    if (dependent->resolve_cache_.count(alternate_specifier) == 1) {
+      cache_specifier = std::move(alternate_specifier);
+    }
+  }
+#else
+  const std::string& cache_specifier = specifier_std;
+#endif
+  if (dependent->resolve_cache_.count(cache_specifier) != 1) {
     THROW_ERR_VM_MODULE_LINK_FAILURE(
         env, "request for '%s' is not in cache", specifier_std);
     return MaybeLocal<Module>();
   }
 
+#ifdef __wasi__
+  Local<Value> cached_module;
+  bool cache_read_ok =
+      dependent->object()
+          ->Get(context, WasmResolveCacheKey(isolate, cache_specifier))
+          .ToLocal(&cached_module);
+  if (!cache_read_ok ||
+      !cached_module->IsObject()) {
+    THROW_ERR_VM_MODULE_LINK_FAILURE(
+        env, "request for '%s' is not in private cache", specifier_std);
+    return MaybeLocal<Module>();
+  }
+  Local<Object> module_object = cached_module.As<Object>();
+  ModuleWrap* module;
+  ASSIGN_OR_RETURN_UNWRAP(&module, module_object, MaybeLocal<Module>());
+  return module->module_.Get(isolate);
+#else
   Local<Object> module_object =
       dependent->resolve_cache_[specifier_std].Get(isolate);
   if (module_object.IsEmpty() || !module_object->IsObject()) {
@@ -928,6 +1053,7 @@ MaybeLocal<Module> ModuleWrap::ResolveModuleCallback(
   ModuleWrap* module;
   ASSIGN_OR_RETURN_UNWRAP(&module, module_object, MaybeLocal<Module>());
   return module->module_.Get(isolate);
+#endif
 }
 
 MaybeLocal<Object> ModuleWrap::ResolveSourceCallback(
@@ -1017,6 +1143,11 @@ static MaybeLocal<Promise> ImportModuleDynamicallyWithPhase(
                   .ToLocal(&id)) {
     return MaybeLocal<Promise>();
   }
+#ifdef __wasi__
+  if (id.IsEmpty() || id->IsUndefined()) {
+    id = env->vm_dynamic_import_default_internal();
+  }
+#endif
 
   Local<Object> attributes =
       createImportAttributesContainer(realm, isolate, import_attributes, 2);
@@ -1293,6 +1424,12 @@ void ModuleWrap::CreatePerIsolateProperties(IsolateData* isolate_data,
                                             Local<ObjectTemplate> target) {
   Isolate* isolate = isolate_data->isolate();
 
+  isolate->SetHostImportModuleDynamicallyCallback(ImportModuleDynamically);
+  isolate->SetHostImportModuleWithPhaseDynamicallyCallback(
+      ImportModuleDynamicallyWithPhase);
+  isolate->SetHostInitializeImportMetaObjectCallback(
+      HostInitializeImportMetaObjectCallback);
+
   Local<FunctionTemplate> tpl = NewFunctionTemplate(isolate, New);
   tpl->InstanceTemplate()->SetInternalFieldCount(
       ModuleWrap::kInternalFieldCount);
@@ -1338,15 +1475,11 @@ void ModuleWrap::CreatePerContextProperties(Local<Object> target,
   Realm* realm = Realm::GetCurrent(context);
   Isolate* isolate = realm->isolate();
 #define V(enum_type, name)                                                     \
-  fprintf(stderr, "ModuleWrap::CreatePerContextProperties begin %s\n", #name); \
-  fflush(stderr);                                                              \
   target                                                                       \
       ->Set(context,                                                           \
             FIXED_ONE_BYTE_STRING(isolate, #name),                             \
             Integer::New(isolate, enum_type::name))                            \
-      .FromJust();                                                             \
-  fprintf(stderr, "ModuleWrap::CreatePerContextProperties done %s\n", #name);  \
-  fflush(stderr)
+      .FromJust()
   V(Module::Status, kUninstantiated);
   V(Module::Status, kInstantiating);
   V(Module::Status, kInstantiated);

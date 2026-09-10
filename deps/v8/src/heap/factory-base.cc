@@ -156,6 +156,18 @@ Handle<Code> FactoryBase<Impl>::NewCode(const NewCodeOptions& options) {
 
   wrapper->set_code(code);
   code->set_wrapper(*wrapper);
+#if 0  // Temporary wasm32 heap diagnostics disabled.
+  if (code->wrapper() != *wrapper || !IsCodeWrapper(code->wrapper())) {
+    std::fprintf(stderr,
+                 "WASM32_BAD_CODE_WRAPPER_CREATE code=0x%x expected=0x%x "
+                 "stored=0x%x offset=%d\n",
+                 static_cast<unsigned>(code.ptr()),
+                 static_cast<unsigned>((*wrapper).ptr()),
+                 static_cast<unsigned>(code->wrapper().ptr()),
+                 Code::kWrapperOffset);
+    std::fflush(stderr);
+  }
+#endif
 
   code->clear_padding();
   return handle(code, isolate());
@@ -1200,11 +1212,17 @@ FactoryBase<Impl>::AllocateRawOneByteInternalizedString(
 
   Tagged<Map> map = read_only_roots().internalized_one_byte_string_map();
   const int size = SeqOneByteString::SizeFor(length);
-  const AllocationType allocation =
-      RefineAllocationTypeForInPlaceInternalizableString(
-          impl()->CanAllocateInReadOnlySpace() ? AllocationType::kReadOnly
-                                               : AllocationType::kOld,
-          map);
+  AllocationType allocation = impl()->CanAllocateInReadOnlySpace()
+                                  ? AllocationType::kReadOnly
+                                  : AllocationType::kOld;
+#ifdef __wasi__
+  if (allocation == AllocationType::kReadOnly &&
+      size > isolate()->heap()->AsHeap()->MaxRegularHeapObjectSize(allocation)) {
+    allocation = AllocationType::kOld;
+  }
+#endif
+  allocation =
+      RefineAllocationTypeForInPlaceInternalizableString(allocation, map);
   Tagged<HeapObject> result = AllocateRawWithImmortalMap(size, allocation, map);
   Tagged<SeqOneByteString> answer = Cast<SeqOneByteString>(result);
   DisallowGarbageCollection no_gc;

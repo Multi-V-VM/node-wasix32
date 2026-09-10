@@ -8,9 +8,7 @@
 
 #include <memory>
 
-#include "v8-platform-full.h"
-#include "v8-tracing.h"
-#include "v8-task-full.h"
+#include "v8-platform-original.h"
 
 namespace v8 {
 namespace platform {

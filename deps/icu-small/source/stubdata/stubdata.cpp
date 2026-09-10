@@ -1,12 +1,27 @@
-// Force empty compilation to avoid section size issues
-#if 0
-extern "C" {
-  const unsigned char icudt77_dat[] = {
-    0x27, 0x00, 0xDA, 0x27,  // ICU data header magic
-    0x00, 0x00, 0x00, 0x00,  // Header size
-    0x00, 0x00, 0x00, 0x02,  // Data format
-    0x00, 0x00, 0x00, 0x00   // Minimal data
-  };
-  const unsigned int icudt77_dat_size = sizeof(icudt77_dat);
-}
+#include "stubdata.h"
+
+#ifndef __wasi__
+
+extern "C" U_EXPORT const ICU_Data_Header U_ICUDATA_ENTRY_POINT alignas(16) = {
+    32,
+    0xda,
+    0x27,
+    {sizeof(UDataInfo),
+     0,
+#if U_IS_BIG_ENDIAN
+     1,
+#else
+     0,
 #endif
+     U_CHARSET_FAMILY,
+     sizeof(char16_t),
+     0,
+     {0x54, 0x6f, 0x43, 0x50},
+     {1, 0, 0, 0},
+     {0, 0, 0, 0}},
+    {'s', 't', 'u', 'b', 'd', 'a', 't', 'a'},
+    0,
+    0,
+    {0, 0}};
+
+#endif  // !__wasi__
